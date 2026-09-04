@@ -3,15 +3,7 @@ import { createPortal } from 'react-dom';
 import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, TrendingUp, X, Search, Tag, Filter, Image, Paperclip, Star, History, Clock, Bold, Underline, Strikethrough, Type, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
-
-interface AdminGroup {
-  admin_id: string;
-  admin_username: string;
-  admin_role: string;
-  employee_count: number;
-  customer_count: number;
-  conversation_count: number;
-}
+import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
 
 interface SimulatedCustomer {
   id: string;
@@ -2164,110 +2156,40 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     });
   };
 
+  if (loading && isSuperAdmin && !selectedAdminId && !initialEmployee) {
+    return (
+      <AdminGroupPicker
+        service="customer"
+        groups={adminGroups}
+        unreadCounts={adminUnreadCounts}
+        loading
+        onSelect={handleAdminGroupSelect}
+        onRefresh={() => { void loadAdminGroups(); }}
+      />
+    );
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-white text-lg">Loading...</div>
+      <div className="flex flex-1 items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-slate-400">
+          <div className="h-9 w-9 animate-spin rounded-full border-2 border-orange-400/20 border-t-orange-400" />
+          <span className="text-sm">Loading workspace...</span>
+        </div>
       </div>
     );
   }
 
   if (isSuperAdmin && !selectedAdminId && !initialEmployee) {
     return (
-      <div className="space-y-6">
-        <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-6">
-
-          <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-800/80">
-                  <th className="text-left py-4 px-6 text-slate-300 font-semibold">Admin</th>
-                  <th className="text-center py-4 px-6 text-slate-300 font-semibold">Role</th>
-                  <th className="text-center py-4 px-6 text-slate-300 font-semibold">Employees</th>
-                  <th className="text-center py-4 px-6 text-slate-300 font-semibold">Customers</th>
-                  <th className="text-center py-4 px-6 text-slate-300 font-semibold">Messages</th>
-                  <th className="text-right py-4 px-6 text-slate-300 font-semibold">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {adminGroups.map((group, index) => (
-                  <tr
-                    key={group.admin_id}
-                    className={`border-t border-slate-700/50 hover:bg-slate-700/30 transition-colors ${
-                      index % 2 === 0 ? 'bg-slate-800/20' : 'bg-slate-800/10'
-                    }`}
-                  >
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-600/30 to-cyan-600/30 rounded-lg flex items-center justify-center">
-                          <User className="w-5 h-5 text-blue-400" />
-                        </div>
-                        <span className="text-white font-medium">{group.admin_username}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="inline-block px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-medium">
-                        {group.admin_role}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="text-white font-semibold">{group.employee_count}</span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="text-white font-semibold">{group.customer_count}</span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="text-white font-semibold">{group.conversation_count}</span>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="relative inline-block">
-                        <button
-                          onClick={() => handleAdminGroupSelect(group)}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg transition-all font-medium"
-                        >
-                          Manage
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                        {/* Unread Messages Badge */}
-                        {adminUnreadCounts[group.admin_id] && adminUnreadCounts[group.admin_id] > 0 && (
-                          <div className="absolute -top-2 -right-2 min-w-[24px] h-6 px-1.5 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center shadow-xl shadow-red-500/60 border-2 border-slate-900 z-10 animate-pulse">
-                            <span className="text-xs font-bold text-white leading-none">
-                              {adminUnreadCounts[group.admin_id] > 99 ? '99+' : adminUnreadCounts[group.admin_id]}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {adminGroups.length === 0 && (
-              <div className="text-center py-12 text-slate-400">
-                <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p>No admin groups found</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {notification && createPortal(
-          <div className={`fixed top-4 right-4 z-[100000] px-4 py-3 rounded-xl shadow-2xl border backdrop-blur-md transition-all animate-[slideInRight_0.3s_ease-out] ${
-            notification.type === 'success'
-              ? 'bg-green-500/90 text-white border-green-400/50 shadow-green-500/30'
-              : 'bg-red-500/90 text-white border-red-400/50 shadow-red-500/30'
-          }`}>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold">{notification.text}</span>
-              <button onClick={() => setNotification(null)} className="ml-2 p-0.5 hover:bg-white/20 rounded transition-colors">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>,
-          document.body
-        )}
-      </div>
+      <AdminGroupPicker
+        service="customer"
+        groups={adminGroups}
+        unreadCounts={adminUnreadCounts}
+        loading={false}
+        onSelect={handleAdminGroupSelect}
+        onRefresh={() => { void loadAdminGroups(); }}
+      />
     );
   }
 
