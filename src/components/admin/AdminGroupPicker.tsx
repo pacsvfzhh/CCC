@@ -61,7 +61,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
 
   return (
     <div className="flex min-h-0 flex-1 flex-col text-slate-100">
-      <section className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border bg-slate-950/65 shadow-2xl ${styles.border}`}>
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className={`relative flex shrink-0 flex-col gap-4 border-b px-4 py-4 sm:px-6 sm:py-5 ${styles.border}`}>
           <div className={`absolute inset-x-0 top-0 h-px ${styles.rail}`} />
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -99,7 +99,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto scrollbar-dark p-2 sm:p-3">
+        <div className="min-h-0 flex-1 overflow-y-auto scrollbar-dark p-0 sm:p-1">
           {loading ? (
             <div className={`divide-y overflow-hidden rounded-xl border bg-slate-900/45 ${styles.border}`}>
               {[0, 1, 2, 3, 4].map(index => (
