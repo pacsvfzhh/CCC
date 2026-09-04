@@ -576,17 +576,23 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           </aside>
 
           {/* Mobile: Horizontal Scrolling Tabs */}
-          <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'messages' ? 'lg:overflow-hidden' : 'lg:overflow-y-auto'} scrollbar-hide`} style={activeTab === 'cccservice' ? {
+          <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'messages' ? 'lg:overflow-hidden' : 'lg:overflow-y-auto'} scrollbar-hide`} style={activeTab === 'customerservice' ? {
+            background: `
+              radial-gradient(ellipse 80% 60% at 10% 15%, rgba(244,63,94,0.32) 0%, transparent 50%),
+              radial-gradient(ellipse 60% 50% at 80% 10%, rgba(239,68,68,0.28) 0%, transparent 50%),
+              radial-gradient(ellipse 70% 70% at 50% 55%, rgba(190,24,93,0.22) 0%, transparent 50%),
+              radial-gradient(ellipse 50% 60% at 90% 80%, rgba(225,29,72,0.25) 0%, transparent 50%),
+              radial-gradient(ellipse 55% 80% at 20% 85%, rgba(159,18,57,0.28) 0%, transparent 50%),
+              linear-gradient(135deg, #2b1118 0%, #3b121f 25%, #32121d 50%, #4c1424 75%, #261018 100%)
+            `
+          } : activeTab === 'cccservice' ? {
             background: `
               radial-gradient(ellipse 80% 60% at 10% 15%, rgba(34,197,94,0.35) 0%, transparent 50%),
-              radial-gradient(ellipse 60% 50% at 80% 10%, rgba(59,130,246,0.35) 0%, transparent 50%),
-              radial-gradient(ellipse 70% 70% at 50% 55%, rgba(245,158,11,0.28) 0%, transparent 50%),
-              radial-gradient(ellipse 50% 60% at 90% 80%, rgba(236,72,153,0.28) 0%, transparent 50%),
-              radial-gradient(ellipse 55% 80% at 20% 85%, rgba(6,182,212,0.3) 0%, transparent 50%),
-              radial-gradient(ellipse 40% 40% at 65% 30%, rgba(248,113,113,0.25) 0%, transparent 50%),
-              radial-gradient(ellipse 45% 50% at 35% 45%, rgba(168,85,247,0.22) 0%, transparent 50%),
-              radial-gradient(ellipse 60% 45% at 75% 65%, rgba(34,211,238,0.25) 0%, transparent 50%),
-              linear-gradient(135deg, #1a2e1a 0%, #1e3a2e 15%, #2e1a1a 30%, #1a1e3a 45%, #3a2e1a 60%, #1a3a2e 75%, #2e1a3a 90%, #1a2e1a 100%)
+              radial-gradient(ellipse 60% 50% at 80% 10%, rgba(16,185,129,0.28) 0%, transparent 50%),
+              radial-gradient(ellipse 70% 70% at 50% 55%, rgba(5,150,105,0.22) 0%, transparent 50%),
+              radial-gradient(ellipse 50% 60% at 90% 80%, rgba(22,163,74,0.25) 0%, transparent 50%),
+              radial-gradient(ellipse 55% 80% at 20% 85%, rgba(6,95,70,0.28) 0%, transparent 50%),
+              linear-gradient(135deg, #0d261c 0%, #10382a 25%, #0f3024 50%, #124d35 75%, #0b2119 100%)
             `
           } : undefined}>
             <div className="lg:hidden flex gap-2 px-3 pt-4 pb-2 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>

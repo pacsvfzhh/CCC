@@ -2279,35 +2279,35 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           <button
             type="button"
             onClick={handleBackToGroups}
-            className="flex items-center gap-1.5 px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-colors text-xs font-medium flex-shrink-0 border border-orange-400/60 shadow-md shadow-orange-600/30"
+            className="flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors text-xs font-medium flex-shrink-0 border border-rose-300/70 shadow-md shadow-rose-600/30"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
         )}
         {isSuperAdmin && selectedAdminId && (
-          <div className="flex items-center gap-2 px-3 h-10 bg-blue-900/30 border border-blue-500/30 rounded-lg flex-shrink-0">
+          <div className="flex items-center gap-2 px-3 h-10 bg-rose-950/50 border border-rose-400/50 rounded-lg flex-shrink-0">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
-            <span className="text-[10px] font-bold text-blue-300 uppercase tracking-wider flex-shrink-0">Managing</span>
-            <div className="h-4 w-px bg-blue-500/30 flex-shrink-0"></div>
-            <div className="p-1 bg-gradient-to-br from-blue-500 to-cyan-500 rounded flex-shrink-0">
+            <span className="text-[10px] font-bold text-rose-200 uppercase tracking-wider flex-shrink-0">Managing</span>
+            <div className="h-4 w-px bg-rose-400/40 flex-shrink-0"></div>
+            <div className="p-1 bg-gradient-to-br from-rose-500 to-red-500 rounded flex-shrink-0">
               <User className="w-3 h-3 text-white" />
             </div>
             <span className="text-sm font-bold text-white truncate">{selectedAdminName}</span>
           </div>
         )}
         {selectedEmployee && (
-          <div className="flex items-center gap-2 px-3 h-10 bg-[#15803d] border border-[#15803d] rounded-lg flex-shrink-0">
-            <div className="w-7 h-7 bg-[#dcfce7] rounded-md flex items-center justify-center flex-shrink-0">
-              <MessageCircle className="w-3.5 h-3.5 text-[#15803d]" />
+          <div className="flex items-center gap-2 px-3 h-10 bg-rose-700 border border-rose-400/70 rounded-lg flex-shrink-0">
+            <div className="w-7 h-7 bg-rose-100 rounded-md flex items-center justify-center flex-shrink-0">
+              <MessageCircle className="w-3.5 h-3.5 text-rose-700" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold text-white leading-none truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{selectedEmployee?.username} <span className="text-[10px] font-medium text-[#bbf7d0]">ID: {selectedEmployee?.employee_id}</span></div>
+              <div className="text-sm font-bold text-white leading-none truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{selectedEmployee?.username} <span className="text-[10px] font-medium text-rose-100">ID: {selectedEmployee?.employee_id}</span></div>
             </div>
             <button
               type="button"
               onClick={() => setSelectedEmployee(null)}
-              className="ml-1 p-1 hover:bg-[#166534] rounded-md transition-colors text-[#bbf7d0] hover:text-white"
+              className="ml-1 p-1 hover:bg-rose-800 rounded-md transition-colors text-rose-100 hover:text-white"
               title="Clear selection"
             >
               <X className="w-4 h-4" />
@@ -2324,8 +2324,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   onClick={() => { loadAllConversationHistory(); setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('all'); setHistoryScope('all'); historyScrollTopRef.current = 0; }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
                     showHistoryView && historyScope === 'all' && historyFilterMode !== 'new'
-                      ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/40 border-cyan-400'
-                      : 'bg-cyan-600/20 hover:bg-cyan-500/30 border-cyan-500/40 hover:border-cyan-400/60 text-cyan-300 hover:text-cyan-100 shadow-lg shadow-cyan-900/20 hover:shadow-cyan-800/30'
+                      ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/40 border-rose-300'
+                      : 'bg-rose-950/50 hover:bg-rose-800/50 border-rose-500/50 hover:border-rose-300/70 text-rose-200 hover:text-rose-100 shadow-lg shadow-rose-950/30 hover:shadow-rose-900/40'
                   }`}
                 >
                   <Clock className="w-4 h-4" />
@@ -2333,8 +2333,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   {allConversationHistory.length > 0 && (
                     <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black min-w-[24px] text-center ${
                       showHistoryView && historyScope === 'all' && historyFilterMode !== 'new'
-                        ? 'bg-white text-cyan-700'
-                        : 'bg-cyan-500 text-white'
+                        ? 'bg-white text-rose-700'
+                        : 'bg-rose-500 text-white'
                     }`}>{allConversationHistory.length}</span>
                   )}
                 </button>
@@ -2343,8 +2343,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   onClick={() => { loadAllConversationHistory(); setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('new'); setHistoryScope('all'); historyScrollTopRef.current = 0; }}
                   className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
                     showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
-                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/40 border-orange-400'
-                      : 'bg-orange-600/20 hover:bg-orange-500/30 border-orange-500/40 hover:border-orange-400/60 text-orange-300 hover:text-orange-100 shadow-lg shadow-orange-900/20 hover:shadow-orange-800/30'
+                      ? 'bg-red-600 text-white shadow-lg shadow-red-500/40 border-red-300'
+                      : 'bg-red-950/50 hover:bg-red-800/50 border-red-500/50 hover:border-red-300/70 text-red-200 hover:text-red-100 shadow-lg shadow-red-950/30 hover:shadow-red-900/40'
                   }`}
                 >
                   <MessageSquarePlus className="w-4 h-4" />
@@ -2352,12 +2352,12 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   {totalUnread > 0 && (
                     <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black min-w-[24px] text-center ${
                       showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
-                        ? 'bg-white text-orange-700'
-                        : 'bg-orange-500 text-white'
+                        ? 'bg-white text-red-700'
+                        : 'bg-red-500 text-white'
                     }`}>{totalUnread}</span>
                   )}
                   {totalUnread > 0 && !(showHistoryView && historyScope === 'all' && historyFilterMode === 'new') && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse"></span>
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
                   )}
                 </button>
               </>

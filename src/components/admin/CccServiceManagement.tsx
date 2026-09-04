@@ -2666,54 +2666,42 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   }
 
   return (
-    <div ref={containerRef} className="flex-1 min-h-0 relative flex flex-col gap-2 overflow-hidden" style={{
-      height: '100%',
-      background: `
-        radial-gradient(ellipse 80% 60% at 15% 20%, rgba(34,197,94,0.25) 0%, transparent 50%),
-        radial-gradient(ellipse 70% 50% at 75% 15%, rgba(59,130,246,0.25) 0%, transparent 50%),
-        radial-gradient(ellipse 60% 70% at 50% 60%, rgba(245,158,11,0.2) 0%, transparent 50%),
-        radial-gradient(ellipse 90% 40% at 85% 80%, rgba(236,72,153,0.2) 0%, transparent 50%),
-        radial-gradient(ellipse 50% 80% at 25% 85%, rgba(139,92,246,0.2) 0%, transparent 50%),
-        radial-gradient(ellipse 40% 40% at 60% 35%, rgba(6,182,212,0.2) 0%, transparent 50%),
-        radial-gradient(ellipse 55% 55% at 40% 50%, rgba(248,113,113,0.15) 0%, transparent 50%),
-        linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #1a1a2e 50%, #0f3460 75%, #1a1a2e 100%)
-      `
-    }}>
+    <div ref={containerRef} className="flex-1 min-h-0 relative flex flex-col gap-2 overflow-hidden">
       {/* Info Bar + History/New Buttons in one row */}
       <div className="flex items-center gap-2 flex-shrink-0">
         {isSuperAdmin && selectedAdminId && (
           <button
             type="button"
             onClick={handleBackToGroups}
-            className="flex items-center gap-1.5 px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-colors text-xs font-medium flex-shrink-0 border border-orange-400/60 shadow-md shadow-orange-600/30"
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors text-xs font-medium flex-shrink-0 border border-emerald-300/70 shadow-md shadow-emerald-600/30"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
         )}
         {isSuperAdmin && selectedAdminId && (
-          <div className="flex items-center gap-2 px-3 h-10 bg-blue-900/30 border border-blue-500/30 rounded-lg flex-shrink-0">
+          <div className="flex items-center gap-2 px-3 h-10 bg-emerald-950/50 border border-emerald-400/50 rounded-lg flex-shrink-0">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
-            <span className="text-[10px] font-bold text-blue-300 uppercase tracking-wider flex-shrink-0">Managing</span>
-            <div className="h-4 w-px bg-blue-500/30 flex-shrink-0"></div>
-            <div className="p-1 bg-gradient-to-br from-blue-500 to-cyan-500 rounded flex-shrink-0">
+            <span className="text-[10px] font-bold text-emerald-200 uppercase tracking-wider flex-shrink-0">Managing</span>
+            <div className="h-4 w-px bg-emerald-400/40 flex-shrink-0"></div>
+            <div className="p-1 bg-gradient-to-br from-emerald-500 to-green-500 rounded flex-shrink-0">
               <User className="w-3 h-3 text-white" />
             </div>
             <span className="text-sm font-bold text-white truncate">{selectedAdminName}</span>
           </div>
         )}
         {selectedEmployee && (
-          <div className="flex items-center gap-2 px-3 h-10 bg-[#15803d] border border-[#15803d] rounded-lg flex-shrink-0">
-            <div className="w-7 h-7 bg-[#dcfce7] rounded-md flex items-center justify-center flex-shrink-0">
-              <MessageCircle className="w-3.5 h-3.5 text-[#15803d]" />
+          <div className="flex items-center gap-2 px-3 h-10 bg-emerald-700 border border-emerald-400/70 rounded-lg flex-shrink-0">
+            <div className="w-7 h-7 bg-emerald-100 rounded-md flex items-center justify-center flex-shrink-0">
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold text-white leading-none truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{selectedEmployee?.username} <span className="text-[10px] font-medium text-[#bbf7d0]">ID: {selectedEmployee?.employee_id}</span></div>
+              <div className="text-sm font-bold text-white leading-none truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{selectedEmployee?.username} <span className="text-[10px] font-medium text-emerald-100">ID: {selectedEmployee?.employee_id}</span></div>
             </div>
             <button
               type="button"
               onClick={() => setSelectedEmployee(null)}
-              className="ml-1 p-1 hover:bg-[#166534] rounded-md transition-colors text-[#bbf7d0] hover:text-white"
+              className="ml-1 p-1 hover:bg-emerald-800 rounded-md transition-colors text-emerald-100 hover:text-white"
               title="Clear selection"
             >
               <X className="w-4 h-4" />
@@ -2730,8 +2718,8 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   onClick={() => { loadAllConversationHistory(); setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('all'); setHistoryScope('all'); historyScrollTopRef.current = 0; }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
                     showHistoryView && historyScope === 'all' && historyFilterMode !== 'new'
-                      ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/40 border-cyan-400'
-                      : 'bg-cyan-600/20 hover:bg-cyan-500/30 border-cyan-500/40 hover:border-cyan-400/60 text-cyan-300 hover:text-cyan-100 shadow-lg shadow-cyan-900/20 hover:shadow-cyan-800/30'
+                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/40 border-emerald-300'
+                      : 'bg-emerald-950/50 hover:bg-emerald-800/50 border-emerald-500/50 hover:border-emerald-300/70 text-emerald-200 hover:text-emerald-100 shadow-lg shadow-emerald-950/30 hover:shadow-emerald-900/40'
                   }`}
                 >
                   <Clock className="w-4 h-4" />
@@ -2739,8 +2727,8 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   {allConversationHistory.length > 0 && (
                     <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black min-w-[24px] text-center ${
                       showHistoryView && historyScope === 'all' && historyFilterMode !== 'new'
-                        ? 'bg-white text-cyan-700'
-                        : 'bg-cyan-500 text-white'
+                        ? 'bg-white text-emerald-700'
+                        : 'bg-emerald-500 text-white'
                     }`}>{allConversationHistory.length}</span>
                   )}
                 </button>
@@ -2749,8 +2737,8 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   onClick={() => { loadAllConversationHistory(); setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('new'); setHistoryScope('all'); historyScrollTopRef.current = 0; }}
                   className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
                     showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
-                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/40 border-orange-400'
-                      : 'bg-orange-600/20 hover:bg-orange-500/30 border-orange-500/40 hover:border-orange-400/60 text-orange-300 hover:text-orange-100 shadow-lg shadow-orange-900/20 hover:shadow-orange-800/30'
+                      ? 'bg-green-600 text-white shadow-lg shadow-green-500/40 border-green-300'
+                      : 'bg-green-950/50 hover:bg-green-800/50 border-green-500/50 hover:border-green-300/70 text-green-200 hover:text-green-100 shadow-lg shadow-green-950/30 hover:shadow-green-900/40'
                   }`}
                 >
                   <MessageSquarePlus className="w-4 h-4" />
@@ -2758,12 +2746,12 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   {totalUnread > 0 && (
                     <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black min-w-[24px] text-center ${
                       showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
-                        ? 'bg-white text-orange-700'
-                        : 'bg-orange-500 text-white'
+                        ? 'bg-white text-green-700'
+                        : 'bg-green-500 text-white'
                     }`}>{totalUnread}</span>
                   )}
                   {totalUnread > 0 && !(showHistoryView && historyScope === 'all' && historyFilterMode === 'new') && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse"></span>
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
                   )}
                 </button>
               </>
