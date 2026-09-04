@@ -1872,7 +1872,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     <div className="flex flex-col flex-1 min-h-0">
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
-        <div className="relative z-20 flex items-center bg-slate-800 border border-slate-700/80 rounded-xl overflow-hidden shrink-0 sticky top-0 mb-1">
+        <div className="relative z-20 flex items-center bg-slate-800 border border-slate-700/80 rounded-none overflow-hidden shrink-0 sticky top-0 mb-1">
           <div className="relative flex-1 min-w-[160px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
@@ -1947,7 +1947,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               {renderCreateForm(admin.id)}
             </div>
           ) : (
-            <div className="bg-gradient-to-br from-blue-500/5 via-slate-800/40 to-slate-800/40 border-2 border-blue-500/30 shadow-lg shadow-blue-500/10 rounded-xl overflow-hidden flex flex-col flex-1 min-h-0">
+            <div className="bg-gradient-to-br from-blue-500/5 via-slate-800/40 to-slate-800/40 border-2 border-blue-500/30 shadow-lg shadow-blue-500/10 rounded-none overflow-hidden flex flex-col flex-1 min-h-0">
               {/* Summary stats */}
               {(() => {
                 const allEmps = employeeGroups[0]?.employees || [];
@@ -1980,7 +1980,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           onChange={(e) => setSearchTerm(e.target.value)}
                           placeholder="Search employees..."
                           autoComplete="off"
-                          className="w-[200px] pl-9 pr-8 py-1.5 bg-slate-800/80 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-[200px] pl-9 pr-8 py-1.5 bg-slate-800/80 border border-slate-600 rounded-none text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         />
                         {searchTerm && (
                           <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
@@ -1988,7 +1988,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           </button>
                         )}
                       </div>
-                      <div className="flex items-center bg-gradient-to-r from-slate-800 to-slate-800/90 border border-blue-500/30 rounded-xl overflow-hidden shadow-lg shadow-blue-500/5">
+                      <div className="flex items-center bg-gradient-to-r from-slate-800 to-slate-800/90 border border-blue-500/30 rounded-none overflow-hidden shadow-lg shadow-blue-500/5">
                         <div className="flex items-center gap-2 px-3.5 py-2 w-[100px] justify-center">
                           <Clock className="w-4 h-4 text-blue-400 shrink-0" />
                           <span className="text-sm text-blue-300 font-mono font-bold tabular-nums w-[36px] text-center">{formatCountdown()}s</span>
@@ -2033,7 +2033,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   </div>
                   )}
                   <div className="ml-auto flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/80 border border-slate-600/50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/80 border border-slate-600/50 rounded-none">
                       <Users className="w-3.5 h-3.5 text-blue-400" />
                       <span className="text-sm font-semibold text-white">{flatFilteredEmployees.length}</span>
                       <span className="text-xs text-slate-400">/ {employeeGroups[0]?.employees.length || 0} shown</span>
@@ -2073,7 +2073,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               <div
                 key={group.admin.id}
                 ref={searchTerm && gIdx === 0 ? firstMatchRef : null}
-                className={`rounded-xl overflow-hidden transition-all duration-300 ${
+                className={`rounded-none overflow-hidden transition-all duration-300 ${
                   isSuperGroup
                     ? 'bg-gradient-to-br from-yellow-500/5 via-slate-800/40 to-slate-800/40 border-2 border-yellow-500/30 shadow-lg shadow-yellow-500/10'
                     : 'bg-gradient-to-br from-blue-500/5 via-slate-800/40 to-slate-800/40 border-2 border-blue-500/30 shadow-lg shadow-blue-500/10'
