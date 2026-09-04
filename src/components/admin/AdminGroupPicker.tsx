@@ -64,12 +64,12 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className={`relative flex shrink-0 flex-col gap-4 border-b px-4 py-4 sm:px-6 sm:py-5 ${styles.border}`}>
           <div className={`absolute inset-x-0 top-0 h-px ${styles.rail}`} />
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:gap-8">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${styles.headerIcon}`}>
                 <Icon className="h-5 w-5" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-lg font-semibold tracking-tight text-white">Admin workspaces</h2>
                   <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${styles.chip}`}>{groups.length} available</span>
