@@ -1645,12 +1645,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         </button>
       </td>
       <td className="py-0.5 px-2 relative group/tags" onClick={(e) => e.stopPropagation()}>
-        <div className="flex flex-wrap gap-0.5 max-w-[120px]">
-          {(employee.tags || []).slice(0, 2).map((tag, idx) => (
-            <span key={idx} className="px-1.5 py-0 bg-amber-500/20 text-amber-400 text-[10px] font-medium rounded-full border border-amber-500/30 max-w-[60px] truncate inline-block align-middle">{tag}</span>
-          ))}
-          {(employee.tags || []).length > 2 && <span className="text-[10px] text-slate-500">+{(employee.tags || []).length - 2}</span>}
-          <button onClick={() => setEditingTags(employee)} className="px-1 py-0 bg-slate-700 hover:bg-slate-600 text-slate-400 text-[10px] rounded-full transition-colors">
+        <div className="flex items-center gap-0.5 max-w-[120px] min-w-0 overflow-hidden whitespace-nowrap" title={(employee.tags || []).join(', ')}>
+          {(employee.tags || []).length > 0 && (
+            <span className="min-w-0 flex-1 px-1.5 py-0 bg-amber-500/20 text-amber-400 text-[10px] font-medium rounded-full border border-amber-500/30 truncate">
+              {(employee.tags || [])[0]}
+            </span>
+          )}
+          {(employee.tags || []).length > 1 && <span className="flex-shrink-0 text-[10px] text-slate-500">+{(employee.tags || []).length - 1}</span>}
+          <button onClick={() => setEditingTags(employee)} className="flex-shrink-0 px-1 py-0 bg-slate-700 hover:bg-slate-600 text-slate-400 text-[10px] rounded-full transition-colors">
             <Tag className="w-2.5 h-2.5 inline" />+
           </button>
         </div>
