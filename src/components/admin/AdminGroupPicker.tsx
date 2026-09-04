@@ -64,8 +64,8 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
       <section className="flex min-h-0 flex-1 flex-col">
         <header className={`relative flex shrink-0 flex-col gap-4 border-b px-4 py-4 sm:px-6 sm:py-5 ${styles.border}`}>
           <div className={`absolute inset-x-0 top-0 h-px ${styles.rail}`} />
-          <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:gap-8">
-            <div className="flex min-w-0 flex-1 items-center gap-3 xl:max-w-[680px]">
+          <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${styles.headerIcon}`}>
                 <Icon className="h-5 w-5" />
               </div>
@@ -74,26 +74,26 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
                   <h2 className="text-lg font-semibold tracking-tight text-white">Admin workspaces</h2>
                   <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${styles.chip}`}>{groups.length} available</span>
                 </div>
-                <p className="mt-1 max-w-full break-words text-sm font-medium leading-5 text-slate-300">Select a workspace to enter its live service console · {totalMessages} conversations across all workspaces.</p>
+                <p className="mt-1 max-w-[560px] break-words text-xs font-medium leading-5 text-slate-300">Select a workspace to enter its live service console · {totalMessages} conversations across all workspaces.</p>
               </div>
             </div>
 
-            <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-              <div className={`rounded-xl border px-3 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-300/75"><Users className="h-3.5 w-3.5" /> Groups</div>
-                <div className="mt-1 text-lg font-bold text-white">{groups.length}</div>
+            <div className="flex w-full max-w-[440px] shrink-0 flex-wrap justify-start gap-2 lg:justify-end">
+              <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Users className="h-3 w-3 shrink-0" /> <span className="truncate">Groups</span></div>
+                <div className="mt-1 text-base font-bold text-white">{groups.length}</div>
               </div>
-              <div className={`rounded-xl border px-3 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-300/75"><Users className="h-3.5 w-3.5" /> Employees</div>
-                <div className="mt-1 text-lg font-bold text-white">{totalEmployees}</div>
+              <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Users className="h-3 w-3 shrink-0" /> <span className="truncate">Employees</span></div>
+                <div className="mt-1 text-base font-bold text-white">{totalEmployees}</div>
               </div>
-              <div className={`rounded-xl border px-3 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-300/75"><MessageCircle className="h-3.5 w-3.5" /> Customers</div>
-                <div className="mt-1 text-lg font-bold text-white">{totalCustomers}</div>
+              <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><MessageCircle className="h-3 w-3 shrink-0" /> <span className="truncate">Customers</span></div>
+                <div className="mt-1 text-base font-bold text-white">{totalCustomers}</div>
               </div>
-              <div className={`rounded-xl border px-3 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-300/75"><Activity className="h-3.5 w-3.5" /> Unread</div>
-                <div className={`mt-1 text-lg font-bold ${totalUnread > 0 ? 'text-rose-300' : 'text-white'}`}>{totalUnread}</div>
+              <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Activity className="h-3 w-3 shrink-0" /> <span className="truncate">Unread</span></div>
+                <div className={`mt-1 text-base font-bold ${totalUnread > 0 ? 'text-rose-300' : 'text-white'}`}>{totalUnread}</div>
               </div>
             </div>
           </div>
