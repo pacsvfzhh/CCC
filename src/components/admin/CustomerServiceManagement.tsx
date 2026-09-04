@@ -2279,35 +2279,35 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           <button
             type="button"
             onClick={handleBackToGroups}
-            className="flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors text-xs font-medium flex-shrink-0 border border-rose-300/70 shadow-md shadow-rose-600/30"
+            className="flex items-center gap-1.5 px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-colors text-xs font-medium flex-shrink-0 border border-orange-300/70 shadow-md shadow-orange-600/30"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
         )}
         {isSuperAdmin && selectedAdminId && (
-          <div className="flex items-center gap-2 px-3 h-10 bg-rose-950/50 border border-rose-400/50 rounded-lg flex-shrink-0">
+          <div className="flex items-center gap-2 px-3 h-10 bg-orange-950/50 border border-orange-400/50 rounded-lg flex-shrink-0">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
-            <span className="text-[10px] font-bold text-rose-200 uppercase tracking-wider flex-shrink-0">Managing</span>
-            <div className="h-4 w-px bg-rose-400/40 flex-shrink-0"></div>
-            <div className="p-1 bg-gradient-to-br from-rose-500 to-red-500 rounded flex-shrink-0">
+            <span className="text-[10px] font-bold text-orange-200 uppercase tracking-wider flex-shrink-0">Managing</span>
+            <div className="h-4 w-px bg-orange-400/40 flex-shrink-0"></div>
+            <div className="p-1 bg-gradient-to-br from-orange-500 to-amber-500 rounded flex-shrink-0">
               <User className="w-3 h-3 text-white" />
             </div>
             <span className="text-sm font-bold text-white truncate">{selectedAdminName}</span>
           </div>
         )}
         {selectedEmployee && (
-          <div className="flex items-center gap-2 px-3 h-10 bg-rose-700 border border-rose-400/70 rounded-lg flex-shrink-0">
-            <div className="w-7 h-7 bg-rose-100 rounded-md flex items-center justify-center flex-shrink-0">
-              <MessageCircle className="w-3.5 h-3.5 text-rose-700" />
+          <div className="flex items-center gap-2 px-3 h-10 bg-orange-700 border border-orange-400/70 rounded-lg flex-shrink-0">
+            <div className="w-7 h-7 bg-orange-100 rounded-md flex items-center justify-center flex-shrink-0">
+              <MessageCircle className="w-3.5 h-3.5 text-orange-700" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold text-white leading-none truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{selectedEmployee?.username} <span className="text-[10px] font-medium text-rose-100">ID: {selectedEmployee?.employee_id}</span></div>
+              <div className="text-sm font-bold text-white leading-none truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{selectedEmployee?.username} <span className="text-[10px] font-medium text-orange-100">ID: {selectedEmployee?.employee_id}</span></div>
             </div>
             <button
               type="button"
               onClick={() => setSelectedEmployee(null)}
-              className="ml-1 p-1 hover:bg-rose-800 rounded-md transition-colors text-rose-100 hover:text-white"
+              className="ml-1 p-1 hover:bg-orange-800 rounded-md transition-colors text-orange-100 hover:text-white"
               title="Clear selection"
             >
               <X className="w-4 h-4" />
@@ -2324,8 +2324,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   onClick={() => { loadAllConversationHistory(); setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('all'); setHistoryScope('all'); historyScrollTopRef.current = 0; }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
                     showHistoryView && historyScope === 'all' && historyFilterMode !== 'new'
-                      ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/40 border-rose-300'
-                      : 'bg-rose-950/50 hover:bg-rose-800/50 border-rose-500/50 hover:border-rose-300/70 text-rose-200 hover:text-rose-100 shadow-lg shadow-rose-950/30 hover:shadow-rose-900/40'
+                      ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/40 border-orange-300'
+                      : 'bg-orange-950/50 hover:bg-orange-800/50 border-orange-500/50 hover:border-orange-300/70 text-orange-200 hover:text-orange-100 shadow-lg shadow-orange-950/30 hover:shadow-orange-900/40'
                   }`}
                 >
                   <Clock className="w-4 h-4" />
@@ -2333,8 +2333,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   {allConversationHistory.length > 0 && (
                     <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black min-w-[24px] text-center ${
                       showHistoryView && historyScope === 'all' && historyFilterMode !== 'new'
-                        ? 'bg-white text-rose-700'
-                        : 'bg-rose-500 text-white'
+                        ? 'bg-white text-orange-700'
+                        : 'bg-orange-500 text-white'
                     }`}>{allConversationHistory.length}</span>
                   )}
                 </button>
@@ -2343,8 +2343,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   onClick={() => { loadAllConversationHistory(); setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('new'); setHistoryScope('all'); historyScrollTopRef.current = 0; }}
                   className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
                     showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
-                      ? 'bg-red-600 text-white shadow-lg shadow-red-500/40 border-red-300'
-                      : 'bg-red-950/50 hover:bg-red-800/50 border-red-500/50 hover:border-red-300/70 text-red-200 hover:text-red-100 shadow-lg shadow-red-950/30 hover:shadow-red-900/40'
+                      ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/40 border-orange-300'
+                      : 'bg-orange-950/50 hover:bg-orange-800/50 border-orange-500/50 hover:border-orange-300/70 text-orange-200 hover:text-orange-100 shadow-lg shadow-orange-950/30 hover:shadow-orange-900/40'
                   }`}
                 >
                   <MessageSquarePlus className="w-4 h-4" />
@@ -2352,12 +2352,12 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   {totalUnread > 0 && (
                     <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black min-w-[24px] text-center ${
                       showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
-                        ? 'bg-white text-red-700'
-                        : 'bg-red-500 text-white'
+                        ? 'bg-white text-orange-700'
+                        : 'bg-orange-500 text-white'
                     }`}>{totalUnread}</span>
                   )}
                   {totalUnread > 0 && !(showHistoryView && historyScope === 'all' && historyFilterMode === 'new') && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse"></span>
                   )}
                 </button>
               </>
@@ -2370,9 +2370,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       <div className="flex gap-1.5 xl:gap-2 flex-1 min-h-0 min-w-0">
 
         {/* Left: Customer Sidebar */}
-        <div className="w-64 xl:w-72 flex-shrink-0 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-rose-500/50 flex flex-col overflow-hidden">
+        <div className="w-64 xl:w-72 flex-shrink-0 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-orange-500/50 flex flex-col overflow-hidden">
           {/* Sidebar Header */}
-          <div className="p-3 border-b border-rose-500/40 bg-slate-800/60">
+          <div className="p-3 border-b border-orange-500/40 bg-slate-800/60">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-bold text-white flex items-center gap-1.5 uppercase tracking-wider">
                 <Users className="w-3.5 h-3.5 text-blue-400" />
@@ -2470,7 +2470,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                 {(() => {
                   const count = customerUnreadCounts[customer.id] || 0;
                   return count > 0 && (
-                    <div className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-red-500 rounded-full flex items-center justify-center z-20 shadow-lg shadow-red-500/40 ring-2 ring-slate-900/80">
+                    <div className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-orange-500 rounded-full flex items-center justify-center z-20 shadow-lg shadow-orange-500/40 ring-2 ring-slate-900/80">
                       <span className="text-[10px] font-bold text-white leading-none">{count > 99 ? '99+' : count}</span>
                     </div>
                   );
@@ -2586,9 +2586,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         </div>
 
         {/* Middle: Employee List */}
-        <div className="w-56 xl:w-64 flex-shrink-0 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-rose-500/50 overflow-hidden flex flex-col">
+        <div className="w-56 xl:w-64 flex-shrink-0 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-orange-500/50 overflow-hidden flex flex-col">
           {/* Employee Header */}
-          <div className="p-2 border-b border-rose-500/40 bg-slate-800/60 space-y-1.5">
+          <div className="p-2 border-b border-orange-500/40 bg-slate-800/60 space-y-1.5">
             {/* Search + Tag dropdown row */}
             <div className="flex gap-1">
               <div className="relative flex-1">
@@ -2738,9 +2738,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
               ? 'opacity-100 translate-y-0 z-10 pointer-events-auto'
               : 'opacity-0 translate-y-2 z-0 pointer-events-none'
           }`}>
-            <div className="bg-slate-900/80 backdrop-blur-xl rounded-xl border border-rose-500/50 overflow-hidden flex flex-col h-full">
+            <div className="bg-slate-900/80 backdrop-blur-xl rounded-xl border border-orange-500/50 overflow-hidden flex flex-col h-full">
               {/* Active Sessions Header */}
-              <div className="bg-slate-800/60 px-4 border-b border-rose-500/40 h-[68px] flex items-center">
+              <div className="bg-slate-800/60 px-4 border-b border-orange-500/40 h-[68px] flex items-center">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">
                     {selectedCustomer ? (
@@ -2892,7 +2892,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                     </div>
                                   )}
                                   {hasUnread && (
-                                    <div className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-md shadow-orange-500/40 animate-pulse">
+                                    <div className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-md shadow-orange-500/40 animate-pulse">
                                       <span className="text-[10px] font-black text-white leading-none drop-shadow-sm">{history.unread_count > 99 ? '99+' : history.unread_count}</span>
                                     </div>
                                   )}
@@ -2944,9 +2944,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
               ? 'opacity-100 translate-y-0 z-10 pointer-events-auto'
               : 'opacity-0 translate-y-2 z-0 pointer-events-none'
           }`}>
-            <div className="bg-slate-900/80 backdrop-blur-xl rounded-xl border border-rose-500/50 overflow-hidden flex flex-col h-full">
+            <div className="bg-slate-900/80 backdrop-blur-xl rounded-xl border border-orange-500/50 overflow-hidden flex flex-col h-full">
               {/* Chat Header */}
-              <div className="bg-slate-800/60 px-4 border-b border-rose-500/40 h-[68px] flex items-center">
+              <div className="bg-slate-800/60 px-4 border-b border-orange-500/40 h-[68px] flex items-center">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">
                     <button
@@ -2994,7 +2994,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                         <div className="text-[10px] font-mono text-emerald-400 leading-tight mt-0.5">CUS-{selectedCustomer?.customer_id}</div>
                       </div>
                     </div>
-                    <div className="h-8 w-px bg-rose-500/50 mx-1 flex-shrink-0"></div>
+                    <div className="h-8 w-px bg-orange-500/50 mx-1 flex-shrink-0"></div>
                     <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
                       <User className="w-5 h-5 text-white" />
                     </div>

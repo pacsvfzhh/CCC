@@ -545,12 +545,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     className={`relative flex items-center gap-2 px-2.5 py-2 rounded-lg font-medium transition-all text-left ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
-                          ? 'bg-rose-700 text-white shadow-lg shadow-rose-600/30'
+                          ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/40'
                           : tab.id === 'cccservice'
                             ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-600/30'
                             : 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
                         : tab.id === 'customerservice'
-                          ? 'text-rose-400 hover:text-white hover:bg-rose-900/60'
+                          ? 'text-orange-300 hover:text-white hover:bg-orange-900/60'
                           : tab.id === 'cccservice'
                             ? 'text-emerald-400 hover:text-white hover:bg-emerald-900/60'
                             : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
@@ -561,7 +561,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     {showBadge && (
                       <span className={`ml-auto flex items-center justify-center min-w-[20px] h-[20px] px-1 text-xs font-bold rounded-full shadow-lg animate-pulse ${
                         tab.id === 'customerservice'
-                          ? 'bg-white text-red-600'
+                          ? 'bg-white text-orange-600'
                           : tab.id === 'cccservice'
                             ? 'bg-white text-emerald-600'
                             : 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
@@ -578,12 +578,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           {/* Mobile: Horizontal Scrolling Tabs */}
           <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'messages' ? 'lg:overflow-hidden' : 'lg:overflow-y-auto'} scrollbar-hide`} style={activeTab === 'customerservice' ? {
             background: `
-              radial-gradient(ellipse 80% 60% at 10% 15%, rgba(244,63,94,0.32) 0%, transparent 50%),
-              radial-gradient(ellipse 60% 50% at 80% 10%, rgba(239,68,68,0.28) 0%, transparent 50%),
-              radial-gradient(ellipse 70% 70% at 50% 55%, rgba(190,24,93,0.22) 0%, transparent 50%),
-              radial-gradient(ellipse 50% 60% at 90% 80%, rgba(225,29,72,0.25) 0%, transparent 50%),
-              radial-gradient(ellipse 55% 80% at 20% 85%, rgba(159,18,57,0.28) 0%, transparent 50%),
-              linear-gradient(135deg, #2b1118 0%, #3b121f 25%, #32121d 50%, #4c1424 75%, #261018 100%)
+              radial-gradient(ellipse 80% 60% at 10% 15%, rgba(249,115,22,0.34) 0%, transparent 50%),
+              radial-gradient(ellipse 60% 50% at 80% 10%, rgba(245,158,11,0.3) 0%, transparent 50%),
+              radial-gradient(ellipse 70% 70% at 50% 55%, rgba(234,88,12,0.24) 0%, transparent 50%),
+              radial-gradient(ellipse 50% 60% at 90% 80%, rgba(251,146,60,0.26) 0%, transparent 50%),
+              radial-gradient(ellipse 55% 80% at 20% 85%, rgba(154,52,18,0.3) 0%, transparent 50%),
+              linear-gradient(135deg, #2b1a0b 0%, #3b2410 25%, #321b0d 50%, #4c2a0e 75%, #26170a 100%)
             `
           } : activeTab === 'cccservice' ? {
             background: `
@@ -607,8 +607,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     onClick={() => handleTabChange(tab.id)}
                     className={`relative flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                       activeTab === tab.id
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50'
-                        : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700'
+                        ? tab.id === 'customerservice'
+                          ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/50'
+                          : 'bg-blue-600 text-white shadow-lg shadow-blue-500/50'
+                        : tab.id === 'customerservice'
+                          ? 'bg-orange-950/60 text-orange-200 hover:text-white hover:bg-orange-900/70 border border-orange-500/60'
+                          : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700'
                     }`}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
@@ -616,7 +620,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     {showBadge && (
                       <span className={`flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold rounded-full shadow-lg animate-pulse ${
                         tab.id === 'customerservice'
-                          ? 'bg-white text-red-600'
+                          ? 'bg-white text-orange-600'
                           : tab.id === 'cccservice'
                             ? 'bg-white text-emerald-600'
                             : 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
