@@ -65,7 +65,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
         <header className={`relative flex shrink-0 flex-col gap-4 border-b px-4 py-4 sm:px-6 sm:py-5 ${styles.border}`}>
           <div className={`absolute inset-x-0 top-0 h-px ${styles.rail}`} />
           <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:gap-8">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3 xl:max-w-[680px]">
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${styles.headerIcon}`}>
                 <Icon className="h-5 w-5" />
               </div>
@@ -78,7 +78,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
               </div>
             </div>
 
-            <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 xl:w-[460px] xl:shrink-0">
+            <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
               <div className={`rounded-xl border px-3 py-2 ${styles.metric}`}>
                 <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-300/75"><Users className="h-3.5 w-3.5" /> Groups</div>
                 <div className="mt-1 text-lg font-bold text-white">{groups.length}</div>
