@@ -648,7 +648,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('customerservice') && (
-              <div className={activeTab === 'customerservice' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'customerservice' ? 'flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <CustomerServiceManagement
                   adminId={admin.id}
                   isSuperAdmin={admin.role === 'super_admin'}
@@ -659,7 +659,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('cccservice') && (
-              <div className={activeTab === 'cccservice' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'cccservice' ? 'flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <CccServiceManagement
                   adminId={admin.id}
                   isSuperAdmin={admin.role === 'super_admin'}

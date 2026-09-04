@@ -2272,9 +2272,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   }
 
   return (
-    <div ref={containerRef} className="space-y-3">
+    <div ref={containerRef} className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
       {/* Info Bar + History/New Buttons in one row */}
-      <div className="flex items-center gap-3 flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0">
         {isSuperAdmin && selectedAdminId && (
           <button
             type="button"
@@ -2367,12 +2367,12 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       </div>
 
       {/* 3-Panel Layout: Customer Sidebar | Employee List | Chat */}
-      <div className="flex gap-3 h-[calc(100vh-130px)] min-h-[500px]">
+      <div className="flex gap-1.5 xl:gap-2 flex-1 min-h-0 min-w-0">
 
         {/* Left: Customer Sidebar */}
-        <div className="w-80 flex-shrink-0 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-slate-700/50 flex flex-col overflow-hidden">
+        <div className="w-64 xl:w-72 flex-shrink-0 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-rose-500/50 flex flex-col overflow-hidden">
           {/* Sidebar Header */}
-          <div className="p-3 border-b border-slate-700/50 bg-slate-800/60">
+          <div className="p-3 border-b border-rose-500/40 bg-slate-800/60">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-bold text-white flex items-center gap-1.5 uppercase tracking-wider">
                 <Users className="w-3.5 h-3.5 text-blue-400" />
@@ -2586,9 +2586,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         </div>
 
         {/* Middle: Employee List */}
-        <div className="w-72 flex-shrink-0 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-slate-700/50 overflow-hidden flex flex-col">
+        <div className="w-56 xl:w-64 flex-shrink-0 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-rose-500/50 overflow-hidden flex flex-col">
           {/* Employee Header */}
-          <div className="p-2 border-b border-slate-700/50 bg-slate-800/60 space-y-1.5">
+          <div className="p-2 border-b border-rose-500/40 bg-slate-800/60 space-y-1.5">
             {/* Search + Tag dropdown row */}
             <div className="flex gap-1">
               <div className="relative flex-1">
@@ -2738,9 +2738,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
               ? 'opacity-100 translate-y-0 z-10 pointer-events-auto'
               : 'opacity-0 translate-y-2 z-0 pointer-events-none'
           }`}>
-            <div className="bg-slate-900/80 backdrop-blur-xl rounded-xl border border-slate-700/50 overflow-hidden flex flex-col h-full">
+            <div className="bg-slate-900/80 backdrop-blur-xl rounded-xl border border-rose-500/50 overflow-hidden flex flex-col h-full">
               {/* Active Sessions Header */}
-              <div className="bg-slate-800/60 px-4 border-b border-slate-700/50 h-[68px] flex items-center">
+              <div className="bg-slate-800/60 px-4 border-b border-rose-500/40 h-[68px] flex items-center">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">
                     {selectedCustomer ? (
@@ -2944,9 +2944,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
               ? 'opacity-100 translate-y-0 z-10 pointer-events-auto'
               : 'opacity-0 translate-y-2 z-0 pointer-events-none'
           }`}>
-            <div className="bg-slate-900/80 backdrop-blur-xl rounded-xl border border-slate-700/50 overflow-hidden flex flex-col h-full">
+            <div className="bg-slate-900/80 backdrop-blur-xl rounded-xl border border-rose-500/50 overflow-hidden flex flex-col h-full">
               {/* Chat Header */}
-              <div className="bg-slate-800/60 px-4 border-b border-slate-700/50 h-[68px] flex items-center">
+              <div className="bg-slate-800/60 px-4 border-b border-rose-500/40 h-[68px] flex items-center">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">
                     <button
@@ -2994,7 +2994,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                         <div className="text-[10px] font-mono text-emerald-400 leading-tight mt-0.5">CUS-{selectedCustomer?.customer_id}</div>
                       </div>
                     </div>
-                    <div className="h-8 w-px bg-slate-600/50 mx-1 flex-shrink-0"></div>
+                    <div className="h-8 w-px bg-rose-500/50 mx-1 flex-shrink-0"></div>
                     <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
                       <User className="w-5 h-5 text-white" />
                     </div>
