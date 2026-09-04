@@ -471,7 +471,9 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     return aSelected - bSelected;
   }), [employees, debouncedSearchQuery, selectedTags, employeeGroupFilter, conversationHistory, selectedEmployee]);
 
-  const loadMessagesRef = useRef<() => void>();
+  const loadMessagesRef = useRef<(markAsRead?: boolean) => void>();
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
   const justSentRef = useRef(false);
   const loadConversationHistoryRef = useRef<() => void>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -716,7 +718,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       setHasMoreMessages((data || []).length >= MESSAGE_PAGE_SIZE);
       setMessagesLoading(false);
 
-      if (markAsRead) {
+      if (markAsRead && isActiveRef.current) {
         await supabase
           .from('customer_employee_conversations')
           .update({ is_read: true })
@@ -850,7 +852,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           filter: `customer_id=eq.${selectedCustomer.id}`
         }, (payload: any) => {
           if (selectedEmployee?.id && !(justSentRef.current && payload?.new?.sender_type === 'customer')) {
-            loadMessagesRef.current?.();
+            loadMessagesRef.current?.(isActive);
           }
           loadConversationHistoryRef.current?.();
         })
@@ -861,7 +863,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           filter: `customer_id=eq.${selectedCustomer.id}`
         }, () => {
           if (selectedEmployee?.id) {
-            loadMessagesRef.current?.();
+            loadMessagesRef.current?.(isActive);
           }
           loadConversationHistoryRef.current?.();
         })
@@ -872,7 +874,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           filter: `customer_id=eq.${selectedCustomer.id}`
         }, () => {
           if (selectedEmployee?.id) {
-            loadMessagesRef.current?.();
+            loadMessagesRef.current?.(isActive);
           }
           loadConversationHistoryRef.current?.();
         })
@@ -882,7 +884,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         supabase.removeChannel(channel);
       };
     }
-  }, [selectedAdminId, selectedCustomer?.id, selectedEmployee?.id]);
+  }, [isActive, selectedAdminId, selectedCustomer?.id, selectedEmployee?.id]);
 
   useEffect(() => {
     if (notification) {
