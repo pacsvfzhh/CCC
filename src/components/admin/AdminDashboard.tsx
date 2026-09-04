@@ -545,14 +545,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     className={`relative flex items-center gap-2 px-2.5 py-2 rounded-lg font-medium transition-all text-left ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
-                          ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/40'
+                          ? 'bg-orange-700 text-white shadow-lg shadow-orange-900/40'
                           : tab.id === 'cccservice'
-                            ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-600/30'
+                            ? 'bg-emerald-800 text-white shadow-lg shadow-emerald-950/40'
                             : 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
                         : tab.id === 'customerservice'
-                          ? 'text-orange-300 hover:text-white hover:bg-orange-900/60'
+                          ? 'text-orange-400 hover:text-orange-100 hover:bg-orange-950/70'
                           : tab.id === 'cccservice'
-                            ? 'text-emerald-400 hover:text-white hover:bg-emerald-900/60'
+                            ? 'text-emerald-400 hover:text-emerald-100 hover:bg-emerald-950/70'
                             : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
                     }`}
                   >
@@ -578,21 +578,21 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           {/* Mobile: Horizontal Scrolling Tabs */}
           <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'messages' ? 'lg:overflow-hidden' : 'lg:overflow-y-auto'} scrollbar-hide`} style={activeTab === 'customerservice' ? {
             background: `
-              radial-gradient(ellipse 80% 60% at 10% 15%, rgba(249,115,22,0.34) 0%, transparent 50%),
-              radial-gradient(ellipse 60% 50% at 80% 10%, rgba(245,158,11,0.3) 0%, transparent 50%),
-              radial-gradient(ellipse 70% 70% at 50% 55%, rgba(234,88,12,0.24) 0%, transparent 50%),
-              radial-gradient(ellipse 50% 60% at 90% 80%, rgba(251,146,60,0.26) 0%, transparent 50%),
-              radial-gradient(ellipse 55% 80% at 20% 85%, rgba(154,52,18,0.3) 0%, transparent 50%),
-              linear-gradient(135deg, #2b1a0b 0%, #3b2410 25%, #321b0d 50%, #4c2a0e 75%, #26170a 100%)
+              radial-gradient(ellipse 80% 60% at 10% 15%, rgba(249,115,22,0.11) 0%, transparent 50%),
+              radial-gradient(ellipse 60% 50% at 80% 10%, rgba(245,158,11,0.1) 0%, transparent 50%),
+              radial-gradient(ellipse 70% 70% at 50% 55%, rgba(234,88,12,0.08) 0%, transparent 50%),
+              radial-gradient(ellipse 50% 60% at 90% 80%, rgba(251,146,60,0.09) 0%, transparent 50%),
+              radial-gradient(ellipse 55% 80% at 20% 85%, rgba(154,52,18,0.12) 0%, transparent 50%),
+              linear-gradient(135deg, #120b04 0%, #190d05 25%, #160b04 50%, #1d0e04 75%, #0e0803 100%)
             `
           } : activeTab === 'cccservice' ? {
             background: `
-              radial-gradient(ellipse 80% 60% at 10% 15%, rgba(34,197,94,0.35) 0%, transparent 50%),
-              radial-gradient(ellipse 60% 50% at 80% 10%, rgba(16,185,129,0.28) 0%, transparent 50%),
-              radial-gradient(ellipse 70% 70% at 50% 55%, rgba(5,150,105,0.22) 0%, transparent 50%),
-              radial-gradient(ellipse 50% 60% at 90% 80%, rgba(22,163,74,0.25) 0%, transparent 50%),
-              radial-gradient(ellipse 55% 80% at 20% 85%, rgba(6,95,70,0.28) 0%, transparent 50%),
-              linear-gradient(135deg, #0d261c 0%, #10382a 25%, #0f3024 50%, #124d35 75%, #0b2119 100%)
+              radial-gradient(ellipse 80% 60% at 10% 15%, rgba(34,197,94,0.11) 0%, transparent 50%),
+              radial-gradient(ellipse 60% 50% at 80% 10%, rgba(16,185,129,0.09) 0%, transparent 50%),
+              radial-gradient(ellipse 70% 70% at 50% 55%, rgba(5,150,105,0.07) 0%, transparent 50%),
+              radial-gradient(ellipse 50% 60% at 90% 80%, rgba(22,163,74,0.08) 0%, transparent 50%),
+              radial-gradient(ellipse 55% 80% at 20% 85%, rgba(6,95,70,0.1) 0%, transparent 50%),
+              linear-gradient(135deg, #040e09 0%, #06160e 25%, #05120b 50%, #071d12 75%, #030a06 100%)
             `
           } : undefined}>
             <div className="lg:hidden flex gap-2 px-3 pt-4 pb-2 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -608,11 +608,15 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     className={`relative flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
-                          ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/50'
-                          : 'bg-blue-600 text-white shadow-lg shadow-blue-500/50'
+                          ? 'bg-orange-700 text-white shadow-lg shadow-orange-900/40'
+                          : tab.id === 'cccservice'
+                            ? 'bg-emerald-800 text-white shadow-lg shadow-emerald-950/40'
+                            : 'bg-blue-600 text-white shadow-lg shadow-blue-500/50'
                         : tab.id === 'customerservice'
-                          ? 'bg-orange-950/60 text-orange-200 hover:text-white hover:bg-orange-900/70 border border-orange-500/60'
-                          : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700'
+                          ? 'bg-orange-950/70 text-orange-300 hover:text-orange-100 hover:bg-orange-950 border border-orange-700/50'
+                          : tab.id === 'cccservice'
+                            ? 'bg-emerald-950/70 text-emerald-300 hover:text-emerald-100 hover:bg-emerald-950 border border-emerald-700/50'
+                            : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700'
                     }`}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
