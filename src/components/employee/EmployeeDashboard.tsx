@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, Lock, ChevronDown } from 'lucide-react';
 import { Employee } from '../../types';
-import { logout } from '../../lib/auth';
+import { AUTH_STORAGE_KEY, logout } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { useCompanyName } from '../../lib/useCompanyName';
 import { useResponsive } from '../../lib/useResponsive';
@@ -135,7 +135,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     console.log('[EmployeeDashboard] Setting up real-time sync for employee data');
 
     // Get current session token from sessionStorage
-    const auth = sessionStorage.getItem('quantum_trader_auth');
+    const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
     const currentSessionToken = auth ? JSON.parse(auth).sessionToken : null;
 
     // Subscribe to changes in the users table for this employee
@@ -168,11 +168,11 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           setEmployee(updatedEmployee);
 
           // Update sessionStorage
-          const auth = sessionStorage.getItem('quantum_trader_auth');
+          const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
           if (auth) {
             const authData = JSON.parse(auth);
             authData.user = updatedEmployee;
-            sessionStorage.setItem('quantum_trader_auth', JSON.stringify(authData));
+            sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
             console.log('[EmployeeDashboard] Updated sessionStorage with new employee data');
           }
         }

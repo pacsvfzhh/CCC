@@ -3,7 +3,7 @@ import Login from './pages/Login';
 import BlockchainBackground from './components/BlockchainBackground';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LanguageProvider } from './lib/i18n';
-import { getStoredAuth } from './lib/auth';
+import { AUTH_LOGOUT_EVENT, getStoredAuth, PROFILE_UPDATED_EVENT } from './lib/auth';
 import { startOrderProcessing } from './services/orderProcessor';
 import { useDeviceOptimization } from './lib/useDeviceOptimization';
 import { useResponsive, applyResponsiveMeta } from './lib/useResponsive';
@@ -73,7 +73,7 @@ function App() {
     const handleLogout = () => {
       setAuthState({ user: null, userType: null });
     };
-    window.addEventListener('quantum_trader_logout', handleLogout);
+    window.addEventListener(AUTH_LOGOUT_EVENT, handleLogout);
 
     const handleProfileUpdate = () => {
       const updated = getStoredAuth();
@@ -81,11 +81,11 @@ function App() {
         setAuthState(updated);
       }
     };
-    window.addEventListener('quantum_trader_profile_updated', handleProfileUpdate);
+    window.addEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate);
 
     return () => {
-      window.removeEventListener('quantum_trader_logout', handleLogout);
-      window.removeEventListener('quantum_trader_profile_updated', handleProfileUpdate);
+      window.removeEventListener(AUTH_LOGOUT_EVENT, handleLogout);
+      window.removeEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate);
     };
   }, []);
 

@@ -3,6 +3,11 @@ import { verifyPassword } from './passwordHash';
 import { tabSessionManager } from './TabSessionManager';
 import { logEmployeeLogin, logEmployeeLogout } from './loginHistoryService';
 
+export const AUTH_STORAGE_KEY = 'work_platform_auth';
+export const AUTH_LOGOUT_EVENT = 'work_platform_logout';
+export const PROFILE_UPDATED_EVENT = 'work_platform_profile_updated';
+const LEGACY_AUTH_STORAGE_KEY = ['quantum', 'trader', 'auth'].join('_');
+
 export interface LoginCredentials {
   username: string;
   password: string;
@@ -140,7 +145,8 @@ export async function logout(isUserInitiated: boolean = true) {
   }
 
   // Clear local storage and dispatch event
-  sessionStorage.removeItem('quantum_trader_auth');
+  sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  sessionStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
   sessionStorage.removeItem('tabId');
 
   // Clear all announcement-related cache to prevent data leakage between users
@@ -152,11 +158,21 @@ export async function logout(isUserInitiated: boolean = true) {
   sessionStorage.removeItem('announcements_cache_time');
   sessionStorage.removeItem('announcements_cache_user_id');
 
-  window.dispatchEvent(new Event('quantum_trader_logout'));
+  window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT));
 }
 
 export function getStoredAuth() {
-  const stored = sessionStorage.getItem('quantum_trader_auth');
+  let stored = sessionStorage.getItem(AUTH_STORAGE_KEY);
+
+  if (!stored) {
+    const legacyStored = sessionStorage.getItem(LEGACY_AUTH_STORAGE_KEY);
+    if (legacyStored) {
+      sessionStorage.setItem(AUTH_STORAGE_KEY, legacyStored);
+      sessionStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+      stored = legacyStored;
+    }
+  }
+
   if (stored) {
     try {
       return JSON.parse(stored);
@@ -168,7 +184,7 @@ export function getStoredAuth() {
 }
 
 export function storeAuth(data: any) {
-  sessionStorage.setItem('quantum_trader_auth', JSON.stringify(data));
+  sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data));
 }
 
 export function updateStoredUsername(newUsername: string) {
@@ -176,7 +192,7 @@ export function updateStoredUsername(newUsername: string) {
   if (stored && stored.user) {
     stored.user.username = newUsername;
     storeAuth(stored);
-    window.dispatchEvent(new Event('quantum_trader_profile_updated'));
+    window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
   }
 }
 

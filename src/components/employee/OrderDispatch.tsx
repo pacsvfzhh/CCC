@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
+import { AUTH_STORAGE_KEY } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { getTodayStartUTC, getCurrentTimestamp } from '../../lib/dateUtils';
 import { Play, Square, CheckCircle, XCircle, Clock, Package, TrendingUp, AlertTriangle, AlertCircle, Zap, Timer, FileText, ShieldAlert, CheckSquare, ChevronLeft, ChevronRight, Send } from 'lucide-react';
@@ -316,7 +317,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     // Handle page close/refresh - stop work session
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (sessionActiveRef.current) {
-        const auth = sessionStorage.getItem('quantum_trader_auth');
+        const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
         if (auth) {
           const authData = JSON.parse(auth);
           const userId = authData?.user?.id;
@@ -366,7 +367,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             // We need to end the old session and start a new one to avoid gap inflation
             const restartSession = async () => {
               try {
-                const auth = sessionStorage.getItem('quantum_trader_auth');
+                const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
                 if (!auth) return;
                 const userId = JSON.parse(auth).user.id;
 
@@ -418,7 +419,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     // Only end session if page won't be restored (e.g., tab close, not just background)
     const handlePageHide = (e: PageTransitionEvent) => {
       if (!e.persisted && sessionActiveRef.current) {
-        const auth = sessionStorage.getItem('quantum_trader_auth');
+        const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
         if (auth) {
           const authData = JSON.parse(auth);
           const userId = authData?.user?.id;
@@ -788,7 +789,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const checkPendingOrder = async () => {
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (!auth) return;
 
       const userId = JSON.parse(auth).user.id;
@@ -886,7 +887,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       setConfig(globalConfig);
 
       // Try to load user's group config
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (auth) {
         const userId = JSON.parse(auth).user.id;
 
@@ -939,7 +940,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const loadTotalWorkTime = async () => {
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (!auth) return;
 
       const userId = JSON.parse(auth).user.id;
@@ -957,7 +958,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const loadTodayOrders = async () => {
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (!auth) return;
 
       const userId = JSON.parse(auth).user.id;
@@ -1088,7 +1089,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     try {
       console.log('Starting work session...');
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (!auth) {
         console.error('No auth found in localStorage');
         setIsTransitioning(false);
@@ -1376,7 +1377,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     try {
       // Get user ID first
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       const authData = auth ? JSON.parse(auth) : null;
       const userId = authData?.user?.id;
 
@@ -1568,7 +1569,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         return;
       }
 
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (!auth) {
         console.log('Dispatch cancelled: no auth found');
         return;

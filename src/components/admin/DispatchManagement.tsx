@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { AUTH_STORAGE_KEY } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { Upload, Trash2, CreditCard as Edit2, Save, X, PackageSearch, Settings, CheckCircle, XCircle, Users, Plus, FolderPlus, Layers, Search, Filter, ChevronDown, ChevronRight, BarChart3, UserPlus, UserMinus, ArrowRight } from 'lucide-react';
 
@@ -237,7 +238,7 @@ export default function DispatchManagement() {
   }, [selectedGroup, isOptimisticUpdate, isBulkImporting]);
 
   const checkAdminRole = () => {
-    const auth = sessionStorage.getItem('quantum_trader_auth');
+    const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
     if (auth) {
       const { user } = JSON.parse(auth);
       setIsSuperAdmin(user.role === 'super_admin');
@@ -246,7 +247,7 @@ export default function DispatchManagement() {
 
   const loadGroups = async () => {
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       const currentAdmin = auth ? JSON.parse(auth).user : null;
       const isCurrentSuperAdmin = currentAdmin?.role === 'super_admin';
 
@@ -460,7 +461,7 @@ export default function DispatchManagement() {
     if (!selectedGroup) return;
 
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       const currentAdmin = auth ? JSON.parse(auth).user : null;
 
       let employeeQuery = supabase
@@ -575,7 +576,7 @@ export default function DispatchManagement() {
     setIsOptimisticUpdate(true);
 
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       const adminId = auth ? JSON.parse(auth).user.id : null;
 
       // Create optimistic group object
@@ -810,7 +811,7 @@ export default function DispatchManagement() {
     setIsUploading(true);
 
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       const adminId = auth ? JSON.parse(auth).user.id : null;
 
       const ordersToInsert = orderContents.map(content => ({
@@ -1169,7 +1170,7 @@ export default function DispatchManagement() {
     if (!selectedGroup) return;
 
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       const adminId = auth ? JSON.parse(auth).user.id : null;
 
       const existingMember = await supabase
@@ -1230,7 +1231,7 @@ export default function DispatchManagement() {
     setShowMoveConfirm(false);
 
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       const adminId = auth ? JSON.parse(auth).user.id : null;
 
       // Optimistic update
@@ -1310,7 +1311,7 @@ export default function DispatchManagement() {
 
     setLoading(true);
     try {
-      const auth = sessionStorage.getItem('quantum_trader_auth');
+      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       const adminId = auth ? JSON.parse(auth).user.id : null;
 
       await supabase
@@ -1535,7 +1536,7 @@ export default function DispatchManagement() {
                           onClick={() => {
                             setShowMemberManagement(true);
                             if (!isSuperAdmin) {
-                              const auth = sessionStorage.getItem('quantum_trader_auth');
+                              const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
                               const currentAdmin = auth ? JSON.parse(auth).user : null;
                               if (currentAdmin) {
                                 setSelectedAdminFilter(currentAdmin.id);
@@ -2830,7 +2831,7 @@ export default function DispatchManagement() {
                         const selectedIds = [...unassignedEmployeesSelection];
 
                         try {
-                          const auth = sessionStorage.getItem('quantum_trader_auth');
+                          const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
                           const adminId = auth ? JSON.parse(auth).user.id : null;
 
                           // Optimistic update - update local state immediately
