@@ -559,7 +559,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     <Icon className="w-4 h-4 flex-shrink-0" />
                     <span className="text-xs font-medium truncate">{tab.label}</span>
                     {showBadge && (
-                      <span className={`ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[9px] font-bold rounded-full shadow-lg animate-pulse ${
+                      <span className={`ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] font-bold rounded-full shadow-lg animate-pulse ${
                         tab.id === 'customerservice'
                           ? 'bg-white text-red-600'
                           : tab.id === 'cccservice'
@@ -608,7 +608,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     <Icon className="w-4 h-4 flex-shrink-0" />
                     <span className="text-xs font-semibold">{tab.label}</span>
                     {showBadge && (
-                      <span className={`flex items-center justify-center min-w-[18px] h-4 px-1 text-[9px] font-bold rounded-full shadow-lg animate-pulse ${
+                      <span className={`flex items-center justify-center min-w-[18px] h-4 px-1 text-[11px] font-bold rounded-full shadow-lg animate-pulse ${
                         tab.id === 'customerservice'
                           ? 'bg-white text-red-600'
                           : tab.id === 'cccservice'
