@@ -4,7 +4,7 @@ import { login, storeAuth } from '../lib/auth';
 import { useCompanyName } from '../lib/useCompanyName';
 import { useResponsive } from '../lib/useResponsive';
 import { checkLoginRateLimit, recordLoginAttempt, formatLockDuration } from '../lib/rateLimitService';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseConfigurationError } from '../lib/supabase';
 import { useLanguage, LANGUAGES } from '../lib/i18n';
 import { LanguageModal } from '../components/LanguageSwitcher';
 import type { Language } from '../lib/i18n';
@@ -94,6 +94,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     e.preventDefault();
     setError('');
     setWarning('');
+
+    if (supabaseConfigurationError) {
+      setError(supabaseConfigurationError);
+      return;
+    }
+
     setLoading(true);
 
     try {

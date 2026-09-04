@@ -42,6 +42,8 @@ export async function checkLoginRateLimit(
   }
 }
 
+const LOGIN_ATTEMPT_TIMEOUT_MS = 1500;
+
 export async function recordLoginAttempt(
   identifier: string,
   identifierType: 'ip' | 'username',
@@ -50,13 +52,17 @@ export async function recordLoginAttempt(
   userAgent?: string
 ): Promise<LoginAttemptResult> {
   try {
-    const { data, error } = await supabase.rpc('record_login_attempt', {
+    const rpcRequest = supabase.rpc('record_login_attempt', {
       p_identifier: identifier,
       p_identifier_type: identifierType,
       p_success: success,
       p_ip_address: ipAddress,
       p_user_agent: userAgent
     });
+    const timeout = new Promise<never>((_, reject) => {
+      window.setTimeout(() => reject(new Error('Login attempt logging timed out')), LOGIN_ATTEMPT_TIMEOUT_MS);
+    });
+    const { data, error } = await Promise.race([rpcRequest, timeout]);
 
     if (error) {
       console.error('[Record Attempt] Error:', error);
