@@ -104,31 +104,17 @@ const vipAvatarOptions: AvatarOption[] = [
   { emoji: '🧛', label: 'Obsidian Sovereign' },
 ];
 
-const regularBackgrounds = [
-  ['#24558d', '#6ed0d2'],
-  ['#493b99', '#d86b9f'],
-  ['#1d746e', '#a7d998'],
-  ['#a15738', '#f2bd7e'],
-  ['#9e3f61', '#e58ea8'],
-  ['#355c95', '#aa8be4'],
-  ['#7a3d8e', '#f0a0d0'],
-  ['#216a72', '#f1c46a'],
-  ['#4b5563', '#8b5cf6'],
-  ['#8a4b2d', '#e6a56b'],
-];
+function getAvatarBackground(index: number, vip: boolean): [string, string] {
+  const hue = (index * 137 + (vip ? 47 : 13)) % 360;
+  const accentHue = (hue + 47 + (index % 5) * 13) % 360;
+  const baseLightness = vip ? 24 + (index % 4) * 3 : 30 + (index % 5) * 3;
+  const accentLightness = vip ? 56 + (index % 4) * 4 : 58 + (index % 5) * 4;
 
-const vipBackgrounds = [
-  ['#34206d', '#e5a53e'],
-  ['#173d67', '#d7923b'],
-  ['#563078', '#db6c91'],
-  ['#155b5d', '#e5bf5d'],
-  ['#712c4b', '#e08b45'],
-  ['#314579', '#6dd1c0'],
-  ['#4d256f', '#f0c86b'],
-  ['#164e63', '#f5a65b'],
-  ['#6b214f', '#c4a7ff'],
-  ['#285943', '#f4d35e'],
-];
+  return [
+    `hsl(${hue} 62% ${baseLightness}%)`,
+    `hsl(${accentHue} 74% ${accentLightness}%)`,
+  ];
+}
 
 const skinTones = ['#f7c9a9', '#efb38f', '#f4d0b9', '#f8d7c0', '#f1c3a5', '#e8ad8f', '#f3ccb4', '#d9916c', '#bd7655', '#f7c9a9'];
 const hairTones = ['#211923', '#41271e', '#75452a', '#bd7038', '#edbb62', '#51436f', '#a8a4b8', '#1f5960', '#722f4b', '#5a3828'];
@@ -194,6 +180,30 @@ const mouthStyles = [
   'M28 35c2 2 6 2 8 0',
 ];
 
+const bodyStyles = [
+  'M7 66c2-12 10-19 25-19s23 7 25 19',
+  'M3 66c4-14 13-20 29-20s25 6 29 20',
+  'M10 66c0-11 8-18 22-18s22 7 22 18',
+  'M5 66c3-9 11-17 27-17s24 8 27 17',
+  'M8 66c4-15 12-21 24-21s20 6 24 21',
+  'M1 66c4-11 14-18 31-18s27 7 31 18',
+];
+
+const headwearStyles: Array<string | null> = [
+  null,
+  'M15 18c4-7 12-10 22-9 6 1 11 5 13 10-10-3-22-3-35 1Z',
+  'M18 17c1-7 7-11 14-11s13 4 14 11c-8-3-19-3-28 0Z',
+  'M13 18c6-7 16-9 27-6 4 1 8 3 11 7-13-1-24 1-38 2Z',
+  'M25 10c0-5 4-8 7-8s7 3 7 8l-4 3h-6Z',
+  'M17 19c7-3 16-3 30 0l-2 3c-9-2-18-2-27 0Z',
+  'M9 18c7-5 14-7 23-6 9-1 16 1 23 6l-3 3H12Z',
+  'M20 15c3-5 8-7 12-7s9 2 12 7l-3 3H23Z',
+  'M14 15c5-4 10-6 18-6s13 2 18 6l-2 3H16Z',
+  'M22 13c2-5 6-8 10-8s8 3 10 8l-4 3H26Z',
+  'M16 17c4-6 10-9 16-9s12 3 16 9l-4 2H20Z',
+  'M13 19c3-6 9-10 19-10s16 4 19 10l-4 2H17Z',
+];
+
 const themeStyles: Record<CustomerAvatarPickerTheme, {
   panel: string;
   idle: string;
@@ -216,8 +226,7 @@ const themeStyles: Record<CustomerAvatarPickerTheme, {
 
 function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const featureSeed = index * 7 + (vip ? 29 : 11);
-  const palette = vip ? vipBackgrounds : regularBackgrounds;
-  const [backgroundStart, backgroundEnd] = palette[featureSeed % palette.length];
+  const [backgroundStart, backgroundEnd] = getAvatarBackground(index, vip);
   const skin = skinTones[(featureSeed * 7 + 2) % skinTones.length];
   const hair = hairTones[(featureSeed * 11 + (vip ? 2 : 0)) % hairTones.length];
   const isFemale = index % 2 === 0;
@@ -239,17 +248,25 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const hasFacialHair = !isFemale && featureSeed % 6 === 1;
   const hasFreckles = featureSeed % 11 === 3;
   const mouthStyle = mouthStyles[(featureSeed * 7 + 2) % mouthStyles.length];
+  const bodyStyle = bodyStyles[(featureSeed * 13 + 1) % bodyStyles.length];
+  const headwear = headwearStyles[(featureSeed * 19 + 3) % headwearStyles.length];
+  const earringColor = ['#ffe18a', '#d9f99d', '#f9a8d4', '#bfdbfe'][featureSeed % 4];
+  const backgroundStyle = featureSeed % 6;
 
   return (
     <div
       className={`relative h-full w-full overflow-hidden rounded-[10px] ${vip ? 'scale-[1.1]' : ''}`}
       style={{ background: `linear-gradient(145deg, ${backgroundStart} 0%, ${backgroundEnd} 100%)` }}
     >
-      <div className="absolute -right-3 -top-3 h-10 w-10 rounded-full bg-white/25 blur-md" />
-      <div className="absolute -bottom-5 -left-3 h-9 w-9 rounded-full bg-white/15 blur-lg" />
+      {backgroundStyle === 0 && <div className="absolute -right-3 -top-3 h-10 w-10 rounded-full bg-white/25 blur-md" />}
+      {backgroundStyle === 1 && <div className="absolute -left-3 -top-2 h-8 w-8 rotate-12 rounded-full bg-white/25 blur-md" />}
+      {backgroundStyle === 2 && <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />}
+      {backgroundStyle === 3 && <div className="absolute -bottom-4 -right-2 h-10 w-10 rounded-full bg-black/20 blur-md" />}
+      {backgroundStyle === 4 && <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white/18 to-transparent" />}
+      {backgroundStyle === 5 && <div className="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-white/40 shadow-[0_0_12px_rgba(255,255,255,.6)]" />}
       {vip && <div className="absolute inset-1 rounded-[8px] border border-amber-100/55" />}
       <svg viewBox="0 0 64 64" className="relative h-full w-full" aria-hidden="true">
-        <path d="M7 66c2-12 10-19 25-19s23 7 25 19" fill={shirt} />
+        <path d={bodyStyle} fill={shirt} />
         {hasCollar && <path d="M20 52l12 8 12-8 4 14H16z" fill={vip ? '#fff0b0' : '#ffffff'} opacity=".8" />}
         <path d="M24 44h16v10H24z" fill={skin} />
         <path d="M25 48l7 7 7-7 4 4-4 14H25l-4-14z" fill={vip ? '#fff0b0' : '#ffffff'} opacity=".72" />
@@ -330,10 +347,11 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
         )}
         {hasEarring && (
           <>
-            <circle cx="18" cy="35" r="1.4" fill="#ffe18a" />
-            <circle cx="46" cy="35" r="1.4" fill="#ffe18a" />
+            <circle cx="18" cy="35" r="1.4" fill={earringColor} />
+            <circle cx="46" cy="35" r="1.4" fill={earringColor} />
           </>
         )}
+        {headwear && <path d={headwear} fill={vip ? '#f8d978' : hair} opacity=".95" />}
         {vip && (
           <path d="M19 15l4-5 4 3 5-5 5 5 4-3 4 5" fill="#f8d978" fillOpacity=".28" stroke="#fff0a5" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
         )}
