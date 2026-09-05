@@ -471,11 +471,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       <div className="relative z-10 m-0 p-0 w-full h-full flex flex-col">
         <header className="bg-slate-900/90 backdrop-blur-xl border-b border-blue-500/30 w-full m-0 flex-shrink-0" style={{ WebkitBackdropFilter: 'blur(24px)' }}>
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-cyan-500/10 to-blue-600/5 pointer-events-none"></div>
-          <div className="w-full px-3 sm:px-4 lg:px-6 py-2 relative">
+          <div className="w-full px-2.5 sm:px-3 lg:px-4 py-1.5 relative">
             <div className="flex justify-between items-center gap-2">
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 <div className="relative flex-shrink-0">
-                  <div className="relative w-7 h-7 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 rounded-md flex items-center justify-center shadow-md">
+                  <div className="relative w-6 h-6 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 rounded-md flex items-center justify-center shadow-md">
                     <Zap className="w-3.5 h-3.5 text-white" fill="currentColor" />
                   </div>
                 </div>
@@ -532,7 +532,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         <div className="w-full lg:flex flex-1 min-h-0">
           {/* Desktop: Vertical Left Sidebar */}
           <aside className="hidden lg:flex lg:flex-col lg:w-40 xl:w-44 flex-shrink-0 bg-slate-900/70 border-r border-slate-700/50 overflow-y-auto scrollbar-hide">
-            <nav className="flex flex-col gap-0.5 p-2">
+            <nav className="flex flex-col gap-0.5 p-1.5">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const pendingCount = tab.id === 'withdrawals' ? pendingWithdrawalsCount : tab.id === 'verifications' ? pendingVerificationsCount : tab.id === 'customerservice' ? unreadCustomerServiceCount : tab.id === 'cccservice' ? unreadCccServiceCount : tab.id === 'accountlocks' ? lockedAccountsCount : 0;
@@ -542,7 +542,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`relative flex items-center gap-2 px-2.5 py-2 rounded-lg font-medium transition-all text-left ${
+                    className={`relative flex items-center gap-2 px-2 py-1.5 rounded-lg font-medium transition-all text-left ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
                           ? 'bg-orange-700 text-white shadow-lg shadow-orange-900/40'
@@ -556,7 +556,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
                     }`}
                   >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="text-xs font-medium truncate">{tab.label}</span>
                     {showBadge && (
                       <span className={`ml-auto flex items-center justify-center min-w-[20px] h-[20px] px-1 text-xs font-bold rounded-full shadow-lg animate-pulse ${
@@ -595,7 +595,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               linear-gradient(135deg, #040e09 0%, #06160e 25%, #05120b 50%, #071d12 75%, #030a06 100%)
             `
           } : undefined}>
-            <div className="lg:hidden flex gap-2 px-3 pt-4 pb-2 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="lg:hidden flex gap-1.5 px-2 pt-2 pb-1.5 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const pendingCount = tab.id === 'withdrawals' ? pendingWithdrawalsCount : tab.id === 'verifications' ? pendingVerificationsCount : tab.id === 'customerservice' ? unreadCustomerServiceCount : tab.id === 'cccservice' ? unreadCccServiceCount : tab.id === 'accountlocks' ? lockedAccountsCount : 0;
@@ -605,7 +605,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`relative flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                    className={`relative flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
                           ? 'bg-orange-700 text-white shadow-lg shadow-orange-900/40'
@@ -619,7 +619,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700'
                     }`}
                   >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="text-xs font-semibold">{tab.label}</span>
                     {showBadge && (
                       <span className={`flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold rounded-full shadow-lg animate-pulse ${
@@ -647,12 +647,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('employeesearch') && (
-              <div className={activeTab === 'employeesearch' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'employeesearch' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <EmployeeSearch />
               </div>
             )}
             {loadedTabs.has('loginhistory') && (
-              <div className={activeTab === 'loginhistory' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'loginhistory' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <EmployeeLoginHistory admin={admin} />
               </div>
             )}
@@ -684,22 +684,22 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('dispatch') && (
-              <div className={activeTab === 'dispatch' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'dispatch' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <DispatchManagement />
               </div>
             )}
             {loadedTabs.has('withdrawals') && (
-              <div className={activeTab === 'withdrawals' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'withdrawals' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <WithdrawalReview admin={admin} />
               </div>
             )}
             {loadedTabs.has('verifications') && (
-              <div className={activeTab === 'verifications' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'verifications' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <VerificationReview admin={admin} />
               </div>
             )}
             {loadedTabs.has('config') && (
-              <div className={activeTab === 'config' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'config' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 {admin.role === 'super_admin' ? (
                   <SystemConfiguration admin={admin} />
                 ) : (
@@ -708,34 +708,34 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('submittime') && (
-              <div className={activeTab === 'submittime' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'submittime' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <SubmitTimeManagement admin={admin} />
               </div>
             )}
             {loadedTabs.has('announcements') && (
-              <div className={activeTab === 'announcements' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'announcements' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <AnnouncementManagement admin={admin} />
               </div>
             )}
             {admin.role === 'super_admin' && (
               <>
                 {loadedTabs.has('products') && (
-                  <div className={activeTab === 'products' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+                  <div className={activeTab === 'products' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                     <ProductTypeManagement />
                   </div>
                 )}
                 {loadedTabs.has('validdata') && (
-                  <div className={activeTab === 'validdata' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+                  <div className={activeTab === 'validdata' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                     <ValidOrderDataManagement adminId={admin.id} />
                   </div>
                 )}
                 {loadedTabs.has('admins') && (
-                  <div className={activeTab === 'admins' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+                  <div className={activeTab === 'admins' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                     <AdminManagement admin={admin} />
                   </div>
                 )}
                 {loadedTabs.has('history') && (
-                  <div className={activeTab === 'history' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+                  <div className={activeTab === 'history' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                     <HistoryDataManagement admin={admin} />
                   </div>
                 )}
@@ -743,7 +743,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             )}
 
             {loadedTabs.has('accountlocks') && (
-              <div className={activeTab === 'accountlocks' ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-6 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'accountlocks' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <AccountLockManagement admin={admin} />
               </div>
             )}
