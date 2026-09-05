@@ -3506,7 +3506,11 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                               )}
                             </div>
                           ) : msg.message_type === 'image' && msg.image_url ? (
-                          <div className="rounded-2xl overflow-hidden shadow-sm" style={{ boxShadow: msg.sender_type === 'customer' ? '0 2px 8px rgba(0,0,0,0.08)' : '0 2px 8px rgba(59,130,246,0.3)' }}>
+                          <div className={`relative overflow-hidden rounded-[20px] border shadow-lg transition-all duration-200 ${
+                            msg.sender_type === 'customer'
+                              ? 'border-emerald-200/80 bg-white shadow-slate-950/20'
+                              : 'border-emerald-300/30 bg-gradient-to-br from-slate-800 via-slate-800 to-emerald-950/70 shadow-emerald-950/35'
+                          }`}>
                             <div className="relative z-10">
                               {renderMessageContent(msg)}
                               {replacingImageMsgId === msg.id && (
@@ -3516,7 +3520,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                                 </div>
                               )}
                             </div>
-                            <div className={`text-[10px] px-3 py-1.5 ${msg.sender_type === 'customer' ? 'text-slate-400 text-right bg-white' : 'text-white/60 bg-blue-500'}`}>
+                            <div className={`border-t px-3 py-1.5 text-[10px] ${msg.sender_type === 'customer' ? 'border-slate-100 bg-white text-right text-slate-500' : 'border-emerald-200/10 bg-slate-950/25 text-emerald-100/60'}`}>
                               {new Date(msg.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                             {msg.sender_type === 'customer' && (
@@ -3539,33 +3543,26 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                           </div>
                           ) : (
                           <div
-                            className={`relative px-4 py-3 shadow-sm ${
+                            className={`relative overflow-hidden px-4 py-3 transition-all duration-200 ${
                               editingMessageId === msg.id
-                                ? 'bg-white text-slate-800 rounded-2xl border-2 border-blue-400 ring-2 ring-blue-100'
+                                ? 'rounded-[20px] border-2 border-emerald-400 bg-white text-slate-800 ring-2 ring-emerald-100 shadow-[0_12px_28px_rgba(16,185,129,0.18)]'
                                 : msg.sender_type === 'customer'
-                                  ? 'bg-white text-slate-800 rounded-2xl rounded-tr-md border border-slate-200/60'
-                                  : 'bg-blue-500 text-white rounded-2xl rounded-tl-md'
+                                  ? 'rounded-[20px] rounded-tr-[6px] border border-emerald-200/80 bg-white text-slate-800 shadow-[0_10px_24px_rgba(15,23,42,0.2)]'
+                                  : 'rounded-[20px] rounded-tl-[6px] border border-emerald-300/35 bg-gradient-to-br from-slate-800 via-slate-800 to-emerald-950/70 text-slate-100 shadow-[0_10px_24px_rgba(6,78,59,0.34)]'
                             }`}
-                            style={editingMessageId === msg.id ? {
-                              boxShadow: '0 0 0 2px rgba(96,165,250,0.15)'
-                            } : msg.sender_type === 'customer' ? {
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                            } : {
-                              boxShadow: '0 2px 8px rgba(59,130,246,0.3)'
-                            }}
                           >
                             <div className="relative z-10">
                               <div className={`text-xs font-semibold flex items-center gap-1.5 pb-1.5 mb-1.5 ${
                                 msg.sender_type === 'customer'
-                                  ? 'border-b border-slate-200'
-                                  : 'border-b border-white/25'
+                                  ? 'border-b border-slate-200/90'
+                                  : 'border-b border-emerald-200/15'
                               }`}>
                                 {msg.sender_type === 'customer' && selectedCustomer?.is_super && (
                                   <span className="text-[10px]">
                                     {selectedCustomer.badge_type === 'diamond' ? '💎' : selectedCustomer.badge_type === 'crown' ? '👑' : selectedCustomer.badge_type === 'star' ? '⭐' : selectedCustomer.badge_type === 'vip' ? '🏆' : '✨'}
                                   </span>
                                 )}
-                                <span className={msg.sender_type === 'employee' ? 'text-white' : selectedCustomer?.is_super ? 'text-amber-600 font-bold' : 'text-blue-600 font-semibold'}>{msg.sender_type === 'customer' ? selectedCustomer?.customer_name : selectedEmployee?.username}</span>
+                                <span className={msg.sender_type === 'employee' ? 'text-emerald-100' : selectedCustomer?.is_super ? 'text-amber-600 font-bold' : 'text-slate-700 font-semibold'}>{msg.sender_type === 'customer' ? selectedCustomer?.customer_name : selectedEmployee?.username}</span>
                                 {msg.sender_type === 'customer' && selectedCustomer?.is_super && selectedCustomer?.super_customer_title && (
                                   <span className="text-[9px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold">{selectedCustomer?.super_customer_title}</span>
                                 )}
@@ -3676,8 +3673,8 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                               )}
                               <div className={`text-[10px] mt-1.5 ${
                                 msg.sender_type === 'customer'
-                                  ? 'text-slate-400 text-right'
-                                  : 'text-white/60'
+                                  ? 'text-slate-500 text-right'
+                                  : 'text-emerald-100/60'
                               }`}>
                                 {new Date(msg.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
