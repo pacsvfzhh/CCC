@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export type CustomerAvatarPickerTheme = 'orange' | 'emerald';
 export type CustomerAvatarPickerVariant = 'regular' | 'vip';
@@ -247,7 +247,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
 
   return (
     <div
-      className={`relative h-full w-full overflow-hidden rounded-[10px] ${vip ? 'scale-[1.1]' : ''}`}
+      className="relative block h-full w-full overflow-hidden rounded-[10px]"
       style={{ background: `linear-gradient(145deg, ${backgroundStart} 0%, ${backgroundEnd} 100%)` }}
     >
       {backgroundStyle === 0 && <div className="absolute -right-3 -top-3 h-10 w-10 rounded-full bg-white/25 blur-md" />}
@@ -257,7 +257,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
       {backgroundStyle === 4 && <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white/18 to-transparent" />}
       {backgroundStyle === 5 && <div className="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-white/40 shadow-[0_0_12px_rgba(255,255,255,.6)]" />}
       {vip && <div className="absolute inset-1 rounded-[8px] border border-amber-100/55" />}
-      <svg viewBox="0 0 64 64" className="relative h-full w-full" aria-hidden="true">
+      <svg viewBox="0 0 64 64" className="relative block h-full w-full" aria-hidden="true">
         <g transform={`translate(${portraitShift} 0) rotate(${portraitTilt} 32 34)`}>
         <path d={bodyStyle} fill={shirt} />
         {hasCollar && <path d="M20 52l12 8 12-8 4 14H16z" fill={vip ? '#fff0b0' : '#ffffff'} opacity=".8" />}
@@ -390,21 +390,34 @@ export function CustomerAvatarDisplay({
   className = 'h-10 w-10 rounded-full',
 }: CustomerAvatarDisplayProps) {
   const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const avatarIndex = getAvatarIndex(avatar, isVip ? 'vip' : 'regular');
 
+  useEffect(() => {
+    setImageError(false);
+    setImageLoaded(false);
+  }, [customAvatarUrl]);
+
   return (
-    <div className={`relative flex items-center justify-center overflow-hidden ${className}`}>
-      {customAvatarUrl && !imageError ? (
+    <div className={`relative flex aspect-square min-h-0 min-w-0 items-center justify-center overflow-hidden box-border ${className}`}>
+      <AvatarArtwork index={avatarIndex} vip={isVip} />
+      {customAvatarUrl && !imageError && (
         <img
+          key={customAvatarUrl}
           src={customAvatarUrl}
           alt={alt}
-          className="h-full w-full object-cover"
+          className={`absolute inset-0 block h-full w-full object-cover transition-opacity duration-150 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           loading="lazy"
           decoding="async"
-          onError={() => setImageError(true)}
+          onLoad={() => {
+            setImageLoaded(true);
+            setImageError(false);
+          }}
+          onError={() => {
+            setImageLoaded(false);
+            setImageError(true);
+          }}
         />
-      ) : (
-        <AvatarArtwork index={avatarIndex} vip={isVip} />
       )}
     </div>
   );
