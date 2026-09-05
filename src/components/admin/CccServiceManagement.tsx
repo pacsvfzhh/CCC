@@ -3096,7 +3096,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                         : 'border-slate-700/60 bg-slate-800/45 hover:border-emerald-400/60 hover:bg-emerald-950/45 hover:shadow-md hover:shadow-emerald-950/35'
                     }`}
                   >
-                    <div className={`flex min-w-0 items-center pr-8 ${selectedEmployee?.id === emp.id ? 'gap-2' : 'gap-1.5'}`}>
+                    <div className={`flex min-w-0 items-center pr-1 ${selectedEmployee?.id === emp.id ? 'gap-2' : 'gap-1.5'}`}>
                       <div className="relative flex-shrink-0">
                         <div className={`rounded flex items-center justify-center ${
                           selectedEmployee?.id === emp.id ? 'h-9 w-9 bg-white/15 ring-1 ring-white/25' : 'h-7 w-7 border border-slate-700/70 bg-slate-900/70 group-hover:border-emerald-400/50 group-hover:bg-emerald-950/40'
@@ -3105,11 +3105,20 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                         </div>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center gap-1">
+                        <div className="flex min-w-0 items-center gap-1 pr-[48%]">
                           <span className={`truncate font-bold ${selectedEmployee?.id === emp.id ? 'text-[15px] text-white' : 'text-[11px] text-slate-200'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 6px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)' } : undefined}>{emp.username}</span>
                           {selectedEmployee?.id === emp.id && <span className="ml-auto flex-shrink-0 rounded bg-white/25 px-1.5 py-0.5 text-[9px] font-bold leading-relaxed text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>ACTIVE</span>}
                         </div>
-                        <div className={`font-mono leading-tight ${selectedEmployee?.id === emp.id ? 'text-[11px] text-emerald-100' : 'text-[10px] text-slate-400 group-hover:text-emerald-200/80'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>ID: {emp.employee_id || '—'}</div>
+                        <div className="flex min-w-0 items-center gap-1">
+                          <div className={`min-w-0 flex-1 truncate font-mono leading-tight ${selectedEmployee?.id === emp.id ? 'text-[11px] text-emerald-100' : 'text-[10px] text-slate-400 group-hover:text-emerald-200/80'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>ID: {emp.employee_id || '—'}</div>
+                          <EmployeeMetadataPopover
+                            kind="note"
+                            theme="emerald"
+                            value={emp.remarks}
+                            selected={selectedEmployee?.id === emp.id}
+                            className="ml-auto min-w-0 w-[48%] max-w-[48%]"
+                          />
+                        </div>
                       </div>
                     </div>
                     <EmployeeMetadataPopover
@@ -3118,13 +3127,6 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                       values={emp.tags}
                       selected={selectedEmployee?.id === emp.id}
                       className="absolute right-1 top-1 z-30 w-[48%] max-w-[48%]"
-                    />
-                    <EmployeeMetadataPopover
-                      kind="note"
-                      theme="emerald"
-                      value={emp.remarks}
-                      selected={selectedEmployee?.id === emp.id}
-                      className="absolute bottom-1 left-2 z-30 w-[48%] max-w-[48%]"
                     />
                   </button>
                 ))}
