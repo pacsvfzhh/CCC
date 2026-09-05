@@ -10,7 +10,6 @@ import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML
 import { processContentImages } from '../../lib/imageOptimizer';
 import { cleanupContentImages } from '../../lib/storageCleanup';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
-import CustomerAvatarPicker from './CustomerAvatarPicker';
 
 const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }: {
   src: string;

@@ -133,6 +133,20 @@ const hairStyles = [
   'M16 29C14 16 21 7 33 7c12 0 18 9 16 23l-4-4-2-10c-7 3-15 4-25 2l-1 11Z',
 ];
 
+const femaleBackHairStyles = [
+  'M13 49C10 37 11 19 19 10 26 3 39 4 47 12c7 8 8 23 3 37l-8-3-2-19c-6 4-13 5-20 2l-1 20Z',
+  'M12 48C9 34 12 17 21 9c7-6 19-6 27 2 7 8 7 23 4 37l-8-3-1-18c-6 3-14 4-22 1l-2 20Z',
+  'M14 50C10 36 12 19 20 11 27 4 39 4 47 11c8 8 8 23 4 39l-7-4-2-20c-6 4-13 5-20 2l-1 22Z',
+  'M12 47C10 32 14 16 23 9c8-6 19-4 26 4 6 8 6 21 3 35l-8-3-1-18c-6 3-13 4-21 1l-2 19Z',
+];
+
+const femaleHairStyles = [
+  'M15 27C16 14 23 8 33 8c11 0 18 8 17 19-4-4-7-7-9-12-6 5-14 8-26 7Z',
+  'M14 29C14 16 22 8 33 8c10 0 17 7 18 19-5-3-8-7-10-12-6 5-14 8-27 7Z',
+  'M15 26C17 14 24 8 33 8c10 0 17 7 17 19-4-3-7-7-9-12-5 5-14 8-26 7Z',
+  'M16 28C15 15 22 7 33 7c11 0 18 8 16 21-4-4-7-8-9-13-6 5-13 8-24 8Z',
+];
+
 const themeStyles: Record<CustomerAvatarPickerTheme, {
   panel: string;
   idle: string;
@@ -158,10 +172,12 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const [backgroundStart, backgroundEnd] = palette[index % palette.length];
   const skin = skinTones[index % skinTones.length];
   const hair = hairTones[(index + (vip ? 2 : 0)) % hairTones.length];
+  const isFemale = index % 2 === 0;
+  const hairStyle = (isFemale ? femaleHairStyles : hairStyles)[index % hairStyles.length];
   const shirtPalette = vip ? vipShirtTones : shirtTones;
   const shirt = shirtPalette[index % shirtPalette.length];
   const hasGlasses = index % 5 === 1 || (vip && index % 7 === 0);
-  const hasEarring = index % 4 === 2;
+  const hasEarring = index % 4 === 2 || (isFemale && index % 5 === 0);
 
   return (
     <div
@@ -175,14 +191,21 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
         <path d="M7 66c2-12 10-19 25-19s23 7 25 19" fill={shirt} />
         <path d="M24 44h16v10H24z" fill={skin} />
         <path d="M25 48l7 7 7-7 4 4-4 14H25l-4-14z" fill={vip ? '#fff0b0' : '#ffffff'} opacity=".72" />
+        {isFemale && <path d={femaleBackHairStyles[index % femaleBackHairStyles.length]} fill={hair} />}
         <circle cx="17" cy="30" r="3.5" fill={skin} />
         <circle cx="47" cy="30" r="3.5" fill={skin} />
         <ellipse cx="32" cy="29" rx="15" ry="17" fill={skin} />
-        <path d={hairStyles[index % hairStyles.length]} fill={hair} />
+        <path d={hairStyle} fill={hair} />
         <path d="M23 27c1.5-1 3.5-1 5 0M36 27c1.5-1 3.5-1 5 0" fill="none" stroke="#3b2730" strokeLinecap="round" strokeWidth="1.5" />
         <circle cx="26" cy="30" r="1.3" fill="#1f1720" />
         <circle cx="38" cy="30" r="1.3" fill="#1f1720" />
-        <path d="M29 36c2 1.5 4 1.5 6 0" fill="none" stroke="#9a4f4e" strokeLinecap="round" strokeWidth="1.4" />
+        {isFemale && (
+          <>
+            <circle cx="22" cy="35" r="2.2" fill="#ee8694" opacity=".22" />
+            <circle cx="42" cy="35" r="2.2" fill="#ee8694" opacity=".22" />
+          </>
+        )}
+        <path d="M29 36c2 1.5 4 1.5 6 0" fill="none" stroke={isFemale ? '#b64f6b' : '#9a4f4e'} strokeLinecap="round" strokeWidth="1.4" />
         {hasGlasses && (
           <g fill="none" stroke={vip ? '#fff0a5' : '#ffffff'} strokeWidth="1.2">
             <rect x="20" y="27" width="10" height="7" rx="3" />
