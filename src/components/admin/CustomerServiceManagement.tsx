@@ -2757,24 +2757,24 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       </div>
                     </div>
                     <div className="group/tag absolute right-1 top-1 z-30 max-w-[48%]">
-                      <span className={`flex max-w-[124px] items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${selectedEmployee?.id === emp.id ? 'border-white/35 bg-white/20 text-white' : 'border-orange-300/45 bg-orange-500/20 text-orange-100'}`}>
+                      <span className={`flex max-w-[124px] items-center gap-1 truncate text-[10px] font-bold ${selectedEmployee?.id === emp.id ? 'text-white' : 'text-orange-200'}`}>
                         <Tag className="h-2.5 w-2.5 shrink-0" />
-                        <span className="truncate">{emp.tags?.length ? `${emp.tags[0]}${emp.tags.length > 1 ? ` +${emp.tags.length - 1}` : ''}` : 'No tag'}</span>
+                        <span className="truncate">Tag: {emp.tags?.length ? `${emp.tags[0]}${emp.tags.length > 1 ? ` +${emp.tags.length - 1}` : ''}` : 'No tag'}</span>
                       </span>
                       {emp.tags?.length ? (
-                        <div className="pointer-events-none absolute right-0 top-full mt-1 w-[190px] rounded-lg border border-orange-300/40 bg-slate-950/95 p-2 text-[10px] text-orange-100 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/tag:opacity-100 group-focus-within/tag:opacity-100">
+                        <div className="pointer-events-none absolute right-0 top-full mt-1 w-[190px] rounded-lg border border-orange-300/60 bg-slate-950 p-2 text-[10px] text-orange-50 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/tag:opacity-100 group-focus-within/tag:opacity-100">
                           <div className="mb-1 font-bold uppercase tracking-wider text-orange-300">Tags</div>
                           <div className="break-words leading-4">{emp.tags.join(' · ')}</div>
                         </div>
                       ) : null}
                     </div>
                     <div className="group/note absolute bottom-1 right-1 z-30 max-w-[48%]">
-                      <span className={`flex max-w-[124px] items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[9px] font-medium ${selectedEmployee?.id === emp.id ? 'border-white/35 bg-white/20 text-white' : 'border-slate-500/60 bg-slate-950/70 text-slate-200'}`}>
+                      <span className={`flex max-w-[124px] items-center gap-1 truncate text-[10px] font-medium ${selectedEmployee?.id === emp.id ? 'text-white' : 'text-slate-300'}`}>
                         <FileText className="h-2.5 w-2.5 shrink-0" />
-                        <span className="truncate">{emp.remarks?.trim() || 'No note'}</span>
+                        <span className="truncate">Note: {emp.remarks?.trim() || 'No note'}</span>
                       </span>
                       {emp.remarks?.trim() ? (
-                        <div className="pointer-events-none absolute bottom-full right-0 mb-1 w-[190px] rounded-lg border border-slate-500/60 bg-slate-950/95 p-2 text-[10px] text-slate-200 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100">
+                        <div className="pointer-events-none absolute bottom-full right-0 mb-1 w-[190px] rounded-lg border border-slate-400/70 bg-slate-950 p-2 text-[10px] text-white opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100">
                           <div className="mb-1 font-bold uppercase tracking-wider text-slate-400">Note</div>
                           <div className="break-words leading-4">{emp.remarks}</div>
                         </div>
@@ -3002,7 +3002,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                         <span className="truncate">{employeeTags.length ? `${employeeTags[0]}${employeeTags.length > 1 ? ` +${employeeTags.length - 1}` : ''}` : 'No tag'}</span>
                                       </span>
                                       {employeeTags.length > 0 && (
-                                        <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] rounded-lg border border-orange-300/40 bg-slate-950/95 p-2 text-[10px] text-orange-100 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/tag:opacity-100 group-focus-within/tag:opacity-100">
+                                        <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] rounded-lg border border-orange-300/60 bg-slate-950 p-2 text-[10px] text-orange-50 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/tag:opacity-100 group-focus-within/tag:opacity-100">
                                           <span className="mb-1 block font-bold uppercase tracking-wider text-orange-300">Tags</span>
                                           <span className="block break-words leading-4">{employeeTags.join(' · ')}</span>
                                         </span>
@@ -3014,7 +3014,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                         <span className="truncate">{employeeNote || 'No note'}</span>
                                       </span>
                                       {employeeNote && (
-                                        <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] rounded-lg border border-slate-500/60 bg-slate-950/95 p-2 text-[10px] text-slate-200 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100">
+                                        <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] rounded-lg border border-slate-400/70 bg-slate-950 p-2 text-[10px] text-white opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100">
                                           <span className="mb-1 block font-bold uppercase tracking-wider text-slate-400">Note</span>
                                           <span className="block break-words leading-4">{employeeNote}</span>
                                         </span>
