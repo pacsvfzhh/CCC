@@ -90,9 +90,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const cleanup = startOrderProcessing();
-    return cleanup;
-  }, []);
+    if (!authState.user?.id) return;
+    return startOrderProcessing();
+  }, [authState.user?.id]);
 
   const handleLoginSuccess = () => {
     const stored = getStoredAuth();

@@ -1,25 +1,41 @@
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseConfigurationError } from '../lib/supabase';
+
+let processingRequestActive = false;
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  return JSON.stringify(error);
+};
 
 export async function processOrders() {
+  if (supabaseConfigurationError || processingRequestActive) return null;
+
+  processingRequestActive = true;
   try {
     const { data, error } = await supabase.rpc('process_pending_orders');
     if (error) {
-      console.error('Error processing orders:', error);
+      if (import.meta.env.DEV) {
+        console.warn('[OrderProcessor] Background sync unavailable:', getErrorMessage(error));
+      }
       return null;
     }
     return data;
   } catch (error) {
-    console.error('Error processing orders:', error);
+    if (import.meta.env.DEV) {
+      console.warn('[OrderProcessor] Background sync unavailable:', getErrorMessage(error));
+    }
     return null;
+  } finally {
+    processingRequestActive = false;
   }
 }
 
 export function startOrderProcessing() {
-  processOrders();
+  void processOrders();
 
-  const interval = setInterval(() => {
-    processOrders();
+  const interval = window.setInterval(() => {
+    void processOrders();
   }, 30000);
 
-  return () => clearInterval(interval);
+  return () => window.clearInterval(interval);
 }
