@@ -106,16 +106,16 @@ const vipAvatarOptions: AvatarOption[] = [
 
 function getAvatarBackground(index: number, vip: boolean): [string, string] {
   const businessHues = [204, 214, 198, 188, 221, 158, 38, 20, 232, 194, 46, 208];
-  const premiumHues = [42, 272, 176, 208, 24, 334, 52, 190, 286, 164, 216, 32];
-  const palette = vip ? premiumHues : businessHues;
+  const goldHues = [32, 36, 40, 44, 47, 38, 29, 42, 49, 34, 45, 52];
+  const palette = vip ? goldHues : businessHues;
   const hue = palette[(index * 7 + (vip ? 3 : 0)) % palette.length];
   const accentHue = vip
-    ? (hue + (index % 3 === 0 ? 28 : 16)) % 360
+    ? hue + (index % 3 === 0 ? 3 : index % 3 === 1 ? 7 : -3)
     : (hue + (index % 3 === 0 ? 18 : 9)) % 360;
-  const baseLightness = vip ? 46 + (index % 3) * 4 : 58 + (index % 4) * 2;
-  const accentLightness = vip ? 70 + (index % 4) * 4 : 76 + (index % 3) * 3;
-  const saturation = vip ? 48 : 34;
-  const accentSaturation = vip ? 52 : 42;
+  const baseLightness = vip ? 48 + (index % 4) * 4 : 58 + (index % 4) * 2;
+  const accentLightness = vip ? 74 + (index % 4) * 4 : 76 + (index % 3) * 3;
+  const saturation = vip ? 58 : 34;
+  const accentSaturation = vip ? 64 : 42;
 
   return [
     `hsl(${hue} ${saturation}% ${baseLightness}%)`,
@@ -141,6 +141,15 @@ const faceShapes = [
   'M20 26c0-8 4-14 12-14 9 0 13 6 13 14 0 9-4 18-13 18-8 0-12-9-12-18Z',
   'M17 28c1-9 6-16 15-16 8 0 14 7 15 16-1 10-6 17-15 17-10 0-14-7-15-17Z',
   'M19 25c1-8 6-13 13-13 8 0 13 5 14 13 1 10-4 20-14 20-9 0-14-10-13-20Z',
+];
+
+const vipFaceShapes = [
+  'M17 28c0-10 6-16 15-16s15 6 15 16c0 10-5 18-15 18S17 38 17 28Z',
+  'M19 25c1-8 6-13 13-13 9 0 14 6 14 14 0 11-5 19-14 19-8 0-14-9-13-20Z',
+  'M16 29c1-10 7-17 16-17s16 7 16 17c-1 9-6 16-16 16S17 38 16 29Z',
+  'M18 26c0-9 5-14 14-14s14 6 14 14c0 10-4 19-14 20-9-1-14-10-14-20Z',
+  'M17 27c1-9 6-15 15-15s15 6 15 15c0 11-6 18-15 18S17 38 17 27Z',
+  'M20 25c0-8 4-13 12-13 9 0 14 6 14 14 0 10-5 18-14 18-8 0-12-9-12-19Z',
 ];
 
 const hairStyles = [
@@ -187,6 +196,10 @@ const vipHairStyles = [
   'M15 28C15 14 24 7 34 8c9 1 15 7 16 17-4-1-8-4-10-8-6 4-14 6-25 5Z',
   'M14 30C12 18 19 8 31 7c12-1 20 8 19 21-4-4-7-7-9-11-5 3-14 5-27 4Z',
   'M16 28C15 15 22 8 33 7c10 0 18 7 18 19-4-2-8-5-11-10-5 4-13 6-24 6Z',
+  'M14 30C13 17 21 8 32 8c12 0 19 8 18 20-4-3-8-6-11-11-6 5-14 7-25 6Z',
+  'M15 27C16 14 24 7 34 8c10 1 17 8 16 19-5-2-9-5-12-10-5 4-13 6-23 6Z',
+  'M13 29C13 16 20 8 31 7c12-1 20 8 19 21-4-5-8-8-11-12-5 4-14 7-26 7Z',
+  'M15 29C14 16 23 7 33 7c11 0 18 8 18 20-5-3-9-7-11-12-6 4-14 7-25 7Z',
 ];
 
 const vipFemaleHairStyles = [
@@ -194,6 +207,10 @@ const vipFemaleHairStyles = [
   'M15 28C16 14 24 7 34 8c9 1 16 7 16 18-4-2-8-6-11-12-5 5-13 7-24 7Z',
   'M14 30C14 16 23 7 33 7c11 0 18 8 18 20-5-4-8-8-10-13-6 5-14 8-27 8Z',
   'M15 28C15 15 23 8 33 8c10 0 18 7 18 19-5-3-9-7-11-12-5 5-13 8-25 8Z',
+  'M13 29C13 15 22 7 33 7c11 0 20 8 18 21-5-4-9-8-11-13-6 5-14 8-27 8Z',
+  'M15 27C16 14 24 7 34 8c10 1 17 8 16 19-5-3-9-7-11-12-6 5-13 7-24 7Z',
+  'M14 30C14 16 23 7 33 7c11 0 19 8 18 20-4-4-8-8-10-13-6 4-14 8-27 8Z',
+  'M16 28C15 15 22 8 33 8c10 0 18 7 18 19-4-2-8-6-11-11-5 5-13 8-24 8Z',
 ];
 
 const vipBodyStyles = [
@@ -253,7 +270,8 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
       ? femaleHairStyles
       : hairStyles;
   const hairStyle = hairOptions[(featureSeed * 3 + 1) % hairOptions.length];
-  const faceShape = faceShapes[(featureSeed * 5 + (vip ? 1 : 0)) % faceShapes.length];
+  const facePalette = vip ? vipFaceShapes : faceShapes;
+  const faceShape = facePalette[(featureSeed * 5 + (vip ? 1 : 0)) % facePalette.length];
   const shirtPalette = vip ? vipShirtTones : shirtTones;
   const shirt = shirtPalette[(featureSeed * 13 + 4) % shirtPalette.length];
   const eyeVariant = (featureSeed * 5) % 4;
@@ -293,7 +311,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
       {backgroundStyle === 3 && <div className="absolute -bottom-4 -right-2 h-10 w-10 rounded-full bg-white/10 blur-md" />}
       {backgroundStyle === 4 && <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white/18 to-transparent" />}
       {backgroundStyle === 5 && <div className="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-white/40 shadow-[0_0_12px_rgba(255,255,255,.6)]" />}
-      {vip && <div className="absolute inset-0 bg-gradient-to-br from-amber-100/18 via-transparent to-violet-900/15" />}
+      {vip && <div className="absolute inset-0 bg-gradient-to-br from-yellow-100/20 via-amber-200/10 to-amber-950/18" />}
       {vip && <div className="absolute -right-4 -top-4 h-12 w-12 rounded-full bg-amber-100/20 blur-md" />}
       <svg viewBox="0 0 64 64" className="relative block h-full w-full" aria-hidden="true">
         <g transform={`translate(${portraitShift} 0) rotate(${portraitTilt} 32 34)`}>
