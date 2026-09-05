@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 export type CustomerAvatarPickerTheme = 'orange' | 'emerald';
 export type CustomerAvatarPickerVariant = 'regular' | 'vip';
 
@@ -198,10 +200,73 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   );
 }
 
+export interface CustomerAvatarDisplayProps {
+  avatar?: string | null;
+  isVip?: boolean;
+  customAvatarUrl?: string | null;
+  alt?: string;
+  className?: string;
+}
+
+const avatarKeyPattern = /^customer-avatar:(regular|vip):(\d+)$/;
+
+type AvatarCollection = 'regular' | 'vip';
+
+function getAvatarKey(collection: AvatarCollection, index: number) {
+  return `customer-avatar:${collection}:${index}`;
+}
+
+function getAvatarIndex(avatar: string | null | undefined, collection: AvatarCollection) {
+  const match = avatar?.match(avatarKeyPattern);
+  if (match && match[1] === collection) {
+    const index = Number(match[2]);
+    const options = collection === 'vip' ? vipAvatarOptions : regularAvatarOptions;
+    if (index >= 0 && index < options.length) return index;
+  }
+
+  const preferredOptions = collection === 'vip' ? vipAvatarOptions : regularAvatarOptions;
+  const preferredIndex = preferredOptions.findIndex((option) => option.emoji === avatar);
+  if (preferredIndex >= 0) return preferredIndex;
+
+  const fallbackIndex = regularAvatarOptions.findIndex((option) => option.emoji === avatar);
+  return fallbackIndex >= 0 ? fallbackIndex : 0;
+}
+
+export function CustomerAvatarDisplay({
+  avatar,
+  isVip = false,
+  customAvatarUrl,
+  alt = 'Customer avatar',
+  className = 'h-10 w-10 rounded-full',
+}: CustomerAvatarDisplayProps) {
+  const [imageError, setImageError] = useState(false);
+  const avatarIndex = getAvatarIndex(avatar, isVip ? 'vip' : 'regular');
+
+  return (
+    <div className={`relative flex items-center justify-center overflow-hidden ${className}`}>
+      {customAvatarUrl && !imageError ? (
+        <img
+          src={customAvatarUrl}
+          alt={alt}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <AvatarArtwork index={avatarIndex} vip={isVip} />
+      )}
+    </div>
+  );
+}
+
 export default function CustomerAvatarPicker({ value, onChange, theme, variant }: CustomerAvatarPickerProps) {
-  const options = variant === 'vip' ? vipAvatarOptions : regularAvatarOptions;
+  const collection: AvatarCollection = variant === 'vip' ? 'vip' : 'regular';
+  const options = collection === 'vip' ? vipAvatarOptions : regularAvatarOptions;
   const styles = themeStyles[theme];
-  const selectedOption = options.find((option) => option.emoji === value);
+  const selectedIndex = getAvatarIndex(value, collection);
+  const selectedOption = options[selectedIndex];
+  const isStoredAvatarKey = value?.startsWith('customer-avatar:') ?? false;
 
   return (
     <div className={`rounded-2xl border p-2.5 shadow-inner shadow-black/25 ${variant === 'vip' ? 'border-amber-200/45 bg-gradient-to-br from-amber-950/50 via-slate-950/70 to-yellow-950/30' : styles.panel}`}>
@@ -218,7 +283,8 @@ export default function CustomerAvatarPicker({ value, onChange, theme, variant }
       </div>
       <div className={`grid gap-1 ${variant === 'vip' ? 'grid-cols-6' : 'grid-cols-8 sm:grid-cols-10'}`}>
         {options.map((option, index) => {
-          const selected = value === option.emoji;
+          const optionValue = getAvatarKey(collection, index);
+          const selected = value === optionValue || (!isStoredAvatarKey && selectedIndex === index);
           return (
             <button
               key={`${variant}-${option.emoji}-${index}`}
@@ -226,7 +292,7 @@ export default function CustomerAvatarPicker({ value, onChange, theme, variant }
               title={option.label}
               aria-label={`Select ${option.label} avatar`}
               aria-pressed={selected}
-              onClick={() => onChange(option.emoji)}
+              onClick={() => onChange(optionValue)}
               className={`group relative aspect-square min-w-0 overflow-hidden rounded-xl border p-0.5 transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] focus:outline-none focus:ring-2 focus:ring-white/80 ${selected ? (variant === 'vip' ? 'border-amber-100 bg-amber-300/25 ring-2 ring-amber-200/95 shadow-lg shadow-amber-400/35' : styles.selected) : (variant === 'vip' ? 'border-amber-100/25 bg-slate-950/80 hover:border-amber-100/90 hover:bg-amber-300/15' : styles.idle)}`}
             >
               <AvatarArtwork index={index} vip={variant === 'vip'} />

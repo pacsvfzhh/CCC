@@ -4,6 +4,7 @@ import { MessageCircle, X, Send, Image, Star, ArrowLeft, Search, Clock, Zap, Spa
 import { supabase } from '../../lib/supabase';
 import { sanitizeChatMessage, sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import { useLanguage } from '../../lib/i18n';
+import { CustomerAvatarDisplay } from '../admin/CustomerAvatarPicker';
 
 // Image component with loading state
 const ChatImage = memo(({
@@ -69,58 +70,25 @@ const ChatImage = memo(({
   );
 });
 
-// Avatar component with loading state
 const CustomerAvatar = memo(({
   customer,
   className = 'w-10 h-10'
 }: {
   customer: Customer;
   className?: string;
-}) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
-
-  return (
-    <div className={`relative ${className} rounded-lg flex items-center justify-center text-base sm:text-xl overflow-hidden border-2 ${
+}) => (
+  <CustomerAvatarDisplay
+    avatar={customer.customer_avatar}
+    isVip={customer.is_super}
+    customAvatarUrl={customer.custom_avatar_url}
+    alt={customer.customer_name}
+    className={`${className} rounded-lg border-2 ${
       customer.is_super
-        ? 'bg-gradient-to-br from-amber-500/40 to-orange-500/30 border-amber-400/60'
-        : 'bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border-cyan-400/50'
-    }`}>
-      {customer.custom_avatar_url ? (
-        <>
-          {/* Show emoji placeholder while loading */}
-          {!imageLoaded && !imageError && (
-            <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-200">
-              {customer.customer_avatar}
-            </div>
-          )}
-          <img
-            src={customer.custom_avatar_url}
-            alt={customer.customer_name}
-            className={`w-full h-full object-cover transition-opacity duration-200 ${
-              imageLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
-            loading="lazy"
-            decoding="async"
-          />
-          {/* If image fails to load, show emoji */}
-          {imageError && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              {customer.customer_avatar}
-            </div>
-          )}
-        </>
-      ) : (
-        customer.customer_avatar
-      )}
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  return prevProps.customer.id === nextProps.customer.id &&
-         prevProps.className === nextProps.className;
-});
+        ? 'border-amber-400/60'
+        : 'border-cyan-400/50'
+    }`}
+  />
+));
 
 interface Customer {
   id: string;

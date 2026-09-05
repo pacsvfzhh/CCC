@@ -4,7 +4,7 @@ import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, Ar
 import { supabase } from '../../lib/supabase';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
-import CustomerAvatarPicker from './CustomerAvatarPicker';
+import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
 
 interface SimulatedCustomer {
   id: string;
@@ -139,7 +139,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [customerForm, setCustomerForm] = useState({
     name: '',
-    avatar: '🧑',
+    avatar: 'customer-avatar:regular:0',
     isSuper: false,
     superTitle: '',
     customId: '',
@@ -1378,7 +1378,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
       setNotification({ type: 'success', text: 'Customer created successfully!' });
       setShowCustomerForm(false);
-      setCustomerForm({ name: '', avatar: '🧑', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' });
+      setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' });
       loadAdminData(selectedAdminId, true);
     } catch (error: any) {
       const msg = (error.message || '').includes('customer_id_unique') ? 'This Custom ID is already in use. Please use a different one.' : (error.message || 'Failed to create customer');
@@ -1482,7 +1482,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
       setNotification({ type: 'success', text: 'Customer updated successfully!' });
       setEditingCustomer(null);
-      setCustomerForm({ name: '', avatar: '🧑', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' });
+      setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' });
       loadAdminData(selectedAdminId, true);
     } catch (error: any) {
       const msg = (error.message || '').includes('customer_id_unique') ? 'This Custom ID is already in use. Please use a different one.' : (error.message || 'Failed to update customer');
@@ -2504,21 +2504,21 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                         {customer.badge_type === 'diamond' ? '💎' : customer.badge_type === 'crown' ? '👑' : customer.badge_type === 'star' ? '⭐' : customer.badge_type === 'vip' ? '🏆' : '✨'}
                       </div>
                     )}
-                    <div className={`rounded-full flex items-center justify-center overflow-hidden ${
-                      customer.is_super
-                        ? selectedCustomer?.id === customer.id ? 'w-11 h-11 text-2xl' : 'w-10 h-10 text-xl'
-                        : selectedCustomer?.id === customer.id ? 'w-9 h-9 text-xl' : 'w-8 h-8 text-lg'
-                    } ${
-                      selectedCustomer?.id === customer.id
-                        ? customer.is_super ? 'bg-amber-800/40 ring-2 ring-white/50' : 'bg-white/20 ring-1 ring-white/30'
-                        : customer.is_super ? 'bg-amber-900/50 ring-2 ring-amber-400/50' : 'bg-slate-700 ring-1 ring-slate-500/40'
-                    }`}>
-                      {customer.custom_avatar_url ? (
-                        <img src={customer.custom_avatar_url} alt={customer.customer_name} className="w-full h-full object-cover" loading="lazy" />
-                      ) : (
-                        customer.customer_avatar
-                      )}
-                    </div>
+                    <CustomerAvatarDisplay
+                      avatar={customer.customer_avatar}
+                      isVip={customer.is_super}
+                      customAvatarUrl={customer.custom_avatar_url}
+                      alt={customer.customer_name}
+                      className={`rounded-full ${
+                        customer.is_super
+                          ? selectedCustomer?.id === customer.id ? 'w-11 h-11' : 'w-10 h-10'
+                          : selectedCustomer?.id === customer.id ? 'w-9 h-9' : 'w-8 h-8'
+                      } ${
+                        selectedCustomer?.id === customer.id
+                          ? customer.is_super ? 'bg-amber-800/40 ring-2 ring-white/50' : 'bg-white/20 ring-1 ring-white/30'
+                          : customer.is_super ? 'bg-amber-900/50 ring-2 ring-amber-400/50' : 'bg-slate-700 ring-1 ring-slate-500/40'
+                      }`}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     {customer.is_super && customer.super_customer_title && (
@@ -2766,13 +2766,13 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                 <div className="flex min-w-0 w-full flex-nowrap items-center gap-2">
                   <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-hidden">
                     {selectedCustomer ? (
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl overflow-hidden bg-slate-700/50 ring-2 ring-slate-600/50 flex-shrink-0">
-                        {selectedCustomer?.custom_avatar_url ? (
-                          <img src={selectedCustomer.custom_avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                        ) : (
-                          selectedCustomer?.customer_avatar
-                        )}
-                      </div>
+                      <CustomerAvatarDisplay
+                        avatar={selectedCustomer?.customer_avatar}
+                        isVip={selectedCustomer?.is_super}
+                        customAvatarUrl={selectedCustomer?.custom_avatar_url}
+                        alt={selectedCustomer?.customer_name}
+                        className="h-10 w-10 flex-shrink-0 rounded-full bg-slate-700/50 ring-2 ring-slate-600/50"
+                      />
                     ) : (
                       <div className="p-2 bg-blue-600 rounded-lg flex-shrink-0">
                         <MessageCircle className="w-5 h-5 text-white" />
@@ -2900,11 +2900,13 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                     <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base ring-2 overflow-hidden ${
                                       isSelected ? 'ring-blue-500/40 bg-blue-950/50' : 'ring-slate-600/30 bg-slate-700/50'
                                     }`}>
-                                      {history.custom_avatar_url ? (
-                                        <img src={history.custom_avatar_url} alt={history.customer_name || ''} className="w-full h-full object-cover" loading="lazy" />
-                                      ) : (
-                                        history.customer_avatar || <User className="w-4 h-4 text-slate-400" />
-                                      )}
+                                      <CustomerAvatarDisplay
+                                        avatar={history.customer_avatar}
+                                        isVip={historyCustomer?.is_super || history.customer_avatar?.startsWith('customer-avatar:vip:')}
+                                        customAvatarUrl={history.custom_avatar_url}
+                                        alt={history.customer_name || 'Customer avatar'}
+                                        className="h-full w-full rounded-full"
+                                      />
                                     </div>
                                   ) : (
                                     <div className={`w-9 h-9 rounded-full flex items-center justify-center ring-2 ${
@@ -3001,13 +3003,13 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       <span>Back</span>
                     </button>
                     <div className="flex min-w-0 items-center gap-2">
-                      <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl overflow-hidden bg-slate-700/50 border border-slate-600/50 flex-shrink-0">
-                        {selectedCustomer?.custom_avatar_url ? (
-                          <img src={selectedCustomer?.custom_avatar_url || ''} alt={selectedCustomer?.customer_name} className="w-full h-full object-cover" loading="lazy" />
-                        ) : (
-                          selectedCustomer?.customer_avatar
-                        )}
-                      </div>
+                      <CustomerAvatarDisplay
+                        avatar={selectedCustomer?.customer_avatar}
+                        isVip={selectedCustomer?.is_super}
+                        customAvatarUrl={selectedCustomer?.custom_avatar_url}
+                        alt={selectedCustomer?.customer_name}
+                        className="h-11 w-11 flex-shrink-0 rounded-full border border-slate-600/50 bg-slate-700/50"
+                      />
                       <div className="min-w-0">
                         <div className="text-sm text-slate-100 font-bold leading-tight truncate">{selectedCustomer?.customer_name}</div>
                         {selectedCustomer?.is_super && selectedCustomer?.super_customer_title ? (
@@ -3795,7 +3797,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
       {/* Customer Create/Edit Modal */}
       {(showCustomerForm || editingCustomer) && (
-        <div className="fixed inset-0 flex items-center justify-center z-[9999] overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-md" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null); setCustomerForm({ name: '', avatar: '🧑', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' }); } }}>
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-md" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null); setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' }); } }}>
           <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--orange w-full max-h-[calc(100vh-2rem)] rounded-2xl border p-5 shadow-2xl ${customerForm.isSuper ? 'max-w-3xl' : 'max-w-lg'} transition-all duration-200`}>
             <h3 className="mb-4 border-b border-orange-200/15 pb-3 text-lg font-black tracking-tight text-white">{editingCustomer ? 'Edit Customer' : 'Create Customer'}</h3>
             {/* Super Customer Toggle */}
@@ -3811,7 +3813,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                 <input
                   type="checkbox"
                   checked={customerForm.isSuper}
-                  onChange={(e) => setCustomerForm({ ...customerForm, isSuper: e.target.checked, avatar: e.target.checked ? '👨‍💼' : '🧑' })}
+                  onChange={(e) => setCustomerForm({ ...customerForm, isSuper: e.target.checked, avatar: e.target.checked ? 'customer-avatar:vip:0' : 'customer-avatar:regular:0' })}
                   className="sr-only"
                 />
                 <div className="flex items-center gap-2">
@@ -4044,7 +4046,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                 onClick={() => {
                   setShowCustomerForm(false);
                   setEditingCustomer(null);
-                  setCustomerForm({ name: '', avatar: '🧑', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' });
+                  setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' });
                 }}
                 className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
               >
