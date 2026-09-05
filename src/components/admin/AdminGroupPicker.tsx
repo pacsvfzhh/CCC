@@ -101,7 +101,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
 
         <div className="min-h-0 flex-1 overflow-y-auto scrollbar-dark p-0 sm:p-1">
           {loading ? (
-            <div className={`divide-y overflow-hidden rounded-xl border bg-slate-900/45 ${styles.border}`}>
+            <div className={`divide-y divide-slate-700/50 overflow-hidden rounded-xl border bg-slate-900/45 ${styles.border}`}>
               {[0, 1, 2, 3, 4].map(index => (
                 <div key={index} className="flex animate-pulse flex-col gap-3 px-3 py-4 sm:flex-row sm:items-center sm:px-4">
                   <div className="flex flex-1 items-center gap-3">
