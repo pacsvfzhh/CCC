@@ -3338,7 +3338,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                                   setFromHistorySource(historyScope);
                                 }
                               }}
-                              className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${hasUnread ? 'min-h-[128px]' : ''} ${
+                              className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${
                                 isSelected
                                   ? 'bg-emerald-500/20 border border-emerald-300/70 shadow-md shadow-emerald-500/20'
                                   : hasUnread

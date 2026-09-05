@@ -2983,7 +2983,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                   setFromHistorySource(historyScope);
                                 }
                               }}
-                              className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${hasUnread ? 'min-h-[128px]' : ''} ${
+                              className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${
                                 isSelected
                                   ? 'bg-orange-500/20 border border-orange-300/70 shadow-md shadow-orange-500/20'
                                   : hasUnread
