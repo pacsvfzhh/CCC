@@ -182,6 +182,27 @@ const femaleHairStyles = [
   'M15 29C15 16 21 8 32 8c11 0 18 8 18 20-4-3-8-7-10-12-6 5-14 8-25 7Z',
 ];
 
+const vipHairStyles = [
+  'M14 29C14 16 22 7 33 7c10 0 18 7 18 20-5-2-8-5-10-9-6 3-14 5-26 4l-1 7Z',
+  'M15 28C15 14 24 7 34 8c9 1 15 7 16 17-4-1-8-4-10-8-6 4-14 6-25 5Z',
+  'M14 30C12 18 19 8 31 7c12-1 20 8 19 21-4-4-7-7-9-11-5 3-14 5-27 4Z',
+  'M16 28C15 15 22 8 33 7c10 0 18 7 18 19-4-2-8-5-11-10-5 4-13 6-24 6Z',
+];
+
+const vipFemaleHairStyles = [
+  'M14 29C14 15 22 7 33 7c11 0 19 8 18 20-4-3-8-7-10-12-6 5-14 7-27 7Z',
+  'M15 28C16 14 24 7 34 8c9 1 16 7 16 18-4-2-8-6-11-12-5 5-13 7-24 7Z',
+  'M14 30C14 16 23 7 33 7c11 0 18 8 18 20-5-4-8-8-10-13-6 5-14 8-27 8Z',
+  'M15 28C15 15 23 8 33 8c10 0 18 7 18 19-5-3-9-7-11-12-5 5-13 8-25 8Z',
+];
+
+const vipBodyStyles = [
+  'M2 64c3-15 12-22 30-22s27 7 30 22',
+  'M5 64c2-13 12-21 27-21s25 8 27 21',
+  'M1 64c4-14 14-22 31-22s27 8 31 22',
+  'M4 64c3-16 13-23 28-23s25 7 28 23',
+];
+
 const mouthStyles = [
   'M29 36c2 1.5 4 1.5 6 0',
   'M28 36c2 2 6 2 8 0',
@@ -224,7 +245,13 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const skin = skinTones[(featureSeed * 7 + 2) % skinTones.length];
   const hair = hairTones[(featureSeed * 11 + (vip ? 2 : 0)) % hairTones.length];
   const isFemale = index % 2 === 0;
-  const hairOptions = isFemale ? femaleHairStyles : hairStyles;
+  const hairOptions = vip
+    ? isFemale
+      ? vipFemaleHairStyles
+      : vipHairStyles
+    : isFemale
+      ? femaleHairStyles
+      : hairStyles;
   const hairStyle = hairOptions[(featureSeed * 3 + 1) % hairOptions.length];
   const faceShape = faceShapes[(featureSeed * 5 + (vip ? 1 : 0)) % faceShapes.length];
   const shirtPalette = vip ? vipShirtTones : shirtTones;
@@ -244,7 +271,8 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const hasFacialHair = !isFemale && featureSeed % 6 === 1;
   const hasFreckles = featureSeed % 11 === 3;
   const mouthStyle = mouthStyles[(featureSeed * 7 + 2) % mouthStyles.length];
-  const bodyStyle = bodyStyles[(featureSeed * 13 + 1) % bodyStyles.length];
+  const bodyPalette = vip ? vipBodyStyles : bodyStyles;
+  const bodyStyle = bodyPalette[(featureSeed * 13 + 1) % bodyPalette.length];
   const tie = tieTones[(featureSeed * 5 + 1) % tieTones.length];
   const scarf = scarfTones[(featureSeed * 3 + 2) % scarfTones.length];
   const earringColor = ['#bda66b', '#9fb6ad', '#b88c9c', '#9aaec2'][featureSeed % 4];
@@ -264,9 +292,8 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
       {backgroundStyle === 3 && <div className="absolute -bottom-4 -right-2 h-10 w-10 rounded-full bg-white/10 blur-md" />}
       {backgroundStyle === 4 && <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white/18 to-transparent" />}
       {backgroundStyle === 5 && <div className="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-white/40 shadow-[0_0_12px_rgba(255,255,255,.6)]" />}
+      {vip && <div className="absolute inset-0 bg-gradient-to-br from-amber-100/18 via-transparent to-violet-900/15" />}
       {vip && <div className="absolute -right-4 -top-4 h-12 w-12 rounded-full bg-amber-100/20 blur-md" />}
-      {vip && <div className="absolute inset-1 rounded-[8px] border border-amber-100/70" />}
-      {vip && <div className="absolute inset-x-3 top-1 h-px bg-gradient-to-r from-transparent via-amber-100/80 to-transparent" />}
       <svg viewBox="0 0 64 64" className="relative block h-full w-full" aria-hidden="true">
         <g transform={`translate(${portraitShift} 0) rotate(${portraitTilt} 32 34)`}>
         <path d={bodyStyle} fill={shirt} />
