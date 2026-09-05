@@ -249,8 +249,17 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     }
   }, [admin.id, admin.role]);
 
+  const handleCustomerServiceUnreadChange = useCallback((delta: number) => {
+    setUnreadCustomerServiceCount(prev => Math.max(0, prev + delta));
+  }, []);
+
+  const handleCccServiceUnreadChange = useCallback((delta: number) => {
+    setUnreadCccServiceCount(prev => Math.max(0, prev + delta));
+  }, []);
+
   // Handle tab change with refresh for account locks
   const handleTabChange = useCallback((tabId: typeof activeTab) => {
+    preloadServiceTab(tabId);
     setActiveTab(tabId);
     setLoadedTabs(prev => new Set([...prev, tabId]));
     if (tabId === 'accountlocks') {
@@ -568,6 +577,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
                     onPointerEnter={() => preloadServiceTab(tab.id)}
+                    onPointerDown={() => preloadServiceTab(tab.id)}
                     onFocus={() => preloadServiceTab(tab.id)}
                     className={`relative flex items-center gap-2 px-2 py-1.5 rounded-lg font-medium transition-all text-left ${
                       activeTab === tab.id
@@ -633,6 +643,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
                     onPointerEnter={() => preloadServiceTab(tab.id)}
+                    onPointerDown={() => preloadServiceTab(tab.id)}
                     onFocus={() => preloadServiceTab(tab.id)}
                     className={`relative flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                       activeTab === tab.id
@@ -698,6 +709,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   isActive={activeTab === 'customerservice'}
                   initialEmployee={navigateToCustomerServiceEmployee}
                   onConsumeInitialEmployee={() => setNavigateToCustomerServiceEmployee(null)}
+                  onUnreadCountChange={handleCustomerServiceUnreadChange}
                 />
               </div>
             )}
@@ -709,6 +721,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   isActive={activeTab === 'cccservice'}
                   initialEmployee={navigateToCccServiceEmployee}
                   onConsumeInitialEmployee={() => setNavigateToCccServiceEmployee(null)}
+                  onUnreadCountChange={handleCccServiceUnreadChange}
                 />
               </div>
             )}
