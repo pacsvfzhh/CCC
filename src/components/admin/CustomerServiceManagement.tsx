@@ -2761,24 +2761,20 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                         <Tag className="h-2.5 w-2.5 shrink-0 opacity-75" />
                         <span className="truncate">Tag: {emp.tags?.length ? `${emp.tags[0]}${emp.tags.length > 1 ? ` +${emp.tags.length - 1}` : ''}` : 'No tag'}</span>
                       </span>
-                      {emp.tags?.length ? (
-                        <div className="pointer-events-none absolute right-0 top-full mt-1 w-[190px] z-[80] rounded-xl border-2 border-orange-300 !bg-[#020617] !bg-opacity-100 p-3 text-[11px] font-medium leading-5 text-white invisible shadow-2xl shadow-black/70 ring-2 ring-orange-500/30 transition-[visibility] duration-150 group-hover/tag:visible group-focus-within/tag:visible" style={{ backgroundColor: '#020617' }}>
-                          <div className="mb-1 font-bold uppercase tracking-wider text-orange-300">Tags</div>
-                          <div className="break-words leading-4">{emp.tags.join(' · ')}</div>
-                        </div>
-                      ) : null}
+                      <div className="pointer-events-none absolute right-0 top-full mt-1 w-[190px] z-[80] rounded-xl border-2 border-orange-300 !bg-[#020617] !bg-opacity-100 p-3 text-[11px] font-medium leading-5 text-white hidden shadow-2xl shadow-black/70 ring-2 ring-orange-500/30 group-hover/tag:block group-focus-within/tag:block" style={{ backgroundColor: '#020617', opacity: 1 }}>
+                        <div className="mb-1 font-bold uppercase tracking-wider text-orange-300">Tags</div>
+                        <div className="break-words leading-4">{emp.tags?.length ? emp.tags.join(' · ') : 'No tags assigned'}</div>
+                      </div>
                     </div>
                     <div className="group/note absolute bottom-1 right-1 z-30 max-w-[48%]">
                       <span className={`flex max-w-[124px] items-center gap-1 truncate text-[9px] font-medium ${selectedEmployee?.id === emp.id ? 'text-white/80' : 'text-slate-300/65'}`}>
                         <FileText className="h-2.5 w-2.5 shrink-0 opacity-70" />
                         <span className="truncate">Note: {emp.remarks?.trim() || 'No note'}</span>
                       </span>
-                      {emp.remarks?.trim() ? (
-                        <div className="pointer-events-none absolute bottom-full right-0 mb-1 w-[190px] z-[80] rounded-xl border-2 border-slate-300 !bg-[#020617] !bg-opacity-100 p-3 text-[11px] font-medium leading-5 text-white invisible shadow-2xl shadow-black/70 ring-2 ring-slate-500/40 transition-[visibility] duration-150 group-hover/note:visible group-focus-within/note:visible" style={{ backgroundColor: '#020617' }}>
-                          <div className="mb-1 font-bold uppercase tracking-wider text-slate-400">Note</div>
-                          <div className="break-words leading-4">{emp.remarks}</div>
-                        </div>
-                      ) : null}
+                      <div className="pointer-events-none absolute bottom-full right-0 mb-1 w-[190px] z-[80] rounded-xl border-2 border-slate-300 !bg-[#020617] !bg-opacity-100 p-3 text-[11px] font-medium leading-5 text-white hidden shadow-2xl shadow-black/70 ring-2 ring-slate-500/40 group-hover/note:block group-focus-within/note:block" style={{ backgroundColor: '#020617', opacity: 1 }}>
+                        <div className="mb-1 font-bold uppercase tracking-wider text-slate-400">Note</div>
+                        <div className="break-words leading-4">{emp.remarks?.trim() || 'No note added'}</div>
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -3002,7 +2998,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                         <span className="truncate">{employeeTags.length ? `${employeeTags[0]}${employeeTags.length > 1 ? ` +${employeeTags.length - 1}` : ''}` : 'No tag'}</span>
                                       </span>
                                       {employeeTags.length > 0 && (
-                                        <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] z-[80] rounded-xl border-2 border-orange-300 !bg-[#020617] !bg-opacity-100 p-3 text-[11px] font-medium leading-5 text-white invisible shadow-2xl shadow-black/70 ring-2 ring-orange-500/30 transition-[visibility] duration-150 group-hover/tag:visible group-focus-within/tag:visible" style={{ backgroundColor: '#020617' }}>
+                                        <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] z-[80] rounded-xl border-2 border-orange-300 !bg-[#020617] !bg-opacity-100 p-3 text-[11px] font-medium leading-5 text-white hidden shadow-2xl shadow-black/70 ring-2 ring-orange-500/30 group-hover/tag:block group-focus-within/tag:block" style={{ backgroundColor: '#020617', opacity: 1 }}>
                                           <span className="mb-1 block font-bold uppercase tracking-wider text-orange-300">Tags</span>
                                           <span className="block break-words leading-4">{employeeTags.join(' · ')}</span>
                                         </span>
@@ -3014,7 +3010,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                         <span className="truncate">{employeeNote || 'No note'}</span>
                                       </span>
                                       {employeeNote && (
-                                        <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] z-[80] rounded-xl border-2 border-slate-300 !bg-[#020617] !bg-opacity-100 p-3 text-[11px] font-medium leading-5 text-white invisible shadow-2xl shadow-black/70 ring-2 ring-slate-500/40 transition-[visibility] duration-150 group-hover/note:visible group-focus-within/note:visible" style={{ backgroundColor: '#020617' }}>
+                                        <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] z-[80] rounded-xl border-2 border-slate-300 !bg-[#020617] !bg-opacity-100 p-3 text-[11px] font-medium leading-5 text-white hidden shadow-2xl shadow-black/70 ring-2 ring-slate-500/40 group-hover/note:block group-focus-within/note:block" style={{ backgroundColor: '#020617', opacity: 1 }}>
                                           <span className="mb-1 block font-bold uppercase tracking-wider text-slate-400">Note</span>
                                           <span className="block break-words leading-4">{employeeNote}</span>
                                         </span>
