@@ -2426,9 +2426,11 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   type="button"
                   onClick={() => { loadAllConversationHistory(); setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('new'); setHistoryScope('all'); historyScrollTopRef.current = 0; }}
                   className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
-                    showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
-                      ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/40 border-orange-300'
-                      : 'bg-orange-950/50 hover:bg-orange-800/50 border-orange-500/50 hover:border-orange-300/70 text-orange-200 hover:text-orange-100 shadow-lg shadow-orange-950/30 hover:shadow-orange-900/40'
+                    totalUnread > 0
+                      ? 'session-unread-action text-white shadow-lg shadow-orange-500/30 border-orange-300'
+                      : showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
+                        ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/40 border-orange-300'
+                        : 'bg-orange-950/50 hover:bg-orange-800/50 border-orange-500/50 hover:border-orange-300/70 text-orange-200 hover:text-orange-100 shadow-lg shadow-orange-950/30 hover:shadow-orange-900/40'
                   }`}
                 >
                   <MessageSquarePlus className="w-4 h-4" />
@@ -2438,7 +2440,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
                         ? 'bg-white text-orange-700'
                         : 'bg-orange-500 text-white'
-                    }`}>{totalUnread}</span>
+                    } ${totalUnread > 0 ? 'session-unread-count' : ''}`}>{totalUnread}</span>
                   )}
                   {totalUnread > 0 && !(showHistoryView && historyScope === 'all' && historyFilterMode === 'new') && (
                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse"></span>
