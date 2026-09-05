@@ -105,21 +105,24 @@ const vipAvatarOptions: AvatarOption[] = [
 ];
 
 function getAvatarBackground(index: number, vip: boolean): [string, string] {
-  const hue = (index * 137 + (vip ? 47 : 13)) % 360;
-  const accentHue = (hue + 47 + (index % 5) * 13) % 360;
-  const baseLightness = vip ? 24 + (index % 4) * 3 : 30 + (index % 5) * 3;
-  const accentLightness = vip ? 56 + (index % 4) * 4 : 58 + (index % 5) * 4;
+  const businessHues = [215, 220, 205, 198, 228, 170, 32, 345, 235, 190, 25, 210];
+  const hue = businessHues[(index * 7 + (vip ? 3 : 0)) % businessHues.length];
+  const accentHue = (hue + (index % 3 === 0 ? 28 : 12)) % 360;
+  const baseLightness = vip ? 22 + (index % 3) * 3 : 25 + (index % 4) * 3;
+  const accentLightness = vip ? 42 + (index % 4) * 4 : 46 + (index % 4) * 4;
 
   return [
-    `hsl(${hue} 62% ${baseLightness}%)`,
-    `hsl(${accentHue} 74% ${accentLightness}%)`,
+    `hsl(${hue} 30% ${baseLightness}%)`,
+    `hsl(${accentHue} 42% ${accentLightness}%)`,
   ];
 }
 
 const skinTones = ['#f7c9a9', '#efb38f', '#f4d0b9', '#f8d7c0', '#f1c3a5', '#e8ad8f', '#f3ccb4', '#d9916c', '#bd7655', '#f7c9a9'];
-const hairTones = ['#f0ece6', '#d2cbc2', '#b8afa5', '#91877e', '#5f554e', '#302b29', '#c2b49f', '#786b62', '#e0d2bd', '#9b725b'];
-const shirtTones = ['#edf4ff', '#ffe7f0', '#e5fff7', '#fff0d4', '#f0e9ff', '#e1f5ff', '#d9f99d', '#fed7aa', '#fecdd3', '#bfdbfe'];
-const vipShirtTones = ['#f3d18a', '#ffe5a3', '#cab8ff', '#f3a5b9', '#9de5dc', '#fff0bd', '#f7c6a3', '#d9c2ff', '#b8f2e6', '#ffd6a5'];
+const hairTones = ['#17191c', '#241d1a', '#33251e', '#463126', '#5a3b2a', '#2d3034', '#3f3029', '#594338', '#6b4a35', '#292625'];
+const shirtTones = ['#f8fafc', '#e2e8f0', '#cbd5e1', '#334155', '#1e3a5f', '#2f4858', '#4a3f35', '#6b7280', '#d6d3d1', '#1f2937'];
+const vipShirtTones = ['#c6a45c', '#e4cf8b', '#9e91bd', '#b98263', '#6f9b93', '#d3b66a', '#34445f', '#6b587d', '#3f716b', '#9a7655'];
+const tieTones = ['#1e3a5f', '#334155', '#3f4c6b', '#5a3d36', '#1f4b4b', '#55415f', '#7b5c3d', '#263238'];
+const scarfTones = ['#9fadb8', '#b7a99b', '#7c8b8a', '#8a7f88', '#a38b72', '#6f7c89'];
 
 const faceShapes = [
   'M18 29c0-10 6-17 14-17s14 7 14 17c0 10-6 17-14 17S18 39 18 29Z',
@@ -189,21 +192,6 @@ const bodyStyles = [
   'M1 66c4-11 14-18 31-18s27 7 31 18',
 ];
 
-const headwearStyles: Array<string | null> = [
-  null,
-  'M15 18c4-7 12-10 22-9 6 1 11 5 13 10-10-3-22-3-35 1Z',
-  'M18 17c1-7 7-11 14-11s13 4 14 11c-8-3-19-3-28 0Z',
-  'M13 18c6-7 16-9 27-6 4 1 8 3 11 7-13-1-24 1-38 2Z',
-  'M25 10c0-5 4-8 7-8s7 3 7 8l-4 3h-6Z',
-  'M17 19c7-3 16-3 30 0l-2 3c-9-2-18-2-27 0Z',
-  'M9 18c7-5 14-7 23-6 9-1 16 1 23 6l-3 3H12Z',
-  'M20 15c3-5 8-7 12-7s9 2 12 7l-3 3H23Z',
-  'M14 15c5-4 10-6 18-6s13 2 18 6l-2 3H16Z',
-  'M22 13c2-5 6-8 10-8s8 3 10 8l-4 3H26Z',
-  'M16 17c4-6 10-9 16-9s12 3 16 9l-4 2H20Z',
-  'M13 19c3-6 9-10 19-10s16 4 19 10l-4 2H17Z',
-];
-
 const themeStyles: Record<CustomerAvatarPickerTheme, {
   panel: string;
   idle: string;
@@ -249,8 +237,9 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const hasFreckles = featureSeed % 11 === 3;
   const mouthStyle = mouthStyles[(featureSeed * 7 + 2) % mouthStyles.length];
   const bodyStyle = bodyStyles[(featureSeed * 13 + 1) % bodyStyles.length];
-  const headwear = headwearStyles[(featureSeed * 19 + 3) % headwearStyles.length];
-  const earringColor = ['#ffe18a', '#d9f99d', '#f9a8d4', '#bfdbfe'][featureSeed % 4];
+  const tie = tieTones[(featureSeed * 5 + 1) % tieTones.length];
+  const scarf = scarfTones[(featureSeed * 3 + 2) % scarfTones.length];
+  const earringColor = ['#bda66b', '#9fb6ad', '#b88c9c', '#9aaec2'][featureSeed % 4];
   const backgroundStyle = featureSeed % 6;
   const ageDetail = featureSeed % 5;
   const portraitTilt = [-4, -2, 0, 2, 4][featureSeed % 5];
@@ -276,11 +265,11 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
         <path d="M25 48l7 7 7-7 4 4-4 14H25l-4-14z" fill={vip ? '#fff0b0' : '#ffffff'} opacity=".72" />
         {hasTie && (
           <>
-            <path d="M29 51h6l2 15H27z" fill={vip ? '#8f4d28' : '#244b8f'} />
-            <path d="M29 51l3 4 3-4" fill="none" stroke={vip ? '#ffe7a3' : '#dbeafe'} strokeWidth="1" />
+            <path d="M29 51h6l2 15H27z" fill={tie} />
+            <path d="M29 51l3 4 3-4" fill="none" stroke="#e8dcc3" strokeWidth="1" />
           </>
         )}
-        {hasScarf && <path d="M21 50c4 4 18 4 22 0l-2 7c-5 2-13 2-18 0Z" fill={vip ? '#f4c96b' : '#e88aaa'} opacity=".9" />}
+        {hasScarf && <path d="M21 50c4 4 18 4 22 0l-2 7c-5 2-13 2-18 0Z" fill={scarf} opacity=".9" />}
         {isFemale && <path d={femaleBackHairStyles[(featureSeed * 17) % femaleBackHairStyles.length]} fill={hair} />}
         <circle cx="17" cy="30" r="3.5" fill={skin} />
         <circle cx="47" cy="30" r="3.5" fill={skin} />
@@ -334,7 +323,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
         )}
         {hasFacialHair && <path d="M25 37c1 5 4 7 7 7s6-2 7-7c-3 1.5-11 1.5-14 0Z" fill={hair} opacity=".58" />}
         {!isFemale && featureSeed % 5 === 2 && <path d="M27 36c1.5 1 8.5 1 10 0" fill="none" stroke={hair} strokeLinecap="round" strokeWidth="1.8" opacity=".75" />}
-        {hasHairHighlight && <path d="M20 17c3-4 7-6 12-7" fill="none" stroke={isFemale ? '#fff4dc' : '#ffffff'} strokeLinecap="round" strokeWidth="1.5" opacity=".55" />}
+        {hasHairHighlight && <path d="M20 17c3-4 7-6 12-7" fill="none" stroke="#d9cdbd" strokeLinecap="round" strokeWidth="1.2" opacity=".5" />}
         {hasNecklace && (
           <>
             <path d="M24 47c3 4 13 4 16 0" fill="none" stroke="#f8d978" strokeLinecap="round" strokeWidth="1.1" />
@@ -353,10 +342,6 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
             <circle cx="18" cy="35" r="1.4" fill={earringColor} />
             <circle cx="46" cy="35" r="1.4" fill={earringColor} />
           </>
-        )}
-        {headwear && <path d={headwear} fill={vip ? '#f8d978' : hair} opacity=".95" />}
-        {vip && (
-          <path d="M19 15l4-5 4 3 5-5 5 5 4-3 4 5" fill="#f8d978" fillOpacity=".28" stroke="#fff0a5" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
         )}
         </g>
       </svg>
