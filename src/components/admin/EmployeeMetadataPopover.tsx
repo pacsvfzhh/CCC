@@ -48,7 +48,7 @@ export default function EmployeeMetadataPopover({
     const left = Math.max(
       VIEWPORT_GUTTER,
       Math.min(
-        rect.right + 10,
+        rect.right + 6,
         window.innerWidth - POPOVER_MAX_WIDTH - VIEWPORT_GUTTER
       )
     );
@@ -109,8 +109,8 @@ export default function EmployeeMetadataPopover({
             selected
               ? 'text-white/85'
               : isTag
-                ? theme === 'orange' ? 'text-orange-200/70' : 'text-emerald-200/70'
-                : 'text-slate-300/65'
+                ? 'text-slate-300/65'
+                : theme === 'orange' ? 'text-orange-200/70' : 'text-emerald-200/70'
           }`}
         >
           {isTag ? (
@@ -126,10 +126,10 @@ export default function EmployeeMetadataPopover({
           role="tooltip"
           className={`fixed z-[10000] overflow-y-auto rounded-xl border-2 bg-[#020617] p-2.5 text-white shadow-2xl shadow-black/80 ring-2 ${
             isTag
-              ? theme === 'orange'
+              ? 'border-slate-300 ring-slate-500/50'
+              : theme === 'orange'
                 ? 'border-orange-300 ring-orange-500/40'
                 : 'border-emerald-300 ring-emerald-500/40'
-              : 'border-slate-300 ring-slate-500/50'
           }`}
           onMouseEnter={showPopover}
           onMouseLeave={hidePopover}
@@ -148,8 +148,8 @@ export default function EmployeeMetadataPopover({
         >
           <div className={`mb-0.5 text-[8px] font-bold uppercase leading-3 tracking-[0.12em] ${
             isTag
-              ? theme === 'orange' ? 'text-orange-300' : 'text-emerald-300'
-              : 'text-slate-300'
+              ? 'text-slate-300'
+              : theme === 'orange' ? 'text-orange-300' : 'text-emerald-300'
           }`}>
             {isTag ? 'Tags' : 'Note'}
           </div>
