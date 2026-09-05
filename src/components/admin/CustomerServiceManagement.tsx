@@ -3770,9 +3770,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
       {/* Customer Create/Edit Modal */}
       {(showCustomerForm || editingCustomer) && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null); setCustomerForm({ name: '', avatar: '🧑', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' }); } }}>
-          <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`bg-slate-900 rounded-xl border border-slate-700/50 p-5 shadow-2xl ${customerForm.isSuper ? 'max-w-3xl' : 'max-w-lg'} w-full transition-all duration-200`}>
-            <h3 className="text-lg font-bold text-white mb-4">{editingCustomer ? 'Edit Customer' : 'Create Customer'}</h3>
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-slate-950/80 p-4 backdrop-blur-md" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null); setCustomerForm({ name: '', avatar: '🧑', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' }); } }}>
+          <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--orange w-full rounded-2xl border p-5 shadow-2xl ${customerForm.isSuper ? 'max-w-3xl' : 'max-w-lg'} transition-all duration-200`}>
+            <h3 className="mb-4 border-b border-orange-200/15 pb-3 text-lg font-black tracking-tight text-white">{editingCustomer ? 'Edit Customer' : 'Create Customer'}</h3>
             {/* Super Customer Toggle */}
             <div className="mb-4 p-3 bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-500/30 rounded-lg">
               <label className="flex items-center gap-3 cursor-pointer">
@@ -4028,7 +4028,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
               </>
             )}
 
-            <div className="flex gap-2 mt-4">
+            <div className="create-customer-modal__actions flex gap-2 mt-4">
               <button
                 type="submit"
                 className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg transition-all font-medium"
