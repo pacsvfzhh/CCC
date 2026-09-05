@@ -2863,21 +2863,21 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   </div>
                   <div className="flex min-w-0 max-w-[58%] items-center gap-1">
                     <div className="relative min-w-0 flex-1 basis-[120px]">
-                      <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-orange-300/70" />
+                      <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-orange-300/90" />
                       <input
                         type="text"
                         value={historySearchQuery}
                         onChange={(event) => setHistorySearchQuery(event.target.value)}
                         placeholder="Search sessions..."
                         aria-label="Search active sessions"
-                        className="h-8 w-full min-w-0 rounded-lg border border-orange-200/80 bg-orange-50/95 pl-7 pr-7 text-[10px] font-semibold text-slate-900 outline-none transition-colors placeholder:text-slate-500 focus:border-orange-300 focus:bg-white focus:ring-2 focus:ring-orange-400/40"
+                        className="h-8 w-full min-w-0 rounded-lg border border-orange-700/80 bg-slate-700/90 pl-7 pr-7 text-[10px] font-semibold text-slate-100 outline-none transition-colors placeholder:text-slate-400 focus:border-orange-400/80 focus:bg-slate-700 focus:ring-2 focus:ring-orange-400/30"
                       />
                       {historySearchQuery && (
                         <button
                           type="button"
                           onClick={() => setHistorySearchQuery('')}
                           aria-label="Clear session search"
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-500 transition-colors hover:bg-orange-200 hover:text-orange-800"
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-300 transition-colors hover:bg-orange-500/20 hover:text-orange-200"
                         >
                           <X className="h-3 w-3" />
                         </button>
