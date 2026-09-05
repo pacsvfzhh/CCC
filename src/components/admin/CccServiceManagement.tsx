@@ -490,58 +490,75 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
   const loadAdminUnreadCounts = async (adminIds: string[]) => {
     try {
-      const { data: customers, error: customersError } = await supabase
-        .from('simulated_customers')
-        .select('id, admin_id')
-        .in('admin_id', adminIds)
-        .eq('source_type', 'ccc_service');
+      const counts: Record<string, number> = {};
+      adminIds.forEach(id => { counts[id] = 0; });
+
+      const [{ data: customers, error: customersError }, { data: employees, error: employeesError }] = await Promise.all([
+        supabase
+          .from('simulated_customers')
+          .select('id, admin_id')
+          .in('admin_id', adminIds)
+          .eq('source_type', 'ccc_service'),
+        supabase
+          .from('users')
+          .select('id, created_by')
+          .in('created_by', adminIds),
+      ]);
 
       if (customersError) throw customersError;
+      if (employeesError) throw employeesError;
 
-      if (!customers || customers.length === 0) {
-        setAdminUnreadCounts({});
+      const customerIds = (customers || []).map(customer => customer.id);
+      const employeeIds = (employees || []).map(employee => employee.id);
+      if (customerIds.length === 0 || employeeIds.length === 0) {
+        setAdminUnreadCounts(prev =>
+          adminIds.some(id => prev[id] !== counts[id]) || Object.keys(prev).length !== adminIds.length
+            ? counts
+            : prev
+        );
         return;
       }
 
-      const customerIds = customers.map(c => c.id);
-
       const { data: messages, error: messagesError } = await supabase
         .from('customer_employee_conversations')
-        .select('customer_id')
+        .select('customer_id, employee_id')
         .in('customer_id', customerIds)
+        .in('employee_id', employeeIds)
         .eq('sender_type', 'employee')
+        .eq('source_type', 'ccc_service')
         .eq('is_read', false);
 
       if (messagesError) throw messagesError;
 
-      const counts: Record<string, number> = {};
-      messages?.forEach(msg => {
-        const customer = customers.find(c => c.id === msg.customer_id);
-        if (customer) {
-          counts[customer.admin_id] = (counts[customer.admin_id] || 0) + 1;
+      const customersById = new Map((customers || []).map(customer => [customer.id, customer.admin_id]));
+      const employeesById = new Map((employees || []).map(employee => [employee.id, employee.created_by]));
+      messages?.forEach(message => {
+        const customerAdminId = customersById.get(message.customer_id);
+        if (customerAdminId && employeesById.get(message.employee_id) === customerAdminId) {
+          counts[customerAdminId]++;
         }
       });
 
-
-      setAdminUnreadCounts(prev => {
-        const hasChanged = adminIds.some(id => (prev[id] || 0) !== (counts[id] || 0));
-        return hasChanged ? counts : prev;
-      });
+      setAdminUnreadCounts(prev =>
+        adminIds.some(id => prev[id] !== counts[id]) || Object.keys(prev).length !== adminIds.length
+          ? counts
+          : prev
+      );
     } catch (error) {
       console.error('Error loading admin unread counts:', error);
     }
   };
 
-  const loadAdminGroups = useCallback(async (targetEmployee?: { id: string; username: string } | null) => {
+  const loadAdminGroups = useCallback(async (targetEmployee?: { id: string; username: string } | null, silent = false) => {
     let autoSelected = false;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const { data, error } = await supabase.rpc('get_admin_groups_for_customer_service', { p_source_type: 'ccc_service' });
       if (error) throw error;
       setAdminGroups(data || []);
 
       if (data && data.length > 0) {
-        loadAdminUnreadCounts(data.map(g => g.admin_id));
+        await loadAdminUnreadCounts(data.map(g => g.admin_id));
 
         if (targetEmployee) {
           const { data: userData } = await supabase.from('users').select('created_by').eq('id', targetEmployee.id).maybeSingle();
@@ -556,12 +573,14 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
             }
           }
         }
+      } else {
+        setAdminUnreadCounts({});
       }
     } catch (error) {
       console.error('Error loading admin groups:', error);
       setNotification({ type: 'error', text: 'Failed to load admin groups' });
     } finally {
-      if (!autoSelected) {
+      if (!autoSelected && !silent) {
         setLoading(false);
       }
     }
@@ -576,7 +595,8 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         .from('customer_employee_conversations')
         .select('employee_id, sender_type, message_type, is_read')
         .eq('customer_id', customer.id)
-        .in('employee_id', employeeIds);
+        .in('employee_id', employeeIds)
+        .eq('source_type', 'ccc_service');
 
       if (error) throw error;
 
@@ -585,6 +605,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         .select('employee_id, message_content, message_type, created_at')
         .eq('customer_id', customer.id)
         .in('employee_id', employeeIds)
+        .eq('source_type', 'ccc_service')
         .order('created_at', { ascending: false });
 
       const lastMsgMap = new Map<string, { message_content: string; message_type: string; created_at: string }>();
@@ -641,7 +662,8 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     if (!adminIdToUse) return;
     try {
       const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-        p_admin_id: adminIdToUse
+        p_admin_id: adminIdToUse,
+        p_source_type: 'ccc_service'
       });
 
       if (error) throw error;
@@ -679,6 +701,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         .select('*')
         .eq('customer_id', selectedCustomer.id)
         .eq('employee_id', selectedEmployee.id)
+        .eq('source_type', 'ccc_service')
         .lt('created_at', oldestTime)
         .order('created_at', { ascending: false })
         .limit(MESSAGE_PAGE_SIZE);
@@ -707,6 +730,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         .select('*')
         .eq('customer_id', selectedCustomer.id)
         .eq('employee_id', selectedEmployee.id)
+        .eq('source_type', 'ccc_service')
         .order('created_at', { ascending: false })
         .limit(MESSAGE_PAGE_SIZE);
 
@@ -723,6 +747,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           .eq('customer_id', selectedCustomer.id)
           .eq('employee_id', selectedEmployee.id)
           .eq('sender_type', 'employee')
+          .eq('source_type', 'ccc_service')
           .eq('is_read', false);
 
         // Update unread count for this customer
@@ -815,6 +840,31 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       };
     }
   }, [isSuperAdmin, loadAdminGroups]);
+
+  // Refresh summary counts while the workspace picker is visible
+  useEffect(() => {
+    if (!isSuperAdmin || selectedAdminId || adminGroups.length === 0) return;
+
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        void loadAdminGroups(null, true);
+      }, 300);
+    };
+
+    const channel = supabase
+      .channel('manager_workspace_summary_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'simulated_customers' }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_employee_conversations' }, scheduleRefresh)
+      .subscribe();
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [isSuperAdmin, selectedAdminId, adminGroups.length, loadAdminGroups]);
 
   // Subscribe to realtime updates for admin unread counts
   useEffect(() => {
@@ -1415,12 +1465,19 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           .eq('admin_id', targetAdminId)
           .eq('source_type', 'ccc_service')
           .order('created_at', { ascending: false }),
-        supabase.rpc('get_admin_employees', { p_admin_id: targetAdminId }),
+        supabase
+          .from('users')
+          .select('id, username, employee_id, is_verified, is_active, remarks, tags')
+          .eq('created_by', targetAdminId)
+          .order('username'),
         supabase
           .from('customer_employee_conversations')
-          .select('customer_id, simulated_customers!inner(admin_id)')
+          .select('customer_id, simulated_customers!inner(admin_id, source_type), users!inner(created_by)')
           .eq('simulated_customers.admin_id', targetAdminId)
+          .eq('simulated_customers.source_type', 'ccc_service')
+          .eq('users.created_by', targetAdminId)
           .eq('sender_type', 'employee')
+          .eq('source_type', 'ccc_service')
           .eq('is_read', false)
       ]);
 
@@ -1432,13 +1489,13 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       allCustomersRef.current = customersRes.data || [];
       allEmployeesRef.current = employeesRes.data || [];
 
-      if (!unreadRes.error && unreadRes.data) {
-        const counts: Record<string, number> = {};
-        unreadRes.data.forEach((msg: { customer_id: string }) => {
-          counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
-        });
-        setCustomerUnreadCounts(counts);
-      }
+      if (unreadRes.error) throw unreadRes.error;
+
+      const counts: Record<string, number> = {};
+      unreadRes.data?.forEach((msg: { customer_id: string }) => {
+        counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
+      });
+      setCustomerUnreadCounts(counts);
     } catch (error) {
       console.error('Error loading admin data:', error);
       setNotification({ type: 'error', text: 'Failed to load data' });
@@ -1448,12 +1505,16 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   };
 
   const loadCustomerUnreadCounts = async (customerIds: string[]) => {
+    if (!selectedAdminId || customerIds.length === 0) return;
+
     try {
       const { data, error } = await supabase
         .from('customer_employee_conversations')
-        .select('customer_id')
+        .select('customer_id, users!inner(created_by)')
         .in('customer_id', customerIds)
+        .eq('users.created_by', selectedAdminId)
         .eq('sender_type', 'employee')
+        .eq('source_type', 'ccc_service')
         .eq('is_read', false);
 
       if (error) throw error;
@@ -1467,7 +1528,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
       // Only update state if counts have actually changed to prevent unnecessary re-renders
       setCustomerUnreadCounts(prev => {
-        const hasChanged = customerIds.some(id => (prev[id] || 0) !== (counts[id] || 0));
+        const previousIds = Object.keys(prev);
+        const countIds = Object.keys(counts);
+        const hasChanged = previousIds.length !== countIds.length ||
+          previousIds.some(id => prev[id] !== counts[id]);
         return hasChanged ? counts : prev;
       });
     } catch (error) {
@@ -1500,7 +1564,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     historyScrollTopRef.current = 0;
     setCustomers([]);
     setEmployees([]);
-    // Don't reload admin groups - keep existing data to prevent UI flashing
+    void loadAdminGroups(null, true);
   };
 
   const handleSelectCustomer = async (customer: SimulatedCustomer) => {

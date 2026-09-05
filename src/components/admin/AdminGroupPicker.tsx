@@ -54,10 +54,10 @@ const formatRole = (role: string) => role === 'super_admin' ? 'Super admin' : ro
 export default function AdminGroupPicker({ service, groups, unreadCounts, loading, onSelect, onRefresh }: AdminGroupPickerProps) {
   const styles = serviceStyles[service];
   const Icon = styles.Icon;
-  const totalEmployees = groups.reduce((total, group) => total + group.employee_count, 0);
-  const totalCustomers = groups.reduce((total, group) => total + group.customer_count, 0);
-  const totalMessages = groups.reduce((total, group) => total + group.conversation_count, 0);
-  const totalUnread = Object.values(unreadCounts).reduce((total, count) => total + count, 0);
+  const totalEmployees = groups.reduce((total, group) => total + Number(group.employee_count || 0), 0);
+  const totalCustomers = groups.reduce((total, group) => total + Number(group.customer_count || 0), 0);
+  const totalConversations = groups.reduce((total, group) => total + Number(group.conversation_count || 0), 0);
+  const totalUnread = groups.reduce((total, group) => total + Number(unreadCounts[group.admin_id] || 0), 0);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col text-slate-100">
@@ -74,7 +74,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
                   <h2 className="text-lg font-semibold tracking-tight text-white">Admin workspaces</h2>
                   <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${styles.chip}`}>{groups.length} available</span>
                 </div>
-                <p className="mt-1 max-w-[560px] break-words text-xs font-medium leading-5 text-slate-300">Select a workspace to enter its live service console · {totalMessages} conversations across all workspaces.</p>
+                <p className="mt-1 max-w-[560px] break-words text-xs font-medium leading-5 text-slate-300">Select a workspace to enter its live service console · {totalConversations} conversations across all workspaces.</p>
               </div>
             </div>
 
@@ -116,7 +116,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
           ) : groups.length > 0 ? (
             <div className={`overflow-hidden rounded-xl border bg-slate-900/35 ${styles.border}`}>
               <div className="hidden grid-cols-[minmax(200px,1fr)_repeat(3,90px)_150px] items-center gap-4 border-b border-slate-700/70 bg-slate-900/80 px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-300/75 sm:grid">
-                <span>Workspace</span><span>Employees</span><span>Customers</span><span>Messages</span><span className="text-right">Action</span>
+                <span>Workspace</span><span>Employees</span><span>Customers</span><span>Conversations</span><span className="text-right">Action</span>
               </div>
               <div className="space-y-1 p-1">
                 {groups.map(group => {
@@ -145,15 +145,15 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
                       <div className="grid grid-cols-3 gap-2 sm:contents">
                         <div className={`flex items-center justify-between rounded-lg border px-3 py-2 sm:block sm:border-0 sm:bg-transparent sm:p-0 ${styles.metric}`}>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300/70 sm:block">Employees</span>
-                          <span className="text-base font-bold text-white sm:mt-1 sm:block">{group.employee_count}</span>
+                          <span className="text-base font-bold text-white sm:mt-1 sm:block">{Number(group.employee_count || 0)}</span>
                         </div>
                         <div className={`flex items-center justify-between rounded-lg border px-3 py-2 sm:block sm:border-0 sm:bg-transparent sm:p-0 ${styles.metric}`}>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300/70 sm:block">Customers</span>
-                          <span className="text-base font-bold text-white sm:mt-1 sm:block">{group.customer_count}</span>
+                          <span className="text-base font-bold text-white sm:mt-1 sm:block">{Number(group.customer_count || 0)}</span>
                         </div>
                         <div className={`flex items-center justify-between rounded-lg border px-3 py-2 sm:block sm:border-0 sm:bg-transparent sm:p-0 ${styles.metric}`}>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300/70 sm:block">Messages</span>
-                          <span className="text-base font-bold text-white sm:mt-1 sm:block">{group.conversation_count}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300/70 sm:block">Conversations</span>
+                          <span className="text-base font-bold text-white sm:mt-1 sm:block">{Number(group.conversation_count || 0)}</span>
                         </div>
                       </div>
 
