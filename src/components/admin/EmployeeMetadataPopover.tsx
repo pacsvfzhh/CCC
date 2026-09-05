@@ -75,6 +75,7 @@ export default function EmployeeMetadataPopover({
 
   const showPopover = () => {
     cancelClose();
+    if (open) return;
     window.dispatchEvent(new CustomEvent(METADATA_POPOVER_EVENT, {
       detail: popoverIdRef.current,
     }));
@@ -84,7 +85,7 @@ export default function EmployeeMetadataPopover({
 
   const hidePopover = () => {
     cancelClose();
-    closeTimerRef.current = setTimeout(() => setOpen(false), 60);
+    closeTimerRef.current = setTimeout(() => setOpen(false), 25);
   };
 
   useEffect(() => {
@@ -113,7 +114,12 @@ export default function EmployeeMetadataPopover({
 
   return (
     <>
-      <span className={`group block min-w-0 max-w-full overflow-hidden ${className}`}>
+      <span
+        className={`group block min-w-0 max-w-full overflow-hidden ${className}`}
+        onMouseEnter={showPopover}
+        onMouseMove={showPopover}
+        onMouseLeave={hidePopover}
+      >
         <span
           ref={triggerRef}
           tabIndex={0}
