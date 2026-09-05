@@ -2750,27 +2750,27 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                         </div>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center gap-1 pr-[48%]">
-                          <span className={`truncate font-bold ${selectedEmployee?.id === emp.id ? 'text-[15px] text-white' : 'text-[11px] text-slate-200'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 6px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)' } : undefined}>{emp.username}</span>
+                        <div className="flex min-w-0 items-center gap-1 leading-4">
+                          <span className={`truncate font-bold leading-4 ${selectedEmployee?.id === emp.id ? 'text-[15px] text-white' : 'text-[11px] text-slate-200'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 6px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)' } : undefined}>{emp.username}</span>
                           {selectedEmployee?.id === emp.id && <span className="ml-auto flex-shrink-0 rounded bg-white/25 px-1.5 py-0.5 text-[9px] font-bold leading-relaxed text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>ACTIVE</span>}
                         </div>
                         <div className={`truncate font-mono leading-tight ${selectedEmployee?.id === emp.id ? 'text-[11px] text-orange-100' : 'text-[10px] text-slate-400 group-hover:text-orange-200/80'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>ID: {emp.employee_id || '—'}</div>
+                        <EmployeeMetadataPopover
+                          kind="tag"
+                          theme="orange"
+                          values={emp.tags}
+                          selected={selectedEmployee?.id === emp.id}
+                          className="w-full max-w-full leading-[10px]"
+                        />
                         <EmployeeMetadataPopover
                           kind="note"
                           theme="orange"
                           value={emp.remarks}
                           selected={selectedEmployee?.id === emp.id}
-                          className="mt-0.5 w-full max-w-full"
+                          className="w-full max-w-full leading-[10px]"
                         />
                       </div>
                     </div>
-                    <EmployeeMetadataPopover
-                      kind="tag"
-                      theme="orange"
-                      values={emp.tags}
-                      selected={selectedEmployee?.id === emp.id}
-                      className="absolute right-1 top-1 z-30 w-[48%] max-w-[48%]"
-                    />
                   </button>
                 ))}
               </div>
