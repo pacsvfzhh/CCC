@@ -474,6 +474,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   const preserveScrollUntilRef = useRef(0);
   const loadOlderMessagesRef = useRef<() => void>();
   const historyListRef = useRef<HTMLDivElement>(null);
+  const employeeListRef = useRef<HTMLDivElement>(null);
   const historyScrollTopRef = useRef(0);
 
   const messagesContainerCallbackRef = (node: HTMLDivElement | null) => {
@@ -481,6 +482,11 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       messagesContainerRef.current = node;
     }
   };
+
+  useEffect(() => {
+    if (!selectedEmployee?.id) return;
+    employeeListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [selectedEmployee?.id]);
 
   const loadAdminUnreadCounts = async (adminIds: string[]) => {
     try {
@@ -3036,7 +3042,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           </div>
 
             {/* Employee List - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-1.5 scrollbar-dark">
+            <div ref={employeeListRef} className="flex-1 overflow-y-auto p-1.5 scrollbar-dark">
               <div className="space-y-0.5">
                 {filteredEmployees.map((emp) => (
                   <button
