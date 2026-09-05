@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase } from './supabase';
+import { supabase, supabaseConfigurationError } from './supabase';
 
 const CACHE_KEY_PREFIX = 'cached_company_name';
+const DEFAULT_COMPANY_NAME = 'AAA SERVICE';
 
 function getCacheKey(adminId?: string | null): string {
   if (adminId === null || adminId === undefined) {
@@ -31,14 +32,19 @@ function writeCachedName(adminId: string | null | undefined, value: string) {
 }
 
 export function useCompanyName(adminId?: string | null) {
-  const [companyName, setCompanyName] = useState<string>(() => readCachedName(adminId));
+  const [companyName, setCompanyName] = useState<string>(() => readCachedName(adminId) || DEFAULT_COMPANY_NAME);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const cached = readCachedName(adminId);
     if (cached) setCompanyName(cached);
 
-    loadCompanyName();
+    if (supabaseConfigurationError) {
+      setLoading(false);
+      return;
+    }
+
+    void loadCompanyName();
 
     const channel = supabase
       .channel(`company-name-changes-${adminId || 'global'}`)
@@ -69,11 +75,11 @@ export function useCompanyName(adminId?: string | null) {
                 setCompanyName(newRecord.config_value);
                 writeCachedName(adminId, newRecord.config_value);
               } else if (newRecord.admin_id === null && newRecord.config_value) {
-                loadCompanyName();
+                void loadCompanyName();
               }
             }
           } else if (payload.eventType === 'DELETE') {
-            loadCompanyName();
+            void loadCompanyName();
           }
         }
       )
@@ -99,7 +105,7 @@ export function useCompanyName(adminId?: string | null) {
           .maybeSingle();
 
         if (error) {
-          console.error('Error loading company name:', error);
+          console.warn('[Company Name] Unable to load company name:', error);
           return;
         }
 
@@ -115,7 +121,7 @@ export function useCompanyName(adminId?: string | null) {
           .or(`admin_id.eq.${adminId},admin_id.is.null`);
 
         if (error) {
-          console.error('Error loading company name:', error);
+          console.warn('[Company Name] Unable to load company name:', error);
           return;
         }
 
@@ -135,7 +141,7 @@ export function useCompanyName(adminId?: string | null) {
         }
       }
     } catch (error) {
-      console.error('Error loading company name:', error);
+      console.warn('[Company Name] Unable to load company name:', error);
     } finally {
       setLoading(false);
     }
