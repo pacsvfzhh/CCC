@@ -622,9 +622,15 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
       const employeeIds = (data || []).map((row: any) => row.employee_id).filter(Boolean);
       const { data: employeeMeta } = employeeIds.length > 0
-        ? await supabase.from('users').select('id, tags, remarks').in('id', employeeIds)
+        ? await supabase.from('users').select('*').in('id', employeeIds)
         : { data: [] as { id: string; tags?: string[]; remarks?: string }[] };
-      const employeeMetaById = new Map((employeeMeta || []).map(employee => [employee.id, employee]));
+      const employeeMetaById = new Map<string, { id: string; tags?: string[]; remarks?: string }>();
+      allEmployeesRef.current.forEach(employee => {
+        employeeMetaById.set(employee.id, employee);
+      });
+      (employeeMeta || []).forEach(employee => {
+        employeeMetaById.set(employee.id, employee);
+      });
 
       const allHistory: ConversationHistory[] = (data || []).map((row: any) => {
         const employee = employeeMetaById.get(row.employee_id);
@@ -947,10 +953,15 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           table: 'users'
         }, () => {
           // Reload employees when users table changes
-          supabase.rpc('get_admin_employees', { p_admin_id: selectedAdminId })
+          supabase
+            .from('users')
+            .select('*')
+            .eq('created_by', selectedAdminId)
+            .order('username')
             .then(({ data, error }) => {
               if (!error && data) {
                 setEmployees(data);
+                allEmployeesRef.current = data;
               }
             });
         })
@@ -1430,7 +1441,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           .order('created_at', { ascending: false }),
         supabase
           .from('users')
-          .select('id, username, employee_id, is_verified, is_active, remarks, tags')
+          .select('*')
           .eq('created_by', targetAdminId)
           .order('username'),
         supabase
@@ -3100,30 +3111,30 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                         <div className={`font-mono leading-tight ${selectedEmployee?.id === emp.id ? 'text-[11px] text-emerald-100' : 'text-[10px] text-slate-400 group-hover:text-emerald-200/80'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>ID: {emp.employee_id || '—'}</div>
                       </div>
                     </div>
-                    {emp.tags && emp.tags.length > 0 && (
-                      <div className="group/tag absolute right-1 top-1 z-30 max-w-[48%]">
-                        <span className={`flex max-w-[112px] items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[8px] font-bold ${selectedEmployee?.id === emp.id ? 'border-white/35 bg-white/20 text-white' : 'border-emerald-300/35 bg-emerald-500/15 text-emerald-200'}`}>
-                          <Tag className="h-2.5 w-2.5 shrink-0" />
-                          <span className="truncate">{emp.tags[0]}{emp.tags.length > 1 ? ` +${emp.tags.length - 1}` : ''}</span>
-                        </span>
+                    <div className="group/tag absolute right-1 top-1 z-30 max-w-[48%]">
+                      <span className={`flex max-w-[124px] items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${selectedEmployee?.id === emp.id ? 'border-white/35 bg-white/20 text-white' : 'border-emerald-300/45 bg-emerald-500/20 text-emerald-100'}`}>
+                        <Tag className="h-2.5 w-2.5 shrink-0" />
+                        <span className="truncate">{emp.tags?.length ? `${emp.tags[0]}${emp.tags.length > 1 ? ` +${emp.tags.length - 1}` : ''}` : 'No tag'}</span>
+                      </span>
+                      {emp.tags?.length ? (
                         <div className="pointer-events-none absolute right-0 top-full mt-1 w-[190px] rounded-lg border border-emerald-300/40 bg-slate-950/95 p-2 text-[10px] text-emerald-100 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/tag:opacity-100 group-focus-within/tag:opacity-100">
                           <div className="mb-1 font-bold uppercase tracking-wider text-emerald-300">Tags</div>
                           <div className="break-words leading-4">{emp.tags.join(' · ')}</div>
                         </div>
-                      </div>
-                    )}
-                    {emp.remarks?.trim() && (
-                      <div className="group/note absolute bottom-1 right-1 z-30 max-w-[48%]">
-                        <span className={`flex max-w-[112px] items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[8px] font-medium ${selectedEmployee?.id === emp.id ? 'border-white/35 bg-white/20 text-white' : 'border-slate-500/50 bg-slate-950/55 text-slate-300'}`}>
-                          <FileText className="h-2.5 w-2.5 shrink-0" />
-                          <span className="truncate">{emp.remarks}</span>
-                        </span>
+                      ) : null}
+                    </div>
+                    <div className="group/note absolute bottom-1 right-1 z-30 max-w-[48%]">
+                      <span className={`flex max-w-[124px] items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[9px] font-medium ${selectedEmployee?.id === emp.id ? 'border-white/35 bg-white/20 text-white' : 'border-slate-500/60 bg-slate-950/70 text-slate-200'}`}>
+                        <FileText className="h-2.5 w-2.5 shrink-0" />
+                        <span className="truncate">{emp.remarks?.trim() || 'No note'}</span>
+                      </span>
+                      {emp.remarks?.trim() ? (
                         <div className="pointer-events-none absolute bottom-full right-0 mb-1 w-[190px] rounded-lg border border-slate-500/60 bg-slate-950/95 p-2 text-[10px] text-slate-200 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100">
                           <div className="mb-1 font-bold uppercase tracking-wider text-slate-400">Note</div>
                           <div className="break-words leading-4">{emp.remarks}</div>
                         </div>
-                      </div>
-                    )}
+                      ) : null}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -3246,8 +3257,12 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                         const lastTime = new Date(history.last_message_time);
                         const timeStr = `${lastTime.getFullYear()}/${String(lastTime.getMonth() + 1).padStart(2, '0')}/${String(lastTime.getDate()).padStart(2, '0')} ${lastTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                         const hasUnread = history.unread_count > 0;
-                        const employeeTags = (history.employee_tags?.length ? history.employee_tags : employee?.tags) || [];
-                        const employeeNote = history.employee_remarks?.trim() || employee?.remarks?.trim() || '';
+                        const employeeTags = employee?.tags?.length
+                          ? employee.tags
+                          : history.employee_tags || [];
+                        const employeeNote = employee?.remarks?.trim()
+                          || history.employee_remarks?.trim()
+                          || '';
                         const hasImg = /<img\s/i.test(history.last_message);
                         const plainMessage = history.last_message.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
                         const isPhoto = history.last_message === '__IMAGE__' || (!plainMessage && hasImg);
@@ -3335,34 +3350,32 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                                     <span className="text-[10px] text-emerald-200/90 font-mono flex-shrink-0">ID: {history.employee_number || '—'}</span>
                                   </div>
 
-                                  {(employeeTags.length > 0 || employeeNote) && (
-                                    <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1 pr-1">
+                                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1 pr-1">
+                                    <span className="group/tag relative max-w-[48%]">
+                                      <span className="flex max-w-[128px] items-center gap-1 truncate rounded-md border border-emerald-300/35 bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-200">
+                                        <Tag className="h-2.5 w-2.5 shrink-0" />
+                                        <span className="truncate">{employeeTags.length ? `${employeeTags[0]}${employeeTags.length > 1 ? ` +${employeeTags.length - 1}` : ''}` : 'No tag'}</span>
+                                      </span>
                                       {employeeTags.length > 0 && (
-                                        <span className="group/tag relative max-w-[48%]">
-                                          <span className="flex max-w-[120px] items-center gap-1 truncate rounded-md border border-emerald-300/30 bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-bold text-emerald-200">
-                                            <Tag className="h-2.5 w-2.5 shrink-0" />
-                                            <span className="truncate">{employeeTags[0]}{employeeTags.length > 1 ? ` +${employeeTags.length - 1}` : ''}</span>
-                                          </span>
-                                          <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] rounded-lg border border-emerald-300/40 bg-slate-950/95 p-2 text-[10px] text-emerald-100 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/tag:opacity-100 group-focus-within/tag:opacity-100">
-                                            <span className="mb-1 block font-bold uppercase tracking-wider text-emerald-300">Tags</span>
-                                            <span className="block break-words leading-4">{employeeTags.join(' · ')}</span>
-                                          </span>
+                                        <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] rounded-lg border border-emerald-300/40 bg-slate-950/95 p-2 text-[10px] text-emerald-100 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/tag:opacity-100 group-focus-within/tag:opacity-100">
+                                          <span className="mb-1 block font-bold uppercase tracking-wider text-emerald-300">Tags</span>
+                                          <span className="block break-words leading-4">{employeeTags.join(' · ')}</span>
                                         </span>
                                       )}
+                                    </span>
+                                    <span className="group/note relative max-w-[48%]">
+                                      <span className="flex max-w-[150px] items-center gap-1 truncate rounded-md border border-slate-500/60 bg-slate-950/70 px-1.5 py-0.5 text-[9px] font-medium text-slate-200">
+                                        <FileText className="h-2.5 w-2.5 shrink-0" />
+                                        <span className="truncate">{employeeNote || 'No note'}</span>
+                                      </span>
                                       {employeeNote && (
-                                        <span className="group/note relative max-w-[48%]">
-                                          <span className="flex max-w-[150px] items-center gap-1 truncate rounded-md border border-slate-500/50 bg-slate-950/55 px-1.5 py-0.5 text-[8px] font-medium text-slate-300">
-                                            <FileText className="h-2.5 w-2.5 shrink-0" />
-                                            <span className="truncate">{employeeNote}</span>
-                                          </span>
-                                          <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] rounded-lg border border-slate-500/60 bg-slate-950/95 p-2 text-[10px] text-slate-200 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100">
-                                            <span className="mb-1 block font-bold uppercase tracking-wider text-slate-400">Note</span>
-                                            <span className="block break-words leading-4">{employeeNote}</span>
-                                          </span>
+                                        <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] rounded-lg border border-slate-500/60 bg-slate-950/95 p-2 text-[10px] text-slate-200 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100">
+                                          <span className="mb-1 block font-bold uppercase tracking-wider text-slate-400">Note</span>
+                                          <span className="block break-words leading-4">{employeeNote}</span>
                                         </span>
                                       )}
-                                    </div>
-                                  )}
+                                    </span>
+                                  </div>
 
                                   <p className={`mt-1 text-[11px] leading-relaxed truncate ${
                                     hasUnread ? 'text-orange-200 font-semibold' : 'text-slate-500'
