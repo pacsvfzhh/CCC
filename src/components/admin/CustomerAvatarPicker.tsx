@@ -266,8 +266,9 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const hasCollar = featureSeed % 3 !== 0 || (vip && featureSeed % 5 === 0);
   const hasTie = !isFemale && (featureSeed % 5 === 3 || (vip && featureSeed % 3 === 0));
   const hasScarf = isFemale && (featureSeed % 9 === 4 || (vip && featureSeed % 3 === 0));
-  const hasPremiumLapels = vip && featureSeed % 2 === 0;
-  const hasPremiumPin = vip && featureSeed % 4 === 1;
+  const hasPremiumLapels = vip;
+  const hasPremiumPin = vip && featureSeed % 3 !== 2;
+  const hasPremiumNecklace = vip && isFemale;
   const hasFacialHair = !isFemale && featureSeed % 6 === 1;
   const hasFreckles = featureSeed % 11 === 3;
   const mouthStyle = mouthStyles[(featureSeed * 7 + 2) % mouthStyles.length];
@@ -303,12 +304,14 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
         {hasTie && (
           <>
             <path d="M29 51h6l2 13H27z" fill={tie} />
-            <path d="M29 51l3 4 3-4" fill="none" stroke="#e8dcc3" strokeWidth="1" />
+            <path d="M29 51l3 4 3-4" fill="none" stroke="#f4d989" strokeWidth="1" />
+            {vip && <path d="M30 57h4" fill="none" stroke="#f8df96" strokeLinecap="round" strokeWidth=".8" />}
           </>
         )}
         {hasScarf && <path d="M21 50c4 4 18 4 22 0l-2 7c-5 2-13 2-18 0Z" fill={scarf} opacity=".9" />}
-        {hasPremiumLapels && <path d="M20 51l12 9 12-9" fill="none" stroke="#e8cc7b" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.15" opacity=".9" />}
-        {hasPremiumPin && <circle cx="43" cy="55" r="1.15" fill="#f4d989" stroke="#8b6b2d" strokeWidth=".45" />}
+        {hasPremiumLapels && <path d="M20 51l12 9 12-9" fill="none" stroke="#e8cc7b" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.25" opacity=".95" />}
+        {hasPremiumPin && <circle cx="43" cy="55" r="1.25" fill="#f4d989" stroke="#8b6b2d" strokeWidth=".45" />}
+        {hasPremiumNecklace && <path d="M24 47c3 4 13 4 16 0M31 50.5h2" fill="none" stroke="#f4d989" strokeLinecap="round" strokeWidth="1.1" />}
         {isFemale && <path d={femaleBackHairStyles[(featureSeed * 17) % femaleBackHairStyles.length]} fill={hair} />}
         <circle cx="17" cy="30" r="3.5" fill={skin} />
         <circle cx="47" cy="30" r="3.5" fill={skin} />
