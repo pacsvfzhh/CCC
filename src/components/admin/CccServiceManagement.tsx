@@ -2968,19 +2968,19 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   <button
                     type="button"
                     onClick={() => setShowTagDropdown(!showTagDropdown)}
-                    className={`relative flex items-center gap-1 px-2.5 py-1.5 rounded-lg border transition-all text-xs font-medium ${selectedTags.length > 0 ? 'bg-[#2563eb] border-[#2563eb] text-white' : 'bg-[#e8ecf1] border-[#cbd5e1] text-[#3b82f6] hover:bg-[#dbeafe] hover:border-[#93c5fd]'}`}
+                    className={`relative flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${selectedTags.length > 0 ? 'border-emerald-300/70 bg-emerald-500/25 text-emerald-50 shadow-md shadow-emerald-950/30' : 'border-emerald-300/30 bg-slate-900/55 text-emerald-200 hover:border-emerald-200/70 hover:bg-emerald-500/15 hover:text-emerald-100'}`}
                     title="Filter by tags"
                   >
                     <Tag className="w-3.5 h-3.5" />
                     {selectedTags.length > 0 && (
-                      <span className="min-w-[16px] h-4 px-1 bg-blue-500 rounded text-[9px] font-bold text-white flex items-center justify-center">{selectedTags.length}</span>
+                      <span className="flex h-4 min-w-[18px] items-center justify-center rounded-md border border-emerald-200/30 bg-emerald-300 px-1 text-[9px] font-black text-emerald-950 shadow-sm">{selectedTags.length}</span>
                     )}
                   </button>
                   {selectedTags.length > 0 && (
                     <button
                       type="button"
                       onClick={() => { setSelectedTags([]); setShowTagDropdown(false); }}
-                      className="flex items-center gap-0.5 px-1.5 py-1.5 rounded-lg bg-[#ef4444] border border-[#ef4444] text-white hover:bg-[#dc2626] transition-all"
+                      className="flex items-center justify-center rounded-xl border border-rose-300/35 bg-rose-500/10 px-1.5 py-1.5 text-rose-200 shadow-sm shadow-rose-950/20 transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-200/80 hover:bg-rose-500 hover:text-white hover:shadow-md hover:shadow-rose-950/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/70"
                       title="Clear all tags"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -2989,7 +2989,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   {showTagDropdown && (
                     <>
                       <div className="fixed inset-0 z-20" onMouseDown={() => setShowTagDropdown(false)} />
-                      <div className="absolute right-0 top-full mt-1.5 z-30 bg-[#e8ecf1] border border-[#cbd5e1] rounded-xl shadow-2xl shadow-black/20 p-2 min-w-[160px] max-h-48 overflow-y-auto">
+                      <div className="absolute right-0 top-full z-30 mt-2 min-w-[180px] max-h-56 overflow-y-auto rounded-2xl border border-emerald-300/35 bg-gradient-to-b from-slate-900/98 via-slate-900/96 to-emerald-950/80 p-2 shadow-2xl shadow-emerald-950/35 ring-1 ring-emerald-200/10 backdrop-blur-xl scrollbar-dark">
                         {allTags.map((tag) => {
                           const isSelected = selectedTags.includes(tag);
                           return (
@@ -2997,25 +2997,25 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                               key={tag}
                               type="button"
                               onClick={() => isSelected ? setSelectedTags(selectedTags.filter(t => t !== tag)) : setSelectedTags([...selectedTags, tag])}
-                              className={`flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg cursor-pointer transition-all text-xs font-medium mb-0.5 ${
+                              className={`flex w-full cursor-pointer items-center gap-2 rounded-xl border px-2.5 py-2 text-left text-xs font-semibold transition-all duration-200 mb-1 last:mb-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${
                                 isSelected
-                                  ? 'bg-[#2563eb] text-white shadow-sm shadow-blue-500/25 ring-1 ring-blue-400/50'
-                                  : 'bg-transparent text-[#334155] hover:bg-[#dbeafe] hover:text-[#1d4ed8]'
+                                  ? 'border-emerald-300/45 bg-emerald-500/20 text-emerald-50 shadow-sm shadow-emerald-950/25'
+                                  : 'border-transparent bg-transparent text-slate-300 hover:border-emerald-300/20 hover:bg-emerald-500/10 hover:text-emerald-100'
                               }`}
                             >
                               <span className={`w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
                                 isSelected
-                                  ? 'bg-white border-white/80'
-                                  : 'border-[#94a3b8] bg-white'
+                                  ? 'border-emerald-100 bg-emerald-100'
+                                  : 'border-emerald-300/40 bg-white'
                               }`}>
-                                {isSelected && <Check className="w-2.5 h-2.5 text-[#2563eb]" />}
+                                {isSelected && <Check className="h-2.5 w-2.5 text-emerald-600" />}
                               </span>
                               {tag}
                             </button>
                           );
                         })}
                         {selectedTags.length > 0 && (
-                          <button type="button" onClick={() => { setSelectedTags([]); setShowTagDropdown(false); }} className="w-full mt-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-[#ef4444] text-white hover:bg-[#dc2626] text-center transition-colors">Clear all</button>
+                          <button type="button" onClick={() => { setSelectedTags([]); setShowTagDropdown(false); }} className="mt-2 w-full rounded-xl border border-rose-300/30 bg-rose-500/10 px-2 py-1.5 text-center text-xs font-bold text-rose-200 transition-all duration-200 hover:border-rose-200/70 hover:bg-rose-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/70">Clear all</button>
                         )}
                       </div>
                     </>
@@ -3043,18 +3043,18 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                     type="button"
                     key={emp.id}
                     onClick={() => handleSelectEmployee(emp)}
-                    className={`group w-full rounded-lg transition-all duration-150 text-left ${
+                    className={`group w-full rounded-xl border text-left transition-all duration-200 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${
                       selectedEmployee?.id === emp.id
-                        ? 'px-2.5 py-2.5 bg-emerald-600 border border-emerald-300/60 shadow-md shadow-emerald-900/40 ring-1 ring-emerald-300/30'
-                        : 'px-2 py-1.5 border border-transparent hover:bg-emerald-950/45 hover:border-emerald-400/40'
+                        ? 'border-emerald-200/70 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 px-2.5 py-2.5 shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-200/40'
+                        : 'border-slate-700/60 bg-slate-800/45 px-2 py-2 hover:border-emerald-400/60 hover:bg-emerald-950/45 hover:shadow-md hover:shadow-emerald-950/35'
                     }`}
                   >
                     <div className={`flex items-center ${selectedEmployee?.id === emp.id ? 'gap-2' : 'gap-1.5'}`}>
                       <div className="relative flex-shrink-0">
                         <div className={`rounded flex items-center justify-center ${
-                          selectedEmployee?.id === emp.id ? 'w-9 h-9 bg-green-500/30' : 'w-6 h-6 bg-[#475569]'
+                          selectedEmployee?.id === emp.id ? 'h-9 w-9 bg-white/15 ring-1 ring-white/25' : 'h-7 w-7 border border-slate-700/70 bg-slate-900/70 group-hover:border-emerald-400/50 group-hover:bg-emerald-950/40'
                         }`}>
-                          <User className={`${selectedEmployee?.id === emp.id ? 'w-4.5 h-4.5' : 'w-3 h-3'} ${selectedEmployee?.id === emp.id ? 'text-white' : 'text-slate-400'}`} />
+                          <User className={`${selectedEmployee?.id === emp.id ? 'w-4.5 h-4.5' : 'w-3 h-3'} ${selectedEmployee?.id === emp.id ? 'text-white' : 'text-slate-400 group-hover:text-emerald-200'}`} />
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -3063,7 +3063,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
                           {selectedEmployee?.id === emp.id && <span className="ml-auto flex-shrink-0 px-1.5 py-0.5 bg-white/25 rounded text-[9px] font-bold text-white leading-relaxed" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>ACTIVE</span>}
                         </div>
-                        <div className={`font-mono leading-tight ${selectedEmployee?.id === emp.id ? 'text-[12px] text-green-100' : 'text-[8px] text-slate-500'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>{emp.employee_id}</div>
+                        <div className={`font-mono leading-tight ${selectedEmployee?.id === emp.id ? 'text-[12px] text-emerald-100' : 'text-[9px] text-slate-500 group-hover:text-emerald-200/80'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>{emp.employee_id}</div>
                       </div>
                     </div>
                   </button>
