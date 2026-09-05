@@ -3018,24 +3018,26 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                       <User className={`w-4 h-4 ${isSelected ? 'text-blue-300' : 'text-slate-400'}`} />
                                     </div>
                                   )}
-                                  {hasUnread && (
-                                    <div className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-md shadow-orange-500/40 animate-pulse">
-                                      <span className="text-[10px] font-black text-white leading-none drop-shadow-sm">{history.unread_count > 99 ? '99+' : history.unread_count}</span>
-                                    </div>
-                                  )}
                                 </div>
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                                    <div className="flex items-center gap-1.5 min-w-0">
+                                  <div className="flex items-start justify-between gap-2 mb-0.5">
+                                    <div className="flex min-w-0 items-center gap-1.5">
                                       {history.customer_name && (
                                         <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-blue-300' : 'text-emerald-400'}`}>{history.customer_name}</span>
                                       )}
                                     </div>
-                                    <span className={`text-[10px] flex-shrink-0 tabular-nums whitespace-nowrap ${
-                                      hasUnread ? 'text-orange-300 font-bold' : 'text-orange-200/90 font-semibold'
-                                    }`}>{timeStr}</span>
+                                    <div className="flex shrink-0 flex-col items-end gap-1">
+                                      <span className={`text-[10px] tabular-nums whitespace-nowrap ${
+                                        hasUnread ? 'text-orange-300 font-bold' : 'text-orange-200/90 font-semibold'
+                                      }`}>{timeStr}</span>
+                                      {hasUnread && (
+                                        <div className="flex min-w-[30px] h-[30px] items-center justify-center rounded-full border-2 border-slate-900 bg-gradient-to-br from-orange-500 to-amber-500 px-2 shadow-md shadow-orange-500/40 animate-pulse">
+                                          <span className="text-[12px] font-black leading-none text-white drop-shadow-sm">{history.unread_count > 99 ? '99+' : history.unread_count}</span>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
 
                                   <div className="flex items-center gap-1.5 mb-1">
