@@ -2373,29 +2373,31 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto lg:flex-row lg:overflow-hidden">
 
         {/* Left: Customer Sidebar */}
-        <div className="flex h-[260px] w-full flex-shrink-0 flex-col overflow-hidden rounded-xl border border-orange-400/30 bg-gradient-to-b from-orange-950/35 via-slate-900/90 to-slate-950/80 shadow-xl shadow-orange-950/20 backdrop-blur-xl lg:h-auto lg:w-[clamp(13rem,20vw,18rem)]">
+        <div className="flex h-[260px] w-full flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-orange-300/30 bg-gradient-to-b from-slate-900 via-slate-900/95 to-orange-950/35 shadow-2xl shadow-orange-950/25 ring-1 ring-white/[0.03] backdrop-blur-xl lg:h-auto lg:w-[clamp(13rem,20vw,18rem)]">
           {/* Sidebar Header */}
-          <div className="p-3 border-b border-orange-500/40 bg-slate-800/60">
+          <div className="border-b border-orange-300/20 bg-gradient-to-r from-orange-500/10 via-slate-800/70 to-transparent p-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-bold text-white flex items-center gap-1.5 uppercase tracking-wider">
-                <Users className="w-3.5 h-3.5 text-blue-400" />
+              <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.12em] text-orange-50">
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-orange-300/30 bg-orange-500/15 shadow-sm shadow-orange-950/20">
+                  <Users className="h-3.5 w-3.5 text-orange-200" />
+                </span>
                 Customers
               </h3>
               <button
                 type="button"
                 onClick={() => setShowCustomerForm(!showCustomerForm)}
-                className="p-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-all"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-orange-200/30 bg-orange-500/80 text-white shadow-md shadow-orange-950/30 transition-all duration-200 hover:-translate-y-0.5 hover:border-orange-100/70 hover:bg-orange-400 hover:shadow-lg hover:shadow-orange-950/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200/70"
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="flex gap-0.5 bg-slate-800/60 p-0.5 rounded-lg">
+            <div className="flex gap-1 rounded-xl border border-white/[0.06] bg-slate-950/60 p-1 shadow-inner shadow-black/20">
               <button
                 onClick={() => setCustomerFilter('all')}
                 className={`flex-1 px-2 py-1.5 text-[10px] font-bold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
                   customerFilter === 'all'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/60'
+                    ? 'bg-orange-500/90 text-white shadow-md shadow-orange-950/35 ring-1 ring-orange-200/30'
+                    : 'text-slate-400 hover:bg-orange-500/10 hover:text-orange-100'
                 }`}
               >
                 All
@@ -2404,8 +2406,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                 onClick={() => setCustomerFilter('super')}
                 className={`flex-1 px-2 py-1.5 text-[10px] font-bold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
                   customerFilter === 'super'
-                    ? 'bg-gradient-to-r from-amber-600 to-yellow-500 text-white shadow-md shadow-amber-600/30 ring-1 ring-amber-400/30'
-                    : 'text-slate-400 hover:text-amber-300 hover:bg-amber-900/20'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-950/35 ring-1 ring-amber-200/30'
+                    : 'text-slate-400 hover:bg-amber-500/10 hover:text-amber-100'
                 }`}
               >
                 <Star className="w-2.5 h-2.5" fill={customerFilter === 'super' ? 'currentColor' : 'none'} />
@@ -2415,8 +2417,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                 onClick={() => setCustomerFilter('regular')}
                 className={`flex-1 px-2 py-1.5 text-[10px] font-bold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
                   customerFilter === 'regular'
-                    ? 'bg-teal-600 text-white shadow-md shadow-teal-600/30 ring-1 ring-teal-400/30'
-                    : 'text-slate-400 hover:text-teal-300 hover:bg-teal-900/20'
+                    ? 'bg-emerald-500/90 text-white shadow-md shadow-emerald-950/35 ring-1 ring-emerald-200/30'
+                    : 'text-slate-400 hover:bg-emerald-500/10 hover:text-emerald-100'
                 }`}
               >
                 Reg
@@ -2425,7 +2427,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           </div>
 
           {/* Customer List - Scrollable */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-dark">
+          <div className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-950/20 via-transparent to-orange-950/10 p-2.5 space-y-1.5 scrollbar-dark">
             {customers
               .filter(customer => {
                 if (customerFilter === 'super') return customer.is_super === true;
@@ -2448,14 +2450,14 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
               .map((customer) => (
               <div
                 key={customer.id}
-                className={`relative rounded-lg cursor-pointer transition-all duration-200 group ${
+                className={`group relative cursor-pointer rounded-xl transition-all duration-200 hover:-translate-y-px focus-within:ring-2 focus-within:ring-orange-300/60 ${
                   customer.is_super
                     ? selectedCustomer?.id === customer.id
-                      ? 'p-3.5 bg-gradient-to-br from-amber-600 via-yellow-500 to-amber-500 border-2 border-yellow-300/70 shadow-lg shadow-amber-500/30 ring-1 ring-amber-300/40'
-                      : 'p-3 bg-gradient-to-br from-slate-800 to-slate-800/90 border-2 border-amber-500/50 hover:border-amber-400/70 hover:shadow-md hover:shadow-amber-500/10'
+                      ? 'border border-amber-200/80 bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 p-3.5 shadow-xl shadow-amber-950/40 ring-1 ring-amber-100/30'
+                      : 'border border-amber-400/35 bg-gradient-to-br from-slate-800/95 to-amber-950/35 p-3 shadow-md shadow-amber-950/20 hover:border-amber-300/75 hover:shadow-lg hover:shadow-amber-950/35'
                     : selectedCustomer?.id === customer.id
-                      ? 'p-2.5 bg-orange-600 border border-orange-300/60 shadow-lg shadow-orange-600/30 ring-1 ring-orange-200/20'
-                      : 'p-2 bg-slate-800/60 border border-slate-600/40 hover:border-orange-300/70 hover:bg-orange-900/25 hover:shadow-lg hover:shadow-orange-950/40'
+                      ? 'border border-orange-200/80 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 p-2.5 shadow-xl shadow-orange-950/40 ring-1 ring-orange-100/30'
+                      : 'border border-slate-700/60 bg-slate-800/55 p-2 hover:border-orange-300/65 hover:bg-orange-950/35 hover:shadow-lg hover:shadow-orange-950/35'
                 }`}
                 onClick={() => handleSelectCustomer(customer)}
               >
