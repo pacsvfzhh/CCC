@@ -3098,8 +3098,11 @@ button .animate-bell-ring.keep-animation,
 }
 
 .create-customer-modal {
+  box-sizing: border-box;
   color: #e2e8f0;
   max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.96) 58%, rgba(30, 41, 59, 0.98));
   box-shadow: 0 24px 80px rgba(2, 6, 23, 0.72), 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
@@ -3159,12 +3162,19 @@ button .animate-bell-ring.keep-animation,
 }
 
 .create-customer-modal__actions {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
   border-top: 1px solid rgba(148, 163, 184, 0.16);
   padding-top: 0.75rem;
 }
 
 .create-customer-modal__actions > button {
+  min-width: 0;
   min-height: 42px;
+  flex: 1 1 180px;
   border-radius: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.01em;
