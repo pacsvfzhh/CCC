@@ -377,7 +377,7 @@ export default function CustomerAvatarPicker({ value, onChange, theme, variant, 
   const isStoredAvatarKey = value?.startsWith('customer-avatar:') ?? false;
 
   return (
-    <div className={`rounded-2xl border shadow-inner shadow-black/25 ${size === 'large' ? 'p-3' : 'p-2.5'} ${variant === 'vip' ? 'border-amber-200/45 bg-gradient-to-br from-amber-950/50 via-slate-950/70 to-yellow-950/30' : styles.panel}`}>
+    <div className={`rounded-2xl border shadow-inner shadow-black/25 ${size === 'large' ? 'p-4' : 'p-2.5'} ${variant === 'vip' ? 'border-amber-200/45 bg-gradient-to-br from-amber-950/50 via-slate-950/70 to-yellow-950/30' : styles.panel}`}>
       <div className={`${size === 'large' ? 'mb-3' : 'mb-2'} flex items-center justify-between gap-2 px-0.5`}>
         <div className="min-w-0">
           <p className={`text-[10px] font-black uppercase tracking-[0.16em] ${variant === 'vip' ? 'text-amber-100' : styles.accent}`}>
@@ -389,7 +389,7 @@ export default function CustomerAvatarPicker({ value, onChange, theme, variant, 
           {selectedOption?.label || (variant === 'vip' ? 'Choose VIP' : 'Choose one')}
         </span>
       </div>
-      <div className={`grid ${size === 'large' ? 'grid-cols-5 gap-2 sm:grid-cols-6 xl:grid-cols-8' : 'gap-1'} ${variant === 'vip' ? 'grid-cols-6' : size === 'large' ? '' : 'grid-cols-8 sm:grid-cols-10'}`}>
+      <div className={`grid ${size === 'large' ? 'grid-cols-4 gap-2.5 sm:grid-cols-5 lg:grid-cols-6' : 'gap-1'} ${variant === 'vip' ? 'grid-cols-6' : size === 'large' ? '' : 'grid-cols-8 sm:grid-cols-10'}`}>
         {options.map((option, index) => {
           const optionValue = getAvatarKey(collection, index);
           const selected = value === optionValue || (!isStoredAvatarKey && selectedIndex === index);
@@ -401,7 +401,7 @@ export default function CustomerAvatarPicker({ value, onChange, theme, variant, 
               aria-label={`Select ${option.label} avatar`}
               aria-pressed={selected}
               onClick={() => onChange(optionValue)}
-              className={`group relative aspect-square min-w-0 overflow-hidden rounded-xl border ${size === 'large' ? 'p-1' : 'p-0.5'} transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] focus:outline-none focus:ring-2 focus:ring-white/80 ${selected ? (variant === 'vip' ? 'border-amber-100 bg-amber-300/25 ring-2 ring-amber-200/95 shadow-lg shadow-amber-400/35' : styles.selected) : (variant === 'vip' ? 'border-amber-100/25 bg-slate-950/80 hover:border-amber-100/90 hover:bg-amber-300/15' : styles.idle)}`}
+              className={`group relative aspect-square min-w-0 overflow-hidden rounded-xl border ${size === 'large' ? 'p-1.5' : 'p-0.5'} transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] focus:outline-none focus:ring-2 focus:ring-white/80 ${selected ? (variant === 'vip' ? 'border-amber-100 bg-amber-300/25 ring-2 ring-amber-200/95 shadow-lg shadow-amber-400/35' : styles.selected) : (variant === 'vip' ? 'border-amber-100/25 bg-slate-950/80 hover:border-amber-100/90 hover:bg-amber-300/15' : styles.idle)}`}
             >
               <AvatarArtwork index={index} vip={variant === 'vip'} />
               {selected && variant !== 'vip' && (
