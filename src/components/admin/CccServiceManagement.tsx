@@ -4730,6 +4730,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                         onChange={(avatar) => setCustomerForm({ ...customerForm, avatar })}
                         theme="emerald"
                         variant="regular"
+                        size="large"
                       />
                     </div>
 

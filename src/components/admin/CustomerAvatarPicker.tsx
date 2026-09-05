@@ -13,6 +13,7 @@ interface CustomerAvatarPickerProps {
   onChange: (avatar: string) => void;
   theme: CustomerAvatarPickerTheme;
   variant: CustomerAvatarPickerVariant;
+  size?: 'compact' | 'large';
 }
 
 const regularAvatarOptions: AvatarOption[] = [
@@ -110,6 +111,10 @@ const regularBackgrounds = [
   ['#a15738', '#f2bd7e'],
   ['#9e3f61', '#e58ea8'],
   ['#355c95', '#aa8be4'],
+  ['#7a3d8e', '#f0a0d0'],
+  ['#216a72', '#f1c46a'],
+  ['#4b5563', '#8b5cf6'],
+  ['#8a4b2d', '#e6a56b'],
 ];
 
 const vipBackgrounds = [
@@ -119,18 +124,33 @@ const vipBackgrounds = [
   ['#155b5d', '#e5bf5d'],
   ['#712c4b', '#e08b45'],
   ['#314579', '#6dd1c0'],
+  ['#4d256f', '#f0c86b'],
+  ['#164e63', '#f5a65b'],
+  ['#6b214f', '#c4a7ff'],
+  ['#285943', '#f4d35e'],
 ];
 
-const skinTones = ['#f7c9a9', '#efb38f', '#d9916c', '#bd7655', '#985b45', '#f4d0b9'];
-const hairTones = ['#211923', '#41271e', '#75452a', '#bd7038', '#edbb62', '#51436f'];
-const shirtTones = ['#edf4ff', '#ffe7f0', '#e5fff7', '#fff0d4', '#f0e9ff', '#e1f5ff'];
-const vipShirtTones = ['#f3d18a', '#ffe5a3', '#cab8ff', '#f3a5b9', '#9de5dc', '#fff0bd'];
+const skinTones = ['#f7c9a9', '#efb38f', '#d9916c', '#bd7655', '#985b45', '#f4d0b9', '#e8ad8f', '#a9654c', '#f2c5a5', '#7f4937'];
+const hairTones = ['#211923', '#41271e', '#75452a', '#bd7038', '#edbb62', '#51436f', '#a8a4b8', '#1f5960', '#722f4b', '#5a3828'];
+const shirtTones = ['#edf4ff', '#ffe7f0', '#e5fff7', '#fff0d4', '#f0e9ff', '#e1f5ff', '#d9f99d', '#fed7aa', '#fecdd3', '#bfdbfe'];
+const vipShirtTones = ['#f3d18a', '#ffe5a3', '#cab8ff', '#f3a5b9', '#9de5dc', '#fff0bd', '#f7c6a3', '#d9c2ff', '#b8f2e6', '#ffd6a5'];
+
+const faceShapes = [
+  'M18 29c0-10 6-17 14-17s14 7 14 17c0 10-6 17-14 17S18 39 18 29Z',
+  'M19 26c0-9 5-14 13-14s13 5 13 14c0 8-3 17-13 19-10-2-13-11-13-19Z',
+  'M17 29c0-10 7-16 15-16s15 6 15 16c0 8-5 17-15 17S17 37 17 29Z',
+  'M19 24c2-8 7-12 13-12s12 4 13 12c1 10-3 21-13 22-10-1-14-12-13-22Z',
+  'M18 28c0-9 5-16 14-16s14 7 14 16c0 9-4 17-14 17S18 37 18 28Z',
+  'M17 27c1-10 7-15 15-15s14 5 15 15c0 10-5 18-15 18s-15-8-15-18Z',
+];
 
 const hairStyles = [
   'M15 31C13 17 20 8 32 8s19 9 17 23c-3-5-6-7-10-8-5 6-13 8-24 8Z',
   'M14 31C13 17 21 8 32 8c11 0 19 8 18 23l-5 3-2-14c-8 5-16 6-26 4l-1 12Z',
   'M15 27C16 14 23 8 33 8c11 0 17 8 17 20-3-5-6-7-8-8-4 4-11 7-24 7Z',
   'M16 29C14 16 21 7 33 7c12 0 18 9 16 23l-4-4-2-10c-7 3-15 4-25 2l-1 11Z',
+  'M14 29C14 15 23 7 34 7c8 0 14 5 16 13-8-3-15-2-23 2-3 2-7 4-13 7Z',
+  'M15 30C12 26 13 18 17 14c0-5 5-8 9-6 3-4 10-4 12 0 5-2 10 2 10 7 5 3 6 10 3 15-4-5-8-7-12-8-6 5-14 8-24 8Z',
 ];
 
 const femaleBackHairStyles = [
@@ -138,6 +158,8 @@ const femaleBackHairStyles = [
   'M12 48C9 34 12 17 21 9c7-6 19-6 27 2 7 8 7 23 4 37l-8-3-1-18c-6 3-14 4-22 1l-2 20Z',
   'M14 50C10 36 12 19 20 11 27 4 39 4 47 11c8 8 8 23 4 39l-7-4-2-20c-6 4-13 5-20 2l-1 22Z',
   'M12 47C10 32 14 16 23 9c8-6 19-4 26 4 6 8 6 21 3 35l-8-3-1-18c-6 3-13 4-21 1l-2 19Z',
+  'M11 48C9 35 12 18 22 9c8-7 20-5 27 4 6 8 6 23 2 37l-8-4-2-21c-6 4-13 5-21 2l-1 21Z',
+  'M14 50C9 39 10 20 18 11c7-8 20-8 28 0 8 9 9 27 4 40l-8-4-2-21c-5 4-13 6-22 2l-1 22Z',
 ];
 
 const femaleHairStyles = [
@@ -145,6 +167,8 @@ const femaleHairStyles = [
   'M14 29C14 16 22 8 33 8c10 0 17 7 18 19-5-3-8-7-10-12-6 5-14 8-27 7Z',
   'M15 26C17 14 24 8 33 8c10 0 17 7 17 19-4-3-7-7-9-12-5 5-14 8-26 7Z',
   'M16 28C15 15 22 7 33 7c11 0 18 8 16 21-4-4-7-8-9-13-6 5-13 8-24 8Z',
+  'M14 28C15 15 23 7 33 7c10 0 17 7 18 20-5-4-8-8-10-14-6 5-14 8-27 8Z',
+  'M15 29C15 16 21 8 32 8c11 0 18 8 18 20-4-3-8-7-10-12-6 5-14 8-25 7Z',
 ];
 
 const themeStyles: Record<CustomerAvatarPickerTheme, {
@@ -173,11 +197,16 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const skin = skinTones[index % skinTones.length];
   const hair = hairTones[(index + (vip ? 2 : 0)) % hairTones.length];
   const isFemale = index % 2 === 0;
-  const hairStyle = (isFemale ? femaleHairStyles : hairStyles)[index % hairStyles.length];
+  const hairStyle = (isFemale ? femaleHairStyles : hairStyles)[index % femaleHairStyles.length];
+  const faceShape = faceShapes[(index + (vip ? 1 : 0)) % faceShapes.length];
   const shirtPalette = vip ? vipShirtTones : shirtTones;
   const shirt = shirtPalette[index % shirtPalette.length];
   const hasGlasses = index % 5 === 1 || (vip && index % 7 === 0);
   const hasEarring = index % 4 === 2 || (isFemale && index % 5 === 0);
+  const hasHairHighlight = index % 3 === 0;
+  const hasNecklace = isFemale && index % 6 === 2;
+  const hasCollar = index % 4 === 1 || (vip && index % 5 === 0);
+  const hasFacialHair = !isFemale && index % 4 === 1;
 
   return (
     <div
@@ -189,12 +218,13 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
       {vip && <div className="absolute inset-1 rounded-[8px] border border-amber-100/55" />}
       <svg viewBox="0 0 64 64" className="relative h-full w-full" aria-hidden="true">
         <path d="M7 66c2-12 10-19 25-19s23 7 25 19" fill={shirt} />
+        {hasCollar && <path d="M20 52l12 8 12-8 4 14H16z" fill={vip ? '#fff0b0' : '#ffffff'} opacity=".8" />}
         <path d="M24 44h16v10H24z" fill={skin} />
         <path d="M25 48l7 7 7-7 4 4-4 14H25l-4-14z" fill={vip ? '#fff0b0' : '#ffffff'} opacity=".72" />
         {isFemale && <path d={femaleBackHairStyles[index % femaleBackHairStyles.length]} fill={hair} />}
         <circle cx="17" cy="30" r="3.5" fill={skin} />
         <circle cx="47" cy="30" r="3.5" fill={skin} />
-        <ellipse cx="32" cy="29" rx="15" ry="17" fill={skin} />
+        <path d={faceShape} fill={skin} />
         <path d={hairStyle} fill={hair} />
         <path d="M23 27c1.5-1 3.5-1 5 0M36 27c1.5-1 3.5-1 5 0" fill="none" stroke="#3b2730" strokeLinecap="round" strokeWidth="1.5" />
         <circle cx="26" cy="30" r="1.3" fill="#1f1720" />
@@ -206,6 +236,14 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
           </>
         )}
         <path d="M29 36c2 1.5 4 1.5 6 0" fill="none" stroke={isFemale ? '#b64f6b' : '#9a4f4e'} strokeLinecap="round" strokeWidth="1.4" />
+        {hasFacialHair && <path d="M26 38c2 3 10 3 12 0" fill="none" stroke={hair} strokeLinecap="round" strokeWidth="2.2" opacity=".82" />}
+        {hasHairHighlight && <path d="M20 17c3-4 7-6 12-7" fill="none" stroke={isFemale ? '#fff4dc' : '#ffffff'} strokeLinecap="round" strokeWidth="1.5" opacity=".55" />}
+        {hasNecklace && (
+          <>
+            <path d="M24 47c3 4 13 4 16 0" fill="none" stroke="#f8d978" strokeLinecap="round" strokeWidth="1.1" />
+            <circle cx="32" cy="51" r="1.8" fill="#f8d978" />
+          </>
+        )}
         {hasGlasses && (
           <g fill="none" stroke={vip ? '#fff0a5' : '#ffffff'} strokeWidth="1.2">
             <rect x="20" y="27" width="10" height="7" rx="3" />
@@ -213,7 +251,12 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
             <path d="M30 29h4" />
           </g>
         )}
-        {hasEarring && <circle cx="46" cy="35" r="1.4" fill="#ffe18a" />}
+        {hasEarring && (
+          <>
+            <circle cx="18" cy="35" r="1.4" fill="#ffe18a" />
+            <circle cx="46" cy="35" r="1.4" fill="#ffe18a" />
+          </>
+        )}
         {vip && (
           <path d="M19 15l4-5 4 3 5-5 5 5 4-3 4 5" fill="#f8d978" fillOpacity=".28" stroke="#fff0a5" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
         )}
@@ -283,7 +326,7 @@ export function CustomerAvatarDisplay({
   );
 }
 
-export default function CustomerAvatarPicker({ value, onChange, theme, variant }: CustomerAvatarPickerProps) {
+export default function CustomerAvatarPicker({ value, onChange, theme, variant, size = 'compact' }: CustomerAvatarPickerProps) {
   const collection: AvatarCollection = variant === 'vip' ? 'vip' : 'regular';
   const options = collection === 'vip' ? vipAvatarOptions : regularAvatarOptions;
   const styles = themeStyles[theme];
@@ -292,8 +335,8 @@ export default function CustomerAvatarPicker({ value, onChange, theme, variant }
   const isStoredAvatarKey = value?.startsWith('customer-avatar:') ?? false;
 
   return (
-    <div className={`rounded-2xl border p-2.5 shadow-inner shadow-black/25 ${variant === 'vip' ? 'border-amber-200/45 bg-gradient-to-br from-amber-950/50 via-slate-950/70 to-yellow-950/30' : styles.panel}`}>
-      <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
+    <div className={`rounded-2xl border shadow-inner shadow-black/25 ${size === 'large' ? 'p-3' : 'p-2.5'} ${variant === 'vip' ? 'border-amber-200/45 bg-gradient-to-br from-amber-950/50 via-slate-950/70 to-yellow-950/30' : styles.panel}`}>
+      <div className={`${size === 'large' ? 'mb-3' : 'mb-2'} flex items-center justify-between gap-2 px-0.5`}>
         <div className="min-w-0">
           <p className={`text-[10px] font-black uppercase tracking-[0.16em] ${variant === 'vip' ? 'text-amber-100' : styles.accent}`}>
             {variant === 'vip' ? 'Signature collection' : 'Character collection'}
@@ -304,7 +347,7 @@ export default function CustomerAvatarPicker({ value, onChange, theme, variant }
           {selectedOption?.label || (variant === 'vip' ? 'Choose VIP' : 'Choose one')}
         </span>
       </div>
-      <div className={`grid gap-1 ${variant === 'vip' ? 'grid-cols-6' : 'grid-cols-8 sm:grid-cols-10'}`}>
+      <div className={`grid ${size === 'large' ? 'grid-cols-6 gap-1.5 sm:grid-cols-8' : 'gap-1'} ${variant === 'vip' ? 'grid-cols-6' : size === 'large' ? '' : 'grid-cols-8 sm:grid-cols-10'}`}>
         {options.map((option, index) => {
           const optionValue = getAvatarKey(collection, index);
           const selected = value === optionValue || (!isStoredAvatarKey && selectedIndex === index);
@@ -316,7 +359,7 @@ export default function CustomerAvatarPicker({ value, onChange, theme, variant }
               aria-label={`Select ${option.label} avatar`}
               aria-pressed={selected}
               onClick={() => onChange(optionValue)}
-              className={`group relative aspect-square min-w-0 overflow-hidden rounded-xl border p-0.5 transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] focus:outline-none focus:ring-2 focus:ring-white/80 ${selected ? (variant === 'vip' ? 'border-amber-100 bg-amber-300/25 ring-2 ring-amber-200/95 shadow-lg shadow-amber-400/35' : styles.selected) : (variant === 'vip' ? 'border-amber-100/25 bg-slate-950/80 hover:border-amber-100/90 hover:bg-amber-300/15' : styles.idle)}`}
+              className={`group relative aspect-square min-w-0 overflow-hidden rounded-xl border ${size === 'large' ? 'p-1' : 'p-0.5'} transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] focus:outline-none focus:ring-2 focus:ring-white/80 ${selected ? (variant === 'vip' ? 'border-amber-100 bg-amber-300/25 ring-2 ring-amber-200/95 shadow-lg shadow-amber-400/35' : styles.selected) : (variant === 'vip' ? 'border-amber-100/25 bg-slate-950/80 hover:border-amber-100/90 hover:bg-amber-300/15' : styles.idle)}`}
             >
               <AvatarArtwork index={index} vip={variant === 'vip'} />
               {selected && variant !== 'vip' && (
