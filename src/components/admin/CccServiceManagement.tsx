@@ -4376,10 +4376,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       {/* Customer Create/Edit Modal */}
       {(showCustomerForm || editingCustomer) && (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-md" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null); setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '', employeePinTop: false, employeeAlwaysVisible: false, targetEmployeeIds: [], _empSearch: '' }); } }}>
-          <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--emerald w-full max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border p-5 shadow-2xl ${customerForm.isSuper ? 'max-w-[95vw]' : 'max-w-5xl'} transition-all duration-200`}>
-            <h3 className="mb-4 border-b border-emerald-200/15 pb-3 text-lg font-black tracking-tight text-white">{editingCustomer ? 'Edit Customer' : 'Create Customer'}</h3>
+          <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--emerald w-full max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border p-4 shadow-2xl ${customerForm.isSuper ? 'max-w-[95vw]' : 'max-w-5xl'} transition-all duration-200`}>
+            <h3 className="mb-3 border-b border-emerald-200/15 pb-2 text-lg font-black tracking-tight text-white">{editingCustomer ? 'Edit Customer' : 'Create Customer'}</h3>
             {/* Super Customer Toggle */}
-            <div className="mb-4 p-3 bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-500/30 rounded-lg">
+            <div className="mb-3 p-2.5 bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-500/30 rounded-lg">
               <label className="flex items-center gap-3 cursor-pointer">
                 <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${customerForm.isSuper ? 'bg-amber-500 border-amber-400' : 'border-amber-500/60 bg-transparent'}`}>
                   {customerForm.isSuper && (
@@ -4709,7 +4709,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
             </>
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr]">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr]">
                   {/* Left: Name, Avatar, Remarks */}
                   <div className="min-w-0">
                     <div className="mb-4">
@@ -4723,8 +4723,8 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                       />
                     </div>
 
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-emerald-200 mb-3">Select Character Avatar</label>
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-emerald-200 mb-2">Select Character Avatar</label>
                       <CustomerAvatarPicker
                         value={customerForm.avatar}
                         onChange={(avatar) => setCustomerForm({ ...customerForm, avatar })}
