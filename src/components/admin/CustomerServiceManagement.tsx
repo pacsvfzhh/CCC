@@ -328,7 +328,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       setAdminGroups(data || []);
 
       if (data && data.length > 0) {
-        await loadAdminUnreadCounts(data.map(g => g.admin_id));
+        void loadAdminUnreadCounts(data.map(g => g.admin_id));
 
         if (targetEmployee) {
           const { data: userData } = await supabase.from('users').select('created_by').eq('id', targetEmployee.id).maybeSingle();

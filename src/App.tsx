@@ -126,7 +126,6 @@ function App() {
   if (authState.userType === 'admin') {
     return (
       <>
-        <BlockchainBackground />
         <ErrorBoundary>
           <Suspense fallback={null}>
             <AdminDashboard admin={authState.user} />

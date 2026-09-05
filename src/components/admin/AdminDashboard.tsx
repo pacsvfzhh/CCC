@@ -19,8 +19,15 @@ const AdminManagement = lazy(() => import('./AdminManagement'));
 const ValidOrderDataManagement = lazy(() => import('./ValidOrderDataManagement'));
 const MessageManagement = lazy(() => import('./MessageManagement'));
 const DispatchManagement = lazy(() => import('./DispatchManagement'));
-const CustomerServiceManagement = lazy(() => import('./CustomerServiceManagement'));
-const CccServiceManagement = lazy(() => import('./CccServiceManagement'));
+const loadCustomerServiceManagement = () => import('./CustomerServiceManagement');
+const loadCccServiceManagement = () => import('./CccServiceManagement');
+const CustomerServiceManagement = lazy(loadCustomerServiceManagement);
+const CccServiceManagement = lazy(loadCccServiceManagement);
+
+function preloadServiceTab(tabId: string) {
+  if (tabId === 'customerservice') void loadCustomerServiceManagement();
+  if (tabId === 'cccservice') void loadCccServiceManagement();
+}
 const EmployeeSearch = lazy(() => import('./EmployeeSearch'));
 const HistoryDataManagement = lazy(() => import('./HistoryDataManagement'));
 const AccountLockManagement = lazy(() => import('./AccountLockManagement'));
@@ -56,6 +63,21 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [usernameSuccess, setUsernameSuccess] = useState(false);
   const [changingUsername, setChangingUsername] = useState(false);
   const { companyName } = useCompanyName(admin.id);
+
+  useEffect(() => {
+    const preload = () => {
+      void loadCustomerServiceManagement();
+      void loadCccServiceManagement();
+    };
+
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(preload, { timeout: 1500 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timerId = window.setTimeout(preload, 800);
+    return () => window.clearTimeout(timerId);
+  }, []);
 
   // Cross-tab navigation targets
   const [navigateToMessageEmployee, setNavigateToMessageEmployee] = useState<{ id: string; username: string } | null>(null);
@@ -251,7 +273,9 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, [handleTabChange]);
 
   useEffect(() => {
-    loadPendingCounts();
+    const pendingCountsTimer = window.setTimeout(() => {
+      void loadPendingCounts();
+    }, 600);
 
     // 启动自动清理服务
     autoCleanupService.start(admin.id);
@@ -307,6 +331,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       .subscribe();
 
     return () => {
+      window.clearTimeout(pendingCountsTimer);
       supabase.removeChannel(withdrawalChannel);
       supabase.removeChannel(verificationChannel);
       supabase.removeChannel(customerServiceChannel);
@@ -542,6 +567,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
+                    onPointerEnter={() => preloadServiceTab(tab.id)}
+                    onFocus={() => preloadServiceTab(tab.id)}
                     className={`relative flex items-center gap-2 px-2 py-1.5 rounded-lg font-medium transition-all text-left ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
@@ -605,6 +632,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
+                    onPointerEnter={() => preloadServiceTab(tab.id)}
+                    onFocus={() => preloadServiceTab(tab.id)}
                     className={`relative flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
