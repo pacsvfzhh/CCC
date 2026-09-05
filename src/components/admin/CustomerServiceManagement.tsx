@@ -2931,7 +2931,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                       )}
                                     </div>
                                     <span className={`text-[10px] flex-shrink-0 tabular-nums whitespace-nowrap ${
-                                      hasUnread ? 'text-orange-400 font-bold' : 'text-slate-500'
+                                      hasUnread ? 'text-orange-300 font-bold' : 'text-orange-200/90 font-semibold'
                                     }`}>{timeStr}</span>
                                   </div>
 
