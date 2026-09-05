@@ -207,7 +207,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 80);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -2687,8 +2687,17 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   className="w-full pl-8 pr-8 py-2 bg-[#e8ecf1] border border-[#cbd5e1] rounded-lg text-[#1e293b] placeholder-[#94a3b8] text-xs focus:outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6] transition-all"
                 />
                 {searchQuery && (
-                  <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full bg-slate-600/50 text-slate-300 hover:bg-slate-500/60 hover:text-white transition-colors">
-                    <X className="w-3 h-3" />
+                  <button
+                    type="button"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      setSearchQuery('');
+                    }}
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear employee search"
+                    className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border border-orange-300/60 bg-orange-700/80 text-orange-50 shadow-sm transition-colors hover:bg-orange-600 hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -2877,11 +2886,15 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       {historySearchQuery && (
                         <button
                           type="button"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setHistorySearchQuery('');
+                          }}
                           onClick={() => setHistorySearchQuery('')}
                           aria-label="Clear session search"
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-300 transition-colors hover:bg-orange-500/20 hover:text-orange-200"
+                          className="absolute right-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md border border-slate-400/60 bg-slate-800 text-slate-100 shadow-sm transition-colors hover:border-orange-300/80 hover:bg-orange-700/80 hover:text-white"
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-4 w-4" />
                         </button>
                       )}
                     </div>
