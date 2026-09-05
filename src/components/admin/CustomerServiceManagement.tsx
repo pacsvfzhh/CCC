@@ -2194,9 +2194,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   }
 
   return (
-    <div ref={containerRef} className="flex min-w-0 flex-1 flex-col gap-2 overflow-hidden">
+    <div ref={containerRef} className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden px-2 pb-2 pt-3 sm:px-3 sm:pb-3 sm:pt-4">
       {/* Info Bar + History/New Buttons in one row */}
-      <div className="flex min-w-0 flex-shrink-0 flex-wrap items-center gap-2">
+      <div className="flex min-h-10 min-w-0 flex-shrink-0 flex-wrap items-center gap-2">
         {isSuperAdmin && selectedAdminId && (
           <button
             type="button"
