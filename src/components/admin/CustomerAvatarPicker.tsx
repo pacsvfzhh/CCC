@@ -125,10 +125,10 @@ function getAvatarBackground(index: number, vip: boolean): [string, string] {
 
 const skinTones = ['#f8d4b8', '#f5c5a3', '#f9ddc9', '#f6cfb5', '#efd0b5', '#e7b994', '#f3c8ae', '#d89a76', '#bf7959', '#f4c6a4'];
 const hairTones = ['#17191c', '#241d1a', '#33251e', '#463126', '#5a3b2a', '#2d3034', '#3f3029', '#594338', '#6b4a35', '#292625'];
-const shirtTones = ['#f1ede4', '#d7e0e5', '#b6c9d4', '#2f5e82', '#214a70', '#58778a', '#947d65', '#667f91', '#cdbda9', '#263f59'];
-const vipShirtTones = ['#d4b566', '#dcc98a', '#afbdd3', '#b48769', '#86aaa1', '#c9aa61', '#3c5775', '#84739c', '#5e9187', '#977356'];
+const jacketTones = ['#1f3042', '#2f4050', '#263746', '#3b4652', '#4a3c36', '#27434a', '#1f3550', '#51443d', '#2c3946', '#364655'];
+const vipJacketTones = ['#30291f', '#3e3426', '#24374b', '#4a3428', '#25423f', '#3f3424', '#27364a', '#40364d', '#2d4841', '#49352d'];
+const formalShirtTones = ['#f6f2e9', '#eaf0f2', '#dce7eb', '#f4eee2', '#dbe7e2', '#f8f5ee'];
 const tieTones = ['#234c73', '#385d7a', '#536e8b', '#7a4a48', '#2e6664', '#675274', '#8b6848', '#3d5360'];
-const scarfTones = ['#b5c9d5', '#c9b8a9', '#9eb8b3', '#b2a6b2', '#c4a982', '#8ea5b5'];
 
 const faceShapes = [
   'M18 29c0-10 6-17 14-17s14 7 14 17c0 10-6 17-14 17S18 39 18 29Z',
@@ -272,8 +272,9 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const hairStyle = hairOptions[(featureSeed * 3 + 1) % hairOptions.length];
   const facePalette = vip ? vipFaceShapes : faceShapes;
   const faceShape = facePalette[(featureSeed * 5 + (vip ? 1 : 0)) % facePalette.length];
-  const shirtPalette = vip ? vipShirtTones : shirtTones;
-  const shirt = shirtPalette[(featureSeed * 13 + 4) % shirtPalette.length];
+  const jacketPalette = vip ? vipJacketTones : jacketTones;
+  const jacket = jacketPalette[(featureSeed * 13 + 4) % jacketPalette.length];
+  const shirt = formalShirtTones[(featureSeed * 17 + 2) % formalShirtTones.length];
   const eyeVariant = (featureSeed * 5) % 4;
   const browVariant = (featureSeed * 3) % 3;
   const noseVariant = (featureSeed * 11) % 3;
@@ -281,9 +282,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const hasEarring = featureSeed % 5 === 2 || (isFemale && featureSeed % 8 === 0);
   const hasHairHighlight = featureSeed % 4 === 0;
   const hasNecklace = isFemale && featureSeed % 5 === 2;
-  const hasCollar = featureSeed % 3 !== 0 || (vip && featureSeed % 5 === 0);
-  const hasTie = !isFemale && (featureSeed % 5 === 3 || (vip && featureSeed % 3 === 0));
-  const hasScarf = isFemale && (featureSeed % 9 === 4 || (vip && featureSeed % 3 === 0));
+  const hasTie = !isFemale;
   const hasPremiumLapels = vip;
   const hasPremiumPin = vip && featureSeed % 3 !== 2;
   const hasPremiumNecklace = vip && isFemale;
@@ -293,7 +292,6 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const bodyPalette = vip ? vipBodyStyles : bodyStyles;
   const bodyStyle = bodyPalette[(featureSeed * 13 + 1) % bodyPalette.length];
   const tie = tieTones[(featureSeed * 5 + 1) % tieTones.length];
-  const scarf = scarfTones[(featureSeed * 3 + 2) % scarfTones.length];
   const earringColor = ['#bda66b', '#9fb6ad', '#b88c9c', '#9aaec2'][featureSeed % 4];
   const backgroundStyle = featureSeed % 6;
   const ageDetail = featureSeed % 5;
@@ -315,10 +313,11 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
       {vip && <div className="absolute -right-4 -top-4 h-12 w-12 rounded-full bg-amber-100/20 blur-md" />}
       <svg viewBox="0 0 64 64" className="relative block h-full w-full" aria-hidden="true">
         <g transform={`translate(${portraitShift} 0) rotate(${portraitTilt} 32 34)`}>
-        <path d={bodyStyle} fill={shirt} />
-        {hasCollar && <path d="M20 52l12 8 12-8 4 12H16z" fill={vip ? '#e8cf8c' : '#e9e5dc'} opacity=".9" />}
+        <path d={bodyStyle} fill={jacket} />
         <path d="M24 44h16v10H24z" fill={skin} />
-        <path d="M25 48l7 7 7-7 4 4-4 12H25l-4-12z" fill={vip ? '#e8cf8c' : '#e9e5dc'} opacity=".86" />
+        <path d="M20 52l12 8 12-8 4 12H16z" fill={jacket} opacity=".96" />
+        <path d="M25 48l7 7 7-7 4 4-4 12H25l-4-12z" fill={shirt} opacity=".96" />
+        <path d="M20 51l12 9 12-9" fill="none" stroke={vip ? '#e8cc7b' : '#b7c5ce'} strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.15" opacity=".95" />
         {hasTie && (
           <>
             <path d="M29 51h6l2 13H27z" fill={tie} />
@@ -326,8 +325,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
             {vip && <path d="M30 57h4" fill="none" stroke="#f8df96" strokeLinecap="round" strokeWidth=".8" />}
           </>
         )}
-        {hasScarf && <path d="M21 50c4 4 18 4 22 0l-2 7c-5 2-13 2-18 0Z" fill={scarf} opacity=".9" />}
-        {hasPremiumLapels && <path d="M20 51l12 9 12-9" fill="none" stroke="#e8cc7b" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.25" opacity=".95" />}
+        {hasPremiumLapels && <path d="M22 52l10 8 10-8" fill="none" stroke="#f1d889" strokeLinecap="round" strokeLinejoin="round" strokeWidth=".75" opacity=".9" />}
         {hasPremiumPin && <circle cx="43" cy="55" r="1.25" fill="#f4d989" stroke="#8b6b2d" strokeWidth=".45" />}
         {hasPremiumNecklace && <path d="M24 47c3 4 13 4 16 0M31 50.5h2" fill="none" stroke="#f4d989" strokeLinecap="round" strokeWidth="1.1" />}
         {isFemale && <path d={femaleBackHairStyles[(featureSeed * 17) % femaleBackHairStyles.length]} fill={hair} />}
