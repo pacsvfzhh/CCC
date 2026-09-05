@@ -163,7 +163,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
 
   return (
     <div
-      className="relative h-full w-full overflow-hidden rounded-[10px]"
+      className={`relative h-full w-full overflow-hidden rounded-[10px] ${vip ? 'scale-[1.1]' : ''}`}
       style={{ background: `linear-gradient(145deg, ${backgroundStart} 0%, ${backgroundEnd} 100%)` }}
     >
       <div className="absolute -right-3 -top-3 h-10 w-10 rounded-full bg-white/25 blur-md" />
@@ -193,11 +193,6 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
           <path d="M19 15l4-5 4 3 5-5 5 5 4-3 4 5" fill="#f8d978" fillOpacity=".28" stroke="#fff0a5" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
         )}
       </svg>
-      {vip && (
-        <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full border border-amber-100/90 bg-gradient-to-br from-amber-100 to-amber-500 text-[8px] font-black leading-none text-amber-950 shadow-lg shadow-amber-950/45">
-          ◆
-        </span>
-      )}
       <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-slate-950/35 to-transparent" />
     </div>
   );
@@ -221,7 +216,7 @@ export default function CustomerAvatarPicker({ value, onChange, theme, variant }
           {selectedOption?.label || (variant === 'vip' ? 'Choose VIP' : 'Choose one')}
         </span>
       </div>
-      <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-8">
+      <div className={`grid gap-1 ${variant === 'vip' ? 'grid-cols-6' : 'grid-cols-8 sm:grid-cols-10'}`}>
         {options.map((option, index) => {
           const selected = value === option.emoji;
           return (
@@ -232,11 +227,11 @@ export default function CustomerAvatarPicker({ value, onChange, theme, variant }
               aria-label={`Select ${option.label} avatar`}
               aria-pressed={selected}
               onClick={() => onChange(option.emoji)}
-              className={`group relative aspect-square min-w-0 overflow-hidden rounded-xl border p-1 transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] focus:outline-none focus:ring-2 focus:ring-white/80 ${selected ? (variant === 'vip' ? 'border-amber-100 bg-amber-300/25 ring-2 ring-amber-200/95 shadow-lg shadow-amber-400/35' : styles.selected) : (variant === 'vip' ? 'border-amber-100/25 bg-slate-950/80 hover:border-amber-100/90 hover:bg-amber-300/15' : styles.idle)}`}
+              className={`group relative aspect-square min-w-0 overflow-hidden rounded-xl border p-0.5 transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] focus:outline-none focus:ring-2 focus:ring-white/80 ${selected ? (variant === 'vip' ? 'border-amber-100 bg-amber-300/25 ring-2 ring-amber-200/95 shadow-lg shadow-amber-400/35' : styles.selected) : (variant === 'vip' ? 'border-amber-100/25 bg-slate-950/80 hover:border-amber-100/90 hover:bg-amber-300/15' : styles.idle)}`}
             >
               <AvatarArtwork index={index} vip={variant === 'vip'} />
-              {selected && (
-                <span className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${variant === 'vip' ? 'bg-amber-50 shadow-[0_0_9px_rgba(254,243,199,1)]' : theme === 'orange' ? 'bg-orange-50 shadow-[0_0_9px_rgba(255,237,213,1)]' : 'bg-emerald-50 shadow-[0_0_9px_rgba(209,250,229,1)]'}`} />
+              {selected && variant !== 'vip' && (
+                <span className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${theme === 'orange' ? 'bg-orange-50 shadow-[0_0_9px_rgba(255,237,213,1)]' : 'bg-emerald-50 shadow-[0_0_9px_rgba(209,250,229,1)]'}`} />
               )}
             </button>
           );
