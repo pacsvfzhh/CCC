@@ -253,7 +253,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
       {backgroundStyle === 0 && <div className="absolute -right-3 -top-3 h-10 w-10 rounded-full bg-white/25 blur-md" />}
       {backgroundStyle === 1 && <div className="absolute -left-3 -top-2 h-8 w-8 rotate-12 rounded-full bg-white/25 blur-md" />}
       {backgroundStyle === 2 && <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />}
-      {backgroundStyle === 3 && <div className="absolute -bottom-4 -right-2 h-10 w-10 rounded-full bg-slate-900/10 blur-md" />}
+      {backgroundStyle === 3 && <div className="absolute -bottom-4 -right-2 h-10 w-10 rounded-full bg-white/10 blur-md" />}
       {backgroundStyle === 4 && <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white/18 to-transparent" />}
       {backgroundStyle === 5 && <div className="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-white/40 shadow-[0_0_12px_rgba(255,255,255,.6)]" />}
       {vip && <div className="absolute inset-1 rounded-[8px] border border-amber-100/55" />}
@@ -322,7 +322,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
           </>
         )}
         {hasFacialHair && <path d="M25 37c1 5 4 7 7 7s6-2 7-7c-3 1.5-11 1.5-14 0Z" fill={hair} opacity=".58" />}
-        {!isFemale && featureSeed % 5 === 2 && <path d="M27 36c1.5 1 8.5 1 10 0" fill="none" stroke={hair} strokeLinecap="round" strokeWidth="1.8" opacity=".75" />}
+        {!isFemale && featureSeed % 5 === 2 && <path d="M27 36c1.5 1 8.5 1 10 0" fill="none" stroke={hair} strokeLinecap="round" strokeWidth="1.4" opacity=".58" />}
         {hasHairHighlight && <path d="M20 17c3-4 7-6 12-7" fill="none" stroke="#d9cdbd" strokeLinecap="round" strokeWidth="1.2" opacity=".5" />}
         {hasNecklace && (
           <>
@@ -345,7 +345,6 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
         )}
         </g>
       </svg>
-      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-white/12 to-transparent" />
     </div>
   );
 }
