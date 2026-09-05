@@ -39,6 +39,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   }, []);
 
   const loadLoginPageSettings = async () => {
+    if (supabaseConfigurationError) return;
+
     try {
       const { data, error } = await supabase
         .from('system_configs')
