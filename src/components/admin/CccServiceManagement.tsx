@@ -3725,31 +3725,31 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   <>
                     <div className="fixed inset-0 z-40" onMouseDown={() => setShowTemplatePopup(false)} />
                     <div className="absolute bottom-full left-0 right-0 mb-2 px-1 z-50">
-                      <div className="bg-slate-700 border border-slate-500/40 rounded-xl shadow-2xl shadow-black/40 max-h-[340px] overflow-hidden flex flex-col">
-                        <div className="px-3.5 py-2.5 border-b border-slate-600/60 flex items-center justify-between flex-shrink-0">
+                      <div className="relative flex max-h-[360px] flex-col overflow-hidden rounded-2xl border border-emerald-300/25 bg-gradient-to-b from-slate-900/98 via-slate-900/96 to-emerald-950/75 shadow-2xl shadow-emerald-950/30 ring-1 ring-emerald-200/10 backdrop-blur-xl">
+                        <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-gradient-to-r from-slate-800/70 via-slate-900/35 to-transparent px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-teal-500 flex items-center justify-center shadow-sm shadow-teal-600/30">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-emerald-300/25 bg-emerald-500/20 shadow-lg shadow-emerald-900/20">
                               <Zap className="w-3 h-3 text-white" />
                             </div>
                             <span className="text-[13px] font-bold text-slate-100 tracking-tight">Quick Send</span>
-                            <span className="min-w-[20px] h-5 flex items-center justify-center text-[11px] text-white font-bold bg-teal-500 px-1.5 rounded-full shadow-sm shadow-teal-600/30">{filteredTemplates.length}</span>
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full border border-emerald-300/30 bg-emerald-500/20 px-1.5 text-[11px] font-bold text-emerald-100">{filteredTemplates.length}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
                               onClick={() => { setShowTemplatePopup(false); setTemplateManagerMode('richtext'); setShowTemplateManager(true); loadTemplates(); }}
-                              className="flex items-center gap-1 text-[11px] text-white font-semibold px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 border border-teal-500/50 hover:border-teal-400/60 transition-all duration-150 shadow-sm shadow-teal-700/30"
+                              className="flex items-center gap-1 rounded-lg border border-emerald-300/35 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-50 shadow-sm shadow-emerald-950/20 transition-all duration-150 hover:border-emerald-200/70 hover:bg-emerald-500 hover:shadow-emerald-500/25"
                             >
                               <Pencil className="w-3 h-3" />
                               Manage
                             </button>
-                            <button type="button" onClick={() => setShowTemplatePopup(false)} className="p-1 hover:bg-slate-600 rounded-md transition-colors">
-                              <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-200" />
+                            <button type="button" onClick={() => setShowTemplatePopup(false)} className="rounded-lg p-1.5 transition-colors hover:bg-emerald-500/15" aria-label="Close Quick Send">
+                              <X className="h-3.5 w-3.5 text-emerald-200/70 hover:text-emerald-100" />
                             </button>
                           </div>
                         </div>
                         {filteredTemplates.length > 0 ? (
-                          <div className="overflow-y-auto p-2.5 space-y-2 scrollbar-dark bg-slate-800/50">
+                          <div className="overflow-y-auto bg-slate-950/25 p-2.5 space-y-2 scrollbar-dark">
                             {filteredTemplates.map((tpl) => {
                               return (
                                 <button
@@ -3767,25 +3767,23 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                                     }
                                     setShowTemplatePopup(false);
                                   }}
-                                  className={`w-full text-left px-3 py-2.5 rounded-xl transition-all duration-150 group border shadow-sm ${
-                                    tpl.content_type === 'rich_card'
-                                      ? 'bg-gradient-to-r from-blue-900/50 to-indigo-900/40 border-blue-500/40 hover:border-blue-400/60 hover:from-blue-800/60 hover:to-indigo-800/50 shadow-blue-900/20'
-                                      : tpl.is_pinned
-                                      ? 'bg-gradient-to-r from-teal-800/60 to-teal-900/40 border-teal-500/40 hover:border-teal-400/60 hover:from-teal-800/80 hover:to-teal-800/50 shadow-teal-900/20'
-                                      : 'bg-slate-600/90 border-slate-500/40 hover:bg-slate-500/80 hover:border-slate-400/50 shadow-slate-900/20'
+                                  className={`group w-full rounded-xl border px-3 py-2.5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${
+                                    tpl.is_pinned
+                                      ? 'border-emerald-400/45 bg-gradient-to-r from-emerald-900/55 via-emerald-950/35 to-slate-900/70 shadow-emerald-950/25 hover:border-emerald-300/75 hover:from-emerald-800/70 hover:via-emerald-900/45 hover:to-slate-900/60'
+                                      : 'border-slate-700/70 bg-slate-800/75 hover:border-emerald-300/45 hover:bg-slate-800'
                                   }`}
                                 >
                                   <div className="flex items-center gap-2">
                                     {tpl.is_pinned && (
-                                      <div className="w-5 h-5 rounded bg-teal-500/20 flex items-center justify-center flex-shrink-0">
-                                        <Pin className="w-2.5 h-2.5 text-teal-400" />
+                                      <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border border-emerald-300/25 bg-emerald-500/15">
+                                        <Pin className="h-2.5 w-2.5 text-emerald-300" />
                                       </div>
                                     )}
-                                    <span className={`text-[13px] font-semibold truncate flex-1 ${tpl.is_pinned ? 'text-teal-200 group-hover:text-teal-100' : 'text-slate-200 group-hover:text-white'}`}>{tpl.name}</span>
+                                    <span className={`flex-1 truncate text-[13px] font-semibold ${tpl.is_pinned ? 'text-emerald-100 group-hover:text-emerald-50' : 'text-slate-200 group-hover:text-white'}`}>{tpl.name}</span>
                                     {tpl.content_type === 'richtext' && (
                                       <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 flex-shrink-0">Rich</span>
                                     )}
-                                    <div className="w-5 h-5 rounded-full bg-teal-500/0 group-hover:bg-teal-500 flex items-center justify-center flex-shrink-0 transition-all opacity-0 group-hover:opacity-100" title="Fill into input">
+                                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg border border-emerald-300/0 bg-emerald-500/0 opacity-0 transition-all group-hover:border-emerald-300/40 group-hover:bg-emerald-500 group-hover:opacity-100" title="Fill into input">
                                       <Pencil className="w-2.5 h-2.5 text-white" />
                                     </div>
                                   </div>
@@ -3798,15 +3796,15 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                           </div>
                         ) : (
                           <div className="p-6 text-center">
-                            <div className="w-10 h-10 rounded-xl bg-slate-600 flex items-center justify-center mx-auto mb-2.5">
-                              <FileText className="w-5 h-5 text-slate-400" />
+                            <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-500/10 shadow-lg shadow-emerald-950/20">
+                              <FileText className="h-5 w-5 text-emerald-300" />
                             </div>
                             <p className="text-sm text-slate-200 mb-1 font-semibold">No templates yet</p>
                             <p className="text-[11px] text-slate-400 mb-3">Create templates for quick replies</p>
                             <button
                               type="button"
                               onClick={() => { setShowTemplatePopup(false); setTemplateManagerMode('richtext'); setShowTemplateManager(true); loadTemplates(); }}
-                              className="text-xs text-white font-semibold px-3.5 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 transition-colors shadow-sm shadow-teal-600/30"
+                              className="rounded-lg border border-emerald-300/35 bg-emerald-500/20 px-3.5 py-1.5 text-xs font-semibold text-emerald-50 shadow-sm shadow-emerald-950/20 transition-all hover:border-emerald-200/70 hover:bg-emerald-500 hover:shadow-emerald-500/25"
                             >
                               Create Template
                             </button>
@@ -3823,31 +3821,31 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   <>
                     <div className="fixed inset-0 z-40" onMouseDown={() => setShowRichCardPopup(false)} />
                     <div className="absolute bottom-full left-0 right-0 mb-2 px-1 z-50">
-                      <div className="bg-slate-700 border border-blue-500/40 rounded-xl shadow-2xl shadow-black/40 max-h-[340px] overflow-hidden flex flex-col">
-                        <div className="px-3.5 py-2.5 border-b border-slate-600/60 flex items-center justify-between flex-shrink-0">
+                      <div className="relative flex max-h-[360px] flex-col overflow-hidden rounded-2xl border border-sky-300/25 bg-gradient-to-b from-slate-900/98 via-slate-900/96 to-blue-950/80 shadow-2xl shadow-blue-950/35 ring-1 ring-sky-200/10 backdrop-blur-xl">
+                        <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-gradient-to-r from-slate-800/70 via-slate-900/35 to-transparent px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-blue-500 flex items-center justify-center shadow-sm shadow-blue-600/30">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-sky-300/25 bg-sky-500/20 shadow-lg shadow-blue-900/20">
                               <Megaphone className="w-3 h-3 text-white" />
                             </div>
                             <span className="text-[13px] font-bold text-slate-100 tracking-tight">Rich Card</span>
-                            <span className="min-w-[20px] h-5 flex items-center justify-center text-[11px] text-white font-bold bg-blue-500 px-1.5 rounded-full shadow-sm shadow-blue-600/30">{richCardTemplates.length}</span>
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full border border-sky-300/30 bg-sky-500/20 px-1.5 text-[11px] font-bold text-sky-100">{richCardTemplates.length}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
                               onClick={() => { setShowRichCardPopup(false); setTemplateManagerMode('rich_card'); setTemplateForm({ name: '', title: '', subtitle: '', content: '', content_type: 'rich_card' }); setShowTemplateManager(true); loadTemplates(); }}
-                              className="flex items-center gap-1 text-[11px] text-white font-semibold px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 border border-blue-500/50 hover:border-blue-400/60 transition-all duration-150 shadow-sm shadow-blue-700/30"
+                              className="flex items-center gap-1 rounded-lg border border-sky-300/35 bg-sky-500/15 px-2.5 py-1 text-[11px] font-semibold text-sky-50 shadow-sm shadow-blue-950/20 transition-all duration-150 hover:border-sky-200/70 hover:bg-sky-500 hover:shadow-sky-500/25"
                             >
                               <Pencil className="w-3 h-3" />
                               Manage
                             </button>
-                            <button type="button" onClick={() => setShowRichCardPopup(false)} className="p-1 hover:bg-slate-600 rounded-md transition-colors">
-                              <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-200" />
+                            <button type="button" onClick={() => setShowRichCardPopup(false)} className="rounded-lg p-1.5 transition-colors hover:bg-sky-500/15" aria-label="Close Rich Card">
+                              <X className="h-3.5 w-3.5 text-sky-200/70 hover:text-sky-100" />
                             </button>
                           </div>
                         </div>
                         {richCardTemplates.length > 0 ? (
-                          <div className="overflow-y-auto p-2.5 space-y-2 scrollbar-dark bg-slate-800/50">
+                          <div className="overflow-y-auto bg-slate-950/25 p-2.5 space-y-2 scrollbar-dark">
                             {richCardTemplates.map((tpl) => {
                               return (
                                 <button
@@ -3896,19 +3894,19 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                                       setNotification({ type: 'error', text: err.message || 'Failed to send rich card' });
                                     } finally { setSendingRichCard(false); }
                                   }}
-                                  className="w-full text-left px-3 py-2.5 rounded-xl transition-all duration-150 group border shadow-sm bg-gradient-to-r from-blue-900/50 to-indigo-900/40 border-blue-500/40 hover:border-blue-400/60 hover:from-blue-800/60 hover:to-indigo-800/50 shadow-blue-900/20"
+                                  className="group w-full rounded-xl border border-sky-400/35 bg-gradient-to-r from-sky-900/55 via-blue-950/45 to-indigo-950/50 px-3 py-2.5 text-left shadow-sm shadow-blue-950/25 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300/75 hover:from-sky-800/65 hover:via-blue-900/55 hover:to-indigo-900/60 hover:shadow-lg hover:shadow-blue-950/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70"
                                 >
                                   <div className="flex items-center gap-2">
                                     {tpl.is_pinned && (
-                                      <div className="w-5 h-5 rounded bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                                        <Pin className="w-2.5 h-2.5 text-blue-400" />
+                                      <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border border-sky-300/25 bg-sky-500/15">
+                                        <Pin className="h-2.5 w-2.5 text-sky-300" />
                                       </div>
                                     )}
-                                    <span className="text-[13px] font-semibold truncate flex-1 text-blue-200 group-hover:text-blue-100">{tpl.name}</span>
+                                    <span className="flex-1 truncate text-[13px] font-semibold text-sky-100 group-hover:text-white">{tpl.name}</span>
                                     {tpl.title && (
                                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-400/30 flex-shrink-0 truncate max-w-[120px]">{tpl.title}</span>
                                     )}
-                                    <div className="w-5 h-5 rounded-full bg-blue-500/0 group-hover:bg-blue-500 flex items-center justify-center flex-shrink-0 transition-all opacity-0 group-hover:opacity-100" title="Send directly">
+                                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg border border-sky-300/0 bg-sky-500/0 opacity-0 transition-all group-hover:border-sky-300/40 group-hover:bg-sky-500 group-hover:opacity-100" title="Send directly">
                                       <Send className="w-2.5 h-2.5 text-white" />
                                     </div>
                                   </div>
@@ -3919,15 +3917,15 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                           </div>
                         ) : (
                           <div className="p-6 text-center">
-                            <div className="w-10 h-10 rounded-xl bg-slate-600 flex items-center justify-center mx-auto mb-2.5">
-                              <Megaphone className="w-5 h-5 text-slate-400" />
+                            <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-300/20 bg-sky-500/10 shadow-lg shadow-blue-950/20">
+                              <Megaphone className="h-5 w-5 text-sky-300" />
                             </div>
                             <p className="text-sm text-slate-200 mb-1 font-semibold">No Rich Card templates</p>
                             <p className="text-[11px] text-slate-400 mb-3">Create rich card templates to send directly</p>
                             <button
                               type="button"
                               onClick={() => { setShowRichCardPopup(false); setTemplateManagerMode('rich_card'); setTemplateForm({ name: '', title: '', subtitle: '', content: '', content_type: 'rich_card' }); setShowTemplateManager(true); loadTemplates(); }}
-                              className="text-xs text-white font-semibold px-3.5 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 transition-colors shadow-sm shadow-blue-600/30"
+                              className="rounded-lg border border-sky-300/35 bg-sky-500/20 px-3.5 py-1.5 text-xs font-semibold text-sky-50 shadow-sm shadow-blue-950/20 transition-all hover:border-sky-200/70 hover:bg-sky-500 hover:shadow-sky-500/25"
                             >
                               Create Rich Card
                             </button>
@@ -4000,7 +3998,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                       <button
                         type="button"
                         onClick={() => { loadTemplates(); setShowTemplatePopup(!showTemplatePopup); setShowRichCardPopup(false); }}
-                        className={`p-1.5 rounded-md transition-colors ${showTemplatePopup ? 'bg-teal-100 text-teal-600' : 'hover:bg-teal-50 text-teal-500 hover:text-teal-600'}`}
+                        className={`rounded-lg border p-1.5 transition-all ${showTemplatePopup ? 'border-emerald-300/60 bg-emerald-500/20 text-emerald-200 shadow-sm shadow-emerald-950/20' : 'border-transparent text-emerald-300/80 hover:border-emerald-300/35 hover:bg-emerald-500/10 hover:text-emerald-100'}`}
                         title="Quick send template"
                       >
                         <FileText className="w-3.5 h-3.5" strokeWidth={2.5} />
@@ -4008,7 +4006,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                       <button
                         type="button"
                         onClick={() => { loadTemplates(); setShowRichCardPopup(!showRichCardPopup); setShowTemplatePopup(false); }}
-                        className={`p-1.5 rounded-md transition-colors ${showRichCardPopup ? 'bg-blue-100 text-blue-600' : 'hover:bg-blue-50 text-blue-500 hover:text-blue-600'}`}
+                        className={`rounded-lg border p-1.5 transition-all ${showRichCardPopup ? 'border-sky-300/60 bg-sky-500/20 text-sky-200 shadow-sm shadow-blue-950/20' : 'border-transparent text-sky-300/80 hover:border-sky-300/35 hover:bg-sky-500/10 hover:text-sky-100'}`}
                         title="Rich Card templates"
                       >
                         <Megaphone className="w-3.5 h-3.5" strokeWidth={2.5} />
