@@ -214,10 +214,10 @@ const vipFemaleHairStyles = [
 ];
 
 const vipBodyStyles = [
-  'M2 64c3-15 12-22 30-22s27 7 30 22',
-  'M5 64c2-13 12-21 27-21s25 8 27 21',
-  'M1 64c4-14 14-22 31-22s27 8 31 22',
-  'M4 64c3-16 13-23 28-23s25 7 28 23',
+  'M5 63c3-14 12-21 27-21s24 7 27 21',
+  'M7 63c2-12 11-20 25-20s23 8 25 20',
+  'M5 63c4-13 13-21 27-21s24 8 27 21',
+  'M6 63c3-15 13-22 26-22s23 7 26 22',
 ];
 
 const mouthStyles = [
@@ -228,12 +228,12 @@ const mouthStyles = [
 ];
 
 const bodyStyles = [
-  'M7 64c2-12 10-19 25-19s23 7 25 19',
-  'M3 64c4-14 13-20 29-20s25 6 29 20',
-  'M10 64c0-11 8-18 22-18s22 7 22 18',
-  'M5 64c3-9 11-17 27-17s24 8 27 17',
-  'M8 64c4-15 12-21 24-21s20 6 24 21',
-  'M1 64c4-11 14-18 31-18s27 7 31 18',
+  'M8 63c2-11 10-18 24-18s22 7 24 18',
+  'M6 63c3-13 13-20 26-20s23 7 26 20',
+  'M10 63c0-10 8-17 22-17s21 7 22 17',
+  'M7 63c3-9 11-16 25-16s23 7 25 17',
+  'M9 63c4-14 12-20 23-20s20 6 23 20',
+  'M5 63c4-11 13-18 27-18s23 7 27 18',
 ];
 
 const themeStyles: Record<CustomerAvatarPickerTheme, {
@@ -293,34 +293,26 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const bodyStyle = bodyPalette[(featureSeed * 13 + 1) % bodyPalette.length];
   const tie = tieTones[(featureSeed * 5 + 1) % tieTones.length];
   const earringColor = ['#bda66b', '#9fb6ad', '#b88c9c', '#9aaec2'][featureSeed % 4];
-  const backgroundStyle = featureSeed % 6;
   const ageDetail = featureSeed % 5;
-  const portraitTilt = [-4, -2, 0, 2, 4][featureSeed % 5];
-  const portraitShift = [-1.5, -0.75, 0, 0.75, 1.5][(featureSeed * 3) % 5];
+  const portraitTilt = [-2, -1, 0, 1, 2][featureSeed % 5];
+  const portraitShift = [-0.5, -0.25, 0, 0.25, 0.5][(featureSeed * 3) % 5];
 
   return (
     <div
       className="relative block h-full w-full overflow-hidden"
       style={{ background: `linear-gradient(145deg, ${backgroundStart} 0%, ${backgroundEnd} 100%)` }}
     >
-      {backgroundStyle === 0 && <div className="absolute -right-3 -top-3 h-10 w-10 rounded-full bg-white/25 blur-md" />}
-      {backgroundStyle === 1 && <div className="absolute -left-3 -top-2 h-8 w-8 rotate-12 rounded-full bg-white/25 blur-md" />}
-      {backgroundStyle === 2 && <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />}
-      {backgroundStyle === 3 && <div className="absolute -bottom-4 -right-2 h-10 w-10 rounded-full bg-white/10 blur-md" />}
-      {backgroundStyle === 4 && <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white/18 to-transparent" />}
-      {backgroundStyle === 5 && <div className="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-white/40 shadow-[0_0_12px_rgba(255,255,255,.6)]" />}
       {vip && <div className="absolute inset-0 bg-gradient-to-br from-yellow-100/20 via-amber-200/10 to-amber-950/18" />}
-      {vip && <div className="absolute -right-4 -top-4 h-12 w-12 rounded-full bg-amber-100/20 blur-md" />}
       <svg viewBox="0 0 64 64" className="relative block h-full w-full" aria-hidden="true">
         <g transform={`translate(${portraitShift} 0) rotate(${portraitTilt} 32 34)`}>
         <path d={bodyStyle} fill={jacket} />
         <path d="M24 44h16v10H24z" fill={skin} />
-        <path d="M20 52l12 8 12-8 4 12H16z" fill={jacket} opacity=".96" />
-        <path d="M25 48l7 7 7-7 4 4-4 12H25l-4-12z" fill={shirt} opacity=".96" />
+        <path d="M20 52l12 8 12-8 4 11H16z" fill={jacket} opacity=".96" />
+        <path d="M25 48l7 7 7-7 4 2-4 10H25l-4-10z" fill={shirt} opacity=".96" />
         <path d="M20 51l12 9 12-9" fill="none" stroke={vip ? '#e8cc7b' : '#b7c5ce'} strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.15" opacity=".95" />
         {hasTie && (
           <>
-            <path d="M29 51h6l2 13H27z" fill={tie} />
+            <path d="M29 51h6l2 10H27z" fill={tie} />
             <path d="M29 51l3 4 3-4" fill="none" stroke="#f4d989" strokeWidth="1" />
             {vip && <path d="M30 57h4" fill="none" stroke="#f8df96" strokeLinecap="round" strokeWidth=".8" />}
           </>
