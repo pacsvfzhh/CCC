@@ -2662,9 +2662,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           }`}>
             <div className="flex h-full flex-col overflow-hidden rounded-xl border border-orange-400/35 bg-gradient-to-b from-orange-950/20 via-slate-900/90 to-slate-950/95 shadow-2xl shadow-orange-950/20 backdrop-blur-xl">
               {/* Active Sessions Header */}
-              <div className="flex min-h-[72px] items-center border-b border-orange-400/35 bg-gradient-to-r from-slate-900 via-slate-800/95 to-orange-950/25 px-3 py-2">
-                <div className="flex min-w-0 w-full flex-wrap items-center gap-2.5">
-                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+              <div className="flex h-[72px] min-h-[72px] shrink-0 items-center overflow-hidden border-b border-orange-400/35 bg-gradient-to-r from-slate-900 via-slate-800/95 to-orange-950/25 px-3 py-2">
+                <div className="flex min-w-0 w-full flex-nowrap items-center gap-2">
+                  <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-hidden">
                     {selectedCustomer ? (
                       <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl overflow-hidden bg-slate-700/50 ring-2 ring-slate-600/50 flex-shrink-0">
                         {selectedCustomer?.custom_avatar_url ? (
@@ -2868,9 +2868,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           }`}>
             <div className="flex h-full flex-col overflow-hidden rounded-xl border border-orange-400/35 bg-gradient-to-b from-orange-950/20 via-slate-900/90 to-slate-950/95 shadow-2xl shadow-orange-950/20 backdrop-blur-xl">
               {/* Chat Header */}
-              <div className="flex min-h-[72px] items-center border-b border-orange-400/35 bg-gradient-to-r from-slate-900 via-slate-800/95 to-orange-950/25 px-3 py-2">
-                <div className="flex min-w-0 w-full flex-wrap items-center gap-2.5">
-                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+              <div className="flex h-[72px] min-h-[72px] shrink-0 items-center overflow-hidden border-b border-orange-400/35 bg-gradient-to-r from-slate-900 via-slate-800/95 to-orange-950/25 px-3 py-2">
+                <div className="flex min-w-0 w-full flex-nowrap items-center gap-2">
+                  <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-hidden">
                     <button
                       type="button"
                       onClick={() => {
@@ -2925,13 +2925,13 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       <div className="text-[11px] text-orange-300 leading-tight mt-0.5 truncate">ID: {selectedEmployee?.employee_id}</div>
                     </div>
                     {serviceTicketNumber && (
-                      <div className="flex max-w-[150px] items-center gap-1.5 rounded-lg border border-orange-400/30 bg-gradient-to-r from-orange-500/15 to-amber-500/10 px-2.5 py-1.5 ml-2 flex-shrink-0">
+                      <div className="flex max-w-[96px] items-center gap-1.5 rounded-lg border border-orange-400/30 bg-gradient-to-r from-orange-500/15 to-amber-500/10 px-2 py-1.5 ml-1 flex-shrink-0">
                         <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
                         <span className="truncate text-[11px] text-orange-200 font-mono font-bold tracking-wide">{serviceTicketNumber}</span>
                       </div>
                     )}
                   </div>
-                  <div className="ml-auto flex max-w-full shrink-0 flex-wrap items-center justify-end gap-1.5">
+                  <div className="ml-auto flex shrink-0 flex-nowrap items-center justify-end gap-1">
                     {(() => {
                       const totalUnread = conversationHistory.reduce((sum, h) => sum + h.unread_count, 0);
                       return (
