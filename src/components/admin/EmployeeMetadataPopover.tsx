@@ -14,8 +14,8 @@ interface EmployeeMetadataPopoverProps {
   className?: string;
 }
 
-const POPOVER_WIDTH = 230;
-const POPOVER_HEIGHT = 130;
+const POPOVER_MIN_WIDTH = 180;
+const POPOVER_MAX_WIDTH = 420;
 const VIEWPORT_GUTTER = 12;
 
 export default function EmployeeMetadataPopover({
@@ -29,7 +29,7 @@ export default function EmployeeMetadataPopover({
   const triggerRef = useRef<HTMLSpanElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState({ left: 0, top: 0 });
+  const [position, setPosition] = useState({ left: 0, top: 0, height: 64 });
 
   const preview = values.length > 0
     ? `${values[0]}${values.length > 1 ? ` +${values.length - 1}` : ''}`
@@ -43,23 +43,25 @@ export default function EmployeeMetadataPopover({
     const trigger = triggerRef.current;
     if (!trigger) return;
 
-    const rect = trigger.getBoundingClientRect();
+    const anchor = trigger.closest('button') || trigger;
+    const rect = anchor.getBoundingClientRect();
     const left = Math.max(
       VIEWPORT_GUTTER,
       Math.min(
         rect.right + 10,
-        window.innerWidth - POPOVER_WIDTH - VIEWPORT_GUTTER
+        window.innerWidth - POPOVER_MAX_WIDTH - VIEWPORT_GUTTER
       )
     );
+    const height = Math.max(rect.height, 1);
     const top = Math.max(
       VIEWPORT_GUTTER,
       Math.min(
         rect.top,
-        window.innerHeight - POPOVER_HEIGHT - VIEWPORT_GUTTER
+        window.innerHeight - height - VIEWPORT_GUTTER
       )
     );
 
-    setPosition({ left, top });
+    setPosition({ left, top, height });
   }, []);
 
   const cancelClose = () => {
@@ -95,7 +97,7 @@ export default function EmployeeMetadataPopover({
 
   return (
     <>
-      <span className={`group relative min-w-0 ${className}`}>
+      <span className={`group relative block min-w-0 max-w-full overflow-hidden ${className}`}>
         <span
           ref={triggerRef}
           tabIndex={0}
@@ -103,7 +105,7 @@ export default function EmployeeMetadataPopover({
           onMouseLeave={hidePopover}
           onFocus={showPopover}
           onBlur={hidePopover}
-          className={`flex min-w-0 max-w-full items-center gap-1 truncate text-[9px] font-medium outline-none ${
+          className={`flex w-full min-w-0 max-w-full items-center gap-1 overflow-hidden truncate text-[9px] font-medium outline-none ${
             selected
               ? 'text-white/85'
               : isTag
@@ -116,13 +118,13 @@ export default function EmployeeMetadataPopover({
           ) : (
             <FileText className="h-2.5 w-2.5 shrink-0 opacity-70" />
           )}
-          <span className="truncate">{isTag ? 'Tag' : 'Note'}: {preview}</span>
+          <span className="min-w-0 truncate">{isTag ? 'Tag' : 'Note'}: {preview}</span>
         </span>
       </span>
       {open && createPortal(
         <div
           role="tooltip"
-          className={`fixed z-[10000] w-[230px] rounded-xl border-2 bg-[#020617] p-3 text-[11px] font-medium leading-5 text-white shadow-2xl shadow-black/80 ring-2 ${
+          className={`fixed z-[10000] overflow-y-auto rounded-xl border-2 bg-[#020617] p-2.5 text-white shadow-2xl shadow-black/80 ring-2 ${
             isTag
               ? theme === 'orange'
                 ? 'border-orange-300 ring-orange-500/40'
@@ -134,20 +136,24 @@ export default function EmployeeMetadataPopover({
           style={{
             left: position.left,
             top: position.top,
+            minWidth: POPOVER_MIN_WIDTH,
+            width: 'max-content',
+            height: position.height,
+            maxWidth: `min(${POPOVER_MAX_WIDTH}px, calc(100vw - ${VIEWPORT_GUTTER * 2}px))`,
             backgroundColor: '#020617',
             opacity: 1,
             isolation: 'isolate',
             mixBlendMode: 'normal',
           }}
         >
-          <div className={`mb-1 font-bold uppercase tracking-wider ${
+          <div className={`mb-0.5 text-[8px] font-bold uppercase leading-3 tracking-[0.12em] ${
             isTag
               ? theme === 'orange' ? 'text-orange-300' : 'text-emerald-300'
               : 'text-slate-300'
           }`}>
             {isTag ? 'Tags' : 'Note'}
           </div>
-          <div className="break-words text-white">{details}</div>
+          <div className="break-words text-[11px] font-semibold leading-4 text-white">{details}</div>
         </div>,
         document.body
       )}

@@ -2762,14 +2762,14 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       theme="orange"
                       values={emp.tags}
                       selected={selectedEmployee?.id === emp.id}
-                      className="absolute right-1 top-1 z-30 max-w-[48%]"
+                      className="absolute right-1 top-1 z-30 w-[48%] max-w-[48%]"
                     />
                     <EmployeeMetadataPopover
                       kind="note"
                       theme="orange"
                       value={emp.remarks}
                       selected={selectedEmployee?.id === emp.id}
-                      className="absolute bottom-1 right-1 z-30 max-w-[48%]"
+                      className="absolute bottom-1 left-2 z-30 w-[48%] max-w-[48%]"
                     />
                   </button>
                 ))}
