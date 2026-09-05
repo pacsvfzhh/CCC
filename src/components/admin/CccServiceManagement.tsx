@@ -2989,7 +2989,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   {showTagDropdown && (
                     <>
                       <div className="fixed inset-0 z-20" onMouseDown={() => setShowTagDropdown(false)} />
-                      <div className="absolute right-0 top-full z-30 mt-2 min-w-[180px] max-h-56 overflow-y-auto rounded-2xl border border-emerald-300/35 bg-gradient-to-b from-slate-900/98 via-slate-900/96 to-emerald-950/80 p-2 shadow-2xl shadow-emerald-950/35 ring-1 ring-emerald-200/10 backdrop-blur-xl scrollbar-dark">
+                      <div className="absolute right-0 top-full z-30 mt-2 min-w-[180px] max-h-56 overflow-y-auto rounded-2xl border border-emerald-300/35 bg-slate-900 p-2 shadow-2xl shadow-emerald-950/35 ring-1 ring-emerald-200/10 scrollbar-dark">
                         {allTags.map((tag) => {
                           const isSelected = selectedTags.includes(tag);
                           return (
