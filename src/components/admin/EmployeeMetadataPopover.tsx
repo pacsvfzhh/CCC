@@ -17,6 +17,7 @@ interface EmployeeMetadataPopoverProps {
 const POPOVER_MIN_WIDTH = 180;
 const POPOVER_MAX_WIDTH = 420;
 const VIEWPORT_GUTTER = 12;
+const METADATA_POPOVER_EVENT = 'employee-metadata-popover-open';
 
 export default function EmployeeMetadataPopover({
   kind,
@@ -27,6 +28,7 @@ export default function EmployeeMetadataPopover({
   className = '',
 }: EmployeeMetadataPopoverProps) {
   const triggerRef = useRef<HTMLSpanElement>(null);
+  const popoverIdRef = useRef<object>({});
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ left: 0, top: 0, height: 64 });
@@ -73,14 +75,28 @@ export default function EmployeeMetadataPopover({
 
   const showPopover = () => {
     cancelClose();
+    window.dispatchEvent(new CustomEvent(METADATA_POPOVER_EVENT, {
+      detail: popoverIdRef.current,
+    }));
     updatePosition();
     setOpen(true);
   };
 
   const hidePopover = () => {
     cancelClose();
-    closeTimerRef.current = setTimeout(() => setOpen(false), 100);
+    closeTimerRef.current = setTimeout(() => setOpen(false), 60);
   };
+
+  useEffect(() => {
+    const closeFromAnotherPopover = (event: Event) => {
+      if ((event as CustomEvent<object>).detail === popoverIdRef.current) return;
+      cancelClose();
+      setOpen(false);
+    };
+
+    window.addEventListener(METADATA_POPOVER_EVENT, closeFromAnotherPopover);
+    return () => window.removeEventListener(METADATA_POPOVER_EVENT, closeFromAnotherPopover);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
