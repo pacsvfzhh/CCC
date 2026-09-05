@@ -97,7 +97,7 @@ export default function EmployeeMetadataPopover({
 
   return (
     <>
-      <span className={`group relative block min-w-0 max-w-full overflow-hidden ${className}`}>
+      <span className={`group block min-w-0 max-w-full overflow-hidden ${className}`}>
         <span
           ref={triggerRef}
           tabIndex={0}
