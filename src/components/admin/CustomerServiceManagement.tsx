@@ -173,6 +173,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const allCustomersRef = useRef<SimulatedCustomer[]>([]);
   const allEmployeesRef = useRef<Employee[]>([]);
   const [historyFilterMode, setHistoryFilterMode] = useState<'all' | 'history' | 'new'>('all');
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [employeeGroupFilter, setEmployeeGroupFilter] = useState<'all' | 'chatted' | 'not_chatted'>('all');
   const [customerFilter, setCustomerFilter] = useState<'all' | 'super' | 'regular'>('all');
   const [customerUnreadCounts, setCustomerUnreadCounts] = useState<Record<string, number>>({});
@@ -235,6 +236,40 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     const bSelected = selectedEmployee?.id === b.id ? 0 : 1;
     return aSelected - bSelected;
   }), [employees, debouncedSearchQuery, selectedTags, employeeGroupFilter, conversationHistory, selectedEmployee]);
+
+  const visibleConversationHistory = useMemo(() => {
+    const query = historySearchQuery.trim().toLowerCase();
+
+    return conversationHistory
+      .filter((history) => {
+        if (selectedEmployee && history.employee_id !== selectedEmployee.id) return false;
+        if (historyFilterMode === 'new' && history.unread_count <= 0) return false;
+        if (!query) return true;
+
+        const employee = employees.find((item) => item.id === history.employee_id);
+        const employeeTags = employee?.tags?.length
+          ? employee.tags
+          : history.employee_tags || [];
+        const employeeNote = employee?.remarks?.trim()
+          || history.employee_remarks?.trim()
+          || '';
+        const searchableText = [
+          history.customer_name,
+          history.employee_username,
+          history.employee_number,
+          ...employeeTags,
+          employeeNote,
+        ].filter(Boolean).join(' ').toLowerCase();
+
+        return searchableText.includes(query);
+      })
+      .sort((a, b) => {
+        if (a.unread_count !== b.unread_count) {
+          return b.unread_count - a.unread_count;
+        }
+        return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
+      });
+  }, [conversationHistory, employees, historyFilterMode, historySearchQuery, selectedEmployee]);
 
   const loadMessagesRef = useRef<(markAsRead?: boolean) => void>();
   const isActiveRef = useRef(isActive);
@@ -2826,7 +2861,28 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       <p className="text-[11px] text-emerald-400 font-mono leading-tight mt-0.5">{selectedCustomer ? `CUS-${selectedCustomer.customer_id}` : 'Select a conversation to continue'}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex min-w-0 max-w-[58%] items-center gap-1">
+                    <div className="relative min-w-0 flex-1 basis-[120px]">
+                      <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-orange-300/70" />
+                      <input
+                        type="search"
+                        value={historySearchQuery}
+                        onChange={(event) => setHistorySearchQuery(event.target.value)}
+                        placeholder="Search sessions..."
+                        aria-label="Search active sessions"
+                        className="h-8 w-full min-w-0 rounded-lg border border-orange-400/30 bg-slate-950/70 pl-7 pr-7 text-[10px] font-medium text-slate-100 outline-none transition-colors placeholder:text-slate-500 focus:border-orange-300/70 focus:ring-1 focus:ring-orange-400/40"
+                      />
+                      {historySearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setHistorySearchQuery('')}
+                          aria-label="Clear session search"
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 transition-colors hover:bg-orange-500/20 hover:text-orange-200"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
                   {historyScope === 'customer' && (
                   <div className="flex items-center gap-2">
                       {(() => {
@@ -2871,21 +2927,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   </div>
                 ) : (
                   <div className="space-y-1.5">
-                    {conversationHistory
-                      .filter((h) => {
-                        if (selectedEmployee) {
-                          if (h.employee_id !== selectedEmployee.id) return false;
-                        }
-                        if (historyFilterMode === 'new') return h.unread_count > 0;
-                        return true;
-                      })
-                      .sort((a, b) => {
-                        if (a.unread_count !== b.unread_count) {
-                          return b.unread_count - a.unread_count;
-                        }
-                        return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
-                      })
-                      .map((history) => {
+                    {visibleConversationHistory.map((history) => {
                         const employee = employees.find(e => e.id === history.employee_id);
                         const historyCustomer = history.customer_id ? customers.find(c => c.id === history.customer_id) : null;
                         const isSelected = selectedEmployee?.id === history.employee_id && selectedCustomer?.id === history.customer_id;
@@ -3012,10 +3054,16 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                           </div>
                         );
                       })}
-                    {historyFilterMode === 'new' && conversationHistory.filter(h => h.unread_count > 0).length === 0 && (
+                    {visibleConversationHistory.length === 0 && (
                       <div className="text-center py-6 text-slate-500">
-                        <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                        <p className="text-[10px]">No new messages</p>
+                        <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-[10px]">
+                          {historySearchQuery.trim()
+                            ? 'No matching sessions'
+                            : historyFilterMode === 'new'
+                              ? 'No new messages'
+                              : 'No sessions found'}
+                        </p>
                       </div>
                     )}
                   </div>
