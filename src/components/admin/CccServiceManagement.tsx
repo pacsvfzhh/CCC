@@ -3425,47 +3425,51 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                         <div className={`flex items-start gap-2 min-w-0 ${editingMessageId === msg.id ? 'max-w-[90%]' : 'max-w-[80%]'}`}>
                           {/* Action buttons for customer (admin-sent) messages */}
                           {msg.sender_type === 'customer' && editingMessageId !== msg.id && msg.message_type !== 'tip' && msg.message_type !== 'rating_request' && msg.message_type !== 'rating_result' && (
-                            <div className="flex flex-col gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <div className="mt-1 flex shrink-0 flex-col gap-1 rounded-xl border border-emerald-200/20 bg-slate-950/70 p-1 opacity-70 shadow-lg shadow-black/20 backdrop-blur-sm transition-all duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                               {msg.message_type !== 'rich_card' && (
                                 <button
                                   type="button"
                                   onClick={() => handleStartEdit(msg)}
-                                  className="p-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded transition-all"
+                                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-300/20 bg-emerald-500/10 text-emerald-200 transition-all hover:-translate-y-0.5 hover:border-emerald-200/70 hover:bg-emerald-500 hover:text-white hover:shadow-md hover:shadow-emerald-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70"
                                   title={msg.message_type === 'image' ? 'Replace image' : 'Edit message'}
+                                  aria-label={msg.message_type === 'image' ? 'Replace image' : 'Edit message'}
                                 >
-                                  <Pencil className="w-3.5 h-3.5" />
+                                  {msg.message_type === 'image' ? <Image className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
                                 </button>
                               )}
                               <button
                                 type="button"
                                 onClick={() => handleDeleteMessage(msg.id)}
-                                className="p-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded transition-all"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-rose-300/20 bg-rose-500/10 text-rose-200 transition-all hover:-translate-y-0.5 hover:border-rose-200/70 hover:bg-rose-500 hover:text-white hover:shadow-md hover:shadow-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/70"
                                 title="Delete message"
+                                aria-label="Delete message"
                               >
-                                <X className="w-3.5 h-3.5" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           )}
                           {/* Action buttons for employee messages */}
                           {msg.sender_type === 'employee' && editingMessageId !== msg.id && msg.message_type !== 'tip' && msg.message_type !== 'rating_request' && msg.message_type !== 'rating_result' && (
-                            <div className="flex flex-col gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-all order-last">
+                            <div className="order-last mt-1 flex shrink-0 flex-col gap-1 rounded-xl border border-emerald-200/20 bg-slate-950/70 p-1 opacity-70 shadow-lg shadow-black/20 backdrop-blur-sm transition-all duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                               {msg.message_type !== 'rich_card' && (
-                              <button
-                                type="button"
-                                onClick={() => handleStartEdit(msg)}
-                                className="p-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded transition-all"
-                                title={msg.message_type === 'image' ? 'Replace image' : 'Edit message'}
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEdit(msg)}
+                                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-300/20 bg-emerald-500/10 text-emerald-200 transition-all hover:-translate-y-0.5 hover:border-emerald-200/70 hover:bg-emerald-500 hover:text-white hover:shadow-md hover:shadow-emerald-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70"
+                                  title={msg.message_type === 'image' ? 'Replace image' : 'Edit message'}
+                                  aria-label={msg.message_type === 'image' ? 'Replace image' : 'Edit message'}
+                                >
+                                  {msg.message_type === 'image' ? <Image className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                                </button>
                               )}
                               <button
                                 type="button"
                                 onClick={() => handleDeleteMessage(msg.id)}
-                                className="p-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded transition-all"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-rose-300/20 bg-rose-500/10 text-rose-200 transition-all hover:-translate-y-0.5 hover:border-rose-200/70 hover:bg-rose-500 hover:text-white hover:shadow-md hover:shadow-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/70"
                                 title="Delete message"
+                                aria-label="Delete message"
                               >
-                                <X className="w-3.5 h-3.5" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           )}
@@ -3498,9 +3502,9 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                             <div className="relative z-10">
                               {renderMessageContent(msg)}
                               {replacingImageMsgId === msg.id && (
-                                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2 rounded-2xl">
-                                  <div className="w-8 h-8 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                                  <span className="text-white text-xs font-medium">Replacing...</span>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-950/65 backdrop-blur-[2px]">
+                                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-emerald-300" />
+                                  <span className="text-xs font-semibold text-white">Replacing image...</span>
                                 </div>
                               )}
                             </div>
@@ -3559,7 +3563,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                                 )}
                               </div>
                               {editingMessageId === msg.id ? (
-                                <div className="min-w-[320px] max-w-full">
+                                <div className="min-w-0 max-w-full">
                                   <input
                                     ref={editFileInputRef}
                                     type="file"
@@ -3636,7 +3640,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                                       onKeyUp={updateEditFormatState}
                                       onMouseUp={updateEditFormatState}
                                       onSelect={updateEditFormatState}
-                                      className="min-h-[60px] max-h-[260px] overflow-y-auto px-3 py-2.5 text-sm text-slate-800 focus:outline-none chat-rich-content"
+                                      className="min-h-[60px] max-h-[216px] overflow-y-auto px-3 py-2.5 text-sm text-slate-800 focus:outline-none chat-rich-content"
                                       style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
                                     />
                                   </div>
@@ -4033,7 +4037,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                           handleSendMessage(e as unknown as React.FormEvent);
                         }
                       }}
-                      className="min-h-[40px] max-h-[160px] overflow-y-auto px-3 py-2 text-slate-800 focus:outline-none text-sm [&_b]:font-bold [&_u]:underline [&_font[size='5']]:text-lg [&_font[size='7']]:text-xl"
+                      className="min-h-[40px] max-h-[216px] overflow-y-auto px-3 py-2 text-slate-800 focus:outline-none text-sm leading-5 [&_b]:font-bold [&_u]:underline [&_font[size='5']]:text-lg [&_font[size='7']]:text-xl"
                       data-placeholder={`Message as ${selectedCustomer?.customer_name || 'customer'}... (Ctrl+Enter to send)`}
                       style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
                     />

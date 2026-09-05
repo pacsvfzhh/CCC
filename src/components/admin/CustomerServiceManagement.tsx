@@ -117,6 +117,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const [uploadingEditImage, setUploadingEditImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
+  const replaceImageInputRef = useRef<HTMLInputElement>(null);
+  const replacingImageMsgIdRef = useRef<string | null>(null);
+  const [replacingImageMsgId, setReplacingImageMsgId] = useState<string | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const [editorFontSize, setEditorFontSize] = useState<'normal' | 'large' | 'xlarge' | null>(null);
   const [isBoldActive, setIsBoldActive] = useState(false);
@@ -1950,6 +1953,11 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   };
 
   const handleStartEdit = (msg: Message) => {
+    if (msg.message_type === 'image') {
+      replacingImageMsgIdRef.current = msg.id;
+      replaceImageInputRef.current?.click();
+      return;
+    }
     setEditingMessageId(msg.id);
     setEditingContent(msg.message_content);
     setTimeout(() => {
@@ -1958,6 +1966,65 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         editEditorRef.current.focus();
       }
     }, 50);
+  };
+
+  const extractStoragePath = (publicUrl: string): string | null => {
+    const marker = '/object/public/chat-images/';
+    const idx = publicUrl.indexOf(marker);
+    return idx === -1 ? null : publicUrl.substring(idx + marker.length);
+  };
+
+  const cleanupStorageImage = async (imageUrl: string) => {
+    const path = extractStoragePath(imageUrl);
+    if (!path) return;
+    try {
+      await supabase.storage.from('chat-images').remove([path]);
+    } catch {}
+  };
+
+  const handleReplaceImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const msgId = replacingImageMsgIdRef.current;
+    if (!file || !msgId) return;
+    if (!file.type.startsWith('image/')) {
+      setNotification({ type: 'error', text: 'Please select an image file' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setNotification({ type: 'error', text: 'Image must be less than 5MB' });
+      return;
+    }
+
+    setReplacingImageMsgId(msgId);
+    try {
+      const { data: oldMsg } = await supabase
+        .from('customer_employee_conversations')
+        .select('image_url')
+        .eq('id', msgId)
+        .maybeSingle();
+      const oldImageUrl = oldMsg?.image_url;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `chat-replace-${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const { data, error: uploadError } = await supabase.storage.from('chat-images').upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('chat-images').getPublicUrl(data.path);
+      const { error: updateError } = await supabase
+        .from('customer_employee_conversations')
+        .update({ image_url: publicUrl })
+        .eq('id', msgId);
+      if (updateError) throw updateError;
+
+      if (oldImageUrl) await cleanupStorageImage(oldImageUrl);
+      setNotification({ type: 'success', text: 'Image replaced successfully' });
+      preserveScrollUntilRef.current = Date.now() + 2000;
+      loadMessages();
+    } catch (error: any) {
+      setNotification({ type: 'error', text: error.message || 'Failed to replace image' });
+    } finally {
+      replacingImageMsgIdRef.current = null;
+      setReplacingImageMsgId(null);
+      if (replaceImageInputRef.current) replaceImageInputRef.current.value = '';
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -2998,35 +3065,38 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                         <div className={`flex items-start gap-2 min-w-0 ${editingMessageId === msg.id ? 'max-w-[90%]' : 'max-w-[80%]'}`}>
                           {/* Action buttons for customer (admin-sent) messages */}
                           {msg.sender_type === 'customer' && editingMessageId !== msg.id && msg.message_type !== 'tip' && msg.message_type !== 'rating_request' && msg.message_type !== 'rating_result' && (
-                            <div className="flex flex-col gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <div className="mt-1 flex shrink-0 flex-col gap-1 rounded-xl border border-orange-200/20 bg-slate-950/70 p-1 opacity-70 shadow-lg shadow-black/20 backdrop-blur-sm transition-all duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                               <button
                                 type="button"
                                 onClick={() => handleStartEdit(msg)}
-                                className="p-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded transition-all"
-                                title="Edit message"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-orange-300/20 bg-orange-500/10 text-orange-200 transition-all hover:-translate-y-0.5 hover:border-orange-200/70 hover:bg-orange-500 hover:text-white hover:shadow-md hover:shadow-orange-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/70"
+                                title={msg.message_type === 'image' ? 'Replace image' : 'Edit message'}
+                                aria-label={msg.message_type === 'image' ? 'Replace image' : 'Edit message'}
                               >
-                                <Pencil className="w-3.5 h-3.5" />
+                                {msg.message_type === 'image' ? <Image className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteMessage(msg.id)}
-                                className="p-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded transition-all"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-rose-300/20 bg-rose-500/10 text-rose-200 transition-all hover:-translate-y-0.5 hover:border-rose-200/70 hover:bg-rose-500 hover:text-white hover:shadow-md hover:shadow-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/70"
                                 title="Delete message"
+                                aria-label="Delete message"
                               >
-                                <X className="w-3.5 h-3.5" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           )}
                           {/* Action buttons for employee messages */}
                           {msg.sender_type === 'employee' && editingMessageId !== msg.id && msg.message_type !== 'tip' && msg.message_type !== 'rating_request' && msg.message_type !== 'rating_result' && (
-                            <div className="flex flex-col gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-all order-last">
+                            <div className="order-last mt-1 flex shrink-0 flex-col gap-1 rounded-xl border border-orange-200/20 bg-slate-950/70 p-1 opacity-70 shadow-lg shadow-black/20 backdrop-blur-sm transition-all duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                               <button
                                 type="button"
                                 onClick={() => handleStartEdit(msg)}
-                                className="p-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded transition-all"
-                                title="Edit message"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-orange-300/20 bg-orange-500/10 text-orange-200 transition-all hover:-translate-y-0.5 hover:border-orange-200/70 hover:bg-orange-500 hover:text-white hover:shadow-md hover:shadow-orange-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/70"
+                                title={msg.message_type === 'image' ? 'Replace image' : 'Edit message'}
+                                aria-label={msg.message_type === 'image' ? 'Replace image' : 'Edit message'}
                               >
-                                <Pencil className="w-3.5 h-3.5" />
+                                {msg.message_type === 'image' ? <Image className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
                               </button>
                             </div>
                           )}
@@ -3055,9 +3125,15 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                               )}
                             </div>
                           ) : msg.message_type === 'image' && msg.image_url ? (
-                          <div className="rounded-2xl overflow-hidden shadow-sm" style={{ boxShadow: msg.sender_type === 'customer' ? '0 2px 8px rgba(0,0,0,0.08)' : '0 2px 8px rgba(59,130,246,0.3)' }}>
+                          <div className="relative rounded-2xl overflow-hidden shadow-sm" style={{ boxShadow: msg.sender_type === 'customer' ? '0 2px 8px rgba(0,0,0,0.08)' : '0 2px 8px rgba(59,130,246,0.3)' }}>
                             <div className="relative z-10">
                               {renderMessageContent(msg)}
+                              {replacingImageMsgId === msg.id && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-950/65 backdrop-blur-[2px]">
+                                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-orange-300" />
+                                  <span className="text-xs font-semibold text-white">Replacing image...</span>
+                                </div>
+                              )}
                             </div>
                             <div className={`text-[10px] px-3 py-1.5 ${msg.sender_type === 'customer' ? 'text-slate-400 text-right bg-white' : 'text-white/60 bg-blue-500'}`}>
                               {new Date(msg.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -3097,7 +3173,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                 )}
                               </div>
                               {editingMessageId === msg.id ? (
-                                <div className="min-w-[320px] max-w-full">
+                                <div className="min-w-0 max-w-full">
                                   <input
                                     ref={editFileInputRef}
                                     type="file"
@@ -3174,7 +3250,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                       onKeyUp={updateEditFormatState}
                                       onMouseUp={updateEditFormatState}
                                       onSelect={updateEditFormatState}
-                                      className="min-h-[60px] max-h-[260px] overflow-y-auto px-3 py-2.5 text-sm text-slate-800 focus:outline-none chat-rich-content"
+                                      className="min-h-[60px] max-h-[216px] overflow-y-auto px-3 py-2.5 text-sm text-slate-800 focus:outline-none chat-rich-content"
                                       style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
                                     />
                                   </div>
@@ -3244,6 +3320,13 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   type="file"
                   accept="image/*"
                   onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <input
+                  ref={replaceImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleReplaceImageSelect}
                   className="hidden"
                 />
                 {showTemplatePopup && (
@@ -3452,7 +3535,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                           handleSendMessage(e as unknown as React.FormEvent);
                         }
                       }}
-                      className="min-h-[40px] max-h-[160px] overflow-y-auto px-3 py-2 text-slate-800 focus:outline-none text-sm [&_b]:font-bold [&_u]:underline [&_font[size='5']]:text-lg [&_font[size='7']]:text-xl"
+                      className="min-h-[40px] max-h-[216px] overflow-y-auto px-3 py-2 text-slate-800 focus:outline-none text-sm leading-5 [&_b]:font-bold [&_u]:underline [&_font[size='5']]:text-lg [&_font[size='7']]:text-xl"
                       data-placeholder={`Message as ${selectedCustomer?.customer_name || 'customer'}... (Ctrl+Enter to send)`}
                       style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
                     />
