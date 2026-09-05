@@ -57,6 +57,8 @@ interface ConversationHistory {
   employee_id: string;
   employee_username: string;
   employee_number: string;
+  employee_tags?: string[];
+  employee_remarks?: string;
   message_count: number;
   last_message: string;
   last_message_time: string;
@@ -394,6 +396,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
             employee_id: msg.employee_id,
             employee_username: employee.username,
             employee_number: employee.employee_id,
+            employee_tags: employee.tags || [],
+            employee_remarks: employee.remarks || '',
             customer_id: customer.id,
             customer_name: customer.customer_name,
             customer_avatar: customer.customer_avatar,
@@ -434,10 +438,20 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
       if (error) throw error;
 
-      const allHistory: ConversationHistory[] = (data || []).map((row: any) => ({
+      const employeeIds = (data || []).map((row: any) => row.employee_id).filter(Boolean);
+      const { data: employeeMeta } = employeeIds.length > 0
+        ? await supabase.from('users').select('id, tags, remarks').in('id', employeeIds)
+        : { data: [] as { id: string; tags?: string[]; remarks?: string }[] };
+      const employeeMetaById = new Map((employeeMeta || []).map(employee => [employee.id, employee]));
+
+      const allHistory: ConversationHistory[] = (data || []).map((row: any) => {
+        const employee = employeeMetaById.get(row.employee_id);
+        return {
         employee_id: row.employee_id,
         employee_username: row.employee_username,
         employee_number: row.employee_number,
+        employee_tags: employee?.tags || [],
+        employee_remarks: employee?.remarks || '',
         customer_id: row.customer_id,
         customer_name: row.customer_name,
         customer_avatar: row.customer_avatar,
@@ -446,7 +460,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         last_message: row.last_message_type === 'image' ? '__IMAGE__' : (row.last_message || ''),
         last_message_time: row.last_message_time,
         unread_count: Number(row.unread_count),
-      }));
+        };
+      });
 
       setConversationHistory(allHistory);
       setAllConversationHistory(allHistory);
@@ -2708,29 +2723,52 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                     type="button"
                     key={emp.id}
                     onClick={() => handleSelectEmployee(emp)}
-                    className={`group w-full rounded-xl border text-left transition-all duration-200 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/70 ${
+                    className={`group relative min-h-[64px] w-full rounded-xl border px-2 py-2 text-left transition-all duration-200 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/70 ${
                       selectedEmployee?.id === emp.id
-                        ? 'border-orange-200/70 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 px-2.5 py-2.5 shadow-lg shadow-orange-950/40 ring-1 ring-orange-200/40'
-                        : 'border-slate-700/60 bg-slate-800/45 px-2 py-2 hover:border-orange-400/60 hover:bg-orange-950/45 hover:shadow-md hover:shadow-orange-950/35'
+                        ? 'border-orange-200/70 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 shadow-lg shadow-orange-950/40 ring-1 ring-orange-200/40'
+                        : 'border-slate-700/60 bg-slate-800/45 hover:border-orange-400/60 hover:bg-orange-950/45 hover:shadow-md hover:shadow-orange-950/35'
                     }`}
                   >
-                    <div className={`flex items-center ${selectedEmployee?.id === emp.id ? 'gap-2' : 'gap-1.5'}`}>
+                    <div className={`flex min-w-0 items-center pr-8 ${selectedEmployee?.id === emp.id ? 'gap-2' : 'gap-1.5'}`}>
                       <div className="relative flex-shrink-0">
                         <div className={`rounded flex items-center justify-center ${
                           selectedEmployee?.id === emp.id ? 'h-9 w-9 bg-white/15 ring-1 ring-white/25' : 'h-7 w-7 border border-slate-700/70 bg-slate-900/70 group-hover:border-orange-400/50 group-hover:bg-orange-950/40'
                         }`}>
-                          <User className={`${selectedEmployee?.id === emp.id ? 'w-4.5 h-4.5' : 'w-3 h-3'} ${selectedEmployee?.id === emp.id ? 'text-white' : 'text-slate-400 group-hover:text-orange-200'}`} />
+                          <User className={`${selectedEmployee?.id === emp.id ? 'h-4 w-4' : 'h-3 w-3'} ${selectedEmployee?.id === emp.id ? 'text-white' : 'text-slate-400 group-hover:text-orange-200'}`} />
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1">
-                          <span className={`font-bold truncate ${selectedEmployee?.id === emp.id ? 'text-[15px] text-white' : 'text-[11px] text-slate-200'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 6px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)' } : undefined}>{emp.username}</span>
-
-                          {selectedEmployee?.id === emp.id && <span className="ml-auto flex-shrink-0 px-1.5 py-0.5 bg-white/25 rounded text-[9px] font-bold text-white leading-relaxed" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>ACTIVE</span>}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-center gap-1">
+                          <span className={`truncate font-bold ${selectedEmployee?.id === emp.id ? 'text-[15px] text-white' : 'text-[11px] text-slate-200'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 6px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)' } : undefined}>{emp.username}</span>
+                          {selectedEmployee?.id === emp.id && <span className="ml-auto flex-shrink-0 rounded bg-white/25 px-1.5 py-0.5 text-[9px] font-bold leading-relaxed text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>ACTIVE</span>}
                         </div>
-                        <div className={`font-mono leading-tight ${selectedEmployee?.id === emp.id ? 'text-[12px] text-orange-100' : 'text-[9px] text-slate-500 group-hover:text-orange-200/80'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>{emp.employee_id}</div>
+                        <div className={`font-mono leading-tight ${selectedEmployee?.id === emp.id ? 'text-[11px] text-orange-100' : 'text-[10px] text-slate-400 group-hover:text-orange-200/80'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>ID: {emp.employee_id || '—'}</div>
                       </div>
                     </div>
+                    {emp.tags && emp.tags.length > 0 && (
+                      <div className="group/tag absolute right-1 top-1 z-30 max-w-[48%]">
+                        <span className={`flex max-w-[112px] items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[8px] font-bold ${selectedEmployee?.id === emp.id ? 'border-white/35 bg-white/20 text-white' : 'border-orange-300/35 bg-orange-500/15 text-orange-200'}`}>
+                          <Tag className="h-2.5 w-2.5 shrink-0" />
+                          <span className="truncate">{emp.tags[0]}{emp.tags.length > 1 ? ` +${emp.tags.length - 1}` : ''}</span>
+                        </span>
+                        <div className="pointer-events-none absolute right-0 top-full mt-1 w-[190px] rounded-lg border border-orange-300/40 bg-slate-950/95 p-2 text-[10px] text-orange-100 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/tag:opacity-100 group-focus-within/tag:opacity-100">
+                          <div className="mb-1 font-bold uppercase tracking-wider text-orange-300">Tags</div>
+                          <div className="break-words leading-4">{emp.tags.join(' · ')}</div>
+                        </div>
+                      </div>
+                    )}
+                    {emp.remarks?.trim() && (
+                      <div className="group/note absolute bottom-1 right-1 z-30 max-w-[48%]">
+                        <span className={`flex max-w-[112px] items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[8px] font-medium ${selectedEmployee?.id === emp.id ? 'border-white/35 bg-white/20 text-white' : 'border-slate-500/50 bg-slate-950/55 text-slate-300'}`}>
+                          <FileText className="h-2.5 w-2.5 shrink-0" />
+                          <span className="truncate">{emp.remarks}</span>
+                        </span>
+                        <div className="pointer-events-none absolute bottom-full right-0 mb-1 w-[190px] rounded-lg border border-slate-500/60 bg-slate-950/95 p-2 text-[10px] text-slate-200 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100">
+                          <div className="mb-1 font-bold uppercase tracking-wider text-slate-400">Note</div>
+                          <div className="break-words leading-4">{emp.remarks}</div>
+                        </div>
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -2853,6 +2891,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                         const lastTime = new Date(history.last_message_time);
                         const timeStr = `${lastTime.getFullYear()}/${String(lastTime.getMonth() + 1).padStart(2, '0')}/${String(lastTime.getDate()).padStart(2, '0')} ${lastTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                         const hasUnread = history.unread_count > 0;
+                        const employeeTags = (history.employee_tags?.length ? history.employee_tags : employee?.tags) || [];
+                        const employeeNote = history.employee_remarks?.trim() || employee?.remarks?.trim() || '';
                         const hasImg = /<img\s/i.test(history.last_message);
                         const plainMessage = history.last_message.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
                         const isPhoto = history.last_message === '__IMAGE__' || (!plainMessage && hasImg);
@@ -2880,7 +2920,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                   setFromHistorySource(historyScope);
                                 }
                               }}
-                              className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative overflow-hidden ${
+                              className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${
                                 isSelected
                                   ? 'bg-orange-500/20 border border-orange-300/70 shadow-md shadow-orange-500/20'
                                   : hasUnread
@@ -2937,12 +2977,39 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
                                   <div className="flex items-center gap-1.5 mb-1">
                                     <span className={`text-xs font-semibold truncate ${isSelected ? 'text-slate-200' : 'text-slate-300'}`}>{history.employee_username}</span>
-                                    {history.employee_number && (
-                                      <span className="text-[9px] text-slate-500 font-mono flex-shrink-0">#{history.employee_number}</span>
-                                    )}
+                                    <span className="text-[10px] text-orange-200/90 font-mono flex-shrink-0">ID: {history.employee_number || '—'}</span>
                                   </div>
 
-                                  <p className={`text-[11px] leading-relaxed truncate ${
+                                  {(employeeTags.length > 0 || employeeNote) && (
+                                    <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1 pr-1">
+                                      {employeeTags.length > 0 && (
+                                        <span className="group/tag relative max-w-[48%]">
+                                          <span className="flex max-w-[120px] items-center gap-1 truncate rounded-md border border-orange-300/30 bg-orange-500/10 px-1.5 py-0.5 text-[8px] font-bold text-orange-200">
+                                            <Tag className="h-2.5 w-2.5 shrink-0" />
+                                            <span className="truncate">{employeeTags[0]}{employeeTags.length > 1 ? ` +${employeeTags.length - 1}` : ''}</span>
+                                          </span>
+                                          <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] rounded-lg border border-orange-300/40 bg-slate-950/95 p-2 text-[10px] text-orange-100 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/tag:opacity-100 group-focus-within/tag:opacity-100">
+                                            <span className="mb-1 block font-bold uppercase tracking-wider text-orange-300">Tags</span>
+                                            <span className="block break-words leading-4">{employeeTags.join(' · ')}</span>
+                                          </span>
+                                        </span>
+                                      )}
+                                      {employeeNote && (
+                                        <span className="group/note relative max-w-[48%]">
+                                          <span className="flex max-w-[150px] items-center gap-1 truncate rounded-md border border-slate-500/50 bg-slate-950/55 px-1.5 py-0.5 text-[8px] font-medium text-slate-300">
+                                            <FileText className="h-2.5 w-2.5 shrink-0" />
+                                            <span className="truncate">{employeeNote}</span>
+                                          </span>
+                                          <span className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-[190px] rounded-lg border border-slate-500/60 bg-slate-950/95 p-2 text-[10px] text-slate-200 opacity-0 shadow-xl shadow-black/40 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100">
+                                            <span className="mb-1 block font-bold uppercase tracking-wider text-slate-400">Note</span>
+                                            <span className="block break-words leading-4">{employeeNote}</span>
+                                          </span>
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  <p className={`mt-1 text-[11px] leading-relaxed truncate ${
                                     hasUnread ? 'text-orange-200 font-semibold' : 'text-slate-500'
                                   }`}>{hasUnread && <span className="inline-block w-1.5 h-1.5 rounded-full bg-orange-400 mr-1 mb-px" />}{isPhoto ? <span className="inline-flex items-center gap-1"><Image className="w-3 h-3" />Photo</span> : (plainMessage || 'No messages')}</p>
                                 </div>
@@ -3069,6 +3136,16 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                     )}
                   </div>
                 </div>
+              </div>
+              <div className="flex min-h-9 shrink-0 items-center gap-2 overflow-hidden border-b border-orange-400/25 bg-slate-900/80 px-3 py-1.5">
+                <span className="flex min-w-0 max-w-[45%] items-center gap-1.5 truncate rounded-md border border-orange-300/35 bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-100" title={selectedEmployee?.tags?.join(' · ') || 'No tag'}>
+                  <Tag className="h-3 w-3 shrink-0 text-orange-300" />
+                  <span className="truncate">{selectedEmployee?.tags?.length ? selectedEmployee.tags.join(' · ') : 'No tag'}</span>
+                </span>
+                <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate rounded-md border border-slate-500/45 bg-slate-800/70 px-2 py-1 text-[10px] font-medium text-slate-200" title={selectedEmployee?.remarks || 'No note'}>
+                  <FileText className="h-3 w-3 shrink-0 text-slate-400" />
+                  <span className="truncate">{selectedEmployee?.remarks?.trim() || 'No note'}</span>
+                </span>
               </div>
 
               {/* Messages */}
