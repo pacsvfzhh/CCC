@@ -577,6 +577,12 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       setSelectedEmployee(null);
       setMessages([]);
       setConversationHistory([]);
+      setShowHistoryView(true);
+      setHistoryScope('all');
+      setHistoryFilterMode('all');
+      if (selectedAdminId) {
+        loadAllConversationHistory();
+      }
     }
 
     wasActiveRef.current = isActive;
