@@ -214,10 +214,12 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   // Filter employees based on search, tags, and chat history
   const filteredEmployees = useMemo(() => employees.filter(emp => {
     // Search filter
-    const matchesSearch = debouncedSearchQuery === '' ||
-      emp.username.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-      emp.employee_id.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-      (emp.remarks && emp.remarks.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
+    const query = debouncedSearchQuery.toLowerCase();
+    const matchesSearch = query === '' ||
+      emp.username.toLowerCase().includes(query) ||
+      emp.employee_id.toLowerCase().includes(query) ||
+      (emp.tags || []).some(tag => tag.toLowerCase().includes(query)) ||
+      (emp.remarks && emp.remarks.toLowerCase().includes(query));
 
     // Tag filter
     const matchesTags = selectedTags.length === 0 ||
