@@ -117,7 +117,7 @@ function getAvatarBackground(index: number, vip: boolean): [string, string] {
 }
 
 const skinTones = ['#f7c9a9', '#efb38f', '#f4d0b9', '#f8d7c0', '#f1c3a5', '#e8ad8f', '#f3ccb4', '#d9916c', '#bd7655', '#f7c9a9'];
-const hairTones = ['#211923', '#41271e', '#75452a', '#bd7038', '#edbb62', '#51436f', '#a8a4b8', '#1f5960', '#722f4b', '#5a3828'];
+const hairTones = ['#f0ece6', '#d2cbc2', '#b8afa5', '#91877e', '#5f554e', '#302b29', '#c2b49f', '#786b62', '#e0d2bd', '#9b725b'];
 const shirtTones = ['#edf4ff', '#ffe7f0', '#e5fff7', '#fff0d4', '#f0e9ff', '#e1f5ff', '#d9f99d', '#fed7aa', '#fecdd3', '#bfdbfe'];
 const vipShirtTones = ['#f3d18a', '#ffe5a3', '#cab8ff', '#f3a5b9', '#9de5dc', '#fff0bd', '#f7c6a3', '#d9c2ff', '#b8f2e6', '#ffd6a5'];
 
@@ -252,6 +252,9 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const headwear = headwearStyles[(featureSeed * 19 + 3) % headwearStyles.length];
   const earringColor = ['#ffe18a', '#d9f99d', '#f9a8d4', '#bfdbfe'][featureSeed % 4];
   const backgroundStyle = featureSeed % 6;
+  const ageDetail = featureSeed % 5;
+  const portraitTilt = [-4, -2, 0, 2, 4][featureSeed % 5];
+  const portraitShift = [-1.5, -0.75, 0, 0.75, 1.5][(featureSeed * 3) % 5];
 
   return (
     <div
@@ -266,6 +269,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
       {backgroundStyle === 5 && <div className="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-white/40 shadow-[0_0_12px_rgba(255,255,255,.6)]" />}
       {vip && <div className="absolute inset-1 rounded-[8px] border border-amber-100/55" />}
       <svg viewBox="0 0 64 64" className="relative h-full w-full" aria-hidden="true">
+        <g transform={`translate(${portraitShift} 0) rotate(${portraitTilt} 32 34)`}>
         <path d={bodyStyle} fill={shirt} />
         {hasCollar && <path d="M20 52l12 8 12-8 4 14H16z" fill={vip ? '#fff0b0' : '#ffffff'} opacity=".8" />}
         <path d="M24 44h16v10H24z" fill={skin} />
@@ -306,22 +310,20 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
         )}
         {eyeVariant === 3 && (
           <>
-            <circle cx="26" cy="30" r="1.7" fill="#1f1720" />
-            <circle cx="38" cy="30" r="1.7" fill="#1f1720" />
-            <circle cx="25.5" cy="29.5" r=".45" fill="#fff" />
-            <circle cx="37.5" cy="29.5" r=".45" fill="#fff" />
+            <ellipse cx="26" cy="30" rx="1.45" ry="1.25" fill="#1f1720" />
+            <ellipse cx="38" cy="30" rx="1.45" ry="1.25" fill="#1f1720" />
+            <circle cx="25.65" cy="29.65" r=".35" fill="#fff" />
+            <circle cx="37.65" cy="29.65" r=".35" fill="#fff" />
           </>
         )}
         {noseVariant === 0 && <path d="M32 30.5v3l-1.5 1" fill="none" stroke="#b87563" strokeLinecap="round" strokeWidth="1" />}
         {noseVariant === 1 && <path d="M31 30l-.5 4 2 1" fill="none" stroke="#b87563" strokeLinecap="round" strokeWidth="1" />}
         {noseVariant === 2 && <path d="M32 30.5v3.2" fill="none" stroke="#b87563" strokeLinecap="round" strokeWidth="1" />}
-        {isFemale && (
-          <>
-            <circle cx="22" cy="35" r="2.2" fill="#ee8694" opacity=".22" />
-            <circle cx="42" cy="35" r="2.2" fill="#ee8694" opacity=".22" />
-          </>
-        )}
-        <path d={mouthStyle} fill="none" stroke={isFemale ? '#b64f6b' : '#9a4f4e'} strokeLinecap="round" strokeWidth="1.4" />
+        {ageDetail !== 4 && <path d="M23 34c-1.5 1-2.5 2-3 3M41 34c1.5 1 2.5 2 3 3" fill="none" stroke="#a96f61" strokeLinecap="round" strokeWidth=".85" opacity=".58" />}
+        {ageDetail === 0 && <path d="M25 19c2-1 4-1 6-.5M33 18.5c2-.5 4-.5 6 .5" fill="none" stroke="#a96f61" strokeLinecap="round" strokeWidth=".8" opacity=".5" />}
+        {ageDetail === 1 && <path d="M23 32c-1.5 1-2 2-2.5 3M41 32c1.5 1 2 2 2.5 3" fill="none" stroke="#a96f61" strokeLinecap="round" strokeWidth=".8" opacity=".55" />}
+        {ageDetail === 2 && <path d="M24 35c-1.5 1-2 2-2.5 3M40 35c1.5 1 2 2 2.5 3" fill="none" stroke="#a96f61" strokeLinecap="round" strokeWidth=".8" opacity=".52" />}
+        <path d={mouthStyle} fill="none" stroke={isFemale ? '#a55567' : '#885048'} strokeLinecap="round" strokeWidth="1.4" />
         {hasFreckles && (
           <>
             <circle cx="23" cy="35" r=".8" fill="#a9654c" opacity=".7" />
@@ -330,7 +332,8 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
             <circle cx="41" cy="35" r=".8" fill="#a9654c" opacity=".7" />
           </>
         )}
-        {hasFacialHair && <path d="M26 38c2 3 10 3 12 0" fill="none" stroke={hair} strokeLinecap="round" strokeWidth="2.2" opacity=".82" />}
+        {hasFacialHair && <path d="M25 37c1 5 4 7 7 7s6-2 7-7c-3 1.5-11 1.5-14 0Z" fill={hair} opacity=".58" />}
+        {!isFemale && featureSeed % 5 === 2 && <path d="M27 36c1.5 1 8.5 1 10 0" fill="none" stroke={hair} strokeLinecap="round" strokeWidth="1.8" opacity=".75" />}
         {hasHairHighlight && <path d="M20 17c3-4 7-6 12-7" fill="none" stroke={isFemale ? '#fff4dc' : '#ffffff'} strokeLinecap="round" strokeWidth="1.5" opacity=".55" />}
         {hasNecklace && (
           <>
@@ -355,6 +358,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
         {vip && (
           <path d="M19 15l4-5 4 3 5-5 5 5 4-3 4 5" fill="#f8d978" fillOpacity=".28" stroke="#fff0a5" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
         )}
+        </g>
       </svg>
       <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-slate-950/35 to-transparent" />
     </div>
