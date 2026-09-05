@@ -106,14 +106,20 @@ const vipAvatarOptions: AvatarOption[] = [
 
 function getAvatarBackground(index: number, vip: boolean): [string, string] {
   const businessHues = [204, 214, 198, 188, 221, 158, 38, 20, 232, 194, 46, 208];
-  const hue = businessHues[(index * 7 + (vip ? 3 : 0)) % businessHues.length];
-  const accentHue = (hue + (index % 3 === 0 ? 18 : 9)) % 360;
-  const baseLightness = vip ? 54 + (index % 3) * 3 : 58 + (index % 4) * 2;
-  const accentLightness = vip ? 72 + (index % 4) * 3 : 76 + (index % 3) * 3;
+  const premiumHues = [42, 272, 176, 208, 24, 334, 52, 190, 286, 164, 216, 32];
+  const palette = vip ? premiumHues : businessHues;
+  const hue = palette[(index * 7 + (vip ? 3 : 0)) % palette.length];
+  const accentHue = vip
+    ? (hue + (index % 3 === 0 ? 28 : 16)) % 360
+    : (hue + (index % 3 === 0 ? 18 : 9)) % 360;
+  const baseLightness = vip ? 46 + (index % 3) * 4 : 58 + (index % 4) * 2;
+  const accentLightness = vip ? 70 + (index % 4) * 4 : 76 + (index % 3) * 3;
+  const saturation = vip ? 48 : 34;
+  const accentSaturation = vip ? 52 : 42;
 
   return [
-    `hsl(${hue} 34% ${baseLightness}%)`,
-    `hsl(${accentHue} 42% ${Math.min(accentLightness, 88)}%)`,
+    `hsl(${hue} ${saturation}% ${baseLightness}%)`,
+    `hsl(${accentHue} ${accentSaturation}% ${Math.min(accentLightness, 90)}%)`,
   ];
 }
 
@@ -231,8 +237,10 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
   const hasHairHighlight = featureSeed % 4 === 0;
   const hasNecklace = isFemale && featureSeed % 5 === 2;
   const hasCollar = featureSeed % 3 !== 0 || (vip && featureSeed % 5 === 0);
-  const hasTie = !isFemale && featureSeed % 5 === 3;
-  const hasScarf = isFemale && featureSeed % 9 === 4;
+  const hasTie = !isFemale && (featureSeed % 5 === 3 || (vip && featureSeed % 3 === 0));
+  const hasScarf = isFemale && (featureSeed % 9 === 4 || (vip && featureSeed % 3 === 0));
+  const hasPremiumLapels = vip && featureSeed % 2 === 0;
+  const hasPremiumPin = vip && featureSeed % 4 === 1;
   const hasFacialHair = !isFemale && featureSeed % 6 === 1;
   const hasFreckles = featureSeed % 11 === 3;
   const mouthStyle = mouthStyles[(featureSeed * 7 + 2) % mouthStyles.length];
@@ -256,7 +264,9 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
       {backgroundStyle === 3 && <div className="absolute -bottom-4 -right-2 h-10 w-10 rounded-full bg-white/10 blur-md" />}
       {backgroundStyle === 4 && <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white/18 to-transparent" />}
       {backgroundStyle === 5 && <div className="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-white/40 shadow-[0_0_12px_rgba(255,255,255,.6)]" />}
-      {vip && <div className="absolute inset-1 rounded-[8px] border border-amber-100/55" />}
+      {vip && <div className="absolute -right-4 -top-4 h-12 w-12 rounded-full bg-amber-100/20 blur-md" />}
+      {vip && <div className="absolute inset-1 rounded-[8px] border border-amber-100/70" />}
+      {vip && <div className="absolute inset-x-3 top-1 h-px bg-gradient-to-r from-transparent via-amber-100/80 to-transparent" />}
       <svg viewBox="0 0 64 64" className="relative block h-full w-full" aria-hidden="true">
         <g transform={`translate(${portraitShift} 0) rotate(${portraitTilt} 32 34)`}>
         <path d={bodyStyle} fill={shirt} />
@@ -270,6 +280,8 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
           </>
         )}
         {hasScarf && <path d="M21 50c4 4 18 4 22 0l-2 7c-5 2-13 2-18 0Z" fill={scarf} opacity=".9" />}
+        {hasPremiumLapels && <path d="M20 51l12 9 12-9" fill="none" stroke="#e8cc7b" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.15" opacity=".9" />}
+        {hasPremiumPin && <circle cx="43" cy="55" r="1.15" fill="#f4d989" stroke="#8b6b2d" strokeWidth=".45" />}
         {isFemale && <path d={femaleBackHairStyles[(featureSeed * 17) % femaleBackHairStyles.length]} fill={hair} />}
         <circle cx="17" cy="30" r="3.5" fill={skin} />
         <circle cx="47" cy="30" r="3.5" fill={skin} />
