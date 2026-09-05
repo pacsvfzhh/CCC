@@ -3090,7 +3090,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                     type="button"
                     key={emp.id}
                     onClick={() => handleSelectEmployee(emp)}
-                    className={`group relative min-h-[64px] w-full rounded-xl border px-2 py-1 text-left transition-all duration-200 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${
+                    className={`group relative min-h-[72px] w-full rounded-xl border px-2 py-2 text-left transition-all duration-200 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${
                       selectedEmployee?.id === emp.id
                         ? 'border-emerald-200/70 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-200/40'
                         : 'border-slate-700/60 bg-slate-800/45 hover:border-emerald-400/60 hover:bg-emerald-950/45 hover:shadow-md hover:shadow-emerald-950/35'
@@ -3104,7 +3104,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                           <User className={`${selectedEmployee?.id === emp.id ? 'h-4 w-4' : 'h-3 w-3'} ${selectedEmployee?.id === emp.id ? 'text-white' : 'text-slate-400 group-hover:text-emerald-200'}`} />
                         </div>
                       </div>
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 space-y-0.5">
                         <div className="flex min-w-0 items-center gap-1 leading-4">
                           <span className={`truncate font-bold leading-4 ${selectedEmployee?.id === emp.id ? 'text-[15px] text-white' : 'text-[11px] text-slate-200'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 6px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)' } : undefined}>{emp.username}</span>
                           {selectedEmployee?.id === emp.id && <span className="ml-auto flex-shrink-0 rounded bg-white/25 px-1.5 py-0.5 text-[9px] font-bold leading-relaxed text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>ACTIVE</span>}
