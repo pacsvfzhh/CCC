@@ -3413,14 +3413,14 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
               </div>
 
               {/* Messages */}
-              <div ref={messagesContainerCallbackRef} className="flex-1 overflow-y-auto flex flex-col-reverse scrollbar-dark" style={{
+              <div ref={messagesContainerCallbackRef} className="relative flex-1 overflow-y-auto flex flex-col-reverse scrollbar-dark" style={{
                 background: 'linear-gradient(180deg, #0b2118 0%, #101c19 40%, #0b2118 100%)',
                 backgroundImage: `linear-gradient(180deg, #0b2118 0%, #101c19 40%, #0b2118 100%), radial-gradient(circle at 20% 50%, rgba(16,185,129,0.05) 0%, transparent 50%), radial-gradient(circle at 80% 30%, rgba(34,197,94,0.04) 0%, transparent 50%)`
               }}>
                 <div className="p-4 space-y-3 mb-auto">
                 {messages.length === 0 ? (
                   !messagesLoading && (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
                     <MessageCircle className="w-16 h-16 mb-4 opacity-30 text-slate-500" />
                     <p className="text-slate-400 font-medium">No messages yet</p>
                     <p className="text-sm mt-2 text-slate-500">Send the first message</p>
