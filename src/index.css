@@ -237,7 +237,7 @@ html, body {
   overscroll-behavior-y: auto !important;
 }
 
-.admin-dashboard-root header {
+.admin-dashboard-root > .relative > header {
   margin: 0 !important;
   left: 0 !important;
   right: 0 !important;
