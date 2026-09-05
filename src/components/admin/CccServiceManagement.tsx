@@ -3377,23 +3377,21 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-start gap-2 pr-28 mb-0.5">
-                                    <div className="flex min-w-0 items-center gap-1.5">
+                                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                                    <div className="flex items-center gap-1.5 min-w-0">
                                       {history.customer_name && (
                                         <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-blue-300' : 'text-emerald-400'}`}>{history.customer_name}</span>
                                       )}
                                     </div>
-                                    <div className="absolute right-3 top-1/2 z-10 flex -translate-y-1/2 flex-col items-end gap-1">
-                                      <span className={`text-[10px] tabular-nums whitespace-nowrap ${
-                                        hasUnread ? 'text-orange-300 font-bold' : 'text-emerald-200/90 font-semibold'
-                                      }`}>{timeStr}</span>
-                                      {hasUnread && (
-                                        <div className="flex min-w-[30px] h-[30px] items-center justify-center rounded-full border-2 border-slate-900 bg-gradient-to-br from-orange-500 to-red-500 px-2 shadow-md shadow-orange-500/40 animate-pulse">
-                                          <span className="text-[12px] font-black leading-none text-white drop-shadow-sm">{history.unread_count > 99 ? '99+' : history.unread_count}</span>
-                                        </div>
-                                      )}
-                                    </div>
+                                    <span className={`text-[10px] flex-shrink-0 tabular-nums whitespace-nowrap ${
+                                      hasUnread ? 'text-orange-300 font-bold' : 'text-emerald-200/90 font-semibold'
+                                    }`}>{timeStr}</span>
                                   </div>
+                                  {hasUnread && (
+                                    <div className="absolute right-3 top-1/2 z-10 flex min-w-[30px] h-[30px] -translate-y-1/2 items-center justify-center rounded-full border-2 border-slate-900 bg-gradient-to-br from-orange-500 to-red-500 px-2 shadow-md shadow-orange-500/40 animate-pulse">
+                                      <span className="text-[12px] font-black leading-none text-white drop-shadow-sm">{history.unread_count > 99 ? '99+' : history.unread_count}</span>
+                                    </div>
+                                  )}
 
                                   <div className="flex items-center gap-1.5 mb-1">
                                     <span className={`text-xs font-semibold truncate ${isSelected ? 'text-slate-200' : 'text-slate-300'}`}>{history.employee_username}</span>
