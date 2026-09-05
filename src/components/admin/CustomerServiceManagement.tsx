@@ -1764,27 +1764,35 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     if (msg.message_type === 'tip' && msg.rating_data) {
       const tipAmt = msg.rating_data.tip_amount || 0;
       return (
-        <div className="my-1.5">
-          <div className="w-[200px] rounded-md overflow-hidden shadow-lg shadow-amber-900/25">
-            <div className="relative bg-gradient-to-br from-amber-600 via-amber-500 to-yellow-600 p-[2px]">
-              <div className="relative bg-gradient-to-br from-amber-500 via-yellow-500 to-amber-600 rounded-sm px-3 py-2.5 overflow-hidden">
-                <div className="absolute inset-0 opacity-[0.08]" style={{
-                  backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.5) 2px, rgba(255,255,255,0.5) 3px),
-                    repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(255,255,255,0.5) 2px, rgba(255,255,255,0.5) 3px)`
-                }}></div>
-                <div className="absolute top-0 left-2 right-2 h-[1.5px] bg-gradient-to-r from-transparent via-white/35 to-transparent"></div>
-                <div className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-gradient-to-r from-transparent via-white/35 to-transparent"></div>
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <Gift className="w-3 h-3 text-amber-100" />
-                      <span className="text-[9px] font-bold text-amber-100 uppercase tracking-widest">Tip Sent</span>
-                    </div>
+        <div className="my-2">
+          <div className="w-[232px] overflow-hidden rounded-2xl border border-amber-300/45 bg-gradient-to-br from-amber-300/80 via-orange-400 to-amber-700 p-px shadow-xl shadow-amber-950/35">
+            <div className="relative overflow-hidden rounded-[15px] bg-gradient-to-br from-amber-950 via-orange-900 to-amber-950 px-4 py-3.5">
+              <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-amber-300/15 blur-2xl" />
+              <div className="absolute -bottom-10 -left-8 h-24 w-24 rounded-full bg-orange-300/10 blur-2xl" />
+              <div className="absolute inset-0 opacity-[0.07]" style={{
+                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.65) 3px, rgba(255,255,255,0.65) 4px),
+                  repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255,255,255,0.4) 3px, rgba(255,255,255,0.4) 4px)`
+              }} />
+              <div className="relative">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-amber-200/30 bg-amber-200/15">
+                      <Gift className="h-3.5 w-3.5 text-amber-100" />
+                    </span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.16em] text-amber-100">Tip Sent</span>
                   </div>
-                  <div className="flex items-center justify-center py-1">
-                    <span className="text-[22px] font-black mr-0.5 text-white leading-none" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>$</span>
-                    <span className="text-[26px] font-black tracking-tight leading-none text-white" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>{tipAmt.toFixed(2)}</span>
+                  <span className="rounded-full border border-amber-200/25 bg-white/10 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-amber-100/90">Thank you</span>
+                </div>
+                <div className="py-3 text-center">
+                  <div className="flex items-baseline justify-center text-white" style={{ textShadow: '0 3px 8px rgba(0,0,0,0.3)' }}>
+                    <span className="mr-0.5 text-xl font-black">$</span>
+                    <span className="text-[30px] font-black leading-none tracking-tight">{tipAmt.toFixed(2)}</span>
                   </div>
+                  <p className="mt-1 text-[10px] font-medium text-amber-100/75">Service appreciation</p>
+                </div>
+                <div className="flex items-center justify-center gap-1 border-t border-amber-100/15 pt-2 text-[9px] font-semibold tracking-wide text-amber-100/80">
+                  <Star className="h-3 w-3 fill-amber-200/70 text-amber-200" />
+                  <span>Sent with appreciation</span>
                 </div>
               </div>
             </div>
@@ -3510,10 +3518,14 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       <button
                         type="button"
                         onClick={() => setShowTipModal(true)}
-                        className="p-1.5 hover:bg-amber-50 rounded-md text-amber-500 hover:text-amber-600 transition-colors"
+                        className="group flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-400/80 bg-amber-50 px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.04em] text-amber-800 shadow-sm shadow-amber-200/60 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500 hover:bg-amber-100 hover:shadow-md hover:shadow-amber-300/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"
                         title="Send tip to employee"
+                        aria-label="Open Send Tip"
                       >
-                        <Gift className="w-3.5 h-3.5" strokeWidth={2.5} />
+                        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-amber-200/80 transition-colors group-hover:bg-amber-300/80">
+                          <Gift className="h-3.5 w-3.5 text-amber-800" strokeWidth={2.5} />
+                        </span>
+                        <span>Send Tip</span>
                       </button>
                     </div>
                     {/* Editor area */}
@@ -3677,69 +3689,83 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
       {/* Tip Modal */}
       {showTipModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-          <div className="bg-slate-900 border-2 border-amber-500/30 rounded-3xl p-8 max-w-md w-full shadow-2xl">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 ring-2 ring-amber-500/30">
-                <Gift className="w-8 h-8 text-amber-400" />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Send Tip</h3>
-              <p className="text-slate-400">Send a tip to <span className="text-amber-300 font-semibold">{selectedEmployee?.username}</span></p>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tip Amount ($)</label>
-              <div className="relative">
-                <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-400" />
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={tipAmount}
-                  onChange={(e) => setTipAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full pl-12 pr-4 py-4 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-2xl font-bold placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                  autoFocus
-                />
-              </div>
-              <div className="flex gap-2 mt-3">
-                {[5, 10, 20, 50, 100].map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setTipAmount(preset.toString())}
-                    className="flex-1 px-2 py-1.5 bg-slate-800 hover:bg-amber-600/20 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 rounded-lg text-sm font-medium transition-all"
-                  >
-                    ${preset}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-3">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+          <div className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-orange-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-orange-950/70 shadow-2xl shadow-orange-950/40 ring-1 ring-orange-200/10">
+            <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-orange-500/15 blur-3xl" />
+            <div className="absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-amber-500/10 blur-3xl" />
+            <div className="relative p-6 sm:p-7">
               <button
-                onClick={handleSendTip}
-                disabled={!tipAmount || parseFloat(tipAmount) <= 0 || sendingTip}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-slate-700 disabled:to-slate-700 text-white font-semibold rounded-xl transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                type="button"
+                onClick={() => { setShowTipModal(false); setTipAmount(''); }}
+                className="absolute right-4 top-4 rounded-xl p-2 text-slate-400 transition-all hover:bg-orange-500/15 hover:text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/70"
+                aria-label="Close Send Tip"
               >
-                {sendingTip ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                ) : (
-                  <>
-                    <Gift className="w-5 h-5" strokeWidth={2.5} />
-                    Send Tip
-                  </>
-                )}
+                <X className="h-4 w-4" />
               </button>
-              <button
-                onClick={() => {
-                  setShowTipModal(false);
-                  setTipAmount('');
-                }}
-                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all"
-              >
-                Cancel
-              </button>
+              <div className="flex items-center gap-3 pr-8">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-orange-300/30 bg-gradient-to-br from-orange-500/30 to-amber-500/10 shadow-lg shadow-orange-950/30">
+                  <Gift className="h-6 w-6 text-orange-200" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-black tracking-tight text-white">Send Tip</h3>
+                    <span className="rounded-full border border-orange-300/25 bg-orange-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-orange-200">Appreciation</span>
+                  </div>
+                  <p className="mt-1 truncate text-xs text-slate-400">Send a tip to <span className="font-semibold text-orange-200">{selectedEmployee?.username}</span></p>
+                </div>
+              </div>
+
+              <div className="mt-7 rounded-2xl border border-orange-200/15 bg-slate-950/35 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-orange-100/80">Tip Amount</label>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">USD</span>
+                </div>
+                <div className="relative">
+                  <DollarSign className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-orange-300" />
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={tipAmount}
+                    onChange={(e) => setTipAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full rounded-xl border border-orange-200/20 bg-slate-900/80 py-4 pl-12 pr-16 text-3xl font-black tracking-tight text-white placeholder-slate-700 outline-none transition-all focus:border-orange-300/70 focus:ring-2 focus:ring-orange-400/20"
+                    autoFocus
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-orange-200/60">USD</span>
+                </div>
+                <p className="mt-2 text-[10px] text-slate-500">Choose a preset or enter a custom amount.</p>
+                <div className="mt-3 grid grid-cols-5 gap-2">
+                  {[5, 10, 20, 50, 100].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setTipAmount(preset.toString())}
+                      className={`rounded-lg border px-2 py-2 text-xs font-bold transition-all ${tipAmount === preset.toString() ? 'border-orange-300 bg-orange-500/25 text-orange-100 shadow-sm shadow-orange-500/20' : 'border-slate-700/80 bg-slate-900/70 text-slate-400 hover:border-orange-300/60 hover:bg-orange-500/10 hover:text-orange-100'}`}
+                    >
+                      ${preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleSendTip}
+                  disabled={!tipAmount || parseFloat(tipAmount) <= 0 || sendingTip}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-orange-300/50 bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-orange-600/25 transition-all hover:-translate-y-0.5 hover:from-orange-400 hover:to-amber-400 hover:shadow-orange-500/35 disabled:cursor-not-allowed disabled:border-slate-700 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 disabled:shadow-none"
+                >
+                  {sendingTip ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <><Gift className="h-4 w-4" strokeWidth={2.5} /> Send Tip</>}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowTipModal(false); setTipAmount(''); }}
+                  className="rounded-xl border border-slate-700/80 bg-slate-800/70 px-5 py-3 text-sm font-semibold text-slate-300 transition-all hover:border-slate-600 hover:bg-slate-700 hover:text-white"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>
