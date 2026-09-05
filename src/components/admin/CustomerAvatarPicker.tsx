@@ -108,19 +108,19 @@ function getAvatarBackground(index: number, vip: boolean): [string, string] {
   const businessHues = [204, 214, 198, 188, 221, 158, 38, 20, 232, 194, 46, 208];
   const hue = businessHues[(index * 7 + (vip ? 3 : 0)) % businessHues.length];
   const accentHue = (hue + (index % 3 === 0 ? 18 : 9)) % 360;
-  const baseLightness = vip ? 72 + (index % 3) * 3 : 76 + (index % 4) * 2;
-  const accentLightness = vip ? 87 + (index % 4) * 2 : 90 + (index % 3) * 2;
+  const baseLightness = vip ? 54 + (index % 3) * 3 : 58 + (index % 4) * 2;
+  const accentLightness = vip ? 72 + (index % 4) * 3 : 76 + (index % 3) * 3;
 
   return [
-    `hsl(${hue} 28% ${baseLightness}%)`,
-    `hsl(${accentHue} 34% ${Math.min(accentLightness, 96)}%)`,
+    `hsl(${hue} 34% ${baseLightness}%)`,
+    `hsl(${accentHue} 42% ${Math.min(accentLightness, 88)}%)`,
   ];
 }
 
 const skinTones = ['#f8d4b8', '#f5c5a3', '#f9ddc9', '#f6cfb5', '#efd0b5', '#e7b994', '#f3c8ae', '#d89a76', '#bf7959', '#f4c6a4'];
 const hairTones = ['#17191c', '#241d1a', '#33251e', '#463126', '#5a3b2a', '#2d3034', '#3f3029', '#594338', '#6b4a35', '#292625'];
-const shirtTones = ['#fffdf8', '#f3f5f7', '#dce8ef', '#38698f', '#274f73', '#6f8798', '#bea98d', '#8397a8', '#f0e4d5', '#253f59'];
-const vipShirtTones = ['#f3d58a', '#f8e9bb', '#cad4e6', '#dcb69c', '#b9d9d0', '#ead3a4', '#58708d', '#b7a7c9', '#93bfb4', '#d4b18d'];
+const shirtTones = ['#f1ede4', '#d7e0e5', '#b6c9d4', '#2f5e82', '#214a70', '#58778a', '#947d65', '#667f91', '#cdbda9', '#263f59'];
+const vipShirtTones = ['#d4b566', '#dcc98a', '#afbdd3', '#b48769', '#86aaa1', '#c9aa61', '#3c5775', '#84739c', '#5e9187', '#977356'];
 const tieTones = ['#234c73', '#385d7a', '#536e8b', '#7a4a48', '#2e6664', '#675274', '#8b6848', '#3d5360'];
 const scarfTones = ['#b5c9d5', '#c9b8a9', '#9eb8b3', '#b2a6b2', '#c4a982', '#8ea5b5'];
 
@@ -184,12 +184,12 @@ const mouthStyles = [
 ];
 
 const bodyStyles = [
-  'M7 66c2-12 10-19 25-19s23 7 25 19',
-  'M3 66c4-14 13-20 29-20s25 6 29 20',
-  'M10 66c0-11 8-18 22-18s22 7 22 18',
-  'M5 66c3-9 11-17 27-17s24 8 27 17',
-  'M8 66c4-15 12-21 24-21s20 6 24 21',
-  'M1 66c4-11 14-18 31-18s27 7 31 18',
+  'M7 64c2-12 10-19 25-19s23 7 25 19',
+  'M3 64c4-14 13-20 29-20s25 6 29 20',
+  'M10 64c0-11 8-18 22-18s22 7 22 18',
+  'M5 64c3-9 11-17 27-17s24 8 27 17',
+  'M8 64c4-15 12-21 24-21s20 6 24 21',
+  'M1 64c4-11 14-18 31-18s27 7 31 18',
 ];
 
 const themeStyles: Record<CustomerAvatarPickerTheme, {
@@ -247,7 +247,7 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
 
   return (
     <div
-      className="relative block h-full w-full overflow-hidden rounded-[10px]"
+      className="relative block h-full w-full overflow-hidden"
       style={{ background: `linear-gradient(145deg, ${backgroundStart} 0%, ${backgroundEnd} 100%)` }}
     >
       {backgroundStyle === 0 && <div className="absolute -right-3 -top-3 h-10 w-10 rounded-full bg-white/25 blur-md" />}
@@ -260,12 +260,12 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
       <svg viewBox="0 0 64 64" className="relative block h-full w-full" aria-hidden="true">
         <g transform={`translate(${portraitShift} 0) rotate(${portraitTilt} 32 34)`}>
         <path d={bodyStyle} fill={shirt} />
-        {hasCollar && <path d="M20 52l12 8 12-8 4 14H16z" fill={vip ? '#fff0b0' : '#ffffff'} opacity=".8" />}
+        {hasCollar && <path d="M20 52l12 8 12-8 4 12H16z" fill={vip ? '#e8cf8c' : '#e9e5dc'} opacity=".9" />}
         <path d="M24 44h16v10H24z" fill={skin} />
-        <path d="M25 48l7 7 7-7 4 4-4 14H25l-4-14z" fill={vip ? '#fff0b0' : '#ffffff'} opacity=".72" />
+        <path d="M25 48l7 7 7-7 4 4-4 12H25l-4-12z" fill={vip ? '#e8cf8c' : '#e9e5dc'} opacity=".86" />
         {hasTie && (
           <>
-            <path d="M29 51h6l2 15H27z" fill={tie} />
+            <path d="M29 51h6l2 13H27z" fill={tie} />
             <path d="M29 51l3 4 3-4" fill="none" stroke="#e8dcc3" strokeWidth="1" />
           </>
         )}
