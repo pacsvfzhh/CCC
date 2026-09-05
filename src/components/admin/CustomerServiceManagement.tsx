@@ -3497,10 +3497,15 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       <button
                         type="button"
                         onClick={() => { loadTemplates(); setShowTemplatePopup(!showTemplatePopup); }}
-                        className={`rounded-lg border p-1.5 transition-all ${showTemplatePopup ? 'border-orange-300/60 bg-orange-500/20 text-orange-200 shadow-sm shadow-orange-950/20' : 'border-transparent text-orange-300/80 hover:border-orange-300/35 hover:bg-orange-500/10 hover:text-orange-100'}`}
+                        className={`group flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.04em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/70 ${showTemplatePopup ? 'border-orange-300 bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/30' : 'border-orange-300/70 bg-orange-50 text-orange-700 shadow-sm shadow-orange-200/50 hover:-translate-y-0.5 hover:border-orange-500 hover:bg-orange-100 hover:text-orange-800 hover:shadow-md hover:shadow-orange-300/40'}`}
                         title="Quick send template"
+                        aria-label="Open Quick Send templates"
+                        aria-pressed={showTemplatePopup}
                       >
-                        <FileText className="w-3.5 h-3.5" strokeWidth={2.5} />
+                        <span className={`flex h-5 w-5 items-center justify-center rounded-md ${showTemplatePopup ? 'bg-white/20' : 'bg-orange-200/70 group-hover:bg-orange-300/70'}`}>
+                          <FileText className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        </span>
+                        <span>Quick Send</span>
                       </button>
                       <button
                         type="button"

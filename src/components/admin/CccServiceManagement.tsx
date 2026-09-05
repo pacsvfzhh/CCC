@@ -3998,18 +3998,28 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                       <button
                         type="button"
                         onClick={() => { loadTemplates(); setShowTemplatePopup(!showTemplatePopup); setShowRichCardPopup(false); }}
-                        className={`rounded-lg border p-1.5 transition-all ${showTemplatePopup ? 'border-emerald-300/60 bg-emerald-500/20 text-emerald-200 shadow-sm shadow-emerald-950/20' : 'border-transparent text-emerald-300/80 hover:border-emerald-300/35 hover:bg-emerald-500/10 hover:text-emerald-100'}`}
+                        className={`group flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.04em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 ${showTemplatePopup ? 'border-emerald-300 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/30' : 'border-emerald-300/70 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-200/50 hover:-translate-y-0.5 hover:border-emerald-500 hover:bg-emerald-100 hover:text-emerald-800 hover:shadow-md hover:shadow-emerald-300/40'}`}
                         title="Quick send template"
+                        aria-label="Open Quick Send templates"
+                        aria-pressed={showTemplatePopup}
                       >
-                        <FileText className="w-3.5 h-3.5" strokeWidth={2.5} />
+                        <span className={`flex h-5 w-5 items-center justify-center rounded-md ${showTemplatePopup ? 'bg-white/20' : 'bg-emerald-200/70 group-hover:bg-emerald-300/70'}`}>
+                          <FileText className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        </span>
+                        <span>Quick Send</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => { loadTemplates(); setShowRichCardPopup(!showRichCardPopup); setShowTemplatePopup(false); }}
-                        className={`rounded-lg border p-1.5 transition-all ${showRichCardPopup ? 'border-sky-300/60 bg-sky-500/20 text-sky-200 shadow-sm shadow-blue-950/20' : 'border-transparent text-sky-300/80 hover:border-sky-300/35 hover:bg-sky-500/10 hover:text-sky-100'}`}
+                        className={`group flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.04em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 ${showRichCardPopup ? 'border-sky-300 bg-gradient-to-r from-blue-500 to-sky-500 text-white shadow-md shadow-blue-500/30' : 'border-sky-300/80 bg-sky-50 text-blue-700 shadow-sm shadow-sky-200/50 hover:-translate-y-0.5 hover:border-sky-500 hover:bg-sky-100 hover:text-blue-800 hover:shadow-md hover:shadow-sky-300/40'}`}
                         title="Rich Card templates"
+                        aria-label="Open Rich Card templates"
+                        aria-pressed={showRichCardPopup}
                       >
-                        <Megaphone className="w-3.5 h-3.5" strokeWidth={2.5} />
+                        <span className={`flex h-5 w-5 items-center justify-center rounded-md ${showRichCardPopup ? 'bg-white/20' : 'bg-sky-200/70 group-hover:bg-sky-300/70'}`}>
+                          <Megaphone className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        </span>
+                        <span>Rich Card</span>
                       </button>
                       <button
                         type="button"
