@@ -215,25 +215,30 @@ const themeStyles: Record<CustomerAvatarPickerTheme, {
 };
 
 function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
+  const featureSeed = index * 7 + (vip ? 29 : 11);
   const palette = vip ? vipBackgrounds : regularBackgrounds;
-  const [backgroundStart, backgroundEnd] = palette[index % palette.length];
-  const skin = skinTones[index % skinTones.length];
-  const hair = hairTones[(index + (vip ? 2 : 0)) % hairTones.length];
+  const [backgroundStart, backgroundEnd] = palette[featureSeed % palette.length];
+  const skin = skinTones[(featureSeed * 7 + 2) % skinTones.length];
+  const hair = hairTones[(featureSeed * 11 + (vip ? 2 : 0)) % hairTones.length];
   const isFemale = index % 2 === 0;
-  const hairStyle = (isFemale ? femaleHairStyles : hairStyles)[index % femaleHairStyles.length];
-  const faceShape = faceShapes[(index + (vip ? 1 : 0)) % faceShapes.length];
+  const hairOptions = isFemale ? femaleHairStyles : hairStyles;
+  const hairStyle = hairOptions[(featureSeed * 3 + 1) % hairOptions.length];
+  const faceShape = faceShapes[(featureSeed * 5 + (vip ? 1 : 0)) % faceShapes.length];
   const shirtPalette = vip ? vipShirtTones : shirtTones;
-  const shirt = shirtPalette[index % shirtPalette.length];
-  const hasGlasses = index % 5 === 1 || (vip && index % 7 === 0);
-  const hasEarring = index % 4 === 2 || (isFemale && index % 5 === 0);
-  const hasHairHighlight = index % 3 === 0;
-  const hasNecklace = isFemale && index % 6 === 2;
-  const hasCollar = index % 4 === 1 || (vip && index % 5 === 0);
-  const hasTie = !isFemale && index % 6 === 3;
-  const hasScarf = isFemale && index % 7 === 4;
-  const hasFacialHair = !isFemale && index % 4 === 1;
-  const hasFreckles = index % 7 === 3;
-  const mouthStyle = mouthStyles[index % mouthStyles.length];
+  const shirt = shirtPalette[(featureSeed * 13 + 4) % shirtPalette.length];
+  const eyeVariant = (featureSeed * 5) % 4;
+  const browVariant = (featureSeed * 3) % 3;
+  const noseVariant = (featureSeed * 11) % 3;
+  const hasGlasses = featureSeed % 8 === 1 || (vip && featureSeed % 9 === 0);
+  const hasEarring = featureSeed % 5 === 2 || (isFemale && featureSeed % 8 === 0);
+  const hasHairHighlight = featureSeed % 4 === 0;
+  const hasNecklace = isFemale && featureSeed % 5 === 2;
+  const hasCollar = featureSeed % 3 === 1 || (vip && featureSeed % 5 === 0);
+  const hasTie = !isFemale && featureSeed % 5 === 3;
+  const hasScarf = isFemale && featureSeed % 9 === 4;
+  const hasFacialHair = !isFemale && featureSeed % 6 === 1;
+  const hasFreckles = featureSeed % 11 === 3;
+  const mouthStyle = mouthStyles[(featureSeed * 7 + 2) % mouthStyles.length];
 
   return (
     <div
@@ -255,14 +260,44 @@ function AvatarArtwork({ index, vip }: { index: number; vip: boolean }) {
           </>
         )}
         {hasScarf && <path d="M21 50c4 4 18 4 22 0l-2 7c-5 2-13 2-18 0Z" fill={vip ? '#f4c96b' : '#e88aaa'} opacity=".9" />}
-        {isFemale && <path d={femaleBackHairStyles[index % femaleBackHairStyles.length]} fill={hair} />}
+        {isFemale && <path d={femaleBackHairStyles[(featureSeed * 17) % femaleBackHairStyles.length]} fill={hair} />}
         <circle cx="17" cy="30" r="3.5" fill={skin} />
         <circle cx="47" cy="30" r="3.5" fill={skin} />
         <path d={faceShape} fill={skin} />
         <path d={hairStyle} fill={hair} />
-        <path d="M23 27c1.5-1 3.5-1 5 0M36 27c1.5-1 3.5-1 5 0" fill="none" stroke="#3b2730" strokeLinecap="round" strokeWidth="1.5" />
-        <circle cx="26" cy="30" r="1.3" fill="#1f1720" />
-        <circle cx="38" cy="30" r="1.3" fill="#1f1720" />
+        {browVariant === 0 && <path d="M22 26c2-1.5 4-1.5 6-.2M36 25.8c2-1.3 4-1.3 6 .2" fill="none" stroke="#3b2730" strokeLinecap="round" strokeWidth="1.5" />}
+        {browVariant === 1 && <path d="M22 25.5c2-1 4-1 6 .4M36 25.9c2-1.4 4-1.4 6-.4" fill="none" stroke="#3b2730" strokeLinecap="round" strokeWidth="1.5" />}
+        {browVariant === 2 && <path d="M22 26.2c2-.4 4-.4 6 .5M36 26.7c2-.9 4-.9 6-.5" fill="none" stroke="#3b2730" strokeLinecap="round" strokeWidth="1.5" />}
+        {eyeVariant === 0 && (
+          <>
+            <circle cx="26" cy="30" r="1.3" fill="#1f1720" />
+            <circle cx="38" cy="30" r="1.3" fill="#1f1720" />
+          </>
+        )}
+        {eyeVariant === 1 && (
+          <>
+            <ellipse cx="26" cy="30" rx="1.8" ry="1.1" fill="#1f1720" />
+            <ellipse cx="38" cy="30" rx="1.8" ry="1.1" fill="#1f1720" />
+          </>
+        )}
+        {eyeVariant === 2 && (
+          <>
+            <path d="M24.5 30c.8-1.4 2.2-1.4 3 0M36.5 30c.8-1.4 2.2-1.4 3 0" fill="none" stroke="#1f1720" strokeLinecap="round" strokeWidth="1.5" />
+            <circle cx="26" cy="30" r=".65" fill="#1f1720" />
+            <circle cx="38" cy="30" r=".65" fill="#1f1720" />
+          </>
+        )}
+        {eyeVariant === 3 && (
+          <>
+            <circle cx="26" cy="30" r="1.7" fill="#1f1720" />
+            <circle cx="38" cy="30" r="1.7" fill="#1f1720" />
+            <circle cx="25.5" cy="29.5" r=".45" fill="#fff" />
+            <circle cx="37.5" cy="29.5" r=".45" fill="#fff" />
+          </>
+        )}
+        {noseVariant === 0 && <path d="M32 30.5v3l-1.5 1" fill="none" stroke="#b87563" strokeLinecap="round" strokeWidth="1" />}
+        {noseVariant === 1 && <path d="M31 30l-.5 4 2 1" fill="none" stroke="#b87563" strokeLinecap="round" strokeWidth="1" />}
+        {noseVariant === 2 && <path d="M32 30.5v3.2" fill="none" stroke="#b87563" strokeLinecap="round" strokeWidth="1" />}
         {isFemale && (
           <>
             <circle cx="22" cy="35" r="2.2" fill="#ee8694" opacity=".22" />
