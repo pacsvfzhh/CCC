@@ -820,42 +820,45 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     if (msg.message_type === 'tip' && msg.rating_data) {
       const tipAmt = (msg.rating_data as any).tip_amount || 0;
       return (
-        <div className="w-[240px] rounded-lg overflow-hidden shadow-xl shadow-amber-900/30">
-          {/* Banknote-style card */}
-          <div className="relative bg-gradient-to-br from-amber-600 via-amber-500 to-yellow-600 p-[3px]">
-            {/* Inner border frame */}
-            <div className="relative bg-gradient-to-br from-amber-500 via-yellow-500 to-amber-600 rounded-sm px-4 py-3 overflow-hidden">
-              {/* Guilloche pattern overlay */}
-              <div className="absolute inset-0 opacity-[0.08]" style={{
-                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.5) 2px, rgba(255,255,255,0.5) 3px),
-                  repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(255,255,255,0.5) 2px, rgba(255,255,255,0.5) 3px)`
-              }}></div>
-              {/* Top ornamental line */}
-              <div className="absolute top-0 left-3 right-3 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
-              {/* Bottom ornamental line */}
-              <div className="absolute bottom-0 left-3 right-3 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
-              {/* Radial glow */}
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.12),transparent_70%)]"></div>
-
+        <div className="my-2 w-[min(280px,100%)] max-w-full">
+          <div className="overflow-hidden rounded-[22px] border border-amber-200/40 bg-gradient-to-br from-amber-300/80 via-emerald-400 to-emerald-700 p-[2px] shadow-[0_14px_36px_rgba(120,53,15,0.35)]">
+            <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#10251f] via-[#163c2f] to-[#4a2a0e] px-5 py-4">
+              <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-amber-300/15 blur-3xl" />
+              <div className="absolute -bottom-12 -left-10 h-28 w-28 rounded-full bg-emerald-300/10 blur-3xl" />
+              <div className="absolute inset-0 opacity-[0.06]" style={{
+                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.7) 3px, rgba(255,255,255,0.7) 4px),
+                  repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255,255,255,0.4) 3px, rgba(255,255,255,0.4) 4px)`
+              }} />
+              <div className="absolute left-5 right-5 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/70 to-transparent" />
               <div className="relative">
-                {/* Header row */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1.5">
-                    <Gift className="w-3.5 h-3.5 text-amber-100" />
-                    <span className="text-[10px] font-bold text-amber-100 uppercase tracking-widest">{t.customerService.tip}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-200/30 bg-amber-200/15 shadow-lg shadow-black/10">
+                      <Gift className="h-4 w-4 text-amber-100" />
+                    </span>
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-100">{t.customerService.tip}</div>
+                      <div className="mt-0.5 text-[9px] font-medium text-emerald-100/65">Service appreciation</div>
+                    </div>
                   </div>
-                  <Sparkles className="w-3.5 h-3.5 text-yellow-200/80" />
+                  <span className="flex items-center gap-1 rounded-full border border-amber-200/25 bg-white/10 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-amber-100">
+                    <Sparkles className="h-3 w-3 text-amber-200" /> Reward
+                  </span>
                 </div>
-                {/* Main amount - very prominent */}
-                <div className="flex items-center justify-center py-2">
-                  <span className="text-[28px] font-black mr-0.5 bg-gradient-to-b from-yellow-100 via-white to-yellow-200 bg-clip-text text-transparent leading-none" style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.3)' }}>$</span>
-                  <span className="text-[34px] font-black tracking-tight leading-none bg-gradient-to-b from-yellow-100 via-white to-yellow-200 bg-clip-text text-transparent" style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.3)', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>{tipAmt.toFixed(2)}</span>
+                <div className="py-5 text-center">
+                  <div className="flex items-baseline justify-center text-white" style={{ textShadow: '0 4px 10px rgba(0,0,0,0.35)' }}>
+                    <span className="mr-1 text-2xl font-black text-amber-100">$</span>
+                    <span className="text-[40px] font-black leading-none tracking-tight">{tipAmt.toFixed(2)}</span>
+                  </div>
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/10 px-2.5 py-1 text-[9px] font-semibold tracking-wide text-emerald-100/75">
+                    <Star className="h-3 w-3 fill-amber-200/70 text-amber-200" />
+                    <span>{t.customerService.addedToWallet}</span>
+                  </div>
                 </div>
-                {/* Footer */}
-                <div className="flex items-center justify-center mt-2 gap-2">
-                  <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/30"></div>
-                  <span className="text-[8px] font-bold text-white/50 uppercase tracking-[0.2em]">{t.customerService.addedToWallet}</span>
-                  <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/30"></div>
+                <div className="flex items-center gap-2 border-t border-amber-100/15 pt-2.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-100/60">
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-100/30" />
+                  <span>Received with appreciation</span>
+                  <div className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-100/30" />
                 </div>
               </div>
             </div>
