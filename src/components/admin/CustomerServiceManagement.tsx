@@ -2983,7 +2983,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                   setFromHistorySource(historyScope);
                                 }
                               }}
-                              className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${
+                              className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${hasUnread ? 'min-h-[128px]' : ''} ${
                                 isSelected
                                   ? 'bg-orange-500/20 border border-orange-300/70 shadow-md shadow-orange-500/20'
                                   : hasUnread
@@ -3022,13 +3022,13 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between gap-2 mb-0.5">
+                                  <div className="flex items-start gap-2 pr-28 mb-0.5">
                                     <div className="flex min-w-0 items-center gap-1.5">
                                       {history.customer_name && (
                                         <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-blue-300' : 'text-emerald-400'}`}>{history.customer_name}</span>
                                       )}
                                     </div>
-                                    <div className="flex shrink-0 flex-col items-end gap-1">
+                                    <div className="absolute right-3 top-1/2 z-10 flex -translate-y-1/2 flex-col items-end gap-1">
                                       <span className={`text-[10px] tabular-nums whitespace-nowrap ${
                                         hasUnread ? 'text-orange-300 font-bold' : 'text-orange-200/90 font-semibold'
                                       }`}>{timeStr}</span>
