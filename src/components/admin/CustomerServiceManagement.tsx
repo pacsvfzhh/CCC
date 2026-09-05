@@ -4,6 +4,7 @@ import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, Ar
 import { supabase } from '../../lib/supabase';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
+import CustomerAvatarPicker from './CustomerAvatarPicker';
 
 interface SimulatedCustomer {
   id: string;
@@ -187,59 +188,6 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const [templateBoldActive, setTemplateBoldActive] = useState(false);
   const [templateUnderlineActive, setTemplateUnderlineActive] = useState(false);
   const [templateFontSize, setTemplateFontSize] = useState<string | null>(null);
-
-  const cartoonAvatars = [
-    { emoji: '🧑', label: 'Person' },
-    { emoji: '👨', label: 'Man' },
-    { emoji: '👩', label: 'Woman' },
-    { emoji: '🧒', label: 'Child' },
-    { emoji: '👦', label: 'Boy' },
-    { emoji: '👧', label: 'Girl' },
-    { emoji: '👴', label: 'Old Man' },
-    { emoji: '👵', label: 'Old Woman' },
-    { emoji: '👨‍💼', label: 'Businessman' },
-    { emoji: '👩‍💼', label: 'Businesswoman' },
-    { emoji: '👨‍🔧', label: 'Mechanic' },
-    { emoji: '👩‍🔧', label: 'Woman Mechanic' },
-    { emoji: '👨‍⚕️', label: 'Doctor' },
-    { emoji: '👩‍⚕️', label: 'Woman Doctor' },
-    { emoji: '👨‍🎓', label: 'Graduate' },
-    { emoji: '👩‍🎓', label: 'Woman Graduate' },
-    { emoji: '👨‍🏫', label: 'Teacher' },
-    { emoji: '👩‍🏫', label: 'Woman Teacher' },
-    { emoji: '👨‍🌾', label: 'Farmer' },
-    { emoji: '👩‍🌾', label: 'Woman Farmer' },
-    { emoji: '👨‍🍳', label: 'Chef' },
-    { emoji: '👩‍🍳', label: 'Woman Chef' },
-    { emoji: '👨‍🎨', label: 'Artist' },
-    { emoji: '👩‍🎨', label: 'Woman Artist' },
-    { emoji: '👨‍💻', label: 'Programmer' },
-    { emoji: '👩‍💻', label: 'Woman Programmer' },
-    { emoji: '🦸‍♂️', label: 'Superhero' },
-    { emoji: '🦸‍♀️', label: 'Superheroine' },
-    { emoji: '🧙‍♂️', label: 'Wizard' },
-    { emoji: '🧙‍♀️', label: 'Woman Wizard' },
-    { emoji: '🧚‍♂️', label: 'Fairy' },
-    { emoji: '🧚‍♀️', label: 'Woman Fairy' },
-    { emoji: '🧛‍♂️', label: 'Vampire' },
-    { emoji: '🧛‍♀️', label: 'Woman Vampire' },
-    { emoji: '🧜‍♂️', label: 'Merman' },
-    { emoji: '🧜‍♀️', label: 'Mermaid' },
-    { emoji: '🧝‍♂️', label: 'Elf' },
-    { emoji: '🧝‍♀️', label: 'Woman Elf' },
-    { emoji: '👼', label: 'Angel' },
-    { emoji: '🤴', label: 'Prince' },
-    { emoji: '👸', label: 'Princess' },
-    { emoji: '🤵', label: 'Groom' },
-    { emoji: '👰', label: 'Bride' },
-    { emoji: '🤶', label: 'Mrs Claus' },
-    { emoji: '🎅', label: 'Santa' },
-    { emoji: '🤠', label: 'Cowboy' },
-    { emoji: '🥷', label: 'Ninja' },
-    { emoji: '👮', label: 'Police' },
-    { emoji: '🕵️', label: 'Detective' },
-    { emoji: '💂', label: 'Guard' },
-  ];
 
   // Get all unique tags from employees
   const allTags = Array.from(
@@ -3946,23 +3894,13 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-xs font-medium text-amber-300 mb-1.5">VIP Emoji Avatar</label>
-                      <div className="grid grid-cols-6 gap-1.5 p-1.5 bg-amber-900/10 border border-amber-500/20 rounded-lg">
-                        {['👨‍💼', '👩‍💼', '🧑‍💼', '👨‍🎓', '👩‍🎓', '🧑‍🎓', '👨‍⚖️', '👩‍⚖️', '🧑‍⚖️', '👨‍🔬', '👩‍🔬', '🧑‍🔬', '🤵', '🤵‍♂️', '🤵‍♀️', '👰', '👰‍♂️', '👰‍♀️', '🤴', '👸', '🦸‍♂️', '🦸‍♀️', '🦸', '🧙‍♂️', '🧙‍♀️', '🧙', '🧚‍♂️', '🧚‍♀️', '🧚', '🧛‍♂️', '🧛‍♀️', '🧛'].map((emoji) => (
-                          <button
-                            key={emoji}
-                            type="button"
-                            onClick={() => setCustomerForm({ ...customerForm, avatar: emoji })}
-                            className={`aspect-square rounded-lg flex items-center justify-center text-xl transition-all hover:scale-110 ${
-                              customerForm.avatar === emoji
-                                ? 'bg-amber-600 scale-110 ring-2 ring-amber-400 shadow-lg shadow-amber-500/50'
-                                : 'bg-slate-800/50 hover:bg-amber-900/30 border border-amber-700/30'
-                            }`}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
+                      <label className="block text-xs font-medium text-amber-300 mb-1.5">VIP Character Avatar</label>
+                      <CustomerAvatarPicker
+                        value={customerForm.avatar}
+                        onChange={(avatar) => setCustomerForm({ ...customerForm, avatar })}
+                        theme="orange"
+                        variant="vip"
+                      />
                     </div>
                   )}
                 </div>
@@ -4071,24 +4009,13 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-400 mb-3">Select Emoji Avatar</label>
-                  <div className="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 gap-2 p-2 bg-slate-900/30 rounded-lg">
-                    {cartoonAvatars.map((avatar) => (
-                      <button
-                        key={avatar.emoji}
-                        type="button"
-                        onClick={() => setCustomerForm({ ...customerForm, avatar: avatar.emoji })}
-                        className={`aspect-square rounded-lg flex items-center justify-center text-2xl transition-all hover:scale-110 ${
-                          customerForm.avatar === avatar.emoji
-                            ? 'bg-blue-600 scale-110 ring-2 ring-blue-400'
-                            : 'bg-slate-800 hover:bg-slate-700'
-                        }`}
-                        title={avatar.label}
-                      >
-                        {avatar.emoji}
-                      </button>
-                    ))}
-                  </div>
+                  <label className="block text-sm font-medium text-orange-200 mb-3">Select Character Avatar</label>
+                  <CustomerAvatarPicker
+                    value={customerForm.avatar}
+                    onChange={(avatar) => setCustomerForm({ ...customerForm, avatar })}
+                    theme="orange"
+                    variant="regular"
+                  />
                 </div>
 
                 <div className="mb-4">
