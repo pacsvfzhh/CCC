@@ -2905,7 +2905,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                         isVip={historyCustomer?.is_super || history.customer_avatar?.startsWith('customer-avatar:vip:')}
                                         customAvatarUrl={history.custom_avatar_url}
                                         alt={history.customer_name || 'Customer avatar'}
-                                        className="h-full w-full rounded-full"
+                                        className="h-9 w-9 rounded-full"
                                       />
                                     </div>
                                   ) : (
