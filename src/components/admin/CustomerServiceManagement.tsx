@@ -1634,11 +1634,11 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     if (msg.message_type === 'image' && msg.image_url) {
       const isUploading = uploadingImage && uploadingTempIdRef.current === msg.id;
       return (
-        <div className="relative w-[340px] h-[340px] flex-shrink-0">
+        <div className="relative aspect-square w-[min(340px,100%)] max-w-full flex-shrink rounded-lg overflow-hidden">
           <img
             src={msg.image_url}
             alt="Shared image"
-            className="w-[340px] h-[340px] object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+            className="h-full w-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
             loading="lazy"
             onClick={(e: React.MouseEvent) => { if (!isUploading) { e.stopPropagation(); e.preventDefault(); setPreviewImage(msg.image_url || null); setAdminImageZoom(1); setAdminImageDrag({ x: 0, y: 0 }); } }}
           />
@@ -2194,9 +2194,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   }
 
   return (
-    <div ref={containerRef} className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
+    <div ref={containerRef} className="flex min-w-0 flex-1 flex-col gap-2 overflow-hidden">
       {/* Info Bar + History/New Buttons in one row */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex min-w-0 flex-shrink-0 flex-wrap items-center gap-2">
         {isSuperAdmin && selectedAdminId && (
           <button
             type="button"
@@ -2236,7 +2236,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
             </button>
           </div>
         )}
-        <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+        <div className="ml-auto flex max-w-full flex-shrink-0 flex-wrap items-center justify-end gap-2">
           {(() => {
             const totalUnread = allConversationHistory.filter(h => h.unread_count > 0).length;
             return (
@@ -2289,10 +2289,10 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       </div>
 
       {/* 3-Panel Layout: Customer Sidebar | Employee List | Chat */}
-      <div className="flex gap-1.5 xl:gap-2 flex-1 min-h-0 min-w-0">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto lg:flex-row lg:overflow-hidden">
 
         {/* Left: Customer Sidebar */}
-        <div className="w-64 xl:w-72 flex-shrink-0 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-orange-500/50 flex flex-col overflow-hidden">
+        <div className="flex h-[260px] w-full flex-shrink-0 flex-col overflow-hidden rounded-xl border border-orange-400/30 bg-gradient-to-b from-orange-950/35 via-slate-900/90 to-slate-950/80 shadow-xl shadow-orange-950/20 backdrop-blur-xl lg:h-auto lg:w-[clamp(13rem,20vw,18rem)]">
           {/* Sidebar Header */}
           <div className="p-3 border-b border-orange-500/40 bg-slate-800/60">
             <div className="flex items-center justify-between mb-2">
@@ -2373,8 +2373,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       ? 'p-3.5 bg-gradient-to-br from-amber-600 via-yellow-500 to-amber-500 border-2 border-yellow-300/70 shadow-lg shadow-amber-500/30 ring-1 ring-amber-300/40'
                       : 'p-3 bg-gradient-to-br from-slate-800 to-slate-800/90 border-2 border-amber-500/50 hover:border-amber-400/70 hover:shadow-md hover:shadow-amber-500/10'
                     : selectedCustomer?.id === customer.id
-                      ? 'p-2.5 bg-blue-600 border border-blue-400/40 shadow-lg shadow-blue-600/20'
-                      : 'p-2 bg-slate-800/60 border border-slate-600/40 hover:border-slate-500/60 hover:bg-slate-700/60'
+                      ? 'p-2.5 bg-orange-600 border border-orange-300/60 shadow-lg shadow-orange-600/30 ring-1 ring-orange-200/20'
+                      : 'p-2 bg-slate-800/60 border border-slate-600/40 hover:border-orange-300/70 hover:bg-orange-900/25 hover:shadow-lg hover:shadow-orange-950/40'
                 }`}
                 onClick={() => handleSelectCustomer(customer)}
               >
@@ -2508,7 +2508,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         </div>
 
         {/* Middle: Employee List */}
-        <div className="w-56 xl:w-64 flex-shrink-0 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-orange-500/50 overflow-hidden flex flex-col">
+        <div className="flex h-[240px] w-full flex-shrink-0 flex-col overflow-hidden rounded-xl border border-orange-400/30 bg-gradient-to-b from-orange-950/25 via-slate-900/90 to-slate-950/80 shadow-xl shadow-orange-950/20 backdrop-blur-xl lg:h-auto lg:w-[clamp(11rem,17vw,16rem)]">
           {/* Employee Header */}
           <div className="p-2 border-b border-orange-500/40 bg-slate-800/60 space-y-1.5">
             {/* Search + Tag dropdown row */}
@@ -2610,8 +2610,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                     onClick={() => handleSelectEmployee(emp)}
                     className={`group w-full rounded-lg transition-all duration-150 text-left ${
                       selectedEmployee?.id === emp.id
-                        ? 'px-2.5 py-2.5 bg-green-600 border border-green-400/50 shadow-md shadow-green-900/40 ring-1 ring-green-400/30'
-                        : 'px-2 py-1.5 border border-transparent hover:bg-[#334155]'
+                        ? 'px-2.5 py-2.5 bg-orange-600 border border-orange-300/60 shadow-md shadow-orange-900/40 ring-1 ring-orange-300/30'
+                        : 'px-2 py-1.5 border border-transparent hover:bg-orange-950/45 hover:border-orange-400/40'
                     }`}
                   >
                     <div className={`flex items-center ${selectedEmployee?.id === emp.id ? 'gap-2' : 'gap-1.5'}`}>
@@ -2653,18 +2653,18 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           </div>
 
           {/* Right: Chat Interface or History View */}
-          <div className="flex-1 min-w-0 flex flex-col relative">
+          <div className="relative flex min-h-[420px] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-orange-400/30 bg-slate-950/75 shadow-2xl shadow-orange-950/15 backdrop-blur-xl">
           {/* History / Sessions Panel */}
           <div className={`absolute inset-0 transition-all duration-300 ease-in-out ${
             showHistoryView || (selectedCustomer && !selectedEmployee)
               ? 'opacity-100 translate-y-0 z-10 pointer-events-auto'
               : 'opacity-0 translate-y-2 z-0 pointer-events-none'
           }`}>
-            <div className="bg-slate-900/80 backdrop-blur-xl rounded-xl border border-orange-500/50 overflow-hidden flex flex-col h-full">
+            <div className="flex h-full flex-col overflow-hidden rounded-xl border border-orange-400/35 bg-gradient-to-b from-orange-950/20 via-slate-900/90 to-slate-950/95 shadow-2xl shadow-orange-950/20 backdrop-blur-xl">
               {/* Active Sessions Header */}
-              <div className="bg-slate-800/60 px-4 border-b border-orange-500/40 h-[68px] flex items-center">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3">
+              <div className="flex min-h-[72px] items-center border-b border-orange-400/35 bg-gradient-to-r from-slate-900 via-slate-800/95 to-orange-950/25 px-3 py-2">
+                <div className="flex min-w-0 w-full flex-wrap items-center gap-2.5">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
                     {selectedCustomer ? (
                       <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl overflow-hidden bg-slate-700/50 ring-2 ring-slate-600/50 flex-shrink-0">
                         {selectedCustomer?.custom_avatar_url ? (
@@ -2782,10 +2782,10 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                               }}
                               className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative overflow-hidden ${
                                 isSelected
-                                  ? 'bg-blue-600/15 border border-blue-500/40 shadow-sm shadow-blue-500/10'
+                                  ? 'bg-orange-500/20 border border-orange-300/70 shadow-md shadow-orange-500/20'
                                   : hasUnread
-                                    ? 'bg-gradient-to-r from-orange-950/30 to-amber-950/20 border border-orange-500/40 hover:border-orange-400/60 shadow-sm shadow-orange-500/15'
-                                    : 'bg-slate-800/30 hover:bg-slate-700/40 border border-slate-700/30 hover:border-slate-600/50'
+                                    ? 'bg-gradient-to-r from-orange-950/40 to-amber-950/25 border border-orange-400/60 hover:border-orange-200/90 shadow-sm shadow-orange-500/20'
+                                    : 'bg-slate-800/30 hover:bg-orange-900/25 border border-slate-700/40 hover:border-orange-400/60 hover:shadow-md hover:shadow-orange-950/30'
                               }`}
                             >
                               {isSelected ? (
@@ -2866,11 +2866,11 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
               ? 'opacity-100 translate-y-0 z-10 pointer-events-auto'
               : 'opacity-0 translate-y-2 z-0 pointer-events-none'
           }`}>
-            <div className="bg-slate-900/80 backdrop-blur-xl rounded-xl border border-orange-500/50 overflow-hidden flex flex-col h-full">
+            <div className="flex h-full flex-col overflow-hidden rounded-xl border border-orange-400/35 bg-gradient-to-b from-orange-950/20 via-slate-900/90 to-slate-950/95 shadow-2xl shadow-orange-950/20 backdrop-blur-xl">
               {/* Chat Header */}
-              <div className="bg-slate-800/60 px-4 border-b border-orange-500/40 h-[68px] flex items-center">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3">
+              <div className="flex min-h-[72px] items-center border-b border-orange-400/35 bg-gradient-to-r from-slate-900 via-slate-800/95 to-orange-950/25 px-3 py-2">
+                <div className="flex min-w-0 w-full flex-wrap items-center gap-2.5">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
                     <button
                       type="button"
                       onClick={() => {
@@ -2900,7 +2900,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       <ArrowLeft className="w-3.5 h-3.5" />
                       <span>Back</span>
                     </button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
                       <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl overflow-hidden bg-slate-700/50 border border-slate-600/50 flex-shrink-0">
                         {selectedCustomer?.custom_avatar_url ? (
                           <img src={selectedCustomer?.custom_avatar_url || ''} alt={selectedCustomer?.customer_name} className="w-full h-full object-cover" loading="lazy" />
@@ -2917,21 +2917,21 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                       </div>
                     </div>
                     <div className="h-8 w-px bg-orange-500/50 mx-1 flex-shrink-0"></div>
-                    <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-9 h-9 flex-shrink-0 rounded-lg border border-orange-300/30 bg-orange-500/20 flex items-center justify-center">
                       <User className="w-5 h-5 text-white" />
                     </div>
                     <div className="min-w-0">
                       <div className="text-white text-sm font-bold leading-tight truncate">{selectedEmployee?.username}</div>
-                      <div className="text-[11px] text-blue-400 leading-tight mt-0.5">ID: {selectedEmployee?.employee_id}</div>
+                      <div className="text-[11px] text-orange-300 leading-tight mt-0.5 truncate">ID: {selectedEmployee?.employee_id}</div>
                     </div>
                     {serviceTicketNumber && (
-                      <div className="flex items-center gap-1.5 ml-2 px-2.5 py-1.5 bg-gradient-to-r from-blue-600/20 to-cyan-600/15 border border-blue-500/40 rounded-lg flex-shrink-0">
+                      <div className="flex max-w-[150px] items-center gap-1.5 rounded-lg border border-orange-400/30 bg-gradient-to-r from-orange-500/15 to-amber-500/10 px-2.5 py-1.5 ml-2 flex-shrink-0">
                         <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
-                        <span className="text-[11px] text-blue-300 font-mono font-bold tracking-wide">{serviceTicketNumber}</span>
+                        <span className="truncate text-[11px] text-orange-200 font-mono font-bold tracking-wide">{serviceTicketNumber}</span>
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="ml-auto flex max-w-full shrink-0 flex-wrap items-center justify-end gap-1.5">
                     {(() => {
                       const totalUnread = conversationHistory.reduce((sum, h) => sum + h.unread_count, 0);
                       return (
@@ -2939,7 +2939,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                           <button
                             type="button"
                             onClick={() => { setSelectedEmployee(null); setShowHistoryView(true); setHistoryFilterMode('all'); setFromHistorySource('none'); setHistoryScope('customer'); }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 border border-blue-400/60 rounded-lg text-xs font-bold text-white shadow-md shadow-blue-600/30 hover:shadow-blue-500/40 transition-all"
+                            className="flex items-center gap-1.5 rounded-lg border border-orange-300/60 bg-orange-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-md shadow-orange-600/30 transition-all hover:bg-orange-500 hover:shadow-orange-500/40"
                             title="History messages"
                           >
                             <Clock className="w-4 h-4" />
@@ -2971,8 +2971,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
               {/* Messages */}
               <div ref={messagesContainerCallbackRef} className="flex-1 overflow-y-auto flex flex-col-reverse scrollbar-dark" style={{
-                background: 'linear-gradient(180deg, #1a2332 0%, #15202e 40%, #1a2332 100%)',
-                backgroundImage: `linear-gradient(180deg, #1a2332 0%, #15202e 40%, #1a2332 100%), radial-gradient(circle at 20% 50%, rgba(59,130,246,0.04) 0%, transparent 50%), radial-gradient(circle at 80% 30%, rgba(16,185,129,0.04) 0%, transparent 50%)`
+                background: 'linear-gradient(180deg, #24170f 0%, #1b1513 40%, #24170f 100%)',
+                backgroundImage: `linear-gradient(180deg, #24170f 0%, #1b1513 40%, #24170f 100%), radial-gradient(circle at 20% 50%, rgba(249,115,22,0.05) 0%, transparent 50%), radial-gradient(circle at 80% 30%, rgba(245,158,11,0.04) 0%, transparent 50%)`
               }}>
                 <div className="p-4 space-y-3 mb-auto">
                 {messages.length === 0 ? (
