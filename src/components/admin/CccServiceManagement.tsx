@@ -263,6 +263,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   const allCustomersRef = useRef<SimulatedCustomer[]>([]);
   const allEmployeesRef = useRef<Employee[]>([]);
   const conversationHistoryRef = useRef<ConversationHistory[]>([]);
+  const conversationHistoryLoadRequestRef = useRef(0);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
   const customerUnreadCountsRef = useRef<Record<string, number>>({});
   const locallyReadConversationKeysRef = useRef(new Set<string>());
@@ -622,24 +623,32 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   const loadConversationHistoryForCustomer = useCallback(async (customer: SimulatedCustomer) => {
     if (employees.length === 0) return;
 
+    const requestId = ++conversationHistoryLoadRequestRef.current;
+
     try {
       const employeeIds = employees.map(e => e.id);
-      const { data, error } = await supabase
-        .from('customer_employee_conversations')
-        .select('employee_id, sender_type, message_type, is_read, created_at')
-        .eq('customer_id', customer.id)
-        .in('employee_id', employeeIds)
-        .eq('source_type', 'ccc_service');
+      const [conversationResult, lastMessageResult] = await Promise.all([
+        supabase
+          .from('customer_employee_conversations')
+          .select('employee_id, sender_type, message_type, is_read, created_at')
+          .eq('customer_id', customer.id)
+          .in('employee_id', employeeIds)
+          .eq('source_type', 'ccc_service'),
+        supabase
+          .from('customer_employee_conversations')
+          .select('employee_id, message_content, message_type, created_at')
+          .eq('customer_id', customer.id)
+          .in('employee_id', employeeIds)
+          .eq('source_type', 'ccc_service')
+          .order('created_at', { ascending: false }),
+      ]);
 
-      if (error) throw error;
+      if (requestId !== conversationHistoryLoadRequestRef.current) return;
+      if (conversationResult.error) throw conversationResult.error;
+      if (lastMessageResult.error) throw lastMessageResult.error;
 
-      const { data: lastMsgs } = await supabase
-        .from('customer_employee_conversations')
-        .select('employee_id, message_content, message_type, created_at')
-        .eq('customer_id', customer.id)
-        .in('employee_id', employeeIds)
-        .eq('source_type', 'ccc_service')
-        .order('created_at', { ascending: false });
+      const data = conversationResult.data;
+      const lastMsgs = lastMessageResult.data;
 
       const lastMsgMap = new Map<string, { message_content: string; message_type: string; created_at: string }>();
       for (const msg of lastMsgs || []) {
@@ -686,7 +695,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         }
       }
 
-      setConversationHistory(Array.from(historyMap.values()));
+      if (requestId !== conversationHistoryLoadRequestRef.current) return;
+      const nextHistory = Array.from(historyMap.values());
+      conversationHistoryRef.current = nextHistory;
+      setConversationHistory(nextHistory);
     } catch (error) {
       console.error('Error loading conversation history:', error);
     }
@@ -3657,7 +3669,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                         <div className="relative">
                           <button
                             type="button"
-                            onClick={() => { setSelectedEmployee(null); setShowHistoryView(true); setHistoryFilterMode('all'); setFromHistorySource('none'); setHistoryScope('customer'); }}
+                            onClick={() => { void loadConversationHistory(); setSelectedEmployee(null); setShowHistoryView(true); setHistoryFilterMode('all'); setFromHistorySource('none'); setHistoryScope('customer'); }}
                             className="flex items-center gap-1.5 rounded-lg border border-emerald-300/60 bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-md shadow-emerald-600/30 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
                             title="History messages"
                           >

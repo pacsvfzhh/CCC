@@ -177,6 +177,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const allCustomersRef = useRef<SimulatedCustomer[]>([]);
   const allEmployeesRef = useRef<Employee[]>([]);
   const conversationHistoryRef = useRef<ConversationHistory[]>([]);
+  const conversationHistoryLoadRequestRef = useRef(0);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
   const customerUnreadCountsRef = useRef<Record<string, number>>({});
   const locallyReadConversationKeysRef = useRef(new Set<string>());
@@ -444,21 +445,29 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const loadConversationHistoryForCustomer = useCallback(async (customer: SimulatedCustomer) => {
     if (employees.length === 0) return;
 
+    const requestId = ++conversationHistoryLoadRequestRef.current;
+
     try {
-      const { data, error } = await supabase
-        .from('customer_employee_conversations')
-        .select('employee_id, sender_type, message_type, is_read, created_at')
-        .eq('customer_id', customer.id)
-        .eq('source_type', 'aaa_service');
+      const [conversationResult, lastMessageResult] = await Promise.all([
+        supabase
+          .from('customer_employee_conversations')
+          .select('employee_id, sender_type, message_type, is_read, created_at')
+          .eq('customer_id', customer.id)
+          .eq('source_type', 'aaa_service'),
+        supabase
+          .from('customer_employee_conversations')
+          .select('employee_id, message_content, message_type, created_at')
+          .eq('customer_id', customer.id)
+          .eq('source_type', 'aaa_service')
+          .order('created_at', { ascending: false }),
+      ]);
 
-      if (error) throw error;
+      if (requestId !== conversationHistoryLoadRequestRef.current) return;
+      if (conversationResult.error) throw conversationResult.error;
+      if (lastMessageResult.error) throw lastMessageResult.error;
 
-      const { data: lastMsgs } = await supabase
-        .from('customer_employee_conversations')
-        .select('employee_id, message_content, message_type, created_at')
-        .eq('customer_id', customer.id)
-        .eq('source_type', 'aaa_service')
-        .order('created_at', { ascending: false });
+      const data = conversationResult.data;
+      const lastMsgs = lastMessageResult.data;
 
       const lastMsgMap = new Map<string, { message_content: string; message_type: string; created_at: string }>();
       for (const msg of lastMsgs || []) {
@@ -505,7 +514,10 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         }
       }
 
-      setConversationHistory(Array.from(historyMap.values()));
+      if (requestId !== conversationHistoryLoadRequestRef.current) return;
+      const nextHistory = Array.from(historyMap.values());
+      conversationHistoryRef.current = nextHistory;
+      setConversationHistory(nextHistory);
     } catch (error) {
       console.error('Error loading conversation history:', error);
     }
@@ -3300,7 +3312,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                         <div className="relative">
                           <button
                             type="button"
-                            onClick={() => { setSelectedEmployee(null); setShowHistoryView(true); setHistoryFilterMode('all'); setFromHistorySource('none'); setHistoryScope('customer'); }}
+                            onClick={() => { void loadConversationHistory(); setSelectedEmployee(null); setShowHistoryView(true); setHistoryFilterMode('all'); setFromHistorySource('none'); setHistoryScope('customer'); }}
                             className="flex items-center gap-1.5 rounded-lg border border-orange-300/60 bg-orange-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-md shadow-orange-600/30 transition-all hover:bg-orange-500 hover:shadow-orange-500/40"
                             title="History messages"
                           >
