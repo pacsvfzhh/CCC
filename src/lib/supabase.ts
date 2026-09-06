@@ -16,17 +16,34 @@ const clientKey = supabaseAnonKey || 'missing-anon-key';
 
 const fetchWithTimeout: typeof fetch = async (input, init) => {
   const controller = new AbortController();
+  const callerSignal = init?.signal;
   const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const forwardCallerAbort = () => controller.abort();
+
+  if (callerSignal) {
+    if (callerSignal.aborted) {
+      controller.abort();
+    } else {
+      callerSignal.addEventListener('abort', forwardCallerAbort, { once: true });
+    }
+  }
 
   try {
     return await fetch(input, { ...init, signal: controller.signal });
   } catch (error) {
+    if (callerSignal?.aborted) {
+      throw error;
+    }
     if (controller.signal.aborted) {
       throw new Error('Supabase request timed out. Check your project URL and network connection.');
+    }
+    if (error instanceof TypeError) {
+      throw new Error('Unable to connect to Supabase. Check your network connection and project URL.');
     }
     throw error;
   } finally {
     window.clearTimeout(timeoutId);
+    callerSignal?.removeEventListener('abort', forwardCallerAbort);
   }
 };
 

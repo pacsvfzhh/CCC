@@ -1091,7 +1091,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       () => messagePrefetchRequestsRef.current.delete(customerId),
       () => messagePrefetchRequestsRef.current.delete(customerId),
     );
-    await request;
+    try {
+      await request;
+    } catch {
+      // Background prefetch is optional; the foreground load will retry when opened.
+    }
   };
 
   const loadMessages = async () => {
@@ -1248,6 +1252,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           return;
         }
         setServiceTicketNumber(sessionData[0].service_ticket_number);
+      }).catch(() => {
+        // The ticket number is secondary to displaying the chat messages.
       });
     } catch (error) {
       console.error('Error loading messages from DB:', error);
@@ -1368,6 +1374,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             stableKeyMapRef.current.set(newMsg.id, tempId);
             setMessages(prev => prev.map(m => m.id === tempId ? newMsg : m));
           }
+        })
+        .catch((error) => {
+          console.error('Failed to save image message:', error);
+          setMessages(prev => prev.filter(m => m.id !== tempId));
+          setNotification({ type: 'error', text: t.customerService.saveImageError });
         });
     } catch (error: any) {
       setNotification({ type: 'error', text: error.message || t.customerService.uploadError });
