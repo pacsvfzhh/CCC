@@ -198,6 +198,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   const [uploadProgress, setUploadProgress] = useState(0);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const uploadingTempIdRef = useRef<string | null>(null);
+  const pendingImageMessagesRef = useRef(new Map<string, Message>());
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [adminImageZoom, setAdminImageZoom] = useState(1);
   const [adminImageDrag, setAdminImageDrag] = useState({ x: 0, y: 0 });
@@ -842,7 +843,18 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
       if (error) throw error;
       const sorted = (data || []).reverse();
-      setMessages(sorted);
+      const pendingMessages = Array.from(pendingImageMessagesRef.current.values()).filter(message =>
+        message.customer_id === selectedCustomer.id && message.employee_id === selectedEmployee.id
+      );
+      const confirmedPendingIds = new Set(
+        pendingMessages
+          .filter(pending => sorted.some(message => message.image_url === pending.image_url))
+          .map(message => message.id)
+      );
+      confirmedPendingIds.forEach(messageId => pendingImageMessagesRef.current.delete(messageId));
+      const visibleMessages = [...sorted, ...pendingMessages.filter(message => !confirmedPendingIds.has(message.id))]
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      setMessages(visibleMessages);
       setHasMoreMessages((data || []).length >= MESSAGE_PAGE_SIZE);
       setMessagesLoading(false);
 
@@ -2000,6 +2012,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       created_at: new Date().toISOString(),
     };
 
+    pendingImageMessagesRef.current.set(tempId, tempMessage);
     setMessages(prev => [...prev, tempMessage]);
     scrollToBottom(false);
     uploadingTempIdRef.current = tempId;
@@ -2029,13 +2042,13 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       animateProgressTo(90, 100, 150);
       await new Promise(r => setTimeout(r, 150));
 
+      const pendingMessage = pendingImageMessagesRef.current.get(tempId);
+      if (pendingMessage) {
+        pendingImageMessagesRef.current.set(tempId, { ...pendingMessage, image_url: publicUrl });
+      }
       setMessages(prev => prev.map(m => m.id === tempId ? { ...m, image_url: publicUrl } : m));
-      uploadingTempIdRef.current = null;
-      setUploadingImage(false);
-      setUploadProgress(0);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
 
-      supabase
+      const { error: insertError } = await supabase
         .from('customer_employee_conversations')
         .insert({
           customer_id: selectedCustomer.id,
@@ -2045,17 +2058,18 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           message_type: 'image',
           image_url: publicUrl,
           source_type: 'ccc_service',
-        })
-        .then(({ error: insertError }) => {
-          if (insertError) {
-            console.error('Failed to save message:', insertError);
-            setMessages(prev => prev.filter(m => m.id !== tempId));
-            setNotification({ type: 'error', text: 'Failed to save image message' });
-          }
-          loadMessages();
-          loadConversationHistory();
         });
+
+      if (insertError) throw insertError;
+
+      uploadingTempIdRef.current = null;
+      setUploadingImage(false);
+      setUploadProgress(0);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      void loadMessages();
+      void loadConversationHistory();
     } catch (error: any) {
+      pendingImageMessagesRef.current.delete(tempId);
       setNotification({ type: 'error', text: error.message || 'Failed to upload image' });
       setMessages(prev => prev.filter(m => m.id !== tempId));
       uploadingTempIdRef.current = null;
