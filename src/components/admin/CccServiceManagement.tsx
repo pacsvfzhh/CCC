@@ -484,6 +484,38 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     employeeListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [selectedEmployee?.id]);
 
+  const loadCustomerUnreadCounts = useCallback(async (customerIds: string[]) => {
+    if (!selectedAdminId || customerIds.length === 0) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('customer_employee_conversations')
+        .select('customer_id, users!inner(created_by)')
+        .in('customer_id', customerIds)
+        .eq('users.created_by', selectedAdminId)
+        .eq('sender_type', 'employee')
+        .eq('source_type', 'ccc_service')
+        .eq('is_read', false);
+
+      if (error) throw error;
+
+      const counts: Record<string, number> = {};
+      data?.forEach(msg => {
+        counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
+      });
+
+      setCustomerUnreadCounts(prev => {
+        const previousIds = Object.keys(prev);
+        const countIds = Object.keys(counts);
+        const hasChanged = previousIds.length !== countIds.length ||
+          previousIds.some(id => prev[id] !== counts[id]);
+        return hasChanged ? counts : prev;
+      });
+    } catch (error) {
+      console.error('Error loading unread counts:', error);
+    }
+  }, [selectedAdminId]);
+
   const loadAdminUnreadCounts = async (adminIds: string[]) => {
     try {
       const counts: Record<string, number> = {};
@@ -1574,41 +1606,6 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       setNotification({ type: 'error', text: 'Failed to load data' });
     } finally {
       if (!silent) setLoading(false);
-    }
-  };
-
-  const loadCustomerUnreadCounts = async (customerIds: string[]) => {
-    if (!selectedAdminId || customerIds.length === 0) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('customer_employee_conversations')
-        .select('customer_id, users!inner(created_by)')
-        .in('customer_id', customerIds)
-        .eq('users.created_by', selectedAdminId)
-        .eq('sender_type', 'employee')
-        .eq('source_type', 'ccc_service')
-        .eq('is_read', false);
-
-      if (error) throw error;
-
-      // Count unread messages per customer
-      const counts: Record<string, number> = {};
-      data?.forEach(msg => {
-        counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
-      });
-
-
-      // Only update state if counts have actually changed to prevent unnecessary re-renders
-      setCustomerUnreadCounts(prev => {
-        const previousIds = Object.keys(prev);
-        const countIds = Object.keys(counts);
-        const hasChanged = previousIds.length !== countIds.length ||
-          previousIds.some(id => prev[id] !== counts[id]);
-        return hasChanged ? counts : prev;
-      });
-    } catch (error) {
-      console.error('Error loading unread counts:', error);
     }
   };
 
