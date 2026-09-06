@@ -286,6 +286,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   }, [conversationHistory, employees, historyFilterMode, historySearchQuery, selectedEmployee]);
 
   const loadMessagesRef = useRef<(markAsRead?: boolean) => void>();
+  const messagesLoadRequestRef = useRef(0);
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
   const justSentRef = useRef(false);
@@ -649,6 +650,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const loadMessages = useCallback(async (markAsRead: boolean = true) => {
     if (!selectedCustomer || !selectedEmployee) return;
 
+    const requestId = ++messagesLoadRequestRef.current;
     try {
       const { data, error } = await supabase
         .from('customer_employee_conversations')
@@ -660,6 +662,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         .limit(MESSAGE_PAGE_SIZE);
 
       if (error) throw error;
+      if (requestId !== messagesLoadRequestRef.current) return;
       const sorted = (data || []).reverse();
       const pendingMessages = Array.from(pendingImageMessagesRef.current.values()).filter(message =>
         message.customer_id === selectedCustomer.id && message.employee_id === selectedEmployee.id
@@ -710,6 +713,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         setServiceTicketNumber(sessionData[0].service_ticket_number);
       }
     } catch (error) {
+      if (requestId !== messagesLoadRequestRef.current) return;
       console.error('Error loading messages:', error);
       setMessagesLoading(false);
     }
@@ -1777,6 +1781,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       }
       setMessages(prev => prev.map(m => m.id === tempId ? { ...m, image_url: publicUrl } : m));
 
+      justSentRef.current = true;
+      setTimeout(() => { justSentRef.current = false; }, 3000);
+
       const { error: insertError } = await supabase
         .from('customer_employee_conversations')
         .insert({
@@ -1795,7 +1802,6 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       setUploadingImage(false);
       setUploadProgress(0);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      void loadMessages();
       void loadConversationHistory();
     } catch (error: any) {
       pendingImageMessagesRef.current.delete(tempId);
