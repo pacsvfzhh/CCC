@@ -7,7 +7,7 @@ import { useCompanyName } from '../../lib/useCompanyName';
 import { AdminBackground } from '../AdminBackground';
 import { supabase } from '../../lib/supabase';
 import { autoCleanupService } from '../../services/autoCleanupService';
-import { prefetchAdminGroups, prefetchAdminWorkspaceData } from '../../lib/serviceWorkspaceCache';
+import { prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 
 const EmployeeManagement = lazy(() => import('./EmployeeManagement'));
 const ProductTypeManagement = lazy(() => import('./ProductTypeManagement'));
@@ -114,6 +114,26 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       });
       void prefetchAdminWorkspaceData(admin.id, 'manager').catch(error => {
         console.warn('Unable to prefetch manager service data:', error);
+      });
+      void prefetchConversationSummaries(admin.id, 'customer', async () => {
+        const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
+          p_admin_id: admin.id,
+          p_source_type: 'aaa_service'
+        });
+        if (error) throw error;
+        return data || [];
+      }).catch(error => {
+        console.warn('Unable to prefetch customer service sessions:', error);
+      });
+      void prefetchConversationSummaries(admin.id, 'manager', async () => {
+        const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
+          p_admin_id: admin.id,
+          p_source_type: 'ccc_service'
+        });
+        if (error) throw error;
+        return data || [];
+      }).catch(error => {
+        console.warn('Unable to prefetch manager service sessions:', error);
       });
     }
 

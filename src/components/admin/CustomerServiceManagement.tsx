@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, TrendingUp, X, Search, Tag, Filter, Image, Paperclip, Star, History, Clock, Bold, Underline, Strikethrough, Type, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData } from '../../lib/serviceWorkspaceCache';
+import { invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 import { clearConversationRead, isConversationReadThrough, markConversationRead } from '../../lib/conversationReadState';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
@@ -513,27 +513,36 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     return loadConversationHistoryForCustomer(selectedCustomer);
   }, [selectedCustomer, loadConversationHistoryForCustomer]);
 
-  const loadAllConversationHistory = useCallback(async () => {
+  const loadAllConversationHistory = useCallback(async (force = false) => {
     if (!selectedAdminId) return;
     try {
-      const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-        p_admin_id: selectedAdminId,
-        p_source_type: 'aaa_service'
-      });
+      const data = await prefetchConversationSummaries(
+        selectedAdminId,
+        'customer',
+        async () => {
+          const { data: summaries, error } = await supabase.rpc('get_ccc_conversation_summaries', {
+            p_admin_id: selectedAdminId,
+            p_source_type: 'aaa_service'
+          });
 
-      if (error) throw error;
+          if (error) throw error;
+          return summaries || [];
+        },
+        force,
+      );
 
-      const employeeIds = (data || []).map((row: any) => row.employee_id).filter(Boolean);
-      const { data: employeeMeta } = employeeIds.length > 0
-        ? await supabase.from('users').select('*').in('id', employeeIds)
-        : { data: [] as { id: string; tags?: string[]; remarks?: string }[] };
+      const employeeIds = data.map((row: any) => row.employee_id).filter(Boolean);
       const employeeMetaById = new Map<string, { id: string; tags?: string[]; remarks?: string }>();
       allEmployeesRef.current.forEach(employee => {
         employeeMetaById.set(employee.id, employee);
       });
-      (employeeMeta || []).forEach(employee => {
-        employeeMetaById.set(employee.id, employee);
-      });
+      const missingEmployeeIds = employeeIds.filter((employeeId: string) => !employeeMetaById.has(employeeId));
+      if (missingEmployeeIds.length > 0) {
+        const { data: employeeMeta } = await supabase.from('users').select('*').in('id', missingEmployeeIds);
+        (employeeMeta || []).forEach(employee => {
+          employeeMetaById.set(employee.id, employee);
+        });
+      }
 
       const allHistory: ConversationHistory[] = (data || []).map((row: any) => {
         const employee = employeeMetaById.get(row.employee_id);
@@ -673,10 +682,10 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           console.error('Error marking conversation as read:', markReadError);
           void loadCustomerUnreadCounts([customerId]);
           void loadConversationHistoryForCustomer(selectedCustomer);
-          void loadAllConversationHistory();
+          void loadAllConversationHistory(true);
         } else {
           void loadCustomerUnreadCounts([customerId]);
-          void loadAllConversationHistory();
+          void loadAllConversationHistory(true);
         }
       }
 
@@ -706,12 +715,12 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       setSelectedCustomer(null);
       setSelectedEmployee(null);
       setMessages([]);
-      setConversationHistory([]);
+      setConversationHistory(allConversationHistoryRef.current);
       setShowHistoryView(true);
       setHistoryScope('all');
       setHistoryFilterMode('all');
       if (selectedAdminId) {
-        loadAllConversationHistory();
+        void loadAllConversationHistory();
       }
     }
 
@@ -888,7 +897,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             loadCustomerUnreadCounts(customerIds);
-            loadAllConversationHistory();
+            loadAllConversationHistory(true);
           }, 400);
         })
         .subscribe();
@@ -3182,7 +3191,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                           setShowHistoryView(true);
                           setHistoryFilterMode(fromHistoryFilterMode);
                           setHistoryScope('all');
-                          loadAllConversationHistory();
+                          void loadAllConversationHistory(true);
                         } else if (fromHistorySource === 'customer') {
                           pendingScrollRestoreRef.current = true;
                           setSelectedEmployee(null);

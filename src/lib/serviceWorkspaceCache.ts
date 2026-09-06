@@ -15,6 +15,8 @@ export interface ServiceWorkspaceData<TCustomer = Record<string, unknown>, TEmpl
 
 const pendingDataRequests = new Map<string, Promise<ServiceWorkspaceData>>();
 const cachedWorkspaceData = new Map<string, ServiceWorkspaceData>();
+const pendingConversationRequests = new Map<string, Promise<unknown[]>>();
+const cachedConversationSummaries = new Map<string, unknown[]>();
 
 function getSourceType(service: ServiceWorkspace): WorkspaceSource {
   return service === 'customer' ? 'aaa_service' : 'ccc_service';
@@ -114,9 +116,42 @@ export function invalidateAdminGroupsCache(
   cachedGroups.delete(getCacheKey(adminId, service));
 }
 
+export function prefetchConversationSummaries<TSummary = unknown>(
+  adminId: string,
+  service: ServiceWorkspace,
+  loader: () => Promise<TSummary[]>,
+  force = false,
+): Promise<TSummary[]> {
+  const cacheKey = `${getCacheKey(adminId, service)}:conversations`;
+  const pending = pendingConversationRequests.get(cacheKey);
+  if (pending) return pending as Promise<TSummary[]>;
+
+  if (!force) {
+    const cached = cachedConversationSummaries.get(cacheKey);
+    if (cached) return Promise.resolve(cached as TSummary[]);
+  }
+
+  const request = loader().then(summaries => {
+    cachedConversationSummaries.set(cacheKey, summaries);
+    return summaries;
+  }).finally(() => {
+    pendingConversationRequests.delete(cacheKey);
+  });
+
+  pendingConversationRequests.set(cacheKey, request);
+  return request;
+}
+
 export function invalidateAdminWorkspaceDataCache(
   adminId: string,
   service: ServiceWorkspace,
 ) {
   cachedWorkspaceData.delete(getDataCacheKey(adminId, service));
+}
+
+export function invalidateConversationSummariesCache(
+  adminId: string,
+  service: ServiceWorkspace,
+) {
+  cachedConversationSummaries.delete(`${getCacheKey(adminId, service)}:conversations`);
 }

@@ -6,7 +6,7 @@ import CustomerAutoMessages from './CustomerAutoMessages';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
 import TiptapEditor, { TiptapEditorRef } from './TiptapEditor';
 import { supabase } from '../../lib/supabase';
-import { invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData } from '../../lib/serviceWorkspaceCache';
+import { invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 import { clearConversationRead, isConversationReadThrough, markConversationRead } from '../../lib/conversationReadState';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import { processContentImages } from '../../lib/imageOptimizer';
@@ -694,28 +694,37 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     return loadConversationHistoryForCustomer(selectedCustomer);
   }, [selectedCustomer, loadConversationHistoryForCustomer]);
 
-  const loadAllConversationHistory = useCallback(async (overrideAdminId?: string) => {
+  const loadAllConversationHistory = useCallback(async (overrideAdminId?: string, force = false) => {
     const adminIdToUse = overrideAdminId || selectedAdminId;
     if (!adminIdToUse) return;
     try {
-      const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-        p_admin_id: adminIdToUse,
-        p_source_type: 'ccc_service'
-      });
+      const data = await prefetchConversationSummaries(
+        adminIdToUse,
+        'manager',
+        async () => {
+          const { data: summaries, error } = await supabase.rpc('get_ccc_conversation_summaries', {
+            p_admin_id: adminIdToUse,
+            p_source_type: 'ccc_service'
+          });
 
-      if (error) throw error;
+          if (error) throw error;
+          return summaries || [];
+        },
+        force,
+      );
 
-      const employeeIds = (data || []).map((row: any) => row.employee_id).filter(Boolean);
-      const { data: employeeMeta } = employeeIds.length > 0
-        ? await supabase.from('users').select('*').in('id', employeeIds)
-        : { data: [] as { id: string; tags?: string[]; remarks?: string }[] };
+      const employeeIds = data.map((row: any) => row.employee_id).filter(Boolean);
       const employeeMetaById = new Map<string, { id: string; tags?: string[]; remarks?: string }>();
       allEmployeesRef.current.forEach(employee => {
         employeeMetaById.set(employee.id, employee);
       });
-      (employeeMeta || []).forEach(employee => {
-        employeeMetaById.set(employee.id, employee);
-      });
+      const missingEmployeeIds = employeeIds.filter((employeeId: string) => !employeeMetaById.has(employeeId));
+      if (missingEmployeeIds.length > 0) {
+        const { data: employeeMeta } = await supabase.from('users').select('*').in('id', missingEmployeeIds);
+        (employeeMeta || []).forEach(employee => {
+          employeeMetaById.set(employee.id, employee);
+        });
+      }
 
       const allHistory: ConversationHistory[] = (data || []).map((row: any) => {
         const employee = employeeMetaById.get(row.employee_id);
@@ -855,10 +864,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           console.error('Error marking conversation as read:', markReadError);
           void loadCustomerUnreadCounts([customerId]);
           void loadConversationHistoryForCustomer(selectedCustomer);
-          void loadAllConversationHistory();
+          void loadAllConversationHistory(undefined, true);
         } else {
           void loadCustomerUnreadCounts([customerId]);
-          void loadAllConversationHistory();
+          void loadAllConversationHistory(undefined, true);
         }
       }
 
@@ -887,12 +896,12 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       setSelectedCustomer(null);
       setSelectedEmployee(null);
       setMessages([]);
-      setConversationHistory([]);
+      setConversationHistory(allConversationHistoryRef.current);
       setShowHistoryView(true);
       setHistoryScope('all');
       setHistoryFilterMode('all');
       if (selectedAdminId) {
-        loadAllConversationHistory();
+        void loadAllConversationHistory();
       }
     }
 
@@ -1075,7 +1084,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             loadCustomerUnreadCounts(customerIds);
-            loadAllConversationHistory();
+            loadAllConversationHistory(undefined, true);
           }, 400);
         })
         .subscribe();
@@ -3536,7 +3545,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                           setShowHistoryView(true);
                           setHistoryFilterMode(fromHistoryFilterMode);
                           setHistoryScope('all');
-                          loadAllConversationHistory();
+                          void loadAllConversationHistory(undefined, true);
                         } else if (fromHistorySource === 'customer') {
                           pendingScrollRestoreRef.current = true;
                           setSelectedEmployee(null);
