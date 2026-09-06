@@ -3382,9 +3382,26 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                 </div>
                               )}
                             </div>
-                            <div className={`border-t px-3 py-1.5 text-[10px] ${msg.sender_type === 'customer' ? 'border-orange-200/10 bg-slate-950/25 text-right text-orange-100/60' : 'border-orange-200/10 bg-slate-950/25 text-orange-100/60'}`}>
+                            <div className={`border-t px-3 py-1.5 text-[10px] ${msg.sender_type === 'customer' ? 'border-slate-100 bg-white text-right text-slate-500' : 'border-orange-200/10 bg-slate-950/25 text-orange-100/60'}`}>
                               {new Date(msg.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
+                            {msg.sender_type === 'customer' && (
+                              <div className={`flex items-center justify-end gap-1 px-3 pb-1.5 text-[10px] ${
+                                msg.is_read ? 'text-emerald-500' : 'text-slate-400'
+                              } bg-white`}>
+                                {msg.is_read ? (
+                                  <>
+                                    <CheckCheck className="w-3 h-3" />
+                                    <span>Read {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="w-3 h-3" />
+                                    <span>Unread</span>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </div>
                           ) : (
                           <div
