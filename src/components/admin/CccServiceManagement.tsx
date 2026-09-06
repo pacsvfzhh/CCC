@@ -6,6 +6,7 @@ import CustomerAutoMessages from './CustomerAutoMessages';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
 import TiptapEditor, { TiptapEditorRef } from './TiptapEditor';
 import { supabase } from '../../lib/supabase';
+import { prefetchAdminGroups } from '../../lib/serviceWorkspaceCache';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import { processContentImages } from '../../lib/imageOptimizer';
 import { cleanupContentImages } from '../../lib/storageCleanup';
@@ -578,15 +579,14 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     }
   };
 
-  const loadAdminGroups = useCallback(async (targetEmployee?: { id: string; username: string } | null, silent = false) => {
+  const loadAdminGroups = useCallback(async (targetEmployee?: { id: string; username: string } | null, silent = false, force = false) => {
     let autoSelected = false;
     try {
       if (!silent) setLoading(true);
-      const { data, error } = await supabase.rpc('get_admin_groups_for_customer_service', { p_source_type: 'ccc_service' });
-      if (error) throw error;
-      setAdminGroups(data || []);
+      const data = await prefetchAdminGroups(adminId, 'manager', force);
+      setAdminGroups(data);
 
-      if (data && data.length > 0) {
+      if (data.length > 0) {
         void loadAdminUnreadCounts(data.map(g => g.admin_id));
 
         if (targetEmployee) {
@@ -613,7 +613,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         setLoading(false);
       }
     }
-  }, []);
+  }, [adminId]);
 
   const loadConversationHistoryForCustomer = useCallback(async (customer: SimulatedCustomer) => {
     if (employees.length === 0) return;
@@ -929,7 +929,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           schema: 'public',
           table: 'admins'
         }, () => {
-          loadAdminGroups();
+          loadAdminGroups(null, false, true);
         })
         .subscribe();
 
@@ -947,7 +947,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     const scheduleRefresh = () => {
       if (refreshTimer) clearTimeout(refreshTimer);
       refreshTimer = setTimeout(() => {
-        void loadAdminGroups(null, true);
+        void loadAdminGroups(null, true, true);
       }, 300);
     };
 
@@ -1644,7 +1644,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     historyScrollTopRef.current = 0;
     setCustomers([]);
     setEmployees([]);
-    void loadAdminGroups(null, true);
+    void loadAdminGroups(null, true, true);
   };
 
   const handleSelectCustomer = async (customer: SimulatedCustomer) => {
@@ -2716,7 +2716,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         unreadCounts={adminUnreadCounts}
         loading
         onSelect={handleAdminGroupSelect}
-        onRefresh={() => { void loadAdminGroups(); }}
+        onRefresh={() => { void loadAdminGroups(null, false, true); }}
       />
     );
   }
@@ -2740,7 +2740,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         unreadCounts={adminUnreadCounts}
         loading={false}
         onSelect={handleAdminGroupSelect}
-        onRefresh={() => { void loadAdminGroups(); }}
+        onRefresh={() => { void loadAdminGroups(null, false, true); }}
       />
     );
   }

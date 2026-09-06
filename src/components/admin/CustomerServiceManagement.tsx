@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, TrendingUp, X, Search, Tag, Filter, Image, Paperclip, Star, History, Clock, Bold, Underline, Strikethrough, Type, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { prefetchAdminGroups } from '../../lib/serviceWorkspaceCache';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
@@ -400,15 +401,14 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     }
   };
 
-  const loadAdminGroups = useCallback(async (targetEmployee?: { id: string; username: string } | null, silent = false) => {
+  const loadAdminGroups = useCallback(async (targetEmployee?: { id: string; username: string } | null, silent = false, force = false) => {
     let autoSelected = false;
     try {
       if (!silent) setLoading(true);
-      const { data, error } = await supabase.rpc('get_admin_groups_for_customer_service', { p_source_type: 'aaa_service' });
-      if (error) throw error;
-      setAdminGroups(data || []);
+      const data = await prefetchAdminGroups(adminId, 'customer', force);
+      setAdminGroups(data);
 
-      if (data && data.length > 0) {
+      if (data.length > 0) {
         void loadAdminUnreadCounts(data.map(g => g.admin_id));
 
         if (targetEmployee) {
@@ -435,7 +435,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         setLoading(false);
       }
     }
-  }, []);
+  }, [adminId]);
 
   const loadConversationHistoryForCustomer = useCallback(async (customer: SimulatedCustomer) => {
     if (employees.length === 0) return;
@@ -748,7 +748,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           schema: 'public',
           table: 'admins'
         }, () => {
-          loadAdminGroups();
+          loadAdminGroups(null, false, true);
         })
         .subscribe();
 
@@ -766,7 +766,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     const scheduleRefresh = () => {
       if (refreshTimer) clearTimeout(refreshTimer);
       refreshTimer = setTimeout(() => {
-        void loadAdminGroups(null, true);
+        void loadAdminGroups(null, true, true);
       }, 300);
     };
 
@@ -1415,7 +1415,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     historyScrollTopRef.current = 0;
     setCustomers([]);
     setEmployees([]);
-    void loadAdminGroups(null, true);
+    void loadAdminGroups(null, true, true);
   };
 
   const handleSelectCustomer = async (customer: SimulatedCustomer) => {
@@ -2395,7 +2395,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         unreadCounts={adminUnreadCounts}
         loading
         onSelect={handleAdminGroupSelect}
-        onRefresh={() => { void loadAdminGroups(); }}
+        onRefresh={() => { void loadAdminGroups(null, false, true); }}
       />
     );
   }
@@ -2419,7 +2419,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         unreadCounts={adminUnreadCounts}
         loading={false}
         onSelect={handleAdminGroupSelect}
-        onRefresh={() => { void loadAdminGroups(); }}
+        onRefresh={() => { void loadAdminGroups(null, false, true); }}
       />
     );
   }

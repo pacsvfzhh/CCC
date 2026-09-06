@@ -7,6 +7,7 @@ import { useCompanyName } from '../../lib/useCompanyName';
 import { AdminBackground } from '../AdminBackground';
 import { supabase } from '../../lib/supabase';
 import { autoCleanupService } from '../../services/autoCleanupService';
+import { prefetchAdminGroups } from '../../lib/serviceWorkspaceCache';
 
 const EmployeeManagement = lazy(() => import('./EmployeeManagement'));
 const ProductTypeManagement = lazy(() => import('./ProductTypeManagement'));
@@ -28,6 +29,41 @@ function preloadServiceTab(tabId: string) {
   if (tabId === 'customerservice') void loadCustomerServiceManagement();
   if (tabId === 'cccservice') void loadCccServiceManagement();
 }
+
+function ServiceWorkspaceSkeleton({ service }: { service: 'customerservice' | 'cccservice' }) {
+  const isCustomerService = service === 'customerservice';
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col text-slate-100">
+      <div className={`relative flex shrink-0 items-center justify-between gap-4 border-b px-4 py-4 sm:px-6 sm:py-5 ${isCustomerService ? 'border-orange-500/25' : 'border-emerald-500/25'}`}>
+        <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${isCustomerService ? 'from-orange-300 via-orange-500 to-amber-500' : 'from-emerald-300 via-emerald-500 to-teal-500'}`} />
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className={`h-10 w-10 shrink-0 animate-pulse rounded-xl border ${isCustomerService ? 'border-orange-400/35 bg-orange-500/15' : 'border-emerald-400/35 bg-emerald-500/15'}`} />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-4 w-40 animate-pulse rounded bg-slate-700/70" />
+            <div className="h-2.5 w-64 max-w-full animate-pulse rounded bg-slate-800" />
+          </div>
+        </div>
+        <div className="hidden shrink-0 gap-2 sm:flex">
+          {[0, 1, 2, 3].map(index => <div key={index} className={`h-14 w-[104px] animate-pulse rounded-xl border ${isCustomerService ? 'border-orange-500/15 bg-orange-950/35' : 'border-emerald-500/15 bg-emerald-950/35'}`} />)}
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden p-1 sm:p-2">
+        <div className={`divide-y overflow-hidden rounded-xl border ${isCustomerService ? 'divide-orange-900/30 border-orange-500/25 bg-orange-950/15' : 'divide-emerald-900/30 border-emerald-500/25 bg-emerald-950/15'}`}>
+          {[0, 1, 2, 3, 4].map(index => (
+            <div key={index} className="flex animate-pulse items-center gap-3 px-3 py-4 sm:px-4">
+              <div className={`h-9 w-9 shrink-0 rounded-lg ${isCustomerService ? 'bg-orange-500/10' : 'bg-emerald-500/10'}`} />
+              <div className="min-w-0 flex-1 space-y-2"><div className="h-3 w-40 max-w-[65%] rounded bg-slate-700/70" /><div className="h-2.5 w-28 rounded bg-slate-800" /></div>
+              <div className="hidden gap-2 sm:flex"><div className="h-10 w-20 rounded-lg bg-slate-800/70" /><div className="h-10 w-20 rounded-lg bg-slate-800/70" /><div className="h-10 w-20 rounded-lg bg-slate-800/70" /></div>
+              <div className="h-9 w-20 shrink-0 rounded-lg bg-slate-800" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const EmployeeSearch = lazy(() => import('./EmployeeSearch'));
 const HistoryDataManagement = lazy(() => import('./HistoryDataManagement'));
 const AccountLockManagement = lazy(() => import('./AccountLockManagement'));
@@ -65,6 +101,15 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const { companyName } = useCompanyName(admin.id);
 
   useEffect(() => {
+    if (admin.role === 'super_admin') {
+      void prefetchAdminGroups(admin.id, 'customer').catch(error => {
+        console.warn('Unable to prefetch customer service workspaces:', error);
+      });
+      void prefetchAdminGroups(admin.id, 'manager').catch(error => {
+        console.warn('Unable to prefetch manager workspaces:', error);
+      });
+    }
+
     const preload = () => {
       void loadCustomerServiceManagement();
       void loadCccServiceManagement();
@@ -77,7 +122,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
     const timerId = window.setTimeout(preload, 800);
     return () => window.clearTimeout(timerId);
-  }, []);
+  }, [admin.id, admin.role]);
 
   // Cross-tab navigation targets
   const [navigateToMessageEmployee, setNavigateToMessageEmployee] = useState<{ id: string; username: string } | null>(null);
@@ -679,7 +724,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
             {/* Content Area - Full Width */}
             <div className="w-full flex-1 min-h-0 flex flex-col">
-          <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" /></div>}>
+          <Suspense fallback={
+            activeTab === 'customerservice' || activeTab === 'cccservice'
+              ? <ServiceWorkspaceSkeleton service={activeTab} />
+              : <div className="flex-1 flex items-center justify-center"><div className="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" /></div>
+          }>
 
             {loadedTabs.has('employees') && (
               <div className={activeTab === 'employees' ? 'flex-1 min-h-0 flex flex-col animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
