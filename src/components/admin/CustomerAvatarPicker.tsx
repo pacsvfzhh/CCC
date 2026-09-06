@@ -456,7 +456,7 @@ export function CustomerAvatarDisplay({
           src={customAvatarUrl}
           alt={alt}
           className={`absolute inset-0 block h-full w-full object-cover transition-opacity duration-150 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-          loading="lazy"
+          loading="eager"
           decoding="async"
           onLoad={() => {
             setImageLoaded(true);

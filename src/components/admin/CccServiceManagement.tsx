@@ -730,6 +730,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
       const allHistory: ConversationHistory[] = (data || []).map((row: any) => {
         const employee = employeeMetaById.get(row.employee_id);
+        const customer = allCustomersRef.current.find(item => item.id === row.customer_id);
         return {
         employee_id: row.employee_id,
         employee_username: row.employee_username,
@@ -738,8 +739,8 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         employee_remarks: employee?.remarks || '',
         customer_id: row.customer_id,
         customer_name: row.customer_name,
-        customer_avatar: row.customer_avatar,
-        custom_avatar_url: row.custom_avatar_url,
+        customer_avatar: customer?.customer_avatar || row.customer_avatar,
+        custom_avatar_url: customer?.custom_avatar_url || row.custom_avatar_url,
         message_count: Number(row.message_count),
         last_message: row.last_message_type === 'image' ? '__IMAGE__' : (row.last_message || ''),
         last_message_time: row.last_message_time,
@@ -3400,7 +3401,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   <div className="space-y-1.5">
                     {visibleConversationHistory.map((history) => {
                         const employee = employees.find(e => e.id === history.employee_id);
-                        const historyCustomer = history.customer_id ? customers.find(c => c.id === history.customer_id) : null;
+                        const historyCustomer = history.customer_id
+                          ? customers.find(c => c.id === history.customer_id)
+                            || allCustomersRef.current.find(c => c.id === history.customer_id)
+                          : null;
                         const isSelected = selectedEmployee?.id === history.employee_id && selectedCustomer?.id === history.customer_id;
                         const cardKey = `${history.customer_id || ''}_${history.employee_id}`;
                         const lastTime = new Date(history.last_message_time);
@@ -3484,9 +3488,9 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                                       isSelected ? 'ring-blue-500/40 bg-blue-950/50' : 'ring-slate-600/30 bg-slate-700/50'
                                     }`}>
                                       <CustomerAvatarDisplay
-                                        avatar={history.customer_avatar}
-                                        isVip={historyCustomer?.is_super || history.customer_avatar?.startsWith('customer-avatar:vip:')}
-                                        customAvatarUrl={history.custom_avatar_url}
+                                        avatar={historyCustomer?.customer_avatar || history.customer_avatar}
+                                        isVip={historyCustomer?.is_super || (historyCustomer?.customer_avatar || history.customer_avatar)?.startsWith('customer-avatar:vip:')}
+                                        customAvatarUrl={historyCustomer?.custom_avatar_url || history.custom_avatar_url}
                                         alt={history.customer_name || 'Customer avatar'}
                                         className="h-9 w-9 rounded-full"
                                       />
