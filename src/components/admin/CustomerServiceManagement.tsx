@@ -1513,8 +1513,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     setSelectedCustomer(customer);
     setMessages([]);
     if (selectedEmployee) setMessagesLoading(true);
-    setConversationHistory([]);
-    conversationHistoryRef.current = [];
+    const cachedHistory = allConversationHistoryRef.current.filter(history => history.customer_id === customer.id);
+    setConversationHistory(cachedHistory);
+    conversationHistoryRef.current = cachedHistory;
     setShowHistoryView(!selectedEmployee);
     setHistoryFilterMode('all');
     setHistoryScope('customer');
