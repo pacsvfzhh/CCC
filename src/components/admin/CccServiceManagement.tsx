@@ -3720,7 +3720,21 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                         <div className="relative">
                           <button
                             type="button"
-                            onClick={() => { setConversationHistory([]); conversationHistoryRef.current = []; setSelectedEmployee(null); setShowHistoryView(true); setHistoryFilterMode('all'); setFromHistorySource('none'); setHistoryScope('customer'); void loadConversationHistory(); }}
+                            onClick={() => {
+                              const cachedHistory = Array.from(new Map(
+                                [...allConversationHistoryRef.current, ...conversationHistoryRef.current]
+                                  .filter(history => history.customer_id === selectedCustomer?.id)
+                                  .map(history => [`${history.customer_id}:${history.employee_id}`, history] as const)
+                              ).values());
+                              setConversationHistory(cachedHistory);
+                              conversationHistoryRef.current = cachedHistory;
+                              setSelectedEmployee(null);
+                              setShowHistoryView(true);
+                              setHistoryFilterMode('all');
+                              setFromHistorySource('none');
+                              setHistoryScope('customer');
+                              void loadConversationHistory();
+                            }}
                             className="flex items-center gap-1.5 rounded-lg border border-emerald-300/60 bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-md shadow-emerald-600/30 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
                             title="History messages"
                           >
