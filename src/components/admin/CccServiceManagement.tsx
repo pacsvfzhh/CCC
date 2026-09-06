@@ -3359,8 +3359,13 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   {historyScope === 'customer' && (
                   <div className="flex items-center gap-2">
                       {(() => {
-                        const scoped = selectedEmployee ? conversationHistory.filter(h => h.employee_id === selectedEmployee.id) : conversationHistory;
-                        const scopedNew = scoped.filter(h => h.unread_count > 0).length;
+                        const customerHistory = selectedCustomer
+                          ? conversationHistory.filter(history => history.customer_id === selectedCustomer.id)
+                          : [];
+                        const scoped = selectedEmployee
+                          ? customerHistory.filter(history => history.employee_id === selectedEmployee.id)
+                          : customerHistory;
+                        const scopedNew = scoped.filter(history => history.unread_count > 0).length;
                         return (
                           <>
                             <button type="button" onClick={() => setHistoryFilterMode('all')} className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${historyFilterMode !== 'new' ? 'bg-emerald-600 text-white' : 'bg-slate-700/50 text-slate-300 ring-1 ring-slate-600/50 hover:bg-slate-600/50 hover:text-white'}`}>
@@ -3644,7 +3649,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   </div>
                   <div className="ml-auto flex shrink-0 flex-nowrap items-center justify-end gap-1">
                     {(() => {
-                      const totalUnread = conversationHistory.reduce((sum, h) => sum + h.unread_count, 0);
+                      const customerHistory = selectedCustomer
+                        ? conversationHistory.filter(history => history.customer_id === selectedCustomer.id)
+                        : [];
+                      const totalUnread = customerHistory.reduce((sum, history) => sum + history.unread_count, 0);
                       return (
                         <div className="relative">
                           <button
@@ -3655,7 +3663,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                           >
                             <Clock className="w-4 h-4" />
                             <span>History</span>
-                            {conversationHistory.length > 0 && <span className="px-1.5 py-px bg-white/20 rounded text-[10px] font-black">{conversationHistory.length}</span>}
+                            {customerHistory.length > 0 && <span className="px-1.5 py-px bg-white/20 rounded text-[10px] font-black">{customerHistory.length}</span>}
                           </button>
                           {totalUnread > 0 && (
                             <div className="absolute -top-2.5 -right-2.5 min-w-[22px] h-[22px] px-1 bg-orange-500 rounded-full flex items-center justify-center animate-pulse border-2 border-slate-900 shadow-lg shadow-orange-500/40">
