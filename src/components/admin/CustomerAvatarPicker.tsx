@@ -408,6 +408,37 @@ export interface CustomerAvatarDisplayProps {
 }
 
 const avatarKeyPattern = /^customer-avatar:(regular|vip):(\d+)$/;
+const customAvatarStates = new Map<string, 'loading' | 'loaded' | 'error'>();
+const customAvatarRequests = new Map<string, Promise<boolean>>();
+
+export function preloadCustomerAvatar(customAvatarUrl?: string | null) {
+  const url = customAvatarUrl?.trim();
+  if (!url) return Promise.resolve(false);
+
+  const state = customAvatarStates.get(url);
+  if (state === 'loaded') return Promise.resolve(true);
+  if (state === 'error') return Promise.resolve(false);
+
+  const pending = customAvatarRequests.get(url);
+  if (pending) return pending;
+
+  customAvatarStates.set(url, 'loading');
+  const request = new Promise<boolean>((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      customAvatarStates.set(url, 'loaded');
+      resolve(true);
+    };
+    image.onerror = () => {
+      customAvatarStates.set(url, 'error');
+      resolve(false);
+    };
+    image.src = url;
+  });
+  customAvatarRequests.set(url, request);
+  request.finally(() => customAvatarRequests.delete(url));
+  return request;
+}
 
 type AvatarCollection = 'regular' | 'vip';
 
@@ -438,23 +469,43 @@ export function CustomerAvatarDisplay({
   alt = 'Customer avatar',
   className = 'h-10 w-10 rounded-full',
 }: CustomerAvatarDisplayProps) {
-  const [imageError, setImageError] = useState(false);
-  const imageRef = useRef<HTMLImageElement>(null);
   const normalizedCustomAvatarUrl = customAvatarUrl?.trim() || null;
+  const [imageError, setImageError] = useState(false);
+  const [imageReady, setImageReady] = useState(
+    () => Boolean(normalizedCustomAvatarUrl && customAvatarStates.get(normalizedCustomAvatarUrl) === 'loaded'),
+  );
+  const imageRef = useRef<HTMLImageElement>(null);
   const avatarIndex = getAvatarIndex(avatar, isVip ? 'vip' : 'regular');
 
   useEffect(() => {
+    let cancelled = false;
     setImageError(false);
+    setImageReady(false);
+
+    if (!normalizedCustomAvatarUrl) return;
+
+    const state = customAvatarStates.get(normalizedCustomAvatarUrl);
+    if (state === 'loaded') {
+      setImageReady(true);
+      return;
+    }
+    if (state === 'error') {
+      setImageError(true);
+      return;
+    }
+
+    void preloadCustomerAvatar(normalizedCustomAvatarUrl).then((loaded) => {
+      if (cancelled) return;
+      setImageReady(loaded);
+      setImageError(!loaded);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [normalizedCustomAvatarUrl]);
 
-  useEffect(() => {
-    const image = imageRef.current;
-    if (!normalizedCustomAvatarUrl || !image?.complete) return;
-
-    setImageError(image.naturalWidth === 0);
-  }, [normalizedCustomAvatarUrl]);
-
-  const showFallbackArtwork = !normalizedCustomAvatarUrl || imageError;
+  const showFallbackArtwork = !normalizedCustomAvatarUrl || imageError || !imageReady;
 
   return (
     <div className={`relative flex aspect-square min-h-0 min-w-0 items-center justify-center overflow-hidden box-border ${className}`}>
@@ -465,11 +516,19 @@ export function CustomerAvatarDisplay({
           key={normalizedCustomAvatarUrl}
           src={normalizedCustomAvatarUrl}
           alt={alt}
-          className="absolute inset-0 block h-full w-full object-cover"
+          className={`absolute inset-0 block h-full w-full object-cover transition-opacity duration-150 ${imageReady ? 'opacity-100' : 'opacity-0'}`}
           loading="eager"
           decoding="async"
-          onLoad={() => setImageError(false)}
-          onError={() => setImageError(true)}
+          onLoad={() => {
+            if (normalizedCustomAvatarUrl) customAvatarStates.set(normalizedCustomAvatarUrl, 'loaded');
+            setImageReady(true);
+            setImageError(false);
+          }}
+          onError={() => {
+            if (normalizedCustomAvatarUrl) customAvatarStates.set(normalizedCustomAvatarUrl, 'error');
+            setImageReady(false);
+            setImageError(true);
+          }}
         />
       )}
     </div>

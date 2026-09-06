@@ -4,7 +4,7 @@ import { MessageCircle, X, Send, Image, Star, ArrowLeft, Search, Clock, Zap, Spa
 import { supabase } from '../../lib/supabase';
 import { sanitizeChatMessage, sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import { useLanguage } from '../../lib/i18n';
-import { CustomerAvatarDisplay } from '../admin/CustomerAvatarPicker';
+import { CustomerAvatarDisplay, preloadCustomerAvatar } from '../admin/CustomerAvatarPicker';
 
 // Image component with loading state
 const ChatImage = memo(({
@@ -147,6 +147,12 @@ interface CustomerConversation {
 interface EmployeeConversationSnapshot {
   conversations: CustomerConversation[];
   unreadCount: number;
+}
+
+function preloadConversationAvatars(conversations: CustomerConversation[]) {
+  conversations
+    .slice(0, 12)
+    .forEach(conversation => { void preloadCustomerAvatar(conversation.customer.custom_avatar_url); });
 }
 
 const employeeConversationCache = new Map<string, EmployeeConversationSnapshot>();
@@ -918,6 +924,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     const requestId = ++conversationLoadRequestRef.current;
     const cached = employeeConversationCache.get(employeeId);
     if (cached) {
+      preloadConversationAvatars(cached.conversations);
       setConversations(cached.conversations);
       setUnreadCount(cached.unreadCount);
       setLoadingConversations(false);
@@ -1027,6 +1034,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       employeeConversationCache.set(employeeId, snapshot);
       if (requestId !== conversationLoadRequestRef.current) return;
 
+      preloadConversationAvatars(snapshot.conversations);
       setConversations(snapshot.conversations);
       setUnreadCount(snapshot.unreadCount);
       snapshot.conversations
