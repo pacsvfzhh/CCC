@@ -3047,24 +3047,44 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                               type="button"
                               onClick={() => {
                                 const emp = employee
-                                  || allEmployeesRef.current.find(e => e.id === history.employee_id);
-                                if (emp) {
-                                  if (historyListRef.current) {
-                                    historyScrollTopRef.current = historyListRef.current.scrollTop;
-                                  }
-                                  setMessages([]);
-                                  setMessagesLoading(true);
-                                  isInitialLoadRef.current = true;
-                                  if (history.customer_id) {
-                                    clearUnreadConversationLocally(history.customer_id, emp.id);
-                                    const cust = customers.find(c => c.id === history.customer_id)
-                                      || allCustomersRef.current.find(c => c.id === history.customer_id);
-                                    if (cust) setSelectedCustomer(cust);
-                                  }
-                                  handleSelectEmployee(emp);
-                                  setFromHistoryFilterMode(historyFilterMode);
-                                  setFromHistorySource(historyScope);
+                                  || allEmployeesRef.current.find(e => e.id === history.employee_id)
+                                  || {
+                                    id: history.employee_id,
+                                    username: history.employee_username || 'Employee',
+                                    employee_id: history.employee_number || '',
+                                    is_verified: true,
+                                    is_active: true,
+                                    remarks: history.employee_remarks || '',
+                                    tags: history.employee_tags || [],
+                                  };
+                                const cust = history.customer_id
+                                  ? customers.find(c => c.id === history.customer_id)
+                                    || allCustomersRef.current.find(c => c.id === history.customer_id)
+                                    || {
+                                      id: history.customer_id,
+                                      admin_id: selectedAdminId || adminId,
+                                      customer_name: history.customer_name || 'Customer',
+                                      customer_id: history.customer_id,
+                                      customer_avatar: history.customer_avatar || 'customer-avatar:regular:0',
+                                      is_active: true,
+                                      created_at: history.last_message_time || new Date().toISOString(),
+                                      is_super: history.customer_avatar?.startsWith('customer-avatar:vip:') || false,
+                                      custom_avatar_url: history.custom_avatar_url,
+                                    }
+                                  : null;
+                                if (!cust) return;
+
+                                if (historyListRef.current) {
+                                  historyScrollTopRef.current = historyListRef.current.scrollTop;
                                 }
+                                setMessages([]);
+                                setMessagesLoading(true);
+                                isInitialLoadRef.current = true;
+                                clearUnreadConversationLocally(cust.id, emp.id);
+                                setSelectedCustomer(cust);
+                                handleSelectEmployee(emp);
+                                setFromHistoryFilterMode(historyFilterMode);
+                                setFromHistorySource(historyScope);
                               }}
                               className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${
                                 isSelected
