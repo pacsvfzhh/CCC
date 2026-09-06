@@ -135,6 +135,13 @@ interface CustomerConversation {
   last_customer_message_time?: string;
 }
 
+interface EmployeeConversationSnapshot {
+  conversations: CustomerConversation[];
+  unreadCount: number;
+}
+
+const employeeConversationCache = new Map<string, EmployeeConversationSnapshot>();
+
 interface CustomerServiceChatProps {
   employeeId: string;
 }
@@ -165,6 +172,9 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const messagesCache = useRef<Map<string, Message[]>>(new Map());
+  const messagePrefetchRequestsRef = useRef<Map<string, Promise<void>>>(new Map());
+  const conversationLoadRequestRef = useRef(0);
+  const messagesLoadRequestRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const conversationListRef = useRef<HTMLDivElement>(null);
@@ -865,7 +875,16 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   };
 
   const loadConversations = async () => {
-    setLoadingConversations(true);
+    const requestId = ++conversationLoadRequestRef.current;
+    const cached = employeeConversationCache.get(employeeId);
+    if (cached) {
+      setConversations(cached.conversations);
+      setUnreadCount(cached.unreadCount);
+      setLoadingConversations(false);
+    } else {
+      setLoadingConversations(true);
+    }
+
     try {
       if (!employeeAdminIdRef.current) {
         const { data: empData } = await supabase.from('users').select('created_by').eq('id', employeeId).maybeSingle();
@@ -961,11 +980,20 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
       });
 
-      setConversations(conversationList);
-      setUnreadCount(totalUnread);
+      const snapshot = {
+        conversations: conversationList,
+        unreadCount: totalUnread,
+      };
+      employeeConversationCache.set(employeeId, snapshot);
+      if (requestId !== conversationLoadRequestRef.current) return;
+
+      setConversations(snapshot.conversations);
+      setUnreadCount(snapshot.unreadCount);
 
       if (selectedCustomerRef.current) {
-        const stillExists = grouped.has(selectedCustomerRef.current.id);
+        const stillExists = snapshot.conversations.some(
+          conversation => conversation.customer.id === selectedCustomerRef.current?.id
+        );
         if (!stillExists) {
           setSelectedCustomer(null);
           setMessages([]);
@@ -973,31 +1001,79 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         }
       }
     } catch (error) {
-      console.error('Error loading conversations:', error);
+      if (requestId === conversationLoadRequestRef.current) {
+        console.error('Error loading conversations:', error);
+      }
     } finally {
-      setLoadingConversations(false);
+      if (requestId === conversationLoadRequestRef.current) {
+        setLoadingConversations(false);
+      }
     }
   };
 
   useEffect(() => { loadOlderMessagesRef.current = loadOlderMessages; });
 
+  const prefetchMessages = async (customerId: string) => {
+    if (messagesCache.current.has(customerId)) return;
+
+    const pendingRequest = messagePrefetchRequestsRef.current.get(customerId);
+    if (pendingRequest) {
+      await pendingRequest;
+      return;
+    }
+
+    const request = (async () => {
+      const { data, error } = await supabase
+        .from('customer_employee_conversations')
+        .select('*')
+        .eq('customer_id', customerId)
+        .eq('employee_id', employeeId)
+        .order('created_at', { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE);
+
+      if (error || !data) return;
+
+      const sorted = data.reverse();
+      messagesCache.current.set(customerId, sorted);
+      for (const message of sorted) {
+        if ((message as any).message_type === 'rich_card') {
+          prefetchRichCard(message as Message);
+        }
+      }
+    })();
+
+    messagePrefetchRequestsRef.current.set(customerId, request);
+    request.then(
+      () => messagePrefetchRequestsRef.current.delete(customerId),
+      () => messagePrefetchRequestsRef.current.delete(customerId),
+    );
+    await request;
+  };
+
   const loadMessages = async () => {
     const currentCustomer = selectedCustomerRef.current;
     if (!currentCustomer) return;
 
+    const requestId = ++messagesLoadRequestRef.current;
+
     try {
       const cachedMessages = messagesCache.current.get(currentCustomer.id);
       if (cachedMessages) {
+        setMessages(cachedMessages);
         setHasMoreMessages(cachedMessages.length >= MESSAGE_PAGE_SIZE);
+        setLoadingMessages(false);
+      } else {
+        setLoadingMessages(true);
       }
 
-      if (!cachedMessages) setLoadingMessages(true);
-      await loadMessagesFromDB();
+      await loadMessagesFromDB(true, requestId);
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
-      setLoadingMessages(false);
-      isInitialLoadRef.current = false;
+      if (requestId === messagesLoadRequestRef.current) {
+        setLoadingMessages(false);
+        isInitialLoadRef.current = false;
+      }
     }
   };
 
@@ -1042,9 +1118,13 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     }
   };
 
-  const loadMessagesFromDB = async (shouldMarkRead = true) => {
+  const loadMessagesFromDB = async (
+    shouldMarkRead = true,
+    requestId = ++messagesLoadRequestRef.current,
+  ) => {
     const currentCustomer = selectedCustomerRef.current;
     if (!currentCustomer) return;
+    const customerId = currentCustomer.id;
 
     try {
       const [messagesResult, sessionResult] = await Promise.all([
@@ -1062,14 +1142,21 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       ]);
 
       if (messagesResult.error) throw messagesResult.error;
+      if (
+        requestId !== messagesLoadRequestRef.current ||
+        selectedCustomerRef.current?.id !== customerId
+      ) {
+        return;
+      }
 
       if (!messagesResult.data || messagesResult.data.length === 0) {
+        messagesCache.current.set(customerId, []);
         setMessages([]);
         setHasMoreMessages(false);
       } else {
         const sorted = messagesResult.data.reverse();
-        const prevCached = messagesCache.current.get(currentCustomer.id);
-        messagesCache.current.set(currentCustomer.id, sorted);
+        const prevCached = messagesCache.current.get(customerId);
+        messagesCache.current.set(customerId, sorted);
         setHasMoreMessages(messagesResult.data.length >= MESSAGE_PAGE_SIZE);
 
         const prevIds = prevCached?.map((m: any) => m.id).join(',');
@@ -1089,11 +1176,20 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         }
       }
 
-      if (sessionResult.data && sessionResult.data.length > 0) {
+      if (
+        sessionResult.data &&
+        sessionResult.data.length > 0 &&
+        requestId === messagesLoadRequestRef.current &&
+        selectedCustomerRef.current?.id === customerId
+      ) {
         setServiceTicketNumber(sessionResult.data[0].service_ticket_number);
       }
     } catch (error) {
       console.error('Error loading messages from DB:', error);
+    } finally {
+      if (requestId === messagesLoadRequestRef.current) {
+        setLoadingMessages(false);
+      }
     }
   };
 
@@ -1348,6 +1444,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     if (conversationListRef.current) {
       conversationListScrollRef.current = conversationListRef.current.scrollTop;
     }
+    void prefetchMessages(customer.id);
     const cachedMessages = messagesCache.current.get(customer.id);
     if (cachedMessages) {
       setMessages(cachedMessages);
@@ -1361,6 +1458,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   };
 
   const handleBackToList = () => {
+    messagesLoadRequestRef.current += 1;
     skipListAnimationRef.current = true;
     setShowConversationList(true);
     setSelectedCustomer(null);
@@ -1797,10 +1895,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     setMessagePopup(null);
                     stopContinuousSound();
                     const customer = messagePopup.customer;
-                    setTimeout(() => {
-                      setSelectedCustomer(customer);
-                      setShowConversationList(false);
-                    }, 100);
+                    setSelectedCustomer(customer);
+                    setShowConversationList(false);
                   }}
                   className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 shadow-md ${
                     messagePopup.customer.is_super
@@ -2013,6 +2109,9 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                       <button
                         key={conv.customer.id}
                         onClick={() => handleSelectConversation(conv.customer)}
+                        onMouseEnter={() => { void prefetchMessages(conv.customer.id); }}
+                        onTouchStart={() => { void prefetchMessages(conv.customer.id); }}
+                        onFocus={() => { void prefetchMessages(conv.customer.id); }}
                         className={`w-full rounded-2xl transition-all duration-200 hover:translate-x-0.5 active:scale-[0.98] group relative overflow-hidden ${skipListAnimationRef.current ? '' : 'animate-[fadeInUp_0.4s_ease-out_both]'} ${
                           conv.customer.is_super
                             ? conv.unread_count > 0
@@ -2563,7 +2662,6 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             style={{ animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255,255,255,0.1)' }}
           >
             <div
-              className="relative flex-shrink-0 overflow-hidden"
               className="relative flex-shrink-0 overflow-hidden px-5 pb-5 bg-gradient-to-br from-[#1e40af] via-[#2563eb] to-[#1d4ed8]"
               style={{ paddingTop: 'calc(env(safe-area-inset-top) + 16px)' }}
             >
@@ -2630,7 +2728,6 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
               )}
             </div>
             <div
-              className="relative flex-shrink-0 border-t border-slate-100 bg-slate-50/80"
               className="relative flex-shrink-0 border-t border-slate-100 bg-slate-50/80 pt-3 px-5"
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
             >
