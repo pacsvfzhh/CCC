@@ -434,6 +434,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
     return conversationHistory
       .filter((history) => {
+        if (historyScope === 'customer' && history.customer_id !== selectedCustomer?.id) return false;
         if (selectedEmployee && history.employee_id !== selectedEmployee.id) return false;
         if (historyFilterMode === 'new' && history.unread_count <= 0) return false;
         if (!query) return true;
@@ -461,7 +462,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         }
         return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
       });
-  }, [conversationHistory, employees, historyFilterMode, historySearchQuery, selectedEmployee]);
+  }, [conversationHistory, employees, historyFilterMode, historySearchQuery, historyScope, selectedCustomer?.id, selectedEmployee]);
 
   const loadMessagesRef = useRef<(markAsRead?: boolean) => void>();
   const messagesLoadRequestRef = useRef(0);
