@@ -126,7 +126,8 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
                       key={group.admin_id}
                       type="button"
                       onClick={() => onSelect(group)}
-                      className={`group relative flex w-full flex-col gap-3 overflow-hidden rounded-lg border px-3 py-3 text-left transition-all duration-200 hover:-translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 sm:grid sm:grid-cols-[minmax(200px,1fr)_repeat(3,90px)_150px] sm:items-center sm:gap-4 sm:px-4 ${styles.row} ${styles.focus}`}
+                      className={`group relative flex w-full flex-col gap-3 overflow-hidden rounded-lg border px-3 py-3 text-left transition-all duration-200 hover:-translate-y-px focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset ${styles.focus} sm:grid sm:grid-cols-[minmax(200px,1fr)_repeat(3,90px)_150px] sm:items-center sm:gap-4 sm:px-4 ${styles.row}`}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
                       <span className={`absolute inset-y-0 left-0 w-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 ${styles.rail}`} />
                       <div className="flex min-w-0 items-center gap-3">
