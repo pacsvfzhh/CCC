@@ -390,6 +390,31 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   allConversationHistoryRef.current = allConversationHistory;
   customerUnreadCountsRef.current = customerUnreadCounts;
 
+  const workspaceCustomerIds = useMemo(
+    () => new Set(customers.map(customer => customer.id)),
+    [customers],
+  );
+  const workspaceEmployeeIds = useMemo(
+    () => new Set(employees.map(employee => employee.id)),
+    [employees],
+  );
+  const workspaceConversationHistory = useMemo(
+    () => allConversationHistory.filter(history =>
+      Boolean(history.customer_id) &&
+      workspaceCustomerIds.has(history.customer_id!) &&
+      workspaceEmployeeIds.has(history.employee_id)
+    ),
+    [allConversationHistory, workspaceCustomerIds, workspaceEmployeeIds],
+  );
+  const conversationHistoryForView = useMemo(() => {
+    const source = historyScope === 'all' ? workspaceConversationHistory : conversationHistory;
+    return source.filter(history =>
+      Boolean(history.customer_id) &&
+      workspaceCustomerIds.has(history.customer_id!) &&
+      workspaceEmployeeIds.has(history.employee_id)
+    );
+  }, [conversationHistory, historyScope, workspaceConversationHistory, workspaceCustomerIds, workspaceEmployeeIds]);
+
   // Get all unique tags from employees
   const allTags = Array.from(
     new Set(
@@ -417,7 +442,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       (emp.tags && selectedTags.some(tag => emp.tags!.includes(tag)));
 
     // Chat history filter
-    const hasChatted = conversationHistory.some(h => h.employee_id === emp.id);
+    const hasChatted = conversationHistoryForView.some(h => h.employee_id === emp.id);
     const matchesGroupFilter =
       employeeGroupFilter === 'all' ||
       (employeeGroupFilter === 'chatted' && hasChatted) ||
@@ -428,12 +453,12 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     const aSelected = selectedEmployee?.id === a.id ? 0 : 1;
     const bSelected = selectedEmployee?.id === b.id ? 0 : 1;
     return aSelected - bSelected;
-  }), [employees, debouncedSearchQuery, selectedTags, employeeGroupFilter, conversationHistory, selectedEmployee]);
+  }), [employees, debouncedSearchQuery, selectedTags, employeeGroupFilter, conversationHistoryForView, selectedEmployee]);
 
   const visibleConversationHistory = useMemo(() => {
     const query = historySearchQuery.trim().toLowerCase();
 
-    return conversationHistory
+    return conversationHistoryForView
       .filter((history) => {
         if (historyScope === 'customer' && history.customer_id !== selectedCustomer?.id) return false;
         if (selectedEmployee && history.employee_id !== selectedEmployee.id) return false;
@@ -463,7 +488,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         }
         return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
       });
-  }, [conversationHistory, employees, historyFilterMode, historySearchQuery, historyScope, selectedCustomer?.id, selectedEmployee]);
+  }, [conversationHistoryForView, employees, historyFilterMode, historySearchQuery, historyScope, selectedCustomer?.id, selectedEmployee]);
 
   const loadMessagesRef = useRef<(markAsRead?: boolean) => void>();
   const messagesLoadRequestRef = useRef(0);
@@ -712,6 +737,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   const loadAllConversationHistory = useCallback(async (overrideAdminId?: string, force = false) => {
     const adminIdToUse = overrideAdminId || selectedAdminId;
     if (!adminIdToUse) return;
+    const requestId = ++conversationHistoryLoadRequestRef.current;
     try {
       const data = await prefetchConversationSummaries(
         adminIdToUse,
@@ -728,6 +754,8 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         force,
       );
 
+      if (requestId !== conversationHistoryLoadRequestRef.current) return;
+
       const employeeIds = data.map((row: any) => row.employee_id).filter(Boolean);
       const employeeMetaById = new Map<string, { id: string; tags?: string[]; remarks?: string }>();
       allEmployeesRef.current.forEach(employee => {
@@ -741,7 +769,11 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         });
       }
 
-      const allHistory: ConversationHistory[] = (data || []).map((row: any) => {
+      const customerIds = new Set(allCustomersRef.current.map(customer => customer.id));
+      const employeeIdsInWorkspace = new Set(allEmployeesRef.current.map(employee => employee.id));
+      const allHistory: ConversationHistory[] = (data || [])
+        .filter((row: any) => customerIds.has(row.customer_id) && employeeIdsInWorkspace.has(row.employee_id))
+        .map((row: any) => {
         const employee = employeeMetaById.get(row.employee_id);
         const customer = allCustomersRef.current.find(item => item.id === row.customer_id);
         return {
@@ -764,6 +796,9 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         };
       });
 
+      if (requestId !== conversationHistoryLoadRequestRef.current) return;
+      conversationHistoryRef.current = allHistory;
+      allConversationHistoryRef.current = allHistory;
       setConversationHistory(allHistory);
       setAllConversationHistory(allHistory);
     } catch (error) {
@@ -961,10 +996,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
   // Auto-load all conversation history when admin is selected and no customer is focused
   useEffect(() => {
-    if (selectedAdminId && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
-      loadAllConversationHistory(selectedAdminId);
+    if (selectedAdminId && customers.length > 0 && employees.length > 0 && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
+      void loadAllConversationHistory(selectedAdminId);
     }
-  }, [selectedAdminId]);
+  }, [selectedAdminId, customers.length, employees.length, selectedCustomer, selectedEmployee, showHistoryView, historyScope, loadAllConversationHistory]);
 
   // Subscribe to realtime updates for admins table
   useEffect(() => {
@@ -1659,12 +1694,18 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   };
 
   const handleAdminGroupSelect = (group: AdminGroup) => {
+    conversationHistoryLoadRequestRef.current += 1;
     setSelectedAdminId(group.admin_id);
     setSelectedAdminName(group.admin_username);
     setSelectedCustomer(null);
     setSelectedEmployee(null);
     setMessages([]);
     setConversationHistory([]);
+    setAllConversationHistory([]);
+    conversationHistoryRef.current = [];
+    allConversationHistoryRef.current = [];
+    setCustomers([]);
+    setEmployees([]);
     setShowHistoryView(true);
     setHistoryScope('all');
     setHistoryFilterMode('all');
@@ -1673,12 +1714,16 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   };
 
   const handleBackToGroups = () => {
+    conversationHistoryLoadRequestRef.current += 1;
     setSelectedAdminId(null);
     setSelectedAdminName('');
     setSelectedCustomer(null);
     setSelectedEmployee(null);
     setMessages([]);
     setConversationHistory([]);
+    setAllConversationHistory([]);
+    conversationHistoryRef.current = [];
+    allConversationHistoryRef.current = [];
     historyScrollTopRef.current = 0;
     setCustomers([]);
     setEmployees([]);
@@ -1698,6 +1743,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     setMessages([]);
     if (selectedEmployee) setMessagesLoading(true);
     setConversationHistory([]);
+    conversationHistoryRef.current = [];
     setShowHistoryView(!selectedEmployee);
     setHistoryFilterMode('all');
     setHistoryScope('customer');
@@ -2833,12 +2879,12 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         )}
         <div className="ml-auto flex max-w-full flex-shrink-0 flex-wrap items-center justify-end gap-2">
           {(() => {
-            const totalUnread = allConversationHistory.filter(h => h.unread_count > 0).length;
+            const totalUnread = workspaceConversationHistory.filter(h => h.unread_count > 0).length;
             return (
               <>
                 <button
                   type="button"
-                  onClick={() => { loadAllConversationHistory(); setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('all'); setHistoryScope('all'); historyScrollTopRef.current = 0; }}
+                  onClick={() => { setConversationHistory([]); setAllConversationHistory([]); conversationHistoryRef.current = []; allConversationHistoryRef.current = []; setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('all'); setHistoryScope('all'); historyScrollTopRef.current = 0; void loadAllConversationHistory(undefined, true); }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
                     showHistoryView && historyScope === 'all' && historyFilterMode !== 'new'
                       ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/40 border-emerald-300'
@@ -2847,17 +2893,17 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                 >
                   <Clock className="w-4 h-4" />
                   <span>All History</span>
-                  {allConversationHistory.length > 0 && (
+                  {workspaceConversationHistory.length > 0 && (
                     <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black min-w-[24px] text-center ${
                       showHistoryView && historyScope === 'all' && historyFilterMode !== 'new'
                         ? 'bg-white text-emerald-700'
                         : 'bg-emerald-500 text-white'
-                    }`}>{allConversationHistory.length}</span>
+                    }`}>{workspaceConversationHistory.length}</span>
                   )}
                 </button>
                 <button
                   type="button"
-                  onClick={() => { loadAllConversationHistory(); setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('new'); setHistoryScope('all'); historyScrollTopRef.current = 0; }}
+                  onClick={() => { setConversationHistory([]); setAllConversationHistory([]); conversationHistoryRef.current = []; allConversationHistoryRef.current = []; setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('new'); setHistoryScope('all'); historyScrollTopRef.current = 0; void loadAllConversationHistory(undefined, true); }}
                   className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
                     totalUnread > 0
                       ? `${showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
@@ -3372,7 +3418,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   <div className="flex items-center gap-2">
                       {(() => {
                         const customerHistory = selectedCustomer
-                          ? conversationHistory.filter(history => history.customer_id === selectedCustomer.id)
+                          ? conversationHistoryForView.filter(history => history.customer_id === selectedCustomer.id)
                           : [];
                         const scoped = selectedEmployee
                           ? customerHistory.filter(history => history.employee_id === selectedEmployee.id)
@@ -3409,7 +3455,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
               {/* Active Sessions List */}
               <div ref={historyListRef} className="flex-1 overflow-y-auto p-2 scrollbar-dark">
-                {conversationHistory.length === 0 ? (
+                {visibleConversationHistory.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-slate-400">
                     <MessageCircle className="w-16 h-16 mb-4 opacity-50" />
                     <p>No active sessions</p>
@@ -3604,7 +3650,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                       onClick={() => {
                         if (fromHistorySource === 'all') {
                           pendingScrollRestoreRef.current = true;
-                          setConversationHistory(allConversationHistory);
+                          setConversationHistory([]);
+                          setAllConversationHistory([]);
+                          conversationHistoryRef.current = [];
+                          allConversationHistoryRef.current = [];
                           setSelectedEmployee(null);
                           setSelectedCustomer(null);
                           setShowHistoryView(true);
@@ -3617,7 +3666,9 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                           setShowHistoryView(true);
                           setHistoryFilterMode(fromHistoryFilterMode);
                           setHistoryScope('customer');
-                          loadConversationHistory();
+                          setConversationHistory([]);
+                          conversationHistoryRef.current = [];
+                          void loadConversationHistory();
                         } else {
                           setSelectedEmployee(null);
                         }
@@ -3662,14 +3713,14 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                   <div className="ml-auto flex shrink-0 flex-nowrap items-center justify-end gap-1">
                     {(() => {
                       const customerHistory = selectedCustomer
-                        ? conversationHistory.filter(history => history.customer_id === selectedCustomer.id)
+                        ? conversationHistoryForView.filter(history => history.customer_id === selectedCustomer.id)
                         : [];
                       const totalUnread = customerHistory.reduce((sum, history) => sum + history.unread_count, 0);
                       return (
                         <div className="relative">
                           <button
                             type="button"
-                            onClick={() => { void loadConversationHistory(); setSelectedEmployee(null); setShowHistoryView(true); setHistoryFilterMode('all'); setFromHistorySource('none'); setHistoryScope('customer'); }}
+                            onClick={() => { setConversationHistory([]); conversationHistoryRef.current = []; setSelectedEmployee(null); setShowHistoryView(true); setHistoryFilterMode('all'); setFromHistorySource('none'); setHistoryScope('customer'); void loadConversationHistory(); }}
                             className="flex items-center gap-1.5 rounded-lg border border-emerald-300/60 bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-md shadow-emerald-600/30 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
                             title="History messages"
                           >
