@@ -20,6 +20,15 @@ const ChatImage = memo(({
   const [imageError, setImageError] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+    const image = imgRef.current;
+    if (!image?.complete) return;
+    setImageLoaded(image.naturalWidth > 0);
+    setImageError(image.naturalWidth === 0);
+  }, [src]);
+
   return (
     <div
       className="relative overflow-hidden rounded-xl"
@@ -63,7 +72,7 @@ const ChatImage = memo(({
         onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClickImage(src); }}
         onLoad={() => setImageLoaded(true)}
         onError={() => setImageError(true)}
-        loading="lazy"
+        loading="eager"
         decoding="async"
       />
     </div>
@@ -141,6 +150,37 @@ interface EmployeeConversationSnapshot {
 }
 
 const employeeConversationCache = new Map<string, EmployeeConversationSnapshot>();
+const employeeMessageCaches = new Map<string, Map<string, Message[]>>();
+const preloadedChatImages = new Set<string>();
+
+function getEmployeeMessageCache(employeeId: string) {
+  const existing = employeeMessageCaches.get(employeeId);
+  if (existing) return existing;
+  const cache = new Map<string, Message[]>();
+  employeeMessageCaches.set(employeeId, cache);
+  return cache;
+}
+
+function preloadChatImages(messages: Message[]) {
+  const imageUrls = new Set(
+    messages.slice(-12).flatMap(message => {
+      const urls = message.image_url ? [message.image_url] : [];
+      const embeddedUrls = Array.from(
+        message.message_content.matchAll(/<img[^>]+src=["']([^"']+)["']/gi),
+        match => match[1],
+      );
+      return [...urls, ...embeddedUrls];
+    }),
+  );
+
+  imageUrls.forEach(url => {
+    if (!url || preloadedChatImages.has(url)) return;
+    preloadedChatImages.add(url);
+    const image = document.createElement('img');
+    image.decoding = 'async';
+    image.src = url;
+  });
+}
 
 interface CustomerServiceChatProps {
   employeeId: string;
@@ -171,7 +211,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
-  const messagesCache = useRef<Map<string, Message[]>>(new Map());
+  const messagesCache = useRef<Map<string, Message[]>>(getEmployeeMessageCache(employeeId));
   const messagePrefetchRequestsRef = useRef<Map<string, Promise<void>>>(new Map());
   const conversationLoadRequestRef = useRef(0);
   const messagesLoadRequestRef = useRef(0);
@@ -989,6 +1029,9 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
       setConversations(snapshot.conversations);
       setUnreadCount(snapshot.unreadCount);
+      snapshot.conversations
+        .slice(0, 6)
+        .forEach(conversation => { void prefetchMessages(conversation.customer.id); });
 
       if (selectedCustomerRef.current) {
         const stillExists = snapshot.conversations.some(
@@ -1035,6 +1078,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
       const sorted = data.reverse();
       messagesCache.current.set(customerId, sorted);
+      preloadChatImages(sorted);
       for (const message of sorted) {
         if ((message as any).message_type === 'rich_card') {
           prefetchRichCard(message as Message);
@@ -1060,10 +1104,27 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       const cachedMessages = messagesCache.current.get(currentCustomer.id);
       if (cachedMessages) {
         setMessages(cachedMessages);
+        preloadChatImages(cachedMessages);
         setHasMoreMessages(cachedMessages.length >= MESSAGE_PAGE_SIZE);
         setLoadingMessages(false);
       } else {
         setLoadingMessages(true);
+        const pendingPrefetch = messagePrefetchRequestsRef.current.get(currentCustomer.id);
+        if (pendingPrefetch) {
+          await pendingPrefetch;
+          if (
+            requestId === messagesLoadRequestRef.current &&
+            selectedCustomerRef.current?.id === currentCustomer.id
+          ) {
+            const prefetchedMessages = messagesCache.current.get(currentCustomer.id);
+            if (prefetchedMessages) {
+              setMessages(prefetchedMessages);
+              preloadChatImages(prefetchedMessages);
+              setHasMoreMessages(prefetchedMessages.length >= MESSAGE_PAGE_SIZE);
+              setLoadingMessages(false);
+            }
+          }
+        }
       }
 
       await loadMessagesFromDB(true, requestId);
@@ -1097,6 +1158,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       if (error) throw error;
       if (data && data.length > 0) {
         const olderMessages = data.reverse();
+        preloadChatImages(olderMessages);
         setMessages(prev => [...olderMessages, ...prev]);
         const cached = messagesCache.current.get(currentCustomer.id);
         if (cached) {
@@ -1127,19 +1189,17 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     const customerId = currentCustomer.id;
 
     try {
-      const [messagesResult, sessionResult] = await Promise.all([
-        supabase
-          .from('customer_employee_conversations')
-          .select('*')
-          .eq('customer_id', currentCustomer.id)
-          .eq('employee_id', employeeId)
-          .order('created_at', { ascending: false })
-          .limit(MESSAGE_PAGE_SIZE),
-        supabase.rpc('get_or_create_service_session', {
-          p_customer_id: currentCustomer.id,
-          p_employee_id: employeeId
-        })
-      ]);
+      const sessionRequest = supabase.rpc('get_or_create_service_session', {
+        p_customer_id: currentCustomer.id,
+        p_employee_id: employeeId,
+      });
+      const messagesResult = await supabase
+        .from('customer_employee_conversations')
+        .select('*')
+        .eq('customer_id', currentCustomer.id)
+        .eq('employee_id', employeeId)
+        .order('created_at', { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE);
 
       if (messagesResult.error) throw messagesResult.error;
       if (
@@ -1157,6 +1217,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         const sorted = messagesResult.data.reverse();
         const prevCached = messagesCache.current.get(customerId);
         messagesCache.current.set(customerId, sorted);
+        preloadChatImages(sorted);
         setHasMoreMessages(messagesResult.data.length >= MESSAGE_PAGE_SIZE);
 
         const prevIds = prevCached?.map((m: any) => m.id).join(',');
@@ -1172,18 +1233,22 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         }
 
         if (shouldMarkRead) {
-          await markMessagesAsRead();
+          void markMessagesAsRead();
         }
       }
 
-      if (
-        sessionResult.data &&
-        sessionResult.data.length > 0 &&
-        requestId === messagesLoadRequestRef.current &&
-        selectedCustomerRef.current?.id === customerId
-      ) {
-        setServiceTicketNumber(sessionResult.data[0].service_ticket_number);
-      }
+      void sessionRequest.then(({ data: sessionData, error: sessionError }) => {
+        if (
+          sessionError ||
+          !sessionData ||
+          sessionData.length === 0 ||
+          requestId !== messagesLoadRequestRef.current ||
+          selectedCustomerRef.current?.id !== customerId
+        ) {
+          return;
+        }
+        setServiceTicketNumber(sessionData[0].service_ticket_number);
+      });
     } catch (error) {
       console.error('Error loading messages from DB:', error);
     } finally {
