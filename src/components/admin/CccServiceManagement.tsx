@@ -3650,10 +3650,9 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                       onClick={() => {
                         if (fromHistorySource === 'all') {
                           pendingScrollRestoreRef.current = true;
-                          setConversationHistory([]);
-                          setAllConversationHistory([]);
-                          conversationHistoryRef.current = [];
-                          allConversationHistoryRef.current = [];
+                          const cachedHistory = allConversationHistoryRef.current;
+                          setConversationHistory(cachedHistory);
+                          setAllConversationHistory(cachedHistory);
                           setSelectedEmployee(null);
                           setSelectedCustomer(null);
                           setShowHistoryView(true);
@@ -3662,12 +3661,12 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                           void loadAllConversationHistory(undefined, true);
                         } else if (fromHistorySource === 'customer') {
                           pendingScrollRestoreRef.current = true;
+                          const cachedHistory = conversationHistoryRef.current;
+                          setConversationHistory(cachedHistory);
                           setSelectedEmployee(null);
                           setShowHistoryView(true);
                           setHistoryFilterMode(fromHistoryFilterMode);
                           setHistoryScope('customer');
-                          setConversationHistory([]);
-                          conversationHistoryRef.current = [];
                           void loadConversationHistory();
                         } else {
                           setSelectedEmployee(null);
