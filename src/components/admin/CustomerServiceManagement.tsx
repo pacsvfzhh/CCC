@@ -117,6 +117,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const uploadingTempIdRef = useRef<string | null>(null);
   const pendingImageMessagesRef = useRef(new Map<string, Message>());
+  const conversationMessagesCacheRef = useRef(new Map<string, Message[]>());
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [adminImageZoom, setAdminImageZoom] = useState(1);
   const [adminImageDrag, setAdminImageDrag] = useState({ x: 0, y: 0 });
@@ -696,9 +697,48 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     }
   }, [onUnreadCountChange]);
 
+  const restoreCachedMessages = useCallback((customerId: string, employeeId: string) => {
+    const cacheKey = `${customerId}:${employeeId}`;
+    const cachedMessages = conversationMessagesCacheRef.current.get(cacheKey);
+    if (!cachedMessages) return false;
+
+    const pendingMessages = Array.from(pendingImageMessagesRef.current.values()).filter(message =>
+      message.customer_id === customerId &&
+      message.employee_id === employeeId &&
+      !cachedMessages.some(cached => cached.image_url && cached.image_url === message.image_url)
+    );
+    const visibleMessages = [...cachedMessages, ...pendingMessages]
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+    setMessages(visibleMessages);
+    setHasMoreMessages(cachedMessages.length >= MESSAGE_PAGE_SIZE);
+    setMessagesLoading(false);
+    return true;
+  }, []);
+
+  const prefetchMessages = useCallback(async (customerId: string, employeeId: string) => {
+    const cacheKey = `${customerId}:${employeeId}`;
+    if (conversationMessagesCacheRef.current.has(cacheKey)) return;
+
+    const { data, error } = await supabase
+      .from('customer_employee_conversations')
+      .select('*')
+      .eq('customer_id', customerId)
+      .eq('employee_id', employeeId)
+      .eq('source_type', 'aaa_service')
+      .order('created_at', { ascending: false })
+      .limit(MESSAGE_PAGE_SIZE);
+
+    if (!error && data) {
+      conversationMessagesCacheRef.current.set(cacheKey, data.reverse());
+    }
+  }, []);
+
   const loadMessages = useCallback(async (markAsRead: boolean = true) => {
     if (!selectedCustomer || !selectedEmployee) return;
 
+    const cacheKey = `${selectedCustomer.id}:${selectedEmployee.id}`;
+    restoreCachedMessages(selectedCustomer.id, selectedEmployee.id);
     const requestId = ++messagesLoadRequestRef.current;
     try {
       const { data, error } = await supabase
@@ -724,6 +764,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       confirmedPendingIds.forEach(messageId => pendingImageMessagesRef.current.delete(messageId));
       const visibleMessages = [...sorted, ...pendingMessages.filter(message => !confirmedPendingIds.has(message.id))]
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      conversationMessagesCacheRef.current.set(cacheKey, sorted);
       setMessages(visibleMessages);
       setHasMoreMessages((data || []).length >= MESSAGE_PAGE_SIZE);
       setMessagesLoading(false);
@@ -766,7 +807,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       console.error('Error loading messages:', error);
       setMessagesLoading(false);
     }
-  }, [clearUnreadConversationLocally, loadAllConversationHistory, loadConversationHistoryForCustomer, loadCustomerUnreadCounts, selectedCustomer, selectedEmployee]);
+  }, [clearUnreadConversationLocally, loadAllConversationHistory, loadConversationHistoryForCustomer, loadCustomerUnreadCounts, restoreCachedMessages, selectedCustomer, selectedEmployee]);
 
   useEffect(() => {
     loadMessagesRef.current = loadMessages;
@@ -1530,6 +1571,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     }
     setMessages([]);
     setMessagesLoading(true);
+    if (selectedCustomer) {
+      restoreCachedMessages(selectedCustomer.id, employee.id);
+    }
     setSelectedEmployee(employee);
     setShowHistoryView(false);
     setFromHistorySource('none');
@@ -2165,6 +2209,12 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       }
 
       if (newMsg) {
+        const cacheKey = `${selectedCustomer.id}:${selectedEmployee.id}`;
+        const cachedMessages = conversationMessagesCacheRef.current.get(cacheKey) || [];
+        conversationMessagesCacheRef.current.set(cacheKey, [
+          ...cachedMessages.filter(message => message.id !== tempMessage.id && message.id !== newMsg.id),
+          newMsg,
+        ]);
         setMessages(prev => prev.map(m => m.id === tempMessage.id ? newMsg : m));
       }
       loadConversationHistory();
@@ -2430,6 +2480,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           }
 
           setNotification({ type: 'success', text: `Conversation deleted (${data?.length || 0} messages removed)` });
+          conversationMessagesCacheRef.current.delete(`${selectedCustomer.id}:${selectedEmployee.id}`);
           setMessages([]);
           loadConversationHistory();
         } catch (error: any) {
@@ -2465,6 +2516,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           }
 
           setNotification({ type: 'success', text: `All conversations deleted (${data?.length || 0} messages removed)` });
+          Array.from(conversationMessagesCacheRef.current.keys())
+            .filter(key => key.startsWith(`${selectedCustomer.id}:`))
+            .forEach(key => conversationMessagesCacheRef.current.delete(key));
           setMessages([]);
           setConversationHistory([]);
           setSelectedEmployee(null);
@@ -2943,6 +2997,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                   <button
                     type="button"
                     key={emp.id}
+                    onMouseEnter={() => {
+                      if (selectedCustomer) void prefetchMessages(selectedCustomer.id, emp.id);
+                    }}
                     onClick={() => handleSelectEmployee(emp)}
                     className={`group relative min-h-[72px] w-full rounded-xl border px-2 py-2 text-left transition-all duration-200 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/70 ${
                       selectedEmployee?.id === emp.id
@@ -3134,6 +3191,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                           <div key={cardKey} className="relative">
                             <button
                               type="button"
+                              onMouseEnter={() => {
+                                if (history.customer_id) void prefetchMessages(history.customer_id, history.employee_id);
+                              }}
                               onClick={() => {
                                 const emp = employee
                                   || allEmployeesRef.current.find(e => e.id === history.employee_id)
@@ -3168,6 +3228,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                 }
                                 setMessages([]);
                                 setMessagesLoading(true);
+                                restoreCachedMessages(cust.id, emp.id);
                                 isInitialLoadRef.current = true;
                                 clearUnreadConversationLocally(cust.id, emp.id);
                                 setSelectedCustomer(cust);
