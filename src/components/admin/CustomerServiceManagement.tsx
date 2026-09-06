@@ -176,6 +176,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const conversationHistoryRef = useRef<ConversationHistory[]>([]);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
   const customerUnreadCountsRef = useRef<Record<string, number>>({});
+  const locallyReadConversationKeysRef = useRef(new Set<string>());
   const [historyFilterMode, setHistoryFilterMode] = useState<'all' | 'history' | 'new'>('all');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [employeeGroupFilter, setEmployeeGroupFilter] = useState<'all' | 'chatted' | 'not_chatted'>('all');
@@ -490,7 +491,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         const history = historyMap.get(msg.employee_id)!;
         history.message_count++;
 
-        if (msg.sender_type === 'employee' && !msg.is_read) {
+        if (msg.sender_type === 'employee' && !msg.is_read && !locallyReadConversationKeysRef.current.has(`${customer.id}:${msg.employee_id}`)) {
           history.unread_count++;
         }
       }
@@ -543,7 +544,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         message_count: Number(row.message_count),
         last_message: row.last_message_type === 'image' ? '__IMAGE__' : (row.last_message || ''),
         last_message_time: row.last_message_time,
-        unread_count: Number(row.unread_count),
+        unread_count: locallyReadConversationKeysRef.current.has(`${row.customer_id}:${row.employee_id}`)
+          ? 0
+          : Number(row.unread_count),
         };
       });
 
@@ -587,6 +590,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   }, [selectedCustomer, selectedEmployee, messages, loadingOlderMessages, hasMoreMessages]);
 
   const clearUnreadConversationLocally = useCallback((customerId: string, employeeId: string) => {
+    locallyReadConversationKeysRef.current.add(`${customerId}:${employeeId}`);
+
     const threadUnreadCount = Math.max(
       conversationHistoryRef.current.find(history => history.customer_id === customerId && history.employee_id === employeeId)?.unread_count || 0,
       allConversationHistoryRef.current.find(history => history.customer_id === customerId && history.employee_id === employeeId)?.unread_count || 0,
@@ -811,6 +816,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           table: 'customer_employee_conversations',
           filter: `customer_id=eq.${selectedCustomer.id}`
         }, (payload: any) => {
+          if (payload?.new?.sender_type === 'employee' && payload?.new?.customer_id && payload?.new?.employee_id) {
+            locallyReadConversationKeysRef.current.delete(`${payload.new.customer_id}:${payload.new.employee_id}`);
+          }
           if (selectedEmployee?.id && !(justSentRef.current && payload?.new?.sender_type === 'customer')) {
             loadMessagesRef.current?.(isActive);
           }
@@ -863,7 +871,10 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           event: '*',
           schema: 'public',
           table: 'customer_employee_conversations'
-        }, () => {
+        }, (payload: any) => {
+          if (payload?.new?.sender_type === 'employee' && payload?.new?.customer_id && payload?.new?.employee_id) {
+            locallyReadConversationKeysRef.current.delete(`${payload.new.customer_id}:${payload.new.employee_id}`);
+          }
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             loadCustomerUnreadCounts(customerIds);
@@ -3036,6 +3047,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                   setMessagesLoading(true);
                                   isInitialLoadRef.current = true;
                                   if (history.customer_id) {
+                                    clearUnreadConversationLocally(history.customer_id, emp.id);
                                     const cust = customers.find(c => c.id === history.customer_id)
                                       || allCustomersRef.current.find(c => c.id === history.customer_id);
                                     if (cust) setSelectedCustomer(cust);
