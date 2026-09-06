@@ -3787,7 +3787,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                               )}
                             </div>
                           ) : msg.message_type === 'image' && msg.image_url ? (
-                          <div className={`relative overflow-hidden rounded-[20px] border shadow-lg transition-all duration-200 ${
+                          <div className={`relative overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
                             msg.sender_type === 'customer'
                               ? 'border-emerald-200/80 bg-slate-950/40 shadow-slate-950/20'
                               : 'border-emerald-300/30 bg-gradient-to-br from-slate-800 via-slate-800 to-emerald-950/70 shadow-emerald-950/35'
@@ -3828,8 +3828,8 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                               editingMessageId === msg.id
                                 ? 'rounded-[20px] border-2 border-emerald-400 bg-white text-slate-800 ring-2 ring-emerald-100 shadow-[0_12px_28px_rgba(16,185,129,0.18)]'
                                 : msg.sender_type === 'customer'
-                                  ? 'rounded-[20px] rounded-tr-[6px] border border-emerald-200/80 bg-white text-slate-800 shadow-[0_10px_24px_rgba(15,23,42,0.2)]'
-                                  : 'rounded-[20px] rounded-tl-[6px] border border-emerald-300/35 bg-gradient-to-br from-slate-800 via-slate-800 to-emerald-950/70 text-slate-100 shadow-[0_10px_24px_rgba(6,78,59,0.34)]'
+                                  ? 'rounded-[20px] rounded-tr-[6px] border-2 border-emerald-200/80 bg-white text-slate-800 shadow-[0_10px_24px_rgba(15,23,42,0.2)]'
+                                  : 'rounded-[20px] rounded-tl-[6px] border-2 border-emerald-300/35 bg-gradient-to-br from-slate-800 via-slate-800 to-emerald-950/70 text-slate-100 shadow-[0_10px_24px_rgba(6,78,59,0.34)]'
                             }`}
                           >
                             <div className="relative z-10">
