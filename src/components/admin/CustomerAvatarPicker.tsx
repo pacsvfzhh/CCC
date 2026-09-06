@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type CustomerAvatarPickerTheme = 'orange' | 'emerald';
 export type CustomerAvatarPickerVariant = 'regular' | 'vip';
@@ -439,33 +439,37 @@ export function CustomerAvatarDisplay({
   className = 'h-10 w-10 rounded-full',
 }: CustomerAvatarDisplayProps) {
   const [imageError, setImageError] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const normalizedCustomAvatarUrl = customAvatarUrl?.trim() || null;
   const avatarIndex = getAvatarIndex(avatar, isVip ? 'vip' : 'regular');
 
   useEffect(() => {
     setImageError(false);
-    setImageLoaded(false);
-  }, [customAvatarUrl]);
+  }, [normalizedCustomAvatarUrl]);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!normalizedCustomAvatarUrl || !image?.complete) return;
+
+    setImageError(image.naturalWidth === 0);
+  }, [normalizedCustomAvatarUrl]);
+
+  const showFallbackArtwork = !normalizedCustomAvatarUrl || imageError;
 
   return (
     <div className={`relative flex aspect-square min-h-0 min-w-0 items-center justify-center overflow-hidden box-border ${className}`}>
-      <AvatarArtwork index={avatarIndex} vip={isVip} />
-      {customAvatarUrl && !imageError && (
+      {showFallbackArtwork && <AvatarArtwork index={avatarIndex} vip={isVip} />}
+      {normalizedCustomAvatarUrl && !imageError && (
         <img
-          key={customAvatarUrl}
-          src={customAvatarUrl}
+          ref={imageRef}
+          key={normalizedCustomAvatarUrl}
+          src={normalizedCustomAvatarUrl}
           alt={alt}
-          className={`absolute inset-0 block h-full w-full object-cover transition-opacity duration-150 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className="absolute inset-0 block h-full w-full object-cover"
           loading="eager"
           decoding="async"
-          onLoad={() => {
-            setImageLoaded(true);
-            setImageError(false);
-          }}
-          onError={() => {
-            setImageLoaded(false);
-            setImageError(true);
-          }}
+          onLoad={() => setImageError(false)}
+          onError={() => setImageError(true)}
         />
       )}
     </div>
