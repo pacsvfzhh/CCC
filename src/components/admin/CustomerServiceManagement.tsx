@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, TrendingUp, X, Search, Tag, Filter, Image, Paperclip, Star, History, Clock, Bold, Underline, Strikethrough, Type, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { prefetchAdminGroups } from '../../lib/serviceWorkspaceCache';
+import { clearConversationRead, isConversationReadThrough, markConversationRead } from '../../lib/conversationReadState';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
@@ -443,7 +444,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     try {
       const { data, error } = await supabase
         .from('customer_employee_conversations')
-        .select('employee_id, sender_type, message_type, is_read')
+        .select('employee_id, sender_type, message_type, is_read, created_at')
         .eq('customer_id', customer.id)
         .eq('source_type', 'aaa_service');
 
@@ -491,7 +492,12 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         const history = historyMap.get(msg.employee_id)!;
         history.message_count++;
 
-        if (msg.sender_type === 'employee' && !msg.is_read && !locallyReadConversationKeysRef.current.has(`${customer.id}:${msg.employee_id}`)) {
+        if (
+          msg.sender_type === 'employee' &&
+          !msg.is_read &&
+          !locallyReadConversationKeysRef.current.has(`${customer.id}:${msg.employee_id}`) &&
+          !isConversationReadThrough('aaa_service', customer.id, msg.employee_id, msg.created_at)
+        ) {
           history.unread_count++;
         }
       }
@@ -545,6 +551,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         last_message: row.last_message_type === 'image' ? '__IMAGE__' : (row.last_message || ''),
         last_message_time: row.last_message_time,
         unread_count: locallyReadConversationKeysRef.current.has(`${row.customer_id}:${row.employee_id}`)
+          || isConversationReadThrough('aaa_service', row.customer_id, row.employee_id, row.last_message_time)
           ? 0
           : Number(row.unread_count),
         };
@@ -591,6 +598,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
   const clearUnreadConversationLocally = useCallback((customerId: string, employeeId: string) => {
     locallyReadConversationKeysRef.current.add(`${customerId}:${employeeId}`);
+    markConversationRead('aaa_service', customerId, employeeId);
 
     const threadUnreadCount = Math.max(
       conversationHistoryRef.current.find(history => history.customer_id === customerId && history.employee_id === employeeId)?.unread_count || 0,
@@ -654,7 +662,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
         const { error: markReadError } = await supabase
           .from('customer_employee_conversations')
-          .update({ is_read: true })
+          .update({ is_read: true, read_at: new Date().toISOString() })
           .eq('customer_id', customerId)
           .eq('employee_id', employeeId)
           .eq('sender_type', 'employee')
@@ -816,8 +824,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           table: 'customer_employee_conversations',
           filter: `customer_id=eq.${selectedCustomer.id}`
         }, (payload: any) => {
-          if (payload?.new?.sender_type === 'employee' && payload?.new?.customer_id && payload?.new?.employee_id) {
+          if (payload?.new?.sender_type === 'employee' && payload?.new?.is_read === false && payload?.new?.customer_id && payload?.new?.employee_id) {
             locallyReadConversationKeysRef.current.delete(`${payload.new.customer_id}:${payload.new.employee_id}`);
+            clearConversationRead('aaa_service', payload.new.customer_id, payload.new.employee_id);
           }
           if (selectedEmployee?.id && !(justSentRef.current && payload?.new?.sender_type === 'customer')) {
             loadMessagesRef.current?.(isActive);
@@ -872,8 +881,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           schema: 'public',
           table: 'customer_employee_conversations'
         }, (payload: any) => {
-          if (payload?.new?.sender_type === 'employee' && payload?.new?.customer_id && payload?.new?.employee_id) {
+          if (payload?.new?.sender_type === 'employee' && payload?.new?.is_read === false && payload?.new?.customer_id && payload?.new?.employee_id) {
             locallyReadConversationKeysRef.current.delete(`${payload.new.customer_id}:${payload.new.employee_id}`);
+            clearConversationRead('aaa_service', payload.new.customer_id, payload.new.employee_id);
           }
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
