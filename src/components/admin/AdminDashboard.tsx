@@ -7,7 +7,7 @@ import { useCompanyName } from '../../lib/useCompanyName';
 import { AdminBackground } from '../AdminBackground';
 import { supabase } from '../../lib/supabase';
 import { autoCleanupService } from '../../services/autoCleanupService';
-import { prefetchAdminGroups } from '../../lib/serviceWorkspaceCache';
+import { prefetchAdminGroups, prefetchAdminWorkspaceData } from '../../lib/serviceWorkspaceCache';
 
 const EmployeeManagement = lazy(() => import('./EmployeeManagement'));
 const ProductTypeManagement = lazy(() => import('./ProductTypeManagement'));
@@ -108,12 +108,24 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       void prefetchAdminGroups(admin.id, 'manager').catch(error => {
         console.warn('Unable to prefetch manager workspaces:', error);
       });
+    } else if (admin.role !== 'emergency_admin') {
+      void prefetchAdminWorkspaceData(admin.id, 'customer').catch(error => {
+        console.warn('Unable to prefetch customer service data:', error);
+      });
+      void prefetchAdminWorkspaceData(admin.id, 'manager').catch(error => {
+        console.warn('Unable to prefetch manager service data:', error);
+      });
     }
 
     const preload = () => {
       void loadCustomerServiceManagement();
       void loadCccServiceManagement();
     };
+
+    if (admin.role !== 'super_admin' && admin.role !== 'emergency_admin') {
+      preload();
+      return;
+    }
 
     if ('requestIdleCallback' in window) {
       const idleId = window.requestIdleCallback(preload, { timeout: 1500 });

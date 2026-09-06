@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, TrendingUp, X, Search, Tag, Filter, Image, Paperclip, Star, History, Clock, Bold, Underline, Strikethrough, Type, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { prefetchAdminGroups } from '../../lib/serviceWorkspaceCache';
+import { invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData } from '../../lib/serviceWorkspaceCache';
 import { clearConversationRead, isConversationReadThrough, markConversationRead } from '../../lib/conversationReadState';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
@@ -1347,31 +1347,20 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     }
   }, [selectedAdminId, loadTemplates]);
 
-  const loadAdminData = async (targetAdminId: string, silent = false) => {
+  const loadAdminData = async (targetAdminId: string, silent = false, force = false) => {
     try {
       if (!silent) setLoading(true);
 
-      const [customersRes, employeesRes] = await Promise.all([
-        supabase
-          .from('simulated_customers')
-          .select('*')
-          .eq('admin_id', targetAdminId)
-          .eq('source_type', 'aaa_service')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('users')
-          .select('*')
-          .eq('created_by', targetAdminId)
-          .order('username'),
-      ]);
+      const { customers, employees } = await prefetchAdminWorkspaceData<SimulatedCustomer, Employee>(
+        targetAdminId,
+        'customer',
+        force,
+      );
 
-      if (customersRes.error) throw customersRes.error;
-      if (employeesRes.error) throw employeesRes.error;
-
-      setCustomers(customersRes.data || []);
-      setEmployees(employeesRes.data || []);
-      allCustomersRef.current = customersRes.data || [];
-      allEmployeesRef.current = employeesRes.data || [];
+      setCustomers(customers);
+      setEmployees(employees);
+      allCustomersRef.current = customers;
+      allEmployeesRef.current = employees;
 
       if (!silent) setLoading(false);
 
@@ -1522,7 +1511,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       setNotification({ type: 'success', text: 'Customer created successfully!' });
       setShowCustomerForm(false);
       setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' });
-      loadAdminData(selectedAdminId, true);
+      loadAdminData(selectedAdminId, true, true);
     } catch (error: any) {
       const msg = (error.message || '').includes('customer_id_unique') ? 'This Custom ID is already in use. Please use a different one.' : (error.message || 'Failed to create customer');
       setNotification({ type: 'error', text: msg });
@@ -1626,7 +1615,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       setNotification({ type: 'success', text: 'Customer updated successfully!' });
       setEditingCustomer(null);
       setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' });
-      loadAdminData(selectedAdminId, true);
+      loadAdminData(selectedAdminId, true, true);
     } catch (error: any) {
       const msg = (error.message || '').includes('customer_id_unique') ? 'This Custom ID is already in use. Please use a different one.' : (error.message || 'Failed to update customer');
       setNotification({ type: 'error', text: msg });
@@ -1662,6 +1651,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
           if (error) throw error;
 
+          invalidateAdminWorkspaceDataCache(selectedAdminId || adminId, 'customer');
           setNotification({ type: 'success', text: 'Customer deleted successfully!' });
           if (selectedCustomer?.id === customerId) {
             setSelectedCustomer(null);
