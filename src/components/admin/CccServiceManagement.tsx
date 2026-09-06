@@ -23,7 +23,7 @@ const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }:
   const imgRef = useRef<HTMLImageElement>(null);
 
   return (
-    <div className="relative aspect-square w-[min(340px,100%)] max-w-full flex-shrink rounded-lg overflow-hidden">
+    <div className={`relative w-fit max-w-full overflow-hidden rounded-lg bg-slate-950/45 ${loaded || errored ? '' : 'min-h-[120px] min-w-[120px]'}`}>
       {!loaded && !errored && (
         <div className="absolute inset-0 bg-slate-800/60 flex items-center justify-center z-[1]">
           <div className="flex flex-col items-center gap-2">
@@ -44,7 +44,7 @@ const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }:
         ref={imgRef}
         src={src}
         alt="Shared image"
-        className={`h-full w-full object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm ${
+        className={`block h-auto max-h-[420px] max-w-[min(340px,100%)] object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm ${
           loaded ? 'opacity-100' : 'opacity-0'
         }`}
         onLoad={() => setLoaded(true)}
@@ -3737,7 +3737,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                           ) : msg.message_type === 'image' && msg.image_url ? (
                           <div className={`relative overflow-hidden rounded-[20px] border shadow-lg transition-all duration-200 ${
                             msg.sender_type === 'customer'
-                              ? 'border-emerald-200/80 bg-white shadow-slate-950/20'
+                              ? 'border-emerald-200/80 bg-slate-950/40 shadow-slate-950/20'
                               : 'border-emerald-300/30 bg-gradient-to-br from-slate-800 via-slate-800 to-emerald-950/70 shadow-emerald-950/35'
                           }`}>
                             <div className="relative z-10">
@@ -3749,13 +3749,13 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                                 </div>
                               )}
                             </div>
-                            <div className={`border-t px-3 py-1.5 text-[10px] ${msg.sender_type === 'customer' ? 'border-slate-100 bg-white text-right text-slate-500' : 'border-emerald-200/10 bg-slate-950/25 text-emerald-100/60'}`}>
+                            <div className={`border-t px-3 py-1.5 text-[10px] ${msg.sender_type === 'customer' ? 'border-emerald-200/10 bg-slate-950/25 text-right text-emerald-100/60' : 'border-emerald-200/10 bg-slate-950/25 text-emerald-100/60'}`}>
                               {new Date(msg.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                             {msg.sender_type === 'customer' && (
                               <div className={`flex items-center justify-end gap-1 px-3 pb-1.5 text-[10px] ${
                                 msg.is_read ? 'text-emerald-500' : 'text-slate-400'
-                              } ${msg.sender_type === 'customer' ? 'bg-white' : 'bg-blue-500'}`}>
+                              } bg-slate-950/25`}>
                                 {msg.is_read ? (
                                   <>
                                     <CheckCheck className="w-3 h-3" />
