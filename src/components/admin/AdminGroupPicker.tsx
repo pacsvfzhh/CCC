@@ -13,6 +13,7 @@ interface AdminGroupPickerProps {
   service: 'customer' | 'manager';
   groups: AdminGroup[];
   unreadCounts: Record<string, number>;
+  fallbackUnreadCount?: number;
   loading: boolean;
   onSelect: (group: AdminGroup) => void;
   onRefresh: () => void;
@@ -49,13 +50,14 @@ const serviceStyles = {
 
 const formatRole = (role: string) => role === 'super_admin' ? 'Super admin' : role;
 
-export default function AdminGroupPicker({ service, groups, unreadCounts, loading, onSelect, onRefresh }: AdminGroupPickerProps) {
+export default function AdminGroupPicker({ service, groups, unreadCounts, fallbackUnreadCount = 0, loading, onSelect, onRefresh }: AdminGroupPickerProps) {
   const styles = serviceStyles[service];
   const Icon = styles.Icon;
+  const getUnreadCount = (group: AdminGroup) => unreadCounts[group.admin_id] || (groups.length === 1 ? fallbackUnreadCount : 0);
   const totalEmployees = groups.reduce((total, group) => total + Number(group.employee_count || 0), 0);
   const totalCustomers = groups.reduce((total, group) => total + Number(group.customer_count || 0), 0);
   const totalConversations = groups.reduce((total, group) => total + Number(group.conversation_count || 0), 0);
-  const totalUnread = groups.reduce((total, group) => total + Number(unreadCounts[group.admin_id] || 0), 0);
+  const totalUnread = groups.reduce((total, group) => total + getUnreadCount(group), 0);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col text-slate-100">
@@ -118,7 +120,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, loadin
               </div>
               <div className="space-y-1 p-1">
                 {groups.map(group => {
-                  const unread = unreadCounts[group.admin_id] || 0;
+                  const unread = getUnreadCount(group);
                   return (
                     <button
                       key={group.admin_id}
