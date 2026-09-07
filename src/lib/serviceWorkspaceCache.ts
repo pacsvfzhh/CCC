@@ -56,6 +56,13 @@ function getDataCacheKey(adminId: string, service: ServiceWorkspace) {
   return `${adminId}:${service}:data`;
 }
 
+function normalizeAdminGroups(data: unknown): AdminGroup[] {
+  if (!Array.isArray(data)) {
+    throw new Error('Admin groups response is not an array');
+  }
+  return data as AdminGroup[];
+}
+
 type ConversationOwnershipRow = {
   customer_id: string;
   employee_id: string;
@@ -113,23 +120,25 @@ export function prefetchAdminGroups(
   }
 
   const sourceType = getSourceType(service);
+  const loadGroups = () => Promise.all([
+    Promise.resolve(
+      supabase.rpc('get_admin_groups_for_customer_service', {
+        p_source_type: sourceType,
+      }),
+    ).then(({ data, error }) => {
+      if (error) throw error;
+      return normalizeAdminGroups(data);
+    }),
+    loadConversationCountsByAdmin(sourceType),
+  ]).then(([groups, conversationCounts]) => groups.map(group => ({
+    ...group,
+    conversation_count: conversationCounts.get(group.admin_id)?.size || 0,
+  })));
+
   return queueRequest(
     pendingRequests,
     cacheKey,
-    () => Promise.all([
-      Promise.resolve(
-        supabase.rpc('get_admin_groups_for_customer_service', {
-          p_source_type: sourceType,
-        }),
-      ).then(({ data, error }) => {
-        if (error) throw error;
-        return (data || []) as AdminGroup[];
-      }),
-      loadConversationCountsByAdmin(sourceType),
-    ]).then(([groups, conversationCounts]) => groups.map(group => ({
-      ...group,
-      conversation_count: conversationCounts.get(group.admin_id)?.size || 0,
-    }))),
+    loadGroups,
     force,
     groups => cachedGroups.set(cacheKey, groups),
   );
