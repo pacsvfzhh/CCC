@@ -25,7 +25,7 @@ const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }:
   const imgRef = useRef<HTMLImageElement>(null);
 
   return (
-    <div className={`relative inline-block w-fit max-w-[170px] overflow-hidden rounded-lg bg-slate-950/45 ${loaded || errored ? '' : 'min-h-[60px] min-w-[60px]'}`}>
+    <div className={`relative inline-block w-fit max-w-[200px] overflow-hidden rounded-lg bg-transparent ${loaded || errored ? '' : 'min-h-[60px] min-w-[60px]'}`}>
       {!loaded && !errored && (
         <div className="absolute inset-0 bg-slate-800/60 flex items-center justify-center z-[1]">
           <div className="flex flex-col items-center gap-2">
@@ -46,7 +46,7 @@ const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }:
         ref={imgRef}
         src={src}
         alt="Shared image"
-        className={`block h-auto max-h-[210px] max-w-[170px] rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm ${
+        className={`block h-auto max-h-[250px] max-w-[200px] rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm ${
           loaded ? 'opacity-100' : 'opacity-0'
         }`}
         onLoad={() => setLoaded(true)}
@@ -4056,10 +4056,10 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                               )}
                             </div>
                           ) : msg.message_type === 'image' && msg.image_url ? (
-                          <div className={`relative w-fit max-w-full overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
+                          <div className={`relative w-fit max-w-full overflow-hidden rounded-[20px] border-2 bg-transparent shadow-lg transition-all duration-200 ${
                             msg.sender_type === 'customer'
-                              ? 'border-emerald-200/80 bg-slate-950/40 shadow-slate-950/20'
-                              : 'border-emerald-300/30 bg-gradient-to-br from-slate-800 via-slate-800 to-emerald-950/70 shadow-emerald-950/35'
+                              ? 'border-emerald-200/80 shadow-slate-950/20'
+                              : 'border-emerald-300/30 shadow-emerald-950/35'
                           }`}>
                             <div className="relative z-10 w-fit max-w-full">
                               {renderMessageContent(msg)}
