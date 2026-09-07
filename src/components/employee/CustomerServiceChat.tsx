@@ -150,9 +150,9 @@ interface EmployeeConversationSnapshot {
 }
 
 function preloadConversationAvatars(conversations: CustomerConversation[]) {
-  conversations
-    .slice(0, 12)
-    .forEach(conversation => { void preloadCustomerAvatar(conversation.customer.custom_avatar_url); });
+  conversations.forEach(conversation => {
+    void preloadCustomerAvatar(conversation.customer.custom_avatar_url);
+  });
 }
 
 const employeeConversationCache = new Map<string, EmployeeConversationSnapshot>();
@@ -194,19 +194,24 @@ interface CustomerServiceChatProps {
 
 export default function CustomerServiceChat({ employeeId }: CustomerServiceChatProps) {
   const { t, dateLocale } = useLanguage();
+  const initialConversationSnapshot = employeeConversationCache.get(employeeId);
 
   const [isOpen, setIsOpen] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
   const skipListAnimationRef = useRef(false);
   const employeeAdminIdRef = useRef<string | null>(null);
-  const [conversations, setConversations] = useState<CustomerConversation[]>([]);
+  const [conversations, setConversations] = useState<CustomerConversation[]>(
+    () => initialConversationSnapshot?.conversations || [],
+  );
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
   const MESSAGE_PAGE_SIZE = 50;
   const [messageInput, setMessageInput] = useState('');
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(
+    () => initialConversationSnapshot?.unreadCount || 0,
+  );
   const [serviceTicketNumber, setServiceTicketNumber] = useState<string>('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -1084,6 +1089,12 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       }
     }
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      void loadConversations();
+    }
+  }, [isOpen]);
 
   useEffect(() => { loadOlderMessagesRef.current = loadOlderMessages; });
 
@@ -2202,7 +2213,22 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                      scrollbarColor: 'rgba(148, 163, 184, 0.4) transparent',
                      background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e8eef6 100%)'
                    }}>
-                {filteredConversations.length === 0 ? (
+                {loadingConversations && filteredConversations.length === 0 ? (
+                  <div className="p-3 sm:p-4 space-y-2.5" aria-label={t.customerService.loadingMessages}>
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm"
+                      >
+                        <div className="h-11 w-11 flex-shrink-0 animate-pulse rounded-xl bg-slate-200" />
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <div className="h-3 w-2/5 animate-pulse rounded bg-slate-200" />
+                          <div className="h-2.5 w-3/4 animate-pulse rounded bg-slate-100" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : filteredConversations.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center px-6">
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-100 to-blue-50 flex items-center justify-center mb-4 shadow-inner">
                       <MessageCircle className="w-10 h-10 text-slate-300" />

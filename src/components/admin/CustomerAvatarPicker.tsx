@@ -480,9 +480,11 @@ export function CustomerAvatarDisplay({
   useEffect(() => {
     let cancelled = false;
     setImageError(false);
-    setImageReady(false);
 
-    if (!normalizedCustomAvatarUrl) return;
+    if (!normalizedCustomAvatarUrl) {
+      setImageReady(false);
+      return;
+    }
 
     const state = customAvatarStates.get(normalizedCustomAvatarUrl);
     if (state === 'loaded') {
@@ -490,10 +492,12 @@ export function CustomerAvatarDisplay({
       return;
     }
     if (state === 'error') {
+      setImageReady(false);
       setImageError(true);
       return;
     }
 
+    setImageReady(false);
     void preloadCustomerAvatar(normalizedCustomAvatarUrl).then((loaded) => {
       if (cancelled) return;
       setImageReady(loaded);
@@ -505,7 +509,12 @@ export function CustomerAvatarDisplay({
     };
   }, [normalizedCustomAvatarUrl]);
 
-  const showFallbackArtwork = !normalizedCustomAvatarUrl || imageError || !imageReady;
+  const imageIsCached = Boolean(
+    normalizedCustomAvatarUrl &&
+    customAvatarStates.get(normalizedCustomAvatarUrl) === 'loaded',
+  );
+  const imageIsVisible = imageReady || imageIsCached;
+  const showFallbackArtwork = !normalizedCustomAvatarUrl || imageError || !imageIsVisible;
 
   return (
     <div className={`relative flex aspect-square min-h-0 min-w-0 items-center justify-center overflow-hidden box-border ${className}`}>
@@ -516,7 +525,7 @@ export function CustomerAvatarDisplay({
           key={normalizedCustomAvatarUrl}
           src={normalizedCustomAvatarUrl}
           alt={alt}
-          className={`absolute inset-0 block h-full w-full object-cover transition-opacity duration-150 ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 block h-full w-full object-cover transition-opacity duration-150 ${imageIsVisible ? 'opacity-100' : 'opacity-0'}`}
           loading="eager"
           decoding="async"
           onLoad={() => {
