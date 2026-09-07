@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageCircle, X, Send, Image, Star, ArrowLeft, Search, Clock, Zap, Sparkles, Shield, Award, Hexagon, Gift, ZoomIn, ZoomOut, RotateCcw, Megaphone, ChevronRight } from 'lucide-react';
+import { MessageCircle, X, Send, Image, Star, ArrowLeft, Search, Clock, Zap, Sparkles, Award, Gift, ZoomIn, ZoomOut, RotateCcw, Megaphone, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { sanitizeChatMessage, sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import { useLanguage } from '../../lib/i18n';
@@ -88,7 +88,7 @@ const CustomerAvatar = memo(({
 }) => (
   <CustomerAvatarDisplay
     avatar={customer.customer_avatar}
-    isVip={customer.is_super}
+    isVip={customer.is_super || false}
     customAvatarUrl={customer.custom_avatar_url}
     alt={customer.customer_name}
     className={`${className} rounded-lg border-2 ${
@@ -103,12 +103,12 @@ interface Customer {
   id: string;
   customer_name: string;
   customer_id: string;
-  customer_avatar: string;
-  is_super?: boolean;
-  super_customer_title?: string;
-  badge_type?: 'diamond' | 'crown' | 'star' | 'vip' | 'premium';
-  custom_avatar_url?: string;
-  vip_label?: string;
+  customer_avatar: string | null;
+  is_super?: boolean | null;
+  super_customer_title?: string | null;
+  badge_type?: 'diamond' | 'crown' | 'star' | 'vip' | 'premium' | null;
+  custom_avatar_url?: string | null;
+  vip_label?: string | null;
   employee_pin_top?: boolean;
   employee_always_visible?: boolean;
   target_employee_id?: string | null;
@@ -121,19 +121,21 @@ interface Message {
   employee_id: string;
   sender_type: 'customer' | 'employee';
   message_content: string;
-  message_type?: 'text' | 'image' | 'rating_request' | 'rating_result' | 'tip' | 'rich_card';
+  message_type?: 'text' | 'image' | 'rating_request' | 'rating_result' | 'tip' | 'rich_card' | null;
   title?: string | null;
   subtitle?: string | null;
-  image_url?: string;
+  image_url?: string | null;
   rating_data?: {
     rating?: number;
     comment?: string;
     employee_id?: string;
     status?: string;
-  };
-  is_read: boolean;
-  created_at: string;
+    tip_amount?: number;
+  } | null;
+  is_read: boolean | null;
+  created_at: string | null;
   rich_card_content_id?: string | null;
+  rating_value?: number | null;
 }
 
 interface CustomerConversation {
@@ -227,7 +229,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const conversationLoadRequestRef = useRef(0);
   const messagesLoadRequestRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const conversationListRef = useRef<HTMLDivElement>(null);
   const conversationListScrollRef = useRef(0);
 
@@ -518,7 +520,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     .trim();
                   return text || (hasEmbeddedImg ? '\ud83d\udcf7 Photo' : t.customerService.newMessage);
                 })();
-            showMessagePopup(customerData, messageText);
+            showMessagePopup(customerData as Customer, messageText);
           }
         }
       })
@@ -996,17 +998,17 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             customer_avatar: row.customer_avatar,
             is_super: row.is_super,
             super_customer_title: row.super_customer_title,
-            badge_type: row.badge_type,
-            custom_avatar_url: row.custom_avatar_url,
-            vip_label: row.vip_label,
-            employee_pin_top: row.employee_pin_top,
-            employee_always_visible: row.employee_always_visible,
+            badge_type: row.badge_type as Customer['badge_type'],
+            custom_avatar_url: row.custom_avatar_url || undefined,
+            vip_label: row.vip_label || undefined,
+            employee_pin_top: row.employee_pin_top ?? false,
+            employee_always_visible: row.employee_always_visible ?? false,
             target_employee_id: row.target_employee_id,
             target_employee_ids: row.target_employee_ids,
           },
           unread_count: unread,
           last_message: row.last_message_type === 'image' ? '\ud83d\udcf7 Photo' : (row.last_message || ''),
-          last_message_time: row.last_message_time,
+          last_message_time: row.last_message_time || new Date(0).toISOString(),
           last_customer_message_time: row.last_customer_message_time || undefined,
         });
       }
@@ -1024,17 +1026,17 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             customer_avatar: customer.customer_avatar,
             is_super: customer.is_super,
             super_customer_title: customer.super_customer_title,
-            badge_type: customer.badge_type,
-            custom_avatar_url: customer.custom_avatar_url,
-            vip_label: customer.vip_label,
-            employee_pin_top: customer.employee_pin_top,
-            employee_always_visible: customer.employee_always_visible,
+            badge_type: customer.badge_type as Customer['badge_type'],
+            custom_avatar_url: customer.custom_avatar_url || undefined,
+            vip_label: customer.vip_label || undefined,
+            employee_pin_top: customer.employee_pin_top ?? false,
+            employee_always_visible: customer.employee_always_visible ?? false,
             target_employee_id: customer.target_employee_id,
             target_employee_ids: customer.target_employee_ids,
           },
           unread_count: 0,
           last_message: '',
-          last_message_time: customer.id,
+          last_message_time: new Date(0).toISOString(),
         });
       }
 
@@ -1384,7 +1386,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           return;
         }
         setServiceTicketNumber(sessionData[0].service_ticket_number);
-      }).catch(() => {
+      }, () => {
         // The ticket number is secondary to displaying the chat messages.
       });
     } catch (error) {
@@ -1445,6 +1447,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       message_type: 'image',
       image_url: dataUrl,
       created_at: new Date().toISOString(),
+      is_read: true,
       rating_value: null,
     };
 
@@ -1460,7 +1463,6 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       const fileName = `${selectedCustomer.id}_${employeeId}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const startTime = Date.now();
       const { error: uploadError } = await supabase.storage
         .from('chat-images')
         .upload(filePath, file);
@@ -1506,8 +1508,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             stableKeyMapRef.current.set(newMsg.id, tempId);
             setMessages(prev => prev.map(m => m.id === tempId ? newMsg : m));
           }
-        })
-        .catch((error) => {
+        }, (error: unknown) => {
           console.error('Failed to save image message:', error);
           setMessages(prev => prev.filter(m => m.id !== tempId));
           setNotification({ type: 'error', text: t.customerService.saveImageError });
@@ -2646,7 +2647,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     {messages.map((msg, index) => {
                       const stableKey = stableKeyMapRef.current.get(msg.id) || msg.id;
                       const isSwapped = stableKeyMapRef.current.has(msg.id);
-                      const showEntryAnim = !isSwapped && msg.created_at > conversationOpenedAtRef.current && index >= messages.length - 3;
+                      const messageCreatedAt = msg.created_at || new Date(0).toISOString();
+                      const showEntryAnim = !isSwapped && messageCreatedAt > conversationOpenedAtRef.current && index >= messages.length - 3;
                       return (
                     <div
                       key={stableKey}
@@ -2698,7 +2700,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                         </div>
                         )}
                         <div className="text-[10px] sm:text-[11px] mt-0.5 sm:mt-1 text-gray-400">
-                          {new Date(msg.created_at).toLocaleString(dateLocale, {
+                          {new Date(messageCreatedAt).toLocaleString(dateLocale, {
                             year: 'numeric',
                             month: '2-digit',
                             day: '2-digit',
@@ -2905,7 +2907,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 rounded-full border border-white/20 w-fit mb-3">
                   <Clock className="w-3 h-3 text-blue-100" />
                   <span className="text-[10px] sm:text-xs text-blue-50 font-medium">
-                    {new Date(viewingRichCard.created_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                    {new Date(viewingRichCard.created_at || new Date(0).toISOString()).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
                 <div className="flex items-start gap-3">
@@ -2958,7 +2960,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                 onClick={() => { richCardCancelRef.current = true; setViewingRichCard(null); }}
                 className="w-full px-5 py-3 min-h-[44px] bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 active:from-blue-800 active:to-blue-700 text-white font-semibold text-sm rounded-xl transition-all duration-200 shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
               >
-                {t.announcements?.close || 'Close'}
+                Close
               </button>
             </div>
           </div>

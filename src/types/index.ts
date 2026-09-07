@@ -1,6 +1,7 @@
 export interface Admin {
   id: string;
   username: string;
+  admin_id?: string;
   role: 'super_admin' | 'secondary_admin' | 'emergency_admin';
   parent_id: string | null;
   is_active: boolean;
@@ -73,7 +74,7 @@ export interface Withdrawal {
   id: string;
   user_id: string;
   amount: number;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'processed';
   audit_remark: string | null;
   audited_by: string | null;
   audited_at: string | null;
@@ -125,6 +126,9 @@ export interface VerificationRequest {
   wallet_address: string;
   phone: string;
   email: string;
+  id_front_url: string | null;
+  id_back_url: string | null;
+  selfie_url: string | null;
   status: 'pending' | 'approved' | 'rejected';
   audit_remark: string | null;
   audited_by: string | null;
