@@ -3754,7 +3754,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                     {selectedCustomer.badge_type === 'diamond' ? '💎' : selectedCustomer.badge_type === 'crown' ? '👑' : selectedCustomer.badge_type === 'star' ? '⭐' : selectedCustomer.badge_type === 'vip' ? '🏆' : '✨'}
                                   </span>
                                 )}
-                                <span className={msg.sender_type === 'employee' ? 'text-orange-100' : selectedCustomer?.is_super ? 'text-amber-600 font-bold' : 'text-slate-700 font-semibold'}>{msg.sender_type === 'customer' ? selectedCustomer?.customer_name : selectedEmployee?.username}</span>
+                                <span className={msg.sender_type === 'employee' ? 'text-orange-100' : selectedCustomer?.is_super ? 'text-amber-600 font-bold' : 'text-blue-700 font-semibold'}>{msg.sender_type === 'customer' ? selectedCustomer?.customer_name : selectedEmployee?.username}</span>
                                 {msg.sender_type === 'customer' && selectedCustomer?.is_super && selectedCustomer?.super_customer_title && (
                                   <span className="text-[9px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold">{selectedCustomer?.super_customer_title}</span>
                                 )}
