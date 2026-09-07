@@ -25,7 +25,7 @@ const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }:
   const imgRef = useRef<HTMLImageElement>(null);
 
   return (
-    <div className={`relative inline-block w-fit max-w-[200px] overflow-hidden rounded-lg bg-transparent ${loaded || errored ? '' : 'min-h-[60px] min-w-[60px]'}`}>
+    <div className={`relative inline-block w-fit max-w-full overflow-hidden rounded-lg ${loaded || errored ? '' : 'min-h-[60px] min-w-[60px]'}`} style={{ width: 'fit-content', maxWidth: '200px', backgroundColor: 'transparent' }}>
       {!loaded && !errored && (
         <div className="absolute inset-0 bg-slate-800/60 flex items-center justify-center z-[1]">
           <div className="flex flex-col items-center gap-2">
@@ -46,9 +46,10 @@ const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }:
         ref={imgRef}
         src={src}
         alt="Shared image"
-        className={`block h-auto max-h-[250px] max-w-[200px] rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm ${
+        className={`block rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm ${
           loaded ? 'opacity-100' : 'opacity-0'
         }`}
+        style={{ width: 'auto', height: 'auto', maxWidth: '200px', maxHeight: '250px' }}
         onLoad={() => setLoaded(true)}
         onError={() => setErrored(true)}
         onClick={(e: React.MouseEvent) => { if (!isUploading && loaded) { e.stopPropagation(); e.preventDefault(); onClickImage(src); } }}
@@ -4056,12 +4057,12 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                               )}
                             </div>
                           ) : msg.message_type === 'image' && msg.image_url ? (
-                          <div className={`relative w-fit max-w-full overflow-hidden rounded-[20px] border-2 bg-transparent shadow-lg transition-all duration-200 ${
+                          <div className={`relative w-fit max-w-full overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
                             msg.sender_type === 'customer'
                               ? 'border-emerald-200/80 shadow-slate-950/20'
                               : 'border-emerald-300/30 shadow-emerald-950/35'
-                          }`}>
-                            <div className="relative z-10 w-fit max-w-full">
+                          }`} style={{ width: 'fit-content', maxWidth: '100%', backgroundColor: 'transparent' }}>
+                            <div className="relative z-10 w-fit max-w-full" style={{ width: 'fit-content', maxWidth: '100%' }}>
                               {renderMessageContent(msg)}
                               {replacingImageMsgId === msg.id && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-950/65 backdrop-blur-[2px]">

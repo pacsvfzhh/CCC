@@ -2055,11 +2055,12 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (msg.message_type === 'image' && msg.image_url) {
       const isUploading = uploadingImage && uploadingTempIdRef.current === msg.id;
       return (
-        <div className="relative inline-block w-fit max-w-[200px] overflow-hidden rounded-lg bg-transparent">
+        <div className="relative inline-block w-fit max-w-full overflow-hidden rounded-lg" style={{ width: 'fit-content', maxWidth: '200px', backgroundColor: 'transparent' }}>
           <img
             src={msg.image_url}
             alt="Shared image"
-            className="block h-auto max-h-[250px] max-w-[200px] rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+            className="block rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+            style={{ width: 'auto', height: 'auto', maxWidth: '200px', maxHeight: '250px' }}
             loading="lazy"
             onClick={(e: React.MouseEvent) => { if (!isUploading) { e.stopPropagation(); e.preventDefault(); setPreviewImage(msg.image_url || null); setAdminImageZoom(1); setAdminImageDrag({ x: 0, y: 0 }); } }}
           />
@@ -3657,12 +3658,12 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                               )}
                             </div>
                           ) : msg.message_type === 'image' && msg.image_url ? (
-                          <div className={`relative w-fit max-w-full overflow-hidden rounded-[20px] border-2 bg-transparent shadow-lg transition-all duration-200 ${
+                          <div className={`relative w-fit max-w-full overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
                             msg.sender_type === 'customer'
                               ? 'border-orange-200/80 shadow-slate-950/20'
                               : 'border-orange-300/30 shadow-orange-950/35'
-                          }`}>
-                            <div className="relative z-10 w-fit max-w-full">
+                          }`} style={{ width: 'fit-content', maxWidth: '100%', backgroundColor: 'transparent' }}>
+                            <div className="relative z-10 w-fit max-w-full" style={{ width: 'fit-content', maxWidth: '100%' }}>
                               {renderMessageContent(msg)}
                               {replacingImageMsgId === msg.id && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-950/65 backdrop-blur-[2px]">
