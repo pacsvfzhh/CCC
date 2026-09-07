@@ -7,7 +7,7 @@ import { clearConversationRead, isConversationReadThrough, markConversationRead 
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
-import CustomerAutoMessages from './CustomerAutoMessages';
+import CustomerAutoMessages, { type AutoMessageDraft } from './CustomerAutoMessages';
 import EmployeeMetadataPopover from './EmployeeMetadataPopover';
 
 function extractImageOnlyUrl(content: string): string | null {
@@ -173,6 +173,8 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     remarks: ''
   });
   const [editingCustomer, setEditingCustomer] = useState<SimulatedCustomer | null>(null);
+  const [autoMessageDrafts, setAutoMessageDrafts] = useState<AutoMessageDraft[]>([]);
+  const [autoMessageDraftMasterEnabled, setAutoMessageDraftMasterEnabled] = useState(false);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1785,14 +1787,45 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         insertData.customer_id = (customerForm.customId || '').trim();
       }
 
-      const { error } = await supabase
+      const { data: createdCustomer, error } = await supabase
         .from('simulated_customers')
-        .insert(insertData);
+        .insert(insertData)
+        .select('id')
+        .single();
 
       if (error) throw error;
 
+      if (createdCustomer) {
+        if (autoMessageDrafts.length > 0) {
+          const { error: autoMessagesError } = await supabase
+            .from('customer_auto_messages')
+            .insert(autoMessageDrafts.map(({ message_type, name, title, subtitle, content, content_type, sort_order, is_enabled }) => ({
+              customer_id: createdCustomer.id,
+              admin_id: selectedAdminId,
+              message_type,
+              name,
+              title,
+              subtitle,
+              content,
+              content_type,
+              sort_order,
+              is_enabled,
+            })));
+          if (autoMessagesError) throw autoMessagesError;
+        }
+
+        const { error: autoMessagesSettingError } = await supabase
+          .from('simulated_customers')
+          .update({ auto_messages_enabled: autoMessageDraftMasterEnabled })
+          .eq('id', createdCustomer.id);
+        if (autoMessagesSettingError) throw autoMessagesSettingError;
+      }
+
       setNotification({ type: 'success', text: 'Customer created successfully!' });
       setShowCustomerForm(false);
+      setEditingCustomer(null);
+      setAutoMessageDrafts([]);
+      setAutoMessageDraftMasterEnabled(false);
       setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' });
       loadAdminData(selectedAdminId, true, true);
     } catch (error: any) {
@@ -4353,7 +4386,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
       {/* Customer Create/Edit Modal */}
       {(showCustomerForm || editingCustomer) && (
-        <div className="fixed inset-0 flex items-center justify-center z-[9999] overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-md" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null); setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' }); } }}>
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-md" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null); setAutoMessageDrafts([]); setAutoMessageDraftMasterEnabled(false); setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' }); } }}>
           <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--orange w-full max-h-[calc(100vh-2rem)] rounded-2xl border p-5 shadow-2xl ${customerForm.isSuper ? 'max-w-[95vw]' : 'max-w-3xl'} transition-all duration-200`}>
             <h3 className="mb-4 border-b border-orange-200/15 pb-3 text-lg font-black tracking-tight text-white">{editingCustomer ? 'Edit Customer' : 'Create Customer'}</h3>
             {/* Super Customer Toggle */}
@@ -4559,6 +4592,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                   customerId={editingCustomer?.id || null}
                   adminId={selectedAdminId || adminId}
                   sourceType="aaa_service"
+                  draftMessages={autoMessageDrafts}
+                  draftMasterEnabled={autoMessageDraftMasterEnabled}
+                  onDraftMessagesChange={setAutoMessageDrafts}
+                  onDraftMasterEnabledChange={setAutoMessageDraftMasterEnabled}
                 />
               </div>
             ) : (
@@ -4599,6 +4636,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                   customerId={editingCustomer?.id || null}
                   adminId={selectedAdminId || adminId}
                   sourceType="aaa_service"
+                  draftMessages={autoMessageDrafts}
+                  draftMasterEnabled={autoMessageDraftMasterEnabled}
+                  onDraftMessagesChange={setAutoMessageDrafts}
+                  onDraftMasterEnabledChange={setAutoMessageDraftMasterEnabled}
                 />
               </>
             )}
@@ -4615,6 +4656,8 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                 onClick={() => {
                   setShowCustomerForm(false);
                   setEditingCustomer(null);
+                  setAutoMessageDrafts([]);
+                  setAutoMessageDraftMasterEnabled(false);
                   setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' });
                 }}
                 className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
