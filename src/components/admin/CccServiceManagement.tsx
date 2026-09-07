@@ -533,11 +533,12 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     const requestAdminId = selectedAdminId;
     const requestId = ++customerUnreadRequestRef.current;
     const employeeIds = allEmployeesRef.current.map(employee => employee.id);
+    if (employeeIds.length === 0) return;
 
     try {
       const { data, error } = await supabase
         .from('customer_employee_conversations')
-        .select('customer_id, employee_id')
+        .select('customer_id, employee_id, created_at')
         .in('customer_id', customerIds)
         .in('employee_id', employeeIds)
         .eq('sender_type', 'employee')
@@ -548,10 +549,47 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       const counts: Record<string, number> = {};
       const conversationCounts: Record<string, number> = {};
       data?.forEach(msg => {
-        counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
         const conversationKey = `${msg.customer_id}:${msg.employee_id}`;
+        if (
+          locallyReadConversationKeysRef.current.has(conversationKey) ||
+          isConversationReadThrough('ccc_service', msg.customer_id, msg.employee_id, msg.created_at)
+        ) {
+          return;
+        }
+        counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
         conversationCounts[conversationKey] = (conversationCounts[conversationKey] || 0) + 1;
       });
+
+      if (requestId !== customerUnreadRequestRef.current || selectedAdminIdRef.current !== requestAdminId) return;
+
+      const knownConversationKeys = new Set(
+        [...conversationHistoryRef.current, ...allConversationHistoryRef.current]
+          .map(history => `${history.customer_id}:${history.employee_id}`),
+      );
+      const missingConversationKeys = Object.keys(conversationCounts)
+        .filter(key => !knownConversationKeys.has(key));
+      const latestMessagesByConversation = new Map<string, {
+        message_content: string;
+        message_type: string | null;
+        created_at: string;
+      }>();
+
+      if (missingConversationKeys.length > 0) {
+        const { data: latestMessages, error: latestMessagesError } = await supabase
+          .from('customer_employee_conversations')
+          .select('customer_id, employee_id, message_content, message_type, created_at')
+          .in('customer_id', customerIds)
+          .in('employee_id', employeeIds)
+          .order('created_at', { ascending: false });
+
+        if (latestMessagesError) throw latestMessagesError;
+        latestMessages?.forEach(message => {
+          const key = `${message.customer_id}:${message.employee_id}`;
+          if (!latestMessagesByConversation.has(key)) {
+            latestMessagesByConversation.set(key, message);
+          }
+        });
+      }
 
       if (requestId !== customerUnreadRequestRef.current || selectedAdminIdRef.current !== requestAdminId) return;
 
@@ -564,6 +602,34 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       });
       const nextConversationHistory = conversationHistoryRef.current.map(applyUnreadCounts);
       const nextAllConversationHistory = allConversationHistoryRef.current.map(applyUnreadCounts);
+
+      for (const conversationKey of missingConversationKeys) {
+        const [customerId, employeeId] = conversationKey.split(':');
+        const customer = allCustomersRef.current.find(item => item.id === customerId);
+        const employee = allEmployeesRef.current.find(item => item.id === employeeId);
+        const latestMessage = latestMessagesByConversation.get(conversationKey);
+        if (!customer || !employee || !latestMessage) continue;
+
+        nextAllConversationHistory.push({
+          customer_id: customer.id,
+          customer_name: customer.customer_name,
+          customer_avatar: customer.customer_avatar,
+          custom_avatar_url: customer.custom_avatar_url,
+          employee_id: employee.id,
+          employee_username: employee.username,
+          employee_number: employee.employee_id,
+          employee_tags: employee.tags || [],
+          employee_remarks: employee.remarks || '',
+          message_count: conversationCounts[conversationKey] || 0,
+          last_message: latestMessage.message_type === 'image' ? '__IMAGE__' : latestMessage.message_content,
+          last_message_time: latestMessage.created_at,
+          unread_count: conversationCounts[conversationKey] || 0,
+        });
+      }
+
+      nextAllConversationHistory.sort((a, b) =>
+        new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime(),
+      );
       conversationHistoryRef.current = nextConversationHistory;
       allConversationHistoryRef.current = nextAllConversationHistory;
       setConversationHistory(nextConversationHistory);
@@ -753,6 +819,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     if (!adminIdToUse) return;
     const requestId = ++conversationHistoryLoadRequestRef.current;
     try {
+      await loadCustomerUnreadCounts(allCustomersRef.current.map(customer => customer.id));
       const data = await prefetchConversationSummaries(
         adminIdToUse,
         'manager',
@@ -785,7 +852,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
       const customerIds = new Set(allCustomersRef.current.map(customer => customer.id));
       const employeeIdsInWorkspace = new Set(allEmployeesRef.current.map(employee => employee.id));
-      const allHistory: ConversationHistory[] = (data || [])
+      const summaryHistory: ConversationHistory[] = (data || [])
         .filter((row: any) => customerIds.has(row.customer_id) && employeeIdsInWorkspace.has(row.employee_id))
         .map((row: any) => {
         const employee = employeeMetaById.get(row.employee_id);
@@ -811,6 +878,17 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
             : Number(row.unread_count),
         };
       });
+      const summaryKeys = new Set(summaryHistory.map(history => `${history.customer_id}:${history.employee_id}`));
+      const supplementalHistory = allConversationHistoryRef.current.filter(history => {
+        const key = `${history.customer_id}:${history.employee_id}`;
+        return customerIds.has(history.customer_id || '') &&
+          employeeIdsInWorkspace.has(history.employee_id) &&
+          history.unread_count > 0 &&
+          !summaryKeys.has(key);
+      });
+      const allHistory = [...summaryHistory, ...supplementalHistory].sort((a, b) =>
+        new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime(),
+      );
 
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
       conversationHistoryRef.current = allHistory;
@@ -820,7 +898,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     } catch (error) {
       console.error('Error loading all conversation history:', error);
     }
-  }, [selectedAdminId]);
+  }, [selectedAdminId, loadCustomerUnreadCounts]);
 
   const loadOlderMessages = useCallback(async () => {
     if (!selectedCustomer || !selectedEmployee || loadingOlderMessages || !hasMoreMessages) return;
@@ -1006,6 +1084,8 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
         if (markReadError) {
           console.error('Error marking conversation as read:', markReadError);
+          locallyReadConversationKeysRef.current.delete(`${customerId}:${employeeId}`);
+          clearConversationRead('ccc_service', customerId, employeeId);
           void loadCustomerUnreadCounts([customerId]);
           void loadConversationHistoryForCustomer(selectedCustomer);
           void loadAllConversationHistory(undefined, true);
@@ -1222,6 +1302,9 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     if (isActive && selectedAdminId && customers.length > 0) {
       const customerIds = customers.map(c => c.id);
       let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+      const fallbackTimer = window.setInterval(() => {
+        void loadCustomerUnreadCounts(customerIds);
+      }, 15000);
       const channel = supabase
         .channel(`customer_unread_counts_${selectedAdminId}`)
         .on('postgres_changes', {
@@ -1243,6 +1326,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
       return () => {
         if (debounceTimer) clearTimeout(debounceTimer);
+        window.clearInterval(fallbackTimer);
         supabase.removeChannel(channel);
       };
     }

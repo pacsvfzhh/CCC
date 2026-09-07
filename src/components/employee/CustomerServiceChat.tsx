@@ -1006,6 +1006,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       let totalUnread = 0;
 
       for (const row of summaryResult.data || []) {
+        const sourceType = sourceTypeByCustomerId.get(row.customer_id);
+        if (!sourceType) continue;
         const unread = Number(row.unread_count) || 0;
         totalUnread += unread;
         grouped.set(row.customer_id, {
@@ -1023,7 +1025,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             employee_always_visible: row.employee_always_visible ?? false,
             target_employee_id: row.target_employee_id,
             target_employee_ids: row.target_employee_ids,
-            source_type: sourceTypeByCustomerId.get(row.customer_id) || 'aaa_service',
+            source_type: sourceType,
           },
           unread_count: unread,
           last_message: row.last_message_type === 'image' ? '\ud83d\udcf7 Photo' : (row.last_message || ''),
@@ -1034,8 +1036,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
       // Load always-visible customers that may not have messages yet
       for (const customer of alwaysVisibleResult.data || []) {
+        const sourceType = customer.source_type === 'aaa_service' || customer.source_type === 'ccc_service'
+          ? customer.source_type
+          : null;
         const ids = customer.target_employee_ids;
-        if (ids && ids.length > 0 && !ids.includes(employeeId)) continue;
+        if (!sourceType || (ids && ids.length > 0 && !ids.includes(employeeId))) continue;
         if (grouped.has(customer.id)) continue;
         grouped.set(customer.id, {
           customer: {
@@ -1052,7 +1057,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             employee_always_visible: customer.employee_always_visible ?? false,
             target_employee_id: customer.target_employee_id,
             target_employee_ids: customer.target_employee_ids,
-            source_type: customer.source_type === 'ccc_service' ? 'ccc_service' : 'aaa_service',
+            source_type: sourceType,
           },
           unread_count: 0,
           last_message: '',

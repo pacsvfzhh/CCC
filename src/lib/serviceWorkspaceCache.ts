@@ -18,6 +18,33 @@ const cachedWorkspaceData = new Map<string, ServiceWorkspaceData>();
 const pendingConversationRequests = new Map<string, Promise<unknown[]>>();
 const cachedConversationSummaries = new Map<string, unknown[]>();
 
+function queueRequest<T>(
+  pendingRequests: Map<string, Promise<T>>,
+  cacheKey: string,
+  loader: () => Promise<T>,
+  force: boolean,
+  onSuccess: (value: T) => void,
+) {
+  const pending = pendingRequests.get(cacheKey);
+  if (pending && !force) return pending;
+
+  const source = pending && force
+    ? pending.then(() => loader(), () => loader())
+    : loader();
+  const request = source.then(value => {
+    onSuccess(value);
+    return value;
+  });
+  let trackedRequest!: Promise<T>;
+  trackedRequest = request.finally(() => {
+    if (pendingRequests.get(cacheKey) === trackedRequest) {
+      pendingRequests.delete(cacheKey);
+    }
+  });
+  pendingRequests.set(cacheKey, trackedRequest);
+  return trackedRequest;
+}
+
 function getSourceType(service: ServiceWorkspace): WorkspaceSource {
   return service === 'customer' ? 'aaa_service' : 'ccc_service';
 }
@@ -36,31 +63,25 @@ export function prefetchAdminGroups(
   force = false,
 ): Promise<AdminGroup[]> {
   const cacheKey = getCacheKey(adminId, service);
-
-  const pending = pendingRequests.get(cacheKey);
-  if (pending) return pending;
-
   if (!force) {
     const cached = cachedGroups.get(cacheKey);
     if (cached) return Promise.resolve(cached);
   }
 
-  const request = Promise.resolve(
-    supabase.rpc('get_admin_groups_for_customer_service', {
-      p_source_type: getSourceType(service),
-    }),
-  ).then(({ data, error }) => {
+  return queueRequest(
+    pendingRequests,
+    cacheKey,
+    () => Promise.resolve(
+      supabase.rpc('get_admin_groups_for_customer_service', {
+        p_source_type: getSourceType(service),
+      }),
+    ).then(({ data, error }) => {
       if (error) throw error;
-      const groups = (data || []) as AdminGroup[];
-      cachedGroups.set(cacheKey, groups);
-      return groups;
-    })
-    .finally(() => {
-      pendingRequests.delete(cacheKey);
-    });
-
-  pendingRequests.set(cacheKey, request);
-  return request;
+      return (data || []) as AdminGroup[];
+    }),
+    force,
+    groups => cachedGroups.set(cacheKey, groups),
+  );
 }
 
 export function prefetchAdminWorkspaceData<TCustomer = Record<string, unknown>, TEmployee = Record<string, unknown>>(
@@ -69,44 +90,38 @@ export function prefetchAdminWorkspaceData<TCustomer = Record<string, unknown>, 
   force = false,
 ): Promise<ServiceWorkspaceData<TCustomer, TEmployee>> {
   const cacheKey = getDataCacheKey(adminId, service);
-  const pending = pendingDataRequests.get(cacheKey);
-  if (pending) return pending as Promise<ServiceWorkspaceData<TCustomer, TEmployee>>;
-
   if (!force) {
     const cached = cachedWorkspaceData.get(cacheKey);
     if (cached) return Promise.resolve(cached as ServiceWorkspaceData<TCustomer, TEmployee>);
   }
 
-  const request = Promise.all([
-    supabase
-      .from('simulated_customers')
-      .select('*')
-      .eq('admin_id', adminId)
-      .eq('source_type', getSourceType(service))
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('users')
-      .select('*')
-      .eq('created_by', adminId)
-      .order('username'),
-  ])
-    .then(([customersRes, employeesRes]) => {
+  return queueRequest(
+    pendingDataRequests as Map<string, Promise<ServiceWorkspaceData<TCustomer, TEmployee>>>,
+    cacheKey,
+    () => Promise.all([
+      supabase
+        .from('simulated_customers')
+        .select('*')
+        .eq('admin_id', adminId)
+        .eq('source_type', getSourceType(service))
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('users')
+        .select('*')
+        .eq('created_by', adminId)
+        .order('username'),
+    ]).then(([customersRes, employeesRes]) => {
       if (customersRes.error) throw customersRes.error;
       if (employeesRes.error) throw employeesRes.error;
 
-      const data: ServiceWorkspaceData = {
+      return {
         customers: customersRes.data || [],
         employees: employeesRes.data || [],
-      };
-      cachedWorkspaceData.set(cacheKey, data);
-      return data;
-    })
-    .finally(() => {
-      pendingDataRequests.delete(cacheKey);
-    });
-
-  pendingDataRequests.set(cacheKey, request);
-  return request as Promise<ServiceWorkspaceData<TCustomer, TEmployee>>;
+      } as ServiceWorkspaceData<TCustomer, TEmployee>;
+    }),
+    force,
+    data => cachedWorkspaceData.set(cacheKey, data as ServiceWorkspaceData),
+  );
 }
 
 export function invalidateAdminGroupsCache(
@@ -123,23 +138,18 @@ export function prefetchConversationSummaries<TSummary = unknown>(
   force = false,
 ): Promise<TSummary[]> {
   const cacheKey = `${getCacheKey(adminId, service)}:conversations`;
-  const pending = pendingConversationRequests.get(cacheKey);
-  if (pending) return pending as Promise<TSummary[]>;
-
   if (!force) {
     const cached = cachedConversationSummaries.get(cacheKey);
     if (cached) return Promise.resolve(cached as TSummary[]);
   }
 
-  const request = loader().then(summaries => {
-    cachedConversationSummaries.set(cacheKey, summaries);
-    return summaries;
-  }).finally(() => {
-    pendingConversationRequests.delete(cacheKey);
-  });
-
-  pendingConversationRequests.set(cacheKey, request);
-  return request;
+  return queueRequest(
+    pendingConversationRequests as Map<string, Promise<TSummary[]>>,
+    cacheKey,
+    loader,
+    force,
+    summaries => cachedConversationSummaries.set(cacheKey, summaries as unknown[]),
+  );
 }
 
 export function invalidateAdminWorkspaceDataCache(

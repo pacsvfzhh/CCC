@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Database, Lock, Eye, EyeOff, Bell, PackageSearch, MessageCircle, Search, History, UserCog, Activity, Clock, Headphones } from 'lucide-react';
 import { Admin } from '../../types';
 import { logout, updateStoredUsername } from '../../lib/auth';
@@ -84,6 +84,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [unreadCustomerServiceCount, setUnreadCustomerServiceCount] = useState(0);
   const [unreadCccServiceCount, setUnreadCccServiceCount] = useState(0);
   const [lockedAccountsCount, setLockedAccountsCount] = useState(0);
+  const pendingCountsRequestRef = useRef(0);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -189,6 +190,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   ];
 
   const loadPendingCounts = useCallback(async () => {
+    const requestId = ++pendingCountsRequestRef.current;
     try {
       // Emergency admin only needs locked accounts count
       if (admin.role === 'emergency_admin') {
@@ -233,6 +235,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         if (wErr) throw wErr;
         withdrawalsCount = count || 0;
       }
+      if (requestId !== pendingCountsRequestRef.current) return;
       setPendingWithdrawalsCount(withdrawalsCount);
 
       // Load pending verifications count (scoped by admin)
@@ -255,11 +258,28 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         if (vErr) throw vErr;
         verificationsCount = count || 0;
       }
+      if (requestId !== pendingCountsRequestRef.current) return;
       setPendingVerificationsCount(verificationsCount);
 
       // Load unread customer service messages count (AAA)
       let unreadCount = 0;
       let unreadCccCount = 0;
+      const countUnreadCustomerMessages = (customerIds: string[]) => {
+        if (customerIds.length === 0 || (scopedEmployeeIds !== null && scopedEmployeeIds.length === 0)) {
+          return Promise.resolve({ count: 0, error: null });
+        }
+
+        let query = supabase
+          .from('customer_employee_conversations')
+          .select('*', { count: 'exact', head: true })
+          .in('customer_id', customerIds)
+          .eq('sender_type', 'employee')
+          .eq('is_read', false);
+        if (scopedEmployeeIds !== null) {
+          query = query.in('employee_id', scopedEmployeeIds);
+        }
+        return query;
+      };
 
       if (admin.role === 'super_admin') {
         const [aaaCustomersRes, cccCustomersRes] = await Promise.all([
@@ -274,8 +294,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         const cccIds = (cccCustomersRes.data || []).map(c => c.id);
 
         const [aaaUnread, cccUnread] = await Promise.all([
-          aaaIds.length > 0 ? supabase.from('customer_employee_conversations').select('*', { count: 'exact', head: true }).in('customer_id', aaaIds).eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
-          cccIds.length > 0 ? supabase.from('customer_employee_conversations').select('*', { count: 'exact', head: true }).in('customer_id', cccIds).eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
+          countUnreadCustomerMessages(aaaIds),
+          countUnreadCustomerMessages(cccIds),
         ]);
 
         if (aaaUnread.error) throw aaaUnread.error;
@@ -295,8 +315,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         const cccIds = (cccCustomersRes.data || []).map(c => c.id);
 
         const [aaaUnread, cccUnread] = await Promise.all([
-          aaaIds.length > 0 ? supabase.from('customer_employee_conversations').select('*', { count: 'exact', head: true }).in('customer_id', aaaIds).eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
-          cccIds.length > 0 ? supabase.from('customer_employee_conversations').select('*', { count: 'exact', head: true }).in('customer_id', cccIds).eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
+          countUnreadCustomerMessages(aaaIds),
+          countUnreadCustomerMessages(cccIds),
         ]);
 
         if (aaaUnread.error) throw aaaUnread.error;
@@ -305,6 +325,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         unreadCccCount = cccUnread.count || 0;
       }
 
+      if (requestId !== pendingCountsRequestRef.current) return;
       setUnreadCustomerServiceCount(unreadCount);
       setUnreadCccServiceCount(unreadCccCount);
 
@@ -319,6 +340,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         throw lockedError;
       }
       const lockedCount = locksData?.length || 0;
+      if (requestId !== pendingCountsRequestRef.current) return;
       console.log('[Account Locks] Active locks count:', lockedCount, 'for admin:', admin.id);
       setLockedAccountsCount(lockedCount);
     } catch (error) {
@@ -362,6 +384,9 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     const pendingCountsTimer = window.setTimeout(() => {
       void loadPendingCounts();
     }, 600);
+    const pendingCountsFallbackTimer = window.setInterval(() => {
+      void loadPendingCounts();
+    }, 15000);
 
     // 启动自动清理服务
     autoCleanupService.start(admin.id);
@@ -418,6 +443,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
     return () => {
       window.clearTimeout(pendingCountsTimer);
+      window.clearInterval(pendingCountsFallbackTimer);
       supabase.removeChannel(withdrawalChannel);
       supabase.removeChannel(verificationChannel);
       supabase.removeChannel(customerServiceChannel);
