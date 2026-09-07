@@ -334,9 +334,14 @@ export default function CustomerAutoMessages({
   };
 
   const execQsCommand = (cmd: string, value?: string) => {
+    const trackedCommand = cmd === 'bold' || cmd === 'underline' || cmd === 'strikeThrough';
     qsEditorRef.current?.focus();
+    const wasActive = trackedCommand ? document.queryCommandState(cmd) : false;
     document.execCommand(cmd, false, value);
-    updateQsToolbar();
+
+    if (cmd === 'bold') setQsBoldActive(!wasActive);
+    if (cmd === 'underline') setQsUnderlineActive(!wasActive);
+    if (cmd === 'strikeThrough') setQsStrikethroughActive(!wasActive);
   };
   const updateQsToolbar = () => {
     setQsBoldActive(document.queryCommandState('bold'));

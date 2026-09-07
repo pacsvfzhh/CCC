@@ -267,6 +267,9 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       // Force re-render to update button states
       forceUpdate({});
     },
+    onTransaction: () => {
+      forceUpdate({});
+    },
     editorProps: {
       attributes: {
         class: `prose ${theme === 'light' ? '' : 'prose-invert'} prose-slate max-w-none focus:outline-none min-h-[300px] px-4 py-3`
