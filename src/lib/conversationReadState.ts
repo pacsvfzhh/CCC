@@ -12,7 +12,7 @@ function loadReadAtMap(): ReadAtMap {
 
     return Object.fromEntries(
       Object.entries(parsed).filter(([, value]) => typeof value === 'string'),
-    );
+    ) as ReadAtMap;
   } catch {
     return {};
   }

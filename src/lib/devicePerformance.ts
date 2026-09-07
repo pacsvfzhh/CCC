@@ -394,8 +394,6 @@ class DevicePerformanceDetector {
    */
   applyCSSOptimizations(): void {
     const capabilities = this.detectCapabilities();
-    const config = this.getPerformanceConfig();
-
     const styleId = 'device-performance-optimizations';
     let styleElement = document.getElementById(styleId) as HTMLStyleElement;
 

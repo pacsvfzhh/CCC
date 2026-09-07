@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Play, Square, Clock, Zap, Timer, Radio } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n';
 
 interface WorkSessionTrackerProps {
@@ -19,7 +18,6 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [currentDuration, setCurrentDuration] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { isMobile } = useResponsive();
   const { t } = useLanguage();
 
   useEffect(() => {

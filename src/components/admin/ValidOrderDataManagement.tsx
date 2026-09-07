@@ -61,7 +61,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   const loadStatistics = async () => {
     try {
       // Get total count
-      const { count: total } = await supabase
+      await supabase
         .from('valid_order_data')
         .select('*', { count: 'exact', head: true });
 

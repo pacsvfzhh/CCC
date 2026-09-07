@@ -45,11 +45,11 @@ export function prefetchAdminGroups(
     if (cached) return Promise.resolve(cached);
   }
 
-  const request = supabase
-    .rpc('get_admin_groups_for_customer_service', {
+  const request = Promise.resolve(
+    supabase.rpc('get_admin_groups_for_customer_service', {
       p_source_type: getSourceType(service),
-    })
-    .then(({ data, error }) => {
+    }),
+  ).then(({ data, error }) => {
       if (error) throw error;
       const groups = (data || []) as AdminGroup[];
       cachedGroups.set(cacheKey, groups);

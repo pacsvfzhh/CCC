@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { RefreshCw, Clock, CheckCircle, XCircle, DollarSign, Package, Percent, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getTodayStartUTC } from '../../lib/dateUtils';
-import { Order, ProductType } from '../../types';
+import { Order } from '../../types';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useLanguage } from '../../lib/i18n';
 
@@ -27,7 +27,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
   const [todayTips, setTodayTips] = useState<TipRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { isMobile, shouldReduceAnimations } = useDeviceOptimization();
+  const { isMobile } = useDeviceOptimization();
   const [ordersPage, setOrdersPage] = useState(0);
   const ORDERS_PER_PAGE = isMobile ? 7 : 20;
   const { t } = useLanguage();

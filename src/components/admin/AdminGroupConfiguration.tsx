@@ -34,7 +34,7 @@ interface ConfigFormValues {
   withdrawal_condition_mode: string;
 }
 
-export default function AdminGroupConfiguration({ admin }: AdminGroupConfigurationProps) {
+export default function AdminGroupConfiguration({}: AdminGroupConfigurationProps) {
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<AdminGroup | null>(null);
   const [loading, setLoading] = useState(true);

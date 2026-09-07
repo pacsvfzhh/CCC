@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, TrendingUp, X, Search, Tag, Filter, Image, Paperclip, Star, History, Clock, Bold, Underline, Strikethrough, Type, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, X, Search, Tag, Filter, Image, Star, Clock, Bold, Underline, Strikethrough, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 import { clearConversationRead, isConversationReadThrough, markConversationRead } from '../../lib/conversationReadState';
@@ -137,12 +137,12 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const [isUnderlineActive, setIsUnderlineActive] = useState(false);
   const [showBgColorPicker, setShowBgColorPicker] = useState<'main' | 'edit' | 'template' | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState('');
+  const [, setEditingContent] = useState('');
   const [isEditBoldActive, setIsEditBoldActive] = useState(false);
   const [isEditUnderlineActive, setIsEditUnderlineActive] = useState(false);
   const [editEditorFontSize, setEditEditorFontSize] = useState<'normal' | 'large' | 'xlarge' | null>(null);
   const editEditorRef = useRef<HTMLDivElement>(null);
-  const [pendingRating, setPendingRating] = useState<any>(null);
+  const [, setPendingRating] = useState<any>(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingValue, setRatingValue] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
@@ -1455,35 +1455,6 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     e.target.value = '';
   };
 
-  const handleSendTemplate = async (template: MessageTemplate) => {
-    if (!selectedCustomer || !selectedEmployee) return;
-    try {
-      let messageContent: string;
-      if (template.content_type === 'richtext') {
-        messageContent = template.content;
-      } else {
-        messageContent = template.content.replace(/\n/g, '<br>');
-      }
-      const { error } = await supabase
-        .from('customer_employee_conversations')
-        .insert({
-          customer_id: selectedCustomer.id,
-          employee_id: selectedEmployee.id,
-          sender_type: 'customer',
-          message_content: messageContent,
-          message_type: 'text',
-          is_read: false,
-          source_type: 'aaa_service',
-        });
-      if (error) throw error;
-      setShowTemplatePopup(false);
-      loadMessages();
-      loadConversationHistory();
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to send template' });
-    }
-  };
-
   useEffect(() => {
     if (selectedAdminId) {
       loadTemplates();
@@ -2186,11 +2157,6 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     }
   };
 
-  const syncMainFormatState = () => {
-    setIsBoldActive(document.queryCommandState('bold'));
-    setIsUnderlineActive(document.queryCommandState('underline'));
-  };
-
   const applyFormat = (command: string, value?: string) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -2541,45 +2507,6 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         } catch (error: any) {
           console.error('Delete conversation failed:', error);
           setNotification({ type: 'error', text: error.message || 'Failed to delete conversation' });
-        }
-        setConfirmDialog(null);
-      },
-    });
-  };
-
-  const handleDeleteAllConversations = () => {
-    if (!selectedCustomer) return;
-    setConfirmDialog({
-      show: true,
-      title: 'Delete All Conversations',
-      message: 'Delete ALL conversations for this customer? This will permanently remove all chat history with all employees. This cannot be undone.',
-      onConfirm: async () => {
-        try {
-          console.log('Deleting all conversations for customer:', selectedCustomer.id);
-
-          const { data, error } = await supabase
-            .from('customer_employee_conversations')
-            .delete()
-            .eq('customer_id', selectedCustomer.id)
-            .select();
-
-          console.log('Delete all conversations response:', { data, error });
-
-          if (error) {
-            console.error('Delete all conversations error:', error);
-            throw error;
-          }
-
-          setNotification({ type: 'success', text: `All conversations deleted (${data?.length || 0} messages removed)` });
-          Array.from(conversationMessagesCacheRef.current.keys())
-            .filter(key => key.startsWith(`${selectedCustomer.id}:`))
-            .forEach(key => conversationMessagesCacheRef.current.delete(key));
-          setMessages([]);
-          setConversationHistory([]);
-          setSelectedEmployee(null);
-        } catch (error: any) {
-          console.error('Delete all conversations failed:', error);
-          setNotification({ type: 'error', text: error.message || 'Failed to delete conversations' });
         }
         setConfirmDialog(null);
       },

@@ -1121,7 +1121,7 @@ export interface Database {
           id: string;
           user_id: string;
           amount: number;
-          status: 'pending' | 'approved' | 'rejected';
+          status: 'pending' | 'approved' | 'rejected' | 'cancelled';
           audit_remark: string | null;
           audited_by: string | null;
           audited_at: string | null;
@@ -1131,7 +1131,7 @@ export interface Database {
           id?: string;
           user_id: string;
           amount: number;
-          status?: 'pending' | 'approved' | 'rejected';
+          status?: 'pending' | 'approved' | 'rejected' | 'cancelled';
           audit_remark?: string | null;
           audited_by?: string | null;
           audited_at?: string | null;
@@ -1141,7 +1141,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           amount?: number;
-          status?: 'pending' | 'approved' | 'rejected';
+          status?: 'pending' | 'approved' | 'rejected' | 'cancelled';
           audit_remark?: string | null;
           audited_by?: string | null;
           audited_at?: string | null;
@@ -2151,7 +2151,7 @@ export interface Database {
         Args: {
           p_employee_id: string;
           p_ip_address: string;
-          p_session_id?: string;
+          p_session_id?: string | null;
           p_user_agent?: string;
           p_user_id: string;
           p_username: string;
@@ -2162,7 +2162,7 @@ export interface Database {
         Args: {
           p_employee_id: string;
           p_ip_address: string;
-          p_session_id?: string;
+          p_session_id?: string | null;
           p_user_agent?: string;
           p_user_id: string;
           p_username: string;
@@ -2173,6 +2173,10 @@ export interface Database {
         Args: { p_identifier: string; p_identifier_type: string };
         Returns: unknown;
       };
+      unlock_account_with_permission_check: {
+        Args: { p_admin_id: string; p_identifier: string; p_identifier_type: string };
+        Returns: { success: boolean; message: string; unlocked_count?: number };
+      };
       record_login_attempt: {
         Args: {
           p_identifier: string;
@@ -2181,7 +2185,7 @@ export interface Database {
           p_success: boolean;
           p_user_agent?: string;
         };
-        Returns: unknown;
+        Returns: { success: boolean; locked?: boolean; lock_until?: string; lock_reason?: string; failed_attempts?: number; message?: string };
       };
       validate_employee_session: {
         Args: { p_session_token: string; p_tab_id?: string | null; p_user_id: string };

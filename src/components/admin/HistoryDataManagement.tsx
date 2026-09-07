@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Database, Trash2, AlertTriangle, CheckCircle, Clock, Info, RefreshCw, Save, Check } from 'lucide-react';
+import { Trash2, AlertTriangle, CheckCircle, Info, RefreshCw, Save, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Admin } from '../../types';
 import { autoCleanupService, CleanupSchedule } from '../../services/autoCleanupService';

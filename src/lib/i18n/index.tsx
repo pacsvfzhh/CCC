@@ -3,8 +3,9 @@ import { Language, LANGUAGES } from './types';
 import en from './locales/en';
 
 type Translations = typeof en;
+type TranslationModule = { default: unknown };
 
-const loaders: Record<Language, () => Promise<{ default: Translations }>> = {
+const loaders: Record<Language, () => Promise<TranslationModule>> = {
   en: () => Promise.resolve({ default: en }),
   es: () => import('./locales/es'),
   zh: () => import('./locales/zh'),
@@ -54,8 +55,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       return;
     }
     loaders[language]().then((mod) => {
-      cache.set(language, mod.default);
-      setTranslations(mod.default);
+      const loadedTranslations = mod.default as Translations;
+      cache.set(language, loadedTranslations);
+      setTranslations(loadedTranslations);
     });
   }, [language]);
 

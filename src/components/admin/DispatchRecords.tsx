@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ClipboardList, CheckCircle, XCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Users, Shield, Pin, Search, DollarSign, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Users, Shield, Pin, Search, DollarSign, RefreshCw } from 'lucide-react';
 
 interface Admin {
   id: string;

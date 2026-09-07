@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, memo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AUTH_STORAGE_KEY } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
@@ -155,14 +155,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     session_timeout_minutes: 10,
     dispatch_order_mode: 'random',
   });
-  const [nextOrderTime, setNextOrderTime] = useState<Date | null>(null);
+  const [, setNextOrderTime] = useState<Date | null>(null);
   const [showOrderDetail, setShowOrderDetail] = useState(false);
   const [hasTimeout, setHasTimeout] = useState(false);
   const [hasFiveMinuteWarning, setHasFiveMinuteWarning] = useState(false);
   const [showTimeoutAlert, setShowTimeoutAlert] = useState(false);
   const [waitingTime, setWaitingTime] = useState(0);
-  const [totalWorkTime, setTotalWorkTime] = useState(0);
-  const [unacceptedCount, setUnacceptedCount] = useState(0);
+  const [, setTotalWorkTime] = useState(0);
+  const [, setUnacceptedCount] = useState(0);
   const [showAutoStopModal, setShowAutoStopModal] = useState(false);
   const [showTimeoutStopModal, setShowTimeoutStopModal] = useState(false);
   const [selectedOrderDetail, setSelectedOrderDetail] = useState<any | null>(null);
@@ -207,7 +207,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const [showStartRipple, setShowStartRipple] = useState(false);
   const [showStartSuccess, setShowStartSuccess] = useState(false);
   const [showStopSuccess, setShowStopSuccess] = useState(false);
-  const [isPageVisible, setIsPageVisible] = useState(true);
+  const [, setIsPageVisible] = useState(true);
   const [suppressAnimations, setSuppressAnimations] = useState(false);
 
   // Device optimization hooks
@@ -241,7 +241,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const sessionIdRef = useRef<string | null>(null);
   const sessionActiveRef = useRef<boolean>(false);
   const unacceptedCountRef = useRef<number>(0);
-  const timeoutCountRef = useRef<number>(0);
   const currentGroupConfigRef = useRef<DispatchConfig | null>(null);
   const currentOrderRef = useRef<DispatchAssignment | null>(null);
   const startWorkLockRef = useRef<boolean>(false);
@@ -315,7 +314,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }, 300000); // Check every 5 minutes
 
     // Handle page close/refresh - stop work session
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    const handleBeforeUnload = () => {
       if (sessionActiveRef.current) {
         const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
         if (auth) {
@@ -1231,7 +1230,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
 
       // Package results in same format as before for compatibility
-      const workSessionResult = { status: 'fulfilled' as const, value: { data: workSessionData, error: null } };
       const dispatchSessionResult = dispatchError
         ? { status: 'rejected' as const, reason: dispatchError }
         : { status: 'fulfilled' as const, value: { data: dispatchData, error: null } };
@@ -2380,33 +2378,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const formatTime = (date: Date | null) => {
     if (!date) return '--:--:--';
     return date.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  };
-
-  const formatWorkDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    if (hours === 0) {
-      return `${minutes}`;
-    }
-    return `${hours}h ${String(minutes).padStart(2, '0')}m`;
-  };
-
-  const getWorkDurationLabel = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    if (hours === 0) {
-      return t.dispatch.minutesSuffix;
-    }
-    return '';
-  };
-
-  const getTimeRemaining = () => {
-    if (!nextOrderTime) return '--';
-    const now = new Date();
-    const diff = Math.max(0, Math.floor((nextOrderTime.getTime() - now.getTime()) / 1000));
-    const minutes = Math.floor(diff / 60);
-    const seconds = diff % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const handleOrderClick = (order: any) => {
@@ -3870,7 +3841,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     {/* Text */}
                     <div className="text-center space-y-1.5">
                       <p className="text-lg font-bold text-emerald-900 drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]">{t.dispatch.startingSession}</p>
-                      <p className="text-sm text-emerald-700/60 font-medium">{t.dispatch.preparingOrderQueue}</p>
+                      <p className="text-sm text-emerald-700/60 font-medium">{t.dispatch.preparingQueue}</p>
                     </div>
 
                     {/* Shimmer progress bar - wider and more visible */}
@@ -4937,7 +4908,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
               )}
               <div className="flex gap-3">
                 <button onClick={() => setShowOrderNotSubmittedModal(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors">
-                  {t.dispatch.close || 'Close'}
+                  {t.dispatch.cancel}
                 </button>
                 <button onClick={() => { setShowOrderNotSubmittedModal(false); onNavigateToOrders?.(); }} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all">
                   {t.dispatch.goToOrders}

@@ -41,7 +41,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const ITEMS_PER_PAGE = 7;
-  const { isMobile, isTablet, deviceType, shouldReduceAnimations } = useDeviceOptimization();
+  const { isMobile, isTablet, deviceType } = useDeviceOptimization();
   const { t } = useLanguage();
 
   // Tablet-specific detection

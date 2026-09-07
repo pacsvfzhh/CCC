@@ -42,7 +42,7 @@ const TEXT_COLORS = [
   { color: '#be185d', label: 'Pink' }, { color: '#64748b', label: 'Gray' },
 ];
 
-export default function CustomerAutoMessages({ customerId, adminId, sourceType }: CustomerAutoMessagesProps) {
+export default function CustomerAutoMessages({ customerId, adminId }: CustomerAutoMessagesProps) {
   const [autoMessages, setAutoMessages] = useState<AutoMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

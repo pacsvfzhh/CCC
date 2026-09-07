@@ -42,10 +42,6 @@ const MAGIC_BYTES: Record<string, number[][]> = {
   'application/pdf': [[0x25, 0x50, 0x44, 0x46]],
 };
 
-const MAGIC_BYTES_OFFSET: Record<string, number> = {
-  'video/mp4': 4,
-};
-
 export function sanitizeFileName(fileName: string): string {
   const lastDotIndex = fileName.lastIndexOf('.');
   const name = lastDotIndex >= 0 ? fileName.substring(0, lastDotIndex) : fileName;

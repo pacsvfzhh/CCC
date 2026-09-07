@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Search, X, User, Calendar, Mail, Phone, Wallet, FileText, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, X, User, Calendar, Mail, Phone, Wallet, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { formatDateUTC } from '../../lib/dateUtils';
 
@@ -14,7 +14,7 @@ interface EmployeeSearchResult {
   remarks: string;
   tags: string[];
   total_income: number;
-  first_success_order_date: string;
+  first_success_order_date: string | null;
   admin_info?: {
     username: string;
     role: string;

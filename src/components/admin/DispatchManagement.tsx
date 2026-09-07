@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AUTH_STORAGE_KEY } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
-import { Upload, Trash2, CreditCard as Edit2, Save, X, PackageSearch, Settings, CheckCircle, XCircle, Users, Plus, FolderPlus, Layers, Search, Filter, ChevronDown, ChevronRight, BarChart3, UserPlus, UserMinus, ArrowRight } from 'lucide-react';
+import { Upload, Trash2, CreditCard as Edit2, Save, X, PackageSearch, Settings, CheckCircle, XCircle, Users, Plus, FolderPlus, Layers, Search, Filter, BarChart3, ArrowRight } from 'lucide-react';
 
 interface DispatchGroup {
   id: string;
@@ -36,12 +36,12 @@ interface Employee {
   wallet_balance: number;
   is_verified: boolean;
   created_at: string;
-  created_by?: string;
-  group_id?: string;
-  group_name?: string;
+  created_by?: string | null;
+  group_id?: string | null;
+  group_name?: string | null;
   is_own_employee?: boolean;
-  remarks?: string;
-  tags?: string[];
+  remarks?: string | null;
+  tags?: string[] | null;
 }
 
 interface AdminGroup {
@@ -69,7 +69,6 @@ export default function DispatchManagement() {
   const [editContent, setEditContent] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const ordersPerPage = 20;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
   const [notification, setNotification] = useState<Notification | null>(null);
@@ -88,11 +87,9 @@ export default function DispatchManagement() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [employeeSearchQuery, setEmployeeSearchQuery] = useState('');
-  const [groupsExpanded, setGroupsExpanded] = useState(true);
-  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
-  const [expandedAdmins, setExpandedAdmins] = useState<Set<string>>(new Set());
+  const [expandedAdmins] = useState<Set<string>>(new Set());
   const [selectedAdminFilter, setSelectedAdminFilter] = useState<string | null>(null);
   const [assignedEmployeesSelection, setAssignedEmployeesSelection] = useState<string[]>([]);
   const [unassignedEmployeesSelection, setUnassignedEmployeesSelection] = useState<string[]>([]);
@@ -1167,63 +1164,6 @@ export default function DispatchManagement() {
     }
   };
 
-  const handleAddMember = async (userId: string) => {
-    if (!selectedGroup) return;
-
-    try {
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      const adminId = auth ? JSON.parse(auth).user.id : null;
-
-      const existingMember = await supabase
-        .from('dispatch_group_members')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (existingMember.data) {
-        await supabase
-          .from('dispatch_group_members')
-          .delete()
-          .eq('user_id', userId);
-      }
-
-      const { error } = await supabase
-        .from('dispatch_group_members')
-        .insert({
-          group_id: selectedGroup.id,
-          user_id: userId,
-          assigned_by: adminId,
-        });
-
-      if (error) throw error;
-
-      showNotification('success', 'Employee added to group successfully');
-      setSelectedEmployees([]);
-      await loadEmployees();
-      await loadGroups();
-    } catch (error: any) {
-      showNotification('error', 'Add member failed: ' + error.message);
-    }
-  };
-
-  const handleRemoveMember = async (userId: string) => {
-    try {
-      const { error } = await supabase
-        .from('dispatch_group_members')
-        .delete()
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      showNotification('success', 'Employee removed from group successfully');
-      setSelectedEmployees([]);
-      await loadEmployees();
-      await loadGroups();
-    } catch (error: any) {
-      showNotification('error', 'Remove member failed: ' + error.message);
-    }
-  };
-
   const handleMoveEmployee = async () => {
     if (!employeeToMove || !selectedGroup) return;
 
@@ -1307,85 +1247,9 @@ export default function DispatchManagement() {
     }
   };
 
-  const handleBulkAddMembers = async () => {
-    if (!selectedGroup || selectedEmployees.length === 0) return;
-
-    setLoading(true);
-    try {
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      const adminId = auth ? JSON.parse(auth).user.id : null;
-
-      await supabase
-        .from('dispatch_group_members')
-        .delete()
-        .in('user_id', selectedEmployees);
-
-      const membersToInsert = selectedEmployees.map(userId => ({
-        group_id: selectedGroup.id,
-        user_id: userId,
-        assigned_by: adminId,
-      }));
-
-      const { error } = await supabase
-        .from('dispatch_group_members')
-        .insert(membersToInsert);
-
-      if (error) throw error;
-
-      showNotification('success', `Added ${selectedEmployees.length} employees to group`);
-      setSelectedEmployees([]);
-      await loadEmployees();
-      await loadGroups();
-    } catch (error: any) {
-      showNotification('error', 'Bulk add failed: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBulkRemoveMembers = async () => {
-    if (selectedEmployees.length === 0) return;
-
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('dispatch_group_members')
-        .delete()
-        .in('user_id', selectedEmployees);
-
-      if (error) throw error;
-
-      showNotification('success', `Removed ${selectedEmployees.length} employees from groups`);
-      setSelectedEmployees([]);
-      await loadEmployees();
-      await loadGroups();
-    } catch (error: any) {
-      showNotification('error', 'Bulk remove failed: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const totalPages = Math.ceil(totalCount / ordersPerPage);
-
   const filteredGroups = groups.filter(g =>
     g.group_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (g.description && g.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const groupMembers = employees.filter(emp =>
-    emp.group_id === selectedGroup?.id &&
-    (emp.username.toLowerCase().includes(employeeSearchQuery.toLowerCase()))
-  );
-
-  const unassignedMembers = employees.filter(emp =>
-    !emp.group_id &&
-    (emp.username.toLowerCase().includes(employeeSearchQuery.toLowerCase()))
-  );
-
-  const allOtherMembers = employees.filter(emp =>
-    emp.group_id && emp.group_id !== selectedGroup?.id &&
-    (emp.username.toLowerCase().includes(employeeSearchQuery.toLowerCase()))
   );
 
   // Pagination logic
@@ -2718,7 +2582,7 @@ export default function DispatchManagement() {
                           const matchesAdmin = emp.created_by === selectedAdminFilter;
                           const matchesSearch = emp.username.toLowerCase().includes(employeeSearchQuery.toLowerCase());
                           const matchesTags = assignedSelectedTags.length === 0 ||
-                            (emp.tags && Array.isArray(emp.tags) && assignedSelectedTags.some(tag => emp.tags.includes(tag)));
+                            (emp.tags?.some(tag => assignedSelectedTags.includes(tag)) ?? false);
 
                           return matchesGroup && matchesAdmin && matchesSearch && matchesTags;
                         });
@@ -2989,7 +2853,7 @@ export default function DispatchManagement() {
                           const matchesAdmin = emp.created_by === selectedAdminFilter;
                           const matchesSearch = emp.username.toLowerCase().includes(employeeSearchQuery.toLowerCase());
                           const matchesTags = unassignedSelectedTags.length === 0 ||
-                            (emp.tags && Array.isArray(emp.tags) && unassignedSelectedTags.some(tag => emp.tags.includes(tag)));
+                            (emp.tags?.some(tag => unassignedSelectedTags.includes(tag)) ?? false);
 
                           return matchesNotInCurrentGroup && matchesAdmin && matchesSearch && matchesTags;
                         });

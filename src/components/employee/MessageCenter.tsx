@@ -18,7 +18,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'login' | 'realtime'>('all');
   const [selectedMessage, setSelectedMessage] = useState<MessageWithRecipient | null>(null);
-  const { isMobile, isDesktop } = useResponsive();
+  const { isDesktop } = useResponsive();
 
   useEffect(() => {
     loadMessages();

@@ -75,13 +75,13 @@ const Video = Node.create({
 
   addCommands() {
     return {
-      setVideo: (options: { src: string }) => ({ commands }) => {
+      setVideo: (options: { src: string }) => ({ commands }: any) => {
         return commands.insertContent({
           type: this.name,
           attrs: options,
         });
       },
-    };
+    } as any;
   },
 });
 
@@ -103,8 +103,8 @@ const HighlightMark = Mark.create({
   renderHTML({ HTMLAttributes }) { return ['span', mergeAttributes(HTMLAttributes), 0]; },
   addCommands() {
     return {
-      setHighlightBg: (color: string) => ({ commands }) => commands.setMark(this.name, { color }),
-      unsetHighlightBg: () => ({ commands }) => commands.unsetMark(this.name),
+      setHighlightBg: (color: string) => ({ commands }: any) => commands.setMark(this.name, { color }),
+      unsetHighlightBg: () => ({ commands }: any) => commands.unsetMark(this.name),
     } as any;
   },
 });
@@ -151,20 +151,20 @@ const TextSize = Mark.create({
 
   addCommands() {
     return {
-      setTextSize: (size: string) => ({ commands }) => {
+      setTextSize: (size: string) => ({ commands }: any) => {
         return commands.setMark(this.name, { size });
       },
-      toggleTextSize: (size: string) => ({ commands, editor }) => {
+      toggleTextSize: (size: string) => ({ commands, editor }: any) => {
         const isActive = editor.isActive(this.name, { size });
         if (isActive) {
           return commands.unsetMark(this.name);
         }
         return commands.setMark(this.name, { size });
       },
-      unsetTextSize: () => ({ commands }) => {
+      unsetTextSize: () => ({ commands }: any) => {
         return commands.unsetMark(this.name);
       },
-    };
+    } as any;
   },
 });
 
@@ -275,8 +275,6 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
     parseOptions: {
       preserveWhitespace: 'full'
     },
-    immediatelyRender: true,
-    editorReady: true
   });
 
   useEffect(() => {
@@ -307,7 +305,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
     if (normalizedNew !== normalizedCurrent && content !== '') {
       isSyncing.current = true;
 
-      editor.commands.setContent(content, false);
+      editor.commands.setContent(content, { emitUpdate: false });
 
       // Focus editor immediately after content update so toolbar buttons work
       setTimeout(() => {
@@ -334,8 +332,6 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
     return new Promise((resolve) => {
       const xhr = new XMLHttpRequest();
-      let startTime = Date.now();
-
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
           const percentComplete = Math.round((e.loaded / e.total) * 100);
@@ -344,7 +340,6 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       });
 
       xhr.upload.addEventListener('loadstart', () => {
-        startTime = Date.now();
         onProgress(0, 0, file.size);
       });
 
@@ -541,7 +536,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
         if (editor) {
           if (file.type.startsWith('video/')) {
             console.log('Inserting video into editor');
-            editor.chain().focus().setVideo({ src: publicUrl }).run();
+            (editor.chain().focus() as any).setVideo({ src: publicUrl }).run();
           } else {
             console.log('Inserting image into editor');
             editor.chain().focus().setImage({ src: publicUrl }).run();
@@ -671,7 +666,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
     },
     insertVideo: (url: string) => {
       if (editor) {
-        editor.chain().focus().setVideo({ src: url }).run();
+        (editor.chain().focus() as any).setVideo({ src: url }).run();
       }
     },
     getEditor: () => editor,
@@ -846,7 +841,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <div className={`w-px h-6 mx-1 ${theme === 'light' ? 'bg-slate-200' : 'bg-slate-700'}`} />
 
             <MenuButton
-              onClick={() => editor.chain().focus().toggleTextSize('2em').run()}
+              onClick={() => (editor.chain().focus() as any).toggleTextSize('2em').run()}
               active={editor.isActive('textSize', { size: '2em' })}
               title="Large Text (H1 size)"
             >
@@ -854,7 +849,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             </MenuButton>
 
             <MenuButton
-              onClick={() => editor.chain().focus().toggleTextSize('1.5em').run()}
+              onClick={() => (editor.chain().focus() as any).toggleTextSize('1.5em').run()}
               active={editor.isActive('textSize', { size: '1.5em' })}
               title="Medium Text (H2 size)"
             >
@@ -862,7 +857,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             </MenuButton>
 
             <MenuButton
-              onClick={() => editor.chain().focus().toggleTextSize('1.25em').run()}
+              onClick={() => (editor.chain().focus() as any).toggleTextSize('1.25em').run()}
               active={editor.isActive('textSize', { size: '1.25em' })}
               title="Small Heading (H3 size)"
             >

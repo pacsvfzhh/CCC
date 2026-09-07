@@ -14,8 +14,8 @@ export async function validateTableColumn(
   columnName: string
 ): Promise<boolean> {
   try {
-    const { data, error } = await supabase
-      .from(tableName)
+    const { error } = await supabase
+      .from(tableName as any)
       .select(columnName)
       .limit(1);
 
@@ -81,7 +81,7 @@ export async function safeQuery<T>(
     }
 
     const { data, error } = await supabase
-      .from(tableName)
+      .from(tableName as any)
       .select(select);
 
     if (error) {
@@ -108,7 +108,7 @@ export async function safeQuery<T>(
 export async function tableExists(tableName: string): Promise<boolean> {
   try {
     const { error } = await supabase
-      .from(tableName)
+      .from(tableName as any)
       .select('*')
       .limit(0);
 

@@ -41,8 +41,8 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
   const [submissionStage, setSubmissionStage] = useState<'encrypting' | 'validating' | 'broadcasting' | 'confirming'>('encrypting');
   const [showValidationAlert, setShowValidationAlert] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
-  const [submitTimeMin, setSubmitTimeMin] = useState(5);
-  const [submitTimeMax, setSubmitTimeMax] = useState(20);
+  const [, setSubmitTimeMin] = useState(5);
+  const [, setSubmitTimeMax] = useState(20);
   const adminIdRef = useRef<string | null>(propAdminId || null);
   const [activeAssignment, setActiveAssignment] = useState<{ id: string; assignment_id: string } | null>(null);
 
@@ -91,7 +91,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
         .order('accepted_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      setActiveAssignment(data ? { id: data.id, assignment_id: data.assignment_id } : null);
+      setActiveAssignment(data?.assignment_id ? { id: data.id, assignment_id: data.assignment_id } : null);
     };
     fetchActiveAssignment();
     const interval = setInterval(fetchActiveAssignment, 5000);

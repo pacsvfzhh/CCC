@@ -74,7 +74,7 @@ class TabSessionManager {
     if (!this.channel) return;
 
     this.channel.onmessage = (event: MessageEvent<TabSessionMessage>) => {
-      const { type, userId, tabId, timestamp } = event.data;
+      const { type, userId, tabId } = event.data;
 
       // Ignore messages from this tab
       if (tabId === this.tabId) return;
@@ -260,7 +260,7 @@ class TabSessionManager {
 
       const now = Date.now();
       const elapsed = now - this.loginTime;
-      const timeout = SESSION_TIMEOUT[this.userRole!];
+      const timeout = this.userRole === 'admin' ? SESSION_TIMEOUT.ADMIN : SESSION_TIMEOUT.EMPLOYEE;
       const remaining = timeout - elapsed;
 
       if (remaining <= 0) {
@@ -283,7 +283,7 @@ class TabSessionManager {
 
     const now = Date.now();
     const elapsed = now - this.loginTime;
-    const timeout = SESSION_TIMEOUT[this.userRole];
+    const timeout = this.userRole === 'admin' ? SESSION_TIMEOUT.ADMIN : SESSION_TIMEOUT.EMPLOYEE;
     const remaining = timeout - elapsed;
 
     return Math.max(0, Math.floor(remaining / 1000));

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, History, Eye, Users, Clock, MapPin, Monitor, X, ChevronDown, ChevronRight, ChevronUp, Pin, PinOff, RefreshCw } from 'lucide-react';
+import { Search, History, Eye, Users, Clock, MapPin, Monitor, X, ChevronDown, ChevronRight, Pin, PinOff, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Admin } from '../../types';
 

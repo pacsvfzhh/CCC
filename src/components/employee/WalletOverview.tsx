@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Wallet as WalletIcon, DollarSign, Lock, TrendingUp, AlertCircle, Send, Clock, History } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { Wallet, Employee, AdminConfig, VerificationRequest } from '../../types';
+import { Wallet, Employee, VerificationRequest } from '../../types';
 import VerificationForm from './VerificationForm';
 import WithdrawalHistory from './WithdrawalHistory';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
@@ -32,16 +32,6 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const { deviceType } = useDeviceOptimization();
 
   const isTabletDevice = deviceType === 'tablet';
-
-  // Format large numbers to K/M format
-  const formatAmount = (amount: number) => {
-    if (amount >= 1000000) {
-      return (amount / 1000000).toFixed(1) + 'M';
-    } else if (amount >= 1000) {
-      return (amount / 1000).toFixed(1) + 'K';
-    }
-    return amount.toFixed(2);
-  };
 
   // Dynamic font size calculation for tablet to prevent overflow
   const getTabletFontSize = (amount: number) => {

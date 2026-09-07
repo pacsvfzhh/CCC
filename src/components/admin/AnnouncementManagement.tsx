@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, Fragment, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Pin, CreditCard as Edit, Trash2, Globe, Users, ChevronDown, ChevronRight, PinOff, Upload, X, Play, Pause, Gauge, Eye, EyeOff } from 'lucide-react';
+import { Plus, Pin, CreditCard as Edit, Trash2, Globe, Users, ChevronDown, ChevronRight, PinOff, Play, Pause, Gauge, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Announcement, Admin } from '../../types';
 import { parse as marked, setOptions } from 'marked';

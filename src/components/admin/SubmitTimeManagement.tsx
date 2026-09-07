@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus, Trash2, ChevronRight, Pencil, Save, X, CheckCircle, XCircle, Settings, Timer, Search } from 'lucide-react';
+import { Clock, Plus, Trash2, ChevronRight, Pencil, Save, X, CheckCircle, XCircle, Settings, Search } from 'lucide-react';
 import { Admin } from '../../types';
 import { supabase } from '../../lib/supabase';
 

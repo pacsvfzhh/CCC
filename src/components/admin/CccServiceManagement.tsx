@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, TrendingUp, X, Search, Tag, Filter, Image, Paperclip, Star, History, Clock, Bold, Underline, Strikethrough, Type, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw, Megaphone, FileUp, AlignLeft, AlignCenter, AlignRight, Palette } from 'lucide-react';
+import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, ChevronRight, X, Search, Tag, Filter, Image, Star, Clock, Bold, Underline, Strikethrough, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw, Megaphone, AlignLeft, AlignCenter, AlignRight, Palette } from 'lucide-react';
 import { sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import CustomerAutoMessages from './CustomerAutoMessages';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
@@ -219,12 +219,12 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   const [isUnderlineActive, setIsUnderlineActive] = useState(false);
   const [showBgColorPicker, setShowBgColorPicker] = useState<'main' | 'edit' | 'template' | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState('');
+  const [, setEditingContent] = useState('');
   const [isEditBoldActive, setIsEditBoldActive] = useState(false);
   const [isEditUnderlineActive, setIsEditUnderlineActive] = useState(false);
   const [editEditorFontSize, setEditEditorFontSize] = useState<'normal' | 'large' | 'xlarge' | null>(null);
   const editEditorRef = useRef<HTMLDivElement>(null);
-  const [pendingRating, setPendingRating] = useState<any>(null);
+  const [, setPendingRating] = useState<any>(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingValue, setRatingValue] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
@@ -300,7 +300,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   const [templateFontSize, setTemplateFontSize] = useState<string | null>(null);
   const [templateAlign, setTemplateAlign] = useState<'left' | 'center' | 'right'>('left');
   const [showTextColorPicker, setShowTextColorPicker] = useState<'template' | null>(null);
-  const [templateTextColor, setTemplateTextColor] = useState<string | null>(null);
+  const [, setTemplateTextColor] = useState<string | null>(null);
   const [sendingRichCard, setSendingRichCard] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
   const richCardEditorRef = useRef<TiptapEditorRef>(null);
@@ -2183,7 +2183,6 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       const fileName = `${selectedCustomer.id}_${selectedEmployee.id}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const startTime = Date.now();
       const { error: uploadError } = await supabase.storage
         .from('chat-images')
         .upload(filePath, file);
@@ -2858,45 +2857,6 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
         } catch (error: any) {
           console.error('Delete conversation failed:', error);
           setNotification({ type: 'error', text: error.message || 'Failed to delete conversation' });
-        }
-        setConfirmDialog(null);
-      },
-    });
-  };
-
-  const handleDeleteAllConversations = () => {
-    if (!selectedCustomer) return;
-    setConfirmDialog({
-      show: true,
-      title: 'Delete All Conversations',
-      message: 'Delete ALL conversations for this customer? This will permanently remove all chat history with all employees. This cannot be undone.',
-      onConfirm: async () => {
-        try {
-          console.log('Deleting all conversations for customer:', selectedCustomer.id);
-
-          const { data, error } = await supabase
-            .from('customer_employee_conversations')
-            .delete()
-            .eq('customer_id', selectedCustomer.id)
-            .select();
-
-          console.log('Delete all conversations response:', { data, error });
-
-          if (error) {
-            console.error('Delete all conversations error:', error);
-            throw error;
-          }
-
-          setNotification({ type: 'success', text: `All conversations deleted (${data?.length || 0} messages removed)` });
-          Array.from(conversationMessagesCacheRef.current.keys())
-            .filter(key => key.startsWith(`${selectedCustomer.id}:`))
-            .forEach(key => conversationMessagesCacheRef.current.delete(key));
-          setMessages([]);
-          setConversationHistory([]);
-          setSelectedEmployee(null);
-        } catch (error: any) {
-          console.error('Delete all conversations failed:', error);
-          setNotification({ type: 'error', text: error.message || 'Failed to delete conversations' });
         }
         setConfirmDialog(null);
       },
@@ -4359,7 +4319,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                                     };
                                     setMessages(prev => [...prev, optimisticMsg]);
                                     try {
-                                      const { data: msgRow, error: msgErr } = await supabase.from('customer_employee_conversations').insert({
+                                      const { error: msgErr } = await supabase.from('customer_employee_conversations').insert({
                                         customer_id: selectedCustomer.id,
                                         employee_id: selectedEmployee.id,
                                         sender_type: 'customer',

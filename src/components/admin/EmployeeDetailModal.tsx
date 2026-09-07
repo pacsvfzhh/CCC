@@ -82,7 +82,7 @@ export default function EmployeeDetailModal({
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [verificationData, setVerificationData] = useState<VerificationRequest | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"daily" | "transactions" | "verification">("daily");
   const [currentPage, setCurrentPage] = useState(1);
   const [transactionPage, setTransactionPage] = useState(1);

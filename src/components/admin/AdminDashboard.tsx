@@ -152,8 +152,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       return () => window.cancelIdleCallback(idleId);
     }
 
-    const timerId = window.setTimeout(preload, 800);
-    return () => window.clearTimeout(timerId);
+    const timerId = globalThis.setTimeout(preload, 800);
+    return () => globalThis.clearTimeout(timerId);
   }, [admin.id, admin.role]);
 
   // Cross-tab navigation targets
@@ -624,7 +624,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <span className="hidden lg:inline font-medium">Password</span>
                 </button>
                 <button
-                  onClick={logout}
+                  onClick={() => logout()}
                   className="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/40 hover:border-red-400/60 rounded-md text-red-400 transition-all text-xs"
                 >
                   <LogOut className="w-3.5 h-3.5" />

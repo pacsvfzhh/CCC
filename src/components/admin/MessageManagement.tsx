@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import TiptapEditor from './TiptapEditor';
 import {
   Send, Users, Bell, AlertCircle, X, Search,
-  CheckSquare, Square, Eye, Trash2, AlertTriangle,
+  CheckSquare, Square, Trash2, AlertTriangle,
   UserCheck, UserX, Pencil, Save, ChevronDown,
-  Tag, ChevronRight, Bookmark, Plus, Clock, Radio, Globe
+  Tag, Bookmark, Plus, Clock, Radio, Globe
 } from 'lucide-react';
 
 interface AdminGroup {
@@ -55,7 +55,7 @@ interface Props {
     id: string;
     username: string;
     role: string;
-    is_super_admin: boolean;
+    is_super_admin?: boolean;
   };
   initialEmployee?: { id: string; username: string } | null;
   onConsumeInitialEmployee?: () => void;
@@ -101,15 +101,13 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
   const [saving, setSaving] = useState(false);
 
   const [messageTypeFilter, setMessageTypeFilter] = useState<'all' | 'realtime' | 'login_popup'>('all');
-  const [messageScopeFilter, setMessageScopeFilter] = useState<'all' | 'broadcast' | 'targeted'>('all');
+  const [messageScopeFilter] = useState<'all' | 'broadcast' | 'targeted'>('all');
   const [readStatusFilter, setReadStatusFilter] = useState<'all' | 'read' | 'unread'>('all');
   const [sentMessagesSearchQuery, setSentMessagesSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const messagesPerPage = 15;
 
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
-
 
   const [showTagDropdown, setShowTagDropdown] = useState(false);
 
@@ -844,22 +842,6 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
     }
   }, [paginatedMessages.map(m => m.id).join(',')]);
 
-  const messageStats_filtered = {
-    total: sentMessages.length,
-    realtime: sentMessages.filter(m => m.message_type === 'realtime').length,
-    loginPopup: sentMessages.filter(m => m.message_type === 'login_popup').length,
-    broadcast: sentMessages.filter(m => !m.recipient_ids || m.recipient_ids.length === 0).length,
-    targeted: sentMessages.filter(m => m.recipient_ids && m.recipient_ids.length > 0).length,
-    read: sentMessages.filter(m => {
-      const stats = messageStats.get(m.id);
-      return (stats?.total_recipients || 0) > 0 && stats?.read_count === stats?.total_recipients;
-    }).length,
-    unread: sentMessages.filter(m => {
-      const stats = messageStats.get(m.id);
-      return (stats?.total_recipients || 0) === 0 || (stats?.read_count || 0) < (stats?.total_recipients || 0);
-    }).length,
-  };
-
   const toggleSelectAll = () => {
     if (selectedMessageIds.size === filteredMessages.length && filteredMessages.every(m => selectedMessageIds.has(m.id))) {
       const newSelection = new Set(selectedMessageIds);
@@ -913,7 +895,6 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
   const allEmployeesFlat = Array.from(allEmployees.values()).flat();
   const totalEmployees = allEmployeesFlat.length;
   const filteredEmployees = getFilteredEmployees();
-  const selectedGroup = adminGroups.find(g => g.id === selectedAdminId);
   const allCurrentSelected = filteredEmployees.length > 0 && filteredEmployees.every(e => selectedEmployeeIds.has(e.id));
   const allEmployeesSelected = allEmployeesFlat.length > 0 && allEmployeesFlat.every(emp => selectedEmployeeIds.has(emp.id));
 
@@ -1642,9 +1623,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                         onChange={(html: string) => setEditForm(prev => ({ ...prev, content: html }))}
                         placeholder="Edit message content..."
                         theme="light"
-                        minHeight="100%"
-                        maxHeight="100%"
-                        bucket="announcement-images"
+                        adminId={admin.id}
                       />
                     </div>
                   ) : (

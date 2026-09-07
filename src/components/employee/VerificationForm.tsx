@@ -152,7 +152,7 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
             audited_at: null,
             updated_at: getCurrentTimestamp(),
           })
-          .eq('id', targetId);
+          .eq('id', targetId!);
 
         if (error) throw error;
       } else {

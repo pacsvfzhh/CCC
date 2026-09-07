@@ -184,7 +184,7 @@ export interface AdminGroup {
   verified_employees: number;
 }
 
-export interface AuthState {
-  user: Admin | Employee | null;
-  userType: 'admin' | 'employee' | null;
-}
+export type AuthState =
+  | { user: null; userType: null }
+  | { user: Admin; userType: 'admin' }
+  | { user: Employee; userType: 'employee' };

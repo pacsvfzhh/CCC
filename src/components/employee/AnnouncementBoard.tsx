@@ -27,7 +27,7 @@ const CACHE_KEYS = {
 const CACHE_DURATION = 5 * 60 * 1000;
 
 export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
-  const { isMobile, isTablet, deviceType, shouldReduceAnimations } = useDeviceOptimization();
+  const { deviceType } = useDeviceOptimization();
   const { t, dateLocale } = useLanguage();
 
   const translateCategory = (category: string) => {
@@ -401,7 +401,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
   }, [selectedAnnouncement]);
 
   // Detect device performance level
-  const [isLowEndDevice, setIsLowEndDevice] = useState(false);
+  const [, setIsLowEndDevice] = useState(false);
 
   useEffect(() => {
     // Check if device is low-end based on hardware concurrency and memory
@@ -553,7 +553,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           schema: 'public',
           table: 'announcements'
         },
-        (payload) => {
+        () => {
           if (reloadTimeout) {
             clearTimeout(reloadTimeout);
           }
