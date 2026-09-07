@@ -46,7 +46,7 @@ const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }:
         ref={imgRef}
         src={src}
         alt="Shared image"
-        className={`block h-auto max-h-[420px] max-w-[min(340px,100%)] object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm ${
+        className={`block h-auto max-h-[420px] max-w-full rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm ${
           loaded ? 'opacity-100' : 'opacity-0'
         }`}
         onLoad={() => setLoaded(true)}
@@ -4056,12 +4056,12 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                               )}
                             </div>
                           ) : msg.message_type === 'image' && msg.image_url ? (
-                          <div className={`relative overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
+                          <div className={`relative w-fit max-w-full overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
                             msg.sender_type === 'customer'
                               ? 'border-emerald-200/80 bg-slate-950/40 shadow-slate-950/20'
                               : 'border-emerald-300/30 bg-gradient-to-br from-slate-800 via-slate-800 to-emerald-950/70 shadow-emerald-950/35'
                           }`}>
-                            <div className="relative z-10">
+                            <div className="relative z-10 w-fit max-w-full">
                               {renderMessageContent(msg)}
                               {replacingImageMsgId === msg.id && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-950/65 backdrop-blur-[2px]">
