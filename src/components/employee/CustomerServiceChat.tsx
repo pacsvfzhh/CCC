@@ -421,6 +421,9 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const handledUnreadMessageIdsRef = useRef(new Set<string>());
   const notificationMessageIdsRef = useRef(new Set<string>());
   const stableKeyMapRef = useRef<Map<string, string>>(new Map());
+  const conversationLoadPromiseRef = useRef<Promise<void> | null>(null);
+  const conversationRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const conversationRefreshCustomerIdsRef = useRef(new Set<string>());
 
   // Lock body scroll when chat is open (mobile only - full-screen overlay)
   useEffect(() => {
@@ -465,29 +468,25 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         const message = payload?.new;
         if (!message) return;
 
-        employeeConversationCache.delete(employeeId);
-        loadConversations();
-        if (selectedCustomerRef.current?.id === message.customer_id) {
-          if (!isInitialLoadRef.current && !(justSentRef.current && message.sender_type === 'employee')) {
-            loadMessagesFromDB(isOpenRef.current);
-          }
-        }
+        scheduleConversationRefresh(message.customer_id);
 
         if (message.message_type === 'rich_card') {
           prefetchRichCard(message as any);
         }
 
-        if (
+        const isNewUnreadMessage = Boolean(
           message.sender_type === 'customer' &&
           message.is_read === false &&
           message.id &&
-          !handledUnreadMessageIdsRef.current.has(message.id)
-        ) {
+          !handledUnreadMessageIdsRef.current.has(message.id),
+        );
+        if (isNewUnreadMessage && message.id) {
           handledUnreadMessageIdsRef.current.add(message.id);
           if (!(isOpenRef.current && selectedCustomerRef.current?.id === message.customer_id)) {
             setUnreadCount(previous => previous + 1);
           }
         }
+        applyIncomingConversationMessage(message, isNewUnreadMessage);
 
         if (
           !isOpenRef.current &&
@@ -529,23 +528,15 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         table: 'customer_employee_conversations',
         filter: `employee_id=eq.${employeeId}`,
       }, (payload: any) => {
-        loadConversations();
-        if (selectedCustomerRef.current && selectedCustomerRef.current.id === payload.new.customer_id) {
-          if (!isInitialLoadRef.current) {
-            loadMessagesFromDB(isOpenRef.current);
-          }
-        }
+        scheduleConversationRefresh(payload?.new?.customer_id);
       })
       .on('postgres_changes', {
         event: 'DELETE',
         schema: 'public',
         table: 'customer_employee_conversations',
         filter: `employee_id=eq.${employeeId}`,
-      }, () => {
-        loadConversations();
-        if (selectedCustomerRef.current && !isInitialLoadRef.current) {
-          loadMessagesFromDB();
-        }
+      }, (payload: any) => {
+        scheduleConversationRefresh(payload?.old?.customer_id || payload?.new?.customer_id);
       })
       .subscribe();
 
@@ -558,6 +549,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       if (onlineCheckIntervalRef.current) {
         clearInterval(onlineCheckIntervalRef.current);
       }
+      if (conversationRefreshTimerRef.current) {
+        clearTimeout(conversationRefreshTimerRef.current);
+        conversationRefreshTimerRef.current = null;
+      }
+      conversationRefreshCustomerIdsRef.current.clear();
     };
   }, [employeeId]);
 
@@ -948,9 +944,13 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     return <div className="text-sm leading-relaxed whitespace-pre-wrap break-words" style={{ overflowWrap: 'anywhere' }}>{content}</div>;
   };
 
-  const loadConversations = async () => {
+  const loadConversations = (force = false) => {
+    const pending = conversationLoadPromiseRef.current;
+    if (pending) return pending;
+
     const requestId = ++conversationLoadRequestRef.current;
-    const cached = employeeConversationCache.get(employeeId);
+    const request = (async () => {
+    const cached = force ? null : employeeConversationCache.get(employeeId);
     if (cached) {
       preloadConversationAvatars(cached.conversations);
       setConversations(cached.conversations);
@@ -1083,11 +1083,85 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       if (requestId === conversationLoadRequestRef.current) {
         console.error('Error loading conversations:', error);
       }
-    } finally {
-      if (requestId === conversationLoadRequestRef.current) {
-        setLoadingConversations(false);
+      } finally {
+        if (requestId === conversationLoadRequestRef.current) {
+          setLoadingConversations(false);
+        }
       }
+    })();
+
+    conversationLoadPromiseRef.current = request;
+    request.then(
+      () => {
+        if (conversationLoadPromiseRef.current === request) {
+          conversationLoadPromiseRef.current = null;
+        }
+      },
+      () => {
+        if (conversationLoadPromiseRef.current === request) {
+          conversationLoadPromiseRef.current = null;
+        }
+      },
+    );
+    return request;
+  };
+
+  const applyIncomingConversationMessage = (message: any, incrementUnread = false) => {
+    const customerId = message?.customer_id;
+    if (!customerId) return;
+
+    const shouldIncreaseUnread = incrementUnread &&
+      !(isOpenRef.current && selectedCustomerRef.current?.id === customerId);
+
+    setConversations(previous => {
+      const index = previous.findIndex(
+        conversation => conversation.customer.id === customerId,
+      );
+      if (index < 0) return previous;
+
+      const current = previous[index];
+      const next = [...previous];
+      next[index] = {
+        ...current,
+        unread_count: shouldIncreaseUnread
+          ? current.unread_count + 1
+          : current.unread_count,
+        last_message: message.message_type === 'image'
+          ? '\ud83d\udcf7 Photo'
+          : message.message_content || current.last_message,
+        last_message_time: message.created_at || current.last_message_time,
+        last_customer_message_time: message.sender_type === 'customer'
+          ? message.created_at || current.last_customer_message_time
+          : current.last_customer_message_time,
+      };
+      return next;
+    });
+  };
+
+  const scheduleConversationRefresh = (customerId?: string) => {
+    if (customerId) {
+      conversationRefreshCustomerIdsRef.current.add(customerId);
     }
+
+    if (conversationRefreshTimerRef.current) {
+      clearTimeout(conversationRefreshTimerRef.current);
+    }
+
+    conversationRefreshTimerRef.current = setTimeout(() => {
+      conversationRefreshTimerRef.current = null;
+      const customerIds = conversationRefreshCustomerIdsRef.current;
+      conversationRefreshCustomerIdsRef.current = new Set<string>();
+      const selectedId = selectedCustomerRef.current?.id;
+
+      void loadConversations(true);
+      if (
+        selectedId &&
+        customerIds.has(selectedId) &&
+        !isInitialLoadRef.current
+      ) {
+        void loadMessagesFromDB(isOpenRef.current);
+      }
+    }, 120);
   };
 
   useEffect(() => {
@@ -1319,7 +1393,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         .eq('sender_type', 'customer')
         .eq('is_read', false);
 
-      loadConversations();
+      void loadConversations(true);
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }
