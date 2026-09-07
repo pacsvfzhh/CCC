@@ -649,7 +649,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (!selectedAdminId) return;
     const requestId = ++conversationHistoryLoadRequestRef.current;
     try {
-      await loadCustomerUnreadCounts(allCustomersRef.current.map(customer => customer.id));
+      void loadCustomerUnreadCounts(allCustomersRef.current.map(customer => customer.id));
       const data = await prefetchConversationSummaries(
         selectedAdminId,
         'customer',
@@ -1581,6 +1581,21 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     customerUnreadRequestRef.current += 1;
     try {
       if (!silent) setLoading(true);
+
+      void prefetchConversationSummaries(
+        targetAdminId,
+        'customer',
+        async () => {
+          const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
+            p_admin_id: targetAdminId,
+            p_source_type: 'aaa_service',
+          });
+          if (error) throw error;
+          return data || [];
+        },
+      ).catch(error => {
+        console.warn('Unable to prefetch customer service sessions:', error);
+      });
 
       const { customers, employees } = await prefetchAdminWorkspaceData<SimulatedCustomer, Employee>(
         targetAdminId,
@@ -2707,7 +2722,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
               <>
                 <button
                   type="button"
-                  onClick={() => { setConversationHistory([]); setAllConversationHistory([]); conversationHistoryRef.current = []; allConversationHistoryRef.current = []; setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('all'); setHistoryScope('all'); historyScrollTopRef.current = 0; void loadAllConversationHistory(true); }}
+                  onClick={() => { setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('all'); setHistoryScope('all'); historyScrollTopRef.current = 0; void loadAllConversationHistory(true); }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
                     showHistoryView && historyScope === 'all' && historyFilterMode !== 'new'
                       ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/40 border-orange-300'
@@ -2726,7 +2741,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setConversationHistory([]); setAllConversationHistory([]); conversationHistoryRef.current = []; allConversationHistoryRef.current = []; setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('new'); setHistoryScope('all'); historyScrollTopRef.current = 0; void loadAllConversationHistory(true); }}
+                  onClick={() => { setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('new'); setHistoryScope('all'); historyScrollTopRef.current = 0; void loadAllConversationHistory(true); }}
                   className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
                     totalUnread > 0
                       ? `${showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
