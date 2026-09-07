@@ -99,6 +99,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const wasActiveRef = useRef(false);
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
+  const selectedAdminIdRef = useRef<string | null>(null);
   const [selectedAdminName, setSelectedAdminName] = useState<string>('');
   const [customers, setCustomers] = useState<SimulatedCustomer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<SimulatedCustomer | null>(null);
@@ -322,6 +323,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const messagesLoadRequestRef = useRef(0);
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  selectedAdminIdRef.current = selectedAdminId;
   const justSentRef = useRef(false);
   const loadConversationHistoryRef = useRef<() => void>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -346,15 +348,16 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
   const loadCustomerUnreadCounts = useCallback(async (customerIds: string[]) => {
     if (!selectedAdminId || customerIds.length === 0) return;
+    const requestAdminId = selectedAdminId;
     const requestId = ++customerUnreadRequestRef.current;
+    const employeeIds = allEmployeesRef.current.map(employee => employee.id);
 
     try {
       const { data, error } = await supabase
         .from('customer_employee_conversations')
-        .select('customer_id, users!inner(created_by), simulated_customers!inner(source_type)')
+        .select('customer_id')
         .in('customer_id', customerIds)
-        .eq('users.created_by', selectedAdminId)
-        .eq('simulated_customers.source_type', 'aaa_service')
+        .in('employee_id', employeeIds)
         .eq('sender_type', 'employee')
         .eq('is_read', false);
 
@@ -365,7 +368,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
       });
 
-      if (requestId !== customerUnreadRequestRef.current) return;
+      if (requestId !== customerUnreadRequestRef.current || selectedAdminIdRef.current !== requestAdminId) return;
 
       setCustomerUnreadCounts(prev => {
         const previousIds = Object.keys(prev);
@@ -414,10 +417,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
       const { data: messages, error: messagesError } = await supabase
         .from('customer_employee_conversations')
-        .select('customer_id, employee_id, simulated_customers!inner(source_type)')
+        .select('customer_id, employee_id')
         .in('customer_id', customerIds)
         .in('employee_id', employeeIds)
-        .eq('simulated_customers.source_type', 'aaa_service')
         .eq('sender_type', 'employee')
         .eq('is_read', false);
 
@@ -451,7 +453,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       setAdminGroups(data);
 
       if (data.length > 0) {
-        void loadAdminUnreadCounts(data.map(g => g.admin_id));
+        await loadAdminUnreadCounts(data.map(g => g.admin_id));
 
         if (targetEmployee) {
           const { data: userData } = await supabase.from('users').select('created_by').eq('id', targetEmployee.id).maybeSingle();
@@ -1489,10 +1491,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
       const { data, error } = await supabase
         .from('customer_employee_conversations')
-        .select('customer_id, simulated_customers!inner(source_type)')
+        .select('customer_id')
         .in('customer_id', customers.map(customer => customer.id))
         .in('employee_id', employees.map(employee => employee.id))
-        .eq('simulated_customers.source_type', 'aaa_service')
         .eq('sender_type', 'employee')
         .eq('is_read', false);
 
