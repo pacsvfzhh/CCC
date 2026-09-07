@@ -4392,10 +4392,13 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                       <button
                         type="button"
                         onClick={() => avatarFileInputRef.current?.click()}
-                        className="w-full px-3 py-2.5 bg-amber-900/20 border-2 border-amber-500/50 rounded-lg text-amber-200 hover:bg-amber-900/30 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                        className="flex w-full min-w-0 items-center justify-center gap-2 overflow-hidden rounded-lg border-2 border-amber-500/50 bg-amber-900/20 px-3 py-2.5 text-sm font-medium text-amber-200 transition-all hover:bg-amber-900/30"
+                        title={customerForm.customAvatarFile?.name || 'Upload Photo'}
                       >
-                        <Image className="w-4 h-4" />
-                        {customerForm.customAvatarFile ? customerForm.customAvatarFile.name : 'Upload Photo'}
+                        <Image className="h-4 w-4 shrink-0" />
+                        <span className="min-w-0 truncate">
+                          {customerForm.customAvatarFile ? customerForm.customAvatarFile.name : 'Upload Photo'}
+                        </span>
                       </button>
                       {customerForm.customAvatarFile && (
                         <div className="mt-1.5 p-2 bg-slate-900/50 rounded-lg flex items-center gap-2">
