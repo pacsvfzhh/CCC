@@ -572,10 +572,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       const conversationCounts: Record<string, number> = {};
       data?.forEach(msg => {
         const conversationKey = `${msg.customer_id}:${msg.employee_id}`;
-        if (
-          locallyReadConversationKeysRef.current.has(conversationKey) ||
-          isConversationReadThrough('ccc_service', msg.customer_id, msg.employee_id, msg.created_at)
-        ) {
+        if (isConversationReadThrough('ccc_service', msg.customer_id, msg.employee_id, msg.created_at)) {
           return;
         }
         counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
@@ -815,7 +812,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         if (
           msg.sender_type === 'employee' &&
           !msg.is_read &&
-          !locallyReadConversationKeysRef.current.has(`${customer.id}:${msg.employee_id}`) &&
           !isConversationReadThrough('ccc_service', customer.id, msg.employee_id, msg.created_at)
         ) {
           history.unread_count++;
@@ -841,7 +837,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     if (!adminIdToUse) return;
     const requestId = ++conversationHistoryLoadRequestRef.current;
     try {
-      void loadCustomerUnreadCounts(allCustomersRef.current.map(customer => customer.id));
+      const unreadCountsRequest = loadCustomerUnreadCounts(allCustomersRef.current.map(customer => customer.id));
       const data = await prefetchConversationSummaries(
         adminIdToUse,
         'manager',
@@ -857,6 +853,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         force,
       );
 
+      await unreadCountsRequest;
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
 
       const employeeIds = data.map((row: any) => row.employee_id).filter(Boolean);
@@ -892,8 +889,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         message_count: Number(row.message_count),
         last_message: row.last_message_type === 'image' ? '__IMAGE__' : (row.last_message || ''),
         last_message_time: row.last_message_time,
-        unread_count: locallyReadConversationKeysRef.current.has(`${row.customer_id}:${row.employee_id}`)
-          || isConversationReadThrough('ccc_service', row.customer_id, row.employee_id, row.last_message_time)
+        unread_count: isConversationReadThrough('ccc_service', row.customer_id, row.employee_id, row.last_message_time)
           ? 0
           : conversationUnreadCountsLoadedRef.current
             ? conversationUnreadCountsRef.current[`${row.customer_id}:${row.employee_id}`] || 0
@@ -1319,6 +1315,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       let debounceTimer: ReturnType<typeof setTimeout> | null = null;
       const fallbackTimer = window.setInterval(() => {
         void loadCustomerUnreadCounts(customerIds);
+        void loadAllConversationHistory(undefined, true);
       }, 15000);
       const channel = supabase
         .channel(`customer_unread_counts_${selectedAdminId}`)
@@ -2186,7 +2183,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       await supabase
         .from('customer_employee_conversations')
         .update(conversationUpdateData)
-        .eq('simulated_customer_id', editingCustomer.id);
+        .eq('customer_id', editingCustomer.id);
 
       setNotification({ type: 'success', text: 'Customer updated successfully!' });
       setEditingCustomer(null);

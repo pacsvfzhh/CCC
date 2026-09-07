@@ -394,10 +394,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       const conversationCounts: Record<string, number> = {};
       data?.forEach(msg => {
         const conversationKey = `${msg.customer_id}:${msg.employee_id}`;
-        if (
-          locallyReadConversationKeysRef.current.has(conversationKey) ||
-          isConversationReadThrough('aaa_service', msg.customer_id, msg.employee_id, msg.created_at)
-        ) {
+        if (isConversationReadThrough('aaa_service', msg.customer_id, msg.employee_id, msg.created_at)) {
           return;
         }
         counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
@@ -637,7 +634,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         if (
           msg.sender_type === 'employee' &&
           !msg.is_read &&
-          !locallyReadConversationKeysRef.current.has(`${customer.id}:${msg.employee_id}`) &&
           !isConversationReadThrough('aaa_service', customer.id, msg.employee_id, msg.created_at)
         ) {
           history.unread_count++;
@@ -662,7 +658,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (!selectedAdminId) return;
     const requestId = ++conversationHistoryLoadRequestRef.current;
     try {
-      void loadCustomerUnreadCounts(allCustomersRef.current.map(customer => customer.id));
+      const unreadCountsRequest = loadCustomerUnreadCounts(allCustomersRef.current.map(customer => customer.id));
       const data = await prefetchConversationSummaries(
         selectedAdminId,
         'customer',
@@ -678,6 +674,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         force,
       );
 
+      await unreadCountsRequest;
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
 
       const employeeIds = data.map((row: any) => row.employee_id).filter(Boolean);
@@ -713,8 +710,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         message_count: Number(row.message_count),
         last_message: row.last_message_type === 'image' ? '__IMAGE__' : (row.last_message || ''),
         last_message_time: row.last_message_time,
-        unread_count: locallyReadConversationKeysRef.current.has(`${row.customer_id}:${row.employee_id}`)
-          || isConversationReadThrough('aaa_service', row.customer_id, row.employee_id, row.last_message_time)
+        unread_count: isConversationReadThrough('aaa_service', row.customer_id, row.employee_id, row.last_message_time)
           ? 0
           : conversationUnreadCountsLoadedRef.current
             ? conversationUnreadCountsRef.current[`${row.customer_id}:${row.employee_id}`] || 0
@@ -1135,6 +1131,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       let debounceTimer: ReturnType<typeof setTimeout> | null = null;
       const fallbackTimer = window.setInterval(() => {
         void loadCustomerUnreadCounts(customerIds);
+        void loadAllConversationHistory(true);
       }, 15000);
       const channel = supabase
         .channel(`customer_unread_counts_${selectedAdminId}`)
@@ -1926,7 +1923,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       await supabase
         .from('customer_employee_conversations')
         .update(conversationUpdateData)
-        .eq('simulated_customer_id', editingCustomer.id);
+        .eq('customer_id', editingCustomer.id);
 
       setNotification({ type: 'success', text: 'Customer updated successfully!' });
       setEditingCustomer(null);
