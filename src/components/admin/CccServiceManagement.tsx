@@ -14,6 +14,16 @@ import { cleanupContentImages } from '../../lib/storageCleanup';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
 import EmployeeMetadataPopover from './EmployeeMetadataPopover';
 
+function extractImageOnlyUrl(content: string): string | null {
+  const container = document.createElement('div');
+  container.innerHTML = sanitizeChatMessage(content);
+  const images = container.querySelectorAll('img');
+  const text = (container.textContent || '').replace(/\u00a0/g, ' ').trim();
+
+  if (images.length !== 1 || text) return null;
+  return images[0].getAttribute('src') || null;
+}
+
 const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }: {
   src: string;
   isUploading: boolean;
@@ -2546,6 +2556,17 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     const content = msg.message_content;
     const hasHtml = /<[a-z][\s\S]*>/i.test(content);
+    const imageOnlyUrl = hasHtml ? extractImageOnlyUrl(content) : null;
+    if (imageOnlyUrl) {
+      return (
+        <AdminChatImage
+          src={imageOnlyUrl}
+          isUploading={false}
+          uploadProgress={0}
+          onClickImage={(url) => { setPreviewImage(url); setAdminImageZoom(1); setAdminImageDrag({ x: 0, y: 0 }); }}
+        />
+      );
+    }
     if (hasHtml) {
       const sanitized = sanitizeChatMessage(content);
       const hasImgTag = /<img\s/i.test(content);
@@ -4071,7 +4092,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                 </div>
                               )}
                             </div>
-                          ) : msg.message_type === 'image' && msg.image_url ? (
+                          ) : (msg.message_type === 'image' && msg.image_url) || (msg.message_type === 'text' && extractImageOnlyUrl(msg.message_content)) ? (
                           <div className={`relative inline-flex w-fit max-w-full flex-col overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
                             msg.sender_type === 'customer'
                               ? 'border-emerald-200/80 shadow-slate-950/20'

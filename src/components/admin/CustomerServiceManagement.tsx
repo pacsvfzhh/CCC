@@ -9,6 +9,16 @@ import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
 import EmployeeMetadataPopover from './EmployeeMetadataPopover';
 
+function extractImageOnlyUrl(content: string): string | null {
+  const container = document.createElement('div');
+  container.innerHTML = sanitizeChatMessage(content);
+  const images = container.querySelectorAll('img');
+  const text = (container.textContent || '').replace(/\u00a0/g, ' ').trim();
+
+  if (images.length !== 1 || text) return null;
+  return images[0].getAttribute('src') || null;
+}
+
 interface SimulatedCustomer {
   id: string;
   admin_id: string;
@@ -2237,6 +2247,21 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
     const content = msg.message_content;
     const hasHtml = /<[a-z][\s\S]*>/i.test(content);
+    const imageOnlyUrl = hasHtml ? extractImageOnlyUrl(content) : null;
+    if (imageOnlyUrl) {
+      return (
+        <div className="relative inline-flex w-fit max-w-full flex-col overflow-hidden rounded-lg" style={{ width: 'fit-content', height: 'fit-content', maxWidth: '200px', backgroundColor: 'transparent' }}>
+          <img
+            src={imageOnlyUrl}
+            alt="Shared image"
+            className="block rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+            style={{ width: 'auto', height: 'auto', maxWidth: '200px', maxHeight: '250px' }}
+            loading="lazy"
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setPreviewImage(imageOnlyUrl); setAdminImageZoom(1); setAdminImageDrag({ x: 0, y: 0 }); }}
+          />
+        </div>
+      );
+    }
     if (hasHtml) {
       const sanitized = sanitizeChatMessage(content);
       const hasImgTag = /<img\s/i.test(content);
@@ -3672,7 +3697,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                 </div>
                               )}
                             </div>
-                          ) : msg.message_type === 'image' && msg.image_url ? (
+                          ) : (msg.message_type === 'image' && msg.image_url) || (msg.message_type === 'text' && extractImageOnlyUrl(msg.message_content)) ? (
                           <div className={`relative inline-flex w-fit max-w-full flex-col overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
                             msg.sender_type === 'customer'
                               ? 'border-orange-200/80 shadow-slate-950/20'
