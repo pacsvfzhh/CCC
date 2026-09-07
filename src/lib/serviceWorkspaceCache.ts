@@ -37,12 +37,12 @@ export function prefetchAdminGroups(
 ): Promise<AdminGroup[]> {
   const cacheKey = getCacheKey(adminId, service);
 
+  const pending = pendingRequests.get(cacheKey);
+  if (pending) return pending;
+
   if (!force) {
     const cached = cachedGroups.get(cacheKey);
     if (cached) return Promise.resolve(cached);
-
-    const pending = pendingRequests.get(cacheKey);
-    if (pending) return pending;
   }
 
   const request = supabase

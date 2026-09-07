@@ -118,6 +118,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const uploadingTempIdRef = useRef<string | null>(null);
   const pendingImageMessagesRef = useRef(new Map<string, Message>());
   const conversationMessagesCacheRef = useRef(new Map<string, Message[]>());
+  const pendingConversationMessageRequestsRef = useRef(new Map<string, Promise<void>>());
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [adminImageZoom, setAdminImageZoom] = useState(1);
   const [adminImageDrag, setAdminImageDrag] = useState({ x: 0, y: 0 });
@@ -179,8 +180,11 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const allEmployeesRef = useRef<Employee[]>([]);
   const conversationHistoryRef = useRef<ConversationHistory[]>([]);
   const conversationHistoryLoadRequestRef = useRef(0);
+  const workspaceLoadRequestRef = useRef(0);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
   const customerUnreadCountsRef = useRef<Record<string, number>>({});
+  const customerUnreadRequestRef = useRef(0);
+  const adminUnreadRequestRef = useRef(0);
   const locallyReadConversationKeysRef = useRef(new Set<string>());
   const [historyFilterMode, setHistoryFilterMode] = useState<'all' | 'history' | 'new'>('all');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
@@ -341,6 +345,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
   const loadCustomerUnreadCounts = useCallback(async (customerIds: string[]) => {
     if (!selectedAdminId || customerIds.length === 0) return;
+    const requestId = ++customerUnreadRequestRef.current;
 
     try {
       const { data, error } = await supabase
@@ -359,6 +364,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
       });
 
+      if (requestId !== customerUnreadRequestRef.current) return;
+
       setCustomerUnreadCounts(prev => {
         const previousIds = Object.keys(prev);
         const countIds = Object.keys(counts);
@@ -372,6 +379,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   }, [selectedAdminId]);
 
   const loadAdminUnreadCounts = async (adminIds: string[]) => {
+    const requestId = ++adminUnreadRequestRef.current;
     try {
       const counts: Record<string, number> = {};
       adminIds.forEach(id => { counts[id] = 0; });
@@ -394,6 +402,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       const customerIds = (customers || []).map(customer => customer.id);
       const employeeIds = (employees || []).map(employee => employee.id);
       if (customerIds.length === 0 || employeeIds.length === 0) {
+        if (requestId !== adminUnreadRequestRef.current) return;
         setAdminUnreadCounts(prev =>
           adminIds.some(id => prev[id] !== counts[id]) || Object.keys(prev).length !== adminIds.length
             ? counts
@@ -422,6 +431,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         }
       });
 
+      if (requestId !== adminUnreadRequestRef.current) return;
       setAdminUnreadCounts(prev =>
         adminIds.some(id => prev[id] !== counts[id]) || Object.keys(prev).length !== adminIds.length
           ? counts
@@ -474,42 +484,24 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     const requestId = ++conversationHistoryLoadRequestRef.current;
 
     try {
-      const [conversationResult, lastMessageResult] = await Promise.all([
-        supabase
-          .from('customer_employee_conversations')
-          .select('employee_id, sender_type, message_type, is_read, created_at')
-          .eq('customer_id', customer.id)
-          .eq('source_type', 'aaa_service'),
-        supabase
-          .from('customer_employee_conversations')
-          .select('employee_id, message_content, message_type, created_at')
-          .eq('customer_id', customer.id)
-          .eq('source_type', 'aaa_service')
-          .order('created_at', { ascending: false }),
-      ]);
+      const employeeById = new Map(employees.map(employee => [employee.id, employee]));
+      const { data, error } = await supabase
+        .from('customer_employee_conversations')
+        .select('employee_id, sender_type, message_content, message_type, is_read, created_at')
+        .eq('customer_id', customer.id)
+        .in('employee_id', employees.map(employee => employee.id))
+        .eq('source_type', 'aaa_service')
+        .order('created_at', { ascending: false });
 
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
-      if (conversationResult.error) throw conversationResult.error;
-      if (lastMessageResult.error) throw lastMessageResult.error;
-
-      const data = conversationResult.data;
-      const lastMsgs = lastMessageResult.data;
-
-      const lastMsgMap = new Map<string, { message_content: string; message_type: string; created_at: string }>();
-      for (const msg of lastMsgs || []) {
-        if (!lastMsgMap.has(msg.employee_id)) {
-          lastMsgMap.set(msg.employee_id, msg);
-        }
-      }
+      if (error) throw error;
 
       const historyMap = new Map<string, ConversationHistory>();
-
       for (const msg of data || []) {
-        const employee = employees.find(e => e.id === msg.employee_id);
+        const employee = employeeById.get(msg.employee_id);
         if (!employee) continue;
 
         if (!historyMap.has(msg.employee_id)) {
-          const lastMsg = lastMsgMap.get(msg.employee_id);
           historyMap.set(msg.employee_id, {
             employee_id: msg.employee_id,
             employee_username: employee.username,
@@ -521,8 +513,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
             customer_avatar: customer.customer_avatar,
             custom_avatar_url: customer.custom_avatar_url,
             message_count: 0,
-            last_message: lastMsg ? (lastMsg.message_type === 'image' ? '__IMAGE__' : lastMsg.message_content) : '',
-            last_message_time: lastMsg?.created_at || '',
+            last_message: msg.message_type === 'image' ? '__IMAGE__' : msg.message_content,
+            last_message_time: msg.created_at,
             unread_count: 0,
           });
         }
@@ -630,6 +622,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     if (messages.length === 0) return;
 
     setLoadingOlderMessages(true);
+    const messageRequestId = messagesLoadRequestRef.current;
     try {
       const oldestTime = messages[0]?.created_at;
       const { data, error } = await supabase
@@ -643,6 +636,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         .limit(MESSAGE_PAGE_SIZE);
 
       if (error) throw error;
+      if (messagesLoadRequestRef.current !== messageRequestId) return;
       if (data && data.length > 0) {
         preserveScrollUntilRef.current = Date.now() + 500;
         setMessages(prev => [...data.reverse(), ...prev]);
@@ -653,7 +647,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     } catch (error) {
       console.error('Error loading older messages:', error);
     } finally {
-      setLoadingOlderMessages(false);
+      if (messagesLoadRequestRef.current === messageRequestId) {
+        setLoadingOlderMessages(false);
+      }
     }
   }, [selectedCustomer, selectedEmployee, messages, loadingOlderMessages, hasMoreMessages]);
 
@@ -720,18 +716,31 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     const cacheKey = `${customerId}:${employeeId}`;
     if (conversationMessagesCacheRef.current.has(cacheKey)) return;
 
-    const { data, error } = await supabase
+    const pending = pendingConversationMessageRequestsRef.current.get(cacheKey);
+    if (pending) return pending;
+
+    const request = supabase
       .from('customer_employee_conversations')
       .select('*')
       .eq('customer_id', customerId)
       .eq('employee_id', employeeId)
       .eq('source_type', 'aaa_service')
       .order('created_at', { ascending: false })
-      .limit(MESSAGE_PAGE_SIZE);
+      .limit(MESSAGE_PAGE_SIZE)
+      .then(({ data, error }) => {
+        if (!error && data) {
+          conversationMessagesCacheRef.current.set(cacheKey, data.reverse());
+        }
+      })
+      .catch(error => {
+        console.error('Error prefetching messages:', error);
+      })
+      .finally(() => {
+        pendingConversationMessageRequestsRef.current.delete(cacheKey);
+      });
 
-    if (!error && data) {
-      conversationMessagesCacheRef.current.set(cacheKey, data.reverse());
-    }
+    pendingConversationMessageRequestsRef.current.set(cacheKey, request);
+    return request;
   }, []);
 
   const loadMessages = useCallback(async (markAsRead: boolean = true) => {
@@ -794,11 +803,14 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         }
       }
 
+      if (requestId !== messagesLoadRequestRef.current) return;
+
       const { data: sessionData } = await supabase.rpc('get_or_create_service_session', {
         p_customer_id: selectedCustomer.id,
         p_employee_id: selectedEmployee.id
       });
 
+      if (requestId !== messagesLoadRequestRef.current) return;
       if (sessionData && sessionData.length > 0) {
         setServiceTicketNumber(sessionData[0].service_ticket_number);
       }
@@ -856,14 +868,14 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
   // Auto-load all conversation history when admin is selected and no customer is focused
   useEffect(() => {
-    if (selectedAdminId && customers.length > 0 && employees.length > 0 && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
+    if (isActive && selectedAdminId && customers.length > 0 && employees.length > 0 && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
       void loadAllConversationHistory();
     }
-  }, [selectedAdminId, customers.length, employees.length, selectedCustomer, selectedEmployee, showHistoryView, historyScope, loadAllConversationHistory]);
+  }, [isActive, selectedAdminId, customers.length, employees.length, selectedCustomer, selectedEmployee, showHistoryView, historyScope, loadAllConversationHistory]);
 
   // Subscribe to realtime updates for admins table
   useEffect(() => {
-    if (isSuperAdmin) {
+    if (isActive && isSuperAdmin) {
       const channel = supabase
         .channel('customer_service_admins_realtime')
         .on('postgres_changes', {
@@ -879,11 +891,11 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         supabase.removeChannel(channel);
       };
     }
-  }, [isSuperAdmin, loadAdminGroups]);
+  }, [isActive, isSuperAdmin, loadAdminGroups]);
 
   // Refresh summary counts while the workspace picker is visible
   useEffect(() => {
-    if (!isSuperAdmin || selectedAdminId || adminGroups.length === 0) return;
+    if (!isActive || !isSuperAdmin || selectedAdminId || adminGroups.length === 0) return;
 
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     const scheduleRefresh = () => {
@@ -904,11 +916,11 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       if (refreshTimer) clearTimeout(refreshTimer);
       supabase.removeChannel(channel);
     };
-  }, [isSuperAdmin, selectedAdminId, adminGroups.length, loadAdminGroups]);
+  }, [isActive, isSuperAdmin, selectedAdminId, adminGroups.length, loadAdminGroups]);
 
   // Subscribe to realtime updates for admin unread counts
   useEffect(() => {
-    if (isSuperAdmin && adminGroups.length > 0) {
+    if (isActive && isSuperAdmin && adminGroups.length > 0) {
       const adminIds = adminGroups.map(g => g.admin_id);
       const channel = supabase
         .channel('admin_unread_counts_realtime')
@@ -925,57 +937,61 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         supabase.removeChannel(channel);
       };
     }
-  }, [isSuperAdmin, adminGroups.length]);
+  }, [isActive, isSuperAdmin, adminGroups.length]);
 
 
 
   useEffect(() => {
-    if (selectedAdminId && selectedCustomer?.id) {
-      const channel = supabase
-        .channel(`customer_conversations_${selectedCustomer.id}`)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'customer_employee_conversations',
-          filter: `customer_id=eq.${selectedCustomer.id}`
-        }, (payload: any) => {
-          if (payload?.new?.sender_type === 'employee' && payload?.new?.is_read === false && payload?.new?.customer_id && payload?.new?.employee_id) {
-            locallyReadConversationKeysRef.current.delete(`${payload.new.customer_id}:${payload.new.employee_id}`);
-            clearConversationRead('aaa_service', payload.new.customer_id, payload.new.employee_id);
-          }
-          if (selectedEmployee?.id && !(justSentRef.current && payload?.new?.sender_type === 'customer')) {
-            loadMessagesRef.current?.(isActive);
-          }
-          loadConversationHistoryRef.current?.();
-        })
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'customer_employee_conversations',
-          filter: `customer_id=eq.${selectedCustomer.id}`
-        }, () => {
-          if (selectedEmployee?.id) {
-            loadMessagesRef.current?.(isActive);
-          }
-          loadConversationHistoryRef.current?.();
-        })
-        .on('postgres_changes', {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'customer_employee_conversations',
-          filter: `customer_id=eq.${selectedCustomer.id}`
-        }, () => {
-          if (selectedEmployee?.id) {
-            loadMessagesRef.current?.(isActive);
-          }
-          loadConversationHistoryRef.current?.();
-        })
-        .subscribe();
+    if (!isActive || !selectedAdminId || !selectedCustomer?.id) return;
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let refreshMessages = false;
+    const scheduleRefresh = (shouldRefreshMessages: boolean) => {
+      refreshMessages = refreshMessages || shouldRefreshMessages;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        const shouldLoadMessages = refreshMessages;
+        refreshMessages = false;
+        refreshTimer = null;
+        if (shouldLoadMessages && selectedEmployee?.id) {
+          loadMessagesRef.current?.(isActive);
+        }
+        loadConversationHistoryRef.current?.();
+      }, 120);
+    };
+
+    const channel = supabase
+      .channel(`customer_conversations_${selectedCustomer.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'customer_employee_conversations',
+        filter: `customer_id=eq.${selectedCustomer.id}`
+      }, (payload: any) => {
+        if (payload?.new?.sender_type === 'employee' && payload?.new?.is_read === false && payload?.new?.customer_id && payload?.new?.employee_id) {
+          locallyReadConversationKeysRef.current.delete(`${payload.new.customer_id}:${payload.new.employee_id}`);
+          clearConversationRead('aaa_service', payload.new.customer_id, payload.new.employee_id);
+        }
+        scheduleRefresh(!(justSentRef.current && payload?.new?.sender_type === 'customer'));
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'customer_employee_conversations',
+        filter: `customer_id=eq.${selectedCustomer.id}`
+      }, () => scheduleRefresh(true))
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'customer_employee_conversations',
+        filter: `customer_id=eq.${selectedCustomer.id}`
+      }, () => scheduleRefresh(true))
+      .subscribe();
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      supabase.removeChannel(channel);
+    };
   }, [isActive, selectedAdminId, selectedCustomer?.id, selectedEmployee?.id]);
 
   useEffect(() => {
@@ -986,7 +1002,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   }, [notification]);
 
   useEffect(() => {
-    if (selectedAdminId && customers.length > 0) {
+    if (isActive && selectedAdminId && customers.length > 0) {
       const customerIds = customers.map(c => c.id);
       let debounceTimer: ReturnType<typeof setTimeout> | null = null;
       const channel = supabase
@@ -1013,11 +1029,12 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         supabase.removeChannel(channel);
       };
     }
-  }, [selectedAdminId, customers]);
+  }, [isActive, selectedAdminId, customers, loadAllConversationHistory, loadCustomerUnreadCounts]);
 
   // Subscribe to realtime updates for employees (users table)
   useEffect(() => {
-    if (selectedAdminId) {
+    if (isActive && selectedAdminId) {
+      const employeeRequestId = workspaceLoadRequestRef.current;
       const channel = supabase
         .channel(`employees_realtime_${selectedAdminId}`)
         .on('postgres_changes', {
@@ -1032,10 +1049,14 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
             .eq('created_by', selectedAdminId)
             .order('username')
             .then(({ data, error }) => {
+              if (employeeRequestId !== workspaceLoadRequestRef.current) return;
               if (!error && data) {
                 setEmployees(data);
                 allEmployeesRef.current = data;
               }
+            })
+            .catch(error => {
+              console.error('Error loading employees:', error);
             });
         })
         .subscribe();
@@ -1044,10 +1065,10 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         supabase.removeChannel(channel);
       };
     }
-  }, [selectedAdminId]);
+  }, [isActive, selectedAdminId]);
 
   useEffect(() => {
-    if (selectedCustomer?.id && selectedEmployee?.id) {
+    if (isActive && selectedCustomer?.id && selectedEmployee?.id) {
       const channel = supabase
         .channel(`rating_requests_${selectedCustomer.id}_${selectedEmployee.id}`)
         .on('postgres_changes', {
@@ -1064,24 +1085,24 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         supabase.removeChannel(channel);
       };
     }
-  }, [selectedCustomer?.id, selectedEmployee?.id]);
+  }, [isActive, selectedCustomer?.id, selectedEmployee?.id]);
 
   useEffect(() => {
-    if (selectedCustomer?.id && employees.length > 0) {
+    if (isActive && selectedCustomer?.id && employees.length > 0) {
       loadConversationHistory();
     }
-  }, [selectedCustomer?.id, employees.length, loadConversationHistory]);
+  }, [isActive, selectedCustomer?.id, employees.length, loadConversationHistory]);
 
   // Remove redundant reload - loadAllConversationHistory is already called via realtime subscription
 
   useEffect(() => {
-    if (selectedEmployee?.id && selectedCustomer?.id) {
+    if (isActive && selectedEmployee?.id && selectedCustomer?.id) {
       isInitialLoadRef.current = true;
       setMessagesLoading(true);
       loadMessages();
       checkPendingRating();
     }
-  }, [selectedEmployee?.id, selectedCustomer?.id, loadMessages]);
+  }, [isActive, selectedEmployee?.id, selectedCustomer?.id, loadMessages]);
 
   const scrollToBottom = useCallback((smooth: boolean = true) => {
     const container = messagesContainerRef.current;
@@ -1463,6 +1484,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   }, [selectedAdminId, loadTemplates]);
 
   const loadAdminData = async (targetAdminId: string, silent = false, force = false) => {
+    const requestId = ++workspaceLoadRequestRef.current;
+    customerUnreadRequestRef.current += 1;
     try {
       if (!silent) setLoading(true);
 
@@ -1472,6 +1495,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         force,
       );
 
+      if (requestId !== workspaceLoadRequestRef.current) return;
+
       setCustomers(customers);
       setEmployees(employees);
       allCustomersRef.current = customers;
@@ -1479,42 +1504,52 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
       if (!silent) setLoading(false);
 
-      void supabase
+      if (customers.length === 0 || employees.length === 0) {
+        customerUnreadCountsRef.current = {};
+        setCustomerUnreadCounts({});
+        return;
+      }
+
+      const { data, error } = await supabase
         .from('customer_employee_conversations')
-        .select('customer_id, simulated_customers!inner(admin_id, source_type), users!inner(created_by)')
-        .eq('simulated_customers.admin_id', targetAdminId)
-        .eq('simulated_customers.source_type', 'aaa_service')
-        .eq('users.created_by', targetAdminId)
+        .select('customer_id')
+        .in('customer_id', customers.map(customer => customer.id))
+        .in('employee_id', employees.map(employee => employee.id))
         .eq('sender_type', 'employee')
         .eq('source_type', 'aaa_service')
-        .eq('is_read', false)
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('Error loading unread counts:', error);
-            return;
-          }
+        .eq('is_read', false);
 
-          const counts: Record<string, number> = {};
-          data?.forEach((msg: { customer_id: string }) => {
-            counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
-          });
-          setCustomerUnreadCounts(counts);
-        });
+      if (requestId !== workspaceLoadRequestRef.current) return;
+      if (error) throw error;
+
+      const counts: Record<string, number> = {};
+      data?.forEach((msg: { customer_id: string }) => {
+        counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
+      });
+      customerUnreadCountsRef.current = counts;
+      setCustomerUnreadCounts(counts);
     } catch (error) {
+      if (requestId !== workspaceLoadRequestRef.current) return;
       console.error('Error loading admin data:', error);
       setNotification({ type: 'error', text: 'Failed to load data' });
     } finally {
-      if (!silent) setLoading(false);
+      if (!silent && requestId === workspaceLoadRequestRef.current) setLoading(false);
     }
   };
 
   const handleAdminGroupSelect = (group: AdminGroup) => {
+    workspaceLoadRequestRef.current += 1;
+    customerUnreadRequestRef.current += 1;
     conversationHistoryLoadRequestRef.current += 1;
+    messagesLoadRequestRef.current += 1;
     setSelectedAdminId(group.admin_id);
     setSelectedAdminName(group.admin_username);
     setSelectedCustomer(null);
     setSelectedEmployee(null);
     setMessages([]);
+    setMessagesLoading(false);
+    setLoadingOlderMessages(false);
+    setHasMoreMessages(false);
     setConversationHistory([]);
     setAllConversationHistory([]);
     conversationHistoryRef.current = [];
@@ -1526,12 +1561,18 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   };
 
   const handleBackToGroups = () => {
+    workspaceLoadRequestRef.current += 1;
+    customerUnreadRequestRef.current += 1;
     conversationHistoryLoadRequestRef.current += 1;
+    messagesLoadRequestRef.current += 1;
     setSelectedAdminId(null);
     setSelectedAdminName('');
     setSelectedCustomer(null);
     setSelectedEmployee(null);
     setMessages([]);
+    setMessagesLoading(false);
+    setLoadingOlderMessages(false);
+    setHasMoreMessages(false);
     setConversationHistory([]);
     setAllConversationHistory([]);
     conversationHistoryRef.current = [];
@@ -1544,6 +1585,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
 
   const handleSelectCustomer = async (customer: SimulatedCustomer) => {
     historyScrollTopRef.current = 0;
+    messagesLoadRequestRef.current += 1;
     if (selectedCustomer?.id === customer.id) {
       setSelectedCustomer(null);
       setMessages([]);
@@ -1553,6 +1595,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     }
     setSelectedCustomer(customer);
     setMessages([]);
+    setLoadingOlderMessages(false);
+    setHasMoreMessages(false);
     if (selectedEmployee) setMessagesLoading(true);
     const cachedHistory = allConversationHistoryRef.current.filter(history => history.customer_id === customer.id);
     setConversationHistory(cachedHistory);
@@ -1560,10 +1604,10 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     setShowHistoryView(!selectedEmployee);
     setHistoryFilterMode('all');
     setHistoryScope('customer');
-    loadConversationHistoryForCustomer(customer);
   };
 
   const handleSelectEmployee = (employee: Employee) => {
+    messagesLoadRequestRef.current += 1;
     if (selectedEmployee?.id === employee.id) {
       setSelectedEmployee(null);
       setMessages([]);
@@ -1571,6 +1615,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     }
     setMessages([]);
     setMessagesLoading(true);
+    setLoadingOlderMessages(false);
+    setHasMoreMessages(false);
     if (selectedCustomer) {
       restoreCachedMessages(selectedCustomer.id, employee.id);
     }
