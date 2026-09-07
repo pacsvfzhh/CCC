@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, X, Search, Tag, Filter, Image, Star, Clock, Bold, Underline, Strikethrough, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -95,7 +95,7 @@ interface CustomerServiceManagementProps {
   unreadCount?: number;
 }
 
-export default function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee, onConsumeInitialEmployee, onUnreadCountChange, unreadCount = 0 }: CustomerServiceManagementProps) {
+function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee, onConsumeInitialEmployee, onUnreadCountChange, unreadCount = 0 }: CustomerServiceManagementProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const wasActiveRef = useRef(false);
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
@@ -196,7 +196,6 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const [employeeGroupFilter, setEmployeeGroupFilter] = useState<'all' | 'chatted' | 'not_chatted'>('all');
   const [customerFilter, setCustomerFilter] = useState<'all' | 'super' | 'regular'>('all');
   const [customerUnreadCounts, setCustomerUnreadCounts] = useState<Record<string, number>>({});
-  const [, setConversationUnreadCounts] = useState<Record<string, number>>({});
   const [adminUnreadCounts, setAdminUnreadCounts] = useState<Record<string, number>>({});
   const [showTipModal, setShowTipModal] = useState(false);
   const [tipAmount, setTipAmount] = useState('');
@@ -225,6 +224,14 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     () => new Set(employees.map(employee => employee.id)),
     [employees],
   );
+  const workspaceEmployeesById = useMemo(
+    () => new Map(employees.map(employee => [employee.id, employee])),
+    [employees],
+  );
+  const workspaceCustomersById = useMemo(
+    () => new Map(customers.map(customer => [customer.id, customer])),
+    [customers],
+  );
   const workspaceConversationHistory = useMemo(
     () => allConversationHistory.filter(history =>
       Boolean(history.customer_id) &&
@@ -241,13 +248,15 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       workspaceEmployeeIds.has(history.employee_id)
     );
   }, [conversationHistory, historyScope, workspaceConversationHistory, workspaceCustomerIds, workspaceEmployeeIds]);
+  const chattedEmployeeIds = useMemo(
+    () => new Set(conversationHistoryForView.map(history => history.employee_id)),
+    [conversationHistoryForView],
+  );
 
-  // Get all unique tags from employees
-  const allTags = Array.from(
-    new Set(
-      employees.flatMap(emp => emp.tags || [])
-    )
-  ).sort();
+  const allTags = useMemo(
+    () => Array.from(new Set(employees.flatMap(employee => employee.tags || []))).sort(),
+    [employees],
+  );
 
   useEffect(() => {
     return () => {
@@ -275,7 +284,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       (emp.tags && selectedTags.some(tag => emp.tags!.includes(tag)));
 
     // Chat history filter
-    const hasChatted = conversationHistoryForView.some(h => h.employee_id === emp.id);
+    const hasChatted = chattedEmployeeIds.has(emp.id);
     const matchesGroupFilter =
       employeeGroupFilter === 'all' ||
       (employeeGroupFilter === 'chatted' && hasChatted) ||
@@ -286,7 +295,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     const aSelected = selectedEmployee?.id === a.id ? 0 : 1;
     const bSelected = selectedEmployee?.id === b.id ? 0 : 1;
     return aSelected - bSelected;
-  }), [employees, debouncedSearchQuery, selectedTags, employeeGroupFilter, conversationHistoryForView, selectedEmployee]);
+  }), [employees, debouncedSearchQuery, selectedTags, employeeGroupFilter, chattedEmployeeIds, selectedEmployee]);
 
   const visibleConversationHistory = useMemo(() => {
     const query = historySearchQuery.trim().toLowerCase();
@@ -298,7 +307,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         if (historyFilterMode === 'new' && history.unread_count <= 0) return false;
         if (!query) return true;
 
-        const employee = employees.find((item) => item.id === history.employee_id);
+        const employee = workspaceEmployeesById.get(history.employee_id);
         const employeeTags = employee?.tags?.length
           ? employee.tags
           : history.employee_tags || [];
@@ -321,7 +330,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         }
         return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
       });
-  }, [conversationHistoryForView, employees, historyFilterMode, historySearchQuery, historyScope, selectedCustomer?.id, selectedEmployee]);
+  }, [conversationHistoryForView, workspaceEmployeesById, historyFilterMode, historySearchQuery, historyScope, selectedCustomer?.id, selectedEmployee]);
 
   const loadMessagesRef = useRef<(markAsRead?: boolean) => void>();
   const messagesLoadRequestRef = useRef(0);
@@ -456,7 +465,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       allConversationHistoryRef.current = nextAllConversationHistory;
       setConversationHistory(nextConversationHistory);
       setAllConversationHistory(nextAllConversationHistory);
-      setConversationUnreadCounts(conversationCounts);
+
       setCustomerUnreadCounts(prev => {
         const previousIds = Object.keys(prev);
         const countIds = Object.keys(counts);
@@ -786,7 +795,6 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     const nextConversationUnreadCounts = { ...conversationUnreadCountsRef.current };
     delete nextConversationUnreadCounts[`${customerId}:${employeeId}`];
     conversationUnreadCountsRef.current = nextConversationUnreadCounts;
-    setConversationUnreadCounts(nextConversationUnreadCounts);
 
     const nextCustomerUnreadCounts = { ...customerUnreadCountsRef.current };
     if (remainingCount === 0) {
@@ -907,11 +915,8 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           console.error('Error marking conversation as read:', markReadError);
           locallyReadConversationKeysRef.current.delete(`${customerId}:${employeeId}`);
           clearConversationRead('aaa_service', customerId, employeeId);
-          void loadCustomerUnreadCounts([customerId]);
-          void loadConversationHistoryForCustomer(selectedCustomer);
           void loadAllConversationHistory(true);
         } else {
-          void loadCustomerUnreadCounts([customerId]);
           void loadAllConversationHistory(true);
         }
       }
@@ -932,7 +937,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       console.error('Error loading messages:', error);
       setMessagesLoading(false);
     }
-  }, [clearUnreadConversationLocally, loadAllConversationHistory, loadConversationHistoryForCustomer, loadCustomerUnreadCounts, restoreCachedMessages, selectedCustomer, selectedEmployee]);
+  }, [clearUnreadConversationLocally, loadAllConversationHistory, restoreCachedMessages, selectedCustomer, selectedEmployee]);
 
   useEffect(() => {
     loadMessagesRef.current = loadMessages;
@@ -950,9 +955,6 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
       setShowHistoryView(true);
       setHistoryScope('all');
       setHistoryFilterMode('all');
-      if (selectedAdminId) {
-        void loadAllConversationHistory(true);
-      }
     }
 
     wasActiveRef.current = isActive;
@@ -982,7 +984,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   // Auto-load all conversation history when admin is selected and no customer is focused
   useEffect(() => {
     if (isActive && selectedAdminId && customers.length > 0 && employees.length > 0 && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
-      void loadAllConversationHistory(true);
+      void loadAllConversationHistory();
     }
   }, [isActive, selectedAdminId, customers.length, employees.length, selectedCustomer, selectedEmployee, showHistoryView, historyScope, loadAllConversationHistory]);
 
@@ -1600,33 +1602,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
         conversationUnreadCountsRef.current = {};
         conversationUnreadCountsLoadedRef.current = true;
         setCustomerUnreadCounts({});
-        setConversationUnreadCounts({});
         return;
       }
 
-      const { data, error } = await supabase
-        .from('customer_employee_conversations')
-        .select('customer_id, employee_id')
-        .in('customer_id', customers.map(customer => customer.id))
-        .in('employee_id', employees.map(employee => employee.id))
-        .eq('sender_type', 'employee')
-        .eq('is_read', false);
-
-      if (requestId !== workspaceLoadRequestRef.current) return;
-      if (error) throw error;
-
-      const counts: Record<string, number> = {};
-      const conversationCounts: Record<string, number> = {};
-      data?.forEach((msg: { customer_id: string; employee_id: string }) => {
-        counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
-        const conversationKey = `${msg.customer_id}:${msg.employee_id}`;
-        conversationCounts[conversationKey] = (conversationCounts[conversationKey] || 0) + 1;
-      });
-      customerUnreadCountsRef.current = counts;
-      conversationUnreadCountsRef.current = conversationCounts;
-      conversationUnreadCountsLoadedRef.current = true;
-      setCustomerUnreadCounts(counts);
-      setConversationUnreadCounts(conversationCounts);
     } catch (error) {
       if (requestId !== workspaceLoadRequestRef.current) return;
       console.error('Error loading admin data:', error);
@@ -3278,9 +3256,9 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                 ) : (
                   <div className="space-y-1.5">
                     {visibleConversationHistory.map((history) => {
-                        const employee = employees.find(e => e.id === history.employee_id);
+                        const employee = workspaceEmployeesById.get(history.employee_id);
                         const historyCustomer = history.customer_id
-                          ? customers.find(c => c.id === history.customer_id)
+                          ? workspaceCustomersById.get(history.customer_id)
                             || allCustomersRef.current.find(c => c.id === history.customer_id)
                           : null;
                         const isSelected = selectedEmployee?.id === history.employee_id && selectedCustomer?.id === history.customer_id;
@@ -3306,6 +3284,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                               }}
                               onClick={() => {
                                 const emp = employee
+                                  || workspaceEmployeesById.get(history.employee_id)
                                   || allEmployeesRef.current.find(e => e.id === history.employee_id)
                                   || {
                                     id: history.employee_id,
@@ -3317,7 +3296,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
                                     tags: history.employee_tags || [],
                                   };
                                 const cust = history.customer_id
-                                  ? customers.find(c => c.id === history.customer_id)
+                                  ? workspaceCustomersById.get(history.customer_id)
                                     || allCustomersRef.current.find(c => c.id === history.customer_id)
                                     || {
                                       id: history.customer_id,
@@ -4896,3 +4875,5 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     </div>
   );
 }
+
+export default memo(CustomerServiceManagement);

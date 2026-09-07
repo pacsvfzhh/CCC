@@ -161,6 +161,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [navigateToMessageEmployee, setNavigateToMessageEmployee] = useState<{ id: string; username: string } | null>(null);
   const [navigateToCustomerServiceEmployee, setNavigateToCustomerServiceEmployee] = useState<{ id: string; username: string } | null>(null);
   const [navigateToCccServiceEmployee, setNavigateToCccServiceEmployee] = useState<{ id: string; username: string } | null>(null);
+  const consumeCustomerServiceEmployee = useCallback(() => setNavigateToCustomerServiceEmployee(null), []);
+  const consumeCccServiceEmployee = useCallback(() => setNavigateToCccServiceEmployee(null), []);
 
   // Build tabs array based on admin role
   const tabs = admin.role === 'emergency_admin' ? [
@@ -680,8 +682,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
                     onPointerEnter={() => preloadServiceTab(tab.id)}
-                    onPointerDown={() => preloadServiceTab(tab.id)}
-                    onFocus={() => preloadServiceTab(tab.id)}
                     className={`relative flex items-center gap-2 px-2 py-1.5 rounded-lg font-medium transition-all text-left ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
@@ -746,8 +746,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
                     onPointerEnter={() => preloadServiceTab(tab.id)}
-                    onPointerDown={() => preloadServiceTab(tab.id)}
-                    onFocus={() => preloadServiceTab(tab.id)}
                     className={`relative flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
@@ -815,7 +813,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   isSuperAdmin={admin.role === 'super_admin'}
                   isActive={activeTab === 'customerservice'}
                   initialEmployee={navigateToCustomerServiceEmployee}
-                  onConsumeInitialEmployee={() => setNavigateToCustomerServiceEmployee(null)}
+                  onConsumeInitialEmployee={consumeCustomerServiceEmployee}
                   onUnreadCountChange={handleCustomerServiceUnreadChange}
                   unreadCount={unreadCustomerServiceCount}
                 />
@@ -828,7 +826,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   isSuperAdmin={admin.role === 'super_admin'}
                   isActive={activeTab === 'cccservice'}
                   initialEmployee={navigateToCccServiceEmployee}
-                  onConsumeInitialEmployee={() => setNavigateToCccServiceEmployee(null)}
+                  onConsumeInitialEmployee={consumeCccServiceEmployee}
                   onUnreadCountChange={handleCccServiceUnreadChange}
                   unreadCount={unreadCccServiceCount}
                 />
