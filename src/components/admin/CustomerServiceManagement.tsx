@@ -2055,7 +2055,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (msg.message_type === 'image' && msg.image_url) {
       const isUploading = uploadingImage && uploadingTempIdRef.current === msg.id;
       return (
-        <div className="relative inline-block w-fit max-w-full overflow-hidden rounded-lg" style={{ width: 'fit-content', maxWidth: '200px', backgroundColor: 'transparent' }}>
+        <div className="relative inline-flex w-fit max-w-full flex-col overflow-hidden rounded-lg" style={{ width: 'fit-content', height: 'fit-content', maxWidth: '200px', backgroundColor: 'transparent' }}>
           <img
             src={msg.image_url}
             alt="Shared image"
@@ -3658,12 +3658,12 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                               )}
                             </div>
                           ) : msg.message_type === 'image' && msg.image_url ? (
-                          <div className={`relative w-fit max-w-full overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
+                          <div className={`relative inline-flex w-fit max-w-full flex-col overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
                             msg.sender_type === 'customer'
                               ? 'border-orange-200/80 shadow-slate-950/20'
                               : 'border-orange-300/30 shadow-orange-950/35'
-                          }`} style={{ width: 'fit-content', maxWidth: '100%', backgroundColor: 'transparent' }}>
-                            <div className="relative z-10 w-fit max-w-full" style={{ width: 'fit-content', maxWidth: '100%' }}>
+                          }`} style={{ width: 'fit-content', height: 'fit-content', maxWidth: '100%', backgroundColor: 'transparent' }}>
+                            <div className="relative inline-flex w-fit max-w-full flex-col" style={{ width: 'fit-content', height: 'fit-content', maxWidth: '100%' }}>
                               {renderMessageContent(msg)}
                               {replacingImageMsgId === msg.id && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-950/65 backdrop-blur-[2px]">

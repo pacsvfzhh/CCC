@@ -25,7 +25,7 @@ const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }:
   const imgRef = useRef<HTMLImageElement>(null);
 
   return (
-    <div className={`relative inline-block w-fit max-w-full overflow-hidden rounded-lg ${loaded || errored ? '' : 'min-h-[60px] min-w-[60px]'}`} style={{ width: 'fit-content', maxWidth: '200px', backgroundColor: 'transparent' }}>
+    <div className={`relative inline-flex w-fit max-w-full flex-col overflow-hidden rounded-lg ${loaded || errored ? '' : 'min-h-[60px] min-w-[60px]'}`} style={{ width: 'fit-content', height: 'fit-content', maxWidth: '200px', backgroundColor: 'transparent' }}>
       {!loaded && !errored && (
         <div className="absolute inset-0 bg-slate-800/60 flex items-center justify-center z-[1]">
           <div className="flex flex-col items-center gap-2">
@@ -4057,12 +4057,12 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                               )}
                             </div>
                           ) : msg.message_type === 'image' && msg.image_url ? (
-                          <div className={`relative w-fit max-w-full overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
+                          <div className={`relative inline-flex w-fit max-w-full flex-col overflow-hidden rounded-[20px] border-2 shadow-lg transition-all duration-200 ${
                             msg.sender_type === 'customer'
                               ? 'border-emerald-200/80 shadow-slate-950/20'
                               : 'border-emerald-300/30 shadow-emerald-950/35'
-                          }`} style={{ width: 'fit-content', maxWidth: '100%', backgroundColor: 'transparent' }}>
-                            <div className="relative z-10 w-fit max-w-full" style={{ width: 'fit-content', maxWidth: '100%' }}>
+                          }`} style={{ width: 'fit-content', height: 'fit-content', maxWidth: '100%', backgroundColor: 'transparent' }}>
+                            <div className="relative inline-flex w-fit max-w-full flex-col" style={{ width: 'fit-content', height: 'fit-content', maxWidth: '100%' }}>
                               {renderMessageContent(msg)}
                               {replacingImageMsgId === msg.id && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-950/65 backdrop-blur-[2px]">
