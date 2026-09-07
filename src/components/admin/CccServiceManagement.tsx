@@ -122,15 +122,16 @@ interface Message {
   message_type?: 'text' | 'image' | 'rating_request' | 'rating_result' | 'tip' | 'rich_card';
   title?: string | null;
   subtitle?: string | null;
-  image_url?: string;
+  image_url?: string | null;
   rating_data?: {
     rating?: number;
-    comment?: string;
+    comment?: string | null;
     employee_id?: string;
     status?: string;
     tip_amount?: number;
-  };
+  } | null;
   is_read: boolean;
+  source_type?: string;
   read_at?: string | null;
   created_at: string;
   rich_card_content_id?: string | null;
@@ -502,7 +503,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
   const justSentRef = useRef(false);
   const loadConversationHistoryRef = useRef<() => void>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const isInitialLoadRef = useRef(true);
   const preserveScrollUntilRef = useRef(0);
   const loadOlderMessagesRef = useRef<() => void>();
@@ -898,25 +899,28 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     const pending = pendingConversationMessageRequestsRef.current.get(cacheKey);
     if (pending) return pending;
 
-    const request = supabase
-      .from('customer_employee_conversations')
+    const request = Promise.resolve(
+      supabase
+        .from('customer_employee_conversations')
       .select('*')
       .eq('customer_id', customerId)
       .eq('employee_id', employeeId)
       .eq('source_type', 'ccc_service')
       .order('created_at', { ascending: false })
       .limit(MESSAGE_PAGE_SIZE)
-      .then(({ data, error }) => {
-        if (!error && data) {
-          conversationMessagesCacheRef.current.set(cacheKey, data.reverse());
-        }
-      })
-      .catch(error => {
-        console.error('Error prefetching messages:', error);
-      })
-      .finally(() => {
-        pendingConversationMessageRequestsRef.current.delete(cacheKey);
-      });
+      .then(
+        ({ data, error }) => {
+          if (!error && data) {
+            conversationMessagesCacheRef.current.set(cacheKey, data.reverse());
+          }
+          pendingConversationMessageRequestsRef.current.delete(cacheKey);
+        },
+        (error: unknown) => {
+          console.error('Error prefetching messages:', error);
+          pendingConversationMessageRequestsRef.current.delete(cacheKey);
+        },
+      ),
+    );
 
     pendingConversationMessageRequestsRef.current.set(cacheKey, request);
     return request;
@@ -1232,16 +1236,18 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
             .select('*')
             .eq('created_by', selectedAdminId)
             .order('username')
-            .then(({ data, error }) => {
-              if (employeeRequestId !== workspaceLoadRequestRef.current) return;
-              if (!error && data) {
-                setEmployees(data);
-                allEmployeesRef.current = data;
-              }
-            })
-            .catch(error => {
-              console.error('Error loading employees:', error);
-            });
+            .then(
+              ({ data, error }) => {
+                if (employeeRequestId !== workspaceLoadRequestRef.current) return;
+                if (!error && data) {
+                  setEmployees(data);
+                  allEmployeesRef.current = data;
+                }
+              },
+              (error: unknown) => {
+                console.error('Error loading employees:', error);
+              },
+            );
         })
         .subscribe();
 
@@ -1938,7 +1944,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     }
 
     try {
-      let customAvatarUrl = editingCustomer.custom_avatar_url;
+      let customAvatarUrl: string | null = editingCustomer.custom_avatar_url ?? null;
 
       if (customerForm.useCustomAvatar) {
         if (customerForm.customAvatarFile && customerForm.isSuper) {

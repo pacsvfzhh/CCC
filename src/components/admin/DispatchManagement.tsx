@@ -15,6 +15,7 @@ interface DispatchGroup {
   dispatch_success_rate: number;
   is_default: boolean;
   is_active: boolean;
+  created_by: string | null;
   created_at: string;
   order_count?: number;
   member_count?: number;

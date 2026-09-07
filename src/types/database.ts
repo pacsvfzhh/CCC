@@ -1,6 +1,809 @@
 export interface Database {
   public: {
     Tables: {
+      account_locks: {
+        Row: {
+          id: string;
+          identifier: string;
+          identifier_type: string;
+          lock_until: string;
+          lock_reason: string | null;
+          failed_attempts: number;
+          created_at: string | null;
+          unlocked_at: string | null;
+          unlocked_by: string | null;
+          user_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          identifier: string;
+          identifier_type: string;
+          lock_until: string;
+          lock_reason?: string | null;
+          failed_attempts?: number;
+          created_at?: string | null;
+          unlocked_at?: string | null;
+          unlocked_by?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          identifier?: string;
+          identifier_type?: string;
+          lock_until?: string;
+          lock_reason?: string | null;
+          failed_attempts?: number;
+          created_at?: string | null;
+          unlocked_at?: string | null;
+          unlocked_by?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
+      system_configs: {
+        Row: {
+          id: string;
+          key: string;
+          value: unknown;
+          description: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          key: string;
+          value: unknown;
+          description?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          key?: string;
+          value?: unknown;
+          description?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      admin_groups: {
+        Row: {
+          id: string;
+          name: string;
+          created_by: string;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          created_by: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          created_by?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      admin_group_members: {
+        Row: {
+          id: string;
+          group_id: string;
+          admin_id: string;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          admin_id: string;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          admin_id?: string;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      group_configs: {
+        Row: {
+          id: string;
+          group_id: string;
+          config_type: string;
+          config_value: string;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          config_type: string;
+          config_value: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          config_type?: string;
+          config_value?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      dispatch_groups: {
+        Row: {
+          id: string;
+          group_name: string;
+          description: string;
+          dispatch_interval_min: number;
+          dispatch_interval_max: number;
+          session_timeout_minutes: number;
+          dispatch_order_mode: 'random' | 'sequential';
+          dispatch_success_rate: number;
+          is_default: boolean;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_name: string;
+          description?: string | null;
+          dispatch_interval_min?: number | null;
+          dispatch_interval_max?: number | null;
+          session_timeout_minutes?: number | null;
+          dispatch_order_mode?: string | null;
+          dispatch_success_rate?: number;
+          is_default?: boolean | null;
+          is_active?: boolean | null;
+          created_by?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          group_name?: string;
+          description?: string | null;
+          dispatch_interval_min?: number | null;
+          dispatch_interval_max?: number | null;
+          session_timeout_minutes?: number | null;
+          dispatch_order_mode?: string | null;
+          dispatch_success_rate?: number;
+          is_default?: boolean | null;
+          is_active?: boolean | null;
+          created_by?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      dispatch_group_orders: {
+        Row: {
+          id: string;
+          group_id: string;
+          order_content: string;
+          is_active: boolean;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          order_content: string;
+          is_active?: boolean | null;
+          created_by?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          order_content?: string;
+          is_active?: boolean | null;
+          created_by?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      dispatch_orders: {
+        Row: {
+          id: string;
+          order_content: string;
+          is_active: boolean | null;
+          created_by: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          order_content: string;
+          is_active?: boolean | null;
+          created_by?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          order_content?: string;
+          is_active?: boolean | null;
+          created_by?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      dispatch_assignments: {
+        Row: {
+          id: string;
+          dispatch_order_id: string | null;
+          user_id: string | null;
+          status: string | null;
+          assigned_at: string | null;
+          accepted_at: string | null;
+          completed_at: string | null;
+          remarks: string | null;
+          assignment_id: string | null;
+          order_submitted: boolean;
+        };
+        Insert: {
+          id?: string;
+          dispatch_order_id?: string | null;
+          user_id?: string | null;
+          status?: string | null;
+          assigned_at?: string | null;
+          accepted_at?: string | null;
+          completed_at?: string | null;
+          remarks?: string | null;
+          assignment_id?: string | null;
+          order_submitted?: boolean;
+        };
+        Update: {
+          id?: string;
+          dispatch_order_id?: string | null;
+          user_id?: string | null;
+          status?: string | null;
+          assigned_at?: string | null;
+          accepted_at?: string | null;
+          completed_at?: string | null;
+          remarks?: string | null;
+          assignment_id?: string | null;
+          order_submitted?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'dispatch_assignments_dispatch_order_id_fkey';
+            columns: ['dispatch_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'dispatch_group_orders';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dispatch_assignments_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      dispatch_sessions: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          status: string | null;
+          started_at: string | null;
+          ended_at: string | null;
+          last_activity_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          status?: string | null;
+          started_at?: string | null;
+          ended_at?: string | null;
+          last_activity_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          status?: string | null;
+          started_at?: string | null;
+          ended_at?: string | null;
+          last_activity_at?: string | null;
+        };
+        Relationships: [];
+      };
+      dispatch_group_members: {
+        Row: {
+          id: string;
+          group_id: string;
+          user_id: string;
+          assigned_by: string | null;
+          assigned_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          user_id: string;
+          assigned_by?: string | null;
+          assigned_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          user_id?: string;
+          assigned_by?: string | null;
+          assigned_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'dispatch_group_members_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dispatch_group_members_group_id_fkey';
+            columns: ['group_id'];
+            isOneToOne: false;
+            referencedRelation: 'dispatch_groups';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      work_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          start_time: string;
+          end_time: string | null;
+          duration_minutes: number | null;
+          created_at: string | null;
+          last_heartbeat_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          start_time?: string;
+          end_time?: string | null;
+          duration_minutes?: number | null;
+          created_at?: string | null;
+          last_heartbeat_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          start_time?: string;
+          end_time?: string | null;
+          duration_minutes?: number | null;
+          created_at?: string | null;
+          last_heartbeat_at?: string | null;
+        };
+        Relationships: [];
+      };
+      employee_submit_time_settings: {
+        Row: {
+          id: string;
+          user_id: string;
+          group_id: string | null;
+          min_seconds: number | null;
+          max_seconds: number | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          group_id?: string | null;
+          min_seconds?: number | null;
+          max_seconds?: number | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          group_id?: string | null;
+          min_seconds?: number | null;
+          max_seconds?: number | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      submit_time_groups: {
+        Row: {
+          id: string;
+          admin_id: string;
+          name: string;
+          min_seconds: number;
+          max_seconds: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          admin_id: string;
+          name: string;
+          min_seconds?: number;
+          max_seconds?: number;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          admin_id?: string;
+          name?: string;
+          min_seconds?: number;
+          max_seconds?: number;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      valid_order_data: {
+        Row: {
+          id: string;
+          product_value: number;
+          transaction_id: string;
+          is_active: boolean | null;
+          created_by: string;
+          created_at: string | null;
+          updated_at: string | null;
+          usage_count: number | null;
+          last_used_at: string | null;
+          deactivated_at: string | null;
+          deactivation_reason: string | null;
+          priority: number | null;
+          tags: string[] | null;
+        };
+        Insert: {
+          id?: string;
+          product_value: number;
+          transaction_id: string;
+          is_active?: boolean | null;
+          created_by: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+          usage_count?: number | null;
+          last_used_at?: string | null;
+          deactivated_at?: string | null;
+          deactivation_reason?: string | null;
+          priority?: number | null;
+          tags?: string[] | null;
+        };
+        Update: {
+          id?: string;
+          product_value?: number;
+          transaction_id?: string;
+          is_active?: boolean | null;
+          created_by?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+          usage_count?: number | null;
+          last_used_at?: string | null;
+          deactivated_at?: string | null;
+          deactivation_reason?: string | null;
+          priority?: number | null;
+          tags?: string[] | null;
+        };
+        Relationships: [];
+      };
+      used_order_data: {
+        Row: {
+          id: string;
+          user_id: string;
+          valid_order_data_id: string;
+          order_id: string;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          valid_order_data_id: string;
+          order_id: string;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          valid_order_data_id?: string;
+          order_id?: string;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      message_templates: {
+        Row: {
+          id: string;
+          admin_id: string;
+          name: string;
+          title: string;
+          content: string;
+          message_type: string;
+          priority: string;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          admin_id: string;
+          name: string;
+          title?: string;
+          content?: string;
+          message_type?: string;
+          priority?: string;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          admin_id?: string;
+          name?: string;
+          title?: string;
+          content?: string;
+          message_type?: string;
+          priority?: string;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      messages: {
+        Row: {
+          id: string;
+          sender_id: string;
+          sender_username: string;
+          title: string;
+          content: string;
+          message_type: string;
+          priority: string;
+          expires_at: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          sender_id: string;
+          sender_username: string;
+          title: string;
+          content: string;
+          message_type: string;
+          priority?: string;
+          expires_at?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          sender_id?: string;
+          sender_username?: string;
+          title?: string;
+          content?: string;
+          message_type?: string;
+          priority?: string;
+          expires_at?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      message_recipients: {
+        Row: {
+          id: string;
+          message_id: string;
+          recipient_id: string;
+          is_read: boolean | null;
+          read_at: string | null;
+          is_shown: boolean | null;
+          shown_at: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          message_id: string;
+          recipient_id: string;
+          is_read?: boolean | null;
+          read_at?: string | null;
+          is_shown?: boolean | null;
+          shown_at?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          message_id?: string;
+          recipient_id?: string;
+          is_read?: boolean | null;
+          read_at?: string | null;
+          is_shown?: boolean | null;
+          shown_at?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'message_recipients_message_id_fkey';
+            columns: ['message_id'];
+            isOneToOne: false;
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      announcement_categories: {
+        Row: {
+          id: string;
+          name: string;
+          display_order: number;
+          icon_name: string;
+          color_scheme: string;
+          is_active: boolean | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          display_order: number;
+          icon_name?: string;
+          color_scheme?: string;
+          is_active?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          display_order?: number;
+          icon_name?: string;
+          color_scheme?: string;
+          is_active?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      data_retention_policies: {
+        Row: {
+          id: string;
+          table_name: string;
+          retention_days: number;
+          cleanup_enabled: boolean | null;
+          last_cleanup_at: string | null;
+          records_cleaned_last_run: number | null;
+          description: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          table_name: string;
+          retention_days: number;
+          cleanup_enabled?: boolean | null;
+          last_cleanup_at?: string | null;
+          records_cleaned_last_run?: number | null;
+          description?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          table_name?: string;
+          retention_days?: number;
+          cleanup_enabled?: boolean | null;
+          last_cleanup_at?: string | null;
+          records_cleaned_last_run?: number | null;
+          description?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      history_cleanup_config: {
+        Row: {
+          id: string;
+          table_name: string;
+          display_name: string;
+          category: string;
+          description: string;
+          default_retention_days: number;
+          min_retention_days: number;
+          can_cleanup: boolean | null;
+          requires_confirmation: boolean | null;
+          cleanup_priority: number | null;
+          last_cleanup_at: string | null;
+          last_cleanup_records: number | null;
+          created_at: string | null;
+          updated_at: string | null;
+          retention_days: number;
+          auto_cleanup_enabled: boolean | null;
+          cleanup_schedule: string | null;
+        };
+        Insert: {
+          id?: string;
+          table_name: string;
+          display_name: string;
+          category: string;
+          description: string;
+          default_retention_days: number;
+          min_retention_days: number;
+          can_cleanup?: boolean | null;
+          requires_confirmation?: boolean | null;
+          cleanup_priority?: number | null;
+          last_cleanup_at?: string | null;
+          last_cleanup_records?: number | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+          retention_days: number;
+          auto_cleanup_enabled?: boolean | null;
+          cleanup_schedule?: string | null;
+        };
+        Update: {
+          id?: string;
+          table_name?: string;
+          display_name?: string;
+          category?: string;
+          description?: string;
+          default_retention_days?: number;
+          min_retention_days?: number;
+          can_cleanup?: boolean | null;
+          requires_confirmation?: boolean | null;
+          cleanup_priority?: number | null;
+          last_cleanup_at?: string | null;
+          last_cleanup_records?: number | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+          retention_days?: number;
+          auto_cleanup_enabled?: boolean | null;
+          cleanup_schedule?: string | null;
+        };
+        Relationships: [];
+      };
+      history_cleanup_log: {
+        Row: {
+          id: string;
+          table_name: string;
+          admin_id: string | null;
+          records_deleted: number;
+          space_freed: string | null;
+          retention_days: number;
+          status: string;
+          message: string | null;
+          error_details: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          table_name: string;
+          admin_id?: string | null;
+          records_deleted?: number;
+          space_freed?: string | null;
+          retention_days: number;
+          status: string;
+          message?: string | null;
+          error_details?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          table_name?: string;
+          admin_id?: string | null;
+          records_deleted?: number;
+          space_freed?: string | null;
+          retention_days?: number;
+          status?: string;
+          message?: string | null;
+          error_details?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       employee_login_history: {
         Row: {
           id: string;
@@ -86,6 +889,10 @@ export interface Database {
           remarks: string;
           tags: string[];
           is_pinned: boolean;
+          current_session_token: string | null;
+          session_created_at: string | null;
+          last_heartbeat_at: string | null;
+          current_tab_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -100,6 +907,12 @@ export interface Database {
           first_success_order_date?: string | null;
           created_by: string;
           remarks?: string;
+          tags?: string[];
+          is_pinned?: boolean;
+          current_session_token?: string | null;
+          session_created_at?: string | null;
+          last_heartbeat_at?: string | null;
+          current_tab_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -116,10 +929,22 @@ export interface Database {
           remarks?: string;
           tags?: string[];
           is_pinned?: boolean;
+          current_session_token?: string | null;
+          session_created_at?: string | null;
+          last_heartbeat_at?: string | null;
+          current_tab_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'wallets_user_id_fkey';
+            columns: ['id'];
+            isOneToOne: true;
+            referencedRelation: 'wallets';
+            referencedColumns: ['user_id'];
+          }
+        ];
       };
       product_types: {
         Row: {
@@ -158,6 +983,8 @@ export interface Database {
           commission_amount: number | null;
           commission_rate: number | null;
           processed_at: string | null;
+          scheduled_process_at: string | null;
+          assignment_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -172,6 +999,8 @@ export interface Database {
           commission_amount?: number | null;
           commission_rate?: number | null;
           processed_at?: string | null;
+          scheduled_process_at?: string | null;
+          assignment_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -186,6 +1015,8 @@ export interface Database {
           commission_amount?: number | null;
           commission_rate?: number | null;
           processed_at?: string | null;
+          scheduled_process_at?: string | null;
+          assignment_id?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -290,24 +1121,30 @@ export interface Database {
         Row: {
           id: string;
           admin_id: string | null;
-          config_type: 'commission_rate' | 'success_rate' | 'withdrawal_amount_threshold' | 'withdrawal_days_threshold';
+          config_type: string;
           config_value: string;
+          icon_type: string | null;
+          icon_custom_url: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
           admin_id?: string | null;
-          config_type: 'commission_rate' | 'success_rate' | 'withdrawal_amount_threshold' | 'withdrawal_days_threshold';
+          config_type: string;
           config_value: string;
+          icon_type?: string | null;
+          icon_custom_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
           admin_id?: string | null;
-          config_type?: 'commission_rate' | 'success_rate' | 'withdrawal_amount_threshold' | 'withdrawal_days_threshold';
+          config_type?: string;
           config_value?: string;
+          icon_type?: string | null;
+          icon_custom_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -321,6 +1158,10 @@ export interface Database {
           is_pinned: boolean;
           publish_at: string;
           created_by: string;
+          category: string;
+          is_global: boolean;
+          pin_order: number;
+          is_hidden: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -331,6 +1172,10 @@ export interface Database {
           is_pinned?: boolean;
           publish_at?: string;
           created_by: string;
+          category?: string;
+          is_global?: boolean;
+          pin_order?: number;
+          is_hidden?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -341,6 +1186,10 @@ export interface Database {
           is_pinned?: boolean;
           publish_at?: string;
           created_by?: string;
+          category?: string;
+          is_global?: boolean;
+          pin_order?: number;
+          is_hidden?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -350,13 +1199,13 @@ export interface Database {
         Row: {
           admin_id: string;
           content: string;
-          content_type: string;
+          content_type: 'text' | 'richtext' | 'rich_card';
           created_at: string;
           id: string;
           is_pinned: boolean;
           name: string;
           sort_order: number;
-          source_type: string;
+          source_type: 'aaa_service' | 'ccc_service';
           subtitle: string | null;
           title: string | null;
           updated_at: string;
@@ -395,12 +1244,12 @@ export interface Database {
         Row: {
           admin_id: string;
           content: string;
-          content_type: string;
+          content_type: 'text' | 'richtext' | 'rich_card';
           created_at: string;
           customer_id: string;
           id: string;
           is_enabled: boolean;
-          message_type: string;
+          message_type: 'quick_send' | 'rich_card';
           name: string;
           sort_order: number;
           subtitle: string | null;
@@ -449,7 +1298,7 @@ export interface Database {
           is_read: boolean;
           message_content: string;
           message_type: 'text' | 'image' | 'rating_request' | 'rating_result' | 'tip' | 'rich_card';
-          rating_data: { rating?: number; comment?: string; employee_id?: string; status?: string; tip_amount?: number } | null;
+          rating_data: { rating?: number; comment?: string | null; employee_id?: string; status?: string; tip_amount?: number } | null;
           read_at: string | null;
           rich_card_content_id: string | null;
           sender_type: 'customer' | 'employee';
@@ -468,7 +1317,7 @@ export interface Database {
           is_read?: boolean | null;
           message_content: string;
           message_type?: string | null;
-          rating_data?: { rating?: number; comment?: string; employee_id?: string; status?: string; tip_amount?: number } | null;
+          rating_data?: { rating?: number; comment?: string | null; employee_id?: string; status?: string; tip_amount?: number } | null;
           read_at?: string | null;
           rich_card_content_id?: string | null;
           sender_type: string;
@@ -487,7 +1336,7 @@ export interface Database {
           is_read?: boolean | null;
           message_content?: string;
           message_type?: string | null;
-          rating_data?: { rating?: number; comment?: string; employee_id?: string; status?: string; tip_amount?: number } | null;
+          rating_data?: { rating?: number; comment?: string | null; employee_id?: string; status?: string; tip_amount?: number } | null;
           read_at?: string | null;
           rich_card_content_id?: string | null;
           sender_type?: string;
@@ -497,7 +1346,22 @@ export interface Database {
           subtitle?: string | null;
           title?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'customer_employee_conversations_employee_id_fkey';
+            columns: ['employee_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'customer_employee_conversations_customer_id_fkey';
+            columns: ['customer_id'];
+            isOneToOne: false;
+            referencedRelation: 'simulated_customers';
+            referencedColumns: ['id'];
+          }
+        ];
       };
       customer_service_sessions: {
         Row: {
@@ -570,6 +1434,12 @@ export interface Database {
           target_employee_id: string | null;
           target_employee_ids: string[] | null;
           vip_label: string | null;
+          auto_messages_enabled: boolean;
+          is_pinned: boolean;
+          remarks: string | null;
+          source_type: string;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
           admin_id: string;
@@ -587,6 +1457,12 @@ export interface Database {
           target_employee_id?: string | null;
           target_employee_ids?: string[] | null;
           vip_label?: string | null;
+          auto_messages_enabled?: boolean;
+          is_pinned?: boolean;
+          remarks?: string | null;
+          source_type?: string;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: {
           admin_id?: string;
@@ -604,6 +1480,276 @@ export interface Database {
           target_employee_id?: string | null;
           target_employee_ids?: string[] | null;
           vip_label?: string | null;
+          auto_messages_enabled?: boolean;
+          is_pinned?: boolean;
+          remarks?: string | null;
+          source_type?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      commission_audit_log: {
+        Row: {
+          id: string;
+          user_id: string;
+          order_id: string | null;
+          event_type: string;
+          commission_amount: number;
+          wallet_balance_before: number | null;
+          wallet_balance_after: number | null;
+          total_income_before: number | null;
+          total_income_after: number | null;
+          transaction_id: string | null;
+          details: unknown;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          order_id?: string | null;
+          event_type: string;
+          commission_amount: number;
+          wallet_balance_before?: number | null;
+          wallet_balance_after?: number | null;
+          total_income_before?: number | null;
+          total_income_after?: number | null;
+          transaction_id?: string | null;
+          details?: unknown;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          order_id?: string | null;
+          event_type?: string;
+          commission_amount?: number;
+          wallet_balance_before?: number | null;
+          wallet_balance_after?: number | null;
+          total_income_before?: number | null;
+          total_income_after?: number | null;
+          transaction_id?: string | null;
+          details?: unknown;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      valid_order_data_archive: {
+        Row: {
+          id: string;
+          product_value: number;
+          transaction_id: string;
+          usage_count: number | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string | null;
+          deactivated_at: string;
+          deactivation_reason: string | null;
+          archived_at: string | null;
+          total_users_used: number | null;
+        };
+        Insert: {
+          id: string;
+          product_value: number;
+          transaction_id: string;
+          usage_count?: number | null;
+          created_by: string;
+          created_at: string;
+          updated_at?: string | null;
+          deactivated_at: string;
+          deactivation_reason?: string | null;
+          archived_at?: string | null;
+          total_users_used?: number | null;
+        };
+        Update: {
+          id?: string;
+          product_value?: number;
+          transaction_id?: string;
+          usage_count?: number | null;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string | null;
+          deactivated_at?: string;
+          deactivation_reason?: string | null;
+          archived_at?: string | null;
+          total_users_used?: number | null;
+        };
+        Relationships: [];
+      };
+      orders_history: {
+        Row: {
+          id: string;
+          user_id: string;
+          product_type_id: string;
+          product_value: number;
+          transaction_id: string;
+          status: string;
+          screenshot_url: string | null;
+          commission_amount: number | null;
+          created_at: string;
+          updated_at: string;
+          completed_at: string | null;
+          archived_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id: string;
+          product_type_id: string;
+          product_value: number;
+          transaction_id: string;
+          status: string;
+          screenshot_url?: string | null;
+          commission_amount?: number | null;
+          created_at: string;
+          updated_at: string;
+          completed_at?: string | null;
+          archived_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          product_type_id?: string;
+          product_value?: number;
+          transaction_id?: string;
+          status?: string;
+          screenshot_url?: string | null;
+          commission_amount?: number | null;
+          created_at?: string;
+          updated_at?: string;
+          completed_at?: string | null;
+          archived_at?: string;
+        };
+        Relationships: [];
+      };
+      bulk_import_log: {
+        Row: {
+          id: string;
+          table_name: string;
+          import_type: string;
+          total_records: number;
+          records_imported: number | null;
+          records_failed: number | null;
+          started_at: string | null;
+          completed_at: string | null;
+          status: string | null;
+          error_message: string | null;
+          import_batch_size: number | null;
+          performed_by: string | null;
+          metadata: unknown;
+        };
+        Insert: {
+          id?: string;
+          table_name: string;
+          import_type: string;
+          total_records: number;
+          records_imported?: number | null;
+          records_failed?: number | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          status?: string | null;
+          error_message?: string | null;
+          import_batch_size?: number | null;
+          performed_by?: string | null;
+          metadata?: unknown;
+        };
+        Update: {
+          id?: string;
+          table_name?: string;
+          import_type?: string;
+          total_records?: number;
+          records_imported?: number | null;
+          records_failed?: number | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          status?: string | null;
+          error_message?: string | null;
+          import_batch_size?: number | null;
+          performed_by?: string | null;
+          metadata?: unknown;
+        };
+        Relationships: [];
+      };
+      dispatch_system_logs: {
+        Row: {
+          id: string;
+          log_type: string;
+          user_id: string | null;
+          assignment_id: string | null;
+          event_name: string;
+          event_data: unknown;
+          execution_time_ms: number | null;
+          error_message: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          log_type: string;
+          user_id?: string | null;
+          assignment_id?: string | null;
+          event_name: string;
+          event_data?: unknown;
+          execution_time_ms?: number | null;
+          error_message?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          log_type?: string;
+          user_id?: string | null;
+          assignment_id?: string | null;
+          event_name?: string;
+          event_data?: unknown;
+          execution_time_ms?: number | null;
+          error_message?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      dispatch_performance_metrics: {
+        Row: {
+          id: string;
+          metric_name: string;
+          metric_value: number;
+          metric_unit: string | null;
+          metadata: unknown;
+          measured_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          metric_name: string;
+          metric_value: number;
+          metric_unit?: string | null;
+          metadata?: unknown;
+          measured_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          metric_name?: string;
+          metric_value?: number;
+          metric_unit?: string | null;
+          metadata?: unknown;
+          measured_at?: string | null;
+        };
+        Relationships: [];
+      };
+      dispatch_rate_limits: {
+        Row: {
+          user_id: string;
+          request_count: number | null;
+          window_start: string | null;
+          last_request_at: string | null;
+        };
+        Insert: {
+          user_id: string;
+          request_count?: number | null;
+          window_start?: string | null;
+          last_request_at?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          request_count?: number | null;
+          window_start?: string | null;
+          last_request_at?: string | null;
         };
         Relationships: [];
       };
@@ -662,8 +1808,323 @@ export interface Database {
         Relationships: [];
       };
     };
-    Views: {};
+    Views: {
+      history_cleanup_summary: {
+        Row: {
+          table_name: string | null;
+          display_name: string | null;
+          category: string | null;
+          description: string | null;
+          default_retention_days: number | null;
+          min_retention_days: number | null;
+          cleanup_priority: number | null;
+          last_cleanup_at: string | null;
+          last_cleanup_records: number | null;
+          cleanup_status: string | null;
+          current_record_count: number | null;
+          current_size: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+    };
     Functions: {
+      get_account_locks_for_admin: {
+        Args: { p_admin_id: string };
+        Returns: Array<{
+          admin_username: string;
+          created_at: string;
+          failed_attempts: number;
+          id: string;
+          identifier: string;
+          identifier_type: string;
+          lock_reason: string | null;
+          lock_until: string;
+          unlocked_at: string | null;
+          unlocked_by: string | null;
+          user_id: string | null;
+          username: string | null;
+        }>;
+      };
+      get_active_work_session: {
+        Args: { p_user_id: string };
+        Returns: Array<{
+          current_duration_minutes: number;
+          session_id: string;
+          start_time: string;
+        }>;
+      };
+      start_work_session: {
+        Args: { p_user_id: string };
+        Returns: string;
+      };
+      end_work_session: {
+        Args: { p_user_id: string };
+        Returns: boolean;
+      };
+      update_session_heartbeat: {
+        Args: { p_session_id: string };
+        Returns: unknown;
+      };
+      get_user_work_time_today: {
+        Args: { p_user_id: string };
+        Returns: number;
+      };
+      get_today_work_time: {
+        Args: { p_user_id: string };
+        Returns: number;
+      };
+      get_total_work_time: {
+        Args: { p_user_id: string };
+        Returns: number;
+      };
+      get_batch_work_time: {
+        Args: { p_user_ids: string[] };
+        Returns: Array<{
+          today_work_minutes: number;
+          total_work_minutes: number;
+          user_id: string;
+        }>;
+      };
+      get_batch_work_status: {
+        Args: { p_user_ids: string[] };
+        Returns: Array<{ user_id: string; work_status: string }>;
+      };
+      count_orders_by_user: {
+        Args: { user_ids: string[] };
+        Returns: Array<{ count: number; user_id: string }>;
+      };
+      count_today_orders_by_user: {
+        Args: { today_start: string; user_ids: string[] };
+        Returns: Array<{ count: number; user_id: string }>;
+      };
+      count_today_completed_orders_by_user: {
+        Args: { today_start: string; user_ids: string[] };
+        Returns: Array<{ count: number; user_id: string }>;
+      };
+      count_today_valid_data_failed_orders_by_user: {
+        Args: { today_start: string; user_ids: string[] };
+        Returns: Array<{ count: number; user_id: string }>;
+      };
+      get_admin_groups_for_customer_service: {
+        Args: { p_source_type?: string };
+        Returns: Array<{
+          admin_id: string;
+          admin_role: string;
+          admin_username: string;
+          conversation_count: number;
+          customer_count: number;
+          employee_count: number;
+        }>;
+      };
+      get_ccc_conversation_summaries: {
+        Args: { p_admin_id: string; p_source_type?: string };
+        Returns: Array<{
+          custom_avatar_url: string | null;
+          customer_avatar: string | null;
+          customer_id: string;
+          customer_name: string;
+          employee_id: string;
+          employee_number: string;
+          employee_username: string;
+          last_message: string | null;
+          last_message_time: string | null;
+          last_message_type: string | null;
+          message_count: number;
+          unread_count: number;
+        }>;
+      };
+      get_employee_unread_customer_messages_count: {
+        Args: { p_employee_id: string };
+        Returns: number;
+      };
+      get_employee_login_summary: {
+        Args: { p_admin_id: string; p_search_term?: string };
+        Returns: Array<{
+          created_by: string;
+          employee_id: string;
+          is_active: boolean;
+          latest_login_ip: string | null;
+          latest_login_time: string | null;
+          latest_logout_ip: string | null;
+          latest_logout_time: string | null;
+          total_logins: number;
+          user_id: string;
+          username: string;
+        }>;
+      };
+      get_employee_login_history: {
+        Args: {
+          p_admin_id: string;
+          p_limit?: number;
+          p_offset?: number;
+          p_user_id: string;
+        };
+        Returns: Array<{
+          action_type: string;
+          created_at: string;
+          id: string;
+          ip_address: string | null;
+          session_id: string | null;
+          user_agent: string | null;
+        }>;
+      };
+      get_admin_employees: {
+        Args: { p_admin_id: string };
+        Returns: Array<{
+          admin_role: string;
+          admin_username: string;
+          completed_orders: number;
+          created_at: string;
+          employee_id: string;
+          failed_orders: number;
+          id: string;
+          is_active: boolean;
+          is_pinned: boolean;
+          is_verified: boolean;
+          remarks: string;
+          tags: string[];
+          today_commission: number;
+          total_orders: number;
+          username: string;
+          wallet_balance: number;
+        }>;
+      };
+      get_today_commission_by_user: {
+        Args: { user_ids: string[] };
+        Returns: Array<{ today_commission: number; user_id: string }>;
+      };
+      get_today_commission: {
+        Args: { p_user_id: string };
+        Returns: number;
+      };
+      get_overall_order_stats: {
+        Args: { p_user_id: string };
+        Returns: Array<{
+          total_failed: number;
+          total_orders: number;
+          total_revenue: number;
+          total_success: number;
+        }>;
+      };
+      get_daily_order_stats: {
+        Args: { p_user_id: string };
+        Returns: Array<{
+          daily_earnings: number;
+          day_date: string;
+          failure_count: number;
+          success_count: number;
+          total_orders: number;
+        }>;
+      };
+      process_pending_orders: {
+        Args: Record<string, never>;
+        Returns: unknown;
+      };
+      execute_cleanup: {
+        Args: {
+          p_admin_id?: string;
+          p_days_to_keep: number;
+          p_table_name: string;
+        };
+        Returns: Array<{
+          execution_time_ms: number;
+          message: string;
+          records_deleted: number;
+          space_freed: string;
+          success: boolean;
+        }>;
+      };
+      batch_delete_valid_order_data: {
+        Args: { p_batch_size?: number };
+        Returns: number;
+      };
+      batch_delete_dispatch_orders: {
+        Args: { p_batch_size?: number; p_group_id: string };
+        Returns: number;
+      };
+      delete_messages: {
+        Args: { message_ids: string[]; requesting_admin_id: string };
+        Returns: unknown;
+      };
+      delete_all_messages_for_admin: {
+        Args: { requesting_admin_id: string; target_admin_id: string };
+        Returns: unknown;
+      };
+      process_customer_service_tip: {
+        Args: { p_amount: number; p_employee_id: string; p_message_id: string };
+        Returns: { success?: boolean; error?: string };
+      };
+      log_employee_login: {
+        Args: {
+          p_employee_id: string;
+          p_ip_address: string;
+          p_session_id?: string;
+          p_user_agent?: string;
+          p_user_id: string;
+          p_username: string;
+        };
+        Returns: string;
+      };
+      log_employee_logout: {
+        Args: {
+          p_employee_id: string;
+          p_ip_address: string;
+          p_session_id?: string;
+          p_user_agent?: string;
+          p_user_id: string;
+          p_username: string;
+        };
+        Returns: string;
+      };
+      check_login_rate_limit: {
+        Args: { p_identifier: string; p_identifier_type: string };
+        Returns: unknown;
+      };
+      record_login_attempt: {
+        Args: {
+          p_identifier: string;
+          p_identifier_type: string;
+          p_ip_address?: string;
+          p_success: boolean;
+          p_user_agent?: string;
+        };
+        Returns: unknown;
+      };
+      validate_employee_session: {
+        Args: { p_session_token: string; p_user_id: string };
+        Returns: boolean;
+      };
+      adjust_wallet_balance: {
+        Args: {
+          p_amount: number;
+          p_created_by: string;
+          p_remarks: string;
+          p_user_id: string;
+        };
+        Returns: unknown;
+      };
+      check_withdrawal_eligibility: {
+        Args: { check_user_id: string };
+        Returns: boolean;
+      };
+      mark_message_as_read: {
+        Args: { message_id_param: string; user_id_param: string };
+        Returns: boolean;
+      };
+      mark_login_popup_as_shown: {
+        Args: { message_id_param: string; user_id_param: string };
+        Returns: boolean;
+      };
+      get_unread_message_count: {
+        Args: { user_id_param: string };
+        Returns: number;
+      };
+      get_user_completed_orders_count: {
+        Args: { p_user_id: string };
+        Returns: number;
+      };
       get_employee_conversation_summaries: {
         Args: { p_employee_id: string };
         Returns: Array<{

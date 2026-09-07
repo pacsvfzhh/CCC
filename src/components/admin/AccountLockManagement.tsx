@@ -9,7 +9,7 @@ interface AccountLock {
   identifier: string;
   identifier_type: string;
   lock_until: string;
-  lock_reason: string;
+  lock_reason: string | null;
   failed_attempts: number;
   created_at: string;
   unlocked_at: string | null;
@@ -60,7 +60,6 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
 
       // Calculate next expiry time
       if (data && data.length > 0) {
-        const now = Date.now();
         const nextLockExpiry = Math.min(
           ...data.map((lock: AccountLock) => new Date(lock.lock_until).getTime())
         );
@@ -260,7 +259,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                     <div>
                       锁定时间: {new Date(lock.created_at).toLocaleString()}
                     </div>
-                    {lock.admin_username && admin.role === 'super' && (
+                    {lock.admin_username && admin.role === 'super_admin' && (
                       <div>
                         管理员: <span className="text-blue-400">{lock.admin_username}</span>
                       </div>

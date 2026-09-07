@@ -42,16 +42,17 @@ interface Message {
   employee_id: string;
   sender_type: 'customer' | 'employee';
   message_content: string;
-  message_type?: 'text' | 'image' | 'rating_request' | 'rating_result' | 'tip';
-  image_url?: string;
+  message_type?: 'text' | 'image' | 'rating_request' | 'rating_result' | 'tip' | 'rich_card';
+  image_url?: string | null;
   rating_data?: {
     rating?: number;
-    comment?: string;
+    comment?: string | null;
     employee_id?: string;
     status?: string;
     tip_amount?: number;
-  };
+  } | null;
   is_read: boolean;
+  source_type?: string;
   read_at?: string | null;
   created_at: string;
 }
@@ -77,7 +78,7 @@ interface MessageTemplate {
   admin_id: string;
   name: string;
   content: string;
-  content_type: 'text' | 'richtext';
+  content_type: 'text' | 'richtext' | 'rich_card';
   sort_order: number;
   is_pinned: boolean;
   created_at: string;
@@ -198,7 +199,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const [messageTemplates, setMessageTemplates] = useState<MessageTemplate[]>([]);
   const [showTemplateManager, setShowTemplateManager] = useState(false);
   const [showTemplatePopup, setShowTemplatePopup] = useState(false);
-  const [templateForm, setTemplateForm] = useState({ name: '', content: '', content_type: 'richtext' as 'text' | 'richtext' });
+  const [templateForm, setTemplateForm] = useState({ name: '', content: '', content_type: 'richtext' as 'text' | 'richtext' | 'rich_card' });
   const templateEditorRef = useRef<HTMLDivElement>(null);
   const templateImageInputRef = useRef<HTMLInputElement>(null);
   const [editingTemplate, setEditingTemplate] = useState<MessageTemplate | null>(null);
@@ -324,7 +325,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
   const justSentRef = useRef(false);
   const loadConversationHistoryRef = useRef<() => void>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const isInitialLoadRef = useRef(true);
   const preserveScrollUntilRef = useRef(0);
   const loadOlderMessagesRef = useRef<() => void>();
@@ -719,25 +720,28 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     const pending = pendingConversationMessageRequestsRef.current.get(cacheKey);
     if (pending) return pending;
 
-    const request = supabase
-      .from('customer_employee_conversations')
+    const request = Promise.resolve(
+      supabase
+        .from('customer_employee_conversations')
       .select('*')
       .eq('customer_id', customerId)
       .eq('employee_id', employeeId)
       .eq('source_type', 'aaa_service')
       .order('created_at', { ascending: false })
       .limit(MESSAGE_PAGE_SIZE)
-      .then(({ data, error }) => {
-        if (!error && data) {
-          conversationMessagesCacheRef.current.set(cacheKey, data.reverse());
-        }
-      })
-      .catch(error => {
-        console.error('Error prefetching messages:', error);
-      })
-      .finally(() => {
-        pendingConversationMessageRequestsRef.current.delete(cacheKey);
-      });
+      .then(
+        ({ data, error }) => {
+          if (!error && data) {
+            conversationMessagesCacheRef.current.set(cacheKey, data.reverse());
+          }
+          pendingConversationMessageRequestsRef.current.delete(cacheKey);
+        },
+        (error: unknown) => {
+          console.error('Error prefetching messages:', error);
+          pendingConversationMessageRequestsRef.current.delete(cacheKey);
+        },
+      ),
+    );
 
     pendingConversationMessageRequestsRef.current.set(cacheKey, request);
     return request;
@@ -1048,16 +1052,18 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
             .select('*')
             .eq('created_by', selectedAdminId)
             .order('username')
-            .then(({ data, error }) => {
-              if (employeeRequestId !== workspaceLoadRequestRef.current) return;
-              if (!error && data) {
-                setEmployees(data);
-                allEmployeesRef.current = data;
-              }
-            })
-            .catch(error => {
-              console.error('Error loading employees:', error);
-            });
+            .then(
+              ({ data, error }) => {
+                if (employeeRequestId !== workspaceLoadRequestRef.current) return;
+                if (!error && data) {
+                  setEmployees(data);
+                  allEmployeesRef.current = data;
+                }
+              },
+              (error: unknown) => {
+                console.error('Error loading employees:', error);
+              },
+            );
         })
         .subscribe();
 
@@ -1710,7 +1716,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
     }
 
     try {
-      let customAvatarUrl = editingCustomer.custom_avatar_url;
+      let customAvatarUrl: string | null = editingCustomer.custom_avatar_url ?? null;
 
       if (customerForm.useCustomAvatar) {
         if (customerForm.customAvatarFile && customerForm.isSuper) {
