@@ -37,8 +37,23 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
     if (controller.signal.aborted) {
       throw new Error('Supabase request timed out. Check your project URL and network connection.');
     }
-    if (error instanceof TypeError) {
-      throw new Error('Unable to connect to Supabase. Check your network connection and project URL.');
+
+    const errorName = typeof error === 'object' && error !== null && 'name' in error
+      ? String(error.name)
+      : '';
+    const errorMessage = error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error !== null && 'message' in error
+        ? String(error.message)
+        : String(error);
+    const isNetworkError = errorName === 'TypeError'
+      || errorMessage === 'Failed to fetch'
+      || errorMessage.includes('NetworkError');
+
+    if (isNetworkError) {
+      const connectionError = new Error('Unable to connect to Supabase. Check your network connection and project URL.');
+      connectionError.name = 'SupabaseNetworkError';
+      throw connectionError;
     }
     throw error;
   } finally {
