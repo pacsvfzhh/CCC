@@ -2055,11 +2055,11 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (msg.message_type === 'image' && msg.image_url) {
       const isUploading = uploadingImage && uploadingTempIdRef.current === msg.id;
       return (
-        <div className="relative w-fit max-w-full overflow-hidden rounded-lg bg-slate-950/45">
+        <div className="relative inline-block w-fit max-w-[170px] overflow-hidden rounded-lg bg-slate-950/45">
           <img
             src={msg.image_url}
             alt="Shared image"
-            className="block h-auto max-h-[210px] max-w-[min(170px,100%)] rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+            className="block h-auto max-h-[210px] max-w-[170px] rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
             loading="lazy"
             onClick={(e: React.MouseEvent) => { if (!isUploading) { e.stopPropagation(); e.preventDefault(); setPreviewImage(msg.image_url || null); setAdminImageZoom(1); setAdminImageDrag({ x: 0, y: 0 }); } }}
           />

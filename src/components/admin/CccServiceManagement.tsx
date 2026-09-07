@@ -25,7 +25,7 @@ const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }:
   const imgRef = useRef<HTMLImageElement>(null);
 
   return (
-    <div className={`relative w-fit max-w-full overflow-hidden rounded-lg bg-slate-950/45 ${loaded || errored ? '' : 'min-h-[60px] min-w-[60px]'}`}>
+    <div className={`relative inline-block w-fit max-w-[170px] overflow-hidden rounded-lg bg-slate-950/45 ${loaded || errored ? '' : 'min-h-[60px] min-w-[60px]'}`}>
       {!loaded && !errored && (
         <div className="absolute inset-0 bg-slate-800/60 flex items-center justify-center z-[1]">
           <div className="flex flex-col items-center gap-2">
@@ -46,7 +46,7 @@ const AdminChatImage = memo(({ src, isUploading, uploadProgress, onClickImage }:
         ref={imgRef}
         src={src}
         alt="Shared image"
-        className={`block h-auto max-h-[210px] max-w-[min(170px,100%)] rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm ${
+        className={`block h-auto max-h-[210px] max-w-[170px] rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm ${
           loaded ? 'opacity-100' : 'opacity-0'
         }`}
         onLoad={() => setLoaded(true)}
