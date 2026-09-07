@@ -7,6 +7,7 @@ import { clearConversationRead, isConversationReadThrough, markConversationRead 
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
+import CustomerAutoMessages from './CustomerAutoMessages';
 import EmployeeMetadataPopover from './EmployeeMetadataPopover';
 
 function extractImageOnlyUrl(content: string): string | null {
@@ -4353,7 +4354,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       {/* Customer Create/Edit Modal */}
       {(showCustomerForm || editingCustomer) && (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-md" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null); setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' }); } }}>
-          <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--orange w-full max-h-[calc(100vh-2rem)] rounded-2xl border p-5 shadow-2xl ${customerForm.isSuper ? 'max-w-3xl' : 'max-w-lg'} transition-all duration-200`}>
+          <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--orange w-full max-h-[calc(100vh-2rem)] rounded-2xl border p-5 shadow-2xl ${customerForm.isSuper ? 'max-w-[95vw]' : 'max-w-3xl'} transition-all duration-200`}>
             <h3 className="mb-4 border-b border-orange-200/15 pb-3 text-lg font-black tracking-tight text-white">{editingCustomer ? 'Edit Customer' : 'Create Customer'}</h3>
             {/* Super Customer Toggle */}
             <div className="mb-4 p-3 bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-500/30 rounded-lg">
@@ -4554,6 +4555,11 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                     />
                   </div>
                 </div>
+                <CustomerAutoMessages
+                  customerId={editingCustomer?.id || null}
+                  adminId={selectedAdminId || adminId}
+                  sourceType="aaa_service"
+                />
               </div>
             ) : (
               <>
@@ -4589,6 +4595,11 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                     maxLength={100}
                   />
                 </div>
+                <CustomerAutoMessages
+                  customerId={editingCustomer?.id || null}
+                  adminId={selectedAdminId || adminId}
+                  sourceType="aaa_service"
+                />
               </>
             )}
 
