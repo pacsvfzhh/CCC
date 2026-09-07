@@ -274,8 +274,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         const cccIds = (cccCustomersRes.data || []).map(c => c.id);
 
         const [aaaUnread, cccUnread] = await Promise.all([
-          aaaIds.length > 0 ? supabase.from('customer_employee_conversations').select('*', { count: 'exact', head: true }).in('customer_id', aaaIds).eq('source_type', 'aaa_service').eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
-          cccIds.length > 0 ? supabase.from('customer_employee_conversations').select('*', { count: 'exact', head: true }).in('customer_id', cccIds).eq('source_type', 'ccc_service').eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
+          aaaIds.length > 0 ? supabase.from('customer_employee_conversations').select('*, simulated_customers!inner(source_type)', { count: 'exact', head: true }).in('customer_id', aaaIds).eq('simulated_customers.source_type', 'aaa_service').eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
+          cccIds.length > 0 ? supabase.from('customer_employee_conversations').select('*, simulated_customers!inner(source_type)', { count: 'exact', head: true }).in('customer_id', cccIds).eq('simulated_customers.source_type', 'ccc_service').eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
         ]);
 
         if (aaaUnread.error) throw aaaUnread.error;
@@ -295,8 +295,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         const cccIds = (cccCustomersRes.data || []).map(c => c.id);
 
         const [aaaUnread, cccUnread] = await Promise.all([
-          aaaIds.length > 0 ? supabase.from('customer_employee_conversations').select('*', { count: 'exact', head: true }).in('customer_id', aaaIds).eq('source_type', 'aaa_service').eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
-          cccIds.length > 0 ? supabase.from('customer_employee_conversations').select('*', { count: 'exact', head: true }).in('customer_id', cccIds).eq('source_type', 'ccc_service').eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
+          aaaIds.length > 0 ? supabase.from('customer_employee_conversations').select('*, simulated_customers!inner(source_type)', { count: 'exact', head: true }).in('customer_id', aaaIds).eq('simulated_customers.source_type', 'aaa_service').eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
+          cccIds.length > 0 ? supabase.from('customer_employee_conversations').select('*, simulated_customers!inner(source_type)', { count: 'exact', head: true }).in('customer_id', cccIds).eq('simulated_customers.source_type', 'ccc_service').eq('sender_type', 'employee').eq('is_read', false) : Promise.resolve({ count: 0, error: null }),
         ]);
 
         if (aaaUnread.error) throw aaaUnread.error;

@@ -529,11 +529,11 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     try {
       const { data, error } = await supabase
         .from('customer_employee_conversations')
-        .select('customer_id, users!inner(created_by)')
+        .select('customer_id, users!inner(created_by), simulated_customers!inner(source_type)')
         .in('customer_id', customerIds)
         .eq('users.created_by', selectedAdminId)
+        .eq('simulated_customers.source_type', 'ccc_service')
         .eq('sender_type', 'employee')
-        .eq('source_type', 'ccc_service')
         .eq('is_read', false);
 
       if (error) throw error;
@@ -592,11 +592,11 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
       const { data: messages, error: messagesError } = await supabase
         .from('customer_employee_conversations')
-        .select('customer_id, employee_id')
+        .select('customer_id, employee_id, simulated_customers!inner(source_type)')
         .in('customer_id', customerIds)
         .in('employee_id', employeeIds)
+        .eq('simulated_customers.source_type', 'ccc_service')
         .eq('sender_type', 'employee')
-        .eq('source_type', 'ccc_service')
         .eq('is_read', false);
 
       if (messagesError) throw messagesError;
@@ -666,10 +666,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       const employeeById = new Map(employees.map(employee => [employee.id, employee]));
       const { data, error } = await supabase
         .from('customer_employee_conversations')
-        .select('employee_id, sender_type, message_content, message_type, is_read, created_at')
+        .select('employee_id, sender_type, message_content, message_type, is_read, created_at, simulated_customers!inner(source_type)')
         .eq('customer_id', customer.id)
         .in('employee_id', employees.map(employee => employee.id))
-        .eq('source_type', 'ccc_service')
+        .eq('simulated_customers.source_type', 'ccc_service')
         .order('created_at', { ascending: false });
 
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
@@ -807,10 +807,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
       const oldestTime = messages[0]?.created_at;
       const { data, error } = await supabase
         .from('customer_employee_conversations')
-        .select('*')
+        .select('*, simulated_customers!inner(source_type)')
         .eq('customer_id', selectedCustomer.id)
         .eq('employee_id', selectedEmployee.id)
-        .eq('source_type', 'ccc_service')
+        .eq('simulated_customers.source_type', 'ccc_service')
         .lt('created_at', oldestTime)
         .order('created_at', { ascending: false })
         .limit(MESSAGE_PAGE_SIZE);
@@ -902,10 +902,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     const request = Promise.resolve(
       supabase
         .from('customer_employee_conversations')
-      .select('*')
+      .select('*, simulated_customers!inner(source_type)')
       .eq('customer_id', customerId)
       .eq('employee_id', employeeId)
-      .eq('source_type', 'ccc_service')
+      .eq('simulated_customers.source_type', 'ccc_service')
       .order('created_at', { ascending: false })
       .limit(MESSAGE_PAGE_SIZE)
       .then(
@@ -935,10 +935,10 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
     try {
       const { data, error } = await supabase
         .from('customer_employee_conversations')
-        .select('*')
+        .select('*, simulated_customers!inner(source_type)')
         .eq('customer_id', selectedCustomer.id)
         .eq('employee_id', selectedEmployee.id)
-        .eq('source_type', 'ccc_service')
+        .eq('simulated_customers.source_type', 'ccc_service')
         .order('created_at', { ascending: false })
         .limit(MESSAGE_PAGE_SIZE);
 
@@ -972,7 +972,6 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           .eq('customer_id', customerId)
           .eq('employee_id', employeeId)
           .eq('sender_type', 'employee')
-          .eq('source_type', 'ccc_service')
           .eq('is_read', false);
 
         if (markReadError) {
@@ -1741,11 +1740,11 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
 
       const { data, error } = await supabase
         .from('customer_employee_conversations')
-        .select('customer_id')
+        .select('customer_id, simulated_customers!inner(source_type)')
         .in('customer_id', customers.map(customer => customer.id))
         .in('employee_id', employees.map(employee => employee.id))
+        .eq('simulated_customers.source_type', 'ccc_service')
         .eq('sender_type', 'employee')
-        .eq('source_type', 'ccc_service')
         .eq('is_read', false);
 
       if (requestId !== workspaceLoadRequestRef.current) return;

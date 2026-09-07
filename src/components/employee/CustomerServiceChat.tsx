@@ -99,6 +99,8 @@ const CustomerAvatar = memo(({
   />
 ));
 
+type ServiceSourceType = 'aaa_service' | 'ccc_service';
+
 interface Customer {
   id: string;
   customer_name: string;
@@ -113,6 +115,7 @@ interface Customer {
   employee_always_visible?: boolean;
   target_employee_id?: string | null;
   target_employee_ids?: string[] | null;
+  source_type: ServiceSourceType;
 }
 
 interface Message {
@@ -970,7 +973,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
       let alwaysVisibleQuery = supabase
         .from('simulated_customers')
-        .select('id, customer_name, customer_id, customer_avatar, is_super, super_customer_title, badge_type, custom_avatar_url, vip_label, employee_pin_top, employee_always_visible, target_employee_id, target_employee_ids')
+        .select('id, customer_name, customer_id, customer_avatar, is_super, super_customer_title, badge_type, custom_avatar_url, vip_label, employee_pin_top, employee_always_visible, target_employee_id, target_employee_ids, source_type')
         .eq('employee_always_visible', true)
         .eq('is_active', true);
       if (employeeAdminIdRef.current) {
@@ -983,6 +986,21 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       ]);
 
       if (summaryResult.error) throw summaryResult.error;
+
+      const summaryCustomerIds = (summaryResult.data || []).map(row => row.customer_id);
+      const sourceTypeByCustomerId = new Map<string, ServiceSourceType>();
+      if (summaryCustomerIds.length > 0) {
+        const { data: sourceRows, error: sourceError } = await supabase
+          .from('simulated_customers')
+          .select('id, source_type')
+          .in('id', summaryCustomerIds);
+        if (sourceError) throw sourceError;
+        sourceRows?.forEach(row => {
+          if (row.source_type === 'aaa_service' || row.source_type === 'ccc_service') {
+            sourceTypeByCustomerId.set(row.id, row.source_type);
+          }
+        });
+      }
 
       const grouped = new Map<string, CustomerConversation>();
       let totalUnread = 0;
@@ -1005,6 +1023,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             employee_always_visible: row.employee_always_visible ?? false,
             target_employee_id: row.target_employee_id,
             target_employee_ids: row.target_employee_ids,
+            source_type: sourceTypeByCustomerId.get(row.customer_id) || 'aaa_service',
           },
           unread_count: unread,
           last_message: row.last_message_type === 'image' ? '\ud83d\udcf7 Photo' : (row.last_message || ''),
@@ -1033,6 +1052,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             employee_always_visible: customer.employee_always_visible ?? false,
             target_employee_id: customer.target_employee_id,
             target_employee_ids: customer.target_employee_ids,
+            source_type: customer.source_type === 'ccc_service' ? 'ccc_service' : 'aaa_service',
           },
           unread_count: 0,
           last_message: '',
@@ -1447,7 +1467,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       message_type: 'image',
       image_url: dataUrl,
       created_at: new Date().toISOString(),
-      is_read: true,
+      is_read: false,
       rating_value: null,
     };
 
@@ -1496,6 +1516,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           message_content: '[Image]',
           message_type: 'image',
           image_url: publicUrl,
+          is_read: false,
+          source_type: selectedCustomer.source_type,
         })
         .select()
         .single()
@@ -1545,7 +1567,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       sender_type: 'employee',
       message_content: messageContent,
       message_type: 'text',
-      is_read: true,
+      is_read: false,
       created_at: new Date().toISOString(),
     };
 
@@ -1564,6 +1586,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           sender_type: 'employee',
           message_content: messageContent,
           message_type: 'text',
+          is_read: false,
+          source_type: selectedCustomer.source_type,
         })
         .select()
         .single();
@@ -1626,6 +1650,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             status: 'pending'
           },
           is_read: false,
+          source_type: selectedCustomer.source_type,
         })
         .select()
         .single();
