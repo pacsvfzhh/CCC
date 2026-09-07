@@ -2059,7 +2059,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           <img
             src={msg.image_url}
             alt="Shared image"
-            className="block h-auto max-h-[420px] max-w-full rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+            className="block h-auto max-h-[210px] max-w-[min(170px,100%)] rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
             loading="lazy"
             onClick={(e: React.MouseEvent) => { if (!isUploading) { e.stopPropagation(); e.preventDefault(); setPreviewImage(msg.image_url || null); setAdminImageZoom(1); setAdminImageDrag({ x: 0, y: 0 }); } }}
           />
