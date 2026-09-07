@@ -1113,27 +1113,43 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     const shouldIncreaseUnread = incrementUnread &&
       !(isOpenRef.current && selectedCustomerRef.current?.id === customerId);
 
+    const updateConversation = (conversation: CustomerConversation): CustomerConversation => ({
+      ...conversation,
+      unread_count: shouldIncreaseUnread
+        ? conversation.unread_count + 1
+        : conversation.unread_count,
+      last_message: message.message_type === 'image'
+        ? '\ud83d\udcf7 Photo'
+        : message.message_content || conversation.last_message,
+      last_message_time: message.created_at || conversation.last_message_time,
+      last_customer_message_time: message.sender_type === 'customer'
+        ? message.created_at || conversation.last_customer_message_time
+        : conversation.last_customer_message_time,
+    });
+
+    const cached = employeeConversationCache.get(employeeId);
+    if (cached) {
+      const cachedIndex = cached.conversations.findIndex(
+        conversation => conversation.customer.id === customerId,
+      );
+      if (cachedIndex >= 0) {
+        const cachedConversations = [...cached.conversations];
+        cachedConversations[cachedIndex] = updateConversation(cachedConversations[cachedIndex]);
+        employeeConversationCache.set(employeeId, {
+          conversations: cachedConversations,
+          unreadCount: cached.unreadCount + (shouldIncreaseUnread ? 1 : 0),
+        });
+      }
+    }
+
     setConversations(previous => {
       const index = previous.findIndex(
         conversation => conversation.customer.id === customerId,
       );
       if (index < 0) return previous;
 
-      const current = previous[index];
       const next = [...previous];
-      next[index] = {
-        ...current,
-        unread_count: shouldIncreaseUnread
-          ? current.unread_count + 1
-          : current.unread_count,
-        last_message: message.message_type === 'image'
-          ? '\ud83d\udcf7 Photo'
-          : message.message_content || current.last_message,
-        last_message_time: message.created_at || current.last_message_time,
-        last_customer_message_time: message.sender_type === 'customer'
-          ? message.created_at || current.last_customer_message_time
-          : current.last_customer_message_time,
-      };
+      next[index] = updateConversation(next[index]);
       return next;
     });
   };
