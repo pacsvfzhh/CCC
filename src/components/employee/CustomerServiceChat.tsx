@@ -1383,9 +1383,25 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         preloadChatImages(sorted);
         setHasMoreMessages(messagesResult.data.length >= MESSAGE_PAGE_SIZE);
 
-        const prevIds = prevCached?.map((m: any) => m.id).join(',');
-        const newIds = sorted.map((m: any) => m.id).join(',');
-        if (prevIds !== newIds) {
+        const messagesChanged = !prevCached ||
+          prevCached.length !== sorted.length ||
+          prevCached.some((previousMessage, index) => {
+            const nextMessage = sorted[index];
+            if (!nextMessage) return true;
+            return (
+              previousMessage.id !== nextMessage.id ||
+              previousMessage.message_content !== nextMessage.message_content ||
+              previousMessage.message_type !== nextMessage.message_type ||
+              previousMessage.image_url !== nextMessage.image_url ||
+              previousMessage.title !== nextMessage.title ||
+              previousMessage.subtitle !== nextMessage.subtitle ||
+              previousMessage.rich_card_content_id !== nextMessage.rich_card_content_id ||
+              (previousMessage as any).source_template_id !== (nextMessage as any).source_template_id ||
+              (previousMessage as any).source_auto_message_id !== (nextMessage as any).source_auto_message_id ||
+              JSON.stringify(previousMessage.rating_data) !== JSON.stringify(nextMessage.rating_data)
+            );
+          });
+        if (messagesChanged) {
           setMessages(sorted);
         }
 
