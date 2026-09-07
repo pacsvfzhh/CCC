@@ -127,7 +127,7 @@ interface Message {
   image_url?: string | null;
   rating_data?: {
     rating?: number;
-    comment?: string;
+    comment?: string | null;
     employee_id?: string;
     status?: string;
     tip_amount?: number;

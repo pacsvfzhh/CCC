@@ -6,7 +6,7 @@ interface Admin {
   id: string;
   username: string;
   role: string;
-  parent_id?: string;
+  parent_id?: string | null;
   is_pinned: boolean;
 }
 
@@ -251,7 +251,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
 
       // Build wallet balance map
       const walletBalanceMap = new Map(
-        walletsResult.data?.map(w => [w.user_id, parseFloat(w.available_balance) || 0]) || []
+        walletsResult.data?.map(w => [w.user_id, Number(w.available_balance) || 0]) || []
       );
 
       // Build verification map
@@ -500,7 +500,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
 
     // Build wallet balance map
     const walletBalanceMap = new Map(
-      walletsResult.data?.map(w => [w.user_id, parseFloat(w.available_balance) || 0]) || []
+      walletsResult.data?.map(w => [w.user_id, Number(w.available_balance) || 0]) || []
     );
 
     // Build verification map

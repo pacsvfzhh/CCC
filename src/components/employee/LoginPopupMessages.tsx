@@ -256,7 +256,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                     </div>
                     <div className="flex items-center gap-1.5 mt-2.5 text-slate-500">
                       <Clock className="w-3.5 h-3.5" />
-                      <span className="text-xs">{new Date(currentMessage.messages.created_at).toLocaleString()}</span>
+                      <span className="text-xs">{new Date(currentMessage.messages.created_at || 0).toLocaleString()}</span>
                     </div>
                   </div>
 
@@ -391,7 +391,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                       <div className="flex items-center gap-2 mt-2.5">
                         <Clock className="w-3.5 h-3.5 text-slate-400" />
                         <span className="text-sm text-slate-500">
-                          {new Date(currentMessage.messages.created_at).toLocaleString()}
+                          {new Date(currentMessage.messages.created_at || 0).toLocaleString()}
                         </span>
                       </div>
                     </div>

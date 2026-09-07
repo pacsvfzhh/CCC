@@ -87,7 +87,8 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       processedLines.push(line);
     }
 
-    return marked(processedLines.join('\n'));
+    const rendered = marked(processedLines.join('\n'));
+    return typeof rendered === 'string' ? rendered : '';
   };
 
   useEffect(() => {
@@ -295,6 +296,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         content: '',
         isPinned: false,
         isGlobal: false,
+        isHidden: false,
         pinOrder: 999,
         publishAt: new Date().toISOString().slice(0, 16),
       });
@@ -463,6 +465,8 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       content: '',
       isPinned: false,
       isGlobal: false,
+      isHidden: false,
+      pinOrder: 999,
       publishAt: new Date().toISOString().slice(0, 16),
     });
     setShowForm(true);

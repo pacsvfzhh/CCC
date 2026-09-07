@@ -194,7 +194,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     };
 
     // Start tracking this tab's session
-    tabSessionManager.startSession(employee.id, handleSessionExpired);
+    tabSessionManager.startSession(employee.id, 'employee', handleSessionExpired);
 
     // Cleanup on unmount
     return () => {
@@ -710,7 +710,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   </button>
 
                   <button
-                    onClick={logout}
+                    onClick={() => logout()}
                     className="px-3.5 py-2 rounded-lg bg-white/15 hover:bg-red-500/80 active:bg-red-600/80 text-white transition-all border border-white/20 hover:border-red-400/50"
                   >
                     <div className="flex items-center gap-2">

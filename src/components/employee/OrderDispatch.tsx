@@ -14,10 +14,10 @@ interface DispatchAssignment {
   dispatch_order_id: string;
   status: string;
   assigned_at: string;
-  accepted_at?: string;
-  completed_at?: string;
-  remarks?: string;
-  assignment_id?: string;
+  accepted_at?: string | null;
+  completed_at?: string | null;
+  remarks?: string | null;
+  assignment_id?: string | null;
   order_submitted?: boolean;
   dispatch_orders: {
     order_content: string;
@@ -1126,7 +1126,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       // Step 2: Cleanup old sessions in parallel (if they exist)
       const cleanupTasks = [];
 
-      if (activeWorkSessionResult.status === 'fulfilled' && activeWorkSessionResult.value.data?.length > 0) {
+      if (activeWorkSessionResult.status === 'fulfilled' && (activeWorkSessionResult.value.data?.length ?? 0) > 0) {
         console.log('Cleaning up previous work session...');
         cleanupTasks.push(supabase.rpc('end_work_session', { p_user_id: userId }));
       }
@@ -1237,11 +1237,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         : { status: 'fulfilled' as const, value: { data: dispatchData, error: null } };
 
       // Check results
-      if (workSessionResult.status === 'rejected') {
-        console.error('Failed to start work session:', workSessionResult.reason);
-        throw workSessionResult.reason;
-      }
-
       if (dispatchSessionResult.status === 'rejected') {
         console.error('Failed to create dispatch session, cleaning up work session...');
         await supabase.rpc('end_work_session', { p_user_id: userId });
@@ -1739,6 +1734,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
       // Extract assignment data
       const assignmentData = assignmentResult.assignment;
+      if (!assignmentData) {
+        scheduleNextOrder(groupConfig || config);
+        return;
+      }
       const newAssignment = {
         id: assignmentData.id,
         dispatch_order_id: assignmentData.dispatch_order_id,

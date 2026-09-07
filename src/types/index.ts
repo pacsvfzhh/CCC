@@ -22,6 +22,10 @@ export interface Employee {
   remarks: string;
   tags: string[];
   is_pinned: boolean;
+  current_session_token?: string | null;
+  session_created_at?: string | null;
+  last_heartbeat_at?: string | null;
+  current_tab_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -139,25 +143,25 @@ export interface VerificationRequest {
 
 export interface Message {
   id: string;
-  sender_id: string;
+  sender_id?: string;
   sender_username: string;
   title: string;
   content: string;
   message_type: 'login_popup' | 'realtime';
   priority: 'low' | 'normal' | 'high' | 'urgent';
-  expires_at: string | null;
-  created_at: string;
+  expires_at?: string | null;
+  created_at: string | null;
 }
 
 export interface MessageRecipient {
   id: string;
   message_id: string;
   recipient_id: string;
-  is_read: boolean;
+  is_read: boolean | null;
   read_at: string | null;
-  is_shown: boolean;
+  is_shown: boolean | null;
   shown_at: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface MessageWithRecipient extends MessageRecipient {

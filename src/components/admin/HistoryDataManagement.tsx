@@ -30,10 +30,10 @@ interface PreviewResult {
   total_records: number;
   records_to_delete: number;
   records_to_keep: number;
-  oldest_date: string;
+  oldest_record: string;
   cutoff_date: string;
-  estimated_space_freed: string;
-  safety_status: string;
+  estimated_space: string;
+  risk_level: string;
 }
 
 interface CleanupResult {
@@ -546,7 +546,7 @@ export default function HistoryDataManagement({ admin }: HistoryDataManagementPr
                 <div className="flex justify-between">
                   <span className="text-gray-600">Space to Free:</span>
                   <span className="font-medium text-blue-600">
-                    {previewResult.estimated_space_freed}
+                    {previewResult.estimated_space}
                   </span>
                 </div>
               </div>

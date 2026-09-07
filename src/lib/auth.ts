@@ -109,8 +109,10 @@ export async function logout(isUserInitiated: boolean = true) {
         Promise.all([
           // End work session - CRITICAL: releases pending orders
           supabase.rpc('end_work_session', { p_user_id: auth.user.id })
-            .then(() => console.log('Work session ended on logout'))
-            .catch(() => {}), // Silent catch
+            .then(
+              () => console.log('Work session ended on logout'),
+              () => {},
+            ), // Silent catch
 
           // Clear session token - CRITICAL: prevents session conflicts
           supabase
@@ -120,8 +122,10 @@ export async function logout(isUserInitiated: boolean = true) {
               current_tab_id: null
             })
             .eq('id', auth.user.id)
-            .then(() => console.log('Session cleared from database'))
-            .catch(() => {}), // Silent catch
+            .then(
+              () => console.log('Session cleared from database'),
+              () => {},
+            ), // Silent catch
 
           // Log employee logout - IMPORTANT: for audit trail (run in background)
           logEmployeeLogout(

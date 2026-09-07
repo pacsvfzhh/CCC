@@ -194,7 +194,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
   const sortedMessages = [...messages].sort((a, b) => {
     if (!a.is_read && b.is_read) return -1;
     if (a.is_read && !b.is_read) return 1;
-    return new Date(b.messages.created_at).getTime() - new Date(a.messages.created_at).getTime();
+    return new Date(b.messages.created_at || 0).getTime() - new Date(a.messages.created_at || 0).getTime();
   });
 
   const formatRelativeTime = (dateStr: string) => {
@@ -394,7 +394,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                               <span className={`text-[11px] font-medium whitespace-nowrap flex-shrink-0 mt-0.5 ${
                                 isUnread ? 'text-blue-600' : 'text-slate-400'
                               }`}>
-                                {formatRelativeTime(msg.messages.created_at)}
+                                {formatRelativeTime(msg.messages.created_at || '')}
                               </span>
                             </div>
 
@@ -525,12 +525,12 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-cyan-200" />
                         <span>
-                          {new Date(selectedMessage.messages.created_at).toLocaleDateString(dateLocale, { year: 'numeric', month: 'short', day: 'numeric' })}
+                          {new Date(selectedMessage.messages.created_at || 0).toLocaleDateString(dateLocale, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
                       </div>
                       <span className="text-white/20">|</span>
                       <span>
-                        {new Date(selectedMessage.messages.created_at).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(selectedMessage.messages.created_at || 0).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   </div>

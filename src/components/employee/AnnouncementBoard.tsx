@@ -182,7 +182,8 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
       return content;
     }
     // Otherwise, treat as markdown
-    return marked(content);
+    const rendered = marked(content);
+    return typeof rendered === 'string' ? rendered : '';
   };
 
   // Memoize the rendered and sanitized content for the selected announcement

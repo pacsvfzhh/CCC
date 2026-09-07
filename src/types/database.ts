@@ -215,7 +215,15 @@ export interface Database {
           created_at?: string | null;
           updated_at?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'dispatch_group_orders_group_id_fkey';
+            columns: ['group_id'];
+            isOneToOne: false;
+            referencedRelation: 'dispatch_groups';
+            referencedColumns: ['id'];
+          }
+        ];
       };
       dispatch_orders: {
         Row: {
@@ -247,10 +255,10 @@ export interface Database {
       dispatch_assignments: {
         Row: {
           id: string;
-          dispatch_order_id: string | null;
-          user_id: string | null;
-          status: string | null;
-          assigned_at: string | null;
+          dispatch_order_id: string;
+          user_id: string;
+          status: string;
+          assigned_at: string;
           accepted_at: string | null;
           completed_at: string | null;
           remarks: string | null;
@@ -297,6 +305,30 @@ export interface Database {
             referencedColumns: ['id'];
           }
         ];
+      };
+      dispatch_config: {
+        Row: {
+          id: string;
+          config_key: string;
+          config_value: string;
+          description: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          config_key: string;
+          config_value: string;
+          description?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          config_key?: string;
+          config_value?: string;
+          description?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
       };
       dispatch_sessions: {
         Row: {
@@ -453,9 +485,9 @@ export interface Database {
           id: string;
           product_value: number;
           transaction_id: string;
-          is_active: boolean | null;
+          is_active: boolean;
           created_by: string;
-          created_at: string | null;
+          created_at: string;
           updated_at: string | null;
           usage_count: number | null;
           last_used_at: string | null;
@@ -566,10 +598,10 @@ export interface Database {
           sender_username: string;
           title: string;
           content: string;
-          message_type: string;
-          priority: string;
+          message_type: 'login_popup' | 'realtime';
+          priority: 'low' | 'normal' | 'high' | 'urgent';
           expires_at: string | null;
-          created_at: string | null;
+          created_at: string;
         };
         Insert: {
           id?: string;
@@ -1049,7 +1081,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'manual_adjustment';
+          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'manual_adjustment' | 'tip';
           amount: number;
           balance_before: number;
           balance_after: number;
@@ -1061,7 +1093,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'manual_adjustment';
+          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'manual_adjustment' | 'tip';
           amount: number;
           balance_before: number;
           balance_after: number;
@@ -1073,7 +1105,7 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
-          type?: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'manual_adjustment';
+          type?: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'manual_adjustment' | 'tip';
           amount?: number;
           balance_before?: number;
           balance_after?: number;
@@ -1285,6 +1317,30 @@ export interface Database {
           subtitle?: string | null;
           title?: string | null;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      customer_auto_message_logs: {
+        Row: {
+          id: string;
+          customer_id: string;
+          employee_id: string;
+          auto_message_id: string;
+          sent_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          employee_id: string;
+          auto_message_id: string;
+          sent_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          employee_id?: string;
+          auto_message_id?: string;
+          sent_at?: string;
         };
         Relationships: [];
       };
@@ -1811,18 +1867,18 @@ export interface Database {
     Views: {
       history_cleanup_summary: {
         Row: {
-          table_name: string | null;
-          display_name: string | null;
-          category: string | null;
-          description: string | null;
-          default_retention_days: number | null;
-          min_retention_days: number | null;
-          cleanup_priority: number | null;
+          table_name: string;
+          display_name: string;
+          category: string;
+          description: string;
+          default_retention_days: number;
+          min_retention_days: number;
+          cleanup_priority: number;
           last_cleanup_at: string | null;
-          last_cleanup_records: number | null;
-          cleanup_status: string | null;
-          current_record_count: number | null;
-          current_size: string | null;
+          last_cleanup_records: number;
+          cleanup_status: string;
+          current_record_count: number;
+          current_size: string;
         };
         Insert: never;
         Update: never;
@@ -1830,6 +1886,28 @@ export interface Database {
       };
     };
     Functions: {
+      cleanup_all_stale_sessions: {
+        Args: Record<string, never>;
+        Returns: unknown;
+      };
+      assign_next_dispatch_order: {
+        Args: {
+          p_dispatch_mode?: string;
+          p_group_id: string;
+          p_user_id: string;
+        };
+        Returns: {
+          success?: boolean;
+          message?: string;
+          assignment?: {
+            id: string;
+            dispatch_order_id: string;
+            status: string;
+            assigned_at: string;
+            order_content: string;
+          };
+        };
+      };
       get_account_locks_for_admin: {
         Args: { p_admin_id: string };
         Returns: Array<{
@@ -1940,7 +2018,7 @@ export interface Database {
         Returns: number;
       };
       get_employee_login_summary: {
-        Args: { p_admin_id: string; p_search_term?: string };
+        Args: { p_admin_id: string; p_search_term?: string | null };
         Returns: Array<{
           created_by: string;
           employee_id: string;
@@ -1965,9 +2043,9 @@ export interface Database {
           action_type: string;
           created_at: string;
           id: string;
-          ip_address: string | null;
-          session_id: string | null;
-          user_agent: string | null;
+          ip_address: string;
+          session_id: string;
+          user_agent: string;
         }>;
       };
       get_admin_employees: {
@@ -2036,6 +2114,19 @@ export interface Database {
           success: boolean;
         }>;
       };
+      preview_cleanup: {
+        Args: { p_days_to_keep: number; p_table_name: string };
+        Returns: Array<{
+          cutoff_date: string;
+          estimated_space: string;
+          oldest_record: string;
+          records_to_delete: number;
+          records_to_keep: number;
+          risk_level: string;
+          table_name: string;
+          total_records: number;
+        }>;
+      };
       batch_delete_valid_order_data: {
         Args: { p_batch_size?: number };
         Returns: number;
@@ -2093,7 +2184,7 @@ export interface Database {
         Returns: unknown;
       };
       validate_employee_session: {
-        Args: { p_session_token: string; p_user_id: string };
+        Args: { p_session_token: string; p_tab_id?: string | null; p_user_id: string };
         Returns: boolean;
       };
       adjust_wallet_balance: {
@@ -2103,7 +2194,7 @@ export interface Database {
           p_remarks: string;
           p_user_id: string;
         };
-        Returns: unknown;
+        Returns: { success?: boolean; error?: string };
       };
       check_withdrawal_eligibility: {
         Args: { check_user_id: string };

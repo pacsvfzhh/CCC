@@ -42,8 +42,8 @@ interface WalletTransaction {
   balance_after: number;
   remarks: string;
   created_at: string;
-  created_by?: string;
-  reference_id?: string;
+  created_by?: string | null;
+  reference_id?: string | null;
 }
 
 interface VerificationRequest {
@@ -131,8 +131,8 @@ export default function EmployeeDetailModal({
         .then((result) => {
           if (!result.error && result.data) {
             setWalletBalance({
-              available: parseFloat(result.data.available_balance),
-              frozen: parseFloat(result.data.frozen_balance),
+              available: Number(result.data.available_balance),
+              frozen: Number(result.data.frozen_balance),
             });
           }
           return result;
@@ -171,9 +171,7 @@ export default function EmployeeDetailModal({
 
               if (order.status === "success") {
                 stats.successCount += 1;
-                stats.totalCommission += parseFloat(
-                  order.commission_amount || "0",
-                );
+                stats.totalCommission += Number(order.commission_amount || 0);
               } else if (order.status === "failure") {
                 stats.failureCount += 1;
               }
@@ -963,20 +961,20 @@ export default function EmployeeDetailModal({
                               <span
                                 className={`text-lg font-bold ${getTransactionColor(tx.type)}`}
                               >
-                                {parseFloat(tx.amount) >= 0 ? "+" : ""}$
-                                {parseFloat(tx.amount).toFixed(2)}
+                                {Number(tx.amount) >= 0 ? "+" : ""}$
+                                {Number(tx.amount).toFixed(2)}
                               </span>
                             </div>
                             <div className="text-sm text-slate-400 space-y-1">
                               <div className="flex gap-4">
                                 <span>
                                   Before: $
-                                  {parseFloat(tx.balance_before).toFixed(2)}
+                                  {Number(tx.balance_before).toFixed(2)}
                                 </span>
                                 <span>→</span>
                                 <span>
                                   After: $
-                                  {parseFloat(tx.balance_after).toFixed(2)}
+                                  {Number(tx.balance_after).toFixed(2)}
                                 </span>
                               </div>
                               {tx.remarks && (
