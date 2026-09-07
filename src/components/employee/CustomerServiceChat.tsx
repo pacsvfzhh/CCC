@@ -413,6 +413,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const selectedCustomerRef = useRef<Customer | null>(null);
   const isOpenRef = useRef<boolean>(false);
   const justSentRef = useRef(false);
+  const handledUnreadMessageIdsRef = useRef(new Set<string>());
+  const notificationMessageIdsRef = useRef(new Set<string>());
   const stableKeyMapRef = useRef<Map<string, string>>(new Map());
 
   // Lock body scroll when chat is open (mobile only - full-screen overlay)
@@ -448,40 +450,61 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     loadConversations();
 
     const channel = supabase
-      .channel('customer_employee_messages')
+      .channel(`customer_employee_messages_${employeeId}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'customer_employee_conversations',
         filter: `employee_id=eq.${employeeId}`,
       }, async (payload: any) => {
-        console.log('New message INSERT event:', payload);
+        const message = payload?.new;
+        if (!message) return;
 
+        employeeConversationCache.delete(employeeId);
         loadConversations();
-        if (selectedCustomerRef.current && selectedCustomerRef.current.id === payload.new.customer_id) {
-          if (!isInitialLoadRef.current && !(justSentRef.current && payload.new.sender_type === 'employee')) {
+        if (selectedCustomerRef.current?.id === message.customer_id) {
+          if (!isInitialLoadRef.current && !(justSentRef.current && message.sender_type === 'employee')) {
             loadMessagesFromDB(isOpenRef.current);
           }
         }
 
-        if (payload.new.message_type === 'rich_card') {
-          prefetchRichCard(payload.new as any);
+        if (message.message_type === 'rich_card') {
+          prefetchRichCard(message as any);
         }
 
-        if (!isOpenRef.current && payload.new && payload.new.sender_type === 'customer') {
+        if (
+          message.sender_type === 'customer' &&
+          message.is_read === false &&
+          message.id &&
+          !handledUnreadMessageIdsRef.current.has(message.id)
+        ) {
+          handledUnreadMessageIdsRef.current.add(message.id);
+          if (!(isOpenRef.current && selectedCustomerRef.current?.id === message.customer_id)) {
+            setUnreadCount(previous => previous + 1);
+          }
+        }
+
+        if (
+          !isOpenRef.current &&
+          message.sender_type === 'customer' &&
+          message.is_read === false &&
+          message.id &&
+          !notificationMessageIdsRef.current.has(message.id)
+        ) {
+          notificationMessageIdsRef.current.add(message.id);
           const { data: customerData } = await supabase
             .from('simulated_customers')
             .select('*')
-            .eq('id', payload.new.customer_id)
+            .eq('id', message.customer_id)
             .maybeSingle();
 
           if (customerData) {
-            const rawContent = payload.new.message_content || t.customerService.newMessage;
+            const rawContent = message.message_content || t.customerService.newMessage;
             const hasEmbeddedImg = /<img\s/i.test(rawContent);
-            const messageText = payload.new.message_type === 'image'
+            const messageText = message.message_type === 'image'
               ? '\ud83d\udcf7 Photo'
-              : payload.new.message_type === 'rich_card'
-              ? (payload.new.title || 'Rich Card')
+              : message.message_type === 'rich_card'
+              ? (message.title || 'Rich Card')
               : (() => {
                   const text = rawContent
                     .replace(/<br\s*\/?>/gi, '\n')

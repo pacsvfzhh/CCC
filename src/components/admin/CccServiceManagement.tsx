@@ -2212,6 +2212,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           message_content: '[Image]',
           message_type: 'image',
           image_url: publicUrl,
+          is_read: false,
           source_type: 'ccc_service',
         });
 
@@ -2526,6 +2527,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
           sender_type: 'customer',
           message_content: htmlContent,
           message_type: 'text',
+          is_read: false,
           source_type: 'ccc_service',
         })
         .select()
@@ -4359,6 +4361,7 @@ export default function CccServiceManagement({ adminId, isSuperAdmin, isActive, 
                                         message_type: 'rich_card',
                                         title: tpl.title || null,
                                         subtitle: tpl.subtitle || null,
+                                        is_read: false,
                                         source_type: 'ccc_service',
                                         source_template_id: tpl.id,
                                       }).select('id').single();

@@ -1466,6 +1466,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           sender_type: 'customer',
           message_content: messageContent,
           message_type: 'text',
+          is_read: false,
           source_type: 'aaa_service',
         });
       if (error) throw error;
@@ -1944,6 +1945,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           message_content: '[Image]',
           message_type: 'image',
           image_url: publicUrl,
+          is_read: false,
           source_type: 'aaa_service',
         });
 
@@ -2244,6 +2246,7 @@ export default function CustomerServiceManagement({ adminId, isSuperAdmin, isAct
           sender_type: 'customer',
           message_content: htmlContent,
           message_type: 'text',
+          is_read: false,
           source_type: 'aaa_service',
         })
         .select()
