@@ -1421,11 +1421,11 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
               {sentMessages.length > 0 && !selectionMode && (
                 <div className="flex items-center gap-1">
                   <button onClick={enterSelectionMode}
-                    className="flex items-center gap-1 px-2 py-1 hover:bg-white/10 text-slate-400 hover:text-white rounded-md transition-all text-[10px] font-medium" title="Select messages">
+                    className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-400 transition-colors hover:border-blue-700 hover:bg-blue-950/70 hover:text-blue-200" title="Select messages">
                     <CheckSquare className="w-3.5 h-3.5" />
                   </button>
                   <button onClick={() => { setDeleteMode('all'); setShowDeleteConfirm(true); }}
-                    className="flex items-center gap-1 px-2 py-1 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-md transition-all text-[10px] font-medium" title="Clear all messages">
+                    className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-400 transition-colors hover:border-red-700 hover:bg-red-950/70 hover:text-red-200" title="Clear all messages">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -1475,22 +1475,50 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
 
             {/* Filter tabs */}
             {sentMessages.length > 0 && (
-              <div className="space-y-1">
-                <div className="flex rounded-lg border border-slate-700/60 bg-slate-950/35 p-0.5">
-                  {([['all', 'All'], ['realtime', 'Realtime'], ['login_popup', 'Popup']] as const).map(([val, label]) => (
-                    <button key={val} onClick={() => setMessageTypeFilter(val as any)}
-                      className={`flex-1 px-1 py-1 text-[10px] font-semibold rounded-md transition-all ${
-                        messageTypeFilter === val ? 'bg-blue-600/35 text-blue-100 shadow-sm' : 'text-slate-500 hover:bg-slate-800 hover:text-slate-200'
-                      }`}>{label}</button>
-                  ))}
+              <div className="space-y-2">
+                <div>
+                  <p className="mb-1 px-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Message type</p>
+                  <div className="flex rounded-lg border border-slate-700/60 bg-slate-950/35 p-0.5">
+                    {([['all', 'All'], ['realtime', 'Realtime'], ['login_popup', 'Popup']] as const).map(([val, label]) => {
+                      const activeClass = val === 'realtime'
+                        ? 'border-blue-500 bg-blue-600 text-white'
+                        : val === 'login_popup'
+                          ? 'border-violet-500 bg-violet-600 text-white'
+                          : 'border-slate-600 bg-slate-700 text-slate-100';
+                      const idleClass = val === 'realtime'
+                        ? 'text-blue-300/80 hover:bg-blue-950/70 hover:text-blue-100'
+                        : val === 'login_popup'
+                          ? 'text-violet-300/80 hover:bg-violet-950/70 hover:text-violet-100'
+                          : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100';
+                      return (
+                        <button key={val} onClick={() => setMessageTypeFilter(val as any)}
+                          className={`flex-1 rounded-md border px-1.5 py-1.5 text-[10px] font-bold transition-colors ${messageTypeFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="flex rounded-lg border border-slate-700/60 bg-slate-950/35 p-0.5">
-                  {([['all', 'All'], ['read', 'Read'], ['unread', 'Unread']] as const).map(([val, label]) => (
-                    <button key={val} onClick={() => setReadStatusFilter(val as any)}
-                      className={`flex-1 px-1 py-1 text-[10px] font-semibold rounded-md transition-all ${
-                        readStatusFilter === val ? 'bg-slate-700 text-slate-100 shadow-sm' : 'text-slate-500 hover:bg-slate-800 hover:text-slate-200'
-                      }`}>{label}</button>
-                  ))}
+                <div>
+                  <p className="mb-1 px-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Read status</p>
+                  <div className="flex rounded-lg border border-slate-700/60 bg-slate-950/35 p-0.5">
+                    {([['all', 'All'], ['read', 'Read'], ['unread', 'Unread']] as const).map(([val, label]) => {
+                      const activeClass = val === 'read'
+                        ? 'border-emerald-500 bg-emerald-600 text-white'
+                        : val === 'unread'
+                          ? 'border-slate-500 bg-slate-600 text-white'
+                          : 'border-slate-600 bg-slate-700 text-slate-100';
+                      const idleClass = val === 'read'
+                        ? 'text-emerald-300/80 hover:bg-emerald-950/70 hover:text-emerald-100'
+                        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100';
+                      return (
+                        <button key={val} onClick={() => setReadStatusFilter(val as any)}
+                          className={`flex-1 rounded-md border px-1.5 py-1.5 text-[10px] font-bold transition-colors ${readStatusFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
