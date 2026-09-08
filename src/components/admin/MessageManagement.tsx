@@ -5,7 +5,7 @@ import TiptapEditor from './TiptapEditor';
 import {
   Send, Users, Bell, AlertCircle, X, Search,
   CheckSquare, Square, Trash2, AlertTriangle,
-  UserCheck, UserX, Pencil, Save, ChevronDown,
+  Pencil, Save, ChevronDown,
   Tag, Bookmark, Plus, Clock, Radio, Globe
 } from 'lucide-react';
 
@@ -89,6 +89,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
   const [recipientDetails, setRecipientDetails] = useState<Map<string, { read: Employee[]; unread: Employee[] }>>(new Map());
   const [loadingRecipientDetails, setLoadingRecipientDetails] = useState(false);
   const [recipientUsernames, setRecipientUsernames] = useState<Map<string, string[]>>(new Map());
+  const [recipientSearchQuery, setRecipientSearchQuery] = useState('');
 
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
@@ -1472,6 +1473,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                         toggleMessageSelection(msg.id);
                       } else {
                         setSelectedMessageDetail(msg);
+                        setRecipientSearchQuery('');
                         setEditingMessage(false);
                         loadRecipientDetails(msg.id);
                       }
@@ -1647,43 +1649,40 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
               {/* Right: Stats & Info */}
               <div className="w-[40%] flex flex-col min-h-0 border-l border-slate-700/50 bg-slate-800/30 overflow-y-auto scrollbar-dark">
                 {/* Message Info */}
-                <div className="order-2 p-5 border-b border-slate-700/40 space-y-3">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest">Message Info</h4>
-                  <div className="space-y-2.5">
-                    <div className="flex items-center gap-3">
-                      <Clock className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                      <div>
-                        <p className="text-[10px] text-slate-500 font-medium">Sent</p>
-                        <p className="text-xs text-slate-200 font-medium">{new Date(selectedMessageDetail.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                      </div>
+                <div className="order-1 shrink-0 border-b border-slate-700/40 bg-slate-900/55 px-4 py-3">
+                  <div className="mb-2.5 flex items-center justify-between gap-3">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Message details</h4>
+                    <span className="text-[10px] font-medium text-slate-500">{selectedMessageDetail.sender_username}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="min-w-0 rounded-lg border border-slate-700/70 bg-slate-800/70 px-2.5 py-2">
+                      <Clock className="mb-1 h-3.5 w-3.5 text-slate-400" />
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Sent</p>
+                      <p className="mt-0.5 truncate text-[10px] font-semibold text-slate-200">{new Date(selectedMessageDetail.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="min-w-0 rounded-lg border border-slate-700/70 bg-slate-800/70 px-2.5 py-2">
                       {selectedMessageDetail.message_type === 'login_popup'
-                        ? <Bell className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                        : <Radio className="w-4 h-4 text-cyan-400 flex-shrink-0" />}
-                      <div>
-                        <p className="text-[10px] text-slate-500 font-medium">Type</p>
-                        <p className="text-xs text-slate-200 font-medium">{selectedMessageDetail.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}</p>
-                      </div>
+                        ? <Bell className="mb-1 h-3.5 w-3.5 text-amber-400" />
+                        : <Radio className="mb-1 h-3.5 w-3.5 text-cyan-400" />}
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Type</p>
+                      <p className="mt-0.5 truncate text-[10px] font-semibold text-slate-200">{selectedMessageDetail.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <AlertCircle className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                      <div>
-                        <p className="text-[10px] text-slate-500 font-medium">Priority</p>
-                        <span className={`inline-block text-xs px-2 py-0.5 rounded-full border font-semibold ${getPriorityColor(selectedMessageDetail.priority)}`}>
-                          {selectedMessageDetail.priority.charAt(0).toUpperCase() + selectedMessageDetail.priority.slice(1)}
-                        </span>
-                      </div>
+                    <div className="min-w-0 rounded-lg border border-slate-700/70 bg-slate-800/70 px-2.5 py-2">
+                      <AlertCircle className="mb-1 h-3.5 w-3.5 text-slate-400" />
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Priority</p>
+                      <span className={`mt-0.5 inline-block max-w-full truncate text-[10px] font-bold ${getPriorityColor(selectedMessageDetail.priority).split(' ').filter(className => className.startsWith('text-')).join(' ')}`}>
+                        {selectedMessageDetail.priority.charAt(0).toUpperCase() + selectedMessageDetail.priority.slice(1)}
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Recipients Section */}
-                <div className="order-1 relative overflow-hidden border-b border-teal-400/20 bg-gradient-to-br from-teal-950/70 via-slate-900 to-cyan-950/45 p-5 shadow-[inset_0_1px_0_rgba(94,234,212,0.08)]">
+                <div className="order-2 relative flex min-h-0 flex-1 flex-col overflow-hidden border-b border-teal-400/20 bg-gradient-to-br from-teal-950/70 via-slate-900 to-cyan-950/45 p-4 shadow-[inset_0_1px_0_rgba(94,234,212,0.08)]">
                   <div className="pointer-events-none absolute -right-12 -top-14 h-32 w-32 rounded-full bg-teal-400/10 blur-2xl" />
                   <div className="pointer-events-none absolute -bottom-16 -left-12 h-32 w-32 rounded-full bg-cyan-400/10 blur-2xl" />
-                  <div className="relative space-y-4">
-                    <div className="flex items-center justify-between gap-3">
+                  <div className="relative flex min-h-0 flex-1 flex-col gap-3">
+                    <div className="flex shrink-0 items-center justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-300/30 bg-teal-400/15 shadow-lg shadow-teal-950/40">
                           <Users className="h-5 w-5 text-teal-200" />
@@ -1697,6 +1696,29 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                         {selectedMessageDetail.recipient_ids?.length || 'ALL'}
                       </span>
                     </div>
+
+                    {selectedMessageDetail.recipient_ids && selectedMessageDetail.recipient_ids.length > 0 && (
+                      <div className="relative shrink-0">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-teal-300/70" />
+                        <input
+                          type="text"
+                          value={recipientSearchQuery}
+                          onChange={event => setRecipientSearchQuery(event.target.value)}
+                          placeholder="Search employee or account ID..."
+                          className="h-9 w-full rounded-lg border border-teal-300/20 bg-slate-950/35 pl-9 pr-8 text-xs font-medium text-slate-100 outline-none transition-colors placeholder:text-teal-100/35 focus:border-teal-300/55 focus:bg-slate-950/60 focus:ring-2 focus:ring-teal-300/15"
+                        />
+                        {recipientSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setRecipientSearchQuery('')}
+                            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-teal-200/70 transition-colors hover:bg-teal-300/10 hover:text-white"
+                            aria-label="Clear recipient search"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {(!selectedMessageDetail.recipient_ids || selectedMessageDetail.recipient_ids.length === 0) ? (
                       <div className="flex items-center gap-3 rounded-xl border border-blue-300/25 bg-blue-400/10 px-3.5 py-3">
@@ -1712,44 +1734,61 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                         const employees = details ? [...details.read, ...details.unread] : [];
                         const readIds = new Set(details?.read.map(employee => employee.id) || []);
                         const usernames = recipientUsernames.get(selectedMessageDetail.id) || [];
+                        const query = recipientSearchQuery.trim().toLowerCase();
+                        const visibleEmployees = employees.filter(employee =>
+                          !query || employee.username.toLowerCase().includes(query) || employee.employee_id.toLowerCase().includes(query),
+                        );
+                        const visibleUsernames = usernames.filter(name => !query || name.toLowerCase().includes(query));
 
                         if (employees.length > 0) {
                           return (
-                            <div className="max-h-72 space-y-2 overflow-y-auto pr-1 scrollbar-dark">
-                              {employees.map(employee => {
-                                const isRead = readIds.has(employee.id);
-                                return (
-                                  <div key={employee.id} className={`rounded-xl border px-3 py-2.5 transition-colors ${isRead ? 'border-emerald-300/25 bg-emerald-400/10' : 'border-slate-500/35 bg-slate-950/35'}`}>
-                                    <div className="flex items-center justify-between gap-3">
-                                      <div className="flex min-w-0 items-center gap-2.5">
-                                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-black ${isRead ? 'bg-emerald-300/20 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>
-                                          {employee.username.slice(0, 1).toUpperCase()}
-                                        </div>
-                                        <div className="min-w-0">
-                                          <p className="truncate text-sm font-bold text-white">{employee.username}</p>
-                                          <p className="mt-0.5 truncate font-mono text-[10px] text-teal-200/70">Account ID: {employee.employee_id}</p>
+                            <div className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-dark">
+                              {visibleEmployees.length > 0 ? (
+                                <div className="space-y-2">
+                                  {visibleEmployees.map(employee => {
+                                    const isRead = readIds.has(employee.id);
+                                    return (
+                                      <div key={employee.id} className={`rounded-xl border px-3 py-2.5 transition-colors ${isRead ? 'border-emerald-300/25 bg-emerald-400/10' : 'border-slate-500/35 bg-slate-950/35'}`}>
+                                        <div className="flex items-center justify-between gap-3">
+                                          <div className="flex min-w-0 items-center gap-2.5">
+                                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-black ${isRead ? 'bg-emerald-300/20 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>
+                                              {employee.username.slice(0, 1).toUpperCase()}
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="truncate text-sm font-bold text-white">{employee.username}</p>
+                                              <p className="mt-0.5 truncate font-mono text-[10px] text-teal-200/70">Account ID: {employee.employee_id}</p>
+                                            </div>
+                                          </div>
+                                          <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wide ${isRead ? 'bg-emerald-300/15 text-emerald-200' : 'bg-slate-700/80 text-slate-300'}`}>
+                                            {isRead ? 'Read' : 'Unread'}
+                                          </span>
                                         </div>
                                       </div>
-                                      <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wide ${isRead ? 'bg-emerald-300/15 text-emerald-200' : 'bg-slate-700/80 text-slate-300'}`}>
-                                        {isRead ? 'Read' : 'Unread'}
-                                      </span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <p className="rounded-xl border border-slate-500/25 bg-slate-950/25 px-3 py-3 text-xs text-slate-400">No matching employee accounts.</p>
+                              )}
                             </div>
                           );
                         }
 
                         if (usernames.length > 0) {
                           return (
-                            <div className="max-h-72 space-y-2 overflow-y-auto pr-1 scrollbar-dark">
-                              {usernames.map(name => (
-                                <div key={name} className="rounded-xl border border-slate-500/35 bg-slate-950/35 px-3 py-2.5">
-                                  <p className="text-sm font-bold text-white">{name}</p>
-                                  <p className="mt-0.5 text-[10px] text-teal-200/70">Employee account</p>
+                            <div className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-dark">
+                              {visibleUsernames.length > 0 ? (
+                                <div className="space-y-2">
+                                  {visibleUsernames.map(name => (
+                                    <div key={name} className="rounded-xl border border-slate-500/35 bg-slate-950/35 px-3 py-2.5">
+                                      <p className="text-sm font-bold text-white">{name}</p>
+                                      <p className="mt-0.5 text-[10px] text-teal-200/70">Employee account</p>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
+                              ) : (
+                                <p className="rounded-xl border border-slate-500/25 bg-slate-950/25 px-3 py-3 text-xs text-slate-400">No matching employee accounts.</p>
+                              )}
                             </div>
                           );
                         }
@@ -1769,67 +1808,25 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                 {/* Read Status */}
                 {messageStats.has(selectedMessageDetail.id) && !editingMessage && (() => {
                   const stats = messageStats.get(selectedMessageDetail.id)!;
-                  const details = recipientDetails.get(selectedMessageDetail.id);
                   return (
-                    <div className="order-3 p-5 space-y-4">
-                      <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest">Read Status</h4>
-
-                      <div className="flex items-baseline gap-2">
-                        <span className={`text-3xl font-black ${stats.read_percentage === 100 ? 'text-emerald-400' : stats.read_percentage >= 50 ? 'text-amber-400' : 'text-slate-400'}`}>
-                          {stats.read_percentage}%
-                        </span>
-                        <span className="text-sm text-slate-400">read</span>
+                    <div className="order-3 shrink-0 border-t border-slate-700/40 bg-slate-900/45 p-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Delivery status</h4>
+                        <span className="text-[10px] font-bold text-slate-400">{stats.read_count}/{stats.total_recipients} read</span>
                       </div>
-                      <p className="text-xs text-slate-400">
-                        {stats.read_count} of {stats.total_recipients} employee{stats.total_recipients !== 1 ? 's' : ''} have read this message
-                      </p>
-
-                      <div className="h-2.5 bg-slate-700 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all ${stats.read_percentage === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 to-cyan-500'}`} style={{ width: `${stats.read_percentage}%` }} />
+                      <div className="mb-3 grid grid-cols-2 gap-2">
+                        <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2">
+                          <p className="text-lg font-black leading-none text-emerald-300">{stats.read_count}</p>
+                          <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-emerald-200/70">Read</p>
+                        </div>
+                        <div className="rounded-lg border border-slate-500/30 bg-slate-800/60 px-3 py-2">
+                          <p className="text-lg font-black leading-none text-slate-200">{stats.unread_count}</p>
+                          <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-slate-400">Unread</p>
+                        </div>
                       </div>
-
-                      {loadingRecipientDetails ? (
-                        <div className="flex items-center justify-center py-6">
-                          <div className="w-6 h-6 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                        </div>
-                      ) : details && (details.read.length > 0 || details.unread.length > 0) && (
-                        <div className="grid grid-cols-2 gap-3 pt-2">
-                          <div>
-                            <div className="flex items-center gap-1.5 mb-2">
-                              <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-[11px] font-bold text-emerald-400">Read ({details.read.length})</span>
-                            </div>
-                            <div className="max-h-48 overflow-y-auto scrollbar-dark space-y-0.5">
-                              {details.read.length === 0 ? (
-                                <p className="text-[11px] text-slate-500 italic">None</p>
-                              ) : (
-                                details.read.map(emp => (
-                                  <div key={emp.id} className="px-2 py-1.5 bg-slate-700/40 rounded text-[11px] text-slate-300 truncate font-medium">
-                                    {emp.username}
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5 mb-2">
-                              <UserX className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="text-[11px] font-bold text-slate-400">Unread ({details.unread.length})</span>
-                            </div>
-                            <div className="max-h-48 overflow-y-auto scrollbar-dark space-y-0.5">
-                              {details.unread.length === 0 ? (
-                                <p className="text-[11px] text-slate-500 italic">All read</p>
-                              ) : (
-                                details.unread.map(emp => (
-                                  <div key={emp.id} className="px-2 py-1.5 bg-slate-700/40 rounded text-[11px] text-slate-300 truncate font-medium">
-                                    {emp.username}
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      <div className="h-2 overflow-hidden rounded-full bg-slate-700">
+                        <div className={`h-full rounded-full transition-all ${stats.read_percentage === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 to-cyan-400'}`} style={{ width: `${stats.read_percentage}%` }} />
+                      </div>
                     </div>
                   );
                 })()}
