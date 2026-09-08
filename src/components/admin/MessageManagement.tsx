@@ -1697,58 +1697,57 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
 
               {/* Right: Stats & Info */}
               <div className="w-[40%] flex flex-col min-h-0 overflow-hidden border-l border-slate-700/50 bg-slate-800/30">
-                {/* Message Info */}
-                <div className="order-1 shrink-0 border-b border-slate-700 bg-slate-900 px-4 py-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <h4 className="text-xs font-bold uppercase tracking-[0.14em] text-slate-200">Message details</h4>
-                    <span className="max-w-[45%] truncate text-[11px] font-medium text-slate-300">{selectedMessageDetail.sender_username}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2.5">
-                    <div className="relative min-h-[108px] min-w-0 overflow-hidden rounded-xl border border-slate-700 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 px-3 py-3 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]">
-                      <div className="absolute inset-x-0 top-0 h-0.5 bg-slate-400" />
-                      <div className="mb-3 flex items-start justify-between gap-2">
-                        <p className="pt-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-300/75">Sent</p>
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-700 text-slate-200 ring-1 ring-slate-600">
-                          <Clock className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <p className="whitespace-nowrap text-[10px] font-bold text-white" title={formatMessageDateTime(selectedMessageDetail.created_at)}>{formatMessageDateTime(selectedMessageDetail.created_at)}</p>
-                      <p className="mt-1 text-[9px] font-medium text-slate-400">Date &amp; time</p>
-                    </div>
-                    <div className={`relative min-h-[108px] min-w-0 overflow-hidden rounded-xl border ${messageTypeTone.card} px-3 py-3 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]`}>
-                      <div className={`absolute inset-x-0 top-0 h-0.5 ${messageTypeTone.accent}`} />
-                      <div className="mb-3 flex items-start justify-between gap-2">
-                        <p className={`pt-1 text-[10px] font-black uppercase tracking-[0.16em] ${messageTypeTone.label}`}>Type</p>
-                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${messageTypeTone.icon}`}>
-                          {selectedMessageDetail.message_type === 'login_popup'
-                            ? <Bell className="h-4 w-4" />
-                            : <Radio className="h-4 w-4" />}
-                        </div>
-                      </div>
-                      <p className={`truncate text-xs font-black ${messageTypeTone.value}`}>{selectedMessageDetail.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}</p>
-                      <p className={`mt-1 text-[9px] font-medium ${messageTypeTone.label}`}>Delivery channel</p>
-                    </div>
-                    <div className={`relative min-h-[108px] min-w-0 overflow-hidden rounded-xl border ${messagePriorityTone.card} px-3 py-3 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]`}>
-                      <div className={`absolute inset-x-0 top-0 h-0.5 ${messagePriorityTone.accent}`} />
-                      <div className="mb-3 flex items-start justify-between gap-2">
-                        <p className={`pt-1 text-[10px] font-black uppercase tracking-[0.16em] ${messagePriorityTone.label}`}>Priority</p>
-                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${messagePriorityTone.icon}`}>
-                          <AlertCircle className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <p className={`truncate text-xs font-black ${messagePriorityTone.value}`}>
-                        {selectedMessageDetail.priority.charAt(0).toUpperCase() + selectedMessageDetail.priority.slice(1)}
-                      </p>
-                      <p className={`mt-1 text-[9px] font-medium ${messagePriorityTone.label}`}>Message level</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recipients Section */}
-                <div className="order-2 relative flex min-h-0 flex-1 flex-col overflow-hidden border-b border-teal-400/20 bg-gradient-to-br from-teal-950/70 via-slate-900 to-cyan-950/45 p-4 shadow-[inset_0_1px_0_rgba(94,234,212,0.08)]">
+                {/* Message details and recipients */}
+                <div className="order-1 relative flex min-h-0 flex-1 flex-col overflow-hidden border-b border-teal-400/20 bg-gradient-to-br from-teal-950/70 via-slate-900 to-cyan-950/45 p-4 shadow-[inset_0_1px_0_rgba(94,234,212,0.08)]">
                   <div className="pointer-events-none absolute -right-12 -top-14 h-32 w-32 rounded-full bg-teal-400/10 blur-2xl" />
                   <div className="pointer-events-none absolute -bottom-16 -left-12 h-32 w-32 rounded-full bg-cyan-400/10 blur-2xl" />
                   <div className="relative flex min-h-0 flex-1 flex-col gap-3">
+                    <div className="shrink-0 border-b border-teal-200/15 pb-3">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-300">Message details</h4>
+                        <span className="max-w-[45%] truncate text-[10px] font-medium text-slate-400">{selectedMessageDetail.sender_username}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="relative min-h-[82px] min-w-0 overflow-hidden rounded-lg border border-slate-700 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 px-2.5 py-2 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]">
+                          <div className="absolute inset-x-0 top-0 h-0.5 bg-slate-400" />
+                          <div className="mb-2 flex items-center justify-between gap-1.5">
+                            <p className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-slate-300/75">Sent</p>
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-700 text-slate-200 ring-1 ring-slate-600">
+                              <Clock className="h-3.5 w-3.5" />
+                            </div>
+                          </div>
+                          <p className="whitespace-nowrap text-[9px] font-bold text-white" title={formatMessageDateTime(selectedMessageDetail.created_at)}>{formatMessageDateTime(selectedMessageDetail.created_at)}</p>
+                          <p className="mt-0.5 text-[8px] font-medium text-slate-400">Date &amp; time</p>
+                        </div>
+                        <div className={`relative min-h-[82px] min-w-0 overflow-hidden rounded-lg border ${messageTypeTone.card} px-2.5 py-2 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]`}>
+                          <div className={`absolute inset-x-0 top-0 h-0.5 ${messageTypeTone.accent}`} />
+                          <div className="mb-2 flex items-center justify-between gap-1.5">
+                            <p className={`truncate text-[9px] font-black uppercase tracking-[0.14em] ${messageTypeTone.label}`}>Type</p>
+                            <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${messageTypeTone.icon}`}>
+                              {selectedMessageDetail.message_type === 'login_popup'
+                                ? <Bell className="h-3.5 w-3.5" />
+                                : <Radio className="h-3.5 w-3.5" />}
+                            </div>
+                          </div>
+                          <p className={`truncate text-[10px] font-black ${messageTypeTone.value}`}>{selectedMessageDetail.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}</p>
+                          <p className={`mt-0.5 truncate text-[8px] font-medium ${messageTypeTone.label}`}>Delivery channel</p>
+                        </div>
+                        <div className={`relative min-h-[82px] min-w-0 overflow-hidden rounded-lg border ${messagePriorityTone.card} px-2.5 py-2 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]`}>
+                          <div className={`absolute inset-x-0 top-0 h-0.5 ${messagePriorityTone.accent}`} />
+                          <div className="mb-2 flex items-center justify-between gap-1.5">
+                            <p className={`truncate text-[9px] font-black uppercase tracking-[0.14em] ${messagePriorityTone.label}`}>Priority</p>
+                            <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${messagePriorityTone.icon}`}>
+                              <AlertCircle className="h-3.5 w-3.5" />
+                            </div>
+                          </div>
+                          <p className={`truncate text-[10px] font-black ${messagePriorityTone.value}`}>
+                            {selectedMessageDetail.priority.charAt(0).toUpperCase() + selectedMessageDetail.priority.slice(1)}
+                          </p>
+                          <p className={`mt-0.5 truncate text-[8px] font-medium ${messagePriorityTone.label}`}>Message level</p>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="flex shrink-0 items-center justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-300/30 bg-teal-400/15 shadow-lg shadow-teal-950/40">
