@@ -1121,26 +1121,21 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     if (employees.length > 0) {
       const found = employees.find(e => e.id === initialEmployee.id);
       if (found) {
-        const firstCustomer = customers[0] || null;
-        const cachedHistory = firstCustomer
-          ? allConversationHistoryRef.current.filter(history => history.customer_id === firstCustomer.id)
-          : [];
-
         setSearchQuery('');
         setSelectedTags([]);
         setEmployeeGroupFilter('all');
-        setSelectedCustomer(firstCustomer);
-        setConversationHistory(cachedHistory);
-        conversationHistoryRef.current = cachedHistory;
+        setSelectedCustomer(null);
+        setConversationHistory([]);
+        conversationHistoryRef.current = [];
         setSelectedEmployee(found);
         setMessages([]);
-        setShowHistoryView(!firstCustomer);
-        setHistoryScope(firstCustomer ? 'customer' : 'all');
+        setShowHistoryView(true);
+        setHistoryScope('all');
         setHistoryFilterMode('all');
         onConsumeInitialEmployee?.();
       }
     }
-  }, [initialEmployee, loading, employees, customers]);
+  }, [initialEmployee, loading, employees]);
 
   // Auto-load all conversation history when admin is selected and no customer is focused
   useEffect(() => {
