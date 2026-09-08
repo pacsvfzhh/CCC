@@ -1833,7 +1833,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                                     setRecipientSearchQuery('');
                                     setRecipientStatusFilter(prev => prev === 'unread' ? 'all' : 'unread');
                                   }}
-                                  className={`${baseClass} ${unreadActive ? 'border-amber-300/50 bg-amber-300/15 text-amber-100' : 'border-slate-600/60 bg-slate-900/35 text-slate-400 hover:border-amber-300/30 hover:text-amber-100'}`}
+                                  className={`${baseClass} ${unreadActive ? 'border-slate-500 bg-slate-700 text-slate-100' : 'border-slate-600/60 bg-slate-900/35 text-slate-400 hover:border-slate-500 hover:text-slate-200'}`}
                                 >
                                   <span>Unread</span>
                                   <span className="font-black">{stats?.unread_count ?? 0}</span>
@@ -1875,15 +1875,15 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                                   {visibleEmployees.map(employee => {
                                     const isRead = readIds.has(employee.id);
                                     return (
-                                      <div key={employee.id} className={`flex items-center gap-2.5 px-2.5 py-2 transition-colors ${isRead ? 'bg-emerald-400/[0.04]' : 'bg-slate-950/20'}`}>
-                                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[10px] font-black ${isRead ? 'bg-emerald-300/20 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>
+                                      <div key={employee.id} className={`flex items-center gap-2.5 px-2.5 py-2 transition-colors ${isRead ? 'bg-emerald-950/45 hover:bg-emerald-900/55' : 'bg-slate-950/60 hover:bg-slate-900/75'}`}>
+                                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[10px] font-black ring-1 ${isRead ? 'bg-emerald-900/80 text-emerald-300 ring-emerald-700/60' : 'bg-slate-800 text-slate-500 ring-slate-700'}`}>
                                           {employee.username.slice(0, 1).toUpperCase()}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                          <p className="truncate text-xs font-bold text-white">{employee.username}</p>
-                                          <p className="truncate font-mono text-[9px] text-teal-200/65">{employee.employee_id}</p>
+                                          <p className={`truncate text-xs font-bold ${isRead ? 'text-emerald-50' : 'text-slate-400'}`}>{employee.username}</p>
+                                          <p className={`truncate font-mono text-[9px] ${isRead ? 'text-emerald-300/70' : 'text-slate-600'}`}>{employee.employee_id}</p>
                                         </div>
-                                        <span className={`shrink-0 text-[9px] font-black uppercase tracking-wide ${isRead ? 'text-emerald-200' : 'text-amber-200'}`}>
+                                        <span className={`shrink-0 text-[9px] font-black uppercase tracking-wide ${isRead ? 'text-emerald-300' : 'text-slate-500'}`}>
                                           {isRead ? 'Read' : 'Unread'}
                                         </span>
                                       </div>
