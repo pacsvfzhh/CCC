@@ -75,14 +75,14 @@ const formatMessageDateTime = (value: string) =>
 const getMessageTypeTone = (messageType: Message['message_type']) =>
   messageType === 'login_popup'
     ? {
-        card: 'border-amber-700',
-        icon: 'bg-amber-900/70 text-amber-200',
-        value: 'text-amber-100',
+        card: 'border-violet-700',
+        icon: 'bg-violet-900/70 text-violet-200',
+        value: 'text-violet-100',
       }
     : {
-        card: 'border-cyan-700',
-        icon: 'bg-cyan-900/70 text-cyan-200',
-        value: 'text-cyan-100',
+        card: 'border-blue-700',
+        icon: 'bg-blue-900/70 text-blue-200',
+        value: 'text-blue-100',
       };
 
 const getMessagePriorityTone = (priority: Message['priority']) => {
@@ -90,9 +90,9 @@ const getMessagePriorityTone = (priority: Message['priority']) => {
     case 'urgent':
       return { card: 'border-red-700', icon: 'bg-red-900/70 text-red-200', value: 'text-red-100' };
     case 'high':
-      return { card: 'border-orange-700', icon: 'bg-orange-900/70 text-orange-200', value: 'text-orange-100' };
+      return { card: 'border-amber-700', icon: 'bg-amber-900/70 text-amber-200', value: 'text-amber-100' };
     case 'normal':
-      return { card: 'border-blue-700', icon: 'bg-blue-900/70 text-blue-200', value: 'text-blue-100' };
+      return { card: 'border-emerald-700', icon: 'bg-emerald-900/70 text-emerald-200', value: 'text-emerald-100' };
     default:
       return { card: 'border-slate-600', icon: 'bg-slate-700 text-slate-200', value: 'text-slate-100' };
   }
@@ -905,8 +905,8 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'urgent': return 'text-red-400 bg-red-500/10 border-red-500/30';
-      case 'high': return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
-      case 'normal': return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+      case 'high': return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+      case 'normal': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
       case 'low': return 'text-slate-400 bg-slate-500/10 border-slate-500/30';
       default: return 'text-slate-400 bg-slate-500/10 border-slate-500/30';
     }
@@ -915,8 +915,8 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
   const getPriorityBorderColor = (priority: string) => {
     switch (priority) {
       case 'urgent': return 'border-l-red-500';
-      case 'high': return 'border-l-orange-500';
-      case 'normal': return 'border-l-blue-500';
+      case 'high': return 'border-l-amber-500';
+      case 'normal': return 'border-l-emerald-500';
       case 'low': return 'border-l-slate-500';
       default: return 'border-l-slate-500';
     }
@@ -1539,8 +1539,8 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                           </span>
                           <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${
                             msg.message_type === 'login_popup'
-                              ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                              : 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+                              ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
+                              : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
                           }`}>
                             {msg.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}
                           </span>
@@ -1646,8 +1646,8 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                       </span>
                       <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
                         selectedMessageDetail.message_type === 'login_popup'
-                          ? 'bg-amber-100 text-amber-700 border border-amber-300'
-                          : 'bg-cyan-100 text-cyan-700 border border-cyan-300'
+                          ? 'bg-violet-100 text-violet-700 border border-violet-300'
+                          : 'bg-blue-100 text-blue-700 border border-blue-300'
                       }`}>
                         {selectedMessageDetail.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}
                       </span>
