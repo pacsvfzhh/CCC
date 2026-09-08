@@ -266,7 +266,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       // Load unread customer service messages count (AAA)
       let unreadCount = 0;
       let unreadCccCount = 0;
-      const countUnreadCustomerMessages = (customerIds: string[]) => {
+      const countUnreadCustomerMessages = (customerIds: string[], sourceType: 'aaa_service' | 'ccc_service') => {
         if (customerIds.length === 0 || (scopedEmployeeIds !== null && scopedEmployeeIds.length === 0)) {
           return Promise.resolve({ count: 0, error: null });
         }
@@ -275,6 +275,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           .from('customer_employee_conversations')
           .select('*', { count: 'exact', head: true })
           .in('customer_id', customerIds)
+          .eq('source_type', sourceType)
           .eq('sender_type', 'employee')
           .eq('is_read', false);
         if (scopedEmployeeIds !== null) {
@@ -296,8 +297,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         const cccIds = (cccCustomersRes.data || []).map(c => c.id);
 
         const [aaaUnread, cccUnread] = await Promise.all([
-          countUnreadCustomerMessages(aaaIds),
-          countUnreadCustomerMessages(cccIds),
+          countUnreadCustomerMessages(aaaIds, 'aaa_service'),
+          countUnreadCustomerMessages(cccIds, 'ccc_service'),
         ]);
 
         if (aaaUnread.error) throw aaaUnread.error;
@@ -317,8 +318,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         const cccIds = (cccCustomersRes.data || []).map(c => c.id);
 
         const [aaaUnread, cccUnread] = await Promise.all([
-          countUnreadCustomerMessages(aaaIds),
-          countUnreadCustomerMessages(cccIds),
+          countUnreadCustomerMessages(aaaIds, 'aaa_service'),
+          countUnreadCustomerMessages(cccIds, 'ccc_service'),
         ]);
 
         if (aaaUnread.error) throw aaaUnread.error;

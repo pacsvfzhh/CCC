@@ -419,10 +419,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     () => new Set(customers.map(customer => customer.id)),
     [customers],
   );
-  const workspaceEmployeeIds = useMemo(
-    () => new Set(employees.map(employee => employee.id)),
-    [employees],
-  );
   const workspaceEmployeesById = useMemo(
     () => new Map(employees.map(employee => [employee.id, employee])),
     [employees],
@@ -434,10 +430,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const workspaceConversationHistory = useMemo(
     () => allConversationHistory.filter(history =>
       Boolean(history.customer_id) &&
-      workspaceCustomerIds.has(history.customer_id!) &&
-      workspaceEmployeeIds.has(history.employee_id)
+      workspaceCustomerIds.has(history.customer_id!)
     ),
-    [allConversationHistory, workspaceCustomerIds, workspaceEmployeeIds],
+    [allConversationHistory, workspaceCustomerIds],
   );
   const customerUnreadCountsForCards = useMemo(() => {
     const historyCounts: Record<string, number> = {};
@@ -447,16 +442,15 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       historyCounts[history.customer_id] = (historyCounts[history.customer_id] || 0) + history.unread_count;
     });
 
-    return { ...customerUnreadCounts, ...historyCounts };
+    return { ...historyCounts, ...customerUnreadCounts };
   }, [customerUnreadCounts, workspaceConversationHistory]);
   const conversationHistoryForView = useMemo(() => {
     const source = historyScope === 'all' ? workspaceConversationHistory : conversationHistory;
     return source.filter(history =>
       Boolean(history.customer_id) &&
-      workspaceCustomerIds.has(history.customer_id!) &&
-      workspaceEmployeeIds.has(history.employee_id)
+      workspaceCustomerIds.has(history.customer_id!)
     );
-  }, [conversationHistory, historyScope, workspaceConversationHistory, workspaceCustomerIds, workspaceEmployeeIds]);
+  }, [conversationHistory, historyScope, workspaceConversationHistory, workspaceCustomerIds]);
   const chattedEmployeeIds = useMemo(
     () => new Set(conversationHistoryForView.map(history => history.employee_id)),
     [conversationHistoryForView],
@@ -566,7 +560,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     const message = payload.new;
     if (!message?.id || !message.customer_id || !message.employee_id || !message.created_at) return;
     if (message.source_type && message.source_type !== 'ccc_service') return;
-    if (!workspaceCustomerIds.has(message.customer_id) || !workspaceEmployeeIds.has(message.employee_id)) return;
+    if (!workspaceCustomerIds.has(message.customer_id)) return;
 
     if (payload.eventType === 'INSERT') {
       if (realtimeConversationIdsRef.current.has(message.id)) return;
@@ -583,7 +577,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       const existing = existingIndex >= 0 ? history[existingIndex] : null;
       const customer = allCustomersRef.current.find(item => item.id === message.customer_id);
       const employee = allEmployeesRef.current.find(item => item.id === message.employee_id);
-      if (!existing && (!customer || !employee)) return history;
+      if (!existing && !customer) return history;
 
       const nextEntry: ConversationHistory = {
         employee_id: message.employee_id as string,
@@ -626,28 +620,24 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       customerUnreadCountsRef.current = nextCustomerCounts;
       setCustomerUnreadCounts(nextCustomerCounts);
     }
-  }, [selectedCustomer?.id, workspaceCustomerIds, workspaceEmployeeIds]);
+  }, [selectedCustomer?.id, workspaceCustomerIds]);
 
   const loadCustomerUnreadCounts = useCallback(async (customerIds: string[]) => {
     if (!selectedAdminId || customerIds.length === 0) return;
     const requestAdminId = selectedAdminId;
     const requestId = ++customerUnreadRequestRef.current;
-    const employeeIds = allEmployeesRef.current.map(employee => employee.id);
-    if (employeeIds.length === 0) return;
-
     try {
       const { data, error } = await supabase
         .from('customer_employee_conversations')
         .select('customer_id, employee_id, created_at')
         .in('customer_id', customerIds)
-        .in('employee_id', employeeIds)
         .eq('source_type', 'ccc_service')
         .eq('sender_type', 'employee')
         .eq('is_read', false);
 
       if (error) throw error;
 
-      const counts: Record<string, number> = {};
+      const counts: Record<string, number> = Object.fromEntries(customerIds.map(customerId => [customerId, 0]));
       const conversationCounts: Record<string, number> = {};
       data?.forEach(msg => {
         const conversationKey = `${msg.customer_id}:${msg.employee_id}`;
@@ -677,8 +667,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           .from('customer_employee_conversations')
           .select('customer_id, employee_id, message_content, message_type, created_at')
           .in('customer_id', customerIds)
-          .in('employee_id', employeeIds)
-          .eq('source_type', 'ccc_service')
+        .eq('source_type', 'ccc_service')
           .order('created_at', { ascending: false });
 
         if (latestMessagesError) throw latestMessagesError;
@@ -707,18 +696,18 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         const customer = allCustomersRef.current.find(item => item.id === customerId);
         const employee = allEmployeesRef.current.find(item => item.id === employeeId);
         const latestMessage = latestMessagesByConversation.get(conversationKey);
-        if (!customer || !employee || !latestMessage) continue;
+        if (!customer || !latestMessage) continue;
 
         nextAllConversationHistory.push({
           customer_id: customer.id,
           customer_name: customer.customer_name,
           customer_avatar: customer.customer_avatar,
           custom_avatar_url: customer.custom_avatar_url,
-          employee_id: employee.id,
-          employee_username: employee.username,
-          employee_number: employee.employee_id,
-          employee_tags: employee.tags || [],
-          employee_remarks: employee.remarks || '',
+          employee_id: employeeId,
+          employee_username: employee?.username || 'Employee',
+          employee_number: employee?.employee_id || '',
+          employee_tags: employee?.tags || [],
+          employee_remarks: employee?.remarks || '',
           message_count: conversationCounts[conversationKey] || 0,
           last_message: latestMessage.message_type === 'image' ? '__IMAGE__' : latestMessage.message_content,
           last_message_time: latestMessage.created_at,
@@ -783,7 +772,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         .from('customer_employee_conversations')
         .select('customer_id, employee_id')
         .in('customer_id', customerIds)
-        .in('employee_id', employeeIds)
         .eq('source_type', 'ccc_service')
         .eq('sender_type', 'employee')
         .eq('is_read', false);
@@ -943,16 +931,25 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       });
       const missingEmployeeIds = employeeIds.filter((employeeId: string) => !employeeMetaById.has(employeeId));
       if (missingEmployeeIds.length > 0) {
-        const { data: employeeMeta } = await supabase.from('users').select('*').in('id', missingEmployeeIds);
+        const { data: employeeMeta } = await supabase
+          .from('users')
+          .select('id, username, employee_id, is_verified, is_active, remarks, tags, created_by, created_at')
+          .in('id', missingEmployeeIds);
         (employeeMeta || []).forEach(employee => {
           employeeMetaById.set(employee.id, employee);
         });
+        if (employeeMeta?.length) {
+          const mergedEmployees = Array.from(new Map(
+            [...allEmployeesRef.current, ...(employeeMeta as Employee[])].map(employee => [employee.id, employee]),
+          ).values()).sort((a, b) => a.username.localeCompare(b.username));
+          allEmployeesRef.current = mergedEmployees;
+          setEmployees(mergedEmployees);
+        }
       }
 
       const customerIds = new Set(allCustomersRef.current.map(customer => customer.id));
-      const employeeIdsInWorkspace = new Set(allEmployeesRef.current.map(employee => employee.id));
       const summaryHistory: ConversationHistory[] = (data || [])
-        .filter((row: any) => customerIds.has(row.customer_id) && employeeIdsInWorkspace.has(row.employee_id))
+        .filter((row: any) => customerIds.has(row.customer_id))
         .map((row: any) => {
         const employee = employeeMetaById.get(row.employee_id);
         const customer = allCustomersRef.current.find(item => item.id === row.customer_id);
@@ -980,7 +977,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       const supplementalHistory = allConversationHistoryRef.current.filter(history => {
         const key = `${history.customer_id}:${history.employee_id}`;
         return customerIds.has(history.customer_id || '') &&
-          employeeIdsInWorkspace.has(history.employee_id) &&
           history.unread_count > 0 &&
           !summaryKeys.has(key);
       });
@@ -1441,7 +1437,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           // Reload employees when users table changes
           supabase
             .from('users')
-            .select('*')
+            .select('id, username, employee_id, is_verified, is_active, remarks, tags, created_by, created_at')
             .eq('created_by', selectedAdminId)
             .order('username')
             .then(
@@ -1450,6 +1446,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                 if (!error && data) {
                   setEmployees(data);
                   allEmployeesRef.current = data;
+                  void loadAllConversationHistory(undefined, true);
                 }
               },
               (error: unknown) => {
@@ -1463,7 +1460,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         supabase.removeChannel(channel);
       };
     }
-  }, [isActive, selectedAdminId]);
+  }, [isActive, selectedAdminId, loadAllConversationHistory]);
 
   useEffect(() => {
     if (isActive && selectedCustomer?.id && selectedEmployee?.id) {
