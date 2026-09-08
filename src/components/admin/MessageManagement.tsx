@@ -1705,7 +1705,12 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                     <div className="shrink-0 border-b border-teal-200/15 pb-3">
                       <div className="mb-2 flex items-center justify-between gap-3">
                         <h4 className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-300">Message details</h4>
-                        <span className="max-w-[45%] truncate text-[10px] font-medium text-slate-400">{selectedMessageDetail.sender_username}</span>
+                        <span
+                          className="inline-flex min-h-7 max-w-[55%] items-center truncate rounded-lg border border-slate-600 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-100 shadow-sm shadow-slate-950/30"
+                          title={selectedMessageDetail.sender_username}
+                        >
+                          {selectedMessageDetail.sender_username}
+                        </span>
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         <div className="relative min-h-[82px] min-w-0 overflow-hidden rounded-lg border border-slate-700 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 px-2.5 py-2 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]">
