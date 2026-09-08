@@ -127,11 +127,8 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
   const templateDropdownRef = useRef<HTMLDivElement>(null);
 
   const hasInitiallyLoaded = useRef(false);
-  const selectedAdminIdRef = useRef(selectedAdminId);
   const userDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recipientDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => { selectedAdminIdRef.current = selectedAdminId; }, [selectedAdminId]);
 
   useEffect(() => {
     if (!initialEmployee || loading) return;
@@ -553,7 +550,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
       composeEditorRef.current?.getEditor()?.commands.clearContent();
       setSelectedEmployeeIds(new Set());
 
-      loadSentMessages();
+      await loadSentMessages();
     } catch (error: any) {
       console.error('Error sending message:', error);
       setNotification({ type: 'error', message: error.message || 'Failed to send message' });
@@ -566,17 +563,12 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
   const loadSentMessages = async (isBackgroundRefresh = false) => {
     if (!isBackgroundRefresh) setMessagesLoading(true);
     try {
-      const currentAdminId = selectedAdminIdRef.current;
       let query = supabase
         .from('messages')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (currentAdminId) {
-        query = query.eq('sender_id', currentAdminId);
-      } else if (admin.is_super_admin) {
-        // Super admin can see all
-      } else {
+      if (admin.role !== 'super_admin' && !admin.is_super_admin) {
         query = query.eq('sender_id', admin.id);
       }
 
@@ -1702,13 +1694,44 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                           Sent to {selectedMessageDetail.recipient_ids.length} employee{selectedMessageDetail.recipient_ids.length !== 1 ? 's' : ''}
                         </span>
                       </div>
-                      {recipientUsernames.get(selectedMessageDetail.id) && (
-                        <div className="max-h-60 overflow-y-auto scrollbar-dark space-y-0.5">
-                          {recipientUsernames.get(selectedMessageDetail.id)!.map((name, i) => (
-                            <div key={i} className="px-2.5 py-1 bg-slate-700/40 rounded text-xs text-slate-300 truncate">{name}</div>
-                          ))}
-                        </div>
-                      )}
+                      {(() => {
+                        const details = recipientDetails.get(selectedMessageDetail.id);
+                        const employees = details
+                          ? [...details.read, ...details.unread]
+                          : [];
+                        const usernames = recipientUsernames.get(selectedMessageDetail.id) || [];
+
+                        if (employees.length > 0) {
+                          return (
+                            <div className="max-h-60 overflow-y-auto scrollbar-dark space-y-1">
+                              {employees.map(employee => (
+                                <div key={employee.id} className="flex items-center justify-between gap-2 rounded bg-slate-700/40 px-2.5 py-1.5">
+                                  <span className="min-w-0 truncate text-xs font-medium text-slate-200">{employee.username}</span>
+                                  <span className="shrink-0 font-mono text-[10px] text-slate-400">{employee.employee_id}</span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+
+                        if (usernames.length > 0) {
+                          return (
+                            <div className="max-h-60 overflow-y-auto scrollbar-dark space-y-0.5">
+                              {usernames.map(name => (
+                                <div key={name} className="rounded bg-slate-700/40 px-2.5 py-1 text-xs text-slate-300 truncate">{name}</div>
+                              ))}
+                            </div>
+                          );
+                        }
+
+                        return loadingRecipientDetails ? (
+                          <div className="flex items-center justify-center py-3">
+                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-teal-400/30 border-t-teal-400" />
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-500">Employee account details unavailable.</p>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
