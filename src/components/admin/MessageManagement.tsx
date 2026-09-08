@@ -61,6 +61,17 @@ interface Props {
   onConsumeInitialEmployee?: () => void;
 }
 
+const formatMessageDateTime = (value: string) =>
+  new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(new Date(value));
+
 export default function MessageManagement({ admin, initialEmployee, onConsumeInitialEmployee }: Props) {
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [allEmployees, setAllEmployees] = useState<Map<string, Employee[]>>(new Map());
@@ -1519,7 +1530,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                             </div>
                           ) : <div />}
                           <span className="text-[9px] text-slate-500 font-medium">
-                            {new Date(msg.created_at).toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
+                            {formatMessageDateTime(msg.created_at)}
                           </span>
                         </div>
                       </div>
@@ -1561,30 +1572,34 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
               <div className="flex items-center gap-2 flex-shrink-0">
                 {editingMessage ? (
                   <>
-                    <button onClick={handleSaveEdit} disabled={saving}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
-                      {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-                      {saving ? 'Saving...' : 'Save'}
+                    <button type="button" onClick={handleSaveEdit} disabled={saving}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-3.5 text-xs font-bold text-emerald-100 shadow-sm shadow-emerald-950/30 transition-all hover:border-emerald-300/70 hover:bg-emerald-500/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
+                      {saving ? <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-100/30 border-t-emerald-100" /> : <Save className="h-3.5 w-3.5" />}
+                      {saving ? 'Saving...' : 'Save changes'}
                     </button>
-                    <button onClick={handleCancelEdit} disabled={saving}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
-                      <X className="w-4 h-4" /> Cancel
+                    <button type="button" onClick={handleCancelEdit} disabled={saving}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-600/80 bg-slate-800/80 px-3.5 text-xs font-bold text-slate-300 transition-all hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
+                      <X className="h-3.5 w-3.5" /> Cancel
                     </button>
                   </>
                 ) : (
                   <>
-                    <button onClick={() => handleStartEdit(selectedMessageDetail)}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 rounded-lg transition-colors text-blue-300 hover:text-blue-200 text-sm font-medium">
-                      <Pencil className="w-4 h-4" /> Edit
+                    <button type="button" onClick={() => handleStartEdit(selectedMessageDetail)}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-sky-400/35 bg-sky-500/15 px-3.5 text-xs font-bold text-sky-100 shadow-sm shadow-sky-950/30 transition-all hover:border-sky-300/70 hover:bg-sky-500/25 hover:text-white">
+                      <Pencil className="h-3.5 w-3.5" /> Edit
                     </button>
-                    <button onClick={() => { setSelectedMessageIds(new Set([selectedMessageDetail.id])); setDeleteMode('selected'); setShowDeleteConfirm(true); }}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 rounded-lg transition-colors text-red-300 hover:text-red-200 text-sm font-medium">
-                      <Trash2 className="w-4 h-4" /> Delete
+                    <button type="button" onClick={() => { setSelectedMessageIds(new Set([selectedMessageDetail.id])); setDeleteMode('selected'); setShowDeleteConfirm(true); }}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-rose-400/35 bg-rose-500/15 px-3.5 text-xs font-bold text-rose-100 shadow-sm shadow-rose-950/30 transition-all hover:border-rose-300/70 hover:bg-rose-500/25 hover:text-white">
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
                     </button>
-                    <button onClick={() => { setSelectedMessageDetail(null); setEditingMessage(false); }}
-                      className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white">
-                      <X className="w-5 h-5" />
-                    </button>
+                    <div className="ml-1 border-l border-slate-700/80 pl-2">
+                      <button type="button" onClick={() => { setSelectedMessageDetail(null); setEditingMessage(false); }}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600/80 bg-slate-800/80 text-slate-400 transition-all hover:border-slate-500 hover:bg-slate-700 hover:text-white"
+                        aria-label="Close message details"
+                        title="Close">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </>
                 )}
               </div>
@@ -1660,7 +1675,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                     <div className="min-w-0 rounded-lg border border-slate-700/70 bg-slate-800/70 px-2.5 py-2">
                       <Clock className="mb-1 h-3.5 w-3.5 text-slate-400" />
                       <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Sent</p>
-                      <p className="mt-0.5 truncate text-[10px] font-semibold text-slate-200">{new Date(selectedMessageDetail.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</p>
+                      <p className="mt-0.5 truncate text-[10px] font-semibold text-slate-200" title={formatMessageDateTime(selectedMessageDetail.created_at)}>{formatMessageDateTime(selectedMessageDetail.created_at)}</p>
                     </div>
                     <div className="min-w-0 rounded-lg border border-slate-700/70 bg-slate-800/70 px-2.5 py-2">
                       {selectedMessageDetail.message_type === 'login_popup'
