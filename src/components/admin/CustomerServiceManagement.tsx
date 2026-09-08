@@ -254,6 +254,16 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     ),
     [allConversationHistory, workspaceCustomerIds, workspaceEmployeeIds],
   );
+  const customerUnreadCountsForCards = useMemo(() => {
+    const historyCounts: Record<string, number> = {};
+
+    workspaceConversationHistory.forEach(history => {
+      if (!history.customer_id) return;
+      historyCounts[history.customer_id] = (historyCounts[history.customer_id] || 0) + history.unread_count;
+    });
+
+    return { ...customerUnreadCounts, ...historyCounts };
+  }, [customerUnreadCounts, workspaceConversationHistory]);
   const conversationHistoryForView = useMemo(() => {
     const source = historyScope === 'all' ? workspaceConversationHistory : conversationHistory;
     return source.filter(history =>
@@ -1210,6 +1220,8 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           schema: 'public',
           table: 'customer_employee_conversations'
         }, (payload: any) => {
+          customerUnreadRequestRef.current += 1;
+          conversationHistoryLoadRequestRef.current += 1;
           if (payload?.new?.sender_type === 'employee' && payload?.new?.is_read === false && payload?.new?.customer_id && payload?.new?.employee_id) {
             locallyReadConversationKeysRef.current.delete(`${payload.new.customer_id}:${payload.new.employee_id}`);
             clearConversationRead('aaa_service', payload.new.customer_id, payload.new.employee_id);
@@ -2967,8 +2979,8 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                 const aPinned = a.is_pinned ? 1 : 0;
                 const bPinned = b.is_pinned ? 1 : 0;
                 if (aPinned !== bPinned) return bPinned - aPinned;
-                const aUnread = customerUnreadCounts[a.id] || 0;
-                const bUnread = customerUnreadCounts[b.id] || 0;
+                const aUnread = customerUnreadCountsForCards[a.id] || 0;
+                const bUnread = customerUnreadCountsForCards[b.id] || 0;
                 if (aUnread > 0 && bUnread === 0) return -1;
                 if (aUnread === 0 && bUnread > 0) return 1;
                 if (aUnread !== bUnread) return bUnread - aUnread;
@@ -3002,7 +3014,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                 )}
                 {/* Unread Badge */}
                 {(() => {
-                  const count = customerUnreadCounts[customer.id] || 0;
+                  const count = customerUnreadCountsForCards[customer.id] || 0;
                   return count > 0 && (
                     <div className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-orange-500 rounded-full flex items-center justify-center z-20 shadow-lg shadow-orange-500/40 ring-2 ring-slate-900/80">
                       <span className="text-[10px] font-bold text-white leading-none">{count > 99 ? '99+' : count}</span>
