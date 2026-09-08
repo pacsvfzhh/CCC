@@ -979,18 +979,18 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
       )}
 
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-1.5 bg-slate-900 border-b border-slate-700/50">
+      <div className="flex items-center justify-between px-5 py-2.5 bg-slate-900/95 border-b border-slate-700/60">
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 bg-blue-600 rounded-lg shadow-sm shadow-blue-600/20">
-            <Send className="w-3.5 h-3.5 text-white" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-sm shadow-blue-900/40">
+            <Send className="h-4 w-4 text-white" />
           </div>
-          <h2 className="text-sm font-bold text-white tracking-tight">Messages</h2>
-          <span className="text-[11px] text-slate-500 font-medium">
+          <h2 className="text-base font-bold tracking-tight text-white">Messages</h2>
+          <span className="text-[11px] font-medium text-slate-400">
             {selectedEmployeeIds.size > 0 ? `${selectedEmployeeIds.size} recipient${selectedEmployeeIds.size > 1 ? 's' : ''} selected` : `${totalEmployees} employees total`}
           </span>
         </div>
         {selectedEmployeeIds.size > 0 && (
-          <button onClick={clearSelection} className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-bold transition-all border border-slate-600/50 hover:border-slate-500">
+          <button onClick={clearSelection} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-3 text-[11px] font-bold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">
             <X className="w-3 h-3" />
             Clear
           </button>
@@ -998,12 +998,12 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
       </div>
 
       {/* 4-Panel Horizontal Layout */}
-      <div className="flex flex-1 min-h-0 border border-slate-700/40 rounded-lg overflow-hidden bg-slate-950/60">
+      <div className="flex flex-1 min-h-0 overflow-hidden rounded-xl border border-slate-700/60 bg-slate-950/80 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.95)]">
 
         {/* Panel 1: Admin Groups */}
         {admin.role !== 'secondary_admin' && (
-          <div className="w-56 flex-shrink-0 bg-slate-900 border-r border-slate-700/50 flex flex-col">
-            <div className="px-3.5 py-3 border-b border-slate-700/50 flex items-center justify-between bg-slate-800/40">
+          <div className="flex w-56 flex-shrink-0 flex-col border-r border-slate-700/60 bg-slate-900/95">
+            <div className="flex items-center justify-between border-b border-slate-700/60 bg-slate-800/45 px-3.5 py-3">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-4 rounded-full bg-blue-500"></div>
                 <h3 className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">Groups</h3>
@@ -1021,8 +1021,8 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                     onClick={() => setSelectedAdminId(group.id)}
                     className={`group w-full text-left px-3 py-3 rounded-xl transition-all duration-200 border ${
                       isActive
-                        ? 'bg-blue-600/30 border-blue-400/70 ring-2 ring-blue-400/40 shadow-lg shadow-blue-500/20 border-l-[3px] border-l-blue-400'
-                        : 'bg-slate-800/40 border-slate-700/40 hover:bg-slate-800/70 hover:border-slate-600/60'
+                        ? 'bg-blue-600/20 border-blue-400/60 ring-1 ring-blue-400/30 shadow-md shadow-blue-900/20 border-l-[3px] border-l-blue-400'
+                        : 'bg-slate-800/45 border-slate-700/50 hover:bg-slate-800/75 hover:border-slate-600/70'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 mb-2">
@@ -1056,15 +1056,15 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
         )}
 
         {/* Panel 2: Employees */}
-        <div className="w-64 flex-shrink-0 bg-slate-900 border-r border-slate-700/50 flex flex-col">
-          <div className="px-3 py-2.5 border-b border-slate-700/50 space-y-2 bg-slate-800/30">
+        <div className="flex w-64 flex-shrink-0 flex-col border-r border-slate-700/60 bg-slate-900/95">
+          <div className="space-y-2 border-b border-slate-700/60 bg-slate-800/45 px-3 py-2.5">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search employees..."
-                className="w-full pl-9 pr-9 py-2.5 text-xs bg-slate-700/70 border border-slate-500/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:bg-slate-700 transition-all"
+                className="w-full rounded-lg border border-slate-600/70 bg-slate-800/90 py-2.5 pl-9 pr-9 text-xs text-white placeholder-slate-500 outline-none transition-colors focus:border-blue-500/70 focus:bg-slate-800 focus:ring-1 focus:ring-blue-400/50"
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-700 transition-all">
@@ -1075,13 +1075,13 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
 
             {/* Status + Tag filters row */}
             <div className="flex items-center gap-2">
-              <div className="flex gap-1 flex-1 bg-slate-800 rounded-lg p-1 border border-slate-700/50">
+              <div className="flex flex-1 gap-1 rounded-lg border border-slate-700/60 bg-slate-950/35 p-1">
                 {(['all', 'active', 'verified'] as const).map(status => (
                   <button key={status} onClick={() => setFilterStatus(status)}
                     className={`flex-1 px-2 py-1.5 rounded-md text-[11px] font-bold transition-all duration-150 ${
                       filterStatus === status
-                        ? 'bg-blue-600/30 text-blue-200 shadow-sm border border-blue-500/40'
-                        : 'text-slate-300 bg-slate-700/40 hover:text-white hover:bg-slate-700/70 border border-slate-600/40 hover:border-slate-500/50'
+                        ? 'border border-blue-500/60 bg-blue-600/30 text-blue-100 shadow-sm'
+                        : 'border border-transparent bg-slate-800/45 text-slate-400 hover:border-slate-600/70 hover:bg-slate-800 hover:text-slate-100'
                     }`}>
                     {status === 'all' ? 'All' : status === 'active' ? 'Active' : 'Verified'}
                   </button>
@@ -1094,8 +1094,8 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                   <button onClick={() => setShowTagDropdown(!showTagDropdown)}
                     className={`flex items-center gap-1 px-2.5 py-2 rounded-lg text-[11px] font-bold transition-all duration-150 border ${
                       selectedTags.size > 0
-                        ? 'bg-teal-600/20 text-teal-200 border-teal-500/40'
-                        : 'bg-slate-700/50 text-slate-300 border-slate-600/50 hover:text-white hover:bg-slate-700 hover:border-slate-500/60'
+                        ? 'bg-teal-600/20 text-teal-100 border-teal-500/50'
+                        : 'bg-slate-800/60 text-slate-400 border-slate-600/60 hover:text-slate-100 hover:bg-slate-700 hover:border-slate-500'
                     }`}>
                     <Tag className="w-3.5 h-3.5" />
                     {selectedTags.size > 0 && <span className="bg-teal-500/30 px-1 rounded text-[10px]">{selectedTags.size}</span>}
@@ -1144,7 +1144,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-150 border ${
                       allCurrentSelected
                         ? 'bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600'
-                        : 'bg-emerald-600/20 text-emerald-200 border-emerald-500/40 hover:bg-emerald-600/30 hover:border-emerald-400/50'
+                        : 'bg-blue-600/20 text-blue-100 border-blue-500/50 hover:bg-blue-600/30 hover:border-blue-400/60'
                     }`}>
                     {allCurrentSelected ? <><CheckSquare className="w-3.5 h-3.5" /> Deselect</> : <><Square className="w-3.5 h-3.5" /> Select All</>}
                   </button>
@@ -1177,18 +1177,18 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                       onClick={() => toggleEmployeeSelection(emp.id)}
                       className={`cursor-pointer rounded-xl px-3 py-2.5 transition-all duration-150 group border ${
                         isSelected
-                          ? 'bg-emerald-600/25 border-emerald-400/60 ring-2 ring-emerald-400/35 shadow-lg shadow-emerald-500/15 border-l-[3px] border-l-emerald-400'
-                          : 'bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/60 hover:border-slate-600/50'
+                          ? 'bg-blue-600/20 border-blue-400/60 ring-1 ring-blue-400/30 shadow-md shadow-blue-900/20 border-l-[3px] border-l-blue-400'
+                          : 'bg-slate-800/35 border-slate-700/40 hover:bg-slate-800/70 hover:border-slate-600/60'
                       } ${emp.is_pinned && !isSelected ? 'border-l-[3px] border-l-amber-400/60' : ''}`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-all duration-150 border ${
                           isSelected
-                            ? 'bg-emerald-500/40 border-emerald-400/60'
-                            : 'bg-slate-800 border-slate-600/50 group-hover:bg-slate-700 group-hover:border-slate-500/50'
+                            ? 'bg-blue-500/35 border-blue-400/60'
+                            : 'bg-slate-800 border-slate-600/60 group-hover:bg-slate-700 group-hover:border-slate-500/60'
                         }`}>
                           {isSelected ? (
-                            <CheckSquare className="w-4 h-4 text-emerald-200" />
+                            <CheckSquare className="w-4 h-4 text-blue-200" />
                           ) : (
                             <Square className="w-4 h-4 text-slate-500 group-hover:text-slate-300" />
                           )}
@@ -1228,20 +1228,20 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
               </div>
             )}
           </div>
-          <div className="px-2 py-1.5 border-t border-slate-700/40 flex gap-1 bg-slate-800/20">
+          <div className="flex gap-1 border-t border-slate-700/60 bg-slate-800/35 px-2 py-2">
             <button onClick={selectAllEmployees} disabled={allEmployeesSelected}
-              className="flex-1 px-2 py-1 bg-emerald-600/80 hover:bg-emerald-600 disabled:bg-slate-800 disabled:opacity-40 text-white rounded-md text-[10px] font-semibold transition-all">
+              className="flex-1 rounded-md bg-blue-600 px-2 py-1.5 text-[10px] font-bold text-white transition-colors hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:opacity-60">
               All
             </button>
             <button onClick={clearSelection} disabled={selectedEmployeeIds.size === 0}
-              className="flex-1 px-2 py-1 bg-slate-700/80 hover:bg-slate-700 disabled:opacity-40 text-slate-300 rounded-md text-[10px] font-semibold transition-all">
+              className="flex-1 rounded-md border border-slate-600 bg-slate-700 px-2 py-1.5 text-[10px] font-bold text-slate-200 transition-colors hover:bg-slate-600 disabled:opacity-40">
               Clear
             </button>
           </div>
         </div>
 
         {/* Panel 3: Compose Message */}
-        <div className="flex-1 min-w-0 bg-gradient-to-b from-slate-900/90 to-slate-900/70 border-r border-slate-700/40 flex flex-col">
+        <div className="flex min-w-0 flex-1 flex-col border-r border-slate-700/60 bg-slate-900/95">
           <div className="flex-1 min-h-0 flex flex-col p-3 gap-3">
             {/* Type + Priority + Template row */}
             <div className="flex flex-wrap items-center gap-3 shrink-0">
@@ -1251,20 +1251,20 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                 <div className="flex gap-1.5">
                   <button
                     onClick={() => setMessageForm({ ...messageForm, messageType: 'realtime' })}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-bold transition-all duration-200 border-2 ${
+                    className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[11px] font-bold transition-colors duration-200 ${
                       messageForm.messageType === 'realtime'
-                        ? 'bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-600/40 scale-[1.02]'
-                        : 'bg-blue-950/40 text-blue-400 border-blue-500/30 hover:bg-blue-900/40 hover:border-blue-500/50'
+                        ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
+                        : 'bg-slate-800 text-blue-300 border-blue-800/80 hover:bg-blue-950/80 hover:border-blue-700'
                     }`}>
                     <Bell className="w-3.5 h-3.5" />
                     Realtime
                   </button>
                   <button
                     onClick={() => setMessageForm({ ...messageForm, messageType: 'login_popup' })}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-bold transition-all duration-200 border-2 ${
+                    className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[11px] font-bold transition-colors duration-200 ${
                       messageForm.messageType === 'login_popup'
-                        ? 'bg-violet-600 text-white border-violet-400 shadow-lg shadow-violet-600/40 scale-[1.02]'
-                        : 'bg-violet-950/40 text-violet-400 border-violet-500/30 hover:bg-violet-900/40 hover:border-violet-500/50'
+                        ? 'bg-violet-600 text-white border-violet-500 shadow-sm'
+                        : 'bg-slate-800 text-violet-300 border-violet-800/80 hover:bg-violet-950/80 hover:border-violet-700'
                     }`}>
                     <AlertCircle className="w-3.5 h-3.5" />
                     Login Popup
@@ -1288,12 +1288,12 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                     return (
                       <button key={priority}
                         onClick={() => setMessageForm({ ...messageForm, priority })}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold capitalize transition-all duration-200 border-2 ${
+                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-bold capitalize transition-colors duration-200 ${
                           isActive
-                            ? `${c.activeBg} text-white ${c.activeBorder} shadow-lg ${c.activeShadow} scale-[1.02]`
+                            ? `${c.activeBg} text-white ${c.activeBorder} shadow-sm`
                             : `${c.inactiveBg} ${c.inactiveText} ${c.inactiveBorder} ${c.hoverBg} ${c.hoverBorder}`
                         }`}>
-                        <div className={`w-2 h-2 rounded-full ${c.dot} ${isActive ? 'animate-pulse' : 'opacity-60'}`} />
+                        <div className={`h-2 w-2 rounded-full ${c.dot} ${isActive ? 'opacity-100' : 'opacity-60'}`} />
                         {priority}
                       </button>
                     );
@@ -1306,10 +1306,10 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                 <div className="relative">
                   <button
                     onClick={() => { setShowTemplateDropdown(!showTemplateDropdown); }}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-bold transition-all duration-200 border-2 ${
+                    className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[11px] font-bold transition-colors duration-200 ${
                       showTemplateDropdown
-                        ? 'bg-teal-600 text-white border-teal-400 shadow-lg shadow-teal-600/40 scale-[1.02]'
-                        : 'bg-teal-950/40 text-teal-400 border-teal-500/30 hover:bg-teal-900/40 hover:border-teal-500/50'
+                        ? 'bg-teal-600 text-white border-teal-500 shadow-sm'
+                        : 'bg-slate-800 text-teal-300 border-teal-800/80 hover:bg-teal-950/80 hover:border-teal-700'
                     }`}>
                     <Bookmark className="w-3.5 h-3.5" />
                     Templates
@@ -1379,14 +1379,14 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
               <input type="text" value={messageForm.title}
                 onChange={(e) => setMessageForm({ ...messageForm, title: e.target.value.slice(0, 200) })}
                 placeholder="Enter message title..."
-                className="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all shadow-sm"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
 
             {/* TipTap Editor - fills all remaining space */}
             <div className="flex-1 min-h-0 flex flex-col">
               <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1.5 shrink-0">Content</label>
-              <div className="flex-1 min-h-0 [&>div]:h-full [&>div]:flex [&>div]:flex-col">
+              <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm [&>div]:h-full [&>div]:flex [&>div]:flex-col">
                 <TiptapEditor
                   ref={composeEditorRef}
                   content=""
@@ -1400,11 +1400,11 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
           </div>
 
           {/* Send Button - prominent */}
-          <div className="px-3 py-2.5 border-t border-slate-700/40 bg-slate-800/20">
+          <div className="border-t border-slate-700/60 bg-slate-800/35 px-3 py-2.5">
             <button
               onClick={validateAndSendMessage}
               disabled={sending || selectedEmployeeIds.size === 0 || !messageForm.title.trim()}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-blue-600/25 disabled:opacity-30 disabled:shadow-none disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-950/30 transition-colors hover:bg-blue-500 active:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-35 disabled:shadow-none"
             >
               <Send className="w-4 h-4" />
               {sending ? 'Sending...' : selectedEmployeeIds.size === 0 ? 'Select recipients to send' : `Send to ${selectedEmployeeIds.size} recipient${selectedEmployeeIds.size !== 1 ? 's' : ''}`}
@@ -1413,11 +1413,11 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
         </div>
 
         {/* Panel 4: Sent Messages */}
-        <div className="w-72 flex-shrink-0 bg-gradient-to-b from-slate-900/90 to-slate-900/70 flex flex-col">
+        <div className="flex w-72 flex-shrink-0 flex-col border-l border-slate-700/60 bg-slate-900/95">
           {/* Header */}
-          <div className="px-2.5 py-2 border-b border-slate-700/40 space-y-1.5 bg-slate-800/20">
+          <div className="space-y-1.5 border-b border-slate-700/60 bg-slate-800/45 px-3 py-2.5">
             <div className="flex items-center justify-between">
-              <h3 className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Sent</h3>
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-200">Sent messages</h3>
               {sentMessages.length > 0 && !selectionMode && (
                 <div className="flex items-center gap-1">
                   <button onClick={enterSelectionMode}
@@ -1463,7 +1463,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
                 <input type="text" value={sentMessagesSearchQuery} onChange={(e) => setSentMessagesSearchQuery(e.target.value)}
                   placeholder="Search sent..."
-                  className="w-full pl-7 pr-7 py-1.5 text-[11px] bg-slate-800/80 border border-slate-600/50 rounded-md text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/70 focus:border-blue-500/50 transition-all"
+                  className="w-full rounded-lg border border-slate-600/70 bg-slate-800/90 py-2 pl-7 pr-7 text-[11px] text-white placeholder-slate-500 outline-none transition-colors focus:border-blue-500/70 focus:bg-slate-800 focus:ring-1 focus:ring-blue-400/50"
                 />
                 {sentMessagesSearchQuery && (
                   <button onClick={() => setSentMessagesSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
@@ -1476,19 +1476,19 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
             {/* Filter tabs */}
             {sentMessages.length > 0 && (
               <div className="space-y-1">
-                <div className="flex bg-slate-800/60 rounded-lg p-0.5">
+                <div className="flex rounded-lg border border-slate-700/60 bg-slate-950/35 p-0.5">
                   {([['all', 'All'], ['realtime', 'Realtime'], ['login_popup', 'Popup']] as const).map(([val, label]) => (
                     <button key={val} onClick={() => setMessageTypeFilter(val as any)}
                       className={`flex-1 px-1 py-1 text-[10px] font-semibold rounded-md transition-all ${
-                        messageTypeFilter === val ? 'bg-blue-600/30 text-blue-300 shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                        messageTypeFilter === val ? 'bg-blue-600/35 text-blue-100 shadow-sm' : 'text-slate-500 hover:bg-slate-800 hover:text-slate-200'
                       }`}>{label}</button>
                   ))}
                 </div>
-                <div className="flex bg-slate-800/60 rounded-lg p-0.5">
+                <div className="flex rounded-lg border border-slate-700/60 bg-slate-950/35 p-0.5">
                   {([['all', 'All'], ['read', 'Read'], ['unread', 'Unread']] as const).map(([val, label]) => (
                     <button key={val} onClick={() => setReadStatusFilter(val as any)}
                       className={`flex-1 px-1 py-1 text-[10px] font-semibold rounded-md transition-all ${
-                        readStatusFilter === val ? 'bg-blue-600/30 text-blue-300 shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                        readStatusFilter === val ? 'bg-slate-700 text-slate-100 shadow-sm' : 'text-slate-500 hover:bg-slate-800 hover:text-slate-200'
                       }`}>{label}</button>
                   ))}
                 </div>
@@ -1497,7 +1497,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
           </div>
 
           {/* Message List */}
-          <div className="flex-1 overflow-y-auto scrollbar-dark p-1 space-y-0.5">
+          <div className="flex-1 space-y-1 overflow-y-auto p-1.5 scrollbar-dark">
             {messagesLoading ? (
               <div className="text-center py-10 text-slate-500 text-xs">Loading...</div>
             ) : sentMessages.length === 0 ? (
@@ -1523,10 +1523,10 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                         loadRecipientDetails(msg.id);
                       }
                     }}
-                    className={`cursor-pointer rounded-lg border-l-[3px] px-2.5 py-2.5 transition-all duration-150 ${getPriorityBorderColor(msg.priority)} ${
+                    className={`cursor-pointer rounded-lg border border-slate-700/40 border-l-[3px] px-2.5 py-2.5 transition-colors duration-150 ${getPriorityBorderColor(msg.priority)} ${
                       selectionMode && isSelectedMsg
                         ? 'bg-blue-600/15 ring-1 ring-blue-500/30'
-                        : 'bg-slate-800/30 hover:bg-slate-800/60'
+                        : 'bg-slate-800/45 hover:border-slate-600/70 hover:bg-slate-800/75'
                     }`}
                   >
                     <div className="flex items-start gap-2">
@@ -1575,7 +1575,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-2.5 py-1.5 border-t border-slate-700/40 flex items-center justify-between bg-slate-800/20">
+            <div className="flex items-center justify-between border-t border-slate-700/60 bg-slate-800/35 px-3 py-2">
               <span className="text-[9px] text-slate-500 font-medium">{currentPage}/{totalPages}</span>
               <div className="flex items-center gap-0.5">
                 <button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}
