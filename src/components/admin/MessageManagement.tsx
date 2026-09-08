@@ -1475,10 +1475,10 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
 
             {/* Filter tabs */}
             {sentMessages.length > 0 && (
-              <div className="space-y-2">
-                <div>
-                  <p className="mb-1 px-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Message type</p>
-                  <div className="flex rounded-lg border border-slate-700/60 bg-slate-950/35 p-0.5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-slate-500">Message type</p>
+                  <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
                     {([['all', 'All'], ['realtime', 'Realtime'], ['login_popup', 'Popup']] as const).map(([val, label]) => {
                       const activeClass = val === 'realtime'
                         ? 'border-blue-500 bg-blue-600 text-white'
@@ -1492,16 +1492,16 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                           : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100';
                       return (
                         <button key={val} onClick={() => setMessageTypeFilter(val as any)}
-                          className={`flex-1 rounded-md border px-1.5 py-1.5 text-[10px] font-bold transition-colors ${messageTypeFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
+                          className={`min-w-0 flex-1 rounded border px-1 py-1 text-[9px] font-bold transition-colors ${messageTypeFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
                           {label}
                         </button>
                       );
                     })}
                   </div>
                 </div>
-                <div>
-                  <p className="mb-1 px-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Read status</p>
-                  <div className="flex rounded-lg border border-slate-700/60 bg-slate-950/35 p-0.5">
+                <div className="flex items-center gap-1.5">
+                  <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-slate-500">Read status</p>
+                  <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
                     {([['all', 'All'], ['read', 'Read'], ['unread', 'Unread']] as const).map(([val, label]) => {
                       const activeClass = val === 'read'
                         ? 'border-emerald-500 bg-emerald-600 text-white'
@@ -1513,7 +1513,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                         : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100';
                       return (
                         <button key={val} onClick={() => setReadStatusFilter(val as any)}
-                          className={`flex-1 rounded-md border px-1.5 py-1.5 text-[10px] font-bold transition-colors ${readStatusFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
+                          className={`min-w-0 flex-1 rounded border px-1 py-1 text-[9px] font-bold transition-colors ${readStatusFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
                           {label}
                         </button>
                       );
