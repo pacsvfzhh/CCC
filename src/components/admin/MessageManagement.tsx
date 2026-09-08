@@ -72,6 +72,32 @@ const formatMessageDateTime = (value: string) =>
     hour12: false,
   }).format(new Date(value));
 
+const getMessageTypeTone = (messageType: Message['message_type']) =>
+  messageType === 'login_popup'
+    ? {
+        card: 'border-amber-700',
+        icon: 'bg-amber-900/70 text-amber-200',
+        value: 'text-amber-100',
+      }
+    : {
+        card: 'border-cyan-700',
+        icon: 'bg-cyan-900/70 text-cyan-200',
+        value: 'text-cyan-100',
+      };
+
+const getMessagePriorityTone = (priority: Message['priority']) => {
+  switch (priority) {
+    case 'urgent':
+      return { card: 'border-red-700', icon: 'bg-red-900/70 text-red-200', value: 'text-red-100' };
+    case 'high':
+      return { card: 'border-orange-700', icon: 'bg-orange-900/70 text-orange-200', value: 'text-orange-100' };
+    case 'normal':
+      return { card: 'border-blue-700', icon: 'bg-blue-900/70 text-blue-200', value: 'text-blue-100' };
+    default:
+      return { card: 'border-slate-600', icon: 'bg-slate-700 text-slate-200', value: 'text-slate-100' };
+  }
+};
+
 export default function MessageManagement({ admin, initialEmployee, onConsumeInitialEmployee }: Props) {
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [allEmployees, setAllEmployees] = useState<Map<string, Employee[]>>(new Map());
@@ -912,6 +938,8 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
   const filteredEmployees = getFilteredEmployees();
   const allCurrentSelected = filteredEmployees.length > 0 && filteredEmployees.every(e => selectedEmployeeIds.has(e.id));
   const allEmployeesSelected = allEmployeesFlat.length > 0 && allEmployeesFlat.every(emp => selectedEmployeeIds.has(emp.id));
+  const messageTypeTone = getMessageTypeTone(selectedMessageDetail?.message_type || 'realtime');
+  const messagePriorityTone = getMessagePriorityTone(selectedMessageDetail?.priority || 'normal');
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -1679,21 +1707,21 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Sent</p>
                       <p className="mt-1 truncate text-[11px] font-bold text-white" title={formatMessageDateTime(selectedMessageDetail.created_at)}>{formatMessageDateTime(selectedMessageDetail.created_at)}</p>
                     </div>
-                    <div className="min-w-0 rounded-lg border border-blue-800 bg-slate-800 px-3 py-3">
-                      <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-md bg-blue-900/70 text-blue-200">
+                    <div className={`min-w-0 rounded-lg border ${messageTypeTone.card} bg-slate-800 px-3 py-3`}>
+                      <div className={`mb-2 flex h-7 w-7 items-center justify-center rounded-md ${messageTypeTone.icon}`}>
                         {selectedMessageDetail.message_type === 'login_popup'
                           ? <Bell className="h-4 w-4" />
                           : <Radio className="h-4 w-4" />}
                       </div>
                       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Type</p>
-                      <p className="mt-1 truncate text-xs font-bold text-white">{selectedMessageDetail.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}</p>
+                      <p className={`mt-1 truncate text-xs font-bold ${messageTypeTone.value}`}>{selectedMessageDetail.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}</p>
                     </div>
-                    <div className="min-w-0 rounded-lg border border-slate-600 bg-slate-800 px-3 py-3">
-                      <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-md bg-slate-700 text-slate-200">
+                    <div className={`min-w-0 rounded-lg border ${messagePriorityTone.card} bg-slate-800 px-3 py-3`}>
+                      <div className={`mb-2 flex h-7 w-7 items-center justify-center rounded-md ${messagePriorityTone.icon}`}>
                         <AlertCircle className="h-4 w-4" />
                       </div>
                       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Priority</p>
-                      <p className="mt-1 truncate text-xs font-bold text-white">
+                      <p className={`mt-1 truncate text-xs font-bold ${messagePriorityTone.value}`}>
                         {selectedMessageDetail.priority.charAt(0).toUpperCase() + selectedMessageDetail.priority.slice(1)}
                       </p>
                     </div>
