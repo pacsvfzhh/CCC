@@ -1755,16 +1755,26 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             <Bell className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => onQuickAction?.('customerservice', { id: employee.id, username: employee.username })}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onQuickAction?.('customerservice', { id: employee.id, username: employee.username });
+            }}
             className="p-1 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/25 hover:text-rose-300 transition-all border border-rose-500/20 hover:border-rose-400/40"
-            title={`Customer Service chat with ${employee.username}`}
+            title={`直接发送模拟客户消息给 ${employee.username}`}
+            aria-label={`直接发送模拟客户消息给 ${employee.username}`}
           >
             <MessageCircle className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => onQuickAction?.('cccservice', { id: employee.id, username: employee.username })}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onQuickAction?.('cccservice', { id: employee.id, username: employee.username });
+            }}
             className="p-1 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-300 transition-all border border-emerald-500/20 hover:border-emerald-400/40"
-            title={`CCC chat with ${employee.username}`}
+            title={`直接发送经理消息给 ${employee.username}`}
+            aria-label={`直接发送经理消息给 ${employee.username}`}
           >
             <Headphones className="w-3.5 h-3.5" />
           </button>

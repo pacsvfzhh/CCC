@@ -390,12 +390,18 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
   const handleEmployeeQuickAction = useCallback((action: 'message' | 'customerservice' | 'cccservice', employee: { id: string; username: string }) => {
     if (action === 'message') {
+      setNavigateToCustomerServiceEmployee(null);
+      setNavigateToCccServiceEmployee(null);
       setNavigateToMessageEmployee(employee);
       handleTabChange('messages');
     } else if (action === 'customerservice') {
+      setNavigateToMessageEmployee(null);
+      setNavigateToCccServiceEmployee(null);
       setNavigateToCustomerServiceEmployee(employee);
       handleTabChange('customerservice');
-    } else if (action === 'cccservice') {
+    } else {
+      setNavigateToMessageEmployee(null);
+      setNavigateToCustomerServiceEmployee(null);
       setNavigateToCccServiceEmployee(employee);
       handleTabChange('cccservice');
     }

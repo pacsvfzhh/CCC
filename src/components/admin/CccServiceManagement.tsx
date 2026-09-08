@@ -1086,12 +1086,20 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
   useEffect(() => {
     if (isSuperAdmin) {
-      loadAdminGroups(initialEmployee);
+      if (!initialEmployee) {
+        void loadAdminGroups(null);
+      }
     } else {
       setSelectedAdminId(adminId);
-      loadAdminData(adminId);
+      void loadAdminData(adminId);
     }
   }, [adminId, isSuperAdmin, loadAdminGroups]);
+
+  useEffect(() => {
+    if (isSuperAdmin && initialEmployee) {
+      void loadAdminGroups(initialEmployee);
+    }
+  }, [isSuperAdmin, initialEmployee, loadAdminGroups]);
 
   // Handle initial employee navigation from other tabs
   useEffect(() => {
