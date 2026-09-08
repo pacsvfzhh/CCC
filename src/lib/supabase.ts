@@ -32,7 +32,9 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
     return await fetch(input, { ...init, signal: controller.signal });
   } catch (error) {
     if (callerSignal?.aborted) {
-      throw error;
+      const abortError = new Error('Supabase request was cancelled.');
+      abortError.name = 'AbortError';
+      throw abortError;
     }
     if (controller.signal.aborted) {
       throw new Error('Supabase request timed out. Check your project URL and network connection.');

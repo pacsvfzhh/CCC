@@ -30,6 +30,23 @@ function preloadServiceTab(tabId: string) {
   if (tabId === 'cccservice') void loadCccServiceManagement();
 }
 
+function formatRequestError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object') {
+    const details = error as { message?: unknown; code?: unknown; details?: unknown; hint?: unknown };
+    const parts = [details.message, details.code, details.details, details.hint]
+      .filter(value => typeof value === 'string' && value.length > 0)
+      .map(value => String(value));
+    if (parts.length > 0) return parts.join(' | ');
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return 'Unknown request error';
+    }
+  }
+  return String(error);
+}
+
 function ServiceWorkspaceSkeleton({ service }: { service: 'customerservice' | 'cccservice' }) {
   const isCustomerService = service === 'customerservice';
 
@@ -210,10 +227,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       // For secondary admins, fetch their employee IDs once for scoping
       let scopedEmployeeIds: string[] | null = null;
       if (admin.role === 'secondary_admin') {
-        const { data: myEmployees } = await supabase
+        const { data: myEmployees, error: employeesError } = await supabase
           .from('users')
           .select('id')
           .eq('created_by', admin.id);
+        if (employeesError) throw employeesError;
         scopedEmployeeIds = myEmployees?.map(e => e.id) || [];
       }
 
@@ -347,7 +365,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       console.log('[Account Locks] Active locks count:', lockedCount, 'for admin:', admin.id);
       setLockedAccountsCount(lockedCount);
     } catch (error) {
-      console.error('Error loading pending counts:', error);
+      console.warn('Pending counts are temporarily unavailable:', formatRequestError(error));
     }
   }, [admin.id, admin.role]);
 

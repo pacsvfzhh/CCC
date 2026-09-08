@@ -84,6 +84,33 @@ interface ConversationHistory {
   custom_avatar_url?: string;
 }
 
+function dedupeConversationHistory(history: ConversationHistory[]) {
+  const byConversation = new Map<string, ConversationHistory>();
+
+  history.forEach(item => {
+    if (!item.customer_id) return;
+    const key = `${item.customer_id}:${item.employee_id}`;
+    const existing = byConversation.get(key);
+    if (!existing) {
+      byConversation.set(key, item);
+      return;
+    }
+
+    const latest = new Date(item.last_message_time).getTime() >= new Date(existing.last_message_time).getTime()
+      ? item
+      : existing;
+    byConversation.set(key, {
+      ...latest,
+      message_count: Math.max(existing.message_count, item.message_count),
+      unread_count: Math.max(existing.unread_count, item.unread_count),
+    });
+  });
+
+  return Array.from(byConversation.values()).sort((a, b) =>
+    new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime(),
+  );
+}
+
 interface MessageTemplate {
   id: string;
   admin_id: string;
@@ -244,10 +271,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     [customers],
   );
   const workspaceConversationHistory = useMemo(
-    () => allConversationHistory.filter(history =>
+    () => dedupeConversationHistory(allConversationHistory.filter(history =>
       Boolean(history.customer_id) &&
       workspaceCustomerIds.has(history.customer_id!)
-    ),
+    )),
     [allConversationHistory, workspaceCustomerIds],
   );
   const customerUnreadCountsForCards = useMemo(() => {
@@ -262,10 +289,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   }, [customerUnreadCounts, workspaceConversationHistory]);
   const conversationHistoryForView = useMemo(() => {
     const source = historyScope === 'all' ? workspaceConversationHistory : conversationHistory;
-    return source.filter(history =>
+    return dedupeConversationHistory(source.filter(history =>
       Boolean(history.customer_id) &&
       workspaceCustomerIds.has(history.customer_id!)
-    );
+    ));
   }, [conversationHistory, historyScope, workspaceConversationHistory, workspaceCustomerIds]);
   const chattedEmployeeIds = useMemo(
     () => new Set(conversationHistoryForView.map(history => history.employee_id)),
@@ -423,7 +450,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       return nextHistory.sort((a, b) => new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime());
     };
 
-    const nextAllHistory = updateHistory(allConversationHistoryRef.current);
+    const nextAllHistory = dedupeConversationHistory(updateHistory(allConversationHistoryRef.current));
     const nextConversationHistory = selectedCustomer?.id && selectedCustomer.id !== message.customer_id
       ? conversationHistoryRef.current
       : updateHistory(conversationHistoryRef.current);
@@ -511,7 +538,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         unread_count: conversationCounts[`${history.customer_id}:${history.employee_id}`] || 0,
       });
       const nextConversationHistory = conversationHistoryRef.current.map(applyUnreadCounts);
-      const nextAllConversationHistory = allConversationHistoryRef.current.map(applyUnreadCounts);
+      const nextAllConversationHistory = dedupeConversationHistory(allConversationHistoryRef.current.map(applyUnreadCounts));
 
       for (const conversationKey of missingConversationKeys) {
         const [customerId, employeeId] = conversationKey.split(':');
@@ -801,9 +828,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           history.unread_count > 0 &&
           !summaryKeys.has(key);
       });
-      const allHistory = [...summaryHistory, ...supplementalHistory].sort((a, b) =>
-        new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime(),
-      );
+      const allHistory = dedupeConversationHistory([...summaryHistory, ...supplementalHistory]);
 
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
       conversationHistoryRef.current = allHistory;
