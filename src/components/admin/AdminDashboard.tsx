@@ -834,7 +834,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   initialEmployee={navigateToCustomerServiceEmployee}
                   onConsumeInitialEmployee={consumeCustomerServiceEmployee}
                   onUnreadCountChange={handleCustomerServiceUnreadChange}
-                  unreadCount={unreadCustomerServiceCount}
                 />
               </div>
             )}
@@ -847,7 +846,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   initialEmployee={navigateToCccServiceEmployee}
                   onConsumeInitialEmployee={consumeCccServiceEmployee}
                   onUnreadCountChange={handleCccServiceUnreadChange}
-                  unreadCount={unreadCccServiceCount}
                 />
               </div>
             )}

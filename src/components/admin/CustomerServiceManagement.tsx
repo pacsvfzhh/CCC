@@ -130,10 +130,9 @@ interface CustomerServiceManagementProps {
   initialEmployee?: { id: string; username: string } | null;
   onConsumeInitialEmployee?: () => void;
   onUnreadCountChange?: (delta: number) => void;
-  unreadCount?: number;
 }
 
-function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee, onConsumeInitialEmployee, onUnreadCountChange, unreadCount = 0 }: CustomerServiceManagementProps) {
+function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee, onConsumeInitialEmployee, onUnreadCountChange }: CustomerServiceManagementProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const wasActiveRef = useRef(false);
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
@@ -226,10 +225,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   const conversationHistoryLoadRequestRef = useRef(0);
   const workspaceLoadRequestRef = useRef(0);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
-  const customerUnreadCountsRef = useRef<Record<string, number>>({});
-  const conversationUnreadCountsRef = useRef<Record<string, number>>({});
-  const conversationUnreadCountsLoadedRef = useRef(false);
-  const customerUnreadRequestRef = useRef(0);
   const adminUnreadRequestRef = useRef(0);
   const locallyReadConversationKeysRef = useRef(new Set<string>());
   const realtimeConversationIdsRef = useRef(new Set<string>());
@@ -237,7 +232,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [employeeGroupFilter, setEmployeeGroupFilter] = useState<'all' | 'chatted' | 'not_chatted'>('all');
   const [customerFilter, setCustomerFilter] = useState<'all' | 'super' | 'regular'>('all');
-  const [customerUnreadCounts, setCustomerUnreadCounts] = useState<Record<string, number>>({});
   const [adminUnreadCounts, setAdminUnreadCounts] = useState<Record<string, number>>({});
   const [showTipModal, setShowTipModal] = useState(false);
   const [tipAmount, setTipAmount] = useState('');
@@ -256,7 +250,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
   conversationHistoryRef.current = conversationHistory;
   allConversationHistoryRef.current = allConversationHistory;
-  customerUnreadCountsRef.current = customerUnreadCounts;
 
   const workspaceCustomerIds = useMemo(
     () => new Set(customers.map(customer => customer.id)),
@@ -285,8 +278,8 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       historyCounts[history.customer_id] = (historyCounts[history.customer_id] || 0) + history.unread_count;
     });
 
-    return { ...historyCounts, ...customerUnreadCounts };
-  }, [customerUnreadCounts, workspaceConversationHistory]);
+    return historyCounts;
+  }, [workspaceConversationHistory]);
   const conversationHistoryForView = useMemo(() => {
     const source = historyScope === 'all' ? workspaceConversationHistory : conversationHistory;
     return dedupeConversationHistory(source.filter(history =>
@@ -458,131 +451,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     conversationHistoryRef.current = nextConversationHistory;
     setAllConversationHistory(nextAllHistory);
     setConversationHistory(nextConversationHistory);
-
-    if (payload.eventType === 'INSERT' && isUnreadEmployeeMessage) {
-      const nextConversationCounts = { ...conversationUnreadCountsRef.current };
-      nextConversationCounts[conversationKey] = (nextConversationCounts[conversationKey] || 0) + 1;
-      conversationUnreadCountsRef.current = nextConversationCounts;
-
-      const nextCustomerCounts = { ...customerUnreadCountsRef.current };
-      nextCustomerCounts[message.customer_id] = (nextCustomerCounts[message.customer_id] || 0) + 1;
-      customerUnreadCountsRef.current = nextCustomerCounts;
-      setCustomerUnreadCounts(nextCustomerCounts);
-    }
   }, [selectedCustomer?.id, workspaceCustomerIds]);
-
-  const loadCustomerUnreadCounts = useCallback(async (customerIds: string[]) => {
-    if (!selectedAdminId || customerIds.length === 0) return;
-    const requestAdminId = selectedAdminId;
-    const requestId = ++customerUnreadRequestRef.current;
-    try {
-      const { data, error } = await supabase
-        .from('customer_employee_conversations')
-        .select('customer_id, employee_id, created_at')
-        .in('customer_id', customerIds)
-        .eq('source_type', 'aaa_service')
-        .eq('sender_type', 'employee')
-        .eq('is_read', false);
-
-      if (error) throw error;
-
-      const counts: Record<string, number> = Object.fromEntries(customerIds.map(customerId => [customerId, 0]));
-      const conversationCounts: Record<string, number> = {};
-      data?.forEach(msg => {
-        const conversationKey = `${msg.customer_id}:${msg.employee_id}`;
-        if (isConversationReadThrough('aaa_service', msg.customer_id, msg.employee_id, msg.created_at)) {
-          return;
-        }
-        counts[msg.customer_id] = (counts[msg.customer_id] || 0) + 1;
-        conversationCounts[conversationKey] = (conversationCounts[conversationKey] || 0) + 1;
-      });
-
-      if (requestId !== customerUnreadRequestRef.current || selectedAdminIdRef.current !== requestAdminId) return;
-
-      const knownConversationKeys = new Set(
-        [...conversationHistoryRef.current, ...allConversationHistoryRef.current]
-          .map(history => `${history.customer_id}:${history.employee_id}`),
-      );
-      const missingConversationKeys = Object.keys(conversationCounts)
-        .filter(key => !knownConversationKeys.has(key));
-      const latestMessagesByConversation = new Map<string, {
-        message_content: string;
-        message_type: string | null;
-        created_at: string;
-      }>();
-
-      if (missingConversationKeys.length > 0) {
-        const { data: latestMessages, error: latestMessagesError } = await supabase
-          .from('customer_employee_conversations')
-          .select('customer_id, employee_id, message_content, message_type, created_at')
-          .in('customer_id', customerIds)
-        .eq('source_type', 'aaa_service')
-          .order('created_at', { ascending: false });
-
-        if (latestMessagesError) throw latestMessagesError;
-        latestMessages?.forEach(message => {
-          const key = `${message.customer_id}:${message.employee_id}`;
-          if (!latestMessagesByConversation.has(key)) {
-            latestMessagesByConversation.set(key, message);
-          }
-        });
-      }
-
-      if (requestId !== customerUnreadRequestRef.current || selectedAdminIdRef.current !== requestAdminId) return;
-
-      customerUnreadCountsRef.current = counts;
-      conversationUnreadCountsRef.current = conversationCounts;
-      conversationUnreadCountsLoadedRef.current = true;
-      const applyUnreadCounts = (history: ConversationHistory) => ({
-        ...history,
-        unread_count: conversationCounts[`${history.customer_id}:${history.employee_id}`] || 0,
-      });
-      const nextConversationHistory = conversationHistoryRef.current.map(applyUnreadCounts);
-      const nextAllConversationHistory = dedupeConversationHistory(allConversationHistoryRef.current.map(applyUnreadCounts));
-
-      for (const conversationKey of missingConversationKeys) {
-        const [customerId, employeeId] = conversationKey.split(':');
-        const customer = allCustomersRef.current.find(item => item.id === customerId);
-        const employee = allEmployeesRef.current.find(item => item.id === employeeId);
-        const latestMessage = latestMessagesByConversation.get(conversationKey);
-        if (!customer || !latestMessage) continue;
-
-        nextAllConversationHistory.push({
-          customer_id: customer.id,
-          customer_name: customer.customer_name,
-          customer_avatar: customer.customer_avatar,
-          custom_avatar_url: customer.custom_avatar_url,
-          employee_id: employeeId,
-          employee_username: employee?.username || 'Employee',
-          employee_number: employee?.employee_id || '',
-          employee_tags: employee?.tags || [],
-          employee_remarks: employee?.remarks || '',
-          message_count: conversationCounts[conversationKey] || 0,
-          last_message: latestMessage.message_type === 'image' ? '__IMAGE__' : latestMessage.message_content,
-          last_message_time: latestMessage.created_at,
-          unread_count: conversationCounts[conversationKey] || 0,
-        });
-      }
-
-      nextAllConversationHistory.sort((a, b) =>
-        new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime(),
-      );
-      conversationHistoryRef.current = nextConversationHistory;
-      allConversationHistoryRef.current = nextAllConversationHistory;
-      setConversationHistory(nextConversationHistory);
-      setAllConversationHistory(nextAllConversationHistory);
-
-      setCustomerUnreadCounts(prev => {
-        const previousIds = Object.keys(prev);
-        const countIds = Object.keys(counts);
-        const hasChanged = previousIds.length !== countIds.length ||
-          previousIds.some(id => prev[id] !== counts[id]);
-        return hasChanged ? counts : prev;
-      });
-    } catch (error) {
-      console.error('Error loading unread counts:', error);
-    }
-  }, [selectedAdminId]);
 
   const loadAdminUnreadCounts = async (adminIds: string[]) => {
     const requestId = ++adminUnreadRequestRef.current;
@@ -754,7 +623,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (!selectedAdminId) return;
     const requestId = ++conversationHistoryLoadRequestRef.current;
     try {
-      void loadCustomerUnreadCounts(allCustomersRef.current.map(customer => customer.id));
       const data = await prefetchConversationSummaries(
         selectedAdminId,
         'customer',
@@ -816,9 +684,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         last_message_time: row.last_message_time,
         unread_count: isConversationReadThrough('aaa_service', row.customer_id, row.employee_id, row.last_message_time)
           ? 0
-          : conversationUnreadCountsLoadedRef.current
-            ? conversationUnreadCountsRef.current[`${row.customer_id}:${row.employee_id}`] || 0
-            : Number(row.unread_count),
+          : Number(row.unread_count),
         };
       });
       const summaryKeys = new Set(summaryHistory.map(history => `${history.customer_id}:${history.employee_id}`));
@@ -838,7 +704,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     } catch (error) {
       console.error('Error loading all conversation history:', error);
     }
-  }, [selectedAdminId, loadCustomerUnreadCounts]);
+  }, [selectedAdminId]);
 
   const loadOlderMessages = useCallback(async () => {
     if (!selectedCustomer || !selectedEmployee || loadingOlderMessages || !hasMoreMessages) return;
@@ -899,21 +765,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     allConversationHistoryRef.current = nextAllConversationHistory;
     setConversationHistory(nextConversationHistory);
     setAllConversationHistory(nextAllConversationHistory);
-
-    const currentCount = customerUnreadCountsRef.current[customerId] || 0;
-    const remainingCount = Math.max(0, currentCount - threadUnreadCount);
-    const nextConversationUnreadCounts = { ...conversationUnreadCountsRef.current };
-    delete nextConversationUnreadCounts[`${customerId}:${employeeId}`];
-    conversationUnreadCountsRef.current = nextConversationUnreadCounts;
-
-    const nextCustomerUnreadCounts = { ...customerUnreadCountsRef.current };
-    if (remainingCount === 0) {
-      delete nextCustomerUnreadCounts[customerId];
-    } else {
-      nextCustomerUnreadCounts[customerId] = remainingCount;
-    }
-    customerUnreadCountsRef.current = nextCustomerUnreadCounts;
-    setCustomerUnreadCounts(nextCustomerUnreadCounts);
 
     if (threadUnreadCount > 0) {
       onUnreadCountChange?.(-threadUnreadCount);
@@ -1232,10 +1083,15 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
   useEffect(() => {
     if (isActive && selectedAdminId && customers.length > 0) {
-      const customerIds = customers.map(c => c.id);
-      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+      let reconcileTimer: ReturnType<typeof setTimeout> | null = null;
+      const reconcileAfterChange = () => {
+        if (reconcileTimer) clearTimeout(reconcileTimer);
+        reconcileTimer = setTimeout(() => {
+          reconcileTimer = null;
+          void loadAllConversationHistory(true);
+        }, 120);
+      };
       const fallbackTimer = window.setInterval(() => {
-        void loadCustomerUnreadCounts(customerIds);
         void loadAllConversationHistory(true);
       }, 15000);
       const channel = supabase
@@ -1245,28 +1101,26 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           schema: 'public',
           table: 'customer_employee_conversations'
         }, (payload: any) => {
-          customerUnreadRequestRef.current += 1;
+
           conversationHistoryLoadRequestRef.current += 1;
           if (payload?.new?.sender_type === 'employee' && payload?.new?.is_read === false && payload?.new?.customer_id && payload?.new?.employee_id) {
             locallyReadConversationKeysRef.current.delete(`${payload.new.customer_id}:${payload.new.employee_id}`);
             clearConversationRead('aaa_service', payload.new.customer_id, payload.new.employee_id);
           }
           applyRealtimeConversation(payload);
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            loadCustomerUnreadCounts(customerIds);
-            loadAllConversationHistory(true);
-          }, 400);
+          if (payload?.eventType !== 'INSERT') {
+            reconcileAfterChange();
+          }
         })
         .subscribe();
 
       return () => {
-        if (debounceTimer) clearTimeout(debounceTimer);
+        if (reconcileTimer) clearTimeout(reconcileTimer);
         window.clearInterval(fallbackTimer);
         supabase.removeChannel(channel);
       };
     }
-  }, [isActive, selectedAdminId, customers, applyRealtimeConversation, loadAllConversationHistory, loadCustomerUnreadCounts]);
+  }, [isActive, selectedAdminId, customers, applyRealtimeConversation, loadAllConversationHistory]);
 
   // Subscribe to realtime updates for employees (users table)
   useEffect(() => {
@@ -1697,7 +1551,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
   const loadAdminData = async (targetAdminId: string, silent = false, force = false) => {
     const requestId = ++workspaceLoadRequestRef.current;
-    customerUnreadRequestRef.current += 1;
+
     try {
       if (!silent) setLoading(true);
 
@@ -1732,10 +1586,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       if (!silent) setLoading(false);
 
       if (customers.length === 0 || employees.length === 0) {
-        customerUnreadCountsRef.current = {};
-        conversationUnreadCountsRef.current = {};
-        conversationUnreadCountsLoadedRef.current = true;
-        setCustomerUnreadCounts({});
         return;
       }
 
@@ -1750,9 +1600,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
   const handleAdminGroupSelect = (group: AdminGroup) => {
     workspaceLoadRequestRef.current += 1;
-    customerUnreadRequestRef.current += 1;
-    conversationUnreadCountsLoadedRef.current = false;
-    conversationUnreadCountsRef.current = {};
     conversationHistoryLoadRequestRef.current += 1;
     messagesLoadRequestRef.current += 1;
     setSelectedAdminId(group.admin_id);
@@ -1775,9 +1622,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
   const handleBackToGroups = () => {
     workspaceLoadRequestRef.current += 1;
-    customerUnreadRequestRef.current += 1;
-    conversationUnreadCountsLoadedRef.current = false;
-    conversationUnreadCountsRef.current = {};
     conversationHistoryLoadRequestRef.current += 1;
     messagesLoadRequestRef.current += 1;
     setSelectedAdminId(null);
@@ -2803,7 +2647,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         service="customer"
         groups={adminGroups}
         unreadCounts={adminUnreadCounts}
-        fallbackUnreadCount={unreadCount}
+        fallbackUnreadCount={0}
         loading
         onSelect={handleAdminGroupSelect}
         onRefresh={() => { void loadAdminGroups(null, false, true); }}
@@ -2828,7 +2672,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         service="customer"
         groups={adminGroups}
         unreadCounts={adminUnreadCounts}
-        fallbackUnreadCount={unreadCount}
+        fallbackUnreadCount={0}
         loading={false}
         onSelect={handleAdminGroupSelect}
         onRefresh={() => { void loadAdminGroups(null, false, true); }}
@@ -2881,8 +2725,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         )}
         <div className="ml-auto flex max-w-full flex-shrink-0 flex-wrap items-center justify-end gap-2">
           {(() => {
-            const sessionUnreadCount = workspaceConversationHistory.reduce((total, history) => total + history.unread_count, 0);
-            const totalUnread = Math.max(sessionUnreadCount, unreadCount);
+            const totalUnread = workspaceConversationHistory.reduce((total, history) => total + history.unread_count, 0);
             return (
               <>
                 <button
