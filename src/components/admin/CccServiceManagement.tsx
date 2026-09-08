@@ -7,7 +7,6 @@ import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPic
 import TiptapEditor, { TiptapEditorRef } from './TiptapEditor';
 import { supabase } from '../../lib/supabase';
 import { invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
-import { clearConversationRead, isConversationReadThrough, markConversationRead } from '../../lib/conversationReadState';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import { processContentImages } from '../../lib/imageOptimizer';
 import { cleanupContentImages } from '../../lib/storageCleanup';
@@ -312,7 +311,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const workspaceLoadRequestRef = useRef(0);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
   const adminUnreadRequestRef = useRef(0);
-  const locallyReadConversationKeysRef = useRef(new Set<string>());
   const realtimeConversationIdsRef = useRef(new Set<string>());
   const [historyFilterMode, setHistoryFilterMode] = useState<'all' | 'history' | 'new'>('all');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
@@ -588,9 +586,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     }
 
     const conversationKey = `${message.customer_id}:${message.employee_id}`;
-    const isUnreadEmployeeMessage = message.sender_type === 'employee' &&
-      message.is_read === false &&
-      !isConversationReadThrough('ccc_service', message.customer_id, message.employee_id, message.created_at);
+    const isUnreadEmployeeMessage = message.sender_type === 'employee' && message.is_read === false;
     const lastMessage = message.message_type === 'image' ? '__IMAGE__' : message.message_content || '';
     const updateHistory = (history: ConversationHistory[]) => {
       const existingIndex = history.findIndex(item => `${item.customer_id}:${item.employee_id}` === conversationKey);
@@ -774,11 +770,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         const history = historyMap.get(msg.employee_id)!;
         history.message_count++;
 
-        if (
-          msg.sender_type === 'employee' &&
-          !msg.is_read &&
-          !isConversationReadThrough('ccc_service', customer.id, msg.employee_id, msg.created_at)
-        ) {
+        if (msg.sender_type === 'employee' && !msg.is_read) {
           history.unread_count++;
         }
       }
@@ -861,9 +853,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         message_count: Number(row.message_count),
         last_message: row.last_message_type === 'image' ? '__IMAGE__' : (row.last_message || ''),
         last_message_time: row.last_message_time,
-        unread_count: isConversationReadThrough('ccc_service', row.customer_id, row.employee_id, row.last_message_time)
-          ? 0
-          : Number(row.unread_count),
+        unread_count: Number(row.unread_count),
         };
       });
       const summaryKeys = new Set(summaryHistory.map(history => `${history.customer_id}:${history.employee_id}`));
@@ -922,9 +912,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   }, [selectedCustomer, selectedEmployee, messages, loadingOlderMessages, hasMoreMessages]);
 
   const clearUnreadConversationLocally = useCallback((customerId: string, employeeId: string) => {
-    locallyReadConversationKeysRef.current.add(`${customerId}:${employeeId}`);
-    markConversationRead('ccc_service', customerId, employeeId);
-
     const threadUnreadCount = Math.max(
       conversationHistoryRef.current.find(history => history.customer_id === customerId && history.employee_id === employeeId)?.unread_count || 0,
       allConversationHistoryRef.current.find(history => history.customer_id === customerId && history.employee_id === employeeId)?.unread_count || 0,
@@ -1053,8 +1040,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
         if (markReadError) {
           console.error('Error marking conversation as read:', markReadError);
-          locallyReadConversationKeysRef.current.delete(`${customerId}:${employeeId}`);
-          clearConversationRead('ccc_service', customerId, employeeId);
           void loadAllConversationHistory(undefined, true);
         } else {
           void loadAllConversationHistory(undefined, true);
@@ -1226,10 +1211,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         table: 'customer_employee_conversations',
         filter: `customer_id=eq.${selectedCustomer.id}`
       }, (payload: any) => {
-        if (payload?.new?.sender_type === 'employee' && payload?.new?.is_read === false && payload?.new?.customer_id && payload?.new?.employee_id) {
-          locallyReadConversationKeysRef.current.delete(`${payload.new.customer_id}:${payload.new.employee_id}`);
-          clearConversationRead('ccc_service', payload.new.customer_id, payload.new.employee_id);
-        }
         scheduleRefresh(!(justSentRef.current && payload?.new?.sender_type === 'customer'));
       })
       .on('postgres_changes', {
@@ -1287,10 +1268,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         }, (payload: any) => {
 
           conversationHistoryLoadRequestRef.current += 1;
-          if (payload?.new?.sender_type === 'employee' && payload?.new?.is_read === false && payload?.new?.customer_id && payload?.new?.employee_id) {
-            locallyReadConversationKeysRef.current.delete(`${payload.new.customer_id}:${payload.new.employee_id}`);
-            clearConversationRead('ccc_service', payload.new.customer_id, payload.new.employee_id);
-          }
           applyRealtimeConversation(payload);
           if (payload?.eventType !== 'INSERT') {
             reconcileAfterChange();
