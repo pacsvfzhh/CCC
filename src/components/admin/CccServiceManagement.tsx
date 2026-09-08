@@ -694,7 +694,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     let autoSelected = false;
     try {
       if (!silent) setLoading(true);
-      const data = await prefetchAdminGroups(adminId, 'manager', force);
+      const data = await prefetchAdminGroups(adminId, 'manager', force || Boolean(targetEmployee));
       setAdminGroups(data);
 
       if (data.length > 0) {
@@ -708,7 +708,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
               setSelectedAdminId(group.admin_id);
               setSelectedAdminName(group.admin_username);
               autoSelected = true;
-              loadAdminData(group.admin_id);
+              void loadAdminData(group.admin_id, false, true);
               return;
             }
           }
@@ -1091,15 +1091,21 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       }
     } else {
       setSelectedAdminId(adminId);
-      void loadAdminData(adminId);
+      if (!initialEmployee) {
+        void loadAdminData(adminId);
+      }
     }
   }, [adminId, isSuperAdmin, loadAdminGroups]);
 
   useEffect(() => {
-    if (isSuperAdmin && initialEmployee) {
+    if (!initialEmployee) return;
+    if (isSuperAdmin) {
       void loadAdminGroups(initialEmployee);
+    } else {
+      setSelectedAdminId(adminId);
+      void loadAdminData(adminId, false, true);
     }
-  }, [isSuperAdmin, initialEmployee, loadAdminGroups]);
+  }, [adminId, isSuperAdmin, initialEmployee, loadAdminGroups]);
 
   // Handle initial employee navigation from other tabs
   useEffect(() => {
@@ -1107,6 +1113,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     if (employees.length > 0) {
       const found = employees.find(e => e.id === initialEmployee.id);
       if (found) {
+        setSearchQuery('');
+        setSelectedTags([]);
+        setEmployeeGroupFilter('all');
         setSelectedEmployee(found);
         onConsumeInitialEmployee?.();
       }
