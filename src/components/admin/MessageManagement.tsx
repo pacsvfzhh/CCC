@@ -1647,7 +1647,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
               {/* Right: Stats & Info */}
               <div className="w-[40%] flex flex-col min-h-0 border-l border-slate-700/50 bg-slate-800/30 overflow-y-auto scrollbar-dark">
                 {/* Message Info */}
-                <div className="p-5 border-b border-slate-700/40 space-y-3">
+                <div className="order-2 p-5 border-b border-slate-700/40 space-y-3">
                   <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest">Message Info</h4>
                   <div className="space-y-2.5">
                     <div className="flex items-center gap-3">
@@ -1679,61 +1679,91 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                 </div>
 
                 {/* Recipients Section */}
-                <div className="p-5 border-b border-slate-700/40 space-y-3">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest">Recipients</h4>
-                  {(!selectedMessageDetail.recipient_ids || selectedMessageDetail.recipient_ids.length === 0) ? (
-                    <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-700/30 rounded-lg">
-                      <Globe className="w-4 h-4 text-blue-400" />
-                      <span className="text-sm text-blue-300 font-medium">All Employees (Broadcast)</span>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Users className="w-4 h-4 text-teal-400" />
-                        <span className="text-sm text-teal-300 font-medium">
-                          Sent to {selectedMessageDetail.recipient_ids.length} employee{selectedMessageDetail.recipient_ids.length !== 1 ? 's' : ''}
-                        </span>
+                <div className="order-1 relative overflow-hidden border-b border-teal-400/20 bg-gradient-to-br from-teal-950/70 via-slate-900 to-cyan-950/45 p-5 shadow-[inset_0_1px_0_rgba(94,234,212,0.08)]">
+                  <div className="pointer-events-none absolute -right-12 -top-14 h-32 w-32 rounded-full bg-teal-400/10 blur-2xl" />
+                  <div className="pointer-events-none absolute -bottom-16 -left-12 h-32 w-32 rounded-full bg-cyan-400/10 blur-2xl" />
+                  <div className="relative space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-300/30 bg-teal-400/15 shadow-lg shadow-teal-950/40">
+                          <Users className="h-5 w-5 text-teal-200" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-300/80">Primary recipients</p>
+                          <h4 className="truncate text-base font-black text-white">Sent to employees</h4>
+                        </div>
                       </div>
-                      {(() => {
+                      <span className="shrink-0 rounded-full border border-teal-200/30 bg-teal-300/15 px-2.5 py-1 text-xs font-black text-teal-100">
+                        {selectedMessageDetail.recipient_ids?.length || 'ALL'}
+                      </span>
+                    </div>
+
+                    {(!selectedMessageDetail.recipient_ids || selectedMessageDetail.recipient_ids.length === 0) ? (
+                      <div className="flex items-center gap-3 rounded-xl border border-blue-300/25 bg-blue-400/10 px-3.5 py-3">
+                        <Globe className="h-5 w-5 shrink-0 text-blue-300" />
+                        <div>
+                          <p className="text-sm font-bold text-blue-100">All Employees</p>
+                          <p className="text-[10px] font-medium text-blue-300/80">Broadcast notification</p>
+                        </div>
+                      </div>
+                    ) : (
+                      (() => {
                         const details = recipientDetails.get(selectedMessageDetail.id);
-                        const employees = details
-                          ? [...details.read, ...details.unread]
-                          : [];
+                        const employees = details ? [...details.read, ...details.unread] : [];
+                        const readIds = new Set(details?.read.map(employee => employee.id) || []);
                         const usernames = recipientUsernames.get(selectedMessageDetail.id) || [];
 
                         if (employees.length > 0) {
                           return (
-                            <div className="max-h-60 overflow-y-auto scrollbar-dark space-y-1">
-                              {employees.map(employee => (
-                                <div key={employee.id} className="flex items-center justify-between gap-2 rounded bg-slate-700/40 px-2.5 py-1.5">
-                                  <span className="min-w-0 truncate text-xs font-medium text-slate-200">{employee.username}</span>
-                                  <span className="shrink-0 font-mono text-[10px] text-slate-400">{employee.employee_id}</span>
-                                </div>
-                              ))}
+                            <div className="max-h-72 space-y-2 overflow-y-auto pr-1 scrollbar-dark">
+                              {employees.map(employee => {
+                                const isRead = readIds.has(employee.id);
+                                return (
+                                  <div key={employee.id} className={`rounded-xl border px-3 py-2.5 transition-colors ${isRead ? 'border-emerald-300/25 bg-emerald-400/10' : 'border-slate-500/35 bg-slate-950/35'}`}>
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="flex min-w-0 items-center gap-2.5">
+                                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-black ${isRead ? 'bg-emerald-300/20 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>
+                                          {employee.username.slice(0, 1).toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0">
+                                          <p className="truncate text-sm font-bold text-white">{employee.username}</p>
+                                          <p className="mt-0.5 truncate font-mono text-[10px] text-teal-200/70">Account ID: {employee.employee_id}</p>
+                                        </div>
+                                      </div>
+                                      <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wide ${isRead ? 'bg-emerald-300/15 text-emerald-200' : 'bg-slate-700/80 text-slate-300'}`}>
+                                        {isRead ? 'Read' : 'Unread'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           );
                         }
 
                         if (usernames.length > 0) {
                           return (
-                            <div className="max-h-60 overflow-y-auto scrollbar-dark space-y-0.5">
+                            <div className="max-h-72 space-y-2 overflow-y-auto pr-1 scrollbar-dark">
                               {usernames.map(name => (
-                                <div key={name} className="rounded bg-slate-700/40 px-2.5 py-1 text-xs text-slate-300 truncate">{name}</div>
+                                <div key={name} className="rounded-xl border border-slate-500/35 bg-slate-950/35 px-3 py-2.5">
+                                  <p className="text-sm font-bold text-white">{name}</p>
+                                  <p className="mt-0.5 text-[10px] text-teal-200/70">Employee account</p>
+                                </div>
                               ))}
                             </div>
                           );
                         }
 
                         return loadingRecipientDetails ? (
-                          <div className="flex items-center justify-center py-3">
-                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-teal-400/30 border-t-teal-400" />
+                          <div className="flex items-center justify-center rounded-xl border border-teal-300/15 bg-slate-950/25 py-6">
+                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-400/30 border-t-teal-300" />
                           </div>
                         ) : (
-                          <p className="text-xs text-slate-500">Employee account details unavailable.</p>
+                          <p className="rounded-xl border border-slate-500/25 bg-slate-950/25 px-3 py-3 text-xs text-slate-400">Employee account details unavailable.</p>
                         );
-                      })()}
-                    </div>
-                  )}
+                      })()
+                    )}
+                  </div>
                 </div>
 
                 {/* Read Status */}
@@ -1741,7 +1771,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                   const stats = messageStats.get(selectedMessageDetail.id)!;
                   const details = recipientDetails.get(selectedMessageDetail.id);
                   return (
-                    <div className="p-5 space-y-4">
+                    <div className="order-3 p-5 space-y-4">
                       <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest">Read Status</h4>
 
                       <div className="flex items-baseline gap-2">
