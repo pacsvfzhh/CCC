@@ -75,26 +75,30 @@ const formatMessageDateTime = (value: string) =>
 const getMessageTypeTone = (messageType: Message['message_type']) =>
   messageType === 'login_popup'
     ? {
-        card: 'border-violet-700',
-        icon: 'bg-violet-900/70 text-violet-200',
+        card: 'border-violet-800/90 bg-gradient-to-br from-violet-950/80 via-slate-800 to-slate-900',
+        accent: 'bg-violet-400',
+        icon: 'bg-violet-900/80 text-violet-200 ring-1 ring-violet-700/60',
+        label: 'text-violet-200/70',
         value: 'text-violet-100',
       }
     : {
-        card: 'border-blue-700',
-        icon: 'bg-blue-900/70 text-blue-200',
+        card: 'border-blue-800/90 bg-gradient-to-br from-blue-950/80 via-slate-800 to-slate-900',
+        accent: 'bg-blue-400',
+        icon: 'bg-blue-900/80 text-blue-200 ring-1 ring-blue-700/60',
+        label: 'text-blue-200/70',
         value: 'text-blue-100',
       };
 
 const getMessagePriorityTone = (priority: Message['priority']) => {
   switch (priority) {
     case 'urgent':
-      return { card: 'border-red-700', icon: 'bg-red-900/70 text-red-200', value: 'text-red-100' };
+      return { card: 'border-red-800/90 bg-gradient-to-br from-red-950/80 via-slate-800 to-slate-900', accent: 'bg-red-400', icon: 'bg-red-900/80 text-red-200 ring-1 ring-red-700/60', label: 'text-red-200/70', value: 'text-red-100' };
     case 'high':
-      return { card: 'border-amber-700', icon: 'bg-amber-900/70 text-amber-200', value: 'text-amber-100' };
+      return { card: 'border-amber-800/90 bg-gradient-to-br from-amber-950/80 via-slate-800 to-slate-900', accent: 'bg-amber-400', icon: 'bg-amber-900/80 text-amber-200 ring-1 ring-amber-700/60', label: 'text-amber-200/70', value: 'text-amber-100' };
     case 'normal':
-      return { card: 'border-emerald-700', icon: 'bg-emerald-900/70 text-emerald-200', value: 'text-emerald-100' };
+      return { card: 'border-emerald-800/90 bg-gradient-to-br from-emerald-950/80 via-slate-800 to-slate-900', accent: 'bg-emerald-400', icon: 'bg-emerald-900/80 text-emerald-200 ring-1 ring-emerald-700/60', label: 'text-emerald-200/70', value: 'text-emerald-100' };
     default:
-      return { card: 'border-slate-600', icon: 'bg-slate-700 text-slate-200', value: 'text-slate-100' };
+      return { card: 'border-slate-700 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900', accent: 'bg-slate-400', icon: 'bg-slate-700 text-slate-200 ring-1 ring-slate-600', label: 'text-slate-300/70', value: 'text-slate-100' };
   }
 };
 
@@ -1700,30 +1704,42 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                     <span className="max-w-[45%] truncate text-[11px] font-medium text-slate-300">{selectedMessageDetail.sender_username}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2.5">
-                    <div className="min-w-0 rounded-lg border border-slate-600 bg-slate-800 px-3 py-3">
-                      <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-md bg-slate-700 text-slate-200">
-                        <Clock className="h-4 w-4" />
+                    <div className="relative min-h-[108px] min-w-0 overflow-hidden rounded-xl border border-slate-700 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 px-3 py-3 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]">
+                      <div className="absolute inset-x-0 top-0 h-0.5 bg-slate-400" />
+                      <div className="mb-3 flex items-start justify-between gap-2">
+                        <p className="pt-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-300/75">Sent</p>
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-700 text-slate-200 ring-1 ring-slate-600">
+                          <Clock className="h-4 w-4" />
+                        </div>
                       </div>
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Sent</p>
-                      <p className="mt-1 truncate text-[11px] font-bold text-white" title={formatMessageDateTime(selectedMessageDetail.created_at)}>{formatMessageDateTime(selectedMessageDetail.created_at)}</p>
+                      <p className="whitespace-nowrap text-[10px] font-bold text-white" title={formatMessageDateTime(selectedMessageDetail.created_at)}>{formatMessageDateTime(selectedMessageDetail.created_at)}</p>
+                      <p className="mt-1 text-[9px] font-medium text-slate-400">Date &amp; time</p>
                     </div>
-                    <div className={`min-w-0 rounded-lg border ${messageTypeTone.card} bg-slate-800 px-3 py-3`}>
-                      <div className={`mb-2 flex h-7 w-7 items-center justify-center rounded-md ${messageTypeTone.icon}`}>
-                        {selectedMessageDetail.message_type === 'login_popup'
-                          ? <Bell className="h-4 w-4" />
-                          : <Radio className="h-4 w-4" />}
+                    <div className={`relative min-h-[108px] min-w-0 overflow-hidden rounded-xl border ${messageTypeTone.card} px-3 py-3 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]`}>
+                      <div className={`absolute inset-x-0 top-0 h-0.5 ${messageTypeTone.accent}`} />
+                      <div className="mb-3 flex items-start justify-between gap-2">
+                        <p className={`pt-1 text-[10px] font-black uppercase tracking-[0.16em] ${messageTypeTone.label}`}>Type</p>
+                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${messageTypeTone.icon}`}>
+                          {selectedMessageDetail.message_type === 'login_popup'
+                            ? <Bell className="h-4 w-4" />
+                            : <Radio className="h-4 w-4" />}
+                        </div>
                       </div>
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Type</p>
-                      <p className={`mt-1 truncate text-xs font-bold ${messageTypeTone.value}`}>{selectedMessageDetail.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}</p>
+                      <p className={`truncate text-xs font-black ${messageTypeTone.value}`}>{selectedMessageDetail.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}</p>
+                      <p className={`mt-1 text-[9px] font-medium ${messageTypeTone.label}`}>Delivery channel</p>
                     </div>
-                    <div className={`min-w-0 rounded-lg border ${messagePriorityTone.card} bg-slate-800 px-3 py-3`}>
-                      <div className={`mb-2 flex h-7 w-7 items-center justify-center rounded-md ${messagePriorityTone.icon}`}>
-                        <AlertCircle className="h-4 w-4" />
+                    <div className={`relative min-h-[108px] min-w-0 overflow-hidden rounded-xl border ${messagePriorityTone.card} px-3 py-3 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]`}>
+                      <div className={`absolute inset-x-0 top-0 h-0.5 ${messagePriorityTone.accent}`} />
+                      <div className="mb-3 flex items-start justify-between gap-2">
+                        <p className={`pt-1 text-[10px] font-black uppercase tracking-[0.16em] ${messagePriorityTone.label}`}>Priority</p>
+                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${messagePriorityTone.icon}`}>
+                          <AlertCircle className="h-4 w-4" />
+                        </div>
                       </div>
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Priority</p>
-                      <p className={`mt-1 truncate text-xs font-bold ${messagePriorityTone.value}`}>
+                      <p className={`truncate text-xs font-black ${messagePriorityTone.value}`}>
                         {selectedMessageDetail.priority.charAt(0).toUpperCase() + selectedMessageDetail.priority.slice(1)}
                       </p>
+                      <p className={`mt-1 text-[9px] font-medium ${messagePriorityTone.label}`}>Message level</p>
                     </div>
                   </div>
                 </div>
