@@ -921,6 +921,14 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
   useEffect(() => {
     if (!initialEmployee) return;
+
+    setSelectedCustomer(null);
+    setSelectedEmployee(null);
+    setMessages([]);
+    setConversationHistory([]);
+    conversationHistoryRef.current = [];
+    setShowHistoryView(true);
+
     if (isSuperAdmin) {
       void loadAdminGroups(initialEmployee);
     } else {
@@ -935,14 +943,26 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (employees.length > 0) {
       const found = employees.find(e => e.id === initialEmployee.id);
       if (found) {
+        const firstCustomer = customers[0] || null;
+        const cachedHistory = firstCustomer
+          ? allConversationHistoryRef.current.filter(history => history.customer_id === firstCustomer.id)
+          : [];
+
         setSearchQuery('');
         setSelectedTags([]);
         setEmployeeGroupFilter('all');
+        setSelectedCustomer(firstCustomer);
+        setConversationHistory(cachedHistory);
+        conversationHistoryRef.current = cachedHistory;
         setSelectedEmployee(found);
+        setMessages([]);
+        setShowHistoryView(!firstCustomer);
+        setHistoryScope(firstCustomer ? 'customer' : 'all');
+        setHistoryFilterMode('all');
         onConsumeInitialEmployee?.();
       }
     }
-  }, [initialEmployee, loading, employees]);
+  }, [initialEmployee, loading, employees, customers]);
 
   // Auto-load all conversation history when admin is selected and no customer is focused
   useEffect(() => {
