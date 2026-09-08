@@ -41,7 +41,7 @@ const ChatImage = memo(({
 
   return (
     <div
-      className={`relative inline-flex w-fit max-w-full flex-col overflow-hidden rounded-lg ${imageLoaded || imageError ? '' : 'min-h-[60px] min-w-[60px]'}`}
+      className={`relative flex w-fit max-w-full flex-col overflow-hidden rounded-lg leading-none ${imageLoaded || imageError ? '' : 'min-h-[60px] min-w-[60px]'}`}
       style={{ width: 'fit-content', height: 'fit-content', maxWidth: '200px', backgroundColor: 'transparent' }}
     >
       {/* Loading skeleton - fades out */}
