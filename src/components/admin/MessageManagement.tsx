@@ -134,11 +134,21 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
   useEffect(() => { selectedAdminIdRef.current = selectedAdminId; }, [selectedAdminId]);
 
   useEffect(() => {
-    if (initialEmployee) {
-      setSelectedEmployeeIds(new Set([initialEmployee.id]));
-      onConsumeInitialEmployee?.();
-    }
-  }, [initialEmployee]);
+    if (!initialEmployee || loading) return;
+
+    const targetGroup = Array.from(allEmployees.entries()).find(([, employees]) =>
+      employees.some(employee => employee.id === initialEmployee.id),
+    );
+
+    if (!targetGroup) return;
+
+    setSelectedAdminId(targetGroup[0]);
+    setSearchQuery('');
+    setFilterStatus('all');
+    setSelectedTags(new Set());
+    setSelectedEmployeeIds(new Set([initialEmployee.id]));
+    onConsumeInitialEmployee?.();
+  }, [initialEmployee, loading, allEmployees]);
 
   useEffect(() => {
     loadAllData();
