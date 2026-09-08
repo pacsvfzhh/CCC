@@ -6,6 +6,16 @@ import { sanitizeChatMessage, sanitizeAnnouncementContent } from '../../lib/sani
 import { useLanguage } from '../../lib/i18n';
 import { CustomerAvatarDisplay, preloadCustomerAvatar } from '../admin/CustomerAvatarPicker';
 
+function extractImageOnlyUrl(content: string): string | null {
+  const container = document.createElement('div');
+  container.innerHTML = sanitizeChatMessage(content);
+  const images = container.querySelectorAll('img');
+  const text = (container.textContent || '').replace(/\u00a0/g, ' ').trim();
+
+  if (images.length !== 1 || text) return null;
+  return images[0].getAttribute('src') || null;
+}
+
 // Image component with loading state
 const ChatImage = memo(({
   src,
@@ -31,11 +41,8 @@ const ChatImage = memo(({
 
   return (
     <div
-      className="relative overflow-hidden rounded-xl"
-      style={{
-        width: '280px',
-        height: '200px',
-      }}
+      className={`relative inline-flex w-fit max-w-full flex-col overflow-hidden rounded-lg ${imageLoaded || imageError ? '' : 'min-h-[60px] min-w-[60px]'}`}
+      style={{ width: 'fit-content', height: 'fit-content', maxWidth: '200px', backgroundColor: 'transparent' }}
     >
       {/* Loading skeleton - fades out */}
       <div
@@ -66,9 +73,10 @@ const ChatImage = memo(({
         ref={imgRef}
         src={src}
         alt={alt}
-        className={`w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity duration-300 shadow-lg ${
+        className={`block rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity duration-300 shadow-sm ${
           imageLoaded ? 'opacity-100' : 'opacity-0'
         }`}
+        style={{ width: 'auto', height: 'auto', maxWidth: '200px', maxHeight: '250px' }}
         onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClickImage(src); }}
         onLoad={() => setImageLoaded(true)}
         onError={() => setImageError(true)}
@@ -922,6 +930,16 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
     const content = msg.message_content;
     const hasHtml = /<[a-z][\s\S]*>/i.test(content);
+    const imageOnlyUrl = hasHtml ? extractImageOnlyUrl(content) : null;
+    if (imageOnlyUrl) {
+      return (
+        <ChatImage
+          src={imageOnlyUrl}
+          alt="Shared image"
+          onClickImage={(url: string) => { setPreviewImage(url); setImageZoom(1); setImageDrag({ x: 0, y: 0 }); }}
+        />
+      );
+    }
     if (hasHtml) {
       const sanitized = sanitizeChatMessage(content);
       const hasImgTag = /<img\s/i.test(content);
@@ -2726,7 +2744,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                           <>
                             {renderMessageContent(msg)}
                           </>
-                        ) : msg.message_type === 'image' && msg.image_url ? (
+                        ) : (msg.message_type === 'image' && msg.image_url) || (msg.message_type === 'text' && extractImageOnlyUrl(msg.message_content)) ? (
                           <div className="rounded-2xl overflow-hidden shadow-md">
                             {renderMessageContent(msg)}
                           </div>
