@@ -259,6 +259,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     _empSearch: ''
   });
   const [editingCustomer, setEditingCustomer] = useState<SimulatedCustomer | null>(null);
+  const [savingCustomer, setSavingCustomer] = useState(false);
   const [autoMessageDrafts, setAutoMessageDrafts] = useState<AutoMessageDraft[]>([]);
   const [autoMessageDraftMasterEnabled, setAutoMessageDraftMasterEnabled] = useState(false);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
@@ -917,7 +918,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     if (!adminIdToUse) return;
     const requestId = ++conversationHistoryLoadRequestRef.current;
     try {
-      const unreadCountsRequest = loadCustomerUnreadCounts(allCustomersRef.current.map(customer => customer.id));
+      void loadCustomerUnreadCounts(allCustomersRef.current.map(customer => customer.id));
       const data = await prefetchConversationSummaries(
         adminIdToUse,
         'manager',
@@ -933,7 +934,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         force,
       );
 
-      await unreadCountsRequest;
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
 
       const employeeIds = data.map((row: any) => row.employee_id).filter(Boolean);
@@ -1251,7 +1251,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   // Auto-load all conversation history when admin is selected and no customer is focused
   useEffect(() => {
     if (isActive && selectedAdminId && customers.length > 0 && employees.length > 0 && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
-      void loadAllConversationHistory(selectedAdminId);
+      void loadAllConversationHistory(selectedAdminId, true);
     }
   }, [isActive, selectedAdminId, customers.length, employees.length, selectedCustomer, selectedEmployee, showHistoryView, historyScope, loadAllConversationHistory]);
 
@@ -2070,7 +2070,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedAdminId) return;
+    if (!selectedAdminId || savingCustomer) return;
 
     if (customerForm.isSuper) {
       if (!customerForm.name.trim()) {
@@ -2083,7 +2083,24 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       }
     }
 
+    setSavingCustomer(true);
     try {
+      const customId = customerForm.isSuper ? (customerForm.customId || '').trim() : '';
+      if (customId) {
+        const { data: existingCustomer, error: existingCustomerError } = await supabase
+          .from('simulated_customers')
+          .select('id')
+          .eq('customer_id', customId)
+          .eq('source_type', 'ccc_service')
+          .maybeSingle();
+
+        if (existingCustomerError) throw existingCustomerError;
+        if (existingCustomer) {
+          setNotification({ type: 'error', text: 'This Custom ID is already in use. Please use a different one.' });
+          return;
+        }
+      }
+
       let customAvatarUrl = null;
 
       if (customerForm.customAvatarFile && customerForm.isSuper && customerForm.useCustomAvatar) {
@@ -2120,8 +2137,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         source_type: 'ccc_service',
       };
 
-      if (customerForm.isSuper && (customerForm.customId || '').trim()) {
-        insertData.customer_id = (customerForm.customId || '').trim();
+      if (customId) {
+        insertData.customer_id = customId;
       }
 
       const { data: createdCustomer, error } = await supabase
@@ -2168,6 +2185,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     } catch (error: any) {
       const msg = (error.message || '').includes('customer_id_unique') ? 'This Custom ID is already in use. Please use a different one.' : (error.message || 'Failed to create customer');
       setNotification({ type: 'error', text: msg });
+    } finally {
+      setSavingCustomer(false);
     }
   };
 
@@ -2248,25 +2267,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         .eq('id', editingCustomer.id);
 
       if (error) throw error;
-
-      // Sync customer info to all related conversations
-      const conversationUpdateData: any = {
-        customer_name: customerForm.name,
-        customer_avatar: customerForm.avatar,
-        is_super: customerForm.isSuper,
-        super_customer_title: customerForm.isSuper ? customerForm.superTitle : null,
-        badge_type: customerForm.isSuper && customerForm.badgeType ? customerForm.badgeType : null,
-        custom_avatar_url: customerForm.useCustomAvatar ? customAvatarUrl : null,
-      };
-
-      if (customerForm.isSuper && (customerForm.customId || '').trim()) {
-        conversationUpdateData.customer_id = (customerForm.customId || '').trim();
-      }
-
-      await supabase
-        .from('customer_employee_conversations')
-        .update(conversationUpdateData)
-        .eq('customer_id', editingCustomer.id);
 
       setNotification({ type: 'success', text: 'Customer updated successfully!' });
       setEditingCustomer(null);
@@ -5572,9 +5572,10 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
             <div className="create-customer-modal__actions flex gap-2 mt-4">
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg transition-all font-medium"
+                disabled={savingCustomer}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg transition-all font-medium disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {editingCustomer ? 'Save' : 'Create'}
+                {savingCustomer ? 'Saving...' : editingCustomer ? 'Save' : 'Create'}
               </button>
               <button
                 type="button"

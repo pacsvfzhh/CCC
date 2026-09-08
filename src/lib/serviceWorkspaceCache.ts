@@ -161,13 +161,13 @@ export function prefetchAdminWorkspaceData<TCustomer = Record<string, unknown>, 
     () => Promise.all([
       supabase
         .from('simulated_customers')
-        .select('*')
+        .select('id, admin_id, customer_name, customer_id, customer_avatar, is_active, created_at, is_super, super_customer_title, badge_type, custom_avatar_url, is_pinned, vip_label, remarks, employee_pin_top, employee_always_visible, target_employee_ids, auto_messages_enabled')
         .eq('admin_id', adminId)
         .eq('source_type', getSourceType(service))
         .order('created_at', { ascending: false }),
       supabase
         .from('users')
-        .select('*')
+        .select('id, username, employee_id, is_verified, is_active, remarks, tags, created_by, created_at')
         .eq('created_by', adminId)
         .order('username'),
     ]).then(([customersRes, employeesRes]) => {
