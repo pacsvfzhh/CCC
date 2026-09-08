@@ -290,6 +290,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const customerUnreadRequestRef = useRef(0);
   const adminUnreadRequestRef = useRef(0);
   const locallyReadConversationKeysRef = useRef(new Set<string>());
+  const realtimeConversationIdsRef = useRef(new Set<string>());
   const [historyFilterMode, setHistoryFilterMode] = useState<'all' | 'history' | 'new'>('all');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [employeeGroupFilter, setEmployeeGroupFilter] = useState<'all' | 'chatted' | 'not_chatted'>('all');
@@ -550,6 +551,72 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     employeeListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [selectedEmployee?.id]);
 
+  const applyRealtimeConversation = useCallback((payload: { eventType?: string; new?: Partial<Message> }) => {
+    const message = payload.new;
+    if (!message?.id || !message.customer_id || !message.employee_id || !message.created_at) return;
+    if (message.source_type && message.source_type !== 'ccc_service') return;
+    if (!workspaceCustomerIds.has(message.customer_id) || !workspaceEmployeeIds.has(message.employee_id)) return;
+
+    if (payload.eventType === 'INSERT') {
+      if (realtimeConversationIdsRef.current.has(message.id)) return;
+      realtimeConversationIdsRef.current.add(message.id);
+    }
+
+    const conversationKey = `${message.customer_id}:${message.employee_id}`;
+    const isUnreadEmployeeMessage = message.sender_type === 'employee' &&
+      message.is_read === false &&
+      !isConversationReadThrough('ccc_service', message.customer_id, message.employee_id, message.created_at);
+    const lastMessage = message.message_type === 'image' ? '__IMAGE__' : message.message_content || '';
+    const updateHistory = (history: ConversationHistory[]) => {
+      const existingIndex = history.findIndex(item => `${item.customer_id}:${item.employee_id}` === conversationKey);
+      const existing = existingIndex >= 0 ? history[existingIndex] : null;
+      const customer = allCustomersRef.current.find(item => item.id === message.customer_id);
+      const employee = allEmployeesRef.current.find(item => item.id === message.employee_id);
+      if (!existing && (!customer || !employee)) return history;
+
+      const nextEntry: ConversationHistory = {
+        employee_id: message.employee_id as string,
+        employee_username: existing?.employee_username || employee?.username || 'Employee',
+        employee_number: existing?.employee_number || employee?.employee_id || '',
+        employee_tags: existing?.employee_tags || employee?.tags || [],
+        employee_remarks: existing?.employee_remarks || employee?.remarks || '',
+        message_count: (existing?.message_count || 0) + (payload.eventType === 'INSERT' ? 1 : 0),
+        last_message: lastMessage,
+        last_message_time: message.created_at as string,
+        unread_count: (existing?.unread_count || 0) + (payload.eventType === 'INSERT' && isUnreadEmployeeMessage ? 1 : 0),
+        customer_id: message.customer_id,
+        customer_name: existing?.customer_name || customer?.customer_name,
+        customer_avatar: existing?.customer_avatar || customer?.customer_avatar,
+        custom_avatar_url: existing?.custom_avatar_url || customer?.custom_avatar_url,
+      };
+
+      const nextHistory = existingIndex >= 0
+        ? history.map((item, index) => index === existingIndex ? { ...item, ...nextEntry } : item)
+        : [...history, nextEntry];
+      return nextHistory.sort((a, b) => new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime());
+    };
+
+    const nextAllHistory = updateHistory(allConversationHistoryRef.current);
+    const nextConversationHistory = selectedCustomer?.id && selectedCustomer.id !== message.customer_id
+      ? conversationHistoryRef.current
+      : updateHistory(conversationHistoryRef.current);
+    allConversationHistoryRef.current = nextAllHistory;
+    conversationHistoryRef.current = nextConversationHistory;
+    setAllConversationHistory(nextAllHistory);
+    setConversationHistory(nextConversationHistory);
+
+    if (payload.eventType === 'INSERT' && isUnreadEmployeeMessage) {
+      const nextConversationCounts = { ...conversationUnreadCountsRef.current };
+      nextConversationCounts[conversationKey] = (nextConversationCounts[conversationKey] || 0) + 1;
+      conversationUnreadCountsRef.current = nextConversationCounts;
+
+      const nextCustomerCounts = { ...customerUnreadCountsRef.current };
+      nextCustomerCounts[message.customer_id] = (nextCustomerCounts[message.customer_id] || 0) + 1;
+      customerUnreadCountsRef.current = nextCustomerCounts;
+      setCustomerUnreadCounts(nextCustomerCounts);
+    }
+  }, [selectedCustomer?.id, workspaceCustomerIds, workspaceEmployeeIds]);
+
   const loadCustomerUnreadCounts = useCallback(async (customerIds: string[]) => {
     if (!selectedAdminId || customerIds.length === 0) return;
     const requestAdminId = selectedAdminId;
@@ -563,6 +630,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         .select('customer_id, employee_id, created_at')
         .in('customer_id', customerIds)
         .in('employee_id', employeeIds)
+        .eq('source_type', 'ccc_service')
         .eq('sender_type', 'employee')
         .eq('is_read', false);
 
@@ -599,6 +667,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           .select('customer_id, employee_id, message_content, message_type, created_at')
           .in('customer_id', customerIds)
           .in('employee_id', employeeIds)
+          .eq('source_type', 'ccc_service')
           .order('created_at', { ascending: false });
 
         if (latestMessagesError) throw latestMessagesError;
@@ -704,6 +773,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         .select('customer_id, employee_id')
         .in('customer_id', customerIds)
         .in('employee_id', employeeIds)
+        .eq('source_type', 'ccc_service')
         .eq('sender_type', 'employee')
         .eq('is_read', false);
 
@@ -1328,6 +1398,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
             locallyReadConversationKeysRef.current.delete(`${payload.new.customer_id}:${payload.new.employee_id}`);
             clearConversationRead('ccc_service', payload.new.customer_id, payload.new.employee_id);
           }
+          applyRealtimeConversation(payload);
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             loadCustomerUnreadCounts(customerIds);
@@ -1342,7 +1413,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         supabase.removeChannel(channel);
       };
     }
-  }, [isActive, selectedAdminId, customers, loadAllConversationHistory, loadCustomerUnreadCounts]);
+  }, [isActive, selectedAdminId, customers, applyRealtimeConversation, loadAllConversationHistory, loadCustomerUnreadCounts]);
 
   // Subscribe to realtime updates for employees (users table)
   useEffect(() => {
