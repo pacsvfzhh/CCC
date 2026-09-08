@@ -2411,7 +2411,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                 </div>
               ) : (
                 <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-full">
-                  <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></div>
+                  <div className="w-1.5 h-1.5 bg-amber-500 rounded-full "></div>
                   <span className="text-[10px] text-amber-700 font-semibold">Pending</span>
                 </div>
               )}
@@ -3050,7 +3050,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         )}
         {isSuperAdmin && selectedAdminId && (
           <div className="flex items-center gap-2 px-3 h-10 bg-emerald-950/50 border border-emerald-400/50 rounded-lg flex-shrink-0">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
+            <div className="w-2 h-2 bg-green-500 rounded-full  flex-shrink-0"></div>
             <span className="text-[10px] font-bold text-emerald-200 uppercase tracking-wider flex-shrink-0">Managing</span>
             <div className="h-4 w-px bg-emerald-400/40 flex-shrink-0"></div>
             <div className="p-1 bg-gradient-to-br from-emerald-500 to-green-500 rounded flex-shrink-0">
@@ -3108,7 +3108,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                     totalUnread > 0
                       ? `${showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
                         ? 'bg-green-600 text-white shadow-lg shadow-green-500/40 border-green-300'
-                        : 'bg-green-950/50 hover:bg-green-800/50 border-green-500/50 hover:border-green-300/70 text-green-200 hover:text-green-100 shadow-lg shadow-green-950/30 hover:shadow-green-900/40'} session-unread-action`
+                        : 'bg-green-950/50 hover:bg-green-800/50 border-green-500/50 hover:border-green-300/70 text-green-200 hover:text-green-100 shadow-lg shadow-green-950/30 hover:shadow-green-900/40'}`
                       : showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
                         ? 'bg-green-600 text-white shadow-lg shadow-green-500/40 border-green-300'
                         : 'bg-green-950/50 hover:bg-green-800/50 border-green-500/50 hover:border-green-300/70 text-green-200 hover:text-green-100 shadow-lg shadow-green-950/30 hover:shadow-green-900/40'
@@ -3121,10 +3121,10 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                       showHistoryView && historyScope === 'all' && historyFilterMode === 'new'
                         ? 'bg-white text-green-700'
                         : 'bg-green-500 text-white'
-                    } ${totalUnread > 0 ? 'session-unread-count' : ''}`}>{totalUnread}</span>
+                    }`}>{totalUnread}</span>
                   )}
                   {totalUnread > 0 && !(showHistoryView && historyScope === 'all' && historyFilterMode === 'new') && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full "></span>
                   )}
                 </button>
               </>
@@ -3750,7 +3750,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                               {isSelected ? (
                                 <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-blue-400" />
                               ) : hasUnread ? (
-                                <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-orange-400 animate-pulse" />
+                                <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-orange-400 " />
                               ) : null}
                               <div className="flex items-start gap-2.5">
                                 {/* Avatar */}
@@ -3789,7 +3789,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                     }`}>{timeStr}</span>
                                   </div>
                                   {hasUnread && (
-                                    <div className="absolute right-3 top-1/2 z-10 flex min-w-[30px] h-[30px] -translate-y-1/2 items-center justify-center rounded-full border-2 border-slate-900 bg-gradient-to-br from-orange-500 to-red-500 px-2 shadow-md shadow-orange-500/40 animate-pulse">
+                                    <div className="absolute right-3 top-1/2 z-10 flex min-w-[30px] h-[30px] -translate-y-1/2 items-center justify-center rounded-full border-2 border-slate-900 bg-gradient-to-br from-orange-500 to-red-500 px-2 shadow-md shadow-orange-500/40 ">
                                       <span className="text-[12px] font-black leading-none text-white drop-shadow-sm">{history.unread_count > 99 ? '99+' : history.unread_count}</span>
                                     </div>
                                   )}
@@ -3912,7 +3912,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                     </div>
                     {serviceTicketNumber && (
                       <div className="flex max-w-[96px] items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-gradient-to-r from-emerald-500/15 to-teal-500/10 px-2 py-1.5 ml-1 flex-shrink-0">
-                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full "></div>
                         <span className="truncate text-[11px] text-emerald-200 font-mono font-bold tracking-wide">{serviceTicketNumber}</span>
                       </div>
                     )}
@@ -3950,7 +3950,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                             {customerHistory.length > 0 && <span className="px-1.5 py-px bg-white/20 rounded text-[10px] font-black">{customerHistory.length}</span>}
                           </button>
                           {totalUnread > 0 && (
-                            <div className="absolute -top-2.5 -right-2.5 min-w-[22px] h-[22px] px-1 bg-orange-500 rounded-full flex items-center justify-center animate-pulse border-2 border-slate-900 shadow-lg shadow-orange-500/40">
+                            <div className="absolute -top-2.5 -right-2.5 min-w-[22px] h-[22px] px-1 bg-orange-500 rounded-full flex items-center justify-center  border-2 border-slate-900 shadow-lg shadow-orange-500/40">
                               <span className="text-[11px] font-black text-white">{totalUnread > 99 ? '99+' : totalUnread}</span>
                             </div>
                           )}
