@@ -1278,9 +1278,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
   // Subscribe to realtime updates for admins table
   useEffect(() => {
-    if (isActive && isSuperAdmin) {
+    if (isSuperAdmin) {
       const channel = supabase
-        .channel('customer_service_admins_realtime')
+        .channel('manager_service_admins_realtime')
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1294,13 +1294,16 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         supabase.removeChannel(channel);
       };
     }
-  }, [isActive, isSuperAdmin, loadAdminGroups]);
+  }, [isSuperAdmin, loadAdminGroups]);
 
   // Refresh summary counts while the workspace picker is visible
   useEffect(() => {
-    if (!isActive || !isSuperAdmin || selectedAdminId || adminGroups.length === 0) return;
+    if (!isSuperAdmin || selectedAdminId || adminGroups.length === 0) return;
 
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const fallbackTimer = window.setInterval(() => {
+      void loadAdminGroups(null, true, true);
+    }, 15000);
     const scheduleRefresh = () => {
       if (refreshTimer) clearTimeout(refreshTimer);
       refreshTimer = setTimeout(() => {
@@ -1317,16 +1320,17 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer);
+      window.clearInterval(fallbackTimer);
       supabase.removeChannel(channel);
     };
-  }, [isActive, isSuperAdmin, selectedAdminId, adminGroups.length, loadAdminGroups]);
+  }, [isSuperAdmin, selectedAdminId, adminGroups.length, loadAdminGroups]);
 
   // Subscribe to realtime updates for admin unread counts
   useEffect(() => {
-    if (isActive && isSuperAdmin && adminGroups.length > 0) {
+    if (isSuperAdmin && adminGroups.length > 0) {
       const adminIds = adminGroups.map(g => g.admin_id);
       const channel = supabase
-        .channel('admin_unread_counts_realtime')
+        .channel('manager_service_admin_unread_counts_realtime')
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1340,7 +1344,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         supabase.removeChannel(channel);
       };
     }
-  }, [isActive, isSuperAdmin, adminGroups.length]);
+  }, [isSuperAdmin, adminGroups.length]);
 
 
 

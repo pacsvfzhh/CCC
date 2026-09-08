@@ -53,7 +53,7 @@ const formatRole = (role: string) => role === 'super_admin' ? 'Super admin' : ro
 export default function AdminGroupPicker({ service, groups, unreadCounts, fallbackUnreadCount = 0, loading, onSelect, onRefresh }: AdminGroupPickerProps) {
   const styles = serviceStyles[service];
   const Icon = styles.Icon;
-  const getUnreadCount = (group: AdminGroup) => unreadCounts[group.admin_id] || (groups.length === 1 ? fallbackUnreadCount : 0);
+  const getUnreadCount = (group: AdminGroup) => unreadCounts[group.admin_id] ?? (groups.length === 1 ? fallbackUnreadCount : 0);
   const totalEmployees = groups.reduce((total, group) => total + Number(group.employee_count || 0), 0);
   const totalCustomers = groups.reduce((total, group) => total + Number(group.customer_count || 0), 0);
   const totalConversations = groups.reduce((total, group) => total + Number(group.conversation_count || 0), 0);
