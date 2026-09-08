@@ -90,6 +90,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
   const [loadingRecipientDetails, setLoadingRecipientDetails] = useState(false);
   const [recipientUsernames, setRecipientUsernames] = useState<Map<string, string[]>>(new Map());
   const [recipientSearchQuery, setRecipientSearchQuery] = useState('');
+  const [recipientStatusFilter, setRecipientStatusFilter] = useState<'all' | 'read' | 'unread'>('all');
 
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
@@ -1474,6 +1475,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                       } else {
                         setSelectedMessageDetail(msg);
                         setRecipientSearchQuery('');
+                        setRecipientStatusFilter('all');
                         setEditingMessage(false);
                         loadRecipientDetails(msg.id);
                       }
@@ -1647,7 +1649,7 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
               </div>
 
               {/* Right: Stats & Info */}
-              <div className="w-[40%] flex flex-col min-h-0 border-l border-slate-700/50 bg-slate-800/30 overflow-y-auto scrollbar-dark">
+              <div className="w-[40%] flex flex-col min-h-0 overflow-hidden border-l border-slate-700/50 bg-slate-800/30">
                 {/* Message Info */}
                 <div className="order-1 shrink-0 border-b border-slate-700/40 bg-slate-900/55 px-4 py-3">
                   <div className="mb-2.5 flex items-center justify-between gap-3">
@@ -1698,26 +1700,85 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                     </div>
 
                     {selectedMessageDetail.recipient_ids && selectedMessageDetail.recipient_ids.length > 0 && (
-                      <div className="relative shrink-0">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-teal-300/70" />
-                        <input
-                          type="text"
-                          value={recipientSearchQuery}
-                          onChange={event => setRecipientSearchQuery(event.target.value)}
-                          placeholder="Search employee or account ID..."
-                          className="h-9 w-full rounded-lg border border-teal-300/20 bg-slate-950/35 pl-9 pr-8 text-xs font-medium text-slate-100 outline-none transition-colors placeholder:text-teal-100/35 focus:border-teal-300/55 focus:bg-slate-950/60 focus:ring-2 focus:ring-teal-300/15"
-                        />
-                        {recipientSearchQuery && (
-                          <button
-                            type="button"
-                            onClick={() => setRecipientSearchQuery('')}
-                            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-teal-200/70 transition-colors hover:bg-teal-300/10 hover:text-white"
-                            aria-label="Clear recipient search"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
+                      <>
+                        <div className="relative shrink-0">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-teal-300/70" />
+                          <input
+                            type="text"
+                            value={recipientSearchQuery}
+                            onChange={event => {
+                              setRecipientSearchQuery(event.target.value);
+                              setRecipientStatusFilter('all');
+                            }}
+                            placeholder="Search employee or account ID..."
+                            className="h-9 w-full rounded-lg border border-teal-300/20 bg-slate-950/35 pl-9 pr-8 text-xs font-medium text-slate-100 outline-none transition-colors placeholder:text-teal-100/35 focus:border-teal-300/55 focus:bg-slate-950/60 focus:ring-2 focus:ring-teal-300/15"
+                          />
+                          {recipientSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRecipientSearchQuery('');
+                                setRecipientStatusFilter('all');
+                              }}
+                              className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-teal-200/70 transition-colors hover:bg-teal-300/10 hover:text-white"
+                              aria-label="Clear recipient search"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid shrink-0 grid-cols-3 gap-1.5" role="group" aria-label="Filter recipients by read status">
+                          {(() => {
+                            const stats = messageStats.get(selectedMessageDetail.id);
+                            const hasSearch = recipientSearchQuery.trim().length > 0;
+                            const allActive = !hasSearch && recipientStatusFilter === 'all';
+                            const readActive = !hasSearch && recipientStatusFilter === 'read';
+                            const unreadActive = !hasSearch && recipientStatusFilter === 'unread';
+                            const baseClass = 'flex min-w-0 items-center justify-between gap-1 rounded-lg border px-2 py-1.5 text-[10px] font-bold transition-colors';
+
+                            return (
+                              <>
+                                <button
+                                  type="button"
+                                  aria-pressed={allActive}
+                                  onClick={() => {
+                                    setRecipientSearchQuery('');
+                                    setRecipientStatusFilter('all');
+                                  }}
+                                  className={`${baseClass} ${allActive ? 'border-teal-300/50 bg-teal-300/15 text-teal-100' : 'border-slate-600/60 bg-slate-900/35 text-slate-400 hover:border-teal-300/30 hover:text-teal-100'}`}
+                                >
+                                  <span>All</span>
+                                  <span className="font-black">{stats?.total_recipients ?? 0}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-pressed={readActive}
+                                  onClick={() => {
+                                    setRecipientSearchQuery('');
+                                    setRecipientStatusFilter(prev => prev === 'read' ? 'all' : 'read');
+                                  }}
+                                  className={`${baseClass} ${readActive ? 'border-emerald-300/50 bg-emerald-300/15 text-emerald-100' : 'border-slate-600/60 bg-slate-900/35 text-slate-400 hover:border-emerald-300/30 hover:text-emerald-100'}`}
+                                >
+                                  <span>Read</span>
+                                  <span className="font-black">{stats?.read_count ?? 0}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-pressed={unreadActive}
+                                  onClick={() => {
+                                    setRecipientSearchQuery('');
+                                    setRecipientStatusFilter(prev => prev === 'unread' ? 'all' : 'unread');
+                                  }}
+                                  className={`${baseClass} ${unreadActive ? 'border-amber-300/50 bg-amber-300/15 text-amber-100' : 'border-slate-600/60 bg-slate-900/35 text-slate-400 hover:border-amber-300/30 hover:text-amber-100'}`}
+                                >
+                                  <span>Unread</span>
+                                  <span className="font-black">{stats?.unread_count ?? 0}</span>
+                                </button>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </>
                     )}
 
                     {(!selectedMessageDetail.recipient_ids || selectedMessageDetail.recipient_ids.length === 0) ? (
@@ -1735,34 +1796,32 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                         const readIds = new Set(details?.read.map(employee => employee.id) || []);
                         const usernames = recipientUsernames.get(selectedMessageDetail.id) || [];
                         const query = recipientSearchQuery.trim().toLowerCase();
-                        const visibleEmployees = employees.filter(employee =>
-                          !query || employee.username.toLowerCase().includes(query) || employee.employee_id.toLowerCase().includes(query),
-                        );
+                        const visibleEmployees = employees.filter(employee => {
+                          const matchesSearch = !query || employee.username.toLowerCase().includes(query) || employee.employee_id.toLowerCase().includes(query);
+                          const matchesStatus = query.length > 0 || recipientStatusFilter === 'all' || (recipientStatusFilter === 'read' ? readIds.has(employee.id) : !readIds.has(employee.id));
+                          return matchesSearch && matchesStatus;
+                        });
                         const visibleUsernames = usernames.filter(name => !query || name.toLowerCase().includes(query));
 
                         if (employees.length > 0) {
                           return (
                             <div className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-dark">
                               {visibleEmployees.length > 0 ? (
-                                <div className="space-y-2">
+                                <div className="overflow-hidden rounded-xl border border-teal-300/15 bg-slate-950/25 divide-y divide-teal-200/10">
                                   {visibleEmployees.map(employee => {
                                     const isRead = readIds.has(employee.id);
                                     return (
-                                      <div key={employee.id} className={`rounded-xl border px-3 py-2.5 transition-colors ${isRead ? 'border-emerald-300/25 bg-emerald-400/10' : 'border-slate-500/35 bg-slate-950/35'}`}>
-                                        <div className="flex items-center justify-between gap-3">
-                                          <div className="flex min-w-0 items-center gap-2.5">
-                                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-black ${isRead ? 'bg-emerald-300/20 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>
-                                              {employee.username.slice(0, 1).toUpperCase()}
-                                            </div>
-                                            <div className="min-w-0">
-                                              <p className="truncate text-sm font-bold text-white">{employee.username}</p>
-                                              <p className="mt-0.5 truncate font-mono text-[10px] text-teal-200/70">Account ID: {employee.employee_id}</p>
-                                            </div>
-                                          </div>
-                                          <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wide ${isRead ? 'bg-emerald-300/15 text-emerald-200' : 'bg-slate-700/80 text-slate-300'}`}>
-                                            {isRead ? 'Read' : 'Unread'}
-                                          </span>
+                                      <div key={employee.id} className={`flex items-center gap-2.5 px-2.5 py-2 transition-colors ${isRead ? 'bg-emerald-400/[0.04]' : 'bg-slate-950/20'}`}>
+                                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[10px] font-black ${isRead ? 'bg-emerald-300/20 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>
+                                          {employee.username.slice(0, 1).toUpperCase()}
                                         </div>
+                                        <div className="min-w-0 flex-1">
+                                          <p className="truncate text-xs font-bold text-white">{employee.username}</p>
+                                          <p className="truncate font-mono text-[9px] text-teal-200/65">{employee.employee_id}</p>
+                                        </div>
+                                        <span className={`shrink-0 text-[9px] font-black uppercase tracking-wide ${isRead ? 'text-emerald-200' : 'text-amber-200'}`}>
+                                          {isRead ? 'Read' : 'Unread'}
+                                        </span>
                                       </div>
                                     );
                                   })}
@@ -1778,11 +1837,14 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                           return (
                             <div className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-dark">
                               {visibleUsernames.length > 0 ? (
-                                <div className="space-y-2">
+                                <div className="overflow-hidden rounded-xl border border-teal-300/15 bg-slate-950/25 divide-y divide-teal-200/10">
                                   {visibleUsernames.map(name => (
-                                    <div key={name} className="rounded-xl border border-slate-500/35 bg-slate-950/35 px-3 py-2.5">
-                                      <p className="text-sm font-bold text-white">{name}</p>
-                                      <p className="mt-0.5 text-[10px] text-teal-200/70">Employee account</p>
+                                    <div key={name} className="flex items-center gap-2.5 px-2.5 py-2">
+                                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-700 text-[10px] font-black text-slate-300">
+                                        {name.slice(0, 1).toUpperCase()}
+                                      </div>
+                                      <p className="min-w-0 flex-1 truncate text-xs font-bold text-white">{name}</p>
+                                      <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-slate-500">Employee</span>
                                     </div>
                                   ))}
                                 </div>
@@ -1805,26 +1867,15 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
                   </div>
                 </div>
 
-                {/* Read Status */}
                 {messageStats.has(selectedMessageDetail.id) && !editingMessage && (() => {
                   const stats = messageStats.get(selectedMessageDetail.id)!;
                   return (
-                    <div className="order-3 shrink-0 border-t border-slate-700/40 bg-slate-900/45 p-4">
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Delivery status</h4>
-                        <span className="text-[10px] font-bold text-slate-400">{stats.read_count}/{stats.total_recipients} read</span>
+                    <div className="order-3 shrink-0 border-t border-slate-700/40 bg-slate-900/45 px-4 py-2.5">
+                      <div className="mb-1.5 flex items-center justify-between gap-3">
+                        <h4 className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Delivery progress</h4>
+                        <span className="text-[9px] font-bold text-slate-400">{stats.read_count}/{stats.total_recipients} read</span>
                       </div>
-                      <div className="mb-3 grid grid-cols-2 gap-2">
-                        <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2">
-                          <p className="text-lg font-black leading-none text-emerald-300">{stats.read_count}</p>
-                          <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-emerald-200/70">Read</p>
-                        </div>
-                        <div className="rounded-lg border border-slate-500/30 bg-slate-800/60 px-3 py-2">
-                          <p className="text-lg font-black leading-none text-slate-200">{stats.unread_count}</p>
-                          <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-slate-400">Unread</p>
-                        </div>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-slate-700">
+                      <div className="h-1.5 overflow-hidden rounded-full bg-slate-700">
                         <div className={`h-full rounded-full transition-all ${stats.read_percentage === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 to-cyan-400'}`} style={{ width: `${stats.read_percentage}%` }} />
                       </div>
                     </div>
