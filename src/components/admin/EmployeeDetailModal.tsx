@@ -531,9 +531,9 @@ export default function EmployeeDetailModal({
       )}
 
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm sm:p-4">
-      <div className="flex h-[92vh] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-300/30 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950/50 shadow-2xl shadow-blue-950/50 max-h-[92vh]">
+      <div className="flex h-[92vh] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-300/30 bg-slate-900 shadow-2xl shadow-blue-950/50 max-h-[92vh]">
         {/* Header */}
-        <div className="shrink-0 border-b border-cyan-300/20 bg-gradient-to-r from-slate-900 via-blue-950/40 to-slate-900 px-4 py-3.5 sm:px-5">
+        <div className="shrink-0 border-b border-cyan-300/20 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 px-4 py-3.5 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/25 to-blue-600/25 text-cyan-300 ring-1 ring-inset ring-cyan-300/25">
@@ -594,7 +594,7 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-cyan-300/20 bg-slate-900/35 px-4 pt-2 sm:gap-2 sm:px-5">
+        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-cyan-300/20 bg-slate-900 px-4 pt-2 sm:gap-2 sm:px-5">
           <button
             onClick={() => setActiveTab("daily")}
             className={`inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-medium transition-all ${
@@ -631,7 +631,7 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Content */}
-        <div className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-b from-slate-900/20 to-blue-950/20 p-4 sm:p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-900 p-4 sm:p-5">
           <div className={activeTab === "daily" ? "space-y-4" : "hidden"}>
             {loadingStats ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
