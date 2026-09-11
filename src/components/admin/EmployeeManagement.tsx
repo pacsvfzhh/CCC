@@ -2000,18 +2000,18 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
         <div className="relative z-20 flex h-10 items-center overflow-hidden rounded-lg border border-blue-500/25 bg-slate-900/85 shadow-sm shadow-slate-950/40 shrink-0 sticky top-0 mb-1">
-          <div className="relative h-full min-w-0 flex-1 basis-0 bg-slate-950/25">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          <div className="relative h-full min-w-0 flex-1 basis-0 bg-cyan-950/20">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-300 pointer-events-none" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search employees..."
               autoComplete="off"
-              className="h-full w-full pl-9 pr-8 bg-transparent text-sm text-white placeholder-slate-500 outline-none transition-colors focus:bg-slate-800/50"
+              className="h-full w-full pl-9 pr-8 bg-transparent text-sm text-slate-50 placeholder:text-cyan-100/60 outline-none transition-colors focus:bg-cyan-900/25"
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
+              <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-cyan-200/70 hover:text-cyan-50 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -2122,17 +2122,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       {renderStatusFilterButtons(flatAdminId)}
                       <div className="ml-auto flex h-8 items-center gap-2">
                       <div className="relative h-8">
-                        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cyan-300 pointer-events-none" />
                         <input
                           type="text"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                           placeholder="Search employees..."
                           autoComplete="off"
-                          className="h-8 w-[168px] rounded-lg border border-blue-500/30 bg-slate-950/75 pl-8 pr-7 text-xs text-white placeholder-slate-500 shadow-sm shadow-slate-950/30 outline-none transition-colors focus:border-blue-400/70 focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20"
+                          className="h-8 w-[168px] rounded-lg border border-cyan-400/40 bg-cyan-950/30 pl-8 pr-7 text-xs text-cyan-50 placeholder:text-cyan-100/60 shadow-sm shadow-slate-950/30 outline-none transition-colors focus:border-cyan-300/80 focus:bg-cyan-900/40 focus:ring-2 focus:ring-cyan-400/20"
                         />
                         {searchTerm && (
-                          <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
+                          <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-cyan-200/70 hover:text-cyan-50 transition-colors">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         )}
