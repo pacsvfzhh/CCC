@@ -2101,7 +2101,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   >
                     <span className={`h-2 w-2 shrink-0 rounded-full ${selectedAdminFilter === 'all' ? 'bg-cyan-300 shadow-[0_0_8px_theme(colors.cyan.300)]' : 'bg-slate-600'}`} />
                     <span className="min-w-0 flex-1 truncate">All groups</span>
-                    <span className="rounded-md bg-slate-800/80 px-2 py-0.5 text-xs tabular-nums text-slate-400">{totalEmployeeCount}</span>
+                    <span className={`inline-flex min-w-[40px] items-center justify-center rounded-md border px-2.5 py-1 text-sm font-bold leading-none tabular-nums shadow-sm shadow-cyan-950/25 ${selectedAdminFilter === 'all' ? 'border-cyan-200/50 bg-cyan-300/20 text-cyan-50' : 'border-slate-600/80 bg-slate-800 text-cyan-100'}`}>{totalEmployeeCount}</span>
                   </button>
                   {employeeGroups.map((group) => {
                     const isSelected = selectedAdminFilter === group.admin.id;
@@ -2120,7 +2120,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       >
                         <span className={`h-2 w-2 shrink-0 rounded-full ${isSelected ? 'bg-cyan-300 shadow-[0_0_8px_theme(colors.cyan.300)]' : 'bg-slate-600'}`} />
                         <span className="min-w-0 flex-1 truncate" title={group.admin.username}>{group.admin.username}</span>
-                        <span className="rounded-md bg-slate-800/80 px-2 py-0.5 text-xs tabular-nums text-slate-400">{group.employees.length}</span>
+                        <span className={`inline-flex min-w-[40px] items-center justify-center rounded-md border px-2.5 py-1 text-sm font-bold leading-none tabular-nums shadow-sm shadow-cyan-950/25 ${isSelected ? 'border-cyan-200/50 bg-cyan-300/20 text-cyan-50' : 'border-slate-600/80 bg-slate-800 text-cyan-100'}`}>{group.employees.length}</span>
                       </button>
                     );
                   })}
