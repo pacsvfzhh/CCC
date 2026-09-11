@@ -635,18 +635,18 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       <div className="relative z-10 m-0 p-0 w-full h-full flex flex-col">
         <header className="bg-slate-900/90 backdrop-blur-xl border-b border-blue-500/30 w-full m-0 flex-shrink-0" style={{ WebkitBackdropFilter: 'blur(24px)' }}>
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-cyan-500/10 to-blue-600/5 pointer-events-none"></div>
-          <div className="w-full px-2 sm:px-2.5 lg:px-3 py-1 relative">
+          <div className="w-full px-2 sm:px-2.5 lg:px-3 py-0.5 relative">
             <div className="flex justify-between items-center gap-1.5">
               <div className="flex-1 min-w-0 flex items-center gap-1.5">
                 <div className="relative flex-shrink-0">
-                  <div className="relative w-5 h-5 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 rounded-md flex items-center justify-center shadow-md">
-                    <Zap className="w-3 h-3 text-white" fill="currentColor" />
+                  <div className="relative w-4 h-4 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 rounded flex items-center justify-center shadow-md">
+                    <Zap className="w-2.5 h-2.5 text-white" fill="currentColor" />
                   </div>
                 </div>
-                <h1 className="text-xs sm:text-base lg:text-lg font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent truncate">
+                <h1 className="text-[11px] sm:text-sm lg:text-base font-bold leading-none bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent truncate">
                   {companyName}
                 </h1>
-                <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded border border-purple-400/30">
+                <div className="hidden sm:flex items-center gap-1 px-1 py-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded border border-purple-400/30">
                   <Shield className="w-3 h-3 text-purple-400" />
                   <span className="text-[10px] text-purple-200 font-semibold uppercase">
                     {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
@@ -661,26 +661,26 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 {admin.role === 'super_admin' && (
                   <button
                     onClick={() => setShowUsernameModal(true)}
-                    className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 hover:border-purple-400/60 rounded-md text-purple-400 transition-all text-xs"
+                    className="flex items-center gap-1 px-1.5 py-0 sm:px-2 sm:py-0.5 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 hover:border-purple-400/60 rounded-md text-purple-400 transition-all text-[11px]"
                     title="Change Username"
                   >
-                    <UserCog className="w-3.5 h-3.5" />
+                    <UserCog className="w-3 h-3" />
                     <span className="hidden lg:inline font-medium">Username</span>
                   </button>
                 )}
                 <button
                   onClick={() => setShowPasswordModal(true)}
-                  className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/40 hover:border-blue-400/60 rounded-md text-blue-400 transition-all text-xs"
+                  className="flex items-center gap-1 px-1.5 py-0 sm:px-2 sm:py-0.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/40 hover:border-blue-400/60 rounded-md text-blue-400 transition-all text-[11px]"
                   title="Change Password"
                 >
-                  <Lock className="w-3.5 h-3.5" />
+                  <Lock className="w-3 h-3" />
                   <span className="hidden lg:inline font-medium">Password</span>
                 </button>
                 <button
                   onClick={() => logout()}
-                  className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/40 hover:border-red-400/60 rounded-md text-red-400 transition-all text-xs"
+                  className="flex items-center gap-1 px-1.5 py-0 sm:px-2 sm:py-0.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/40 hover:border-red-400/60 rounded-md text-[11px]"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className="w-3 h-3" />
                   <span className="font-medium">Logout</span>
                 </button>
               </div>
