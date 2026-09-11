@@ -2172,17 +2172,23 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     )}
                   </div>
                   )}
-                  <div className="ml-auto flex items-center gap-1">
-                    <div className="flex items-center gap-1 px-1.5 py-1 bg-slate-800/80 border border-slate-600/50 rounded-none">
-                      <Users className="w-3.5 h-3.5 text-blue-400" />
-                      <span className="text-sm font-semibold text-white">{flatFilteredEmployees.length}</span>
-                      <span className="text-xs text-slate-400">/ {employeeGroups[0]?.employees.length || 0} shown</span>
+                  <div className="ml-auto flex items-center gap-2">
+                    <div className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-slate-900/75 px-2.5 py-1 shadow-sm shadow-slate-950/40">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-500/15 text-blue-300">
+                        <Users className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="flex items-baseline gap-1 leading-none">
+                        <span className="text-base font-bold tabular-nums text-blue-200">{flatFilteredEmployees.length}</span>
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">of</span>
+                        <span className="text-xs font-semibold tabular-nums text-slate-300">{employeeGroups[0]?.employees.length || 0}</span>
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">shown</span>
+                      </span>
                     </div>
                     <button
                       onClick={() => { setSelectedAdminForCreate(admin.id); setShowCreateForm(true); }}
-                      className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30 text-xs"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-400/40 bg-blue-600/85 px-2.5 py-1 text-xs font-semibold text-white shadow-sm shadow-blue-950/40 transition-all hover:border-blue-300/60 hover:bg-blue-500 active:bg-blue-700"
                     >
-                      <UserPlus className="w-4 h-4" /> Create Employee
+                      <UserPlus className="h-3.5 w-3.5" /> Create Employee
                     </button>
                   </div>
                 </div>
