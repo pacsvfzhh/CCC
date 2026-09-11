@@ -1957,18 +1957,18 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Username</label>
-              <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} disabled={creating} required className="w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-slate-600 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50" />
+              <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} disabled={creating} required className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100" />
             </div>
             <div>
               <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Password</label>
               <div className="flex gap-2">
                 <div className="relative min-w-0 flex-1">
-                  <input type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} disabled={creating} required minLength={6} autoComplete="new-password" className="w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 pr-10 text-sm text-white outline-none transition-colors focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 transition-colors hover:bg-slate-800 hover:text-white">
+                  <input type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} disabled={creating} required minLength={6} autoComplete="new-password" className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <button type="button" onClick={generatePassword} disabled={creating} className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-lg border border-slate-600 bg-slate-800 text-slate-300 transition-colors hover:border-blue-400/50 hover:bg-slate-700 hover:text-white disabled:opacity-50" title="Generate strong password">
+                <button type="button" onClick={generatePassword} disabled={creating} className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-slate-50 text-slate-600 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100" title="Generate strong password">
                   <RefreshCw className="h-4 w-4" />
                 </button>
               </div>
