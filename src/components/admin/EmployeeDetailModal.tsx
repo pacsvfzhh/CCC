@@ -557,27 +557,27 @@ export default function EmployeeDetailModal({
             <div className="flex min-w-0 items-stretch gap-2">
               <div className="grid min-w-0 flex-1 grid-cols-2 overflow-hidden rounded-xl border border-cyan-300/20 bg-slate-800/70 sm:grid-cols-4 lg:w-[560px] lg:flex-none">
                 <div className="min-w-0 border-b border-slate-700/70 p-2.5 sm:border-b-0 sm:border-r">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Status</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-100">Status</p>
                   <div className="mt-1 flex flex-wrap gap-1">
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${employee.is_active ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                    <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${employee.is_active ? "border-emerald-300/40 bg-emerald-500/20 text-emerald-200" : "border-red-300/40 bg-red-500/20 text-red-200"}`}>
                       {employee.is_active ? "Active" : "Inactive"}
                     </span>
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${employee.is_verified ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                    <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${employee.is_verified ? "border-emerald-300/40 bg-emerald-500/20 text-emerald-200" : "border-red-300/40 bg-red-500/20 text-red-200"}`}>
                       {employee.is_verified ? "Verified" : "Unverified"}
                     </span>
                   </div>
                 </div>
                 <div className="min-w-0 border-b border-slate-700/70 p-2.5 sm:border-b-0 sm:border-r">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total Income</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">Total Income</p>
                   <p className="mt-1 truncate text-sm font-bold text-emerald-400">${employee.total_income.toFixed(2)}</p>
                 </div>
                 <div className="min-w-0 border-slate-700/70 p-2.5 sm:border-r">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Wallet Balance</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-violet-200">Wallet Balance</p>
                   <p className="mt-1 truncate text-sm font-bold text-purple-400">${walletBalance.available.toFixed(2)}</p>
                   {walletBalance.frozen > 0 && <p className="truncate text-[10px] text-slate-500">Frozen: ${walletBalance.frozen.toFixed(2)}</p>}
                 </div>
                 <div className="min-w-0 p-2.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Member Since</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-sky-200">Member Since</p>
                   <p className="mt-1 truncate text-xs font-bold text-white">{new Date(employee.created_at).toLocaleDateString("zh-CN")}</p>
                   {employee.first_success_order_date && <p className="truncate text-[10px] text-slate-500">First order: {new Date(employee.first_success_order_date).toLocaleDateString("zh-CN")}</p>}
                 </div>
