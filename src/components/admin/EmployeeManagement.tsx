@@ -1780,7 +1780,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <span className="absolute left-2 top-1/2 z-10 inline-block -translate-y-1/2 text-left tabular-nums">{index + 1}</span>
         <button
           onClick={(e) => { e.stopPropagation(); setPinConfirmEmployee({ id: employee.id, username: employee.username, currentPinned: employee.is_pinned }); }}
-          className={`absolute right-1 top-1/2 inline-flex -translate-y-1/2 rounded p-0.5 transition-all ${employee.is_pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-amber-400'}`}
+          className={`absolute right-2 top-1/2 inline-flex -translate-y-1/2 rounded p-0.5 transition-all ${employee.is_pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-amber-400'}`}
           title={employee.is_pinned ? 'Unpin' : 'Pin to Top'}
         >
           <Pin className={`w-3 h-3 ${employee.is_pinned ? 'fill-current' : ''}`} />
@@ -1806,7 +1806,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             setEditingCreatedAt({ id: employee.id, username: employee.username, currentDate: d });
             setNewCreatedAt(d);
           }}
-          className="ml-1 inline-flex align-middle p-0.5 rounded text-slate-500 hover:text-blue-400 transition-colors"
+          className="ml-0 inline-flex align-middle p-0.5 rounded text-slate-500 hover:text-blue-400 transition-colors"
           title="Edit registration date"
         >
           <Pencil className="w-2.5 h-2.5" />
@@ -1820,7 +1820,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             </span>
           )}
           {(employee.tags || []).length > 1 && <span className="flex-shrink-0 text-[10px] text-slate-500">+{(employee.tags || []).length - 1}</span>}
-          <button onClick={() => setEditingTags(employee)} className="flex-shrink-0 px-1 py-0 bg-slate-700 hover:bg-slate-600 text-slate-400 text-[10px] rounded-full transition-colors">
+          <button onClick={() => setEditingTags(employee)} className="ml-1 flex-shrink-0 px-1 py-0 bg-slate-700 hover:bg-slate-600 text-slate-400 text-[10px] rounded-full transition-colors">
             <Tag className="w-2.5 h-2.5 inline" />+
           </button>
         </div>
