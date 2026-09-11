@@ -65,6 +65,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAdminFilter, setSelectedAdminFilter] = useState<string>('all');
   const [adminFilterOpen, setAdminFilterOpen] = useState(false);
+  const [showCreateSecondaryAdmin, setShowCreateSecondaryAdmin] = useState(false);
+  const [creatingSecondaryAdmin, setCreatingSecondaryAdmin] = useState(false);
+  const [createSecondaryAdminError, setCreateSecondaryAdminError] = useState<string | null>(null);
+  const [showSecondaryAdminPassword, setShowSecondaryAdminPassword] = useState(false);
+  const [secondaryAdminForm, setSecondaryAdminForm] = useState({
+    username: '',
+    password: '',
+  });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithAdmin | null>(null);
@@ -196,7 +204,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   }, [inactiveDaysDropdownOpen]);
 
   useEffect(() => {
-    const anyModalOpen = !!(editingEmployee || showPasswordReset || deletingEmployee || editingTags || notification?.show || confirmDialog?.show || loginIPEmployee || walletEmployee);
+    const anyModalOpen = !!(showCreateSecondaryAdmin || editingEmployee || showPasswordReset || deletingEmployee || editingTags || notification?.show || confirmDialog?.show || loginIPEmployee || walletEmployee);
     if (anyModalOpen && !scrollLockRef.current) {
       scrollLockRef.current = true;
       document.documentElement.style.overflow = 'hidden';
@@ -206,7 +214,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     }
-  }, [editingEmployee, showPasswordReset, deletingEmployee, editingTags, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
+  }, [showCreateSecondaryAdmin, editingEmployee, showPasswordReset, deletingEmployee, editingTags, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
 
   useEffect(() => {
     if (searchTerm) {
@@ -697,6 +705,41 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setCreateError(error.message || 'Failed to create employee.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleCreateSecondaryAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateSecondaryAdminError(null);
+    setCreatingSecondaryAdmin(true);
+
+    try {
+      if (!secondaryAdminForm.username.trim()) throw new Error('Username is required');
+      if (secondaryAdminForm.password.length < 6) throw new Error('Password must be at least 6 characters');
+
+      const hashedPassword = await hashPassword(secondaryAdminForm.password);
+      const { data, error } = await supabase.from('admins').insert({
+        username: secondaryAdminForm.username.trim(),
+        password_hash: hashedPassword,
+        role: 'secondary_admin',
+        parent_id: admin.id,
+      }).select();
+
+      if (error) {
+        if (error.code === '23505') throw new Error('Username already exists');
+        throw error;
+      }
+      if (!data || data.length === 0) throw new Error('Failed to create admin - no data returned');
+
+      setSecondaryAdminForm({ username: '', password: '' });
+      setShowSecondaryAdminPassword(false);
+      setShowCreateSecondaryAdmin(false);
+      await guardedLoadEmployees(false);
+    } catch (error) {
+      console.error('Error creating secondary admin:', formatSupabaseError(error));
+      setCreateSecondaryAdminError(formatSupabaseError(error) || 'Failed to create secondary admin.');
+    } finally {
+      setCreatingSecondaryAdmin(false);
     }
   };
 
@@ -2091,6 +2134,19 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </div>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setAdminFilterOpen(false);
+              setCreateSecondaryAdminError(null);
+              setShowCreateSecondaryAdmin(true);
+            }}
+            className="flex h-full w-[190px] shrink-0 items-center justify-center gap-2 border-l border-cyan-300/20 bg-gradient-to-r from-blue-600/80 to-cyan-600/80 px-4 text-xs font-semibold text-white transition-all hover:from-blue-500 hover:to-cyan-500 active:from-blue-700 active:to-cyan-700"
+            title="Create a secondary administrator"
+          >
+            <UserPlus className="h-4 w-4" />
+            New Secondary Admin
+          </button>
           <div className="w-px h-5 bg-cyan-300/30 shrink-0" />
           <div className="flex h-full w-[100px] shrink-0 items-center justify-center gap-1.5 bg-cyan-500/15 px-3">
             <Clock className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
@@ -2682,6 +2738,133 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       {renderLoginIPModal()}
 
       {renderWalletModal()}
+
+      {showCreateSecondaryAdmin && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !creatingSecondaryAdmin) {
+              setShowCreateSecondaryAdmin(false);
+              setCreateSecondaryAdminError(null);
+              setSecondaryAdminForm({ username: '', password: '' });
+              setShowSecondaryAdminPassword(false);
+            }
+          }}
+        >
+          <form
+            onSubmit={handleCreateSecondaryAdmin}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="w-full max-w-lg overflow-hidden rounded-2xl border border-cyan-300/30 bg-slate-900 shadow-2xl shadow-slate-950/70"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-secondary-admin-title"
+          >
+            <div className="flex items-start justify-between border-b border-cyan-300/15 bg-gradient-to-r from-blue-600/20 via-cyan-500/10 to-transparent px-5 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-400/15 text-cyan-200 ring-1 ring-cyan-300/25">
+                  <UserPlus className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Administrator access</p>
+                  <h2 id="create-secondary-admin-title" className="truncate text-lg font-semibold text-white">Create Secondary Admin</h2>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (creatingSecondaryAdmin) return;
+                  setShowCreateSecondaryAdmin(false);
+                  setCreateSecondaryAdminError(null);
+                  setSecondaryAdminForm({ username: '', password: '' });
+                  setShowSecondaryAdminPassword(false);
+                }}
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-cyan-300/10 hover:text-cyan-100"
+                aria-label="Close create secondary admin panel"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-4 p-5">
+              <div className="rounded-xl border border-cyan-300/15 bg-cyan-500/5 px-3.5 py-3 text-sm text-slate-300">
+                This account will be linked to your administrator account and can manage its assigned employees.
+              </div>
+              {createSecondaryAdminError && (
+                <div className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-200">
+                  {createSecondaryAdminError}
+                </div>
+              )}
+              <div>
+                <label htmlFor="secondary-admin-username" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Username</label>
+                <input
+                  id="secondary-admin-username"
+                  type="text"
+                  value={secondaryAdminForm.username}
+                  onChange={(e) => setSecondaryAdminForm({ ...secondaryAdminForm, username: e.target.value })}
+                  disabled={creatingSecondaryAdmin}
+                  required
+                  autoComplete="off"
+                  className="w-full rounded-lg border border-slate-600 bg-slate-950/70 px-3.5 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-300/70 focus:bg-slate-950 focus:ring-2 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  placeholder="Enter admin username"
+                />
+              </div>
+              <div>
+                <label htmlFor="secondary-admin-password" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Password</label>
+                <div className="relative">
+                  <input
+                    id="secondary-admin-password"
+                    type={showSecondaryAdminPassword ? 'text' : 'password'}
+                    value={secondaryAdminForm.password}
+                    onChange={(e) => setSecondaryAdminForm({ ...secondaryAdminForm, password: e.target.value })}
+                    disabled={creatingSecondaryAdmin}
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                    className="w-full rounded-lg border border-slate-600 bg-slate-950/70 px-3.5 py-2.5 pr-11 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-300/70 focus:bg-slate-950 focus:ring-2 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    placeholder="At least 6 characters"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecondaryAdminPassword((visible) => !visible)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-cyan-100"
+                    aria-label={showSecondaryAdminPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showSecondaryAdminPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-slate-500">Use at least 6 characters.</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-800 bg-slate-950/35 px-5 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  if (creatingSecondaryAdmin) return;
+                  setShowCreateSecondaryAdmin(false);
+                  setCreateSecondaryAdminError(null);
+                  setSecondaryAdminForm({ username: '', password: '' });
+                  setShowSecondaryAdminPassword(false);
+                }}
+                disabled={creatingSecondaryAdmin}
+                className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={creatingSecondaryAdmin || !secondaryAdminForm.username.trim() || !secondaryAdminForm.password}
+                className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/40 bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-950/30 transition-all hover:from-blue-500 hover:to-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {creatingSecondaryAdmin ? (
+                  <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />Creating...</>
+                ) : (
+                  <><UserPlus className="h-4 w-4" />Create Admin</>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>,
+        document.body
+      )}
 
       {notification?.show && createPortal(
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
