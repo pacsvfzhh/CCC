@@ -1602,13 +1602,23 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const renderEmployeeRow = (employee: EmployeeWithAdmin, index: number, isSuperAdmin: boolean) => (
     <tr
       key={employee.id}
-      className={`border-t border-slate-700/50 transition-colors ${
+      className={`group border-t border-slate-700/50 transition-colors ${
         employee.is_pinned
           ? 'bg-amber-500/10 hover:bg-amber-500/20 border-l-4 border-l-amber-500'
-          : isSuperAdmin ? 'hover:bg-yellow-500/15 hover:shadow-[inset_2px_0_0_theme(colors.yellow.400)]' : 'hover:bg-blue-500/15 hover:shadow-[inset_2px_0_0_theme(colors.blue.400)]'
+          : isSuperAdmin ? 'hover:bg-yellow-500/15 hover:shadow-[inset_5px_0_0_theme(colors.yellow.400)]' : 'hover:bg-blue-500/15 hover:shadow-[inset_5px_0_0_theme(colors.blue.400)]'
       }`}
     >
-      <td className="py-0.5 px-2 text-xs text-slate-500 text-center whitespace-nowrap">
+      <td className="relative py-0.5 px-2 text-xs text-slate-500 text-center whitespace-nowrap">
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-y-0 left-0 w-1.5 transition-opacity duration-150 ${
+            employee.is_pinned
+              ? 'bg-amber-400 opacity-100'
+              : isSuperAdmin
+                ? 'bg-yellow-400 opacity-0 group-hover:opacity-100'
+                : 'bg-blue-400 opacity-0 group-hover:opacity-100'
+          }`}
+        />
         <span>{index + 1}</span>
         <button
           onClick={(e) => { e.stopPropagation(); setPinConfirmEmployee({ id: employee.id, username: employee.username, currentPinned: employee.is_pinned }); }}
