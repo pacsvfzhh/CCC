@@ -1691,7 +1691,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           : isSuperAdmin ? 'hover:bg-yellow-500/15 hover:shadow-[inset_5px_0_0_theme(colors.yellow.400)]' : 'hover:bg-blue-500/15 hover:shadow-[inset_5px_0_0_theme(colors.blue.400)]'
       }`}
     >
-      <td className="relative w-8 py-0.5 px-1 text-xs text-slate-500 text-center whitespace-nowrap">
+      <td className="relative w-8 py-0.5 px-1.5 text-xs text-slate-500 text-center whitespace-nowrap">
         <span
           aria-hidden="true"
           className={`pointer-events-none absolute inset-y-0 left-0 w-1 transition-opacity duration-150 ${
@@ -1702,7 +1702,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 : 'bg-blue-400 opacity-0 group-hover:opacity-100'
           }`}
         />
-        <span>{index + 1}</span>
+        <span className="relative z-10 inline-block translate-x-0.5">{index + 1}</span>
         <button
           onClick={(e) => { e.stopPropagation(); setPinConfirmEmployee({ id: employee.id, username: employee.username, currentPinned: employee.is_pinned }); }}
           className={`ml-1 inline-flex align-middle p-0.5 rounded transition-all ${employee.is_pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-amber-400'}`}
@@ -1894,7 +1894,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const renderTableHeader = (adminId: string) => (
     <thead className="bg-slate-700 sticky top-0 z-10 shadow-[0_2px_4px_rgba(0,0,0,0.3)] border-b-2 border-slate-500/50">
       <tr>
-        <th className="w-8 px-1 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">#</th>
+        <th className="w-8 px-1.5 py-2 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">#</th>
         <th className="w-[95px] px-1.5 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">User</th>
         <th className="w-[66px] px-1.5 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Emp ID</th>
         {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[64px]')}
@@ -2177,7 +2177,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               {renderCreateForm(admin.id)}
 
               {/* Table - fixed ~22 rows */}
-              <div className="-ml-1 overflow-x-auto overflow-y-auto bg-slate-900/50 flex-1 min-h-0 dark-panel-scroll">
+              <div className="-ml-1 pl-1 overflow-x-auto overflow-y-auto bg-slate-900/50 flex-1 min-h-0 dark-panel-scroll">
                 <table className="w-full table-fixed">
                   {renderTableHeader(flatAdminId)}
                   <tbody>
@@ -2348,7 +2348,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       </div>
                     </div>
                     {group.employees.length > 0 ? (
-                      <div className={`-ml-1 overflow-x-auto overflow-y-auto bg-slate-900/50 min-h-[300px] dark-panel-scroll ${admin.role === 'super_admin' ? 'max-h-[calc(100vh-280px)]' : 'max-h-[calc(100vh-300px)]'}`}>
+                      <div className={`-ml-1 pl-1 overflow-x-auto overflow-y-auto bg-slate-900/50 min-h-[300px] dark-panel-scroll ${admin.role === 'super_admin' ? 'max-h-[calc(100vh-280px)]' : 'max-h-[calc(100vh-300px)]'}`}>
                         <table className="w-full table-fixed">
                           {renderTableHeader(group.admin.id)}
                           <tbody>
