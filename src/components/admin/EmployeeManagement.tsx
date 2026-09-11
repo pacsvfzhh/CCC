@@ -1085,20 +1085,37 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     filter: SummaryFilter,
     label: string,
     count: number,
-    tone: string,
   ) => {
     const isSelected = getSummaryFilter(adminId) === filter;
+    const styles: Record<SummaryFilter, { active: string; inactive: string; dot: string }> = {
+      today_working: {
+        active: 'border-emerald-300 bg-emerald-500/85 text-white shadow-md shadow-emerald-950/50 ring-1 ring-emerald-300/35',
+        inactive: 'border-emerald-500/50 bg-emerald-950/45 text-emerald-300 hover:border-emerald-300/75 hover:bg-emerald-900/70 hover:text-emerald-100',
+        dot: 'bg-emerald-400',
+      },
+      new_today: {
+        active: 'border-sky-300 bg-sky-500/85 text-white shadow-md shadow-sky-950/50 ring-1 ring-sky-300/35',
+        inactive: 'border-sky-500/50 bg-sky-950/45 text-sky-300 hover:border-sky-300/75 hover:bg-sky-900/70 hover:text-sky-100',
+        dot: 'bg-sky-400',
+      },
+      currently_working: {
+        active: 'border-green-300 bg-green-500/85 text-white shadow-md shadow-green-950/50 ring-1 ring-green-300/35',
+        inactive: 'border-green-500/50 bg-green-950/45 text-green-300 hover:border-green-300/75 hover:bg-green-900/70 hover:text-green-100',
+        dot: 'bg-green-400',
+      },
+    };
+    const style = styles[filter];
+
     return (
       <button
         type="button"
         onClick={() => handleSummaryFilter(adminId, filter)}
         aria-pressed={isSelected}
-        className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums transition-colors ${
-          isSelected
-            ? `${tone} border-transparent text-white shadow-sm`
-            : 'border-transparent bg-transparent text-slate-400 hover:border-slate-600/70 hover:bg-slate-800/70 hover:text-white'
+        className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums transition-all duration-150 ${
+          isSelected ? style.active : style.inactive
         }`}
       >
+        <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : style.dot}`} />
         {label}: {count}
       </button>
     );
@@ -2029,7 +2046,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           'today_working',
                           'Today Working',
                           allEmps.filter(e => e.todayWorkMinutes > 0).length,
-                          'bg-emerald-500/80',
+
                         )}
                         <span className="text-slate-500">&bull;</span>
                         {renderSummaryFilterButton(
@@ -2042,7 +2059,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                             const created = new Date(e.created_at);
                             return created.toDateString() === today.toDateString();
                           }).length,
-                          'bg-sky-500/80',
+
                         )}
                         <span className="text-slate-500">&bull;</span>
                         {renderSummaryFilterButton(
@@ -2050,7 +2067,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           'currently_working',
                           'Now Working',
                           allEmps.filter(e => e.workStatus === 'online').length,
-                          'bg-green-500/80',
+
                         )}
                       </>
                     )}
@@ -2210,7 +2227,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                                     'today_working',
                                     'Today Working',
                                     allEmps.filter(e => e.todayWorkMinutes > 0).length,
-                                    'bg-emerald-500/80',
+          
                                   )}
                                   <span className="text-slate-500">•</span>
                                   {renderSummaryFilterButton(
@@ -2223,7 +2240,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                                       const created = new Date(e.created_at);
                                       return created.toDateString() === today.toDateString();
                                     }).length,
-                                    'bg-sky-500/80',
+          
                                   )}
                                   <span className="text-slate-500">•</span>
                                   {renderSummaryFilterButton(
@@ -2231,7 +2248,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                                     'currently_working',
                                     'Now Working',
                                     allEmps.filter(e => e.workStatus === 'online').length,
-                                    'bg-green-500/80',
+          
                                   )}
                                 </>
                               )}
