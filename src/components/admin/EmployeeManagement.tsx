@@ -2020,8 +2020,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     <div className="flex flex-col flex-1 min-h-0">
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
-        <div className="relative z-20 flex h-11 items-center overflow-visible rounded-xl border border-cyan-300/30 bg-slate-950/90 shadow-lg shadow-slate-950/40 shrink-0 sticky top-0 mb-1 backdrop-blur-sm">
-          <div className="relative h-full min-w-[220px] flex-[0_1_320px] bg-cyan-950/25">
+        <div className="relative z-20 flex h-11 w-full min-w-0 items-center overflow-visible rounded-none border border-cyan-300/30 bg-slate-950/90 shadow-lg shadow-slate-950/40 shrink-0 sticky top-0 mb-1 backdrop-blur-sm">
+          <div className="relative h-full min-w-[220px] flex-[1_1_0%] bg-cyan-950/25">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-300 pointer-events-none" />
             <input
               type="text"
@@ -2029,7 +2029,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search employees..."
               autoComplete="off"
-              className="h-full w-full rounded-l-xl border-r border-cyan-300/20 bg-transparent pl-10 pr-9 text-sm text-slate-50 placeholder:text-cyan-100/60 outline-none transition-colors focus:bg-cyan-900/30"
+              className="h-full w-full rounded-none border-r border-cyan-300/20 bg-transparent pl-10 pr-9 text-sm text-slate-50 placeholder:text-cyan-100/60 outline-none transition-colors focus:bg-cyan-900/30"
             />
             {searchTerm && (
               <button type="button" onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-cyan-200/70 transition-colors hover:bg-cyan-300/15 hover:text-cyan-50">
@@ -2037,7 +2037,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </button>
             )}
           </div>
-          <div ref={adminFilterRef} className="relative h-full min-w-[240px] max-w-[360px] flex-[1_1_280px]">
+          <div ref={adminFilterRef} className="relative h-full min-w-[240px] flex-[1.35_1_0%]">
             <button
               type="button"
               onClick={() => setAdminFilterOpen((open) => !open)}
@@ -2092,14 +2092,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             )}
           </div>
           <div className="w-px h-5 bg-cyan-300/30 shrink-0" />
-          <div className="flex h-full items-center gap-1.5 bg-cyan-500/15 px-3">
+          <div className="flex h-full w-[100px] shrink-0 items-center justify-center gap-1.5 bg-cyan-500/15 px-3">
             <Clock className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
-            <span className="text-sm text-cyan-100 font-mono font-bold tabular-nums w-[36px] text-center">{formatCountdown()}s</span>
+            <span className="text-sm text-cyan-100 font-mono font-bold tabular-nums w-[40px] text-center">{formatCountdown()}s</span>
           </div>
           <button
             onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployees(employeeGroups.length > 0 ? true : false); }}
             disabled={loading || isRefreshing}
-            className="flex h-full min-w-10 items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-500 px-3 text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-blue-400 hover:to-cyan-400 active:from-blue-600 active:to-cyan-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:bg-none"
+            className="flex h-full w-16 min-w-16 shrink-0 items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-500 px-4 text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-blue-400 hover:to-cyan-400 active:from-blue-600 active:to-cyan-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:bg-none"
             title="Refresh now"
           >
             <RefreshCw className={`w-4 h-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
