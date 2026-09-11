@@ -2093,7 +2093,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               <ChevronDown className={`h-4 w-4 shrink-0 text-cyan-200/80 transition-transform duration-200 ${adminFilterOpen ? 'rotate-180 text-cyan-100' : ''}`} />
             </button>
             {adminFilterOpen && (
-              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[60] overflow-hidden rounded-xl border border-cyan-200/45 bg-slate-900/98 p-1.5 shadow-2xl shadow-cyan-950/50 backdrop-blur-md">
+              <div className="isolate absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[60] overflow-hidden rounded-xl border border-cyan-200/45 bg-slate-900 p-1.5 shadow-2xl shadow-cyan-950/50" style={{ backgroundColor: '#0f172a' }}>
                 <div role="listbox" aria-label="Filter employee group" className="max-h-[calc(100vh-7rem)] min-h-[120px] overflow-y-auto overscroll-contain scrollbar-dark">
                   <button
                     type="button"
