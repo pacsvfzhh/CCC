@@ -5,7 +5,7 @@
  * 每天自动执行数据清理任务
  */
 
-import { formatSupabaseError, supabase } from '../lib/supabase';
+import { formatSupabaseError, isSupabaseAbortError, supabase } from '../lib/supabase';
 
 export interface CleanupSchedule {
   table_name: string;
@@ -356,6 +356,8 @@ class AutoCleanupService {
       const executionTime = Date.now() - startTime;
 
       if (error) {
+        if (isSupabaseAbortError(error)) return;
+
         console.error(`[AutoCleanup] Failed to cleanup ${config.table_name}:`, formatSupabaseError(error));
         await this.logCleanupResult({
           table_name: config.table_name,
@@ -388,7 +390,9 @@ class AutoCleanupService {
         await this.updateLastRunTime(config.table_name);
       }
     } catch (error) {
-      console.error(`[AutoCleanup] Error executing cleanup for ${config.table_name}:`, formatSupabaseError(error));
+      if (!isSupabaseAbortError(error)) {
+        console.error(`[AutoCleanup] Error executing cleanup for ${config.table_name}:`, formatSupabaseError(error));
+      }
     }
   }
 

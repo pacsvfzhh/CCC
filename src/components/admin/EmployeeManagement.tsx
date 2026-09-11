@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
-import { formatSupabaseError, supabase } from '../../lib/supabase';
+import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { hashPassword } from '../../lib/passwordHash';
 import { Employee, Admin } from '../../types';
 import EmployeeDetailModal from './EmployeeDetailModal';
@@ -631,7 +631,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         return prev;
       });
     } catch (error) {
-      console.error('Error loading employees:', formatSupabaseError(error));
+      if (!isSupabaseAbortError(error)) {
+        console.error('Error loading employees:', formatSupabaseError(error));
+      }
     } finally {
       if (!silent) setLoading(false);
       else setIsRefreshing(false);
