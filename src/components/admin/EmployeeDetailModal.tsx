@@ -8,7 +8,6 @@ import {
   Calendar,
   DollarSign,
   User,
-  Wallet,
   Clock,
   MessageSquare,
   FileText,
@@ -534,140 +533,64 @@ export default function EmployeeDetailModal({
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm sm:p-4">
       <div className="flex min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/95 shadow-2xl shadow-slate-950/70 max-h-[92vh]">
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-700/60 bg-slate-900/80 px-4 py-3.5 sm:px-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/25 to-blue-600/25 text-cyan-300 ring-1 ring-inset ring-cyan-300/25">
-              <User className="h-5 w-5" />
+        <div className="shrink-0 border-b border-slate-700/60 bg-slate-900/80 px-4 py-3.5 sm:px-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/25 to-blue-600/25 text-cyan-300 ring-1 ring-inset ring-cyan-300/25">
+                <User className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="truncate text-xl font-bold text-white sm:text-2xl">
+                  {employee.username}
+                </h2>
+                <p className="mt-0.5 truncate text-xs text-slate-400 sm:text-sm">
+                  Employee ID: <span className="font-mono text-cyan-200/90">{employee.employee_id}</span>
+                </p>
+                {employee.remarks && (
+                  <div className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-amber-300/80">
+                    <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate" title={employee.remarks}>{employee.remarks}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="min-w-0">
-              <h2 className="truncate text-xl font-bold text-white sm:text-2xl">
-                {employee.username}
-              </h2>
-              <p className="mt-0.5 truncate text-xs text-slate-400 sm:text-sm">
-                Employee ID: <span className="font-mono text-cyan-200/90">{employee.employee_id}</span>
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="shrink-0 rounded-xl border border-slate-700/70 bg-slate-800/70 p-2 text-slate-400 transition-colors hover:border-cyan-300/40 hover:bg-slate-700 hover:text-white"
-            aria-label="Close employee details"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Employee Info Cards */}
-        <div className="shrink-0 border-b border-slate-700/50 px-4 pb-3.5 pt-4 sm:px-5">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-blue-600/5 p-3">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/20">
-                  <User className="w-5 h-5 text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-medium">Status</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs font-bold ${
-                        employee.is_active
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-red-500/20 text-red-400"
-                      }`}
-                    >
+            <div className="flex min-w-0 items-stretch gap-2">
+              <div className="grid min-w-0 flex-1 grid-cols-2 overflow-hidden rounded-xl border border-slate-700/70 bg-slate-950/60 sm:grid-cols-4 lg:w-[560px] lg:flex-none">
+                <div className="min-w-0 border-b border-slate-700/70 p-2.5 sm:border-b-0 sm:border-r">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Status</p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${employee.is_active ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
                       {employee.is_active ? "Active" : "Inactive"}
                     </span>
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs font-bold ${
-                        employee.is_verified
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-yellow-500/20 text-yellow-400"
-                      }`}
-                    >
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${employee.is_verified ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
                       {employee.is_verified ? "Verified" : "Unverified"}
                     </span>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20">
-                  <DollarSign className="w-5 h-5 text-emerald-400" />
+                <div className="min-w-0 border-b border-slate-700/70 p-2.5 sm:border-b-0 sm:border-r">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total Income</p>
+                  <p className="mt-1 truncate text-sm font-bold text-emerald-400">${employee.total_income.toFixed(2)}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-medium">
-                    Total Income
-                  </p>
-                  <p className="text-lg font-bold text-emerald-400">
-                    ${employee.total_income.toFixed(2)}
-                  </p>
+                <div className="min-w-0 border-slate-700/70 p-2.5 sm:border-r">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Wallet Balance</p>
+                  <p className="mt-1 truncate text-sm font-bold text-purple-400">${walletBalance.available.toFixed(2)}</p>
+                  {walletBalance.frozen > 0 && <p className="truncate text-[10px] text-slate-500">Frozen: ${walletBalance.frozen.toFixed(2)}</p>}
+                </div>
+                <div className="min-w-0 p-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Member Since</p>
+                  <p className="mt-1 truncate text-xs font-bold text-white">{new Date(employee.created_at).toLocaleDateString("zh-CN")}</p>
+                  {employee.first_success_order_date && <p className="truncate text-[10px] text-slate-500">First order: {new Date(employee.first_success_order_date).toLocaleDateString("zh-CN")}</p>}
                 </div>
               </div>
-            </div>
-
-            <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-purple-600/5 p-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-500/20">
-                  <Wallet className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-medium">
-                    Wallet Balance
-                  </p>
-                  <p className="text-lg font-bold text-purple-400">
-                    ${walletBalance.available.toFixed(2)}
-                  </p>
-                  {walletBalance.frozen > 0 && (
-                    <p className="text-xs text-slate-500">
-                      Frozen: ${walletBalance.frozen.toFixed(2)}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-500/20 bg-gradient-to-br from-slate-500/10 to-slate-600/5 p-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-500/20">
-                  <Clock className="w-5 h-5 text-slate-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-medium">
-                    Member Since
-                  </p>
-                  <p className="text-sm font-bold text-white">
-                    {new Date(employee.created_at).toLocaleDateString("zh-CN")}
-                  </p>
-                  {employee.first_success_order_date && (
-                    <p className="text-xs text-slate-500">
-                      First order:{" "}
-                      {new Date(
-                        employee.first_success_order_date,
-                      ).toLocaleDateString("zh-CN")}
-                    </p>
-                  )}
-                </div>
-              </div>
+              <button
+                onClick={onClose}
+                className="shrink-0 self-start rounded-xl border border-slate-700/70 bg-slate-800/70 p-2 text-slate-400 transition-colors hover:border-cyan-300/40 hover:bg-slate-700 hover:text-white lg:self-center"
+                aria-label="Close employee details"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
           </div>
-
-          {employee.remarks && (
-            <div className="mt-3 rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/20">
-                  <MessageSquare className="w-4 h-4 text-amber-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-slate-400 font-medium mb-1">
-                    Admin Remarks
-                  </p>
-                  <p className="text-sm text-white">{employee.remarks}</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Tabs */}
@@ -1166,45 +1089,32 @@ export default function EmployeeDetailModal({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-700 bg-slate-900/60 px-4 py-3 sm:px-5">
-          {activeTab === "transactions" && transactions.length > itemsPerPage ? (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setTransactionPage(Math.max(1, transactionPage - 1))}
-                disabled={transactionPage === 1}
-                className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-lg transition-colors"
-              >
-                Prev
-              </button>
-              <span className="text-sm text-slate-400">
-                Page {transactionPage} of {Math.ceil(transactions.length / itemsPerPage)}
-              </span>
-              <button
-                onClick={() =>
-                  setTransactionPage(
-                    Math.min(Math.ceil(transactions.length / itemsPerPage), transactionPage + 1)
-                  )
-                }
-                disabled={transactionPage === Math.ceil(transactions.length / itemsPerPage)}
-                className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-lg transition-colors"
-              >
-                Next
-              </button>
-              <span className="text-xs text-slate-500 ml-2">
-                ({transactions.length} total)
-              </span>
-            </div>
-          ) : (
-            <div></div>
-          )}
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-slate-600/70 bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:border-cyan-300/40 hover:bg-slate-600"
-          >
-            Close
-          </button>
-        </div>
+        {activeTab === "transactions" && transactions.length > itemsPerPage && (
+          <div className="flex shrink-0 items-center gap-3 border-t border-slate-700 bg-slate-900/60 px-4 py-2.5 sm:px-5">
+            <button
+              onClick={() => setTransactionPage(Math.max(1, transactionPage - 1))}
+              disabled={transactionPage === 1}
+              className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm text-white transition-colors hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600"
+            >
+              Prev
+            </button>
+            <span className="text-sm text-slate-400">
+              Page {transactionPage} of {Math.ceil(transactions.length / itemsPerPage)}
+            </span>
+            <button
+              onClick={() =>
+                setTransactionPage(
+                  Math.min(Math.ceil(transactions.length / itemsPerPage), transactionPage + 1)
+                )
+              }
+              disabled={transactionPage === Math.ceil(transactions.length / itemsPerPage)}
+              className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm text-white transition-colors hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600"
+            >
+              Next
+            </button>
+            <span className="ml-2 text-xs text-slate-500">({transactions.length} total)</span>
+          </div>
+        )}
       </div>
     </div>
     </>,
