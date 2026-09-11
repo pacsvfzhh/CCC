@@ -64,6 +64,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAdminFilter, setSelectedAdminFilter] = useState<string>('all');
+  const [adminFilterOpen, setAdminFilterOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithAdmin | null>(null);
@@ -92,6 +93,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   });
   const [selectedAdminForCreate, setSelectedAdminForCreate] = useState<string | null>(null);
   const firstMatchRef = useRef<HTMLDivElement>(null);
+  const adminFilterRef = useRef<HTMLDivElement>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     show: boolean;
     title: string;
@@ -168,6 +170,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openActionMenu]);
+
+  useEffect(() => {
+    if (!adminFilterOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (adminFilterRef.current && !adminFilterRef.current.contains(e.target as Node)) {
+        setAdminFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [adminFilterOpen]);
 
   useEffect(() => {
     if (!inactiveDaysDropdownOpen) return;
@@ -1995,48 +2008,88 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   };
 
   // ===== MAIN RENDER =====
+  const totalEmployeeCount = employeeGroups.reduce((sum, group) => sum + group.employees.length, 0);
+  const selectedGroup = employeeGroups.find((group) => group.admin.id === selectedAdminFilter);
+  const selectedGroupLabel = selectedAdminFilter === 'all'
+    ? `All groups (${totalEmployeeCount})`
+    : selectedGroup
+      ? `${selectedGroup.admin.username} (${selectedGroup.employees.length})`
+      : 'Select group';
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
-        <div className="relative z-20 flex h-10 items-center overflow-hidden rounded-lg border border-blue-500/25 bg-slate-900/85 shadow-sm shadow-slate-950/40 shrink-0 sticky top-0 mb-1">
-          <div className="relative h-full min-w-0 flex-1 basis-0 bg-cyan-950/20">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-300 pointer-events-none" />
+        <div className="relative z-20 flex h-11 items-center overflow-visible rounded-xl border border-cyan-300/30 bg-slate-950/90 shadow-lg shadow-slate-950/40 shrink-0 sticky top-0 mb-1 backdrop-blur-sm">
+          <div className="relative h-full min-w-[220px] flex-[0_1_320px] bg-cyan-950/25">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-300 pointer-events-none" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search employees..."
               autoComplete="off"
-              className="h-full w-full pl-9 pr-8 bg-transparent text-sm text-slate-50 placeholder:text-cyan-100/60 outline-none transition-colors focus:bg-cyan-900/25"
+              className="h-full w-full rounded-l-xl border-r border-cyan-300/20 bg-transparent pl-10 pr-9 text-sm text-slate-50 placeholder:text-cyan-100/60 outline-none transition-colors focus:bg-cyan-900/30"
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-cyan-200/70 hover:text-cyan-50 transition-colors">
+              <button type="button" onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-cyan-200/70 transition-colors hover:bg-cyan-300/15 hover:text-cyan-50">
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
-          <div className="w-px h-5 bg-slate-700/80 shrink-0" />
-          <div className="relative h-full w-[150px] min-w-0 shrink-0 bg-slate-800/25" style={{ contain: 'layout' }}>
-            <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400 pointer-events-none z-10" />
-            <select
-              value={selectedAdminFilter}
-              onChange={(e) => {
-                setSelectedAdminFilter(e.target.value);
-                if (e.target.value !== 'all') {
-                  setExpandedGroups(new Set([e.target.value]));
-                }
-              }}
-              className="relative z-10 h-full w-full appearance-none pl-9 pr-8 bg-transparent text-sm text-white outline-none cursor-pointer transition-colors focus:bg-slate-800/50"
+          <div ref={adminFilterRef} className="relative h-full min-w-[240px] max-w-[360px] flex-[1_1_280px]">
+            <button
+              type="button"
+              onClick={() => setAdminFilterOpen((open) => !open)}
+              aria-haspopup="listbox"
+              aria-expanded={adminFilterOpen}
+              className={`flex h-full w-full items-center gap-2.5 px-3.5 text-sm transition-colors ${adminFilterOpen ? 'bg-blue-900/45 text-cyan-50' : 'bg-blue-950/25 text-slate-100 hover:bg-blue-900/30'}`}
             >
-              <option value="all" className="bg-slate-800">All Groups ({employeeGroups.reduce((sum, g) => sum + g.employees.length, 0)})</option>
-              {employeeGroups.map(group => (
-                <option key={group.admin.id} value={group.admin.id} className="bg-slate-800">
-                  {group.admin.username} ({group.employees.length})
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
+              <Users className="h-4 w-4 shrink-0 text-cyan-300" />
+              <span className="min-w-0 flex-1 truncate text-left font-medium">{selectedGroupLabel}</span>
+              <ChevronDown className={`h-4 w-4 shrink-0 text-cyan-200/80 transition-transform duration-200 ${adminFilterOpen ? 'rotate-180 text-cyan-100' : ''}`} />
+            </button>
+            {adminFilterOpen && (
+              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[60] overflow-hidden rounded-xl border border-cyan-300/35 bg-slate-900/95 p-1.5 shadow-2xl shadow-slate-950/70 backdrop-blur-md">
+                <div role="listbox" aria-label="Filter employee group" className="max-h-72 overflow-y-auto">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selectedAdminFilter === 'all'}
+                    onClick={() => {
+                      setSelectedAdminFilter('all');
+                      setAdminFilterOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${selectedAdminFilter === 'all' ? 'bg-cyan-500/20 text-cyan-50' : 'text-slate-200 hover:bg-slate-800/90 hover:text-cyan-50'}`}
+                  >
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${selectedAdminFilter === 'all' ? 'bg-cyan-300 shadow-[0_0_8px_theme(colors.cyan.300)]' : 'bg-slate-600'}`} />
+                    <span className="min-w-0 flex-1 truncate">All groups</span>
+                    <span className="rounded-md bg-slate-800/80 px-2 py-0.5 text-xs tabular-nums text-slate-400">{totalEmployeeCount}</span>
+                  </button>
+                  {employeeGroups.map((group) => {
+                    const isSelected = selectedAdminFilter === group.admin.id;
+                    return (
+                      <button
+                        key={group.admin.id}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => {
+                          setSelectedAdminFilter(group.admin.id);
+                          setExpandedGroups(new Set([group.admin.id]));
+                          setAdminFilterOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${isSelected ? 'bg-cyan-500/20 text-cyan-50' : 'text-slate-200 hover:bg-slate-800/90 hover:text-cyan-50'}`}
+                      >
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${isSelected ? 'bg-cyan-300 shadow-[0_0_8px_theme(colors.cyan.300)]' : 'bg-slate-600'}`} />
+                        <span className="min-w-0 flex-1 truncate" title={group.admin.username}>{group.admin.username}</span>
+                        <span className="rounded-md bg-slate-800/80 px-2 py-0.5 text-xs tabular-nums text-slate-400">{group.employees.length}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <div className="w-px h-5 bg-cyan-300/30 shrink-0" />
           <div className="flex h-full items-center gap-1.5 bg-cyan-500/15 px-3">
