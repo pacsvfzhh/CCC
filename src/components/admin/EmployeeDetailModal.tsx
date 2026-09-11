@@ -645,10 +645,10 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-cyan-300/20 bg-slate-950/50 px-3 py-2 sm:gap-2 sm:px-5">
+        <div className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-cyan-300/20 bg-slate-950/50 px-3 py-2.5 sm:gap-2 sm:px-5 sm:py-3">
           <button
             onClick={() => setActiveTab("daily")}
-            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all sm:text-sm ${
+            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-semibold transition-all sm:text-sm ${
               activeTab === "daily"
                 ? "border-cyan-300/50 bg-gradient-to-br from-cyan-500/25 to-blue-500/15 text-cyan-50 shadow-lg shadow-cyan-950/40 ring-1 ring-inset ring-cyan-300/20"
                 : "border-transparent bg-slate-800/55 text-slate-400 hover:border-cyan-300/25 hover:bg-blue-500/10 hover:text-cyan-100"
@@ -659,7 +659,7 @@ export default function EmployeeDetailModal({
           </button>
           <button
             onClick={() => setActiveTab("transactions")}
-            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all sm:text-sm ${
+            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-semibold transition-all sm:text-sm ${
               activeTab === "transactions"
                 ? "border-emerald-300/50 bg-gradient-to-br from-emerald-500/20 to-cyan-500/10 text-emerald-50 shadow-lg shadow-emerald-950/30 ring-1 ring-inset ring-emerald-300/20"
                 : "border-transparent bg-slate-800/55 text-slate-400 hover:border-emerald-300/25 hover:bg-emerald-500/10 hover:text-emerald-100"
@@ -670,7 +670,7 @@ export default function EmployeeDetailModal({
           </button>
           <button
             onClick={() => setActiveTab("withdrawals")}
-            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all sm:text-sm ${
+            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-semibold transition-all sm:text-sm ${
               activeTab === "withdrawals"
                 ? "border-amber-300/50 bg-gradient-to-br from-amber-500/20 to-orange-500/10 text-amber-50 shadow-lg shadow-amber-950/30 ring-1 ring-inset ring-amber-300/20"
                 : "border-transparent bg-slate-800/55 text-slate-400 hover:border-amber-300/25 hover:bg-amber-500/10 hover:text-amber-100"
@@ -681,7 +681,7 @@ export default function EmployeeDetailModal({
           </button>
           <button
             onClick={() => setActiveTab("verification")}
-            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all sm:text-sm ${
+            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-semibold transition-all sm:text-sm ${
               activeTab === "verification"
                 ? "border-violet-300/50 bg-gradient-to-br from-violet-500/20 to-blue-500/10 text-violet-50 shadow-lg shadow-violet-950/30 ring-1 ring-inset ring-violet-300/20"
                 : "border-transparent bg-slate-800/55 text-slate-400 hover:border-violet-300/25 hover:bg-violet-500/10 hover:text-violet-100"
@@ -788,8 +788,9 @@ export default function EmployeeDetailModal({
                       <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
                         Daily Breakdown
                       </h3>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {dailyStats.length} {dailyStats.length === 1 ? "day" : "days"} of activity
+                      <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-cyan-300/25 bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold tracking-wide text-cyan-100">
+                        <Calendar className="h-3.5 w-3.5 text-cyan-300" />
+                        <span>{dailyStats.length} {dailyStats.length === 1 ? "day" : "days"} of activity</span>
                       </p>
                     </div>
                     {dailyStats.length > itemsPerPage && (
