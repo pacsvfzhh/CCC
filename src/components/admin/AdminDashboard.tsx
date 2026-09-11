@@ -636,7 +636,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         <header className="bg-slate-900/90 backdrop-blur-xl border-b border-blue-500/30 w-full m-0 flex-shrink-0" style={{ WebkitBackdropFilter: 'blur(24px)' }}>
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-cyan-500/10 to-blue-600/5 pointer-events-none"></div>
           <div className="w-full px-2 sm:px-2.5 lg:px-3 py-0 relative">
-            <div className="flex justify-between items-center gap-1">
+            <div className="flex h-4 min-h-0 justify-between items-center gap-1 leading-none">
               <div className="flex-1 min-w-0 flex items-center gap-1">
                 <div className="relative flex-shrink-0">
                   <div className="relative w-3.5 h-3.5 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 rounded flex items-center justify-center shadow-md">
