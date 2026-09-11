@@ -33,6 +33,7 @@ interface EmployeeWithAdmin extends Employee {
 }
 
 type SortField = 'totalOrders' | 'todayOrders' | 'todayCompletedOrders' | 'failedOrders' | 'walletBalance' | 'accountBalance' | 'todayCommission' | 'totalWorkMinutes' | 'todayWorkMinutes' | 'created_at';
+type SummaryFilter = 'today_working' | 'new_today' | 'currently_working';
 
 interface EmployeeGroup {
   admin: {
@@ -116,6 +117,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [inactiveDaysDropdownOpen, setInactiveDaysDropdownOpen] = useState<string | null>(null);
   // Pending withdrawal filter per group
   const [pendingWithdrawalFilterByGroup, setPendingWithdrawalFilterByGroup] = useState<Set<string>>(new Set());
+  // Summary filter per group
+  const [summaryFilterByGroup, setSummaryFilterByGroup] = useState<Map<string, SummaryFilter>>(new Map());
   // Action menu
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   // Refresh
@@ -832,6 +835,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const getWorkStatusFilter = (adminId: string): Set<'online' | 'offline' | 'never_started'> => workStatusFilterByGroup.get(adminId) || new Set();
 
+  const handleSummaryFilter = (adminId: string, filter: SummaryFilter) => {
+    setSummaryFilterByGroup(prev => {
+      const next = new Map(prev);
+      if (next.get(adminId) === filter) next.delete(adminId);
+      else next.set(adminId, filter);
+      return next;
+    });
+  };
+
+  const getSummaryFilter = (adminId: string): SummaryFilter | null => summaryFilterByGroup.get(adminId) || null;
+
   const togglePin = async (employeeId: string, currentPinned: boolean) => {
     const newPinned = !currentPinned;
     setEmployeeGroups(prev => prev.map(g => ({
@@ -974,6 +988,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     const selectedTags = getSelectedTagsForGroup(group.admin.id);
     const activeFilter = getActiveFilter(group.admin.id);
     const workStatusFilter = getWorkStatusFilter(group.admin.id);
+    const summaryFilter = getSummaryFilter(group.admin.id);
 
     return sortEmployees(
       group.employees.filter((emp) => {
@@ -995,6 +1010,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           emp.is_active === false;
 
         const matchesWorkStatus = workStatusFilter.size === 0 || workStatusFilter.has(emp.workStatus);
+        const today = new Date();
+        const matchesSummary = !summaryFilter ||
+          (summaryFilter === 'today_working' && emp.todayWorkMinutes > 0) ||
+          (summaryFilter === 'new_today' && Boolean(emp.created_at) && new Date(emp.created_at).toDateString() === today.toDateString()) ||
+          (summaryFilter === 'currently_working' && emp.workStatus === 'online');
 
         const inactiveDaysRange = inactiveDaysFilterByGroup.get(group.admin.id);
         const matchesInactiveDays = !inactiveDaysRange || (() => {
@@ -1011,7 +1031,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
         const matchesPendingWithdrawal = !pendingWithdrawalFilterByGroup.has(group.admin.id) || emp.hasPendingWithdrawal;
 
-        return matchesSearch && matchesTags && matchesActive && matchesWorkStatus && matchesInactiveDays && matchesPendingWithdrawal;
+        return matchesSearch && matchesTags && matchesActive && matchesWorkStatus && matchesSummary && matchesInactiveDays && matchesPendingWithdrawal;
       }),
       group.admin.id
     );
@@ -1057,6 +1077,30 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <span className="w-1 h-1 rounded-full bg-slate-400" />
         <span className="text-xs font-medium text-slate-400">New</span>
       </span>
+    );
+  };
+
+  const renderSummaryFilterButton = (
+    adminId: string,
+    filter: SummaryFilter,
+    label: string,
+    count: number,
+    tone: string,
+  ) => {
+    const isSelected = getSummaryFilter(adminId) === filter;
+    return (
+      <button
+        type="button"
+        onClick={() => handleSummaryFilter(adminId, filter)}
+        aria-pressed={isSelected}
+        className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums transition-colors ${
+          isSelected
+            ? `${tone} border-transparent text-white shadow-sm`
+            : 'border-transparent bg-transparent text-slate-400 hover:border-slate-600/70 hover:bg-slate-800/70 hover:text-white'
+        }`}
+      >
+        {label}: {count}
+      </button>
     );
   };
 
@@ -1980,14 +2024,34 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     {allEmps.length > 0 && (
                       <>
                         <span className="text-slate-500">&bull;</span>
-                        <span className="text-emerald-300 text-sm">Today Working: {allEmps.filter(e => e.todayWorkMinutes > 0).length}</span>
+                        {renderSummaryFilterButton(
+                          flatAdminId,
+                          'today_working',
+                          'Today Working',
+                          allEmps.filter(e => e.todayWorkMinutes > 0).length,
+                          'bg-emerald-500/80',
+                        )}
                         <span className="text-slate-500">&bull;</span>
-                        <span className="text-sky-300 text-sm">New Today: {allEmps.filter(e => {
-                          if (!e.created_at) return false;
-                          const today = new Date();
-                          const created = new Date(e.created_at);
-                          return created.toDateString() === today.toDateString();
-                        }).length}</span>
+                        {renderSummaryFilterButton(
+                          flatAdminId,
+                          'new_today',
+                          'New Today',
+                          allEmps.filter(e => {
+                            if (!e.created_at) return false;
+                            const today = new Date();
+                            const created = new Date(e.created_at);
+                            return created.toDateString() === today.toDateString();
+                          }).length,
+                          'bg-sky-500/80',
+                        )}
+                        <span className="text-slate-500">&bull;</span>
+                        {renderSummaryFilterButton(
+                          flatAdminId,
+                          'currently_working',
+                          'Now Working',
+                          allEmps.filter(e => e.workStatus === 'online').length,
+                          'bg-green-500/80',
+                        )}
                       </>
                     )}
                     </div>
@@ -2141,14 +2205,34 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                               {allEmps.length > 0 && (
                                 <>
                                   <span className="text-slate-500">•</span>
-                                  <span className="text-emerald-300 text-sm">Today Working: {allEmps.filter(e => e.todayWorkMinutes > 0).length}</span>
+                                  {renderSummaryFilterButton(
+                                    group.admin.id,
+                                    'today_working',
+                                    'Today Working',
+                                    allEmps.filter(e => e.todayWorkMinutes > 0).length,
+                                    'bg-emerald-500/80',
+                                  )}
                                   <span className="text-slate-500">•</span>
-                                  <span className="text-sky-300 text-sm">New Today: {allEmps.filter(e => {
-                                    if (!e.created_at) return false;
-                                    const today = new Date();
-                                    const created = new Date(e.created_at);
-                                    return created.toDateString() === today.toDateString();
-                                  }).length}</span>
+                                  {renderSummaryFilterButton(
+                                    group.admin.id,
+                                    'new_today',
+                                    'New Today',
+                                    allEmps.filter(e => {
+                                      if (!e.created_at) return false;
+                                      const today = new Date();
+                                      const created = new Date(e.created_at);
+                                      return created.toDateString() === today.toDateString();
+                                    }).length,
+                                    'bg-sky-500/80',
+                                  )}
+                                  <span className="text-slate-500">•</span>
+                                  {renderSummaryFilterButton(
+                                    group.admin.id,
+                                    'currently_working',
+                                    'Now Working',
+                                    allEmps.filter(e => e.workStatus === 'online').length,
+                                    'bg-green-500/80',
+                                  )}
                                 </>
                               )}
                             </>
