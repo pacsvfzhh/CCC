@@ -5,6 +5,7 @@ import {
   TrendingUp,
   CheckCircle,
   XCircle,
+  Ban,
   Calendar,
   DollarSign,
   User,
@@ -15,6 +16,7 @@ import {
   Mail,
   Phone,
   CreditCard,
+  Wallet,
   Eye,
   ChevronLeft,
   ChevronRight,
@@ -44,6 +46,34 @@ interface WalletTransaction {
   created_by?: string | null;
   reference_id?: string | null;
 }
+
+interface WithdrawalRecord {
+  id: string;
+  amount: number;
+  status: string;
+  audit_remark: string | null;
+  audited_at: string | null;
+  created_at: string;
+}
+
+const withdrawalStatusConfig: Record<string, { label: string; className: string }> = {
+  pending: {
+    label: "Pending",
+    className: "border-amber-300/40 bg-amber-500/15 text-amber-200",
+  },
+  approved: {
+    label: "Approved",
+    className: "border-emerald-300/40 bg-emerald-500/15 text-emerald-200",
+  },
+  rejected: {
+    label: "Rejected",
+    className: "border-red-300/40 bg-red-500/15 text-red-200",
+  },
+  cancelled: {
+    label: "Cancelled",
+    className: "border-slate-500/50 bg-slate-700/50 text-slate-300",
+  },
+};
 
 interface VerificationRequest {
   id: string;
@@ -80,17 +110,20 @@ export default function EmployeeDetailModal({
 }: EmployeeDetailModalProps) {
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [verificationData, setVerificationData] = useState<VerificationRequest | null>(null);
   const [, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"daily" | "transactions" | "verification">("daily");
+  const [activeTab, setActiveTab] = useState<"daily" | "transactions" | "withdrawals" | "verification">("daily");
   const [currentPage, setCurrentPage] = useState(1);
   const [transactionPage, setTransactionPage] = useState(1);
+  const [withdrawalPage, setWithdrawalPage] = useState(1);
   const [walletBalance, setWalletBalance] = useState({
     available: 0,
     frozen: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [loadingWithdrawals, setLoadingWithdrawals] = useState(true);
   const [loadingVerification, setLoadingVerification] = useState(true);
   const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -120,6 +153,7 @@ export default function EmployeeDetailModal({
     try {
       setLoadingStats(true);
       setLoadingTransactions(true);
+      setLoadingWithdrawals(true);
 
       // Load wallet balance first (fastest query)
       const walletPromise = supabase
@@ -195,6 +229,20 @@ export default function EmployeeDetailModal({
           return result;
         });
 
+      const withdrawalsPromise = supabase
+        .from("withdrawals")
+        .select("*")
+        .eq("user_id", employee.id)
+        .order("created_at", { ascending: false })
+        .limit(100)
+        .then((result) => {
+          if (!result.error && result.data) {
+            setWithdrawals(result.data);
+          }
+          setLoadingWithdrawals(false);
+          return result;
+        });
+
       const verificationPromise = supabase
         .from("verification_requests")
         .select("*")
@@ -211,8 +259,8 @@ export default function EmployeeDetailModal({
         });
 
       // Wait for all queries to complete
-      const [walletResult, ordersResult, transactionsResult, verificationResult] =
-        await Promise.all([walletPromise, ordersPromise, transactionsPromise, verificationPromise]);
+      const [walletResult, ordersResult, transactionsResult, withdrawalsResult, verificationResult] =
+        await Promise.all([walletPromise, ordersPromise, transactionsPromise, withdrawalsPromise, verificationPromise]);
 
       // Check for errors
       if (walletResult.error)
@@ -221,12 +269,15 @@ export default function EmployeeDetailModal({
         console.error("Orders load error:", ordersResult.error);
       if (transactionsResult.error)
         console.error("Transactions load error:", transactionsResult.error);
+      if (withdrawalsResult.error)
+        console.error("Withdrawals load error:", withdrawalsResult.error);
       if (verificationResult.error)
         console.error("Verification load error:", verificationResult.error);
     } catch (error) {
       console.error("Error loading employee details:", error);
       setLoadingStats(false);
       setLoadingTransactions(false);
+      setLoadingWithdrawals(false);
       setLoadingVerification(false);
     }
   };
@@ -594,39 +645,50 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-cyan-300/20 bg-slate-900 px-4 pt-2 sm:gap-2 sm:px-5">
+        <div className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-cyan-300/20 bg-slate-950/50 px-3 py-2 sm:gap-2 sm:px-5">
           <button
             onClick={() => setActiveTab("daily")}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-medium transition-all ${
+            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all sm:text-sm ${
               activeTab === "daily"
-                ? "bg-cyan-500/15 text-cyan-50 border-b-2 border-cyan-300 ring-1 ring-inset ring-cyan-300/20"
-                : "text-slate-400 hover:text-cyan-100 hover:bg-blue-500/10"
+                ? "border-cyan-300/50 bg-gradient-to-br from-cyan-500/25 to-blue-500/15 text-cyan-50 shadow-lg shadow-cyan-950/40 ring-1 ring-inset ring-cyan-300/20"
+                : "border-transparent bg-slate-800/55 text-slate-400 hover:border-cyan-300/25 hover:bg-blue-500/10 hover:text-cyan-100"
             }`}
           >
-            <TrendingUp className="h-4 w-4 text-cyan-300" />
-            Daily Statistics
+            <TrendingUp className="h-4 w-4 shrink-0 text-cyan-300 transition-transform group-hover:-translate-y-0.5" />
+            <span>Daily Statistics</span>
           </button>
           <button
             onClick={() => setActiveTab("transactions")}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-medium transition-all ${
+            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all sm:text-sm ${
               activeTab === "transactions"
-                ? "bg-cyan-500/15 text-cyan-50 border-b-2 border-cyan-300 ring-1 ring-inset ring-cyan-300/20"
-                : "text-slate-400 hover:text-cyan-100 hover:bg-blue-500/10"
+                ? "border-emerald-300/50 bg-gradient-to-br from-emerald-500/20 to-cyan-500/10 text-emerald-50 shadow-lg shadow-emerald-950/30 ring-1 ring-inset ring-emerald-300/20"
+                : "border-transparent bg-slate-800/55 text-slate-400 hover:border-emerald-300/25 hover:bg-emerald-500/10 hover:text-emerald-100"
             }`}
           >
-            <DollarSign className="h-4 w-4 text-emerald-300" />
-            Transaction History
+            <DollarSign className="h-4 w-4 shrink-0 text-emerald-300 transition-transform group-hover:-translate-y-0.5" />
+            <span>Transaction History</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("withdrawals")}
+            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all sm:text-sm ${
+              activeTab === "withdrawals"
+                ? "border-amber-300/50 bg-gradient-to-br from-amber-500/20 to-orange-500/10 text-amber-50 shadow-lg shadow-amber-950/30 ring-1 ring-inset ring-amber-300/20"
+                : "border-transparent bg-slate-800/55 text-slate-400 hover:border-amber-300/25 hover:bg-amber-500/10 hover:text-amber-100"
+            }`}
+          >
+            <Wallet className="h-4 w-4 shrink-0 text-amber-300 transition-transform group-hover:-translate-y-0.5" />
+            <span>Withdrawal Records</span>
           </button>
           <button
             onClick={() => setActiveTab("verification")}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-medium transition-all ${
+            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all sm:text-sm ${
               activeTab === "verification"
-                ? "bg-cyan-500/15 text-cyan-50 border-b-2 border-cyan-300 ring-1 ring-inset ring-cyan-300/20"
-                : "text-slate-400 hover:text-cyan-100 hover:bg-blue-500/10"
+                ? "border-violet-300/50 bg-gradient-to-br from-violet-500/20 to-blue-500/10 text-violet-50 shadow-lg shadow-violet-950/30 ring-1 ring-inset ring-violet-300/20"
+                : "border-transparent bg-slate-800/55 text-slate-400 hover:border-violet-300/25 hover:bg-violet-500/10 hover:text-violet-100"
             }`}
           >
-            <Shield className="w-4 h-4" />
-            Verification Info
+            <Shield className="h-4 w-4 shrink-0 text-violet-300 transition-transform group-hover:-translate-y-0.5" />
+            <span>Verification Info</span>
           </button>
         </div>
 
@@ -934,6 +996,96 @@ export default function EmployeeDetailModal({
           </div>
 
           <div
+            className={activeTab === "withdrawals" ? "space-y-4" : "hidden"}
+          >
+            {loadingWithdrawals ? (
+              <div className="flex h-48 flex-col items-center justify-center gap-3">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-500/25 border-t-amber-300"></div>
+                <div className="text-sm text-slate-400">Loading withdrawal records...</div>
+              </div>
+            ) : withdrawals.length === 0 ? (
+              <div className="flex min-h-[360px] items-center justify-center text-center text-slate-400">
+                No withdrawal records available
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between rounded-xl border border-amber-300/20 bg-gradient-to-r from-amber-950/35 via-slate-800/70 to-blue-950/35 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-amber-300" />
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-amber-100">
+                      Withdrawal Records
+                    </h3>
+                  </div>
+                  <span className="rounded-full border border-amber-300/30 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold tabular-nums text-amber-200">
+                    {withdrawals.length} total
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {withdrawals
+                    .slice(
+                      (withdrawalPage - 1) * itemsPerPage,
+                      withdrawalPage * itemsPerPage,
+                    )
+                    .map((withdrawal) => {
+                      const status = withdrawalStatusConfig[withdrawal.status] ?? {
+                        label: withdrawal.status,
+                        className: "border-slate-500/50 bg-slate-700/50 text-slate-300",
+                      };
+
+                      return (
+                        <div
+                          key={withdrawal.id}
+                          className="rounded-xl border border-amber-300/15 bg-gradient-to-r from-slate-800/80 via-blue-950/35 to-slate-800/70 p-4 transition-colors hover:border-amber-300/35"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-300/25 bg-amber-500/10">
+                                {withdrawal.status === "approved" ? (
+                                  <CheckCircle className="h-5 w-5 text-emerald-300" />
+                                ) : withdrawal.status === "rejected" ? (
+                                  <XCircle className="h-5 w-5 text-red-300" />
+                                ) : withdrawal.status === "cancelled" ? (
+                                  <Ban className="h-5 w-5 text-slate-300" />
+                                ) : (
+                                  <Clock className="h-5 w-5 text-amber-300" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-slate-100">Withdrawal Request</p>
+                                <p className="mt-1 text-xs text-slate-400">
+                                  Submitted {new Date(withdrawal.created_at).toLocaleString("zh-CN")}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-amber-200">
+                                -${Number(withdrawal.amount).toFixed(2)}
+                              </p>
+                              <span className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${status.className}`}>
+                                {status.label}
+                              </span>
+                            </div>
+                          </div>
+                          {(withdrawal.audit_remark || withdrawal.audited_at) && (
+                            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-700/60 pt-3 text-xs text-slate-400">
+                              {withdrawal.audited_at && (
+                                <span>Processed {new Date(withdrawal.audited_at).toLocaleString("zh-CN")}</span>
+                              )}
+                              {withdrawal.audit_remark && (
+                                <span className="text-slate-300">Note: {withdrawal.audit_remark}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div
             className={activeTab === "verification" ? "space-y-4" : "hidden"}
           >
             {loadingVerification ? (
@@ -1090,7 +1242,7 @@ export default function EmployeeDetailModal({
         </div>
 
         {activeTab === "transactions" && transactions.length > itemsPerPage && (
-          <div className="flex shrink-0 items-center gap-3 border-t border-slate-700 bg-slate-900/60 px-4 py-2.5 sm:px-5">
+          <div className="flex shrink-0 items-center gap-3 border-t border-slate-700 bg-slate-900 px-4 py-2.5 sm:px-5">
             <button
               onClick={() => setTransactionPage(Math.max(1, transactionPage - 1))}
               disabled={transactionPage === 1}
@@ -1113,6 +1265,33 @@ export default function EmployeeDetailModal({
               Next
             </button>
             <span className="ml-2 text-xs text-slate-500">({transactions.length} total)</span>
+          </div>
+        )}
+
+        {activeTab === "withdrawals" && withdrawals.length > itemsPerPage && (
+          <div className="flex shrink-0 items-center gap-3 border-t border-amber-300/20 bg-slate-900 px-4 py-2.5 sm:px-5">
+            <button
+              onClick={() => setWithdrawalPage(Math.max(1, withdrawalPage - 1))}
+              disabled={withdrawalPage === 1}
+              className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm text-white transition-colors hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600"
+            >
+              Prev
+            </button>
+            <span className="text-sm text-slate-400">
+              Page {withdrawalPage} of {Math.ceil(withdrawals.length / itemsPerPage)}
+            </span>
+            <button
+              onClick={() =>
+                setWithdrawalPage(
+                  Math.min(Math.ceil(withdrawals.length / itemsPerPage), withdrawalPage + 1)
+                )
+              }
+              disabled={withdrawalPage === Math.ceil(withdrawals.length / itemsPerPage)}
+              className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm text-white transition-colors hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600"
+            >
+              Next
+            </button>
+            <span className="ml-2 text-xs text-slate-500">({withdrawals.length} total)</span>
           </div>
         )}
       </div>
