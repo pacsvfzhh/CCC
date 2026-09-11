@@ -1203,11 +1203,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         : 'bg-emerald-500/15 text-emerald-100 ring-1 ring-inset ring-emerald-300/45';
 
     return (
-      <th className={`h-[40px] px-1 py-1 text-center text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${widthClass}`}>
+      <th className={`h-[40px] p-0 text-center text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${widthClass}`}>
         <button
           type="button"
           onClick={() => handleSort(adminId, field)}
-          className={`flex h-full min-h-[30px] w-full flex-col items-center justify-center gap-0.5 rounded-md px-1 leading-none transition-all ${activeStyles}`}
+          className={`flex h-full min-h-0 w-full flex-col items-center justify-center gap-0.5 rounded-none px-1 leading-none transition-all ${activeStyles}`}
         >
           <span>{label}</span>
           <span className="inline-flex h-3.5 items-center justify-center">{getSortIcon(adminId, field)}</span>
