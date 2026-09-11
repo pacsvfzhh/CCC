@@ -1203,11 +1203,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         : 'bg-emerald-500/15 text-emerald-100 ring-1 ring-inset ring-emerald-300/45';
 
     return (
-      <th className={`h-[52px] px-1 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${widthClass}`}>
+      <th className={`h-[40px] px-1 py-1 text-center text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${widthClass}`}>
         <button
           type="button"
           onClick={() => handleSort(adminId, field)}
-          className={`flex h-full min-h-[38px] w-full flex-col items-center justify-center gap-0.5 rounded-md px-1 leading-none transition-all ${activeStyles}`}
+          className={`flex h-full min-h-[30px] w-full flex-col items-center justify-center gap-0.5 rounded-md px-1 leading-none transition-all ${activeStyles}`}
         >
           <span>{label}</span>
           <span className="inline-flex h-3.5 items-center justify-center">{getSortIcon(adminId, field)}</span>
@@ -1968,15 +1968,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const renderTableHeader = (adminId: string) => (
     <thead className="sticky top-0 z-20 isolate bg-slate-700 shadow-[0_2px_4px_rgba(0,0,0,0.3)] border-b-2 border-slate-500/50">
-      <tr className="h-[52px]">
-        <th className="w-8 px-1.5 py-2 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">#</th>
-        <th className="w-[95px] px-1.5 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">User</th>
-        <th className="w-[66px] px-1.5 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Emp ID</th>
+      <tr className="h-[40px]">
+        <th className="w-8 px-1.5 py-1 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">#</th>
+        <th className="w-[95px] px-1.5 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">User</th>
+        <th className="w-[66px] px-1.5 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Emp ID</th>
         {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[64px]')}
-        <th className="h-[52px] w-[70px] px-1 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Tags</th>
-        <th className="h-[52px] w-[42px] px-1 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Ver</th>
-        <th className="h-[52px] w-[48px] px-1 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Status</th>
-        <th className="h-[52px] w-[70px] px-1 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Remarks</th>
+        <th className="h-[40px] w-[70px] px-1 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Tags</th>
+        <th className="h-[40px] w-[42px] px-1 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Ver</th>
+        <th className="h-[40px] w-[48px] px-1 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Status</th>
+        <th className="h-[40px] w-[70px] px-1 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Remarks</th>
         {renderSortableHeader(adminId, 'totalOrders', 'Total', 'w-[42px]')}
         {renderSortableHeader(adminId, 'todayOrders', 'Today', 'w-[42px]')}
         {renderSortableHeader(adminId, 'todayCompletedOrders', 'Success', 'w-[48px]')}
@@ -1986,8 +1986,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         {renderSortableHeader(adminId, 'todayCommission', "Today $", 'w-[62px]')}
         {renderSortableHeader(adminId, 'totalWorkMinutes', 'Total T', 'w-[56px]')}
         {renderSortableHeader(adminId, 'todayWorkMinutes', 'Today T', 'w-[56px]')}
-        <th className="h-[52px] w-[52px] px-1 py-2 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Work</th>
-        <th className="h-[52px] w-[132px] px-1 py-2 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Actions</th>
+        <th className="h-[40px] w-[52px] px-1 py-1 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Work</th>
+        <th className="h-[40px] w-[132px] px-1 py-1 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Actions</th>
       </tr>
     </thead>
   );
