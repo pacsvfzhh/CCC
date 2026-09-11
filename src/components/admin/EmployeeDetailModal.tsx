@@ -531,32 +531,38 @@ export default function EmployeeDetailModal({
         </div>
       )}
 
-      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4">
-      <div className="bg-slate-900 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col border border-slate-700/50 shadow-2xl">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm sm:p-4">
+      <div className="flex min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/95 shadow-2xl shadow-slate-950/70 max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
-          <div>
-            <h2 className="text-2xl font-bold text-white">
-              {employee.username}
-            </h2>
-            <p className="text-slate-400 mt-1">
-              Employee ID: {employee.employee_id}
-            </p>
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-700/60 bg-slate-900/80 px-4 py-3.5 sm:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/25 to-blue-600/25 text-cyan-300 ring-1 ring-inset ring-cyan-300/25">
+              <User className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-bold text-white sm:text-2xl">
+                {employee.username}
+              </h2>
+              <p className="mt-0.5 truncate text-xs text-slate-400 sm:text-sm">
+                Employee ID: <span className="font-mono text-cyan-200/90">{employee.employee_id}</span>
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            className="shrink-0 rounded-xl border border-slate-700/70 bg-slate-800/70 p-2 text-slate-400 transition-colors hover:border-cyan-300/40 hover:bg-slate-700 hover:text-white"
+            aria-label="Close employee details"
           >
-            <X className="w-6 h-6 text-slate-400" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Employee Info Cards */}
-        <div className="px-6 pt-6 pb-4 border-b border-slate-700/50">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-xl p-4">
+        <div className="shrink-0 border-b border-slate-700/50 px-4 pb-3.5 pt-4 sm:px-5">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-blue-600/5 p-3">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/20">
                   <User className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
@@ -585,9 +591,9 @@ export default function EmployeeDetailModal({
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 rounded-xl p-4">
+            <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-500/20 rounded-lg">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20">
                   <DollarSign className="w-5 h-5 text-emerald-400" />
                 </div>
                 <div>
@@ -601,9 +607,9 @@ export default function EmployeeDetailModal({
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 rounded-xl p-4">
+            <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-purple-600/5 p-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/20 rounded-lg">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-500/20">
                   <Wallet className="w-5 h-5 text-purple-400" />
                 </div>
                 <div>
@@ -622,9 +628,9 @@ export default function EmployeeDetailModal({
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-slate-500/10 to-slate-600/5 border border-slate-500/20 rounded-xl p-4">
+            <div className="rounded-xl border border-slate-500/20 bg-gradient-to-br from-slate-500/10 to-slate-600/5 p-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-500/20 rounded-lg">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-500/20">
                   <Clock className="w-5 h-5 text-slate-400" />
                 </div>
                 <div>
@@ -648,9 +654,9 @@ export default function EmployeeDetailModal({
           </div>
 
           {employee.remarks && (
-            <div className="mt-4 bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+            <div className="mt-3 rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-amber-500/20 rounded-lg mt-0.5">
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/20">
                   <MessageSquare className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="flex-1">
@@ -665,10 +671,10 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 px-6 pt-4 border-b border-slate-700/50">
+        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-slate-700/50 px-4 pt-2 sm:gap-2 sm:px-5">
           <button
             onClick={() => setActiveTab("daily")}
-            className={`px-4 py-2 font-medium transition-all rounded-t-lg ${
+            className={`inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-medium transition-all ${
               activeTab === "daily"
                 ? "bg-slate-800 text-white border-b-2 border-blue-500"
                 : "text-slate-400 hover:text-white hover:bg-slate-800/50"
@@ -678,7 +684,7 @@ export default function EmployeeDetailModal({
           </button>
           <button
             onClick={() => setActiveTab("transactions")}
-            className={`px-4 py-2 font-medium transition-all rounded-t-lg ${
+            className={`inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-medium transition-all ${
               activeTab === "transactions"
                 ? "bg-slate-800 text-white border-b-2 border-blue-500"
                 : "text-slate-400 hover:text-white hover:bg-slate-800/50"
@@ -688,7 +694,7 @@ export default function EmployeeDetailModal({
           </button>
           <button
             onClick={() => setActiveTab("verification")}
-            className={`px-4 py-2 font-medium transition-all rounded-t-lg flex items-center gap-2 ${
+            className={`inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-medium transition-all ${
               activeTab === "verification"
                 ? "bg-slate-800 text-white border-b-2 border-blue-500"
                 : "text-slate-400 hover:text-white hover:bg-slate-800/50"
@@ -700,7 +706,7 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
           <div className={activeTab === "daily" ? "space-y-4" : "hidden"}>
             {loadingStats ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -1161,7 +1167,7 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-slate-700">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-700 bg-slate-900/60 px-4 py-3 sm:px-5">
           {activeTab === "transactions" && transactions.length > itemsPerPage ? (
             <div className="flex items-center gap-3">
               <button
@@ -1194,7 +1200,7 @@ export default function EmployeeDetailModal({
           )}
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+            className="rounded-lg border border-slate-600/70 bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:border-cyan-300/40 hover:bg-slate-600"
           >
             Close
           </button>
