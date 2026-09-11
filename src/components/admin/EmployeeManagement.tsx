@@ -100,7 +100,6 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     remarks: '',
   });
   const [selectedAdminForCreate, setSelectedAdminForCreate] = useState<string | null>(null);
-  const firstMatchRef = useRef<HTMLDivElement>(null);
   const adminFilterRef = useRef<HTMLDivElement>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     show: boolean;
@@ -222,11 +221,6 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         .filter(group => getFilteredEmployeesForGroup(group).length > 0)
         .map(group => group.admin.id);
       setExpandedGroups(new Set(groupsWithMatches));
-      setTimeout(() => {
-        if (firstMatchRef.current) {
-          firstMatchRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
     }
   }, [searchTerm, employeeGroups]);
 
@@ -2332,12 +2326,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       ) : (
         // ===== SUPER ADMIN: grouped view =====
         <div className="space-y-4">
-          {filteredGroups.map((group, gIdx) => {
+          {filteredGroups.map((group) => {
             const isSuperGroup = group.admin.role === 'super_admin';
             return (
               <div
                 key={group.admin.id}
-                ref={searchTerm && gIdx === 0 ? firstMatchRef : null}
                 className={`rounded-none overflow-hidden transition-all duration-300 ${
                   isSuperGroup
                     ? 'bg-gradient-to-br from-yellow-500/5 via-slate-800/40 to-slate-800/40 border-2 border-yellow-500/30 shadow-lg shadow-yellow-500/10'
