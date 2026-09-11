@@ -1786,7 +1786,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <Pin className={`w-3 h-3 ${employee.is_pinned ? 'fill-current' : ''}`} />
         </button>
       </td>
-      <td className="w-[104px] py-0.5 px-1.5 whitespace-nowrap cursor-pointer overflow-hidden" onClick={() => setViewingEmployee(employee)}>
+      <td className="w-[88px] py-0.5 px-1.5 whitespace-nowrap cursor-pointer overflow-hidden" onClick={() => setViewingEmployee(employee)}>
         <div className="flex min-w-0 flex-col">
           <div className="flex min-w-0 items-center gap-0.5">
             <span title={employee.username} className={`block max-w-full truncate text-xs font-medium ${!employee.is_active ? 'text-red-400' : employee.hasPendingWithdrawal ? 'text-orange-400' : 'text-white'}`}>{employee.username}</span>
@@ -1797,7 +1797,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           )}
         </div>
       </td>
-      <td title={employee.employee_id} className="w-[82px] max-w-[82px] overflow-hidden text-ellipsis py-0.5 px-1.5 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
+      <td title={employee.employee_id} className="w-[98px] max-w-[98px] overflow-hidden text-ellipsis py-0.5 px-1.5 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
       <td className="w-[62px] py-0.5 px-1 text-[10px] text-emerald-400 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
         <span>{employee.created_at ? new Date(employee.created_at).toLocaleDateString('en-CA') : '-'}</span>
         <button
@@ -1970,8 +1970,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     <thead className="sticky top-0 z-20 isolate bg-slate-700 shadow-[0_2px_4px_rgba(0,0,0,0.3)] border-b-2 border-slate-500/50">
       <tr className="h-[40px]">
         <th className="w-8 px-1.5 py-1 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">#</th>
-        <th className="w-[104px] px-1.5 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">User</th>
-        <th className="w-[82px] px-1.5 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Emp ID</th>
+        <th className="w-[88px] px-1.5 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">User</th>
+        <th className="w-[98px] px-1.5 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Emp ID</th>
         {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[62px]')}
         <th className="h-[40px] w-[68px] px-1 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Tags</th>
         <th className="h-[40px] w-[40px] px-1 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Ver</th>
