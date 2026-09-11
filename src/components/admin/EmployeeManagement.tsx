@@ -2271,50 +2271,48 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 );
               })()}
               {/* Controls */}
-              <div className="px-3 py-1 border-b border-blue-500/30 bg-blue-500/5">
-                <div className="flex flex-wrap gap-1 items-center">
-                  {/* Tag filters */}
-                  {getGroupTags(flatAdminId).length > 0 && (
-                    <div className="flex flex-wrap gap-1 items-center">
-                    <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
-                      <Tag className="w-3 h-3" /> Tags:
-                    </span>
-                    {getGroupTags(flatAdminId).map(tag => {
-                      const selectedTags = getSelectedTagsForGroup(flatAdminId);
-                      const isSelected = selectedTags.includes(tag);
-                      return (
-                        <button key={tag} onClick={() => {
-                          if (isSelected) setSelectedTagsForGroup(flatAdminId, selectedTags.filter(t => t !== tag));
-                          else setSelectedTagsForGroup(flatAdminId, [...selectedTags, tag]);
-                        }} className={`px-1.5 py-0.5 rounded-full text-[11px] font-semibold transition-all ${isSelected ? 'bg-yellow-500/30 text-yellow-200 border border-yellow-400/50 shadow-sm shadow-yellow-500/20' : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-600'}`}>
-                          {tag}
-                        </button>
-                      );
-                    })}
-                    {getSelectedTagsForGroup(flatAdminId).length > 0 && (
-                      <button onClick={() => setSelectedTagsForGroup(flatAdminId, [])} className="px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30">Clear</button>
-                    )}
-                  </div>
-                  )}
-                  <div className="ml-auto flex items-center gap-2">
-                    <div className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-slate-900/75 px-2.5 py-1 shadow-sm shadow-slate-950/40">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-500/15 text-blue-300">
-                        <Users className="h-3.5 w-3.5" />
+              <div className="flex min-h-8 items-center gap-2 border-b border-blue-500/30 bg-blue-500/5 px-3 py-0.5">
+                {getGroupTags(flatAdminId).length > 0 && (
+                  <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
+                    <div className="flex w-max min-w-full items-center gap-1.5">
+                      <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-yellow-300">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-yellow-500/20 text-yellow-300">
+                          <Tag className="h-3.5 w-3.5" />
+                        </span>
+                        Tags:
                       </span>
-                      <span className="flex items-baseline gap-1 leading-none">
-                        <span className="text-base font-bold tabular-nums text-blue-200">{flatFilteredEmployees.length}</span>
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">of</span>
-                        <span className="text-xs font-semibold tabular-nums text-slate-300">{employeeGroups[0]?.employees.length || 0}</span>
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">shown</span>
-                      </span>
+                      {getGroupTags(flatAdminId).map(tag => {
+                        const selectedTags = getSelectedTagsForGroup(flatAdminId);
+                        const isSelected = selectedTags.includes(tag);
+                        return (
+                          <button key={tag} onClick={() => {
+                            if (isSelected) setSelectedTagsForGroup(flatAdminId, selectedTags.filter(t => t !== tag));
+                            else setSelectedTagsForGroup(flatAdminId, [...selectedTags, tag]);
+                          }} className={`inline-flex h-6 shrink-0 items-center rounded-md border px-2 text-[11px] font-semibold transition-all ${isSelected ? 'border-yellow-200 bg-yellow-400 text-yellow-950 shadow-sm shadow-yellow-500/30 ring-1 ring-yellow-200/60' : 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300 hover:border-yellow-300/70 hover:bg-yellow-500/20 hover:text-yellow-100'}`}>
+                            {tag}
+                          </button>
+                        );
+                      })}
+                      {getSelectedTagsForGroup(flatAdminId).length > 0 && (
+                        <button onClick={() => setSelectedTagsForGroup(flatAdminId, [])} className="inline-flex h-6 shrink-0 items-center rounded-md border border-red-500/30 bg-red-600/15 px-2 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-600/30">Clear</button>
+                      )}
                     </div>
-                    <button
-                      onClick={() => { setSelectedAdminForCreate(admin.id); setShowCreateForm(true); }}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-400/40 bg-blue-600/85 px-2.5 py-1 text-xs font-semibold text-white shadow-sm shadow-blue-950/40 transition-all hover:border-blue-300/60 hover:bg-blue-500 active:bg-blue-700"
-                    >
-                      <UserPlus className="h-3.5 w-3.5" /> Create Employee
-                    </button>
                   </div>
+                )}
+                <div className="ml-auto flex shrink-0 items-center gap-2">
+                  <div className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-slate-400">
+                    <Users className="h-3.5 w-3.5 text-cyan-300" />
+                    <span className="font-bold tabular-nums text-cyan-100">{flatFilteredEmployees.length}</span>
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">of</span>
+                    <span className="font-semibold tabular-nums text-slate-200">{employeeGroups[0]?.employees.length || 0}</span>
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">shown</span>
+                  </div>
+                  <button
+                    onClick={() => { setSelectedAdminForCreate(admin.id); setShowCreateForm(true); }}
+                    className="inline-flex h-7 items-center gap-1.5 rounded-md border border-blue-400/40 bg-blue-600/85 px-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-950/40 transition-all hover:border-blue-300/60 hover:bg-blue-500 active:bg-blue-700"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" /> Create Employee
+                  </button>
                 </div>
               </div>
 
