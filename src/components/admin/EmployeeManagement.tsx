@@ -2038,15 +2038,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
           </div>
-          <div className="w-px h-5 bg-slate-700/80 shrink-0" />
-          <div className="flex h-full items-center gap-1.5 bg-slate-800/40 px-3">
-            <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-            <span className="text-sm text-blue-300 font-mono font-bold tabular-nums w-[36px] text-center">{formatCountdown()}s</span>
+          <div className="w-px h-5 bg-cyan-300/30 shrink-0" />
+          <div className="flex h-full items-center gap-1.5 bg-cyan-500/15 px-3">
+            <Clock className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+            <span className="text-sm text-cyan-100 font-mono font-bold tabular-nums w-[36px] text-center">{formatCountdown()}s</span>
           </div>
           <button
             onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployees(employeeGroups.length > 0 ? true : false); }}
             disabled={loading || isRefreshing}
-            className="flex h-full min-w-10 items-center justify-center bg-blue-600/90 px-3 text-white transition-colors hover:bg-blue-500 active:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-700"
+            className="flex h-full min-w-10 items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-500 px-3 text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-blue-400 hover:to-cyan-400 active:from-blue-600 active:to-cyan-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:bg-none"
             title="Refresh now"
           >
             <RefreshCw className={`w-4 h-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
@@ -2137,15 +2137,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           </button>
                         )}
                       </div>
-                      <div className="flex h-8 items-center overflow-hidden rounded-lg border border-blue-500/30 bg-slate-900/85 shadow-sm shadow-slate-950/40">
-                        <div className="flex h-full w-[82px] items-center justify-center gap-1.5 border-r border-slate-700/80 bg-slate-800/45 px-2">
-                          <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                          <span className="text-xs text-blue-300 font-mono font-bold tabular-nums w-[34px] text-center">{formatCountdown()}s</span>
+                      <div className="flex h-8 items-center overflow-hidden rounded-lg border border-cyan-300/45 bg-cyan-950/35 shadow-sm shadow-cyan-950/30">
+                        <div className="flex h-full w-[82px] items-center justify-center gap-1.5 border-r border-cyan-300/30 bg-cyan-500/15 px-2">
+                          <Clock className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                          <span className="text-xs text-cyan-100 font-mono font-bold tabular-nums w-[34px] text-center">{formatCountdown()}s</span>
                         </div>
                         <button
                           onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployees(employeeGroups.length > 0 ? true : false); }}
                           disabled={loading || isRefreshing}
-                          className="flex h-full items-center justify-center gap-1 bg-blue-600/90 px-2.5 text-white transition-colors hover:bg-blue-500 active:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-700"
+                          className="flex h-full items-center justify-center gap-1 bg-gradient-to-r from-blue-500 to-cyan-500 px-2.5 text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-blue-400 hover:to-cyan-400 active:from-blue-600 active:to-cyan-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:bg-none"
                           title="Refresh now"
                         >
                           <RefreshCw className={`w-4 h-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
