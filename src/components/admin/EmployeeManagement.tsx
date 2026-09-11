@@ -1962,7 +1962,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               {(() => {
                 const allEmps = employeeGroups[0]?.employees || [];
                 return (
-                  <div className="px-4 py-2.5 border-b border-blue-500/20 bg-blue-500/5 flex items-center gap-3 flex-wrap">
+                  <div className="-ml-4 pl-8 pr-4 py-2.5 border-b border-blue-500/20 bg-blue-500/5 flex items-center gap-3 flex-wrap">
                     <span className={`text-sm font-semibold ${allEmps.length > 0 ? 'text-white' : 'text-slate-400'}`}>
                       {allEmps.length} {allEmps.length === 1 ? 'employee' : 'employees'}
                     </span>
