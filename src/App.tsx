@@ -90,9 +90,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!authState.user?.id) return;
+    if (authState.userType !== 'employee' || !authState.user?.id) return;
     return startOrderProcessing();
-  }, [authState.user?.id]);
+  }, [authState.user?.id, authState.userType]);
 
   const handleLoginSuccess = () => {
     const stored = getStoredAuth();

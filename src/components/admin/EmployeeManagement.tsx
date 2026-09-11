@@ -141,6 +141,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const scrollLockRef = useRef(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const employeeGroupsRef = useRef<EmployeeGroup[]>([]);
+  employeeGroupsRef.current = employeeGroups;
   const loadInProgressRef = useRef(false);
   const pendingReloadRef = useRef(false);
   const autoRefreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -220,6 +222,24 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       if (statsTimer) clearTimeout(statsTimer);
       statsTimer = setTimeout(() => { guardedLoadEmployees(true); }, 2000);
     };
+    const hasRelevantEmployeeChange = (payload: {
+      eventType: string;
+      new: Record<string, unknown>;
+      old: Record<string, unknown>;
+    }) => {
+      if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') return true;
+
+      const employeeId = String(payload.new.id || payload.old.id || '');
+      const currentEmployee = employeeGroupsRef.current
+        .flatMap(group => group.employees)
+        .find(employee => employee.id === employeeId);
+      if (!currentEmployee) return true;
+
+      const relevantFields = ['username', 'employee_id', 'is_verified', 'is_active', 'remarks', 'tags', 'is_pinned', 'created_by', 'created_at'];
+      return relevantFields.some(field =>
+        field in payload.new && JSON.stringify(payload.new[field]) !== JSON.stringify((currentEmployee as unknown as Record<string, unknown>)[field])
+      );
+    };
 
     const adminsSubscription = supabase
       .channel('employee_mgmt_admins')
@@ -230,8 +250,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
     const usersSubscription = supabase
       .channel('employee_mgmt_users')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-        debouncedStructureReload();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+        if (hasRelevantEmployeeChange(payload)) debouncedStructureReload();
       })
       .subscribe();
 
