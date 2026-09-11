@@ -1687,7 +1687,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       key={employee.id}
       className={`group border-t border-slate-700/50 transition-colors ${
         employee.is_pinned
-          ? 'bg-amber-500/10 hover:bg-amber-500/20 border-l-4 border-l-amber-500'
+          ? 'bg-amber-500/10 hover:bg-amber-500/20'
           : isSuperAdmin ? 'hover:bg-yellow-500/15 hover:shadow-[inset_5px_0_0_theme(colors.yellow.400)]' : 'hover:bg-blue-500/15 hover:shadow-[inset_5px_0_0_theme(colors.blue.400)]'
       }`}
     >
