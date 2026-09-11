@@ -1611,7 +1611,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       <td className="relative py-0.5 px-2 text-xs text-slate-500 text-center whitespace-nowrap">
         <span
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-y-0 left-0 w-1.5 transition-opacity duration-150 ${
+          className={`pointer-events-none absolute inset-y-0 left-0 w-1 transition-opacity duration-150 ${
             employee.is_pinned
               ? 'bg-amber-400 opacity-100'
               : isSuperAdmin
