@@ -1999,8 +1999,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     <div className="flex flex-col flex-1 min-h-0">
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
-        <div className="relative z-20 flex items-center bg-slate-800 border border-slate-700/80 rounded-none overflow-hidden shrink-0 sticky top-0 mb-1">
-          <div className="relative min-w-0 flex-1 basis-0">
+        <div className="relative z-20 flex h-10 items-center overflow-hidden rounded-lg border border-blue-500/25 bg-slate-900/85 shadow-sm shadow-slate-950/40 shrink-0 sticky top-0 mb-1">
+          <div className="relative h-full min-w-0 flex-1 basis-0 bg-slate-950/25">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
               type="text"
@@ -2008,7 +2008,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search employees..."
               autoComplete="off"
-              className="w-full pl-8 pr-7 py-2 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none focus:bg-slate-700/40 transition-colors"
+              className="h-full w-full pl-9 pr-8 bg-transparent text-sm text-white placeholder-slate-500 outline-none transition-colors focus:bg-slate-800/50"
             />
             {searchTerm && (
               <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
@@ -2016,8 +2016,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </button>
             )}
           </div>
-          <div className="w-px h-6 bg-slate-600/60 shrink-0" />
-          <div className="relative w-[150px] min-w-0 shrink-0" style={{ contain: 'layout' }}>
+          <div className="w-px h-5 bg-slate-700/80 shrink-0" />
+          <div className="relative h-full w-[150px] min-w-0 shrink-0 bg-slate-800/25" style={{ contain: 'layout' }}>
             <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400 pointer-events-none z-10" />
             <select
               value={selectedAdminFilter}
@@ -2027,7 +2027,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   setExpandedGroups(new Set([e.target.value]));
                 }
               }}
-              className="relative z-10 w-full appearance-none pl-8 pr-7 py-2 bg-transparent text-sm text-white focus:outline-none focus:bg-slate-700/40 cursor-pointer transition-colors"
+              className="relative z-10 h-full w-full appearance-none pl-9 pr-8 bg-transparent text-sm text-white outline-none cursor-pointer transition-colors focus:bg-slate-800/50"
             >
               <option value="all" className="bg-slate-800">All Groups ({employeeGroups.reduce((sum, g) => sum + g.employees.length, 0)})</option>
               {employeeGroups.map(group => (
@@ -2038,15 +2038,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
           </div>
-          <div className="w-px h-6 bg-slate-600/60 shrink-0" />
-          <div className="flex items-center gap-1 px-2 py-2">
+          <div className="w-px h-5 bg-slate-700/80 shrink-0" />
+          <div className="flex h-full items-center gap-1.5 bg-slate-800/40 px-3">
             <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
             <span className="text-sm text-blue-300 font-mono font-bold tabular-nums w-[36px] text-center">{formatCountdown()}s</span>
           </div>
           <button
             onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployees(employeeGroups.length > 0 ? true : false); }}
             disabled={loading || isRefreshing}
-            className="flex items-center justify-center px-2.5 py-2 bg-blue-600/90 hover:bg-blue-500 active:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white transition-all self-stretch"
+            className="flex h-full min-w-10 items-center justify-center bg-blue-600/90 px-3 text-white transition-colors hover:bg-blue-500 active:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-700"
             title="Refresh now"
           >
             <RefreshCw className={`w-4 h-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
@@ -2120,8 +2120,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     </div>
                     <div className="mt-1 flex items-center justify-between gap-2 flex-wrap">
                       {renderStatusFilterButtons(flatAdminId)}
-                      <div className="ml-auto flex items-center gap-1">
-                      <div className="relative">
+                      <div className="ml-auto flex h-8 items-center gap-2">
+                      <div className="relative h-8">
                         <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                         <input
                           type="text"
@@ -2129,7 +2129,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           onChange={(e) => setSearchTerm(e.target.value)}
                           placeholder="Search employees..."
                           autoComplete="off"
-                          className="w-[160px] pl-8 pr-7 py-1 bg-slate-800/80 border border-slate-600 rounded-none text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          className="h-8 w-[168px] rounded-lg border border-blue-500/30 bg-slate-950/75 pl-8 pr-7 text-xs text-white placeholder-slate-500 shadow-sm shadow-slate-950/30 outline-none transition-colors focus:border-blue-400/70 focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20"
                         />
                         {searchTerm && (
                           <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
@@ -2137,15 +2137,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           </button>
                         )}
                       </div>
-                      <div className="flex items-center bg-gradient-to-r from-slate-800 to-slate-800/90 border border-blue-500/30 rounded-none overflow-hidden shadow-lg shadow-blue-500/5">
-                        <div className="flex items-center gap-1 px-1.5 py-1 w-[78px] justify-center">
+                      <div className="flex h-8 items-center overflow-hidden rounded-lg border border-blue-500/30 bg-slate-900/85 shadow-sm shadow-slate-950/40">
+                        <div className="flex h-full w-[82px] items-center justify-center gap-1.5 border-r border-slate-700/80 bg-slate-800/45 px-2">
                           <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                           <span className="text-xs text-blue-300 font-mono font-bold tabular-nums w-[34px] text-center">{formatCountdown()}s</span>
                         </div>
                         <button
                           onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployees(employeeGroups.length > 0 ? true : false); }}
                           disabled={loading || isRefreshing}
-                          className="flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-medium transition-all"
+                          className="flex h-full items-center justify-center gap-1 bg-blue-600/90 px-2.5 text-white transition-colors hover:bg-blue-500 active:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-700"
                           title="Refresh now"
                         >
                           <RefreshCw className={`w-4 h-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
