@@ -4,7 +4,7 @@ import { login, storeAuth } from '../lib/auth';
 import { useCompanyName } from '../lib/useCompanyName';
 import { useResponsive } from '../lib/useResponsive';
 import { checkLoginRateLimit, recordLoginAttempt, formatLockDuration } from '../lib/rateLimitService';
-import { supabase, supabaseConfigurationError } from '../lib/supabase';
+import { formatSupabaseError, supabase, supabaseConfigurationError } from '../lib/supabase';
 import { useLanguage, LANGUAGES } from '../lib/i18n';
 import { LanguageModal } from '../components/LanguageSwitcher';
 import type { Language } from '../lib/i18n';
@@ -57,7 +57,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         }
       });
     } catch (error) {
-      console.error('Error loading login page settings:', error);
+      console.error('Error loading login page settings:', formatSupabaseError(error));
     }
   };
 
@@ -135,7 +135,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       storeAuth(result);
       onLoginSuccess();
     } catch (err) {
-      console.error('[Login] Login error:', err);
+      console.error('[Login] Login error:', formatSupabaseError(err));
 
       const attemptResult = await recordLoginAttempt(
         username,

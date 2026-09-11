@@ -11,22 +11,57 @@ export const supabaseConfigurationError = !supabaseUrl || !supabaseAnonKey
     ? 'Supabase is still using a placeholder URL. Replace VITE_SUPABASE_URL with your real project URL.'
     : null;
 
+export function formatSupabaseError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+
+  if (error && typeof error === 'object') {
+    const details = error as {
+      message?: unknown;
+      code?: unknown;
+      details?: unknown;
+      hint?: unknown;
+    };
+    const parts = [details.message, details.code, details.details, details.hint]
+      .filter(value => typeof value === 'string' && value.length > 0)
+      .map(value => String(value));
+
+    if (parts.length > 0) return parts.join(' | ');
+
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return 'Unknown Supabase error';
+    }
+  }
+
+  return String(error);
+}
+
+export function isSupabaseAbortError(error: unknown): boolean {
+  if (error instanceof Error) return error.name === 'AbortError';
+  return Boolean(error && typeof error === 'object' && 'name' in error && error.name === 'AbortError');
+}
+
 const clientUrl = supabaseUrl || 'https://placeholder.supabase.co';
 const clientKey = supabaseAnonKey || 'missing-anon-key';
 
 const fetchWithTimeout: typeof fetch = async (input, init) => {
-  const controller = new AbortController();
   const callerSignal = init?.signal;
-  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  if (callerSignal?.aborted) {
+    const abortError = new Error('Supabase request was cancelled.');
+    abortError.name = 'AbortError';
+    throw abortError;
+  }
+
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeoutId = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, REQUEST_TIMEOUT_MS);
   const forwardCallerAbort = () => controller.abort();
 
-  if (callerSignal) {
-    if (callerSignal.aborted) {
-      controller.abort();
-    } else {
-      callerSignal.addEventListener('abort', forwardCallerAbort, { once: true });
-    }
-  }
+  callerSignal?.addEventListener('abort', forwardCallerAbort, { once: true });
 
   try {
     return await fetch(input, { ...init, signal: controller.signal });
@@ -36,8 +71,10 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
       abortError.name = 'AbortError';
       throw abortError;
     }
-    if (controller.signal.aborted) {
-      throw new Error('Supabase request timed out. Check your project URL and network connection.');
+    if (timedOut) {
+      const timeoutError = new Error('Supabase request timed out. Check your project URL and network connection.');
+      timeoutError.name = 'SupabaseTimeoutError';
+      throw timeoutError;
     }
 
     const errorName = typeof error === 'object' && error !== null && 'name' in error

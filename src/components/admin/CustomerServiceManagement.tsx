@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, X, Search, Tag, Filter, Image, Star, Clock, Bold, Underline, Strikethrough, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
@@ -508,7 +508,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           : prev
       );
     } catch (error) {
-      console.error('Error loading admin unread counts:', error);
+      console.error('Error loading admin unread counts:', formatSupabaseError(error));
     }
   };
 
@@ -539,7 +539,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         setAdminUnreadCounts({});
       }
     } catch (error) {
-      console.error('Error loading admin groups:', error);
+      console.error('Error loading admin groups:', formatSupabaseError(error));
       setNotification({ type: 'error', text: 'Failed to load admin groups' });
     } finally {
       if (!autoSelected && !silent) {
@@ -602,7 +602,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       conversationHistoryRef.current = nextHistory;
       setConversationHistory(nextHistory);
     } catch (error) {
-      console.error('Error loading conversation history:', error);
+      console.error('Error loading conversation history:', formatSupabaseError(error));
     }
   }, [employees]);
 
@@ -692,7 +692,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       setConversationHistory(allHistory);
       setAllConversationHistory(allHistory);
     } catch (error) {
-      console.error('Error loading all conversation history:', error);
+      console.error('Error loading all conversation history:', formatSupabaseError(error));
     }
   }, [selectedAdminId]);
 
@@ -724,7 +724,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         setHasMoreMessages(false);
       }
     } catch (error) {
-      console.error('Error loading older messages:', error);
+      console.error('Error loading older messages:', formatSupabaseError(error));
     } finally {
       if (messagesLoadRequestRef.current === messageRequestId) {
         setLoadingOlderMessages(false);
@@ -801,7 +801,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           pendingConversationMessageRequestsRef.current.delete(cacheKey);
         },
         (error: unknown) => {
-          console.error('Error prefetching messages:', error);
+          console.error('Error prefetching messages:', formatSupabaseError(error));
           pendingConversationMessageRequestsRef.current.delete(cacheKey);
         },
       ),
@@ -880,7 +880,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       }
     } catch (error) {
       if (requestId !== messagesLoadRequestRef.current) return;
-      console.error('Error loading messages:', error);
+      console.error('Error loading messages:', formatSupabaseError(error));
       setMessagesLoading(false);
     }
   }, [clearUnreadConversationLocally, loadAllConversationHistory, restoreCachedMessages, selectedCustomer, selectedEmployee]);
@@ -1158,7 +1158,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                 }
               },
               (error: unknown) => {
-                console.error('Error loading employees:', error);
+                console.error('Error loading employees:', formatSupabaseError(error));
               },
             );
         })
@@ -1290,7 +1290,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         setPendingRating(null);
       }
     } catch (error) {
-      console.error('Error checking pending rating:', error);
+      console.error('Error checking pending rating:', formatSupabaseError(error));
     }
   };
 
@@ -1390,7 +1390,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       if (error) throw error;
       setMessageTemplates(data || []);
     } catch (error) {
-      console.error('Error loading templates:', error);
+      console.error('Error loading templates:', formatSupabaseError(error));
     }
   }, [selectedAdminId]);
 
@@ -1600,7 +1600,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
     } catch (error) {
       if (requestId !== workspaceLoadRequestRef.current) return;
-      console.error('Error loading admin data:', error);
+      console.error('Error loading admin data:', formatSupabaseError(error));
       setNotification({ type: 'error', text: 'Failed to load data' });
     } finally {
       if (!silent && requestId === workspaceLoadRequestRef.current) setLoading(false);
@@ -2398,7 +2398,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           console.log('Delete response:', { data, error });
 
           if (error) {
-            console.error('Delete error:', error);
+            console.error('Delete error:', formatSupabaseError(error));
             throw error;
           }
 
@@ -2406,7 +2406,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           loadMessages();
           loadConversationHistory();
         } catch (error: any) {
-          console.error('Delete failed:', error);
+          console.error('Delete failed:', formatSupabaseError(error));
           setNotification({ type: 'error', text: error.message || 'Failed to delete message' });
         }
         setConfirmDialog(null);
@@ -2633,7 +2633,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           console.log('Delete conversation response:', { data, error });
 
           if (error) {
-            console.error('Delete conversation error:', error);
+            console.error('Delete conversation error:', formatSupabaseError(error));
             throw error;
           }
 
@@ -2642,7 +2642,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           setMessages([]);
           loadConversationHistory();
         } catch (error: any) {
-          console.error('Delete conversation failed:', error);
+          console.error('Delete conversation failed:', formatSupabaseError(error));
           setNotification({ type: 'error', text: error.message || 'Failed to delete conversation' });
         }
         setConfirmDialog(null);

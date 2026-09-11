@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { formatSupabaseError, supabase } from './supabase';
 
 export interface RateLimitCheckResult {
   allowed: boolean;
@@ -30,14 +30,14 @@ export async function checkLoginRateLimit(
     });
 
     if (error) {
-      console.error('[Rate Limit] Check error:', error);
+      console.error('[Rate Limit] Check error:', formatSupabaseError(error));
       return { allowed: true, locked: false };
     }
 
     console.log('[Rate Limit] Check result for', identifier, ':', data);
     return data as RateLimitCheckResult;
   } catch (error) {
-    console.error('Rate limit check exception:', error);
+    console.error('Rate limit check exception:', formatSupabaseError(error));
     return { allowed: true, locked: false };
   }
 }
@@ -65,14 +65,14 @@ export async function recordLoginAttempt(
     const { data, error } = await Promise.race([rpcRequest, timeout]);
 
     if (error) {
-      console.error('[Record Attempt] Error:', error);
+      console.error('[Record Attempt] Error:', formatSupabaseError(error));
       return { success, message: error.message };
     }
 
     console.log('[Record Attempt] Result for', identifier, ':', data);
     return data as LoginAttemptResult;
   } catch (error) {
-    console.error('Record login attempt exception:', error);
+    console.error('Record login attempt exception:', formatSupabaseError(error));
     return { success, message: 'Failed to record login attempt' };
   }
 }
@@ -90,13 +90,13 @@ export async function unlockAccount(
     });
 
     if (error) {
-      console.error('Unlock account error:', error);
+      console.error('Unlock account error:', formatSupabaseError(error));
       return { success: false, message: error.message };
     }
 
     return data;
   } catch (error) {
-    console.error('Unlock account exception:', error);
+    console.error('Unlock account exception:', formatSupabaseError(error));
     return { success: false, message: 'Failed to unlock account' };
   }
 }

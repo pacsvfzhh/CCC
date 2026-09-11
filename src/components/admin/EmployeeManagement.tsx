@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { hashPassword } from '../../lib/passwordHash';
 import { Employee, Admin } from '../../types';
 import EmployeeDetailModal from './EmployeeDetailModal';
@@ -608,7 +608,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         return prev;
       });
     } catch (error) {
-      console.error('Error loading employees:', error);
+      console.error('Error loading employees:', formatSupabaseError(error));
     } finally {
       if (!silent) setLoading(false);
       else setIsRefreshing(false);
@@ -684,7 +684,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             throw error;
           }
         } catch (error) {
-          console.error('Error toggling employee status:', error);
+          console.error('Error toggling employee status:', formatSupabaseError(error));
         }
       }
     });
@@ -709,7 +709,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             await supabase.from('verification_requests').delete().eq('user_id', employeeId).eq('status', 'approved');
           }
         } catch (error) {
-          console.error('Error toggling verification:', error);
+          console.error('Error toggling verification:', formatSupabaseError(error));
           setEmployeeGroups(prev => prev.map(g => ({
             ...g,
             employees: g.employees.map(emp => emp.id === employeeId ? { ...emp, is_verified: currentStatus } : emp)
@@ -756,7 +756,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       if (error) throw error;
       setEditingEmployee(null);
     } catch (error) {
-      console.error('Error updating employee:', error);
+      console.error('Error updating employee:', formatSupabaseError(error));
       setNotification({ show: true, type: 'error', title: 'Error', message: 'Failed to update employee' });
       guardedLoadEmployees(true);
     }
@@ -1307,7 +1307,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       if (error) throw error;
       setLoginIPRecords((data as LoginIPRecord[]) || []);
     } catch (err) {
-      console.error('Error loading login IP history:', err);
+      console.error('Error loading login IP history:', formatSupabaseError(err));
     } finally {
       setLoginIPLoading(false);
     }
@@ -1406,7 +1406,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         frozen: data?.frozen_balance ?? 0,
       });
     } catch (err) {
-      console.error('Error loading wallet:', err);
+      console.error('Error loading wallet:', formatSupabaseError(err));
       setWalletData({ available: 0, frozen: 0 });
     } finally {
       setWalletLoading(false);
@@ -1453,7 +1453,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setWalletAdjustData({ amount: '', remarks: '' });
       setWalletNotification({ type: 'success', message: 'Balance adjusted successfully' });
     } catch (err: any) {
-      console.error('Error adjusting wallet:', err);
+      console.error('Error adjusting wallet:', formatSupabaseError(err));
       setWalletNotification({ type: 'error', message: err?.message || 'Failed to adjust balance' });
     } finally {
       setWalletAdjusting(false);

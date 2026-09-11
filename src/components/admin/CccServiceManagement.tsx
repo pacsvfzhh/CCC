@@ -5,7 +5,7 @@ import { sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import CustomerAutoMessages, { type AutoMessageDraft } from './CustomerAutoMessages';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
 import TiptapEditor, { TiptapEditorRef } from './TiptapEditor';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import { processContentImages } from '../../lib/imageOptimizer';
@@ -686,7 +686,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           : prev
       );
     } catch (error) {
-      console.error('Error loading admin unread counts:', error);
+      console.error('Error loading admin unread counts:', formatSupabaseError(error));
     }
   };
 
@@ -717,7 +717,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         setAdminUnreadCounts({});
       }
     } catch (error) {
-      console.error('Error loading admin groups:', error);
+      console.error('Error loading admin groups:', formatSupabaseError(error));
       setNotification({ type: 'error', text: 'Failed to load admin groups' });
     } finally {
       if (!autoSelected && !silent) {
@@ -780,7 +780,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       conversationHistoryRef.current = nextHistory;
       setConversationHistory(nextHistory);
     } catch (error) {
-      console.error('Error loading conversation history:', error);
+      console.error('Error loading conversation history:', formatSupabaseError(error));
     }
   }, [employees]);
 
@@ -871,7 +871,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setConversationHistory(allHistory);
       setAllConversationHistory(allHistory);
     } catch (error) {
-      console.error('Error loading all conversation history:', error);
+      console.error('Error loading all conversation history:', formatSupabaseError(error));
     }
   }, [selectedAdminId]);
 
@@ -903,7 +903,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         setHasMoreMessages(false);
       }
     } catch (error) {
-      console.error('Error loading older messages:', error);
+      console.error('Error loading older messages:', formatSupabaseError(error));
     } finally {
       if (messagesLoadRequestRef.current === messageRequestId) {
         setLoadingOlderMessages(false);
@@ -980,7 +980,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           pendingConversationMessageRequestsRef.current.delete(cacheKey);
         },
         (error: unknown) => {
-          console.error('Error prefetching messages:', error);
+          console.error('Error prefetching messages:', formatSupabaseError(error));
           pendingConversationMessageRequestsRef.current.delete(cacheKey);
         },
       ),
@@ -1059,7 +1059,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       }
     } catch (error) {
       if (requestId !== messagesLoadRequestRef.current) return;
-      console.error('Error loading messages:', error);
+      console.error('Error loading messages:', formatSupabaseError(error));
       setMessagesLoading(false);
     }
   }, [clearUnreadConversationLocally, loadAllConversationHistory, restoreCachedMessages, selectedCustomer, selectedEmployee]);
@@ -1342,7 +1342,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                 }
               },
               (error: unknown) => {
-                console.error('Error loading employees:', error);
+                console.error('Error loading employees:', formatSupabaseError(error));
               },
             );
         })
@@ -1486,7 +1486,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         setPendingRating(null);
       }
     } catch (error) {
-      console.error('Error checking pending rating:', error);
+      console.error('Error checking pending rating:', formatSupabaseError(error));
     }
   };
 
@@ -1586,7 +1586,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       if (error) throw error;
       setMessageTemplates((data || []).map(t => ({ ...t, content: '' })) as MessageTemplate[]);
     } catch (error) {
-      console.error('Error loading templates:', error);
+      console.error('Error loading templates:', formatSupabaseError(error));
     }
   }, [selectedAdminId]);
 
@@ -1851,7 +1851,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     } catch (error) {
       if (requestId !== workspaceLoadRequestRef.current) return;
-      console.error('Error loading admin data:', error);
+      console.error('Error loading admin data:', formatSupabaseError(error));
       setNotification({ type: 'error', text: 'Failed to load data' });
     } finally {
       if (!silent && requestId === workspaceLoadRequestRef.current) setLoading(false);
@@ -2978,7 +2978,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           console.log('Delete conversation response:', { data, error });
 
           if (error) {
-            console.error('Delete conversation error:', error);
+            console.error('Delete conversation error:', formatSupabaseError(error));
             throw error;
           }
 
@@ -2987,7 +2987,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           setMessages([]);
           loadConversationHistory();
         } catch (error: any) {
-          console.error('Delete conversation failed:', error);
+          console.error('Delete conversation failed:', formatSupabaseError(error));
           setNotification({ type: 'error', text: error.message || 'Failed to delete conversation' });
         }
         setConfirmDialog(null);
