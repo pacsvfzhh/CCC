@@ -1766,7 +1766,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           : isSuperAdmin ? 'hover:bg-yellow-500/15 hover:shadow-[inset_5px_0_0_theme(colors.yellow.400)]' : 'hover:bg-blue-500/15 hover:shadow-[inset_5px_0_0_theme(colors.blue.400)]'
       }`}
     >
-      <td className="relative w-8 py-0.5 px-1.5 text-xs text-slate-500 text-center whitespace-nowrap">
+      <td className="relative w-[54px] py-0.5 px-1.5 text-xs text-slate-500 text-center whitespace-nowrap">
         <span
           aria-hidden="true"
           className={`pointer-events-none absolute inset-y-0 left-0 w-1 transition-opacity duration-150 ${
@@ -1777,10 +1777,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 : 'bg-blue-400 opacity-0 group-hover:opacity-100'
           }`}
         />
-        <span className="relative z-10 inline-block translate-x-0.5">{index + 1}</span>
+        <span className="absolute left-2 top-1/2 z-10 inline-block w-[3ch] -translate-y-1/2 text-center tabular-nums">{String(index + 1).padStart(3, '0')}</span>
         <button
           onClick={(e) => { e.stopPropagation(); setPinConfirmEmployee({ id: employee.id, username: employee.username, currentPinned: employee.is_pinned }); }}
-          className={`ml-1 inline-flex align-middle p-0.5 rounded transition-all ${employee.is_pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-amber-400'}`}
+          className={`absolute right-1 top-1/2 inline-flex -translate-y-1/2 rounded p-0.5 transition-all ${employee.is_pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-amber-400'}`}
           title={employee.is_pinned ? 'Unpin' : 'Pin to Top'}
         >
           <Pin className={`w-3 h-3 ${employee.is_pinned ? 'fill-current' : ''}`} />
@@ -1969,7 +1969,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const renderTableHeader = (adminId: string) => (
     <thead className="sticky top-0 z-20 isolate bg-slate-700 shadow-[0_2px_4px_rgba(0,0,0,0.3)] border-b-2 border-slate-500/50">
       <tr className="h-[40px]">
-        <th className="w-8 px-1.5 py-1 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">#</th>
+        <th className="w-[54px] px-1.5 py-1 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">#</th>
         <th className="w-[88px] px-1.5 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">User</th>
         <th className="w-[98px] px-1.5 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Emp ID</th>
         {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[62px]')}
