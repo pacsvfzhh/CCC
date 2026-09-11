@@ -1956,7 +1956,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   );
 
   const renderTableHeader = (adminId: string) => (
-    <thead className="relative bg-slate-700 shadow-[0_2px_4px_rgba(0,0,0,0.3)] border-b-2 border-slate-500/50">
+    <thead className="sticky top-0 z-20 isolate bg-slate-700 shadow-[0_2px_4px_rgba(0,0,0,0.3)] border-b-2 border-slate-500/50">
       <tr>
         <th className="w-8 px-1.5 py-2 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">#</th>
         <th className="w-[95px] px-1.5 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">User</th>
