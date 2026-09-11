@@ -4,7 +4,7 @@ import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import TiptapEditor from './TiptapEditor';
 import {
   Send, Users, Bell, AlertCircle, X, Search,
-  CheckSquare, Square, Trash2, AlertTriangle,
+  Check, CheckSquare, Square, Trash2, AlertTriangle,
   Pencil, Save, ChevronDown,
   Tag, Bookmark, Plus, Clock, Radio, Globe
 } from 'lucide-react';
@@ -1066,15 +1066,25 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         )}
 
         {/* Panel 2: Employees */}
-        <div className="flex w-64 flex-shrink-0 flex-col border-r border-slate-700/60 bg-slate-900/95">
-          <div className="space-y-2 border-b border-slate-700/60 bg-slate-800/45 px-3 py-2.5">
+        <div className="flex w-64 flex-shrink-0 flex-col border-r border-blue-500/15 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/20">
+          <div className="space-y-2.5 border-b border-blue-400/15 bg-gradient-to-b from-slate-800/75 via-slate-800/45 to-slate-900/70 px-3 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-blue-400/30 bg-blue-500/15 text-blue-300">
+                  <Users className="h-3 w-3" />
+                </span>
+                <span className="truncate text-[10px] font-black uppercase tracking-[0.14em] text-slate-200">Recipients</span>
+              </div>
+              {selectedAdminId && <span className="rounded-md border border-slate-600/60 bg-slate-900/70 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-slate-400">{filteredEmployees.length} found</span>}
+            </div>
+
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search employees..."
-                className="w-full rounded-lg border border-slate-600/70 bg-slate-800/90 py-2.5 pl-9 pr-9 text-xs text-white placeholder-slate-500 outline-none transition-colors focus:border-blue-500/70 focus:bg-slate-800 focus:ring-1 focus:ring-blue-400/50"
+                className="w-full rounded-xl border border-slate-600/70 bg-slate-950/65 py-2.5 pl-9 pr-9 text-xs text-white placeholder-slate-500 shadow-inner shadow-black/20 outline-none transition-all duration-200 focus:border-blue-400/70 focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/15"
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-700 transition-all">
@@ -1085,13 +1095,17 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
             {/* Status + Tag filters row */}
             <div className="flex items-center gap-2">
-              <div className="flex flex-1 gap-1 rounded-lg border border-slate-700/60 bg-slate-950/35 p-1">
+              <div className="flex flex-1 gap-1 rounded-xl border border-slate-700/70 bg-slate-950/55 p-1 shadow-inner shadow-black/20">
                 {(['all', 'active', 'verified'] as const).map(status => (
                   <button key={status} onClick={() => setFilterStatus(status)}
-                    className={`flex-1 px-2 py-1.5 rounded-md text-[11px] font-bold transition-all duration-150 ${
+                    className={`flex-1 rounded-lg border px-1.5 py-1.5 text-[10px] font-black transition-all duration-200 ${
                       filterStatus === status
-                        ? 'border border-blue-500/60 bg-blue-600/30 text-blue-100 shadow-sm'
-                        : 'border border-transparent bg-slate-800/45 text-slate-400 hover:border-slate-600/70 hover:bg-slate-800 hover:text-slate-100'
+                        ? status === 'active'
+                          ? 'border-emerald-400/60 bg-emerald-500/20 text-emerald-100 shadow-sm shadow-emerald-950/40'
+                          : status === 'verified'
+                            ? 'border-violet-400/60 bg-violet-500/20 text-violet-100 shadow-sm shadow-violet-950/40'
+                            : 'border-blue-400/60 bg-blue-500/20 text-blue-100 shadow-sm shadow-blue-950/40'
+                        : 'border-transparent bg-transparent text-slate-500 hover:border-slate-600/70 hover:bg-slate-800/80 hover:text-slate-200'
                     }`}>
                     {status === 'all' ? 'All' : status === 'active' ? 'Active' : 'Verified'}
                   </button>
@@ -1102,35 +1116,50 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               {allAvailableTags.length > 0 && (
                 <div className="relative" ref={tagDropdownRef}>
                   <button onClick={() => setShowTagDropdown(!showTagDropdown)}
-                    className={`flex items-center gap-1 px-2.5 py-2 rounded-lg text-[11px] font-bold transition-all duration-150 border ${
+                    aria-expanded={showTagDropdown}
+                    aria-haspopup="menu"
+                    className={`flex items-center gap-1.5 rounded-xl border px-2 py-2 text-[10px] font-black transition-all duration-200 ${
                       selectedTags.size > 0
-                        ? 'bg-teal-600/20 text-teal-100 border-teal-500/50'
-                        : 'bg-slate-800/60 text-slate-400 border-slate-600/60 hover:text-slate-100 hover:bg-slate-700 hover:border-slate-500'
+                        ? 'border-teal-400/60 bg-teal-500/15 text-teal-100 shadow-sm shadow-teal-950/40'
+                        : 'border-slate-600/70 bg-slate-900/70 text-slate-400 hover:border-teal-400/45 hover:bg-teal-950/35 hover:text-teal-100'
                     }`}>
-                    <Tag className="w-3.5 h-3.5" />
-                    {selectedTags.size > 0 && <span className="bg-teal-500/30 px-1 rounded text-[10px]">{selectedTags.size}</span>}
-                    <ChevronDown className="w-3 h-3" />
+                    <Tag className="h-3.5 w-3.5" />
+                    <span className="hidden min-[1380px]:inline">Tags</span>
+                    {selectedTags.size > 0 && <span className="min-w-[17px] rounded-md border border-teal-300/30 bg-teal-400/20 px-1 text-center text-[9px] text-teal-100">{selectedTags.size}</span>}
+                    <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${showTagDropdown ? 'rotate-180' : ''}`} />
                   </button>
                   {showTagDropdown && (
-                    <div className="absolute top-full right-0 mt-1.5 bg-slate-800/95 backdrop-blur-sm border border-slate-500/50 rounded-xl shadow-2xl shadow-black/40 z-50 w-56 max-h-60 overflow-y-auto">
-                      <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-600/60 bg-slate-700/30">
-                        <span className="text-xs text-slate-100 font-bold">Filter by Tag</span>
+                    <div className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-teal-400/30 bg-slate-900/[0.98] shadow-2xl shadow-slate-950/70 ring-1 ring-white/[0.04] backdrop-blur-xl">
+                      <div className="border-b border-teal-300/15 bg-gradient-to-r from-teal-500/15 via-slate-800/70 to-transparent px-3.5 py-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-teal-300/25 bg-teal-400/15 text-teal-300">
+                              <Tag className="h-3.5 w-3.5" />
+                            </span>
+                            <span className="text-xs font-black text-slate-100">Filter by tag</span>
+                          </div>
+                          <span className="rounded-md border border-slate-600/60 bg-slate-950/60 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-slate-400">{allAvailableTags.length}</span>
+                        </div>
+                        <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500">Choose one or more tags to narrow recipients.</p>
                         {selectedTags.size > 0 && (
-                          <button onClick={() => { clearTagFilter(); setShowTagDropdown(false); }} className="text-[11px] text-red-300 hover:text-red-200 font-bold px-2.5 py-1 rounded-md bg-red-500/15 border border-red-500/25 hover:bg-red-500/25 transition-all">
-                            Clear
+                          <button onClick={() => { clearTagFilter(); setShowTagDropdown(false); }} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-400/25 bg-red-500/10 px-2 py-1.5 text-[10px] font-black text-red-200 transition-colors hover:border-red-300/45 hover:bg-red-500/20">
+                            <X className="h-3 w-3" />
+                            Clear selected tags
                           </button>
                         )}
                       </div>
-                      <div className="p-1.5 space-y-0.5">
+                      <div className="max-h-56 space-y-1 overflow-y-auto p-2 scrollbar-dark">
                         {allAvailableTags.map(tag => (
                           <button key={tag} onClick={() => toggleTagFilter(tag)}
-                            className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-xs rounded-lg transition-all ${
+                            className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-xs transition-all duration-150 ${
                               selectedTags.has(tag)
-                                ? 'bg-teal-600/20 border border-teal-500/30'
-                                : 'hover:bg-slate-700/60 border border-transparent'
+                                ? 'border-teal-300/35 bg-gradient-to-r from-teal-500/20 to-cyan-500/10 shadow-sm shadow-teal-950/35'
+                                : 'border-transparent text-slate-300 hover:border-slate-600/70 hover:bg-slate-800/80 hover:text-white'
                             }`}>
-                            {selectedTags.has(tag) ? <CheckSquare className="w-4 h-4 text-teal-400 flex-shrink-0" /> : <Square className="w-4 h-4 text-slate-500 flex-shrink-0" />}
-                            <span className={selectedTags.has(tag) ? 'text-teal-200 font-semibold' : 'text-slate-300'}>{tag}</span>
+                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${selectedTags.has(tag) ? 'border-teal-300/50 bg-teal-400/20 text-teal-200' : 'border-slate-600 bg-slate-800/80 text-slate-500'}`}>
+                              {selectedTags.has(tag) ? <Check className="h-3.5 w-3.5" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
+                            </span>
+                            <span className={selectedTags.has(tag) ? 'font-bold text-teal-100' : 'font-medium'}>{tag}</span>
                           </button>
                         ))}
                       </div>
@@ -1142,21 +1171,22 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
             {/* Employee count + Select */}
             {selectedAdminId && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-300 font-medium">{filteredEmployees.length} found</span>
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-700/50 bg-slate-950/35 px-2 py-1.5">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Visible</span>
+                  <span className="rounded-md border border-slate-600/60 bg-slate-800/80 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-slate-300">{filteredEmployees.length}</span>
                   {selectedEmployeeIds.size > 0 && (
-                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-600/25 text-emerald-200 font-bold border border-emerald-500/30">{selectedEmployeeIds.size} sel</span>
+                    <span className="rounded-md border border-emerald-400/30 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-emerald-200">{selectedEmployeeIds.size} selected</span>
                   )}
                 </div>
                 {filteredEmployees.length > 0 && (
                   <button onClick={selectAllCurrentGroup}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-150 border ${
+                    className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-black transition-all duration-200 ${
                       allCurrentSelected
-                        ? 'bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600'
-                        : 'bg-blue-600/20 text-blue-100 border-blue-500/50 hover:bg-blue-600/30 hover:border-blue-400/60'
+                        ? 'border-slate-500 bg-slate-700/80 text-slate-200 hover:border-slate-400 hover:bg-slate-700'
+                        : 'border-blue-400/45 bg-blue-500/15 text-blue-100 shadow-sm shadow-blue-950/30 hover:border-blue-300/70 hover:bg-blue-500/25'
                     }`}>
-                    {allCurrentSelected ? <><CheckSquare className="w-3.5 h-3.5" /> Deselect</> : <><Square className="w-3.5 h-3.5" /> Select All</>}
+                    {allCurrentSelected ? <><CheckSquare className="h-3.5 w-3.5" /> Deselect</> : <><Square className="h-3.5 w-3.5" /> Select all</>}
                   </button>
                 )}
               </div>
@@ -1185,27 +1215,36 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     <div
                       key={emp.id}
                       onClick={() => toggleEmployeeSelection(emp.id)}
-                      className={`cursor-pointer rounded-xl px-3 py-2.5 transition-all duration-150 group border ${
+                      aria-pressed={isSelected}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          toggleEmployeeSelection(emp.id);
+                        }
+                      }}
+                      className={`group relative cursor-pointer overflow-hidden rounded-xl border px-3 py-2.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 ${
                         isSelected
-                          ? 'bg-blue-600/20 border-blue-400/60 ring-1 ring-blue-400/30 shadow-md shadow-blue-900/20 border-l-[3px] border-l-blue-400'
-                          : 'bg-slate-800/35 border-slate-700/40 hover:bg-slate-800/70 hover:border-slate-600/60'
-                      } ${emp.is_pinned && !isSelected ? 'border-l-[3px] border-l-amber-400/60' : ''}`}
+                          ? 'border-blue-300/70 border-l-[3px] border-l-blue-300 bg-gradient-to-r from-blue-600/35 via-blue-500/15 to-cyan-500/10 shadow-lg shadow-blue-950/40 ring-1 ring-blue-400/25'
+                          : 'border-slate-700/50 bg-slate-800/40 hover:border-blue-400/35 hover:bg-slate-800/80 hover:shadow-md hover:shadow-slate-950/30'
+                      } ${emp.is_pinned && !isSelected ? 'border-l-[3px] border-l-amber-400/70' : ''}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-all duration-150 border ${
+                        <div className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
                           isSelected
-                            ? 'bg-blue-500/35 border-blue-400/60'
-                            : 'bg-slate-800 border-slate-600/60 group-hover:bg-slate-700 group-hover:border-slate-500/60'
+                            ? 'border-blue-200/60 bg-blue-400/25 text-blue-100 shadow-sm shadow-blue-950/40'
+                            : 'border-slate-600/70 bg-slate-900/70 text-slate-500 group-hover:border-blue-400/45 group-hover:bg-slate-800 group-hover:text-slate-200'
                         }`}>
                           {isSelected ? (
-                            <CheckSquare className="w-4 h-4 text-blue-200" />
+                            <Check className="h-4 w-4" strokeWidth={3} />
                           ) : (
-                            <Square className="w-4 h-4 text-slate-500 group-hover:text-slate-300" />
+                            <Square className="h-4 w-4" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className={`text-[13px] font-semibold truncate ${isSelected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
+                            <span className={`truncate text-[13px] font-bold tracking-tight ${isSelected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
                               {emp.username}
                             </span>
                             {emp.is_pinned && (
@@ -1216,16 +1255,16 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[11px] font-mono text-slate-500">{emp.employee_id}</span>
+                            <span className={`font-mono text-[10px] ${isSelected ? 'text-blue-200/80' : 'text-slate-500'}`}>{emp.employee_id}</span>
                             {emp.tags && emp.tags.length > 0 && (
-                              <div className="flex gap-1">
+                              <div className="flex min-w-0 gap-1 overflow-hidden">
                                 {emp.tags.slice(0, 2).map((tag, idx) => (
-                                  <span key={idx} className="text-[10px] px-1.5 py-px rounded-md bg-teal-500/15 text-teal-300 border border-teal-500/15 font-medium">
+                                  <span key={idx} className={`max-w-[76px] truncate rounded-md border px-1.5 py-px text-[9px] font-bold ${isSelected ? 'border-blue-300/25 bg-blue-300/15 text-blue-100' : 'border-teal-400/15 bg-teal-500/10 text-teal-300'}`}>
                                     {tag}
                                   </span>
                                 ))}
                                 {emp.tags.length > 2 && (
-                                  <span className="text-[10px] text-slate-500 font-semibold">+{emp.tags.length - 2}</span>
+                                  <span className={`shrink-0 text-[10px] font-bold ${isSelected ? 'text-blue-200/70' : 'text-slate-500'}`}>+{emp.tags.length - 2}</span>
                                 )}
                               </div>
                             )}
@@ -1238,13 +1277,15 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               </div>
             )}
           </div>
-          <div className="flex gap-1 border-t border-slate-700/60 bg-slate-800/35 px-2 py-2">
+          <div className="flex gap-1.5 border-t border-blue-400/15 bg-gradient-to-r from-slate-900/95 via-slate-800/70 to-blue-950/20 px-2.5 py-2.5">
             <button onClick={selectAllEmployees} disabled={allEmployeesSelected}
-              className="flex-1 rounded-md bg-blue-600 px-2 py-1.5 text-[10px] font-bold text-white transition-colors hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:opacity-60">
-              All
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-400/45 bg-blue-500/15 px-2 py-2 text-[10px] font-black text-blue-100 shadow-sm shadow-blue-950/30 transition-all duration-200 hover:border-blue-300/70 hover:bg-blue-500/25 disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800/70 disabled:text-slate-500 disabled:shadow-none">
+              <Users className="h-3.5 w-3.5" />
+              Select all
             </button>
             <button onClick={clearSelection} disabled={selectedEmployeeIds.size === 0}
-              className="flex-1 rounded-md border border-slate-600 bg-slate-700 px-2 py-1.5 text-[10px] font-bold text-slate-200 transition-colors hover:bg-slate-600 disabled:opacity-40">
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-600/80 bg-slate-800/80 px-2 py-2 text-[10px] font-black text-slate-200 transition-all duration-200 hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900/60 disabled:text-slate-600">
+              <X className="h-3.5 w-3.5" />
               Clear
             </button>
           </div>
