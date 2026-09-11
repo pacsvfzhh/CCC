@@ -2803,7 +2803,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   disabled={creatingSecondaryAdmin}
                   required
                   autoComplete="off"
-                  className="w-full rounded-lg border border-slate-600 bg-slate-950/70 px-3.5 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-300/70 focus:bg-slate-950 focus:ring-2 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-400/25 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100"
                   placeholder="Enter admin username"
                 />
               </div>
@@ -2819,13 +2819,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     required
                     minLength={6}
                     autoComplete="new-password"
-                    className="w-full rounded-lg border border-slate-600 bg-slate-950/70 px-3.5 py-2.5 pr-11 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-300/70 focus:bg-slate-950 focus:ring-2 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 pr-11 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-400/25 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100"
                     placeholder="At least 6 characters"
                   />
                   <button
                     type="button"
                     onClick={() => setShowSecondaryAdminPassword((visible) => !visible)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-cyan-100"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
                     aria-label={showSecondaryAdminPassword ? 'Hide password' : 'Show password'}
                   >
                     {showSecondaryAdminPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
