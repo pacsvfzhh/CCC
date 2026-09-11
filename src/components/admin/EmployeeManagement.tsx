@@ -1852,8 +1852,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       <td className="w-[52px] py-0.5 px-1 text-center whitespace-nowrap">
         {renderWorkStatusBadge(employee.workStatus)}
       </td>
-      <td className="w-[110px] py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-center gap-0">
+      <td className="w-[132px] py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-center gap-1">
           <button
             onClick={() => onQuickAction?.('message', { id: employee.id, username: employee.username })}
             className="p-0.5 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/25 hover:text-blue-300 transition-all border border-blue-500/20 hover:border-blue-400/40"
@@ -1926,7 +1926,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         {renderSortableHeader(adminId, 'totalWorkMinutes', 'Total T', 'w-[56px]')}
         {renderSortableHeader(adminId, 'todayWorkMinutes', 'Today T', 'w-[56px]')}
         <th className="w-[52px] px-1 py-2 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Work</th>
-        <th className="w-[110px] px-1 py-2 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Actions</th>
+        <th className="w-[132px] px-1 py-2 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Actions</th>
       </tr>
     </thead>
   );
