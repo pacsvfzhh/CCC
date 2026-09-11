@@ -57,6 +57,7 @@ interface Props {
     role: string;
     is_super_admin?: boolean;
   };
+  isActive?: boolean;
   initialEmployee?: { id: string; username: string } | null;
   onConsumeInitialEmployee?: () => void;
 }
@@ -102,7 +103,7 @@ const getMessagePriorityTone = (priority: Message['priority']) => {
   }
 };
 
-export default function MessageManagement({ admin, initialEmployee, onConsumeInitialEmployee }: Props) {
+export default function MessageManagement({ admin, isActive = true, initialEmployee, onConsumeInitialEmployee }: Props) {
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [allEmployees, setAllEmployees] = useState<Map<string, Employee[]>>(new Map());
   const [selectedAdminId, setSelectedAdminId] = useState<string>('');
@@ -170,8 +171,17 @@ export default function MessageManagement({ admin, initialEmployee, onConsumeIni
   const templateDropdownRef = useRef<HTMLDivElement>(null);
 
   const hasInitiallyLoaded = useRef(false);
+  const wasActiveRef = useRef(false);
   const userDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recipientDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isActive && !wasActiveRef.current && !initialEmployee) {
+      setSelectedEmployeeIds(new Set());
+    }
+
+    wasActiveRef.current = isActive;
+  }, [isActive, initialEmployee]);
 
   useEffect(() => {
     if (!initialEmployee || loading) return;

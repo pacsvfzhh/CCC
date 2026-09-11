@@ -828,7 +828,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             )}
             {loadedTabs.has('messages') && (
               <div className={activeTab === 'messages' ? 'flex-1 min-h-0 flex flex-col animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
-                <MessageManagement admin={admin} initialEmployee={navigateToMessageEmployee} onConsumeInitialEmployee={() => setNavigateToMessageEmployee(null)} />
+                <MessageManagement admin={admin} isActive={activeTab === 'messages'} initialEmployee={navigateToMessageEmployee} onConsumeInitialEmployee={() => setNavigateToMessageEmployee(null)} />
               </div>
             )}
             {loadedTabs.has('customerservice') && (
