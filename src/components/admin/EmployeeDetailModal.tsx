@@ -584,7 +584,7 @@ export default function EmployeeDetailModal({
               </div>
               <button
                 onClick={onClose}
-                className="shrink-0 self-start rounded-xl border border-slate-700/70 bg-slate-800/70 p-2 text-slate-400 transition-colors hover:border-cyan-300/40 hover:bg-slate-700 hover:text-white lg:self-center"
+                className="shrink-0 self-start rounded-xl border border-red-400/50 bg-red-500/15 p-2 text-red-300 transition-colors hover:border-red-300 hover:bg-red-500/30 hover:text-white lg:self-center"
                 aria-label="Close employee details"
               >
                 <X className="h-5 w-5" />
@@ -641,7 +641,7 @@ export default function EmployeeDetailModal({
                 </div>
               </div>
             ) : dailyStats.length === 0 ? (
-              <div className="rounded-xl border border-cyan-300/15 bg-blue-950/25 py-16 text-center text-slate-400">
+              <div className="flex min-h-[360px] items-center justify-center text-center text-slate-400">
                 No order data available in the last 90 days
               </div>
             ) : (
@@ -856,7 +856,7 @@ export default function EmployeeDetailModal({
                 </div>
               </div>
             ) : transactions.length === 0 ? (
-              <div className="rounded-xl border border-cyan-300/15 bg-blue-950/25 py-16 text-center text-slate-400">
+              <div className="flex min-h-[360px] items-center justify-center text-center text-slate-400">
                 No transaction history available
               </div>
             ) : (
@@ -944,14 +944,12 @@ export default function EmployeeDetailModal({
                 </div>
               </div>
             ) : !verificationData ? (
-              <div className="text-center py-12">
-                <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-500/10">
-                  <FileText className="h-8 w-8 text-cyan-300/60" />
-                </div>
-                <p className="text-slate-400 text-lg font-medium mb-2">
+              <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+                <FileText className="mb-4 h-8 w-8 text-cyan-300/60" />
+                <p className="mb-2 text-lg font-medium text-slate-300">
                   No Verification Submitted
                 </p>
-                <p className="text-slate-500 text-sm">
+                <p className="text-sm text-slate-400">
                   This employee has not submitted verification information yet.
                 </p>
               </div>
