@@ -204,7 +204,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   }, [inactiveDaysDropdownOpen]);
 
   useEffect(() => {
-    const anyModalOpen = !!(showCreateSecondaryAdmin || editingEmployee || showPasswordReset || deletingEmployee || editingTags || notification?.show || confirmDialog?.show || loginIPEmployee || walletEmployee);
+    const anyModalOpen = !!(showCreateSecondaryAdmin || adminFilterOpen || editingEmployee || showPasswordReset || deletingEmployee || editingTags || notification?.show || confirmDialog?.show || loginIPEmployee || walletEmployee);
     if (anyModalOpen && !scrollLockRef.current) {
       scrollLockRef.current = true;
       document.documentElement.style.overflow = 'hidden';
@@ -214,7 +214,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     }
-  }, [showCreateSecondaryAdmin, editingEmployee, showPasswordReset, deletingEmployee, editingTags, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
+  }, [showCreateSecondaryAdmin, adminFilterOpen, editingEmployee, showPasswordReset, deletingEmployee, editingTags, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
 
   useEffect(() => {
     if (searchTerm) {
@@ -2063,16 +2063,16 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     <div className="flex flex-col flex-1 min-h-0">
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
-        <div className="relative z-20 flex h-11 w-full min-w-0 items-center overflow-visible rounded-none border border-cyan-300/30 bg-slate-950/90 shadow-lg shadow-slate-950/40 shrink-0 sticky top-0 mb-1 backdrop-blur-sm">
-          <div className="relative h-full min-w-[220px] flex-[1_1_0%] bg-cyan-950/25">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-300 pointer-events-none" />
+        <div className="relative z-20 flex h-11 w-full min-w-0 items-center overflow-visible rounded-none border border-cyan-200/45 bg-slate-950/95 shadow-lg shadow-cyan-950/25 shrink-0 sticky top-0 mb-1 backdrop-blur-sm">
+          <div className="relative h-full min-w-[220px] flex-[1_1_0%] border-r border-cyan-300/25 bg-gradient-to-r from-cyan-500/15 via-cyan-500/10 to-blue-500/10">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-200 drop-shadow-[0_0_6px_rgba(103,232,249,0.35)] pointer-events-none" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search employees..."
               autoComplete="off"
-              className="h-full w-full rounded-none border-r border-cyan-300/20 bg-transparent pl-10 pr-9 text-sm text-slate-50 placeholder:text-cyan-100/60 outline-none transition-colors focus:bg-cyan-900/30"
+              className="h-full w-full rounded-none bg-transparent pl-10 pr-9 text-sm font-medium text-slate-50 placeholder:text-cyan-100/65 outline-none transition-colors focus:bg-cyan-900/30"
             />
             {searchTerm && (
               <button type="button" onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-cyan-200/70 transition-colors hover:bg-cyan-300/15 hover:text-cyan-50">
@@ -2080,21 +2080,21 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </button>
             )}
           </div>
-          <div ref={adminFilterRef} className="relative h-full min-w-[240px] flex-[1.35_1_0%]">
+          <div ref={adminFilterRef} className="relative h-full min-w-[240px] flex-[1.35_1_0%] border-r border-cyan-300/25">
             <button
               type="button"
               onClick={() => setAdminFilterOpen((open) => !open)}
               aria-haspopup="listbox"
               aria-expanded={adminFilterOpen}
-              className={`flex h-full w-full items-center gap-2.5 px-3.5 text-sm transition-colors ${adminFilterOpen ? 'bg-blue-900/45 text-cyan-50' : 'bg-blue-950/25 text-slate-100 hover:bg-blue-900/30'}`}
+              className={`flex h-full w-full items-center gap-2.5 px-3.5 text-sm font-semibold transition-all ${adminFilterOpen ? 'bg-gradient-to-r from-blue-800/75 to-cyan-800/55 text-cyan-50 ring-1 ring-inset ring-cyan-200/35' : 'bg-gradient-to-r from-blue-950/40 to-cyan-950/25 text-slate-100 hover:from-blue-900/55 hover:to-cyan-900/35'}`}
             >
               <Users className="h-4 w-4 shrink-0 text-cyan-300" />
               <span className="min-w-0 flex-1 truncate text-left font-medium">{selectedGroupLabel}</span>
               <ChevronDown className={`h-4 w-4 shrink-0 text-cyan-200/80 transition-transform duration-200 ${adminFilterOpen ? 'rotate-180 text-cyan-100' : ''}`} />
             </button>
             {adminFilterOpen && (
-              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[60] overflow-hidden rounded-xl border border-cyan-300/35 bg-slate-900/95 p-1.5 shadow-2xl shadow-slate-950/70 backdrop-blur-md">
-                <div role="listbox" aria-label="Filter employee group" className="max-h-72 overflow-y-auto">
+              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[60] overflow-hidden rounded-xl border border-cyan-200/45 bg-slate-900/98 p-1.5 shadow-2xl shadow-cyan-950/50 backdrop-blur-md">
+                <div role="listbox" aria-label="Filter employee group" className="max-h-[calc(100vh-7rem)] min-h-[120px] overflow-y-auto overscroll-contain scrollbar-dark">
                   <button
                     type="button"
                     role="option"
