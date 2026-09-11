@@ -1143,8 +1143,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     );
   };
 
-  const renderSortableHeader = (adminId: string, field: SortField, label: string) => (
-    <th className="px-2 py-2.5 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider whitespace-nowrap">
+  const renderSortableHeader = (adminId: string, field: SortField, label: string, widthClass = '') => (
+    <th className={`px-1 py-2 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider whitespace-nowrap ${widthClass}`}>
       <button
         onClick={() => handleSort(adminId, field)}
         className="flex items-center justify-center gap-1 w-full hover:text-white transition-colors"
@@ -1691,7 +1691,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           : isSuperAdmin ? 'hover:bg-yellow-500/15 hover:shadow-[inset_5px_0_0_theme(colors.yellow.400)]' : 'hover:bg-blue-500/15 hover:shadow-[inset_5px_0_0_theme(colors.blue.400)]'
       }`}
     >
-      <td className="relative py-0.5 px-2 text-xs text-slate-500 text-center whitespace-nowrap">
+      <td className="relative w-8 py-0.5 px-1 text-xs text-slate-500 text-center whitespace-nowrap">
         <span
           aria-hidden="true"
           className={`pointer-events-none absolute inset-y-0 left-0 w-1 transition-opacity duration-150 ${
@@ -1711,10 +1711,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <Pin className={`w-3 h-3 ${employee.is_pinned ? 'fill-current' : ''}`} />
         </button>
       </td>
-      <td className="py-0.5 px-2 whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>
-        <div className="flex flex-col">
-          <div className="flex items-center gap-0.5">
-            <span className={`text-xs font-medium ${!employee.is_active ? 'text-red-400' : employee.hasPendingWithdrawal ? 'text-orange-400' : 'text-white'}`}>{employee.username}</span>
+      <td className="w-[95px] py-0.5 px-1.5 whitespace-nowrap cursor-pointer overflow-hidden" onClick={() => setViewingEmployee(employee)}>
+        <div className="flex min-w-0 flex-col">
+          <div className="flex min-w-0 items-center gap-0.5">
+            <span title={employee.username} className={`block max-w-full truncate text-xs font-medium ${!employee.is_active ? 'text-red-400' : employee.hasPendingWithdrawal ? 'text-orange-400' : 'text-white'}`}>{employee.username}</span>
 
           </div>
           {employee.hasPendingWithdrawal && (
@@ -1722,8 +1722,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           )}
         </div>
       </td>
-      <td className="py-0.5 px-2 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
-      <td className="py-0.5 px-2 text-[10px] text-emerald-400 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+      <td title={employee.employee_id} className="w-[66px] max-w-[66px] overflow-hidden text-ellipsis py-0.5 px-1.5 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
+      <td className="w-[64px] py-0.5 px-1 text-[10px] text-emerald-400 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
         <span>{employee.created_at ? new Date(employee.created_at).toLocaleDateString('en-CA') : '-'}</span>
         <button
           onClick={() => {
@@ -1737,8 +1737,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <Pencil className="w-2.5 h-2.5" />
         </button>
       </td>
-      <td className="py-0.5 px-2 relative group/tags" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-0.5 max-w-[120px] min-w-0 overflow-hidden whitespace-nowrap" title={(employee.tags || []).join(', ')}>
+      <td className="w-[70px] py-0.5 px-1 relative group/tags" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-0.5 max-w-[70px] min-w-0 overflow-hidden whitespace-nowrap" title={(employee.tags || []).join(', ')}>
           {(employee.tags || []).length > 0 && (
             <span className="min-w-0 flex-1 px-1.5 py-0 bg-amber-500/20 text-amber-400 text-[10px] font-medium rounded-full border border-amber-500/30 truncate">
               {(employee.tags || [])[0]}
@@ -1759,7 +1759,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           </div>
         )}
       </td>
-      <td className="py-0.5 px-2 relative group/ver">
+      <td className="w-[42px] py-0.5 px-1 relative group/ver">
         <button
           onClick={(e) => { e.stopPropagation(); toggleVerification(employee.id, employee.is_verified, employee.username); }}
           className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -1781,7 +1781,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           </div>
         )}
       </td>
-      <td className="py-0.5 px-2">
+      <td className="w-[48px] py-0.5 px-1">
         <button
           onClick={(e) => { e.stopPropagation(); toggleEmployeeStatus(employee.id, employee.is_active, employee.username); }}
           className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -1791,9 +1791,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           {employee.is_active ? 'Active' : 'Off'}
         </button>
       </td>
-      <td className="py-0.5 px-2 relative group/remarks" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-0.5 max-w-[90px]">
-          <span className="text-xs text-blue-400 truncate flex-1">{employee.remarks || '-'}</span>
+      <td className="w-[70px] py-0.5 px-1 relative group/remarks overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex min-w-0 items-center gap-0.5 max-w-[70px]">
+          <span title={employee.remarks || '-'} className="text-xs text-blue-400 truncate flex-1">{employee.remarks || '-'}</span>
           <button onClick={() => setEditingRemarksOnly(employee)} className="opacity-0 group-hover/remarks:opacity-100 transition-opacity flex-shrink-0">
             <Pencil className="w-2.5 h-2.5 text-slate-500 hover:text-blue-400" />
           </button>
@@ -1805,44 +1805,44 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         )}
       </td>
       {/* Orders group */}
-      <td className="py-0.5 px-2 text-xs text-center whitespace-nowrap">
+      <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
         <span className="text-blue-400">{employee.totalOrders}</span>
       </td>
-      <td className="py-0.5 px-2 text-xs text-center whitespace-nowrap">
+      <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
         <span className="text-cyan-400 font-medium">{employee.todayOrders}</span>
       </td>
-      <td className="py-0.5 px-2 text-xs text-center whitespace-nowrap">
+      <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
         <span className="text-green-400 font-bold">{employee.todayCompletedOrders}</span>
       </td>
-      <td className="py-0.5 px-2 text-xs text-center whitespace-nowrap">
+      <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
         <span className="text-red-400">{employee.failedOrders}</span>
       </td>
       {/* Money group */}
-      <td className="py-0.5 px-2 text-xs text-center whitespace-nowrap">
+      <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
         <span className="text-white font-medium">${(employee.walletBalance || 0).toFixed(2)}</span>
       </td>
-      <td className="py-0.5 px-2 text-xs text-center whitespace-nowrap">
+      <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
         <span className="text-blue-400 font-medium">${employee.accountBalance.toFixed(2)}</span>
       </td>
-      <td className="py-0.5 px-2 text-xs text-center whitespace-nowrap">
+      <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
         <span className="text-amber-400 font-medium">${employee.todayCommission.toFixed(2)}</span>
       </td>
       {/* Time group */}
-      <td className="py-0.5 px-2 text-xs text-center whitespace-nowrap">
+      <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
         <span className="text-white">{formatTime(employee.totalWorkMinutes)}</span>
       </td>
-      <td className="py-0.5 px-2 text-xs text-center whitespace-nowrap">
+      <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
         <span className="text-green-400">{formatTime(employee.todayWorkMinutes)}</span>
       </td>
       {/* Work status */}
-      <td className="py-0.5 px-2 text-center whitespace-nowrap">
+      <td className="w-[52px] py-0.5 px-1 text-center whitespace-nowrap">
         {renderWorkStatusBadge(employee.workStatus)}
       </td>
-      <td className="py-0.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-center gap-0.5">
+      <td className="w-[110px] py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-center gap-0">
           <button
             onClick={() => onQuickAction?.('message', { id: employee.id, username: employee.username })}
-            className="p-1 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/25 hover:text-blue-300 transition-all border border-blue-500/20 hover:border-blue-400/40"
+            className="p-0.5 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/25 hover:text-blue-300 transition-all border border-blue-500/20 hover:border-blue-400/40"
             title={`Send message to ${employee.username}`}
           >
             <Bell className="w-3.5 h-3.5" />
@@ -1853,7 +1853,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               event.stopPropagation();
               onQuickAction?.('customerservice', { id: employee.id, username: employee.username });
             }}
-            className="p-1 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/25 hover:text-rose-300 transition-all border border-rose-500/20 hover:border-rose-400/40"
+            className="p-0.5 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/25 hover:text-rose-300 transition-all border border-rose-500/20 hover:border-rose-400/40"
             title={`直接发送模拟客户消息给 ${employee.username}`}
             aria-label={`直接发送模拟客户消息给 ${employee.username}`}
           >
@@ -1865,7 +1865,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               event.stopPropagation();
               onQuickAction?.('cccservice', { id: employee.id, username: employee.username });
             }}
-            className="p-1 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-300 transition-all border border-emerald-500/20 hover:border-emerald-400/40"
+            className="p-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-300 transition-all border border-emerald-500/20 hover:border-emerald-400/40"
             title={`直接发送经理消息给 ${employee.username}`}
             aria-label={`直接发送经理消息给 ${employee.username}`}
           >
@@ -1873,14 +1873,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           </button>
           <button
             onClick={() => handleOpenWallet({ id: employee.id, username: employee.username, employeeId: employee.employee_id })}
-            className="p-1 rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500/25 hover:text-amber-300 transition-all border border-amber-500/20 hover:border-amber-400/40"
+            className="p-0.5 rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500/25 hover:text-amber-300 transition-all border border-amber-500/20 hover:border-amber-400/40"
             title={`Adjust wallet for ${employee.username}`}
           >
             <DollarSign className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => handleViewLoginIP({ id: employee.id, username: employee.username, employeeId: employee.employee_id })}
-            className="p-1 rounded bg-sky-500/10 text-sky-400 hover:bg-sky-500/25 hover:text-sky-300 transition-all border border-sky-500/20 hover:border-sky-400/40"
+            className="p-0.5 rounded bg-sky-500/10 text-sky-400 hover:bg-sky-500/25 hover:text-sky-300 transition-all border border-sky-500/20 hover:border-sky-400/40"
             title={`View login IP for ${employee.username}`}
           >
             <Globe className="w-3.5 h-3.5" />
@@ -1894,25 +1894,25 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const renderTableHeader = (adminId: string) => (
     <thead className="bg-slate-700 sticky top-0 z-10 shadow-[0_2px_4px_rgba(0,0,0,0.3)] border-b-2 border-slate-500/50">
       <tr>
-        <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider w-8">#</th>
-        <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">User</th>
-        <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Emp ID</th>
-        {renderSortableHeader(adminId, 'created_at', 'Created')}
-        <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Tags</th>
-        <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Ver</th>
-        <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Status</th>
-        <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Remarks</th>
-        {renderSortableHeader(adminId, 'totalOrders', 'Total')}
-        {renderSortableHeader(adminId, 'todayOrders', 'Today')}
-        {renderSortableHeader(adminId, 'todayCompletedOrders', 'Success')}
-        {renderSortableHeader(adminId, 'failedOrders', 'Failed')}
-        {renderSortableHeader(adminId, 'walletBalance', 'Wallet')}
-        {renderSortableHeader(adminId, 'accountBalance', 'Avail')}
-        {renderSortableHeader(adminId, 'todayCommission', "Today $")}
-        {renderSortableHeader(adminId, 'totalWorkMinutes', 'Total T')}
-        {renderSortableHeader(adminId, 'todayWorkMinutes', 'Today T')}
-        <th className="px-2 py-2.5 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Work</th>
-        <th className="px-2 py-2.5 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider w-[170px]">Actions</th>
+        <th className="w-8 px-1 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">#</th>
+        <th className="w-[95px] px-1.5 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">User</th>
+        <th className="w-[66px] px-1.5 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Emp ID</th>
+        {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[64px]')}
+        <th className="w-[70px] px-1 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Tags</th>
+        <th className="w-[42px] px-1 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Ver</th>
+        <th className="w-[48px] px-1 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Status</th>
+        <th className="w-[70px] px-1 py-2 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Remarks</th>
+        {renderSortableHeader(adminId, 'totalOrders', 'Total', 'w-[42px]')}
+        {renderSortableHeader(adminId, 'todayOrders', 'Today', 'w-[42px]')}
+        {renderSortableHeader(adminId, 'todayCompletedOrders', 'Success', 'w-[48px]')}
+        {renderSortableHeader(adminId, 'failedOrders', 'Failed', 'w-[44px]')}
+        {renderSortableHeader(adminId, 'walletBalance', 'Wallet', 'w-[62px]')}
+        {renderSortableHeader(adminId, 'accountBalance', 'Avail', 'w-[62px]')}
+        {renderSortableHeader(adminId, 'todayCommission', "Today $", 'w-[62px]')}
+        {renderSortableHeader(adminId, 'totalWorkMinutes', 'Total T', 'w-[56px]')}
+        {renderSortableHeader(adminId, 'todayWorkMinutes', 'Today T', 'w-[56px]')}
+        <th className="w-[52px] px-1 py-2 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Work</th>
+        <th className="w-[110px] px-1 py-2 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Actions</th>
       </tr>
     </thead>
   );
@@ -1976,7 +1976,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
         <div className="relative z-20 flex items-center bg-slate-800 border border-slate-700/80 rounded-none overflow-hidden shrink-0 sticky top-0 mb-1">
-          <div className="relative flex-1 min-w-[160px]">
+          <div className="relative min-w-0 flex-1 basis-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
               type="text"
@@ -1984,7 +1984,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search employees..."
               autoComplete="off"
-              className="w-full pl-9 pr-8 py-2.5 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none focus:bg-slate-700/40 transition-colors"
+              className="w-full pl-8 pr-7 py-2 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none focus:bg-slate-700/40 transition-colors"
             />
             {searchTerm && (
               <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
@@ -1993,7 +1993,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             )}
           </div>
           <div className="w-px h-6 bg-slate-600/60 shrink-0" />
-          <div className="relative min-w-[180px]" style={{ contain: 'layout' }}>
+          <div className="relative w-[150px] min-w-0 shrink-0" style={{ contain: 'layout' }}>
             <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400 pointer-events-none z-10" />
             <select
               value={selectedAdminFilter}
@@ -2003,7 +2003,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   setExpandedGroups(new Set([e.target.value]));
                 }
               }}
-              className="relative z-10 w-full appearance-none pl-9 pr-9 py-2.5 bg-transparent text-sm text-white focus:outline-none focus:bg-slate-700/40 cursor-pointer transition-colors"
+              className="relative z-10 w-full appearance-none pl-8 pr-7 py-2 bg-transparent text-sm text-white focus:outline-none focus:bg-slate-700/40 cursor-pointer transition-colors"
             >
               <option value="all" className="bg-slate-800">All Groups ({employeeGroups.reduce((sum, g) => sum + g.employees.length, 0)})</option>
               {employeeGroups.map(group => (
@@ -2015,14 +2015,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
           </div>
           <div className="w-px h-6 bg-slate-600/60 shrink-0" />
-          <div className="flex items-center gap-1.5 px-3 py-2.5">
+          <div className="flex items-center gap-1 px-2 py-2">
             <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
             <span className="text-sm text-blue-300 font-mono font-bold tabular-nums w-[36px] text-center">{formatCountdown()}s</span>
           </div>
           <button
             onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployees(employeeGroups.length > 0 ? true : false); }}
             disabled={loading || isRefreshing}
-            className="flex items-center justify-center px-3.5 py-2.5 bg-blue-600/90 hover:bg-blue-500 active:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white transition-all self-stretch"
+            className="flex items-center justify-center px-2.5 py-2 bg-blue-600/90 hover:bg-blue-500 active:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white transition-all self-stretch"
             title="Refresh now"
           >
             <RefreshCw className={`w-4 h-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
@@ -2096,7 +2096,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     </div>
                     <div className="mt-1 flex items-center justify-between gap-2 flex-wrap">
                       {renderStatusFilterButtons(flatAdminId)}
-                      <div className="ml-auto flex items-center gap-2">
+                      <div className="ml-auto flex items-center gap-1">
                       <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                         <input
@@ -2105,7 +2105,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           onChange={(e) => setSearchTerm(e.target.value)}
                           placeholder="Search employees..."
                           autoComplete="off"
-                          className="w-[200px] pl-9 pr-8 py-1 bg-slate-800/80 border border-slate-600 rounded-none text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-[160px] pl-8 pr-7 py-1 bg-slate-800/80 border border-slate-600 rounded-none text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         />
                         {searchTerm && (
                           <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
@@ -2114,14 +2114,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         )}
                       </div>
                       <div className="flex items-center bg-gradient-to-r from-slate-800 to-slate-800/90 border border-blue-500/30 rounded-none overflow-hidden shadow-lg shadow-blue-500/5">
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 w-[92px] justify-center">
-                          <Clock className="w-4 h-4 text-blue-400 shrink-0" />
-                          <span className="text-sm text-blue-300 font-mono font-bold tabular-nums w-[36px] text-center">{formatCountdown()}s</span>
+                        <div className="flex items-center gap-1 px-1.5 py-1 w-[78px] justify-center">
+                          <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                          <span className="text-xs text-blue-300 font-mono font-bold tabular-nums w-[34px] text-center">{formatCountdown()}s</span>
                         </div>
                         <button
                           onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployees(employeeGroups.length > 0 ? true : false); }}
                           disabled={loading || isRefreshing}
-                          className="flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-medium transition-all"
+                          className="flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-medium transition-all"
                           title="Refresh now"
                         >
                           <RefreshCw className={`w-4 h-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
@@ -2134,10 +2134,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               })()}
               {/* Controls */}
               <div className="px-3 py-1 border-b border-blue-500/30 bg-blue-500/5">
-                <div className="flex flex-wrap gap-1.5 items-center">
+                <div className="flex flex-wrap gap-1 items-center">
                   {/* Tag filters */}
                   {getGroupTags(flatAdminId).length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 items-center">
+                    <div className="flex flex-wrap gap-1 items-center">
                     <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
                       <Tag className="w-3 h-3" /> Tags:
                     </span>
@@ -2158,15 +2158,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     )}
                   </div>
                   )}
-                  <div className="ml-auto flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/80 border border-slate-600/50 rounded-none">
+                  <div className="ml-auto flex items-center gap-1">
+                    <div className="flex items-center gap-1 px-1.5 py-1 bg-slate-800/80 border border-slate-600/50 rounded-none">
                       <Users className="w-3.5 h-3.5 text-blue-400" />
                       <span className="text-sm font-semibold text-white">{flatFilteredEmployees.length}</span>
                       <span className="text-xs text-slate-400">/ {employeeGroups[0]?.employees.length || 0} shown</span>
                     </div>
                     <button
                       onClick={() => { setSelectedAdminForCreate(admin.id); setShowCreateForm(true); }}
-                      className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30 text-sm"
+                      className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30 text-xs"
                     >
                       <UserPlus className="w-4 h-4" /> Create Employee
                     </button>
@@ -2178,7 +2178,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
               {/* Table - fixed ~22 rows */}
               <div className="-ml-1 overflow-x-auto overflow-y-auto bg-slate-900/50 flex-1 min-h-0 dark-panel-scroll">
-                <table className="w-full">
+                <table className="w-full table-fixed">
                   {renderTableHeader(flatAdminId)}
                   <tbody>
                     {flatFilteredEmployees.map((emp, idx) => renderEmployeeRow(emp, idx, true))}
@@ -2349,7 +2349,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     </div>
                     {group.employees.length > 0 ? (
                       <div className={`-ml-1 overflow-x-auto overflow-y-auto bg-slate-900/50 min-h-[300px] dark-panel-scroll ${admin.role === 'super_admin' ? 'max-h-[calc(100vh-280px)]' : 'max-h-[calc(100vh-300px)]'}`}>
-                        <table className="w-full">
+                        <table className="w-full table-fixed">
                           {renderTableHeader(group.admin.id)}
                           <tbody>
                             {group.employees.map((emp, idx) => renderEmployeeRow(emp, idx, isSuperGroup))}
