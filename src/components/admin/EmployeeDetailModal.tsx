@@ -694,7 +694,7 @@ export default function EmployeeDetailModal({
 
         {/* Content */}
         <div className="min-h-0 flex-1 overflow-y-auto bg-slate-900 p-4 sm:p-5">
-          <div className={activeTab === "daily" ? "space-y-3" : "hidden"}>
+          <div className={activeTab === "daily" ? "-mx-4 -my-4 min-h-full space-y-0 sm:-mx-5 sm:-my-5" : "hidden"}>
             {loadingStats ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
                 <div className="w-10 h-10 border-4 border-cyan-500/25 border-t-cyan-300 rounded-full animate-spin"></div>
@@ -709,7 +709,7 @@ export default function EmployeeDetailModal({
             ) : (
               <>
                 {/* Overall Statistics Summary */}
-                <div className="rounded-xl border border-cyan-300/20 bg-gradient-to-br from-blue-950/55 via-slate-800/70 to-cyan-950/30 p-4">
+                <div className="w-full border-b border-cyan-300/20 px-4 pb-3 pt-3 sm:px-5">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-cyan-300" />
@@ -782,8 +782,8 @@ export default function EmployeeDetailModal({
                 </div>
 
                 {/* Daily Breakdown with Pagination */}
-                <div className="overflow-hidden rounded-xl border border-cyan-300/20 bg-gradient-to-br from-blue-950/45 via-slate-800/65 to-cyan-950/25">
-                  <div className="flex flex-col gap-3 border-b border-slate-600/50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="w-full overflow-hidden">
+                  <div className="flex flex-col gap-3 border-b border-slate-600/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                     <div>
                       <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
                         Daily Breakdown
