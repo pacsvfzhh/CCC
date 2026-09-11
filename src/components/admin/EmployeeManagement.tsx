@@ -1239,6 +1239,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     const currentWorkStatus = getWorkStatusFilter(adminId);
     const hasIdleFilter = inactiveDaysFilterByGroup.has(adminId);
     const hasPendingFilter = pendingWithdrawalFilterByGroup.has(adminId);
+    const groupEmployees = employeeGroups.find(group => group.admin.id === adminId)?.employees || [];
+    const pendingWithdrawalCount = groupEmployees.filter(employee => employee.hasPendingWithdrawal).length;
 
     const on = 'text-white font-semibold shadow-md border border-transparent';
     const dim = 'bg-slate-800/60 border border-slate-600/50 font-medium';
@@ -1331,47 +1333,59 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <div className="w-px h-4 bg-slate-600 shrink-0 mx-1" />
 
         {/* Idle Days */}
-        <div data-inactive-days-dropdown>
+        <div data-inactive-days-dropdown className="ml-2 inline-flex items-center">
           <button
             onClick={(e) => handleIdleDaysClick(adminId, e)}
-            className={`px-2 py-0.5 rounded text-[11px] transition-all flex items-center gap-1 ${
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold shadow-sm transition-all ${
               hasIdleFilter
-                ? `bg-teal-500 ${on}`
-                : `${dim} text-slate-400 hover:text-teal-300 hover:border-teal-500/40`
+                ? 'border-teal-200 bg-teal-500 text-white shadow-teal-950/40 ring-1 ring-teal-300/40'
+                : 'border-teal-500/60 bg-teal-950/55 text-teal-200 hover:border-teal-300/80 hover:bg-teal-900/70 hover:text-teal-50'
             }`}
           >
-            <Timer className="w-3.5 h-3.5" />
-            {hasIdleFilter
-              ? (() => {
-                  const r = inactiveDaysFilterByGroup.get(adminId);
-                  return r === '2-3' ? '2-3d' : r === '3-7' ? '3-7d' : r === '7-15' ? '7-15d' : '15d+';
-                })()
-              : 'Idle Days'
-            }
-            <ChevronDown className={`w-3 h-3 transition-transform ${inactiveDaysDropdownOpen === adminId ? 'rotate-180' : ''}`} />
+            <Timer className="h-3.5 w-3.5" />
+            <span>
+              {hasIdleFilter
+                ? (() => {
+                    const r = inactiveDaysFilterByGroup.get(adminId);
+                    return r === '2-3' ? '2-3d' : r === '3-7' ? '3-7d' : r === '7-15' ? '7-15d' : '15d+';
+                  })()
+                : 'Idle Days'
+              }
+            </span>
+            <ChevronDown className={`h-3 w-3 transition-transform ${inactiveDaysDropdownOpen === adminId ? 'rotate-180' : ''}`} />
           </button>
         </div>
         {renderIdleDaysPortal(adminId)}
 
         {/* Withdrawing */}
-        <button
-          onClick={() => {
-            setPendingWithdrawalFilterByGroup(prev => {
-              const next = new Set(prev);
-              if (next.has(adminId)) next.delete(adminId);
-              else next.add(adminId);
-              return next;
-            });
-          }}
-          className={`px-2 py-0.5 rounded text-[11px] transition-all flex items-center gap-1 ${
-            hasPendingFilter
-              ? `bg-orange-500 ${on}`
-              : `${dim} text-slate-400 hover:text-orange-300 hover:border-orange-500/40`
-          }`}
-        >
-          <Wallet className="w-3.5 h-3.5" />
-          Withdrawing
-        </button>
+        <div className="ml-2 inline-flex items-center">
+          <button
+            onClick={() => {
+              setPendingWithdrawalFilterByGroup(prev => {
+                const next = new Set(prev);
+                if (next.has(adminId)) next.delete(adminId);
+                else next.add(adminId);
+                return next;
+              });
+            }}
+            aria-pressed={hasPendingFilter}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold shadow-md transition-all ${
+              hasPendingFilter
+                ? 'border-orange-200 bg-orange-500 text-white shadow-orange-950/50 ring-1 ring-orange-300/40'
+                : 'border-orange-500/70 bg-orange-950/55 text-orange-200 shadow-orange-950/30 hover:border-orange-300/90 hover:bg-orange-900/75 hover:text-orange-50'
+            }`}
+          >
+            <Wallet className="h-3.5 w-3.5" />
+            <span>Withdrawing</span>
+            <span className={`min-w-[20px] rounded-full border px-1.5 py-0.5 text-center text-[10px] tabular-nums leading-none ${
+              hasPendingFilter
+                ? 'border-white/30 bg-white/20 text-white'
+                : 'border-orange-400/40 bg-orange-500/20 text-orange-300'
+            }`}>
+              {pendingWithdrawalCount}
+            </span>
+          </button>
+        </div>
       </div>
     );
   };
