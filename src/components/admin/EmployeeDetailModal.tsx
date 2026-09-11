@@ -531,7 +531,7 @@ export default function EmployeeDetailModal({
       )}
 
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm sm:p-4">
-      <div className="flex min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/95 shadow-2xl shadow-slate-950/70 max-h-[92vh]">
+      <div className="flex h-[92vh] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/95 shadow-2xl shadow-slate-950/70 max-h-[92vh]">
         {/* Header */}
         <div className="shrink-0 border-b border-slate-700/60 bg-slate-900/80 px-4 py-3.5 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
