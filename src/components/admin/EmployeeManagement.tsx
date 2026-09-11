@@ -1777,7 +1777,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 : 'bg-blue-400 opacity-0 group-hover:opacity-100'
           }`}
         />
-        <span className="absolute left-1/2 top-1/2 z-10 inline-block w-[3ch] -translate-x-1/2 -translate-y-1/2 text-center tabular-nums">{index + 1}</span>
+        <span className="absolute left-2 top-1/2 z-10 inline-block -translate-y-1/2 text-left tabular-nums">{index + 1}</span>
         <button
           onClick={(e) => { e.stopPropagation(); setPinConfirmEmployee({ id: employee.id, username: employee.username, currentPinned: employee.is_pinned }); }}
           className={`absolute right-1 top-1/2 inline-flex -translate-y-1/2 rounded p-0.5 transition-all ${employee.is_pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-amber-400'}`}
