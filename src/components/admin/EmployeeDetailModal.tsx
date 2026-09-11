@@ -932,11 +932,47 @@ export default function EmployeeDetailModal({
               </div>
             ) : (
               <>
-                {/* Data Range Notice */}
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-blue-300">
-                    💳 Showing the most recent 100 transactions
-                  </p>
+                <div className="sticky top-0 z-20 -mx-4 -mt-4 mb-4 flex flex-col gap-3 border-b border-cyan-300/25 bg-slate-900 px-4 py-3 shadow-lg shadow-slate-950/30 sm:-mx-5 sm:-mt-5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-500/10">
+                      <DollarSign className="h-4 w-4 text-cyan-300" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-100">Transaction History</p>
+                      <p className="text-xs text-slate-400">
+                        <span className="font-bold tabular-nums text-cyan-200">{transactions.length}</span> records loaded
+                      </p>
+                    </div>
+                  </div>
+                  {transactions.length > itemsPerPage && (
+                    <div className="flex items-center gap-1.5 self-start rounded-xl border border-cyan-300/25 bg-slate-950/70 p-1 sm:self-center">
+                      <button
+                        onClick={() => setTransactionPage(Math.max(1, transactionPage - 1))}
+                        disabled={transactionPage === 1}
+                        aria-label="Previous transaction page"
+                        className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-600/70 bg-slate-800 px-2.5 text-xs font-semibold text-slate-200 transition-colors hover:border-cyan-300/50 hover:bg-cyan-500/15 hover:text-cyan-100 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        <span className="hidden sm:inline">Prev</span>
+                      </button>
+                      <span className="min-w-[82px] rounded-lg px-2 text-center text-xs font-semibold text-cyan-100">
+                        Page {transactionPage} / {Math.ceil(transactions.length / itemsPerPage)}
+                      </span>
+                      <button
+                        onClick={() =>
+                          setTransactionPage(
+                            Math.min(Math.ceil(transactions.length / itemsPerPage), transactionPage + 1),
+                          )
+                        }
+                        disabled={transactionPage === Math.ceil(transactions.length / itemsPerPage)}
+                        aria-label="Next transaction page"
+                        className="inline-flex h-9 items-center gap-1 rounded-lg border border-cyan-300/45 bg-cyan-500/15 px-2.5 text-xs font-semibold text-cyan-100 transition-colors hover:border-cyan-200 hover:bg-cyan-500/25 hover:text-white disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
+                      >
+                        <span className="hidden sm:inline">Next</span>
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Transaction List */}
@@ -1249,33 +1285,6 @@ export default function EmployeeDetailModal({
             )}
           </div>
         </div>
-
-        {activeTab === "transactions" && transactions.length > itemsPerPage && (
-          <div className="flex shrink-0 items-center gap-3 border-t border-slate-700 bg-slate-900 px-4 py-2.5 sm:px-5">
-            <button
-              onClick={() => setTransactionPage(Math.max(1, transactionPage - 1))}
-              disabled={transactionPage === 1}
-              className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm text-white transition-colors hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600"
-            >
-              Prev
-            </button>
-            <span className="text-sm text-slate-400">
-              Page {transactionPage} of {Math.ceil(transactions.length / itemsPerPage)}
-            </span>
-            <button
-              onClick={() =>
-                setTransactionPage(
-                  Math.min(Math.ceil(transactions.length / itemsPerPage), transactionPage + 1)
-                )
-              }
-              disabled={transactionPage === Math.ceil(transactions.length / itemsPerPage)}
-              className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm text-white transition-colors hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600"
-            >
-              Next
-            </button>
-            <span className="ml-2 text-xs text-slate-500">({transactions.length} total)</span>
-          </div>
-        )}
 
         {activeTab === "withdrawals" && withdrawals.length > itemsPerPage && (
           <div className="flex shrink-0 items-center gap-3 border-t border-amber-300/20 bg-slate-900 px-4 py-2.5 sm:px-5">
