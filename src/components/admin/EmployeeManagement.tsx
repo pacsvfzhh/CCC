@@ -1039,7 +1039,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     if (status === 'online') {
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/20 border border-green-500/50">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+          <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
           <span className="text-xs font-medium text-green-400">On</span>
         </span>
       );
@@ -1047,14 +1047,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     if (status === 'offline') {
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/20 border border-red-500/50">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+          <span className="w-1 h-1 rounded-full bg-red-400" />
           <span className="text-xs font-medium text-red-400">Off</span>
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-500/20 border border-slate-500/50">
-        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+        <span className="w-1 h-1 rounded-full bg-slate-400" />
         <span className="text-xs font-medium text-slate-400">New</span>
       </span>
     );
@@ -1161,11 +1161,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     const dim = 'bg-slate-800/60 border border-slate-600/50 font-medium';
 
     return (
-      <div className="flex gap-1 flex-wrap items-center">
+      <div className="flex gap-0.5 flex-wrap items-center">
         {/* Account status: ALL / Active / Off */}
         <button
           onClick={() => handleActiveFilter(adminId, 'all')}
-          className={`px-3 py-1 rounded text-xs transition-all ${
+          className={`px-2 py-0.5 rounded text-[11px] transition-all ${
             currentActive === 'all'
               ? `bg-blue-500 ${on}`
               : `${dim} text-slate-400 hover:text-blue-300 hover:border-blue-500/40`
@@ -1173,24 +1173,24 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         >ALL</button>
         <button
           onClick={() => handleActiveFilter(adminId, 'active')}
-          className={`px-3 py-1 rounded text-xs transition-all flex items-center gap-1.5 ${
+          className={`px-2 py-0.5 rounded text-[11px] transition-all flex items-center gap-1 ${
             currentActive === 'active'
               ? `bg-emerald-500 ${on}`
               : `${dim} text-slate-400 hover:text-emerald-300 hover:border-emerald-500/40`
           }`}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${currentActive === 'active' ? 'bg-white' : 'bg-emerald-600'}`} />
+          <span className={`w-1 h-1 rounded-full ${currentActive === 'active' ? 'bg-white' : 'bg-emerald-600'}`} />
           Active
         </button>
         <button
           onClick={() => handleActiveFilter(adminId, 'inactive')}
-          className={`px-3 py-1 rounded text-xs transition-all flex items-center gap-1.5 ${
+          className={`px-2 py-0.5 rounded text-[11px] transition-all flex items-center gap-1 ${
             currentActive === 'inactive'
               ? `bg-red-500 ${on}`
               : `${dim} text-slate-400 hover:text-red-300 hover:border-red-500/40`
           }`}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${currentActive === 'inactive' ? 'bg-white' : 'bg-red-600'}`} />
+          <span className={`w-1 h-1 rounded-full ${currentActive === 'inactive' ? 'bg-white' : 'bg-red-600'}`} />
           Off
         </button>
 
@@ -1205,7 +1205,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               return newMap;
             });
           }}
-          className={`px-3 py-1 rounded text-xs transition-all ${
+          className={`px-2 py-0.5 rounded text-[11px] transition-all ${
             currentWorkStatus.size === 0
               ? `bg-blue-500 ${on}`
               : `${dim} text-slate-400 hover:text-blue-300 hover:border-blue-500/40`
@@ -1213,35 +1213,35 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         >ALL</button>
         <button
           onClick={() => handleWorkStatusFilter(adminId, 'online')}
-          className={`px-3 py-1 rounded text-xs transition-all flex items-center gap-1.5 ${
+          className={`px-2 py-0.5 rounded text-[11px] transition-all flex items-center gap-1 ${
             currentWorkStatus.has('online')
               ? `bg-green-500 ${on}`
               : `${dim} text-slate-400 hover:text-green-300 hover:border-green-500/40`
           }`}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${currentWorkStatus.has('online') ? 'bg-white' : 'bg-green-600'}`} />
+          <span className={`w-1 h-1 rounded-full ${currentWorkStatus.has('online') ? 'bg-white' : 'bg-green-600'}`} />
           Online
         </button>
         <button
           onClick={() => handleWorkStatusFilter(adminId, 'offline')}
-          className={`px-3 py-1 rounded text-xs transition-all flex items-center gap-1.5 ${
+          className={`px-2 py-0.5 rounded text-[11px] transition-all flex items-center gap-1 ${
             currentWorkStatus.has('offline')
               ? `bg-red-500 ${on}`
               : `${dim} text-slate-400 hover:text-red-300 hover:border-red-500/40`
           }`}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${currentWorkStatus.has('offline') ? 'bg-white' : 'bg-red-600'}`} />
+          <span className={`w-1 h-1 rounded-full ${currentWorkStatus.has('offline') ? 'bg-white' : 'bg-red-600'}`} />
           Offline
         </button>
         <button
           onClick={() => handleWorkStatusFilter(adminId, 'never_started')}
-          className={`px-3 py-1 rounded text-xs transition-all flex items-center gap-1.5 ${
+          className={`px-2 py-0.5 rounded text-[11px] transition-all flex items-center gap-1 ${
             currentWorkStatus.has('never_started')
               ? `bg-amber-500 ${on}`
               : `${dim} text-slate-400 hover:text-amber-300 hover:border-amber-500/40`
           }`}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${currentWorkStatus.has('never_started') ? 'bg-white' : 'bg-amber-600'}`} />
+          <span className={`w-1 h-1 rounded-full ${currentWorkStatus.has('never_started') ? 'bg-white' : 'bg-amber-600'}`} />
           Never Started
         </button>
 
@@ -1251,7 +1251,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <div data-inactive-days-dropdown>
           <button
             onClick={(e) => handleIdleDaysClick(adminId, e)}
-            className={`px-3 py-1 rounded text-xs transition-all flex items-center gap-1.5 ${
+            className={`px-2 py-0.5 rounded text-[11px] transition-all flex items-center gap-1 ${
               hasIdleFilter
                 ? `bg-teal-500 ${on}`
                 : `${dim} text-slate-400 hover:text-teal-300 hover:border-teal-500/40`
@@ -1280,7 +1280,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               return next;
             });
           }}
-          className={`px-3 py-1 rounded text-xs transition-all flex items-center gap-1.5 ${
+          className={`px-2 py-0.5 rounded text-[11px] transition-all flex items-center gap-1 ${
             hasPendingFilter
               ? `bg-orange-500 ${on}`
               : `${dim} text-slate-400 hover:text-orange-300 hover:border-orange-500/40`
@@ -1972,8 +1972,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               {(() => {
                 const allEmps = employeeGroups[0]?.employees || [];
                 return (
-                  <div className="px-4 py-2.5 border-b border-blue-500/20 bg-blue-500/5 flex items-center gap-3 flex-wrap">
-                    <span className={`text-sm font-semibold ${allEmps.length > 0 ? 'text-white' : 'text-slate-400'}`}>
+                  <div className="px-3 py-1.5 border-b border-blue-500/20 bg-blue-500/5">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className={`text-sm font-semibold ${allEmps.length > 0 ? 'text-white' : 'text-slate-400'}`}>
                       {allEmps.length} {allEmps.length === 1 ? 'employee' : 'employees'}
                     </span>
                     {allEmps.length > 0 && (
@@ -1989,9 +1990,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         }).length}</span>
                       </>
                     )}
-                    <span className="text-slate-600 mx-0.5">|</span>
-                    {renderStatusFilterButtons(flatAdminId)}
-                    <div className="ml-auto flex items-center gap-2.5">
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-2 flex-wrap">
+                      {renderStatusFilterButtons(flatAdminId)}
+                      <div className="ml-auto flex items-center gap-2">
                       <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                         <input
@@ -2000,7 +2002,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           onChange={(e) => setSearchTerm(e.target.value)}
                           placeholder="Search employees..."
                           autoComplete="off"
-                          className="w-[200px] pl-9 pr-8 py-1.5 bg-slate-800/80 border border-slate-600 rounded-none text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-[200px] pl-9 pr-8 py-1 bg-slate-800/80 border border-slate-600 rounded-none text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         />
                         {searchTerm && (
                           <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
@@ -2009,14 +2011,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         )}
                       </div>
                       <div className="flex items-center bg-gradient-to-r from-slate-800 to-slate-800/90 border border-blue-500/30 rounded-none overflow-hidden shadow-lg shadow-blue-500/5">
-                        <div className="flex items-center gap-2 px-3.5 py-2 w-[100px] justify-center">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 w-[92px] justify-center">
                           <Clock className="w-4 h-4 text-blue-400 shrink-0" />
                           <span className="text-sm text-blue-300 font-mono font-bold tabular-nums w-[36px] text-center">{formatCountdown()}s</span>
                         </div>
                         <button
                           onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployees(employeeGroups.length > 0 ? true : false); }}
                           disabled={loading || isRefreshing}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-medium transition-all"
+                          className="flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-medium transition-all"
                           title="Refresh now"
                         >
                           <RefreshCw className={`w-4 h-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
@@ -2024,15 +2026,16 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       </div>
                     </div>
                   </div>
+                </div>
                 );
               })()}
               {/* Controls */}
-              <div className="px-4 py-1.5 border-b-2 border-blue-500/30 bg-blue-500/5">
-                <div className="flex flex-wrap gap-2 items-center">
+              <div className="px-3 py-1 border-b border-blue-500/30 bg-blue-500/5">
+                <div className="flex flex-wrap gap-1.5 items-center">
                   {/* Tag filters */}
                   {getGroupTags(flatAdminId).length > 0 && (
-                    <div className="flex flex-wrap gap-2 items-center">
-                    <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                    <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
                       <Tag className="w-3 h-3" /> Tags:
                     </span>
                     {getGroupTags(flatAdminId).map(tag => {
@@ -2042,25 +2045,25 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         <button key={tag} onClick={() => {
                           if (isSelected) setSelectedTagsForGroup(flatAdminId, selectedTags.filter(t => t !== tag));
                           else setSelectedTagsForGroup(flatAdminId, [...selectedTags, tag]);
-                        }} className={`px-2 py-1 rounded-full text-xs font-semibold transition-all ${isSelected ? 'bg-yellow-500/30 text-yellow-200 border border-yellow-400/50 shadow-sm shadow-yellow-500/20' : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-600'}`}>
+                        }} className={`px-1.5 py-0.5 rounded-full text-[11px] font-semibold transition-all ${isSelected ? 'bg-yellow-500/30 text-yellow-200 border border-yellow-400/50 shadow-sm shadow-yellow-500/20' : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-600'}`}>
                           {tag}
                         </button>
                       );
                     })}
                     {getSelectedTagsForGroup(flatAdminId).length > 0 && (
-                      <button onClick={() => setSelectedTagsForGroup(flatAdminId, [])} className="px-2 py-1 rounded-full text-xs font-semibold bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30">Clear</button>
+                      <button onClick={() => setSelectedTagsForGroup(flatAdminId, [])} className="px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30">Clear</button>
                     )}
                   </div>
                   )}
-                  <div className="ml-auto flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/80 border border-slate-600/50 rounded-none">
+                  <div className="ml-auto flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/80 border border-slate-600/50 rounded-none">
                       <Users className="w-3.5 h-3.5 text-blue-400" />
                       <span className="text-sm font-semibold text-white">{flatFilteredEmployees.length}</span>
                       <span className="text-xs text-slate-400">/ {employeeGroups[0]?.employees.length || 0} shown</span>
                     </div>
                     <button
                       onClick={() => { setSelectedAdminForCreate(admin.id); setShowCreateForm(true); }}
-                      className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30 text-sm"
+                      className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30 text-sm"
                     >
                       <UserPlus className="w-4 h-4" /> Create Employee
                     </button>
