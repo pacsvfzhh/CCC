@@ -1935,48 +1935,58 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     if (!showCreateForm || selectedAdminForCreate !== targetAdminId) return null;
     const isSuperGroup = groupAdmin?.role === 'super_admin';
     return (
-      <div className={`px-6 py-4 border-t-2 ${isSuperGroup ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-blue-500/30 bg-blue-500/5'}`}>
-        <form onSubmit={handleCreateEmployee} className="bg-slate-800/50 rounded-lg p-4 space-y-4">
+      <div className={`px-3 py-3 border-t-2 ${isSuperGroup ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-blue-500/30 bg-blue-500/5'}`}>
+        <form onSubmit={handleCreateEmployee} className={`rounded-xl border p-4 shadow-xl shadow-slate-950/30 ${isSuperGroup ? 'border-yellow-500/30 bg-slate-900/80' : 'border-blue-500/30 bg-slate-900/80'}`}>
           {createError && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">{createError}</div>
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-300">
+              <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-red-400" />
+              <span>{createError}</span>
+            </div>
           )}
-          <div className={`rounded-lg p-3 text-sm flex items-center gap-2 ${isSuperGroup ? 'bg-yellow-500/10 border border-yellow-500/50 text-yellow-300' : 'bg-blue-500/10 border border-blue-500/50 text-blue-300'}`}>
-            <Users className="w-4 h-4" />
-            <span>{groupAdmin ? <>Creating employee under: <strong>{groupAdmin.username}</strong></> : 'Creating new employee'}</span>
+          <div className={`mb-4 flex items-center gap-3 rounded-lg border px-3 py-2.5 ${isSuperGroup ? 'border-yellow-500/35 bg-yellow-500/10' : 'border-blue-500/35 bg-blue-500/10'}`}>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isSuperGroup ? 'bg-yellow-500/20 text-yellow-300' : 'bg-blue-500/20 text-blue-300'}`}>
+              <Users className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">New employee account</p>
+              <p className={`truncate text-sm font-semibold ${isSuperGroup ? 'text-yellow-200' : 'text-blue-200'}`}>
+                {groupAdmin ? <>Creating under: <strong>{groupAdmin.username}</strong></> : 'Creating new employee'}
+              </p>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Username</label>
-              <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} disabled={creating} required className="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" />
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Username</label>
+              <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} disabled={creating} required className="w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-slate-600 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Password</label>
               <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} disabled={creating} required minLength={6} autoComplete="new-password" className="w-full px-4 py-2 pr-10 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                <div className="relative min-w-0 flex-1">
+                  <input type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} disabled={creating} required minLength={6} autoComplete="new-password" className="w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 pr-10 text-sm text-white outline-none transition-colors focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 transition-colors hover:bg-slate-800 hover:text-white">
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <button type="button" onClick={generatePassword} disabled={creating} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:opacity-50" title="Generate strong password">
-                  <RefreshCw className="w-5 h-5" />
+                <button type="button" onClick={generatePassword} disabled={creating} className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-lg border border-slate-600 bg-slate-800 text-slate-300 transition-colors hover:border-blue-400/50 hover:bg-slate-700 hover:text-white disabled:opacity-50" title="Generate strong password">
+                  <RefreshCw className="h-4 w-4" />
                 </button>
               </div>
-              <p className="text-xs text-slate-400 mt-1">Min 6 chars.</p>
+              <p className="mt-1 text-[11px] text-slate-500">Minimum 6 characters</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Employee ID</label>
-              <input type="text" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} disabled={creating} required className="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" />
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Employee ID</label>
+              <input type="text" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} disabled={creating} required className="w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Remarks (Optional)</label>
-              <input type="text" value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} disabled={creating} className="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" />
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Remarks <span className="font-normal normal-case tracking-normal text-slate-600">(optional)</span></label>
+              <input type="text" value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} disabled={creating} className="w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50" />
             </div>
           </div>
-          <div className="flex gap-3">
-            <button type="button" onClick={() => { setShowCreateForm(false); setCreateError(null); setFormData({ username: '', password: '', employeeId: '', remarks: '' }); setSelectedAdminForCreate(null); }} disabled={creating} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:opacity-50">Cancel</button>
-            <button type="submit" disabled={creating || !formData.username.trim() || !formData.password || !formData.employeeId.trim()} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all disabled:opacity-50 flex items-center gap-2">
-              {creating ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creating...</>) : 'Create'}
+          <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
+            <button type="button" onClick={() => { setShowCreateForm(false); setCreateError(null); setFormData({ username: '', password: '', employeeId: '', remarks: '' }); setSelectedAdminForCreate(null); }} disabled={creating} className="rounded-lg border border-slate-600 bg-slate-800 px-3.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:opacity-50">Cancel</button>
+            <button type="submit" disabled={creating || !formData.username.trim() || !formData.password || !formData.employeeId.trim()} className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isSuperGroup ? 'border-yellow-400/50 bg-yellow-600/80 hover:bg-yellow-500' : 'border-blue-400/50 bg-blue-600/85 hover:bg-blue-500'}`}>
+              {creating ? (<><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />Creating...</>) : (<><UserPlus className="h-4 w-4" />Create Employee</>)}
             </button>
           </div>
         </form>
