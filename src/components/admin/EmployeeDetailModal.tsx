@@ -22,6 +22,8 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ZoomIn,
   ZoomOut,
   Maximize2,
@@ -106,6 +108,129 @@ interface ImagePreview {
   scale: number;
 }
 
+interface PageNavigatorProps {
+  page: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
+  tone: "cyan" | "amber" | "emerald";
+  disabled?: boolean;
+}
+
+function PageNavigator({
+  page,
+  pageCount,
+  onPageChange,
+  tone,
+  disabled = false,
+}: PageNavigatorProps) {
+  const [pageInput, setPageInput] = useState(String(page));
+  const toneStyles = {
+    cyan: {
+      border: "border-cyan-300/25",
+      text: "text-cyan-100",
+      button: "border-cyan-300/35 bg-cyan-500/10 hover:border-cyan-200/60 hover:bg-cyan-500/20 hover:text-white",
+    },
+    amber: {
+      border: "border-amber-300/25",
+      text: "text-amber-100",
+      button: "border-amber-300/35 bg-amber-500/10 hover:border-amber-200/60 hover:bg-amber-500/20 hover:text-white",
+    },
+    emerald: {
+      border: "border-emerald-300/25",
+      text: "text-emerald-100",
+      button: "border-emerald-300/35 bg-emerald-500/10 hover:border-emerald-200/60 hover:bg-emerald-500/20 hover:text-white",
+    },
+  }[tone];
+
+  useEffect(() => {
+    setPageInput(String(page));
+  }, [page]);
+
+  const commitPage = () => {
+    const requestedPage = Number(pageInput);
+
+    if (!Number.isInteger(requestedPage)) {
+      setPageInput(String(page));
+      return;
+    }
+
+    const nextPage = Math.min(pageCount, Math.max(1, requestedPage));
+    setPageInput(String(nextPage));
+    if (nextPage !== page) {
+      onPageChange(nextPage);
+    }
+  };
+
+  const buttonClass = `inline-flex h-7 w-7 items-center justify-center rounded-md border text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600 ${toneStyles.button}`;
+
+  return (
+    <div className={`flex items-center gap-1 rounded-lg border bg-slate-950/60 p-1 ${toneStyles.border}`}>
+      <button
+        type="button"
+        onClick={() => onPageChange(1)}
+        disabled={disabled || page === 1}
+        aria-label="First page"
+        title="First page"
+        className={buttonClass}
+      >
+        <ChevronsLeft className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onPageChange(Math.max(1, page - 1))}
+        disabled={disabled || page === 1}
+        aria-label="Previous page"
+        title="Previous page"
+        className={buttonClass}
+      >
+        <ChevronLeft className="h-3.5 w-3.5" />
+      </button>
+      <div className={`flex items-center gap-1 px-1 text-[11px] font-semibold tabular-nums ${toneStyles.text}`}>
+        <input
+          type="number"
+          min={1}
+          max={pageCount}
+          inputMode="numeric"
+          value={pageInput}
+          onChange={(event) => setPageInput(event.target.value)}
+          onBlur={commitPage}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commitPage();
+              event.currentTarget.blur();
+            }
+          }}
+          disabled={disabled}
+          aria-label="Current page"
+          className="h-6 w-10 rounded border border-slate-700 bg-slate-800 px-1 text-center text-[11px] font-bold text-white outline-none focus:border-cyan-300/70 focus:ring-1 focus:ring-cyan-300/30 disabled:cursor-not-allowed disabled:text-slate-600"
+        />
+        <span>/ {pageCount}</span>
+      </div>
+      <button
+        type="button"
+        onClick={() => onPageChange(Math.min(pageCount, page + 1))}
+        disabled={disabled || page === pageCount}
+        aria-label="Next page"
+        title="Next page"
+        className={buttonClass}
+      >
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onPageChange(pageCount)}
+        disabled={disabled || page === pageCount}
+        aria-label="Last page"
+        title="Last page"
+        className={buttonClass}
+      >
+        <ChevronsRight className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 export default function EmployeeDetailModal({
   employee,
   onClose,
@@ -118,7 +243,6 @@ export default function EmployeeDetailModal({
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [transactionTotalCount, setTransactionTotalCount] = useState<number | null>(null);
   const [transactionPage, setTransactionPage] = useState(1);
-  const [hasNextTransactionPage, setHasNextTransactionPage] = useState(false);
   const [transactionDateCounts, setTransactionDateCounts] = useState<Record<string, number>>({});
   const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [verificationData, setVerificationData] = useState<VerificationRequest | null>(null);
@@ -159,7 +283,6 @@ export default function EmployeeDetailModal({
     setTransactions([]);
     setTransactionTotalCount(null);
     setTransactionPage(1);
-    setHasNextTransactionPage(false);
     setTransactionDateCounts({});
     setWithdrawalPage(1);
     setWithdrawals([]);
@@ -217,7 +340,6 @@ export default function EmployeeDetailModal({
     if (result.error) {
       setTransactions([]);
       setTransactionTotalCount(0);
-      setHasNextTransactionPage(false);
       setLoadingTransactions(false);
       return result;
     }
@@ -225,7 +347,6 @@ export default function EmployeeDetailModal({
     const totalCount = result.count ?? 0;
     setTransactions(result.data);
     setTransactionTotalCount(totalCount);
-    setHasNextTransactionPage(page * transactionPageSize < totalCount);
     setLoadingTransactions(false);
     return result;
   };
@@ -1112,41 +1233,12 @@ export default function EmployeeDetailModal({
                       </p>
                     </div>
                     {dailyStats.length > itemsPerPage && (
-                      <div className="flex items-center gap-1.5 self-start rounded-xl border border-cyan-300/25 bg-slate-950/60 p-1 sm:self-center">
-                        <button
-                          onClick={() =>
-                            setCurrentPage(Math.max(1, currentPage - 1))
-                          }
-                          disabled={currentPage === 1}
-                          aria-label="Previous page"
-                          className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-600/70 bg-slate-800 px-2.5 text-xs font-semibold text-slate-200 transition-colors hover:border-cyan-300/50 hover:bg-cyan-500/15 hover:text-cyan-100 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                          <span className="hidden sm:inline">Prev</span>
-                        </button>
-                        <span className="min-w-[82px] rounded-lg px-2 text-center text-xs font-semibold text-cyan-100">
-                          Page {currentPage} / {Math.ceil(dailyStats.length / itemsPerPage)}
-                        </span>
-                        <button
-                          onClick={() =>
-                            setCurrentPage(
-                              Math.min(
-                                Math.ceil(dailyStats.length / itemsPerPage),
-                                currentPage + 1,
-                              ),
-                            )
-                          }
-                          disabled={
-                            currentPage ===
-                            Math.ceil(dailyStats.length / itemsPerPage)
-                          }
-                          aria-label="Next page"
-                          className="inline-flex h-9 items-center gap-1 rounded-lg border border-cyan-300/45 bg-cyan-500/15 px-2.5 text-xs font-semibold text-cyan-100 transition-colors hover:border-cyan-200 hover:bg-cyan-500/25 hover:text-white disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
-                        >
-                          <span className="hidden sm:inline">Next</span>
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                      </div>
+                      <PageNavigator
+                        page={currentPage}
+                        pageCount={Math.ceil(dailyStats.length / itemsPerPage)}
+                        onPageChange={setCurrentPage}
+                        tone="cyan"
+                      />
                     )}
                   </div>
                   <div className="overflow-x-auto">
@@ -1268,37 +1360,16 @@ export default function EmployeeDetailModal({
                     </div>
                   </div>
                   <div className="relative flex items-center gap-2 self-start sm:self-center">
-                    <div className="flex items-center gap-1 rounded-lg border border-slate-700/80 bg-slate-950/60 p-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextPage = transactionPage - 1;
-                          setTransactionPage(nextPage);
-                          void loadTransactionPage(nextPage, selectedTransactionDate);
-                        }}
-                        disabled={transactionPage === 1 || loadingTransactions}
-                        aria-label="Previous transaction page"
-                        className="inline-flex h-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2 text-xs font-semibold text-slate-200 transition-colors hover:border-cyan-300/40 hover:bg-cyan-500/10 hover:text-cyan-100 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="min-w-[68px] text-center text-[11px] font-semibold tabular-nums text-cyan-100">
-                        Page {transactionPage} / {Math.max(1, Math.ceil((transactionTotalCount ?? 0) / transactionPageSize))}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextPage = transactionPage + 1;
-                          setTransactionPage(nextPage);
-                          void loadTransactionPage(nextPage, selectedTransactionDate);
-                        }}
-                        disabled={!hasNextTransactionPage || loadingTransactions}
-                        aria-label="Next transaction page"
-                        className="inline-flex h-7 items-center justify-center rounded-md border border-cyan-300/35 bg-cyan-500/10 px-2 text-xs font-semibold text-cyan-100 transition-colors hover:border-cyan-200/60 hover:bg-cyan-500/20 hover:text-white disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
-                      >
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    <PageNavigator
+                      page={transactionPage}
+                      pageCount={Math.max(1, Math.ceil((transactionTotalCount ?? 0) / transactionPageSize))}
+                      onPageChange={(page) => {
+                        setTransactionPage(page);
+                        void loadTransactionPage(page, selectedTransactionDate);
+                      }}
+                      tone="cyan"
+                      disabled={loadingTransactions}
+                    />
                     {selectedTransactionDate && (
                       <button
                         type="button"
@@ -1506,29 +1577,12 @@ export default function EmployeeDetailModal({
                     </div>
                   </div>
                   {withdrawals.length > itemsPerPage && (
-                    <div className="flex items-center gap-1 rounded-lg border border-slate-700/80 bg-slate-950/60 p-1 self-start sm:self-center">
-                      <button
-                        type="button"
-                        onClick={() => setWithdrawalPage(Math.max(1, withdrawalPage - 1))}
-                        disabled={withdrawalPage === 1}
-                        aria-label="Previous withdrawal page"
-                        className="inline-flex h-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2 text-xs font-semibold text-slate-200 transition-colors hover:border-amber-300/40 hover:bg-amber-500/10 hover:text-amber-100 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="min-w-[68px] text-center text-[11px] font-semibold tabular-nums text-amber-100">
-                        Page {withdrawalPage} / {Math.max(1, Math.ceil(withdrawals.length / itemsPerPage))}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setWithdrawalPage(Math.min(Math.ceil(withdrawals.length / itemsPerPage), withdrawalPage + 1))}
-                        disabled={withdrawalPage === Math.ceil(withdrawals.length / itemsPerPage)}
-                        aria-label="Next withdrawal page"
-                        className="inline-flex h-7 items-center justify-center rounded-md border border-amber-300/35 bg-amber-500/10 px-2 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-200/60 hover:bg-amber-500/20 hover:text-white disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
-                      >
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    <PageNavigator
+                      page={withdrawalPage}
+                      pageCount={Math.max(1, Math.ceil(withdrawals.length / itemsPerPage))}
+                      onPageChange={setWithdrawalPage}
+                      tone="amber"
+                    />
                   )}
                 </div>
 
@@ -1754,32 +1808,6 @@ export default function EmployeeDetailModal({
           </div>
         </div>
 
-        {activeTab === "withdrawals" && withdrawals.length > itemsPerPage && (
-          <div className="flex shrink-0 items-center gap-3 border-t border-amber-300/20 bg-slate-900 px-4 py-2.5 sm:px-5">
-            <button
-              onClick={() => setWithdrawalPage(Math.max(1, withdrawalPage - 1))}
-              disabled={withdrawalPage === 1}
-              className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm text-white transition-colors hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600"
-            >
-              Prev
-            </button>
-            <span className="text-sm text-slate-400">
-              Page {withdrawalPage} of {Math.ceil(withdrawals.length / itemsPerPage)}
-            </span>
-            <button
-              onClick={() =>
-                setWithdrawalPage(
-                  Math.min(Math.ceil(withdrawals.length / itemsPerPage), withdrawalPage + 1)
-                )
-              }
-              disabled={withdrawalPage === Math.ceil(withdrawals.length / itemsPerPage)}
-              className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm text-white transition-colors hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600"
-            >
-              Next
-            </button>
-            <span className="ml-2 text-xs text-slate-500">({withdrawals.length} total)</span>
-          </div>
-        )}
       </div>
     </div>
     </>,
