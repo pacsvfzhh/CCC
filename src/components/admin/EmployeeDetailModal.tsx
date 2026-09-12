@@ -1069,7 +1069,7 @@ export default function EmployeeDetailModal({
                             </p>
                           </div>
                           <div
-                            className="scrollbar-dark max-h-64 overflow-y-auto p-1.5"
+                            className="scrollbar-dark max-h-64 overflow-y-auto p-1"
                             role="listbox"
                           >
                             {availableTransactionDates.map((date) => (
@@ -1080,18 +1080,18 @@ export default function EmployeeDetailModal({
                                   setSelectedTransactionDate(date);
                                   setIsDateFilterOpen(false);
                                 }}
-                                className={`flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-left transition-colors ${
+                                className={`flex w-full items-center justify-between gap-3 rounded-md border px-2.5 py-1.5 text-left transition-colors ${
                                   selectedTransactionDate === date
-                                    ? "border-cyan-300/40 bg-cyan-500/20 text-cyan-50"
-                                    : "border-transparent text-slate-300 hover:border-blue-300/20 hover:bg-blue-500/15 hover:text-cyan-100"
+                                    ? "border-cyan-300/35 bg-cyan-950/65 text-cyan-50"
+                                    : "border-slate-800/80 bg-slate-900 text-slate-300 hover:border-cyan-300/25 hover:bg-slate-800 hover:text-cyan-100"
                                 }`}
                                 role="option"
                                 aria-selected={selectedTransactionDate === date}
                               >
-                                <span className="text-sm font-semibold tabular-nums">
+                                <span className="text-[13px] font-semibold tabular-nums">
                                   {date.split("-").join("/")}
                                 </span>
-                                <span className="inline-flex min-w-[62px] justify-center rounded-full border border-amber-300/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold tabular-nums text-amber-100">
+                                <span className="shrink-0 text-[11px] font-semibold tabular-nums text-amber-200/90">
                                   {transactionDateCounts[date]} records
                                 </span>
                               </button>
