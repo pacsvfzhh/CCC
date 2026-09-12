@@ -547,7 +547,14 @@ export default function EmployeeDetailModal({
     ].join("-");
   };
 
-  const getTransactionStyle = (type: string, amount: number) => {
+  const getTransactionStyle = (type: string, amount: number): {
+    card: string;
+    icon: string;
+    iconBg: string;
+    amount: string;
+    meta: string;
+    backgroundImage?: string;
+  } => {
     if (amount < 0 && type !== "tip" && !type.startsWith("withdrawal_")) {
       return {
         card: "border-red-300/45 border-l-red-300 bg-red-950/40 hover:border-red-200/65 hover:bg-red-950/55",
@@ -558,7 +565,14 @@ export default function EmployeeDetailModal({
       };
     }
 
-    const styles: Record<string, { card: string; icon: string; iconBg: string; amount: string; meta: string }> = {
+    const styles: Record<string, {
+      card: string;
+      icon: string;
+      iconBg: string;
+      amount: string;
+      meta: string;
+      backgroundImage?: string;
+    }> = {
       commission: {
         card: "border-emerald-300/45 border-l-emerald-300 bg-emerald-950/35 hover:border-emerald-200/65 hover:bg-emerald-950/50",
         icon: "text-emerald-200",
@@ -572,6 +586,8 @@ export default function EmployeeDetailModal({
         iconBg: "border-pink-300/30 bg-pink-950/70",
         amount: "text-pink-100",
         meta: "text-pink-100",
+        backgroundImage:
+          "radial-gradient(ellipse at 14% 22%, rgba(236, 72, 153, 0.38) 0 14%, transparent 15%), radial-gradient(ellipse at 78% 18%, rgba(139, 92, 246, 0.34) 0 17%, transparent 18%), radial-gradient(ellipse at 42% 72%, rgba(14, 165, 233, 0.28) 0 20%, transparent 21%), radial-gradient(ellipse at 88% 78%, rgba(245, 158, 11, 0.24) 0 15%, transparent 16%), radial-gradient(ellipse at 8% 88%, rgba(20, 184, 166, 0.22) 0 16%, transparent 17%)",
       },
       withdrawal_request: {
         card: "border-amber-300/45 border-l-amber-300 bg-amber-950/35 hover:border-amber-200/65 hover:bg-amber-950/50",
@@ -1296,6 +1312,10 @@ export default function EmployeeDetailModal({
                         <div
                           key={tx.id}
                           className={`rounded-xl border border-l-4 p-3 shadow-sm shadow-slate-950/25 transition-all ${style.card}`}
+                          style={style.backgroundImage ? {
+                            backgroundImage: style.backgroundImage,
+                            backgroundBlendMode: "screen",
+                          } : undefined}
                         >
                           <div className="flex items-start gap-3">
                             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${style.iconBg}`}>
