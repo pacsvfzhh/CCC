@@ -2140,6 +2140,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     </tr>
   );
 
+  const employeeRowsByGroup = useMemo(() => {
+    const rows = new Map<string, ReturnType<typeof renderEmployeeRow>[]>();
+    filteredEmployeeGroups.forEach(group => {
+      const isSuperAdminGroup = group.admin.role === 'super_admin';
+      rows.set(group.admin.id, group.employees.map((employee, index) => renderEmployeeRow(employee, index, isSuperAdminGroup)));
+    });
+    return rows;
+  }, [filteredEmployeeGroups, openActionMenu, onQuickAction]);
+
   const renderTableHeader = (adminId: string) => (
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
       <tr className="h-[40px]">
@@ -2671,9 +2680,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       <div className="-ml-1 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 min-h-[300px] dark-panel-scroll max-h-[calc(100vh-220px)]">
                         <table className="w-full table-fixed">
                           {renderTableHeader(group.admin.id)}
-                          <tbody>
-                            {group.employees.map((emp, idx) => renderEmployeeRow(emp, idx, isSuperGroup))}
-                          </tbody>
+                          <tbody>{employeeRowsByGroup.get(group.admin.id)}</tbody>
                         </table>
                       </div>
                     ) : (
