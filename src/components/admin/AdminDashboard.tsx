@@ -770,7 +770,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   </span>
                 </div>
               </div>
-              <div className="mt-2">
+              <div className="mt-4">
                 {renderAccountMenu('sidebar')}
               </div>
             </div>
