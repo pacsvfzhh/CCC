@@ -2519,14 +2519,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 return (
                   <div className="px-3 pb-1.5 pt-3 border-b border-blue-500/20 bg-blue-500/5">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <div className="inline-flex items-center gap-2 rounded-xl border border-blue-400/35 bg-gradient-to-r from-blue-950/90 via-cyan-950/65 to-slate-900 px-3 py-1.5 shadow-sm shadow-blue-950/40">
+                      <div className="inline-flex items-center gap-3 rounded-xl border border-blue-400/35 bg-gradient-to-r from-blue-950/90 via-cyan-950/65 to-slate-900 px-3 py-1.5 shadow-sm shadow-blue-950/40">
                         <Users className="h-4 w-4 text-cyan-300" />
-                        <span className="text-lg font-bold leading-none tabular-nums text-cyan-100">{flatFilteredEmployees.length}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-200/80">employees</span>
-                        <span className="h-4 w-px bg-cyan-300/30" />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">of</span>
-                        <span className="text-sm font-bold leading-none tabular-nums text-white">{allEmps.length}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200">shown</span>
+                        <div className="flex min-w-[82px] flex-col">
+                          <span className="text-lg font-bold leading-none tabular-nums text-white">{allEmps.length}</span>
+                          <span className="mt-1 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200/80">Total Employees</span>
+                        </div>
+                        <span className="h-8 w-px bg-cyan-300/30" />
+                        <div className="flex min-w-[92px] flex-col">
+                          <span className="text-lg font-bold leading-none tabular-nums text-cyan-100">{flatFilteredEmployees.length}</span>
+                          <span className="mt-1 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200">Filtered Employees</span>
+                        </div>
                       </div>
                     {allEmps.length > 0 && (
                       <>
@@ -2715,14 +2718,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           const allEmps = originalGroup?.employees || [];
                           return (
                             <>
-                              <div className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 shadow-sm ${isSuperGroup ? 'border-yellow-400/35 bg-gradient-to-r from-yellow-950/90 via-amber-950/60 to-slate-900 shadow-yellow-950/30' : 'border-blue-400/35 bg-gradient-to-r from-blue-950/90 via-cyan-950/60 to-slate-900 shadow-blue-950/30'}`}>
+                              <div className={`inline-flex items-center gap-3 rounded-xl border px-3 py-1.5 shadow-sm ${isSuperGroup ? 'border-yellow-400/35 bg-gradient-to-r from-yellow-950/90 via-amber-950/60 to-slate-900 shadow-yellow-950/30' : 'border-blue-400/35 bg-gradient-to-r from-blue-950/90 via-cyan-950/60 to-slate-900 shadow-blue-950/30'}`}>
                                 <Users className={`h-4 w-4 ${isSuperGroup ? 'text-yellow-300' : 'text-cyan-300'}`} />
-                                <span className={`text-lg font-bold leading-none tabular-nums ${isSuperGroup ? 'text-yellow-100' : 'text-cyan-100'}`}>{group.employees.length}</span>
-                                <span className={`text-[10px] font-bold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-200/80' : 'text-cyan-200/80'}`}>employees</span>
-                                <span className={`h-4 w-px ${isSuperGroup ? 'bg-yellow-300/30' : 'bg-cyan-300/30'}`} />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">of</span>
-                                <span className="text-sm font-bold leading-none tabular-nums text-white">{allEmps.length}</span>
-                                <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${isSuperGroup ? 'text-yellow-200' : 'text-cyan-200'}`}>shown</span>
+                                <div className="flex min-w-[82px] flex-col">
+                                  <span className="text-lg font-bold leading-none tabular-nums text-white">{allEmps.length}</span>
+                                  <span className={`mt-1 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] ${isSuperGroup ? 'text-yellow-200/80' : 'text-cyan-200/80'}`}>Total Employees</span>
+                                </div>
+                                <span className={`h-8 w-px ${isSuperGroup ? 'bg-yellow-300/30' : 'bg-cyan-300/30'}`} />
+                                <div className="flex min-w-[92px] flex-col">
+                                  <span className={`text-lg font-bold leading-none tabular-nums ${isSuperGroup ? 'text-yellow-100' : 'text-cyan-100'}`}>{group.employees.length}</span>
+                                  <span className={`mt-1 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] ${isSuperGroup ? 'text-yellow-200' : 'text-cyan-200'}`}>Filtered Employees</span>
+                                </div>
                               </div>
                               {allEmps.length > 0 && (
                                 <>
