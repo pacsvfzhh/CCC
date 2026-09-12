@@ -205,6 +205,18 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   }, [inactiveDaysDropdownOpen]);
 
   useEffect(() => {
+    if (!inactiveDaysDropdownOpen) return;
+    const closeOnEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setInactiveDaysDropdownOpen(null);
+        setIdleDaysDropdownPos(null);
+      }
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [inactiveDaysDropdownOpen]);
+
+  useEffect(() => {
     const anyModalOpen = !!(showCreateSecondaryAdmin || adminFilterOpen || editingEmployee || showPasswordReset || deletingEmployee || editingTags || notification?.show || confirmDialog?.show || loginIPEmployee || walletEmployee);
     if (anyModalOpen && !scrollLockRef.current) {
       scrollLockRef.current = true;
@@ -1293,38 +1305,59 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         className="fixed z-[9999]"
         style={{ top: idleDaysDropdownPos.top, left: idleDaysDropdownPos.left }}
       >
-        <div className="min-w-[160px] rounded-lg border border-emerald-800/70 bg-slate-900 py-1 shadow-xl shadow-black/50">
-          {items.map(({ key, label }) => {
-            const isSelected = inactiveDaysFilterByGroup.get(adminId) === key;
-            return (
-              <button
-                key={key}
-                onClick={() => {
-                  clearPendingWithdrawalFilter(adminId);
-                  setInactiveDaysFilterByGroup(prev => {
-                    const newMap = new Map(prev);
-                    if (isSelected) newMap.delete(adminId);
-                    else newMap.set(adminId, key);
-                    return newMap;
-                  });
-                  setInactiveDaysDropdownOpen(null);
-                  setIdleDaysDropdownPos(null);
-                }}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold transition-colors flex items-center gap-2.5 ${
-                  isSelected
-                    ? 'bg-emerald-700 text-white'
-                    : 'text-slate-300 hover:bg-emerald-950 hover:text-emerald-50'
-                }`}
-              >
-                <span className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-white' : 'bg-emerald-400'}`} />
-                {label}
-              </button>
-            );
-          })}
+        <div className="w-[196px] overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-2xl shadow-black/60">
+          <div className="border-b border-slate-800 bg-slate-900 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-emerald-700/70 bg-emerald-950 text-emerald-300">
+                <Timer className="h-3.5 w-3.5" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold text-slate-100">Idle Days</div>
+                <div className="text-[10px] text-slate-500">Never-started accounts</div>
+              </div>
+            </div>
+          </div>
+          <div role="menu" aria-label="Idle days filter" className="space-y-1 p-1.5">
+            {items.map(({ key, label }) => {
+              const isSelected = inactiveDaysFilterByGroup.get(adminId) === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={isSelected}
+                  onClick={() => {
+                    clearPendingWithdrawalFilter(adminId);
+                    setInactiveDaysFilterByGroup(prev => {
+                      const newMap = new Map(prev);
+                      if (isSelected) newMap.delete(adminId);
+                      else newMap.set(adminId, key);
+                      return newMap;
+                    });
+                    setInactiveDaysDropdownOpen(null);
+                    setIdleDaysDropdownPos(null);
+                  }}
+                  className={`flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500 ${
+                    isSelected
+                      ? 'bg-emerald-700 text-white'
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-emerald-100'
+                  }`}
+                >
+                  <span className={`h-2 w-2 shrink-0 rounded-full border ${isSelected ? 'border-white bg-white' : 'border-emerald-500/70 bg-emerald-900'}`} />
+                  <span className="flex-1">{label}</span>
+                  {isSelected ? (
+                    <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-100" />
+                  ) : (
+                    <span className="h-3 w-3 shrink-0 rounded-full border border-slate-700" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
           {inactiveDaysFilterByGroup.has(adminId) && (
-            <>
-              <div className="border-t border-slate-600 my-1" />
+            <div className="border-t border-slate-800 bg-slate-900/70 p-1.5">
               <button
+                type="button"
                 onClick={() => {
                   setInactiveDaysFilterByGroup(prev => {
                     const newMap = new Map(prev);
@@ -1334,11 +1367,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   setInactiveDaysDropdownOpen(null);
                   setIdleDaysDropdownPos(null);
                 }}
-                className="w-full text-left px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/15 hover:text-red-300 transition-colors"
+                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-950/50 px-2 text-[11px] font-semibold text-rose-200 transition-all hover:border-rose-300/60 hover:bg-rose-900/70 hover:text-rose-100 active:scale-[0.98] active:bg-rose-950 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
               >
-                Clear Filter
+                <X className="h-3.5 w-3.5" />
+                Clear filter
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>,
@@ -1352,7 +1386,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setIdleDaysDropdownPos(null);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      setIdleDaysDropdownPos({ top: rect.bottom + 4, left: rect.left });
+      const menuWidth = 196;
+      const menuHeight = 252;
+      const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
+      const top = window.innerHeight - rect.bottom < menuHeight + 8
+        ? Math.max(8, rect.top - menuHeight - 6)
+        : rect.bottom + 6;
+      setIdleDaysDropdownPos({ top, left });
       setInactiveDaysDropdownOpen(adminId);
     }
   };
@@ -1489,11 +1529,16 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         {/* Idle Days */}
         <div data-inactive-days-dropdown className="ml-2 inline-flex items-center gap-1">
           <button
+            type="button"
             onClick={(e) => handleIdleDaysClick(adminId, e)}
-            className={`inline-flex h-7 w-[120px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-[11px] font-semibold transition-colors ${
+            aria-haspopup="menu"
+            aria-expanded={inactiveDaysDropdownOpen === adminId}
+            className={`inline-flex h-7 w-[120px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500 ${
               hasIdleFilter
-                ? 'border-emerald-300 bg-emerald-700 text-white'
-                : 'border-emerald-500/60 bg-emerald-950 text-emerald-200 hover:border-emerald-300/80 hover:bg-emerald-900 hover:text-emerald-50'
+                ? 'border-emerald-500/80 bg-emerald-800 text-emerald-50'
+                : inactiveDaysDropdownOpen === adminId
+                  ? 'border-emerald-500/80 bg-emerald-950 text-emerald-100'
+                  : 'border-emerald-700/70 bg-slate-900 text-emerald-200 hover:border-emerald-500/80 hover:bg-emerald-950 hover:text-emerald-100'
             }`}
           >
             <Timer className="h-3.5 w-3.5" />
@@ -1523,7 +1568,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 }}
                 aria-label="Clear Idle Days filter"
                 title="Clear Idle Days filter"
-                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-300 bg-rose-600 text-white transition-colors hover:border-rose-200 hover:bg-rose-500"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-rose-400/50 bg-slate-800/90 text-rose-200 transition-all hover:border-rose-300/70 hover:bg-rose-950/70 hover:text-rose-100 active:scale-95 active:bg-rose-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
