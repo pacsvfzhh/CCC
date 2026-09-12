@@ -285,6 +285,7 @@ export default function EmployeeDetailModal({
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [loadingWithdrawals, setLoadingWithdrawals] = useState(true);
   const [loadingVerification, setLoadingVerification] = useState(true);
+  const [ordersLoaded, setOrdersLoaded] = useState(false);
   const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -292,11 +293,17 @@ export default function EmployeeDetailModal({
   const [imageLoading, setImageLoading] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
   const orderDateByIdRef = useRef<Record<string, string>>({});
+  const loadControllerRef = useRef<AbortController | null>(null);
+  const transactionDateCountsLoadedRef = useRef(false);
   const itemsPerPage = 10;
   const transactionPageSize = 100;
 
   useEffect(() => {
-    // Show modal immediately with basic info
+    const controller = new AbortController();
+    loadControllerRef.current?.abort();
+    loadControllerRef.current = controller;
+    transactionDateCountsLoadedRef.current = false;
+
     setSelectedTransactionDate("");
     setIsDateFilterOpen(false);
     setDailyStats([]);
@@ -313,9 +320,37 @@ export default function EmployeeDetailModal({
     setWithdrawals([]);
     setVerificationData(null);
     setLoading(false);
-    // Load detailed data in background
-    loadEmployeeDetails();
+    setOrdersLoaded(false);
+    void loadEmployeeDetails(controller.signal);
+
+    return () => {
+      controller.abort();
+      if (loadControllerRef.current === controller) {
+        loadControllerRef.current = null;
+      }
+    };
   }, [employee.id]);
+
+  useEffect(() => {
+    if (activeTab !== "transactions" || transactionTotalCount !== null) {
+      return;
+    }
+
+    void loadTransactionPage(1, "", loadControllerRef.current?.signal);
+  }, [activeTab, employee.id, transactionTotalCount]);
+
+  useEffect(() => {
+    if (
+      activeTab !== "transactions" ||
+      !ordersLoaded ||
+      transactionDateCountsLoadedRef.current
+    ) {
+      return;
+    }
+
+    transactionDateCountsLoadedRef.current = true;
+    void loadTransactionDateCounts(loadControllerRef.current?.signal);
+  }, [activeTab, employee.id, ordersLoaded]);
 
   useEffect(() => {
     document.documentElement.style.overflow = 'hidden';
@@ -326,7 +361,11 @@ export default function EmployeeDetailModal({
     };
   }, []);
 
-  const loadTransactionPage = async (page: number, date: string) => {
+  const loadTransactionPage = async (
+    page: number,
+    date: string,
+    signal?: AbortSignal,
+  ) => {
     setLoadingTransactions(true);
 
     let query = supabase
@@ -357,10 +396,16 @@ export default function EmployeeDetailModal({
       }
     }
 
-    const result = await query.range(
-      (page - 1) * transactionPageSize,
-      page * transactionPageSize - 1,
-    );
+    const result = await query
+      .abortSignal(signal ?? new AbortController().signal)
+      .range(
+        (page - 1) * transactionPageSize,
+        page * transactionPageSize - 1,
+      );
+
+    if (signal?.aborted) {
+      return result;
+    }
 
     if (result.error) {
       setTransactions([]);
@@ -376,7 +421,7 @@ export default function EmployeeDetailModal({
     return result;
   };
 
-  const loadTransactionDateCounts = async () => {
+  const loadTransactionDateCounts = async (signal?: AbortSignal) => {
     const pageSize = 1000;
     let offset = 0;
     const dateCounts: Record<string, number> = {};
@@ -388,7 +433,12 @@ export default function EmployeeDetailModal({
         .eq("user_id", employee.id)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
+        .abortSignal(signal ?? new AbortController().signal)
         .range(offset, offset + pageSize - 1);
+
+      if (signal?.aborted) {
+        return;
+      }
 
       if (result.error) {
         if (!isSupabaseAbortError(result.error)) {
@@ -418,7 +468,7 @@ export default function EmployeeDetailModal({
     }
   };
 
-  const loadEmployeeDetails = async () => {
+  const loadEmployeeDetails = async (signal: AbortSignal) => {
     try {
       setLoadingStats(true);
       setLoadingTransactions(true);
@@ -429,9 +479,10 @@ export default function EmployeeDetailModal({
         .from("wallets")
         .select("available_balance, frozen_balance")
         .eq("user_id", employee.id)
+        .abortSignal(signal)
         .maybeSingle()
         .then((result) => {
-          if (!result.error && result.data) {
+          if (!signal.aborted && !result.error && result.data) {
             setWalletBalance({
               available: Number(result.data.available_balance),
               frozen: Number(result.data.frozen_balance),
@@ -457,7 +508,12 @@ export default function EmployeeDetailModal({
             .eq("user_id", employee.id)
             .order("created_at", { ascending: false })
             .order("id", { ascending: false })
+            .abortSignal(signal)
             .range(offset, offset + pageSize - 1);
+
+          if (signal.aborted) {
+            return result;
+          }
 
           if (result.error) {
             setLoadingStats(false);
@@ -505,6 +561,8 @@ export default function EmployeeDetailModal({
               }
             });
             setDailyStats(Array.from(dailyStatsMap.values()));
+            setTotalOrderCount(allOrders.length);
+            setOrdersLoaded(true);
             setLoadingStats(false);
             return result;
           }
@@ -512,15 +570,6 @@ export default function EmployeeDetailModal({
           offset += pageSize;
         }
       })();
-
-      const totalOrderCountPromise = supabase
-        .rpc("count_orders_by_user", { user_ids: [employee.id] })
-        .then((result) => {
-          if (!result.error) {
-            setTotalOrderCount(Number(result.data?.[0]?.count ?? 0));
-          }
-          return result;
-        });
 
       const walletSummaryPromise = (async () => {
         const pageSize = 1000;
@@ -536,7 +585,12 @@ export default function EmployeeDetailModal({
             .in("type", ["tip", "manual_adjustment"])
             .order("created_at", { ascending: false })
             .order("id", { ascending: false })
+            .abortSignal(signal)
             .range(offset, offset + pageSize - 1);
+
+          if (signal.aborted) {
+            return result;
+          }
 
           if (result.error) {
             return result;
@@ -562,20 +616,20 @@ export default function EmployeeDetailModal({
         }
       })();
 
-      const transactionsPromise = loadTransactionPage(1, "");
-      void ordersPromise.then(() => loadTransactionDateCounts());
-
       const withdrawalsPromise = supabase
         .from("withdrawals")
         .select("*")
         .eq("user_id", employee.id)
         .order("created_at", { ascending: false })
         .limit(100)
+        .abortSignal(signal)
         .then((result) => {
-          if (!result.error && result.data) {
+          if (!signal.aborted && !result.error && result.data) {
             setWithdrawals(result.data);
           }
-          setLoadingWithdrawals(false);
+          if (!signal.aborted) {
+            setLoadingWithdrawals(false);
+          }
           return result;
         });
 
@@ -585,38 +639,37 @@ export default function EmployeeDetailModal({
         .eq("user_id", employee.id)
         .order("created_at", { ascending: false })
         .limit(1)
+        .abortSignal(signal)
         .maybeSingle()
         .then((result) => {
-          if (!result.error && result.data) {
+          if (!signal.aborted && !result.error && result.data) {
             setVerificationData(result.data);
           }
-          setLoadingVerification(false);
+          if (!signal.aborted) {
+            setLoadingVerification(false);
+          }
           return result;
         });
 
-      // Wait for all queries to complete
-      const [walletResult, ordersResult, totalOrderCountResult, walletSummaryResult, transactionsResult, withdrawalsResult, verificationResult] =
+      const [walletResult, ordersResult, walletSummaryResult, withdrawalsResult, verificationResult] =
         await Promise.all([
           walletPromise,
           ordersPromise,
-          totalOrderCountPromise,
           walletSummaryPromise,
-          transactionsPromise,
           withdrawalsPromise,
           verificationPromise,
         ]);
 
-      // Check for errors
+      if (signal.aborted) {
+        return;
+      }
+
       if (walletResult.error && !isSupabaseAbortError(walletResult.error))
         console.error("Wallet load error:", formatSupabaseError(walletResult.error));
       if (ordersResult.error && !isSupabaseAbortError(ordersResult.error))
         console.error("Orders load error:", formatSupabaseError(ordersResult.error));
-      if (totalOrderCountResult.error && !isSupabaseAbortError(totalOrderCountResult.error))
-        console.error("Total order count load error:", formatSupabaseError(totalOrderCountResult.error));
       if (walletSummaryResult.error && !isSupabaseAbortError(walletSummaryResult.error))
         console.error("Wallet summary load error:", formatSupabaseError(walletSummaryResult.error));
-      if (transactionsResult.error && !isSupabaseAbortError(transactionsResult.error))
-        console.error("Transactions load error:", formatSupabaseError(transactionsResult.error));
       if (withdrawalsResult.error && !isSupabaseAbortError(withdrawalsResult.error))
         console.error("Withdrawals load error:", formatSupabaseError(withdrawalsResult.error));
       if (verificationResult.error && !isSupabaseAbortError(verificationResult.error))
@@ -625,10 +678,12 @@ export default function EmployeeDetailModal({
       if (!isSupabaseAbortError(error)) {
         console.error("Error loading employee details:", formatSupabaseError(error));
       }
-      setLoadingStats(false);
-      setLoadingTransactions(false);
-      setLoadingWithdrawals(false);
-      setLoadingVerification(false);
+      if (!signal.aborted) {
+        setLoadingStats(false);
+        setLoadingTransactions(false);
+        setLoadingWithdrawals(false);
+        setLoadingVerification(false);
+      }
     }
   };
 
@@ -1391,7 +1446,7 @@ export default function EmployeeDetailModal({
                         onClick={() => {
                           setSelectedTransactionDate("");
                           setTransactionPage(1);
-                          void loadTransactionPage(1, "");
+                          void loadTransactionPage(1, "", loadControllerRef.current?.signal);
                         }}
                         className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-blue-300/35 bg-blue-950/80 px-2.5 text-xs font-semibold text-blue-100 transition-colors hover:border-blue-200/55 hover:bg-blue-900/90 hover:text-white"
                       >
@@ -1444,7 +1499,7 @@ export default function EmployeeDetailModal({
                                   setSelectedTransactionDate(date);
                                   setTransactionPage(1);
                                   setIsDateFilterOpen(false);
-                                  void loadTransactionPage(1, date);
+                                  void loadTransactionPage(1, date, loadControllerRef.current?.signal);
                                 }}
                                 className={`flex w-full items-center justify-between gap-3 rounded-md border px-2.5 py-1.5 text-left transition-colors ${
                                   selectedTransactionDate === date
@@ -1471,7 +1526,7 @@ export default function EmployeeDetailModal({
                       pageCount={Math.max(1, Math.ceil((transactionTotalCount ?? 0) / transactionPageSize))}
                       onPageChange={(page) => {
                         setTransactionPage(page);
-                        void loadTransactionPage(page, selectedTransactionDate);
+                        void loadTransactionPage(page, selectedTransactionDate, loadControllerRef.current?.signal);
                       }}
                       tone="cyan"
                       disabled={loadingTransactions}

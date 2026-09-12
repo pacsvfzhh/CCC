@@ -1279,20 +1279,26 @@ button .animate-bell-ring.keep-animation,
   }
 
   .employee-detail-scrollbar--amber {
-    scrollbar-color: rgba(251, 191, 36, 0.7) rgba(69, 39, 5, 0.75) !important;
+    color-scheme: dark;
+    scrollbar-color: #334155 #0b1220 !important;
   }
 
   .employee-detail-scrollbar--amber::-webkit-scrollbar-track {
-    background: rgba(69, 39, 5, 0.75) !important;
+    background: #0b1220 !important;
+    border: 1px solid #111827 !important;
   }
 
   .employee-detail-scrollbar--amber::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(253, 224, 71, 0.8), rgba(217, 119, 6, 0.6)) !important;
-    border-color: rgba(253, 224, 71, 0.2) !important;
+    background: #334155 !important;
+    border: 1px solid #475569 !important;
   }
 
   .employee-detail-scrollbar--amber::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(254, 243, 199, 0.95), rgba(180, 83, 9, 0.85)) !important;
+    background: #475569 !important;
+  }
+
+  .employee-detail-scrollbar--amber::-webkit-scrollbar-thumb:active {
+    background: #64748b !important;
   }
 
   .employee-detail-scrollbar--violet {
