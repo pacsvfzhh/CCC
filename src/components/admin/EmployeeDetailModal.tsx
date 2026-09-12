@@ -110,6 +110,7 @@ export default function EmployeeDetailModal({
   onClose,
 }: EmployeeDetailModalProps) {
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
+  const [totalOrderCount, setTotalOrderCount] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [verificationData, setVerificationData] = useState<VerificationRequest | null>(null);
@@ -139,6 +140,11 @@ export default function EmployeeDetailModal({
     // Show modal immediately with basic info
     setSelectedTransactionDate("");
     setIsDateFilterOpen(false);
+    setDailyStats([]);
+    setTotalOrderCount(null);
+    setTransactions([]);
+    setWithdrawals([]);
+    setVerificationData(null);
     setLoading(false);
     // Load detailed data in background
     loadEmployeeDetails();
@@ -176,19 +182,36 @@ export default function EmployeeDetailModal({
         });
 
       // Load orders and transactions independently
-      const ordersPromise = supabase
-        .from("orders")
-        .select("status, commission_amount, created_at")
-        .eq("user_id", employee.id)
-        .gte(
-          "created_at",
-          new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-        )
-        .order("created_at", { ascending: false })
-        .then((result) => {
-          if (!result.error && result.data) {
+      const ordersPromise = (async () => {
+        const pageSize = 1000;
+        let offset = 0;
+        const allOrders: Array<{
+          status: string;
+          commission_amount: number | null;
+          created_at: string;
+        }> = [];
+        const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+
+        while (true) {
+          const result = await supabase
+            .from("orders")
+            .select("id, status, commission_amount, created_at")
+            .eq("user_id", employee.id)
+            .gte("created_at", since)
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(offset, offset + pageSize - 1);
+
+          if (result.error) {
+            setLoadingStats(false);
+            return result;
+          }
+
+          allOrders.push(...result.data);
+
+          if (result.data.length < pageSize) {
             const dailyStatsMap = new Map<string, DailyStats>();
-            result.data.forEach((order) => {
+            allOrders.forEach((order) => {
               const date = new Date(order.created_at).toLocaleDateString(
                 "zh-CN",
               );
@@ -214,8 +237,20 @@ export default function EmployeeDetailModal({
               }
             });
             setDailyStats(Array.from(dailyStatsMap.values()));
+            setLoadingStats(false);
+            return result;
           }
-          setLoadingStats(false);
+
+          offset += pageSize;
+        }
+      })();
+
+      const totalOrderCountPromise = supabase
+        .rpc("count_orders_by_user", { user_ids: [employee.id] })
+        .then((result) => {
+          if (!result.error) {
+            setTotalOrderCount(Number(result.data?.[0]?.count ?? 0));
+          }
           return result;
         });
 
@@ -280,14 +315,23 @@ export default function EmployeeDetailModal({
         });
 
       // Wait for all queries to complete
-      const [walletResult, ordersResult, transactionsResult, withdrawalsResult, verificationResult] =
-        await Promise.all([walletPromise, ordersPromise, transactionsPromise, withdrawalsPromise, verificationPromise]);
+      const [walletResult, ordersResult, totalOrderCountResult, transactionsResult, withdrawalsResult, verificationResult] =
+        await Promise.all([
+          walletPromise,
+          ordersPromise,
+          totalOrderCountPromise,
+          transactionsPromise,
+          withdrawalsPromise,
+          verificationPromise,
+        ]);
 
       // Check for errors
       if (walletResult.error)
         console.error("Wallet load error:", walletResult.error);
       if (ordersResult.error)
         console.error("Orders load error:", ordersResult.error);
+      if (totalOrderCountResult.error)
+        console.error("Total order count load error:", totalOrderCountResult.error);
       if (transactionsResult.error)
         console.error("Transactions load error:", transactionsResult.error);
       if (withdrawalsResult.error)
@@ -816,9 +860,14 @@ export default function EmployeeDetailModal({
                         Overall Statistics
                       </h3>
                     </div>
-                    <span className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-200">
-                      Showing statistics for the last 90 days
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-200">
+                        Showing statistics for the last 90 days
+                      </span>
+                      <span className="rounded-full border border-blue-300/30 bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold text-blue-100">
+                        All-time orders: {totalOrderCount === null ? "—" : totalOrderCount.toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
                     <div className="rounded-lg border border-emerald-500/30 bg-blue-950/35 p-2.5">
@@ -839,7 +888,7 @@ export default function EmployeeDetailModal({
                       <div className="flex items-center gap-2 mb-1">
                         <TrendingUp className="w-4 h-4 text-blue-400" />
                         <span className="text-xs text-blue-300 font-bold">
-                          Total Orders
+                          Orders (90 Days)
                         </span>
                       </div>
                       <div className="text-2xl font-black text-white">
