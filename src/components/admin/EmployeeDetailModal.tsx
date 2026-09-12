@@ -427,57 +427,57 @@ export default function EmployeeDetailModal({
   const getTransactionStyle = (type: string, amount: number) => {
     if (amount < 0) {
       return {
-        card: "border-slate-700/70 border-l-red-400/90 bg-slate-800/95 hover:border-slate-500/80",
-        icon: "text-red-300",
-        iconBg: "border-slate-700 bg-slate-900/70",
-        amount: "text-red-300",
+        card: "border-red-300/45 border-l-red-300 bg-red-950/40 hover:border-red-200/65 hover:bg-red-950/55",
+        icon: "text-red-200",
+        iconBg: "border-red-300/35 bg-red-950/70",
+        amount: "text-red-200",
       };
     }
 
     const styles: Record<string, { card: string; icon: string; iconBg: string; amount: string }> = {
       commission: {
-        card: "border-slate-700/70 border-l-emerald-400/90 bg-slate-800/95 hover:border-slate-500/80",
-        icon: "text-emerald-300",
-        iconBg: "border-slate-700 bg-slate-900/70",
-        amount: "text-emerald-300",
+        card: "border-emerald-300/45 border-l-emerald-300 bg-emerald-950/35 hover:border-emerald-200/65 hover:bg-emerald-950/50",
+        icon: "text-emerald-200",
+        iconBg: "border-emerald-300/35 bg-emerald-950/70",
+        amount: "text-emerald-200",
       },
       tip: {
-        card: "border-slate-700/70 border-l-amber-400/90 bg-slate-800/95 hover:border-slate-500/80",
-        icon: "text-amber-300",
-        iconBg: "border-slate-700 bg-slate-900/70",
-        amount: "text-amber-300",
+        card: "border-amber-300/50 border-l-amber-300 bg-amber-950/35 hover:border-amber-200/70 hover:bg-amber-950/50",
+        icon: "text-amber-100",
+        iconBg: "border-amber-300/35 bg-amber-950/70",
+        amount: "text-amber-100",
       },
       withdrawal_request: {
-        card: "border-slate-700/70 border-l-amber-400/90 bg-slate-800/95 hover:border-slate-500/80",
-        icon: "text-amber-300",
-        iconBg: "border-slate-700 bg-slate-900/70",
-        amount: "text-amber-300",
+        card: "border-orange-300/50 border-l-orange-300 bg-orange-950/35 hover:border-orange-200/70 hover:bg-orange-950/50",
+        icon: "text-orange-100",
+        iconBg: "border-orange-300/35 bg-orange-950/70",
+        amount: "text-orange-100",
       },
       withdrawal_approved: {
-        card: "border-slate-700/70 border-l-cyan-400/90 bg-slate-800/95 hover:border-slate-500/80",
-        icon: "text-cyan-300",
-        iconBg: "border-slate-700 bg-slate-900/70",
-        amount: "text-cyan-300",
+        card: "border-cyan-300/45 border-l-cyan-300 bg-cyan-950/35 hover:border-cyan-200/65 hover:bg-cyan-950/50",
+        icon: "text-cyan-100",
+        iconBg: "border-cyan-300/35 bg-cyan-950/70",
+        amount: "text-cyan-100",
       },
       withdrawal_rejected: {
-        card: "border-slate-700/70 border-l-red-400/90 bg-slate-800/95 hover:border-slate-500/80",
-        icon: "text-red-300",
-        iconBg: "border-slate-700 bg-slate-900/70",
-        amount: "text-red-300",
+        card: "border-rose-300/50 border-l-rose-300 bg-rose-950/35 hover:border-rose-200/70 hover:bg-rose-950/50",
+        icon: "text-rose-100",
+        iconBg: "border-rose-300/35 bg-rose-950/70",
+        amount: "text-rose-100",
       },
       manual_adjustment: {
-        card: "border-slate-700/70 border-l-blue-400/90 bg-slate-800/95 hover:border-slate-500/80",
-        icon: "text-blue-300",
-        iconBg: "border-slate-700 bg-slate-900/70",
-        amount: "text-blue-300",
+        card: "border-blue-300/45 border-l-blue-300 bg-blue-950/35 hover:border-blue-200/65 hover:bg-blue-950/50",
+        icon: "text-blue-100",
+        iconBg: "border-blue-300/35 bg-blue-950/70",
+        amount: "text-blue-100",
       },
     };
 
     return styles[type] ?? {
-      card: "border-slate-700/70 border-l-slate-400/80 bg-slate-800/95 hover:border-slate-500/80",
-      icon: "text-slate-300",
-      iconBg: "border-slate-700 bg-slate-900/70",
-      amount: "text-slate-200",
+      card: "border-slate-500/60 border-l-slate-300 bg-slate-800/95 hover:border-slate-300/70",
+      icon: "text-slate-200",
+      iconBg: "border-slate-500/50 bg-slate-900/70",
+      amount: "text-slate-100",
     };
   };
 
@@ -1057,32 +1057,46 @@ export default function EmployeeDetailModal({
                       </button>
                       {isDateFilterOpen && (
                         <div
-                          className="scrollbar-dark absolute right-0 top-full z-50 mt-1 max-h-64 w-52 overflow-y-auto rounded-lg border border-cyan-300/25 bg-slate-900 p-1 shadow-xl shadow-slate-950/70"
-                          role="listbox"
+                          className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-cyan-300/30 bg-slate-950 shadow-2xl shadow-slate-950/80"
                           aria-label="Available transaction dates"
                         >
-                          {availableTransactionDates.map((date) => (
-                            <button
-                              key={date}
-                              type="button"
-                              onClick={() => {
-                                setSelectedTransactionDate(date);
-                                setIsDateFilterOpen(false);
-                              }}
-                              className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-xs transition-colors ${
-                                selectedTransactionDate === date
-                                  ? "bg-cyan-500/20 font-bold text-cyan-50"
-                                  : "text-slate-300 hover:bg-slate-800 hover:text-cyan-100"
-                              }`}
-                              role="option"
-                              aria-selected={selectedTransactionDate === date}
-                            >
-                              <span>{date.split("-").join("/")}</span>
-                              <span className="text-[10px] tabular-nums text-slate-500">
-                                {transactionDateCounts[date]} records
-                              </span>
-                            </button>
-                          ))}
+                          <div className="border-b border-cyan-300/20 bg-blue-950/80 px-3 py-2.5">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-200">
+                              Available dates
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-slate-400">
+                              {availableTransactionDates.length} dates with records
+                            </p>
+                          </div>
+                          <div
+                            className="scrollbar-dark max-h-64 overflow-y-auto p-1.5"
+                            role="listbox"
+                          >
+                            {availableTransactionDates.map((date) => (
+                              <button
+                                key={date}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedTransactionDate(date);
+                                  setIsDateFilterOpen(false);
+                                }}
+                                className={`flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-left transition-colors ${
+                                  selectedTransactionDate === date
+                                    ? "border-cyan-300/40 bg-cyan-500/20 text-cyan-50"
+                                    : "border-transparent text-slate-300 hover:border-blue-300/20 hover:bg-blue-500/15 hover:text-cyan-100"
+                                }`}
+                                role="option"
+                                aria-selected={selectedTransactionDate === date}
+                              >
+                                <span className="text-sm font-semibold tabular-nums">
+                                  {date.split("-").join("/")}
+                                </span>
+                                <span className="inline-flex min-w-[62px] justify-center rounded-full border border-amber-300/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold tabular-nums text-amber-100">
+                                  {transactionDateCounts[date]} records
+                                </span>
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1116,7 +1130,7 @@ export default function EmployeeDetailModal({
                       return (
                         <div
                           key={tx.id}
-                          className={`rounded-lg border p-2.5 transition-colors ${style.card}`}
+                          className={`rounded-xl border border-l-4 p-3 shadow-sm shadow-slate-950/25 transition-all ${style.card}`}
                         >
                           <div className="flex items-center gap-3">
                             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${style.iconBg}`}>
