@@ -9,6 +9,7 @@ import {
   Calendar,
   ChevronDown,
   DollarSign,
+  Gift,
   User,
   Clock,
   MessageSquare,
@@ -111,6 +112,8 @@ export default function EmployeeDetailModal({
 }: EmployeeDetailModalProps) {
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [totalOrderCount, setTotalOrderCount] = useState<number | null>(null);
+  const [totalTipAmount, setTotalTipAmount] = useState<number | null>(null);
+  const [totalManualAdditionAmount, setTotalManualAdditionAmount] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [transactionTotalCount, setTransactionTotalCount] = useState<number | null>(null);
   const [transactionPage, setTransactionPage] = useState(1);
@@ -147,6 +150,8 @@ export default function EmployeeDetailModal({
     setIsDateFilterOpen(false);
     setDailyStats([]);
     setTotalOrderCount(null);
+    setTotalTipAmount(null);
+    setTotalManualAdditionAmount(null);
     setTransactions([]);
     setTransactionTotalCount(null);
     setTransactionPage(1);
@@ -338,6 +343,46 @@ export default function EmployeeDetailModal({
           return result;
         });
 
+      const walletSummaryPromise = (async () => {
+        const pageSize = 1000;
+        let offset = 0;
+        let tipTotal = 0;
+        let manualAdditionTotal = 0;
+
+        while (true) {
+          const result = await supabase
+            .from("wallet_transactions")
+            .select("id, type, amount")
+            .eq("user_id", employee.id)
+            .in("type", ["tip", "manual_adjustment"])
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(offset, offset + pageSize - 1);
+
+          if (result.error) {
+            return result;
+          }
+
+          result.data.forEach((transaction) => {
+            const amount = Number(transaction.amount);
+
+            if (transaction.type === "tip") {
+              tipTotal += amount;
+            } else if (amount > 0) {
+              manualAdditionTotal += amount;
+            }
+          });
+
+          if (result.data.length < pageSize) {
+            setTotalTipAmount(tipTotal);
+            setTotalManualAdditionAmount(manualAdditionTotal);
+            return result;
+          }
+
+          offset += pageSize;
+        }
+      })();
+
       const transactionsPromise = loadTransactionPage(1, "");
       void loadTransactionDateCounts();
 
@@ -371,11 +416,12 @@ export default function EmployeeDetailModal({
         });
 
       // Wait for all queries to complete
-      const [walletResult, ordersResult, totalOrderCountResult, transactionsResult, withdrawalsResult, verificationResult] =
+      const [walletResult, ordersResult, totalOrderCountResult, walletSummaryResult, transactionsResult, withdrawalsResult, verificationResult] =
         await Promise.all([
           walletPromise,
           ordersPromise,
           totalOrderCountPromise,
+          walletSummaryPromise,
           transactionsPromise,
           withdrawalsPromise,
           verificationPromise,
@@ -388,6 +434,8 @@ export default function EmployeeDetailModal({
         console.error("Orders load error:", formatSupabaseError(ordersResult.error));
       if (totalOrderCountResult.error && !isSupabaseAbortError(totalOrderCountResult.error))
         console.error("Total order count load error:", formatSupabaseError(totalOrderCountResult.error));
+      if (walletSummaryResult.error && !isSupabaseAbortError(walletSummaryResult.error))
+        console.error("Wallet summary load error:", formatSupabaseError(walletSummaryResult.error));
       if (transactionsResult.error && !isSupabaseAbortError(transactionsResult.error))
         console.error("Transactions load error:", formatSupabaseError(transactionsResult.error));
       if (withdrawalsResult.error && !isSupabaseAbortError(withdrawalsResult.error))
@@ -942,7 +990,7 @@ export default function EmployeeDetailModal({
                       </span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-6">
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-blue-950/35 px-2.5 py-2">
                       <div className="flex min-w-0 items-center gap-1.5">
                         <DollarSign className="h-4 w-4 shrink-0 text-emerald-400" />
@@ -969,6 +1017,28 @@ export default function EmployeeDetailModal({
                           (sum, stat) => sum + stat.totalOrders,
                           0,
                         )}
+                      </div>
+                    </div>
+                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-violet-500/30 bg-blue-950/35 px-2.5 py-2">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <Gift className="h-4 w-4 shrink-0 text-violet-300" />
+                        <span className="truncate text-xs font-bold text-violet-200">
+                          Tip Amount
+                        </span>
+                      </div>
+                      <div className="shrink-0 text-lg font-black leading-none text-amber-200">
+                        {totalTipAmount === null ? "—" : `$${totalTipAmount.toFixed(2)}`}
+                      </div>
+                    </div>
+                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-sky-500/30 bg-blue-950/35 px-2.5 py-2">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <CreditCard className="h-4 w-4 shrink-0 text-sky-300" />
+                        <span className="truncate text-xs font-bold text-sky-200">
+                          Admin Added
+                        </span>
+                      </div>
+                      <div className="shrink-0 text-lg font-black leading-none text-sky-200">
+                        {totalManualAdditionAmount === null ? "—" : `$${totalManualAdditionAmount.toFixed(2)}`}
                       </div>
                     </div>
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-green-500/30 bg-blue-950/35 px-2.5 py-2">
