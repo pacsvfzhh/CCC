@@ -25,7 +25,7 @@ import {
   ZoomOut,
   Maximize2,
 } from "lucide-react";
-import { supabase } from "../../lib/supabase";
+import { formatSupabaseError, isSupabaseAbortError, supabase } from "../../lib/supabase";
 import { Employee } from "../../types";
 
 interface DailyStats {
@@ -326,20 +326,22 @@ export default function EmployeeDetailModal({
         ]);
 
       // Check for errors
-      if (walletResult.error)
-        console.error("Wallet load error:", walletResult.error);
-      if (ordersResult.error)
-        console.error("Orders load error:", ordersResult.error);
-      if (totalOrderCountResult.error)
-        console.error("Total order count load error:", totalOrderCountResult.error);
-      if (transactionsResult.error)
-        console.error("Transactions load error:", transactionsResult.error);
-      if (withdrawalsResult.error)
-        console.error("Withdrawals load error:", withdrawalsResult.error);
-      if (verificationResult.error)
-        console.error("Verification load error:", verificationResult.error);
+      if (walletResult.error && !isSupabaseAbortError(walletResult.error))
+        console.error("Wallet load error:", formatSupabaseError(walletResult.error));
+      if (ordersResult.error && !isSupabaseAbortError(ordersResult.error))
+        console.error("Orders load error:", formatSupabaseError(ordersResult.error));
+      if (totalOrderCountResult.error && !isSupabaseAbortError(totalOrderCountResult.error))
+        console.error("Total order count load error:", formatSupabaseError(totalOrderCountResult.error));
+      if (transactionsResult.error && !isSupabaseAbortError(transactionsResult.error))
+        console.error("Transactions load error:", formatSupabaseError(transactionsResult.error));
+      if (withdrawalsResult.error && !isSupabaseAbortError(withdrawalsResult.error))
+        console.error("Withdrawals load error:", formatSupabaseError(withdrawalsResult.error));
+      if (verificationResult.error && !isSupabaseAbortError(verificationResult.error))
+        console.error("Verification load error:", formatSupabaseError(verificationResult.error));
     } catch (error) {
-      console.error("Error loading employee details:", error);
+      if (!isSupabaseAbortError(error)) {
+        console.error("Error loading employee details:", formatSupabaseError(error));
+      }
       setLoadingStats(false);
       setLoadingTransactions(false);
       setLoadingWithdrawals(false);
