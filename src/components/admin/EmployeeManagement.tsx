@@ -1393,6 +1393,36 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
         <div className="w-px h-4 bg-slate-600 shrink-0 mx-1" />
 
+        {/* Withdrawing */}
+        <div className="ml-2 inline-flex items-center">
+          <button
+            onClick={() => {
+              setPendingWithdrawalFilterByGroup(prev => {
+                const next = new Set(prev);
+                if (next.has(adminId)) next.delete(adminId);
+                else next.add(adminId);
+                return next;
+              });
+            }}
+            aria-pressed={hasPendingFilter}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold shadow-md transition-all ${
+              hasPendingFilter
+                ? 'border-orange-200 bg-orange-500 text-white shadow-orange-950/50 ring-1 ring-orange-300/40'
+                : 'border-orange-500/70 bg-orange-950/55 text-orange-200 shadow-orange-950/30 hover:border-orange-300/90 hover:bg-orange-900/75 hover:text-orange-50'
+            }`}
+          >
+            <Wallet className="h-3.5 w-3.5" />
+            <span>Withdrawing</span>
+            <span className={`min-w-[20px] rounded-full border px-1.5 py-0.5 text-center text-[10px] tabular-nums leading-none ${
+              hasPendingFilter
+                ? 'border-white/30 bg-white/20 text-white'
+                : 'border-orange-400/40 bg-orange-500/20 text-orange-300'
+            }`}>
+              {pendingWithdrawalCount}
+            </span>
+          </button>
+        </div>
+
         {/* Idle Days */}
         <div data-inactive-days-dropdown className="ml-2 inline-flex items-center gap-1">
           <button
@@ -1436,36 +1466,6 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           )}
         </div>
         {renderIdleDaysPortal(adminId)}
-
-        {/* Withdrawing */}
-        <div className="ml-2 inline-flex items-center">
-          <button
-            onClick={() => {
-              setPendingWithdrawalFilterByGroup(prev => {
-                const next = new Set(prev);
-                if (next.has(adminId)) next.delete(adminId);
-                else next.add(adminId);
-                return next;
-              });
-            }}
-            aria-pressed={hasPendingFilter}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold shadow-md transition-all ${
-              hasPendingFilter
-                ? 'border-orange-200 bg-orange-500 text-white shadow-orange-950/50 ring-1 ring-orange-300/40'
-                : 'border-orange-500/70 bg-orange-950/55 text-orange-200 shadow-orange-950/30 hover:border-orange-300/90 hover:bg-orange-900/75 hover:text-orange-50'
-            }`}
-          >
-            <Wallet className="h-3.5 w-3.5" />
-            <span>Withdrawing</span>
-            <span className={`min-w-[20px] rounded-full border px-1.5 py-0.5 text-center text-[10px] tabular-nums leading-none ${
-              hasPendingFilter
-                ? 'border-white/30 bg-white/20 text-white'
-                : 'border-orange-400/40 bg-orange-500/20 text-orange-300'
-            }`}>
-              {pendingWithdrawalCount}
-            </span>
-          </button>
-        </div>
       </div>
     );
   };
