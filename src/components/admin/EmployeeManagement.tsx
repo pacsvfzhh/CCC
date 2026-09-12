@@ -2703,7 +2703,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <>
                     {renderCreateForm(group.admin.id, group.admin)}
 
-                    <div className={`flex min-h-8 flex-wrap items-center gap-2 border-t-2 px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-blue-500/30 bg-blue-500/5'}`}>
+                    <div className={`flex min-h-8 items-center border-t-2 border-b px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-blue-500/30 bg-blue-500/5'}`}>
+                      <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
+                        {renderStatusFilterButtons(group.admin.id, true)}
+                      </div>
+                    </div>
+                    <div className={`flex min-h-8 flex-wrap items-center gap-2 border-b px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/20 bg-yellow-500/5' : 'border-blue-500/20 bg-blue-500/5'}`}>
                       {getGroupTags(group.admin.id).length > 0 && (
                         <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
                           <div className="flex w-max min-w-full items-center gap-1.5">
@@ -2731,15 +2736,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           </div>
                         </div>
                       )}
-                      <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
-                        <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-slate-400">
-                          <Users className="h-3.5 w-3.5 text-cyan-300" />
-                          <span className="font-bold tabular-nums text-cyan-100">{group.employees.length}</span>
-                          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">of</span>
-                          <span className="font-semibold tabular-nums text-slate-200">{employeeGroups.find(g => g.admin.id === group.admin.id)?.employees.length || 0}</span>
-                          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">shown</span>
-                        </div>
-                        {renderStatusFilterButtons(group.admin.id, true)}
+                      <div className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-slate-400">
+                        <Users className="h-3.5 w-3.5 text-cyan-300" />
+                        <span className="font-bold tabular-nums text-cyan-100">{group.employees.length}</span>
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">of</span>
+                        <span className="font-semibold tabular-nums text-slate-200">{employeeGroups.find(g => g.admin.id === group.admin.id)?.employees.length || 0}</span>
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">shown</span>
                       </div>
                     </div>
                     {group.employees.length > 0 ? (
