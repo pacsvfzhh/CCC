@@ -1305,15 +1305,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         className="fixed z-[9999]"
         style={{ top: idleDaysDropdownPos.top, left: idleDaysDropdownPos.left }}
       >
-        <div className="w-[196px] overflow-hidden rounded-xl border border-slate-600 bg-slate-800 shadow-2xl shadow-black/60">
-          <div className="border-b border-slate-600 bg-slate-700 px-3 py-2">
+        <div className="w-[196px] overflow-hidden rounded-xl border border-emerald-800/80 bg-emerald-950 shadow-2xl shadow-black/60">
+          <div className="border-b border-emerald-800 bg-emerald-900 px-3 py-2">
             <div className="flex items-center gap-2">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-emerald-700/70 bg-emerald-950 text-emerald-300">
                 <Timer className="h-3.5 w-3.5" />
               </span>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold text-slate-100">Idle Days</div>
-                <div className="text-[10px] text-slate-500">Never-started accounts</div>
+                <div className="text-[11px] font-bold text-emerald-50">Idle Days</div>
+                <div className="text-[10px] text-emerald-300/60">Never-started accounts</div>
               </div>
             </div>
           </div>
@@ -1337,25 +1337,25 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     setInactiveDaysDropdownOpen(null);
                     setIdleDaysDropdownPos(null);
                   }}
-                  className={`flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 ${
+                  className={`flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/60 ${
                     isSelected
                       ? 'bg-emerald-700 text-white'
-                      : 'text-slate-200 hover:bg-slate-700 hover:text-emerald-50'
+                      : 'text-emerald-100 hover:bg-emerald-900 hover:text-emerald-50'
                   }`}
                 >
-                  <span className={`h-2 w-2 shrink-0 rounded-full border ${isSelected ? 'border-white bg-white' : 'border-emerald-500/70 bg-emerald-900'}`} />
+                  <span className={`h-2 w-2 shrink-0 rounded-full border ${isSelected ? 'border-white bg-white' : 'border-emerald-700 bg-emerald-950'}`} />
                   <span className="flex-1">{label}</span>
                   {isSelected ? (
                     <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-100" />
                   ) : (
-                    <span className="h-3 w-3 shrink-0 rounded-full border border-slate-700" />
+                    <span className="h-3 w-3 shrink-0 rounded-full border border-emerald-800" />
                   )}
                 </button>
               );
             })}
           </div>
           {inactiveDaysFilterByGroup.has(adminId) && (
-            <div className="border-t border-slate-600 bg-slate-700 p-1.5">
+            <div className="border-t border-emerald-800 bg-emerald-900 p-1.5">
               <button
                 type="button"
                 onClick={() => {
