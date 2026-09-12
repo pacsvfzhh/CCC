@@ -112,6 +112,7 @@ export default function EmployeeDetailModal({
 }: EmployeeDetailModalProps) {
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [totalOrderCount, setTotalOrderCount] = useState<number | null>(null);
+  const [firstOrderDate, setFirstOrderDate] = useState<string | null>(null);
   const [totalTipAmount, setTotalTipAmount] = useState<number | null>(null);
   const [totalManualAdditionAmount, setTotalManualAdditionAmount] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
@@ -151,6 +152,7 @@ export default function EmployeeDetailModal({
     setIsDateFilterOpen(false);
     setDailyStats([]);
     setTotalOrderCount(null);
+    setFirstOrderDate(null);
     setTotalTipAmount(null);
     orderDateByIdRef.current = {};
     setTotalManualAdditionAmount(null);
@@ -321,6 +323,16 @@ export default function EmployeeDetailModal({
           });
 
           if (result.data.length < pageSize) {
+            if (allOrders.length > 0) {
+              const firstOrder = allOrders.reduce((earliest, order) =>
+                new Date(order.created_at).getTime() <
+                new Date(earliest.created_at).getTime()
+                  ? order
+                  : earliest,
+              );
+              setFirstOrderDate(firstOrder.created_at);
+            }
+
             const dailyStatsMap = new Map<string, DailyStats>();
             allOrders.forEach((order) => {
               const date = formatCalendarDate(order.created_at);
@@ -910,7 +922,7 @@ export default function EmployeeDetailModal({
                 <div className="min-w-0 p-2.5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-sky-200">Member Since</p>
                   <p className="mt-1 truncate text-xs font-bold text-white">{new Date(employee.created_at).toLocaleDateString("zh-CN")}</p>
-                  {employee.first_success_order_date && <p className="truncate text-[10px] text-sky-200/75">First successful order: {new Date(employee.first_success_order_date).toLocaleDateString("zh-CN")}</p>}
+                  {firstOrderDate && <p className="truncate text-[10px] text-sky-200/75">First order: {new Date(firstOrderDate).toLocaleDateString("zh-CN")}</p>}
                 </div>
               </div>
               <button
