@@ -2694,7 +2694,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <>
                     {renderCreateForm(group.admin.id, group.admin)}
 
-                    <div className={`flex min-h-8 items-center border-t-2 border-b px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-blue-500/30 bg-blue-500/5'}`}>
+                    <div className={`flex min-h-8 items-center border-t-2 px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-blue-500/30 bg-blue-500/5'}`}>
                       <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
                         {renderStatusFilterButtons(group.admin.id)}
                       </div>
