@@ -159,15 +159,26 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   employeeGroupsRef.current = employeeGroups;
   const loadInProgressRef = useRef(false);
   const pendingReloadRef = useRef(false);
+  const pendingReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoRefreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastUpdatedRef = useRef<Date>(new Date());
 
-  const resetAutoRefreshTimer = () => {
+  const resetAutoRefreshTimer = (updateTimestamp = true) => {
     if (autoRefreshTimerRef.current) clearInterval(autoRefreshTimerRef.current);
     autoRefreshTimerRef.current = setInterval(() => {
       guardedLoadEmployees(true);
     }, 180000);
-    lastUpdatedRef.current = new Date();
+    if (updateTimestamp) lastUpdatedRef.current = new Date();
+  };
+
+  const schedulePendingReload = () => {
+    if (pendingReloadTimerRef.current) return;
+    pendingReloadTimerRef.current = setTimeout(() => {
+      pendingReloadTimerRef.current = null;
+      if (!pendingReloadRef.current) return;
+      pendingReloadRef.current = false;
+      void guardedLoadEmployees(true);
+    }, 750);
   };
 
   // Close action menu on outside click
@@ -244,16 +255,16 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   useEffect(() => {
     guardedLoadEmployees(false);
 
-    let structureTimer: ReturnType<typeof setTimeout> | null = null;
-    let statsTimer: ReturnType<typeof setTimeout> | null = null;
-    const debouncedStructureReload = () => {
-      if (structureTimer) clearTimeout(structureTimer);
-      structureTimer = setTimeout(() => { guardedLoadEmployees(true); }, 800);
+    let realtimeReloadTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRealtimeReload = (delay: number) => {
+      if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
+      realtimeReloadTimer = setTimeout(() => {
+        realtimeReloadTimer = null;
+        void guardedLoadEmployees(true);
+      }, delay);
     };
-    const debouncedStatsReload = () => {
-      if (statsTimer) clearTimeout(statsTimer);
-      statsTimer = setTimeout(() => { guardedLoadEmployees(true); }, 2000);
-    };
+    const debouncedStructureReload = () => scheduleRealtimeReload(800);
+    const debouncedStatsReload = () => scheduleRealtimeReload(2000);
     const hasRelevantEmployeeChange = (payload: {
       eventType: string;
       new: Record<string, unknown>;
@@ -373,13 +384,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     }, 1000);
 
     return () => {
-      if (structureTimer) clearTimeout(structureTimer);
-      if (statsTimer) clearTimeout(statsTimer);
+      if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
       supabase.removeChannel(adminsSubscription);
       supabase.removeChannel(usersSubscription);
       supabase.removeChannel(walletsSubscription);
       supabase.removeChannel(ordersSubscription);
       if (autoRefreshTimerRef.current) clearInterval(autoRefreshTimerRef.current);
+      if (pendingReloadTimerRef.current) clearTimeout(pendingReloadTimerRef.current);
       clearInterval(timeUpdateInterval);
     };
   }, []);
@@ -425,21 +436,27 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       pendingReloadRef.current = true;
       return;
     }
+    if (pendingReloadTimerRef.current) {
+      clearTimeout(pendingReloadTimerRef.current);
+      pendingReloadTimerRef.current = null;
+    }
+    pendingReloadRef.current = false;
     loadInProgressRef.current = true;
     try {
-      await loadEmployees(silent);
-      resetAutoRefreshTimer();
+      const committed = await loadEmployees(silent);
+      resetAutoRefreshTimer(committed);
     } finally {
       loadInProgressRef.current = false;
-      if (pendingReloadRef.current) {
-        pendingReloadRef.current = false;
-        guardedLoadEmployees(true);
-      }
+      if (pendingReloadRef.current) schedulePendingReload();
     }
   };
 
   const loadEmployees = async (silent: boolean = false) => {
-    if (!silent) setLoading(true);
+    const hasExistingGroups = employeeGroupsRef.current.length > 0;
+    const showInitialLoading = !silent && !hasExistingGroups;
+    let committed = false;
+
+    if (showInitialLoading) setLoading(true);
     else setIsRefreshing(true);
 
     try {
@@ -657,8 +674,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           return a.admin.username.localeCompare(b.admin.username);
         });
 
+      const currentEmployeeCount = employeeGroupsRef.current.reduce((sum, group) => sum + group.employees.length, 0);
+      const nextEmployeeCount = groupsArray.reduce((sum, group) => sum + group.employees.length, 0);
+      const hasIncompleteSilentResult = silent
+        && currentEmployeeCount > 0
+        && nextEmployeeCount === 0
+        && (admins.length === 0 || employees.length > 0);
+      if (hasIncompleteSilentResult) return false;
+
       setEmployeeGroups(groupsArray);
       setAdminPinOverrides(new Map());
+      committed = true;
       setExpandedGroups(prev => {
         if (prev.size === 0) return new Set(groupsArray.map(g => g.admin.id));
         return prev;
@@ -668,11 +694,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         console.error('Error loading employees:', formatSupabaseError(error));
       }
     } finally {
-      if (!silent) setLoading(false);
+      if (showInitialLoading) setLoading(false);
       else setIsRefreshing(false);
-      const now = new Date();
-      lastUpdatedRef.current = now;
     }
+    return committed;
   };
 
   const handleCreateEmployee = async (e: React.FormEvent) => {
