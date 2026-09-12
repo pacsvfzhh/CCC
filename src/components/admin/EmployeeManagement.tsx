@@ -1197,7 +1197,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     const sortState = sortByGroup.get(adminId);
     const isActive = sortState?.sortBy === field;
     const activeStyles = !isActive
-      ? 'text-white hover:bg-blue-800/75 hover:text-white'
+      ? 'text-white hover:bg-blue-500 hover:text-white'
       : sortState?.sortDirection === 'desc'
         ? 'bg-emerald-600 font-bold text-white'
         : 'bg-rose-600 font-bold text-white';
