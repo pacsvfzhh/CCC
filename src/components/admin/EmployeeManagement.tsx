@@ -2838,21 +2838,44 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       )}
 
       {editingRemarksOnly && createPortal(
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-bold text-white mb-1">Edit Remarks</h3>
-            <p className="text-sm text-slate-400 mb-4">{editingRemarksOnly.username}</p>
-            <div className="space-y-4">
-              <textarea
-                value={editingRemarksOnly.remarks || ''}
-                onChange={(e) => setEditingRemarksOnly({ ...editingRemarksOnly, remarks: e.target.value })}
-                rows={3}
-                placeholder="Enter remarks..."
-                className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-              <div className="flex gap-3">
-                <button onClick={() => setEditingRemarksOnly(null)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all">Cancel</button>
-                <button onClick={() => { handleUpdateEmployee(editingRemarksOnly.id, { remarks: editingRemarksOnly.remarks }); setEditingRemarksOnly(null); }} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all">Save</button>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm" onClick={() => setEditingRemarksOnly(null)}>
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-blue-400/30 bg-slate-900 shadow-[0_24px_80px_rgba(2,6,23,0.65)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 border-b border-blue-400/20 bg-gradient-to-r from-blue-950/80 via-slate-900 to-slate-900 px-5 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-300/30 bg-blue-500/15 text-blue-200">
+                  <Pencil className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300/80">Employee note</p>
+                  <h3 className="text-lg font-bold text-white">Edit Remarks</h3>
+                  <p className="truncate text-xs text-slate-400">{editingRemarksOnly.username}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setEditingRemarksOnly(null)} aria-label="Close edit remarks" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-4 p-5">
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">Remarks</label>
+                <textarea
+                  value={editingRemarksOnly.remarks || ''}
+                  onChange={(e) => setEditingRemarksOnly({ ...editingRemarksOnly, remarks: e.target.value })}
+                  rows={5}
+                  placeholder="Enter an internal note for this employee..."
+                  className="min-h-[132px] w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-6 text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+                />
+              </div>
+              <div className="flex items-start gap-2.5 rounded-xl border border-blue-400/20 bg-blue-500/5 px-3.5 py-3 text-xs text-slate-400">
+                <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-300" />
+                <span>This note is visible to administrators in the employee list.</span>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-slate-700/70 pt-4">
+                <button type="button" onClick={() => setEditingRemarksOnly(null)} className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">Cancel</button>
+                <button type="button" onClick={() => { handleUpdateEmployee(editingRemarksOnly.id, { remarks: editingRemarksOnly.remarks }); setEditingRemarksOnly(null); }} className="inline-flex items-center gap-2 rounded-lg border border-blue-400/50 bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-950/40 transition-all hover:bg-blue-500 active:bg-blue-700">
+                  <CheckCircle className="h-4 w-4" />
+                  Save Remarks
+                </button>
               </div>
             </div>
           </div>
@@ -2988,39 +3011,69 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       )}
 
       {editingTags && createPortal(
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-slate-900 border border-amber-500/20 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <Tag className="w-6 h-6 text-amber-400" /> Manage Tags
-            </h3>
-            <p className="text-slate-400 text-sm mb-4">Employee: <span className="text-white font-medium">{editingTags.username}</span></p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Add New Tag</label>
-                <div className="flex gap-2">
-                  <input type="text" value={newTag} onChange={(e) => setNewTag(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleAddTag(editingTags); }} placeholder="Enter tag name..." className="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500" />
-                  <button onClick={() => handleAddTag(editingTags)} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-all font-medium">Add</button>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm" onClick={() => { setEditingTags(null); setNewTag(''); }}>
+          <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-amber-400/30 bg-slate-900 shadow-[0_24px_80px_rgba(2,6,23,0.65)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 border-b border-amber-400/20 bg-gradient-to-r from-amber-950/70 via-slate-900 to-slate-900 px-5 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-300/35 bg-amber-500/15 text-amber-200">
+                  <Tag className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300/80">Employee labels</p>
+                  <h3 className="text-lg font-bold text-white">Manage Tags</h3>
+                  <p className="truncate text-xs text-slate-400">{editingTags.username}</p>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Current Tags</label>
-                <div className="flex flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="rounded-full border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200">{(editingTags.tags || []).length} active</span>
+                <button type="button" onClick={() => { setEditingTags(null); setNewTag(''); }} aria-label="Close manage tags" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-white">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="space-y-4 p-5">
+              <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-amber-200">Add New Tag</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddTag(editingTags); }}
+                    placeholder="Enter tag name..."
+                    className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15"
+                  />
+                  <button type="button" onClick={() => handleAddTag(editingTags)} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-400/60 bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-amber-950/30 transition-all hover:bg-amber-500 active:bg-amber-700">
+                    <Tag className="h-4 w-4" />
+                    Add
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-700/80 bg-slate-950/45 p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">Current Tags</label>
+                  <span className="text-[11px] text-slate-500">Changes save instantly</span>
+                </div>
+                <div className="flex min-h-[92px] flex-wrap content-start gap-2">
                   {(editingTags.tags || []).length === 0 ? (
-                    <p className="text-slate-500 text-sm">No tags yet</p>
+                    <div className="flex w-full flex-col items-center justify-center gap-1.5 py-5 text-center">
+                      <Tag className="h-5 w-5 text-slate-600" />
+                      <p className="text-sm text-slate-500">No tags assigned yet</p>
+                    </div>
                   ) : (
                     (editingTags.tags || []).map((tag, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500/20 text-amber-400 text-sm font-medium rounded-full border border-amber-500/30">
+                      <span key={idx} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/35 bg-amber-500/15 px-2.5 py-1.5 text-sm font-semibold text-amber-200">
                         {tag}
-                        <button onClick={() => handleRemoveTag(editingTags, tag)} className="hover:bg-amber-500/30 rounded-full p-0.5 transition-colors">
-                          <X className="w-4 h-4" />
+                        <button type="button" onClick={() => handleRemoveTag(editingTags, tag)} aria-label={`Remove ${tag}`} className="rounded-md p-0.5 text-amber-300 transition-colors hover:bg-amber-400/25 hover:text-white">
+                          <X className="h-3.5 w-3.5" />
                         </button>
                       </span>
                     ))
                   )}
                 </div>
               </div>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => { setEditingTags(null); setNewTag(''); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all">Close</button>
+              <div className="flex justify-end border-t border-slate-700/70 pt-4">
+                <button type="button" onClick={() => { setEditingTags(null); setNewTag(''); }} className="rounded-lg border border-slate-600 bg-slate-800 px-5 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">Close</button>
               </div>
             </div>
           </div>
