@@ -3218,6 +3218,41 @@ button .animate-bell-ring.keep-animation,
   100% { background-position: 30px 30px; }
 }
 
+.employee-detail-scrollbar.employee-detail-scrollbar--amber {
+  color-scheme: dark;
+  scrollbar-color: #334155 #0b1220 !important;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--amber::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--amber::-webkit-scrollbar-track {
+  background: #0b1220 !important;
+  border: 1px solid #111827 !important;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--amber::-webkit-scrollbar-thumb {
+  background: #334155 !important;
+  border: 1px solid #475569 !important;
+  border-radius: 4px;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--amber::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #fde047, #d97706) !important;
+  border-color: #fbbf24 !important;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--amber::-webkit-scrollbar-thumb:active {
+  background: #f59e0b !important;
+  border-color: #fcd34d !important;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--amber::-webkit-scrollbar-corner {
+  background: #0b1220 !important;
+}
+
 .employee-detail-scrollbar.employee-detail-scrollbar--dark {
   color-scheme: dark;
   scrollbar-color: #334155 #0b1220 !important;
