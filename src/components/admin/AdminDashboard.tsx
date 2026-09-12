@@ -638,17 +638,19 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           onClick={() => setAccountMenuOpen((open) => !open)}
           aria-haspopup="menu"
           aria-expanded={accountMenuOpen}
-          className={`flex items-center justify-center gap-1.5 rounded-md border transition-colors ${isSidebar ? 'h-7 w-full justify-start border-slate-600/70 bg-slate-800/70 px-2 text-[10px] text-slate-200 hover:border-cyan-400/60 hover:bg-slate-800 hover:text-cyan-100' : 'h-6 border-slate-600/70 bg-slate-800/70 px-1.5 text-[9px] text-slate-200 hover:border-cyan-400/60 hover:bg-slate-800 hover:text-cyan-100 sm:px-2 sm:text-[10px]'}`}
+          className={`flex items-center justify-center gap-1.5 rounded-lg border font-semibold shadow-inner shadow-cyan-950/30 transition-all duration-200 ${isSidebar ? `h-8 w-full justify-between border-cyan-400/30 bg-gradient-to-r from-slate-800/95 via-slate-800/80 to-cyan-950/45 px-2 text-[10px] text-cyan-100 hover:-translate-y-px hover:border-cyan-300/70 hover:from-slate-700/95 hover:to-cyan-900/55 hover:shadow-lg hover:shadow-cyan-950/30 active:translate-y-0 ${accountMenuOpen ? 'border-cyan-300/75 from-slate-700/95 to-cyan-900/60 text-cyan-50 ring-1 ring-cyan-300/20' : ''}` : `h-7 border-cyan-400/30 bg-gradient-to-r from-slate-800/95 to-cyan-950/45 px-2 text-[10px] text-cyan-100 hover:border-cyan-300/70 hover:from-slate-700/95 hover:to-cyan-900/55 hover:shadow-md hover:shadow-cyan-950/30 sm:px-2.5 sm:text-[11px] ${accountMenuOpen ? 'border-cyan-300/75 from-slate-700/95 to-cyan-900/60 text-cyan-50 ring-1 ring-cyan-300/20' : ''}`}`}
           title="Account actions"
         >
-          <UserCog className="h-3 w-3 shrink-0 text-cyan-300" />
-          <span className="font-medium">Account</span>
-          <ChevronDown className={`h-3 w-3 shrink-0 text-slate-400 transition-transform ${accountMenuOpen ? 'rotate-180 text-cyan-200' : ''}`} />
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-cyan-300/25 bg-cyan-400/10 shadow-sm shadow-cyan-950/30">
+            <UserCog className="h-3 w-3 text-cyan-200" />
+          </span>
+          <span className="flex-1 text-left tracking-wide">Account</span>
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200/80 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180 text-cyan-100' : ''}`} />
         </button>
         {accountMenuOpen && (
           <div
             role="menu"
-            className={`absolute z-[70] min-w-[132px] overflow-hidden rounded-lg border border-slate-600/80 bg-slate-900 p-1 shadow-2xl shadow-slate-950/60 ${isSidebar ? 'left-0 right-0 top-[calc(100%+0.35rem)]' : 'right-0 top-[calc(100%+0.35rem)]'}`}
+            className={`absolute z-[70] min-w-[164px] overflow-hidden rounded-xl border border-cyan-300/25 bg-gradient-to-b from-slate-800/98 via-slate-900/98 to-slate-950/98 p-1.5 shadow-[0_18px_40px_rgba(2,6,23,0.65)] ring-1 ring-white/5 backdrop-blur-xl animate-[fadeIn_120ms_ease-out] ${isSidebar ? 'left-0 top-[calc(100%+0.4rem)]' : 'right-0 top-[calc(100%+0.4rem)]'}`}
           >
             {admin.role === 'super_admin' && (
               <button
@@ -658,9 +660,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   setAccountMenuOpen(false);
                   setShowUsernameModal(true);
                 }}
-                className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] text-purple-200 transition-colors hover:bg-purple-500/15 hover:text-purple-100"
+                className="flex h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-[11px] font-medium text-purple-100 transition-all hover:bg-purple-500/15 hover:text-white"
               >
-                <UserCog className="h-3 w-3 shrink-0 text-purple-300" />
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-purple-300/25 bg-purple-400/10">
+                  <UserCog className="h-3.5 w-3.5 text-purple-300" />
+                </span>
                 <span>Username</span>
               </button>
             )}
@@ -671,9 +675,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 setAccountMenuOpen(false);
                 setShowPasswordModal(true);
               }}
-              className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] text-blue-200 transition-colors hover:bg-blue-500/15 hover:text-blue-100"
+              className="flex h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-[11px] font-medium text-blue-100 transition-all hover:bg-blue-500/15 hover:text-white"
             >
-              <Lock className="h-3 w-3 shrink-0 text-blue-300" />
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-blue-300/25 bg-blue-400/10">
+                <Lock className="h-3.5 w-3.5 text-blue-300" />
+              </span>
               <span>Password</span>
             </button>
             <button
@@ -683,9 +689,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 setAccountMenuOpen(false);
                 logout();
               }}
-              className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] text-red-200 transition-colors hover:bg-red-500/15 hover:text-red-100"
+              className="flex h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-[11px] font-medium text-red-100 transition-all hover:bg-red-500/15 hover:text-white"
             >
-              <LogOut className="h-3 w-3 shrink-0 text-red-300" />
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-red-300/25 bg-red-400/10">
+                <LogOut className="h-3.5 w-3.5 text-red-300" />
+              </span>
               <span>Logout</span>
             </button>
           </div>
@@ -722,7 +730,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   </div>
                   <div className="flex min-w-0 items-center gap-1">
                     <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
-                    <span className="truncate text-[9px] font-medium text-slate-400">{admin.username}</span>
+                    <span className="truncate text-[11px] font-semibold tracking-wide text-cyan-100 drop-shadow-[0_0_5px_rgba(103,232,249,0.25)]">{admin.username}</span>
                   </div>
                 </div>
               </div>
@@ -757,7 +765,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 </div>
                 <div className="flex min-w-0 items-center gap-1.5">
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
-                  <span className="min-w-0 truncate text-[9px] font-medium text-slate-400" title={admin.username}>
+                  <span className="min-w-0 truncate text-[11px] font-semibold tracking-wide text-cyan-100 drop-shadow-[0_0_5px_rgba(103,232,249,0.25)]" title={admin.username}>
                     {admin.username}
                   </span>
                 </div>
