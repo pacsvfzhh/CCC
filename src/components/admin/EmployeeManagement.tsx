@@ -2065,7 +2065,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       : 'Select group';
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
         <div className="relative z-40 flex h-11 w-full min-w-0 items-center overflow-visible rounded-none border border-cyan-200/45 bg-slate-950/95 shadow-lg shadow-cyan-950/25 shrink-0 sticky top-0 backdrop-blur-sm">
@@ -2168,8 +2168,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         </div>
       )}
 
-      {/* Content */}
-      {loading ? (
+      <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        {/* Content */}
+        {loading ? (
         <div className="text-center py-8 text-slate-400">Loading employees...</div>
       ) : admin.role === 'secondary_admin' ? (
         // ===== SECONDARY ADMIN: flat list =====
@@ -2510,7 +2511,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             );
           })}
         </div>
-      )}
+        )}
+      </div>
 
       {/* ===== MODALS ===== */}
 
