@@ -2322,7 +2322,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             onClick={() => setAllGroupsExpanded(true)}
             disabled={selectedAdminFilter !== 'all'}
             aria-label="Open all groups"
-            className="flex h-full w-[108px] shrink-0 items-center justify-center gap-1.5 border-r border-emerald-300/25 bg-emerald-600/85 px-2 text-[11px] font-bold text-white transition-all hover:bg-emerald-500 active:bg-emerald-700 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:text-slate-500"
+            className="flex h-full w-[108px] shrink-0 items-center justify-center gap-1.5 border-r border-emerald-300/25 bg-gradient-to-r from-emerald-600/85 to-green-500/75 px-2 text-[11px] font-bold text-white shadow-sm shadow-emerald-950/30 transition-all hover:from-emerald-500 hover:to-green-400 active:from-emerald-700 active:to-green-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
             title="Open all groups"
           >
             <ChevronsDown className="h-4 w-4 shrink-0" />
@@ -2333,7 +2333,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             onClick={() => setAllGroupsExpanded(false)}
             disabled={selectedAdminFilter !== 'all'}
             aria-label="Close all groups"
-            className="flex h-full w-[108px] shrink-0 items-center justify-center gap-1.5 border-r border-rose-300/25 bg-rose-600/85 px-2 text-[11px] font-bold text-white transition-all hover:bg-rose-500 active:bg-rose-700 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:text-slate-500"
+            className="flex h-full w-[108px] shrink-0 items-center justify-center gap-1.5 border-r border-rose-300/25 bg-gradient-to-r from-rose-600/85 to-red-500/75 px-2 text-[11px] font-bold text-white shadow-sm shadow-rose-950/30 transition-all hover:from-rose-500 hover:to-red-400 active:from-rose-700 active:to-red-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
             title="Close all groups"
           >
             <ChevronsUp className="h-4 w-4 shrink-0" />
