@@ -1132,7 +1132,7 @@ export default function EmployeeDetailModal({
                           key={tx.id}
                           className={`rounded-xl border border-l-4 p-3 shadow-sm shadow-slate-950/25 transition-all ${style.card}`}
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-start gap-3">
                             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${style.iconBg}`}>
                               {icon}
                             </div>
@@ -1145,18 +1145,20 @@ export default function EmployeeDetailModal({
                                   {Number(tx.amount) >= 0 ? "+" : "-"}${Math.abs(Number(tx.amount)).toFixed(2)}
                                 </span>
                               </div>
-                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
-                                <span>Before ${Number(tx.balance_before).toFixed(2)}</span>
-                                <span>After ${Number(tx.balance_after).toFixed(2)}</span>
-                                <span className="text-slate-500">{new Date(tx.created_at).toLocaleString("zh-CN")}</span>
+                              {tx.remarks && (
+                                <div className="mt-1 break-words text-[11px] leading-relaxed text-slate-300">
+                                  <span className="font-semibold text-slate-500">Note:</span> {tx.remarks}
+                                </div>
+                              )}
+                            </div>
+                            <div className="shrink-0 text-right text-[10px] leading-tight text-slate-400 sm:text-[11px]">
+                              <div>Before ${Number(tx.balance_before).toFixed(2)}</div>
+                              <div>After ${Number(tx.balance_after).toFixed(2)}</div>
+                              <div className="mt-0.5 whitespace-nowrap text-slate-500">
+                                {new Date(tx.created_at).toLocaleString("zh-CN")}
                               </div>
                             </div>
                           </div>
-                          {tx.remarks && (
-                            <div className="mt-2 border-t border-white/10 pt-1.5 text-[11px] leading-relaxed text-slate-300">
-                              <span className="font-semibold text-slate-500">Note:</span> {tx.remarks}
-                            </div>
-                          )}
                         </div>
                       );
                     })
