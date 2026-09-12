@@ -2354,7 +2354,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             onClick={() => navigateGroupPanel(-1)}
             disabled={selectedAdminFilter !== 'all'}
             aria-label="Show previous group"
-            className="flex h-full w-[92px] shrink-0 items-center justify-center gap-1 border-r border-violet-300/25 bg-gradient-to-r from-violet-600/80 to-indigo-500/75 px-2 text-[10px] font-bold text-white shadow-sm shadow-violet-950/30 transition-all hover:from-violet-500 hover:to-indigo-400 active:from-violet-700 active:to-indigo-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
+            className="flex h-full w-[92px] shrink-0 items-center justify-center gap-1 border-r border-orange-300/30 bg-gradient-to-r from-orange-600/85 to-amber-500/80 px-2 text-[10px] font-bold text-white shadow-sm shadow-orange-950/30 transition-all hover:from-orange-500 hover:to-amber-400 active:from-orange-700 active:to-amber-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
             title="Show previous group"
           >
             <ChevronUp className="h-3.5 w-3.5 shrink-0" />
@@ -2365,7 +2365,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             onClick={() => navigateGroupPanel(1)}
             disabled={selectedAdminFilter !== 'all'}
             aria-label="Show next group"
-            className="flex h-full w-[92px] shrink-0 items-center justify-center gap-1 border-r border-indigo-300/25 bg-gradient-to-r from-indigo-600/80 to-blue-500/75 px-2 text-[10px] font-bold text-white shadow-sm shadow-indigo-950/30 transition-all hover:from-indigo-500 hover:to-blue-400 active:from-indigo-700 active:to-blue-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
+            className="flex h-full w-[92px] shrink-0 items-center justify-center gap-1 border-r border-cyan-300/30 bg-gradient-to-r from-sky-600/85 to-cyan-500/80 px-2 text-[10px] font-bold text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-sky-500 hover:to-cyan-400 active:from-sky-700 active:to-cyan-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
             title="Show next group"
           >
             <ChevronDown className="h-3.5 w-3.5 shrink-0" />
