@@ -1447,7 +1447,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     }
   };
 
-  const renderStatusFilterButtons = (adminId: string, showAddButton = false) => {
+  const renderStatusFilterButtons = (adminId: string) => {
     const currentActive = getActiveFilter(adminId);
     const currentWorkStatus = getWorkStatusFilter(adminId);
     const hasIdleFilter = inactiveDaysFilterByGroup.has(adminId);
@@ -1626,20 +1626,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           </div>
         </div>
         {renderIdleDaysPortal(adminId)}
-        {showAddButton && admin.role === 'super_admin' && (
-          <button
-            type="button"
-            onClick={() => { setSelectedAdminForCreate(adminId); setShowCreateForm(true); setExpandedGroups(prev => new Set(prev).add(adminId)); }}
-            className="order-2 inline-flex h-7 items-center gap-1.5 rounded-lg border border-yellow-400/50 bg-yellow-600/80 px-2.5 py-1 text-[11px] font-semibold text-yellow-50 shadow-lg shadow-yellow-950/30 transition-all hover:border-yellow-300/70 hover:bg-yellow-500 active:bg-yellow-700"
-          >
-            <UserPlus className="h-3.5 w-3.5" /> Add
-          </button>
-        )}
         <button
           type="button"
           onClick={() => resetEmployeeListFilters(adminId)}
           title="Reset Staff list filters"
-          className={`order-1 ml-8 inline-flex h-7 min-w-[78px] items-center justify-center gap-1.5 rounded-lg border border-blue-400/70 px-3 py-1 text-[11px] font-semibold text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70 ${
+          className={`ml-8 inline-flex h-7 min-w-[78px] items-center justify-center gap-1.5 rounded-lg border border-blue-400/70 px-3 py-1 text-[11px] font-semibold text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70 ${
             resetFeedbackAdminId === adminId
               ? 'bg-emerald-600'
               : 'bg-blue-700 hover:bg-blue-500 hover:text-white active:bg-blue-900'
@@ -2705,8 +2696,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
                     <div className={`flex min-h-8 items-center border-t-2 border-b px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-blue-500/30 bg-blue-500/5'}`}>
                       <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
-                        {renderStatusFilterButtons(group.admin.id, true)}
+                        {renderStatusFilterButtons(group.admin.id)}
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedAdminForCreate(group.admin.id); setShowCreateForm(true); setExpandedGroups(prev => new Set(prev).add(group.admin.id)); }}
+                        className="ml-auto inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-yellow-400/50 bg-yellow-600/80 px-2.5 py-1 text-[11px] font-semibold text-yellow-50 shadow-lg shadow-yellow-950/30 transition-all hover:border-yellow-300/70 hover:bg-yellow-500 active:bg-yellow-700"
+                      >
+                        <UserPlus className="h-3.5 w-3.5" /> Add
+                      </button>
                     </div>
                     <div className={`flex min-h-8 flex-wrap items-center gap-2 border-b px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/20 bg-yellow-500/5' : 'border-blue-500/20 bg-blue-500/5'}`}>
                       {getGroupTags(group.admin.id).length > 0 && (
