@@ -130,6 +130,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [summaryFilterByGroup, setSummaryFilterByGroup] = useState<Map<string, SummaryFilter>>(new Map());
   // Action menu
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+  const [resetFeedbackAdminId, setResetFeedbackAdminId] = useState<string | null>(null);
+  const resetFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -892,6 +894,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const resetEmployeeListFilters = (adminId: string) => {
     setSearchTerm('');
+    setResetFeedbackAdminId(adminId);
+    if (resetFeedbackTimeoutRef.current) clearTimeout(resetFeedbackTimeoutRef.current);
+    resetFeedbackTimeoutRef.current = setTimeout(() => {
+      setResetFeedbackAdminId(currentId => currentId === adminId ? null : currentId);
+      resetFeedbackTimeoutRef.current = null;
+    }, 900);
     setSortByGroup(prev => {
       const next = new Map(prev);
       next.delete(adminId);
@@ -1527,10 +1535,23 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           type="button"
           onClick={() => resetEmployeeListFilters(adminId)}
           title="Reset Staff list filters"
-          className="ml-6 inline-flex h-7 items-center gap-1.5 rounded-lg bg-blue-700 px-3 py-1 text-[11px] font-semibold text-white transition-all hover:bg-blue-500 hover:text-white active:scale-95 active:bg-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70"
+          className={`ml-6 inline-flex h-7 min-w-[78px] items-center justify-center gap-1.5 rounded-lg px-3 py-1 text-[11px] font-semibold text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70 ${
+            resetFeedbackAdminId === adminId
+              ? 'bg-emerald-600'
+              : 'bg-blue-700 hover:bg-blue-500 hover:text-white active:bg-blue-900'
+          }`}
         >
-          <RefreshCw className="h-3.5 w-3.5" />
-          <span>Reset</span>
+          {resetFeedbackAdminId === adminId ? (
+            <>
+              <CheckCircle className="h-3.5 w-3.5" />
+              <span>Done</span>
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Reset</span>
+            </>
+          )}
         </button>
       </div>
     );
