@@ -431,45 +431,52 @@ export default function EmployeeDetailModal({
         icon: "text-red-200",
         iconBg: "border-red-300/35 bg-red-950/70",
         amount: "text-red-200",
+        meta: "text-red-100",
       };
     }
 
-    const styles: Record<string, { card: string; icon: string; iconBg: string; amount: string }> = {
+    const styles: Record<string, { card: string; icon: string; iconBg: string; amount: string; meta: string }> = {
       commission: {
         card: "border-emerald-300/45 border-l-emerald-300 bg-emerald-950/35 hover:border-emerald-200/65 hover:bg-emerald-950/50",
         icon: "text-emerald-200",
         iconBg: "border-emerald-300/35 bg-emerald-950/70",
         amount: "text-emerald-200",
+        meta: "text-emerald-100",
       },
       tip: {
         card: "border-amber-300/50 border-l-amber-300 bg-amber-950/35 hover:border-amber-200/70 hover:bg-amber-950/50",
         icon: "text-amber-100",
         iconBg: "border-amber-300/35 bg-amber-950/70",
         amount: "text-amber-100",
+        meta: "text-amber-100",
       },
       withdrawal_request: {
         card: "border-orange-300/50 border-l-orange-300 bg-orange-950/35 hover:border-orange-200/70 hover:bg-orange-950/50",
         icon: "text-orange-100",
         iconBg: "border-orange-300/35 bg-orange-950/70",
         amount: "text-orange-100",
+        meta: "text-orange-100",
       },
       withdrawal_approved: {
         card: "border-cyan-300/45 border-l-cyan-300 bg-cyan-950/35 hover:border-cyan-200/65 hover:bg-cyan-950/50",
         icon: "text-cyan-100",
         iconBg: "border-cyan-300/35 bg-cyan-950/70",
         amount: "text-cyan-100",
+        meta: "text-cyan-100",
       },
       withdrawal_rejected: {
         card: "border-rose-300/50 border-l-rose-300 bg-rose-950/35 hover:border-rose-200/70 hover:bg-rose-950/50",
         icon: "text-rose-100",
         iconBg: "border-rose-300/35 bg-rose-950/70",
         amount: "text-rose-100",
+        meta: "text-rose-100",
       },
       manual_adjustment: {
         card: "border-blue-300/45 border-l-blue-300 bg-blue-950/35 hover:border-blue-200/65 hover:bg-blue-950/50",
         icon: "text-blue-100",
         iconBg: "border-blue-300/35 bg-blue-950/70",
         amount: "text-blue-100",
+        meta: "text-blue-100",
       },
     };
 
@@ -478,6 +485,7 @@ export default function EmployeeDetailModal({
       icon: "text-slate-200",
       iconBg: "border-slate-500/50 bg-slate-900/70",
       amount: "text-slate-100",
+      meta: "text-slate-200",
     };
   };
 
@@ -1151,10 +1159,10 @@ export default function EmployeeDetailModal({
                                 </div>
                               )}
                             </div>
-                            <div className="shrink-0 text-right text-[10px] leading-tight text-slate-400 sm:text-[11px]">
+                            <div className={`shrink-0 text-right text-[10px] font-semibold leading-tight sm:text-[11px] ${style.meta}`}>
                               <div>Before ${Number(tx.balance_before).toFixed(2)}</div>
                               <div>After ${Number(tx.balance_after).toFixed(2)}</div>
-                              <div className="mt-0.5 whitespace-nowrap text-slate-500">
+                              <div className="mt-0.5 whitespace-nowrap opacity-80">
                                 {new Date(tx.created_at).toLocaleString("zh-CN")}
                               </div>
                             </div>
