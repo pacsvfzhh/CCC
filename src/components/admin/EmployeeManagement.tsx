@@ -2251,60 +2251,83 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const renderCreateForm = (targetAdminId: string, groupAdmin?: { role: string; username: string }) => {
     if (!showCreateForm || selectedAdminForCreate !== targetAdminId) return null;
     const isSuperGroup = groupAdmin?.role === 'super_admin';
+    const fieldFocusClasses = isSuperGroup
+      ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+      : 'focus:border-blue-500 focus:ring-blue-500/20';
+
     return (
-      <div className={`px-3 py-3 border-t-2 ${isSuperGroup ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-blue-500/30 bg-blue-500/5'}`}>
-        <form onSubmit={handleCreateEmployee} className={`rounded-xl border p-4 shadow-xl shadow-slate-950/30 ${isSuperGroup ? 'border-yellow-500/30 bg-slate-900/80' : 'border-blue-500/30 bg-slate-900/80'}`}>
+      <div className={`border-t-2 px-3 py-3 ${isSuperGroup ? 'border-yellow-400/45 bg-gradient-to-r from-[#241805] via-[#352307] to-[#16120a]' : 'border-blue-400/45 bg-gradient-to-r from-[#071a2d] via-[#0b2945] to-[#101827]'}`}>
+        <form onSubmit={handleCreateEmployee} className={`overflow-hidden rounded-2xl border shadow-[0_18px_55px_rgba(2,6,23,0.55)] ${isSuperGroup ? 'border-yellow-400/40 bg-gradient-to-br from-[#1a1307] via-[#261b0a] to-[#111827]' : 'border-blue-400/40 bg-gradient-to-br from-[#091827] via-[#0d2238] to-[#111827]'}`}>
+          <div className={`flex items-start justify-between gap-4 border-b px-5 py-4 ${isSuperGroup ? 'border-yellow-400/20 bg-yellow-500/5' : 'border-blue-400/20 bg-blue-500/5'}`}>
+            <div className="flex min-w-0 items-center gap-3">
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${isSuperGroup ? 'border-yellow-300/40 bg-yellow-500/15 text-yellow-200' : 'border-blue-300/40 bg-blue-500/15 text-blue-200'}`}>
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${isSuperGroup ? 'text-yellow-300/80' : 'text-blue-300/80'}`}>Access provisioning</p>
+                <h3 className="text-lg font-bold tracking-tight text-white">New Employee Account</h3>
+                <p className={`truncate text-xs ${isSuperGroup ? 'text-yellow-100/70' : 'text-blue-100/70'}`}>
+                  {groupAdmin ? <>Creating under: <strong className="font-semibold text-white">{groupAdmin.username}</strong></> : 'Create a new employee account'}
+                </p>
+              </div>
+            </div>
+            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-[0.12em] ${isSuperGroup ? 'border-yellow-300/35 bg-yellow-500/10 text-yellow-200' : 'border-blue-300/35 bg-blue-500/10 text-blue-200'}`}>
+              SECURE SETUP
+            </span>
+          </div>
+
           {createError && (
-            <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-300">
-              <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-red-400" />
+            <div className="mx-5 mt-4 flex items-start gap-2.5 rounded-xl border border-red-400/40 bg-red-500/10 px-3.5 py-3 text-sm text-red-200">
+              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-400" />
               <span>{createError}</span>
             </div>
           )}
-          <div className={`mb-4 flex items-center gap-3 rounded-lg border px-3 py-2.5 ${isSuperGroup ? 'border-yellow-500/35 bg-yellow-500/10' : 'border-blue-500/35 bg-blue-500/10'}`}>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isSuperGroup ? 'bg-yellow-500/20 text-yellow-300' : 'bg-blue-500/20 text-blue-300'}`}>
-              <Users className="h-4 w-4" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">New employee account</p>
-              <p className={`truncate text-sm font-semibold ${isSuperGroup ? 'text-yellow-200' : 'text-blue-200'}`}>
-                {groupAdmin ? <>Creating under: <strong>{groupAdmin.username}</strong></> : 'Creating new employee'}
-              </p>
+
+          <div className="p-5">
+            <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+              <span className={`h-px flex-1 ${isSuperGroup ? 'bg-yellow-400/20' : 'bg-blue-400/20'}`} />
+              Account details
+              <span className={`h-px flex-1 ${isSuperGroup ? 'bg-yellow-400/20' : 'bg-blue-400/20'}`} />
             </div>
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Username</label>
-              <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} disabled={creating} required className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100" />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Password</label>
-              <div className="flex gap-2">
-                <div className="relative min-w-0 flex-1">
-                  <input type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} disabled={creating} required minLength={6} autoComplete="new-password" className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900">
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>Username</label>
+                <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} disabled={creating} required placeholder="Enter username" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
+              </div>
+              <div>
+                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>Password</label>
+                <div className="flex gap-2">
+                  <div className="relative min-w-0 flex-1">
+                    <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} disabled={creating} required minLength={6} autoComplete="new-password" placeholder="Create a secure password" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <button type="button" onClick={generatePassword} disabled={creating} className={`inline-flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl border bg-white text-slate-600 shadow-sm transition-colors disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100 ${isSuperGroup ? 'border-yellow-300 hover:border-yellow-500 hover:bg-yellow-50 hover:text-yellow-700' : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700'}`} title="Generate strong password">
+                    <RefreshCw className="h-4 w-4" />
                   </button>
                 </div>
-                <button type="button" onClick={generatePassword} disabled={creating} className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-slate-50 text-slate-600 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100" title="Generate strong password">
-                  <RefreshCw className="h-4 w-4" />
-                </button>
+                <p className="mt-1.5 text-[11px] text-slate-500">Minimum 6 characters</p>
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">Minimum 6 characters</p>
+              <div>
+                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>Employee ID</label>
+                <input type="text" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} disabled={creating} required placeholder="Enter employee ID" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
+              </div>
+              <div>
+                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>Remarks <span className="font-normal normal-case tracking-normal text-slate-500">(optional)</span></label>
+                <input type="text" value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} disabled={creating} placeholder="Add an internal note" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
+              </div>
             </div>
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Employee ID</label>
-              <input type="text" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} disabled={creating} required className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100" />
+
+            <div className="mt-5 flex items-center justify-end gap-2 border-t border-slate-700/70 pt-4">
+              <button type="button" onClick={() => { setShowCreateForm(false); setCreateError(null); setFormData({ username: '', password: '', employeeId: '', remarks: '' }); setSelectedAdminForCreate(null); }} disabled={creating} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
+                <X className="h-4 w-4" />
+                Cancel
+              </button>
+              <button type="submit" disabled={creating || !formData.username.trim() || !formData.password || !formData.employeeId.trim()} className={`inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isSuperGroup ? 'border-yellow-300/60 bg-yellow-600 hover:bg-yellow-500' : 'border-blue-300/60 bg-blue-600 hover:bg-blue-500'}`}>
+                {creating ? (<><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />Creating...</>) : (<><UserPlus className="h-4 w-4" />Create Employee</>)}
+              </button>
             </div>
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Remarks <span className="font-normal normal-case tracking-normal text-slate-600">(optional)</span></label>
-              <input type="text" value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} disabled={creating} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
-            <button type="button" onClick={() => { setShowCreateForm(false); setCreateError(null); setFormData({ username: '', password: '', employeeId: '', remarks: '' }); setSelectedAdminForCreate(null); }} disabled={creating} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-400/70 bg-slate-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm shadow-slate-950/40 transition-all hover:border-slate-200 hover:bg-slate-600 hover:shadow-md active:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><X className="h-4 w-4 text-slate-200" />Cancel</button>
-            <button type="submit" disabled={creating || !formData.username.trim() || !formData.password || !formData.employeeId.trim()} className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isSuperGroup ? 'border-yellow-400/50 bg-yellow-600/80 hover:bg-yellow-500' : 'border-blue-400/50 bg-blue-600/85 hover:bg-blue-500'}`}>
-              {creating ? (<><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />Creating...</>) : (<><UserPlus className="h-4 w-4" />Create Employee</>)}
-            </button>
           </div>
         </form>
       </div>
