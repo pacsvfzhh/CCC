@@ -1521,6 +1521,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           )}
         </div>
         {renderIdleDaysPortal(adminId)}
+        <button
+          type="button"
+          onClick={() => resetEmployeeListFilters(adminId)}
+          title="Reset Staff list filters"
+          className="ml-3 inline-flex h-6 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-600 px-2.5 py-0.5 text-[11px] font-semibold text-white transition-all hover:border-white hover:bg-blue-500 active:scale-95 active:border-blue-100 active:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200/80"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          <span>Reset</span>
+        </button>
       </div>
     );
   };
@@ -2304,15 +2313,6 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           allEmps.filter(e => e.workStatus === 'online').length,
 
                         )}
-                        <button
-                          type="button"
-                          onClick={() => resetEmployeeListFilters(flatAdminId)}
-                          title="Reset Staff list filters"
-                          className="inline-flex items-center gap-1.5 rounded-md border border-violet-300 bg-violet-600 px-2.5 py-0.5 text-[11px] font-semibold text-white transition-colors hover:border-violet-200 hover:bg-violet-500"
-                        >
-                          <RefreshCw className="h-3.5 w-3.5" />
-                          <span>Reset</span>
-                        </button>
                       </>
                     )}
                     </div>
@@ -2497,15 +2497,6 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                                     allEmps.filter(e => e.workStatus === 'online').length,
 
                                   )}
-                                  <button
-                                    type="button"
-                                    onClick={() => resetEmployeeListFilters(group.admin.id)}
-                                    title="Reset Staff list filters"
-                                    className="inline-flex items-center gap-1.5 rounded-md border border-violet-300 bg-violet-600 px-2.5 py-0.5 text-[11px] font-semibold text-white transition-colors hover:border-violet-200 hover:bg-violet-500"
-                                  >
-                                    <RefreshCw className="h-3.5 w-3.5" />
-                                    <span>Reset</span>
-                                  </button>
                                 </>
                               )}
                             </>
