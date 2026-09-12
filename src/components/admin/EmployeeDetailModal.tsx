@@ -1118,7 +1118,7 @@ export default function EmployeeDetailModal({
           <div
             className={activeTab === "transactions" ? "space-y-0" : "hidden"}
           >
-            {loadingTransactions ? (
+            {loadingTransactions && transactions.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
                 <div className="w-10 h-10 border-4 border-cyan-500/25 border-t-cyan-300 rounded-full animate-spin"></div>
                 <div className="text-slate-400 text-sm">
@@ -1188,8 +1188,9 @@ export default function EmployeeDetailModal({
                           setTransactionPage(1);
                           void loadTransactionPage(1, "");
                         }}
-                        className="inline-flex h-8 items-center rounded-lg border border-slate-600/70 bg-slate-800 px-2.5 text-xs font-semibold text-slate-300 transition-colors hover:border-cyan-300/45 hover:bg-cyan-500/10 hover:text-cyan-100"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-200/70 bg-cyan-500/25 px-2.5 text-xs font-bold text-cyan-50 shadow-sm shadow-cyan-950/40 transition-colors hover:border-cyan-100 hover:bg-cyan-400/35 hover:text-white"
                       >
+                        <X className="h-3.5 w-3.5" />
                         All dates
                       </button>
                     )}
@@ -1264,8 +1265,17 @@ export default function EmployeeDetailModal({
                 </div>
 
                 {/* Transaction List */}
-                <div className="space-y-2.5 px-4 pt-3 sm:px-5">
-                  {transactions.map((tx) => {
+                <div className="relative space-y-2.5 px-4 pt-3 sm:px-5">
+                  {loadingTransactions && (
+                    <div className="pointer-events-none absolute inset-x-4 top-3 z-10 flex items-center justify-center sm:inset-x-5">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/35 bg-slate-950/90 px-3 py-1.5 text-[11px] font-semibold text-cyan-100 shadow-lg shadow-slate-950/40">
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-cyan-300/30 border-t-cyan-200"></span>
+                        Loading page...
+                      </div>
+                    </div>
+                  )}
+                  <div className={loadingTransactions ? "opacity-45 transition-opacity" : "transition-opacity"}>
+                    {transactions.map((tx) => {
                       const style = getTransactionStyle(tx.type, Number(tx.amount));
                       const icon =
                         tx.type === "commission" ? (
@@ -1323,6 +1333,7 @@ export default function EmployeeDetailModal({
                         </div>
                       );
                     })}
+                  </div>
                 </div>
               </>
             )}
