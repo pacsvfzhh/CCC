@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { Fragment, useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
@@ -2617,12 +2617,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <div className="text-center py-8 text-slate-400">No employees found</div>
       ) : (
         // ===== SUPER ADMIN: grouped view =====
-        <div className={selectedAdminFilter === 'all' ? 'space-y-4' : 'flex min-h-0 flex-1 flex-col'}>
-          {filteredGroups.map((group) => {
+        <div className={selectedAdminFilter === 'all' ? 'space-y-0' : 'flex min-h-0 flex-1 flex-col'}>
+          {filteredGroups.map((group, groupIndex) => {
             const isSuperGroup = group.admin.role === 'super_admin';
             return (
+              <Fragment key={group.admin.id}>
               <div
-                key={group.admin.id}
                 data-admin-group-id={group.admin.id}
                 className={`rounded-none overflow-hidden transition-all duration-300 ${
                   isSuperGroup
@@ -2785,6 +2785,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   </>
                 )}
               </div>
+              {groupIndex < filteredGroups.length - 1 && (
+                <div
+                  aria-hidden="true"
+                  className="h-4 shrink-0 border-y border-cyan-300/25 bg-gradient-to-r from-slate-950 via-cyan-950/80 to-slate-950 shadow-[inset_0_1px_0_rgba(103,232,249,0.12),inset_0_-1px_0_rgba(2,6,23,0.9)]"
+                />
+              )}
+              </Fragment>
             );
           })}
         </div>
