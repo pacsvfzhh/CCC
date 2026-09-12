@@ -1195,7 +1195,7 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Content */}
-        <div className={`employee-detail-scrollbar employee-detail-scrollbar--${activeTab === "withdrawals" ? "amber" : activeTab === "verification" ? "violet" : "cyan"} min-h-0 flex-1 overflow-y-auto bg-slate-900 ${activeTab === "transactions" || activeTab === "withdrawals" ? "p-0" : "p-4 sm:p-5"}`}>
+        <div className={`employee-detail-scrollbar employee-detail-scrollbar--${activeTab === "withdrawals" ? "dark" : activeTab === "verification" ? "violet" : "cyan"} min-h-0 flex-1 ${activeTab === "withdrawals" ? "overflow-y-scroll" : "overflow-y-auto"} bg-slate-900 ${activeTab === "transactions" || activeTab === "withdrawals" ? "p-0" : "p-4 sm:p-5"}`}>
           <div className={activeTab === "daily" ? "-mx-4 -my-4 min-h-full space-y-0 sm:-mx-5 sm:-my-5" : "hidden"}>
             {loadingStats ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
