@@ -660,10 +660,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   setAccountMenuOpen(false);
                   setShowUsernameModal(true);
                 }}
-                className="flex h-7 w-full items-center gap-1.5 rounded-md border-l-2 border-emerald-400/70 bg-emerald-900 px-1.5 text-left text-[10px] font-medium text-emerald-100 transition-colors hover:bg-emerald-800"
+                className="flex h-7 w-full items-center gap-1.5 rounded-md border-l-2 border-violet-300 bg-violet-700 px-1.5 text-left text-[10px] font-medium text-white transition-colors hover:bg-violet-600"
               >
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-800">
-                  <UserCog className="h-3 w-3 text-emerald-200" />
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-violet-600">
+                  <UserCog className="h-3 w-3 text-violet-100" />
                 </span>
                 <span>Username</span>
               </button>
@@ -675,10 +675,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 setAccountMenuOpen(false);
                 setShowPasswordModal(true);
               }}
-              className="flex h-7 w-full items-center gap-1.5 rounded-md border-l-2 border-teal-400/70 bg-teal-900 px-1.5 text-left text-[10px] font-medium text-teal-100 transition-colors hover:bg-teal-800"
+              className="flex h-7 w-full items-center gap-1.5 rounded-md border-l-2 border-cyan-200 bg-cyan-700 px-1.5 text-left text-[10px] font-medium text-white transition-colors hover:bg-cyan-600"
             >
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-teal-800">
-                <Lock className="h-3 w-3 text-teal-200" />
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-cyan-600">
+                <Lock className="h-3 w-3 text-cyan-100" />
               </span>
               <span>Password</span>
             </button>
@@ -689,10 +689,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 setAccountMenuOpen(false);
                 logout();
               }}
-              className="flex h-7 w-full items-center gap-1.5 rounded-md border-l-2 border-green-400/70 bg-green-900 px-1.5 text-left text-[10px] font-medium text-green-100 transition-colors hover:bg-green-800"
+              className="flex h-7 w-full items-center gap-1.5 rounded-md border-l-2 border-rose-300 bg-rose-700 px-1.5 text-left text-[10px] font-medium text-white transition-colors hover:bg-rose-600"
             >
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-green-800">
-                <LogOut className="h-3 w-3 text-green-200" />
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-rose-600">
+                <LogOut className="h-3 w-3 text-rose-100" />
               </span>
               <span>Logout</span>
             </button>
