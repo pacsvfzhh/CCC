@@ -131,6 +131,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   // Action menu
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [resetFeedbackAdminId, setResetFeedbackAdminId] = useState<string | null>(null);
+  const [pinningAdminId, setPinningAdminId] = useState<string | null>(null);
   const resetFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1009,21 +1010,27 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   };
 
   const toggleAdminPin = async (adminId: string, currentPinned: boolean) => {
+    if (pinningAdminId) return;
+
     const newPinned = !currentPinned;
+    const sortGroups = (groups: EmployeeGroup[]) => [...groups].sort((a, b) => {
+      if (a.admin.role === 'super_admin' && b.admin.role !== 'super_admin') return -1;
+      if (a.admin.role !== 'super_admin' && b.admin.role === 'super_admin') return 1;
+      if (a.admin.role === 'secondary_admin' && b.admin.role === 'secondary_admin') {
+        if (a.admin.is_pinned && !b.admin.is_pinned) return -1;
+        if (!a.admin.is_pinned && b.admin.is_pinned) return 1;
+      }
+      return a.admin.username.localeCompare(b.admin.username);
+    });
+
+    setPinningAdminId(adminId);
     setEmployeeGroups(prev => {
       const updated = prev.map(g =>
         g.admin.id === adminId ? { ...g, admin: { ...g.admin, is_pinned: newPinned } } : g
       );
-      return updated.sort((a, b) => {
-        if (a.admin.role === 'super_admin' && b.admin.role !== 'super_admin') return -1;
-        if (a.admin.role !== 'super_admin' && b.admin.role === 'super_admin') return 1;
-        if (a.admin.role === 'secondary_admin' && b.admin.role === 'secondary_admin') {
-          if (a.admin.is_pinned && !b.admin.is_pinned) return -1;
-          if (!a.admin.is_pinned && b.admin.is_pinned) return 1;
-        }
-        return a.admin.username.localeCompare(b.admin.username);
-      });
+      return sortGroups(updated);
     });
+
     try {
       const { error } = await supabase.from('admins').update({ is_pinned: newPinned }).eq('id', adminId);
       if (error) throw error;
@@ -1032,16 +1039,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         const reverted = prev.map(g =>
           g.admin.id === adminId ? { ...g, admin: { ...g.admin, is_pinned: currentPinned } } : g
         );
-        return reverted.sort((a, b) => {
-          if (a.admin.role === 'super_admin' && b.admin.role !== 'super_admin') return -1;
-          if (a.admin.role !== 'super_admin' && b.admin.role === 'super_admin') return 1;
-          if (a.admin.role === 'secondary_admin' && b.admin.role === 'secondary_admin') {
-            if (a.admin.is_pinned && !b.admin.is_pinned) return -1;
-            if (!a.admin.is_pinned && b.admin.is_pinned) return 1;
-          }
-          return a.admin.username.localeCompare(b.admin.username);
-        });
+        return sortGroups(reverted);
       });
+    } finally {
+      setPinningAdminId(null);
     }
   };
 
@@ -2493,7 +2494,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     {group.admin.role === 'secondary_admin' && (
                       <button
                         onClick={() => toggleAdminPin(group.admin.id, group.admin.is_pinned || false)}
-                        className={`p-2 rounded-lg transition-all ${
+                        disabled={pinningAdminId !== null}
+                        aria-busy={pinningAdminId === group.admin.id}
+                        className={`p-2 rounded-lg transition-all active:scale-95 disabled:cursor-wait disabled:opacity-70 ${
                           group.admin.is_pinned
                             ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
                             : 'bg-slate-700/50 text-slate-500 hover:bg-slate-700 hover:text-amber-400'
