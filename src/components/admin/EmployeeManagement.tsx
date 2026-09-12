@@ -1630,7 +1630,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <button
             type="button"
             onClick={() => { setSelectedAdminForCreate(adminId); setShowCreateForm(true); setExpandedGroups(prev => new Set(prev).add(adminId)); }}
-            className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-blue-400/45 bg-blue-600/80 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm shadow-blue-950/35 transition-all hover:border-blue-300/65 hover:bg-blue-500 active:bg-blue-700"
+            className="order-2 inline-flex h-7 items-center gap-1.5 rounded-lg border border-yellow-400/50 bg-yellow-600/80 px-2.5 py-1 text-[11px] font-semibold text-yellow-50 shadow-lg shadow-yellow-950/30 transition-all hover:border-yellow-300/70 hover:bg-yellow-500 active:bg-yellow-700"
           >
             <UserPlus className="h-3.5 w-3.5" /> Add
           </button>
@@ -1639,7 +1639,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           type="button"
           onClick={() => resetEmployeeListFilters(adminId)}
           title="Reset Staff list filters"
-          className={`ml-6 inline-flex h-7 min-w-[78px] items-center justify-center gap-1.5 rounded-lg border border-blue-400/70 px-3 py-1 text-[11px] font-semibold text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70 ${
+          className={`order-1 ml-8 inline-flex h-7 min-w-[78px] items-center justify-center gap-1.5 rounded-lg border border-blue-400/70 px-3 py-1 text-[11px] font-semibold text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70 ${
             resetFeedbackAdminId === adminId
               ? 'bg-emerald-600'
               : 'bg-blue-700 hover:bg-blue-500 hover:text-white active:bg-blue-900'
