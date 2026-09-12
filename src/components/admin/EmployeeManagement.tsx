@@ -2653,10 +2653,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     </div>
                     <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
                       <div onClick={() => toggleGroup(group.admin.id)} className="order-2 flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-slate-600/90 bg-slate-900/85 px-2.5 py-1.5 transition-all hover:border-slate-400/80 hover:bg-slate-800 hover:shadow-[0_0_16px_rgba(59,130,246,0.18)]">
-                        <span className="max-w-[150px] truncate text-sm font-bold text-cyan-100">{group.admin.username}</span>
+                        <span className={`max-w-[150px] truncate text-sm font-bold ${isSuperGroup ? 'text-yellow-100' : 'text-cyan-100'}`}>{group.admin.username}</span>
                         <span className="h-3.5 w-px bg-slate-600" />
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold tracking-wide ${isSuperGroup ? 'text-blue-300' : 'text-indigo-300'}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${isSuperGroup ? 'bg-blue-400' : 'bg-indigo-400'}`} />
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold tracking-wide ${isSuperGroup ? 'text-yellow-300' : 'text-cyan-300'}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${isSuperGroup ? 'bg-yellow-400' : 'bg-cyan-400'}`} />
                           {isSuperGroup ? 'SUPER ADMIN' : 'SECONDARY ADMIN'}
                         </span>
                         {group.admin.is_pinned && (
