@@ -2638,10 +2638,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         onClick={() => toggleAdminPin(group.admin.id, group.admin.is_pinned || false)}
                         disabled={pinningAdminId !== null}
                         aria-busy={pinningAdminId === group.admin.id}
-                        className={`shrink-0 rounded-lg p-1.5 transition-all active:scale-95 disabled:cursor-wait disabled:opacity-70 ${
+                        className={`shrink-0 rounded-lg border p-1.5 shadow-none transition-colors active:scale-95 disabled:cursor-wait disabled:opacity-70 ${
                           group.admin.is_pinned
-                            ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
-                            : 'bg-slate-700/50 text-slate-500 hover:bg-slate-700 hover:text-amber-400'
+                            ? 'border-amber-400/70 bg-amber-600 text-amber-50 hover:bg-amber-500'
+                            : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-amber-400/60 hover:bg-slate-600 hover:text-amber-100'
                         }`}
                         title={group.admin.is_pinned ? 'Unpin admin group' : 'Pin admin group to top'}
                       >
@@ -2652,12 +2652,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       <Users className={`h-5 w-5 ${isSuperGroup ? 'text-yellow-400' : 'text-blue-400'}`} />
                     </div>
                     <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                      <div onClick={() => toggleGroup(group.admin.id)} className={`order-2 flex shrink-0 items-center gap-2 rounded-lg border px-2.5 py-1 cursor-pointer ${isSuperGroup ? 'border-yellow-400/35 bg-yellow-500/10' : 'border-blue-400/35 bg-blue-500/10'}`}>
-                        <span className="max-w-[150px] truncate text-sm font-bold text-white">{group.admin.username}</span>
-                        <div className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wide ${isSuperGroup ? 'border-yellow-400/40 bg-yellow-500/20 text-yellow-200' : 'border-blue-400/40 bg-blue-500/20 text-blue-200'}`}>
+                      <div onClick={() => toggleGroup(group.admin.id)} className="order-2 flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-600/90 bg-slate-800 px-2 py-1 transition-colors hover:border-slate-400 hover:bg-slate-700">
+                        <span className="max-w-[150px] truncate rounded-md border border-cyan-700 bg-cyan-900 px-2 py-0.5 text-sm font-bold text-cyan-50">{group.admin.username}</span>
+                        <div className={`rounded-md border px-2 py-0.5 text-[10px] font-bold tracking-wide ${isSuperGroup ? 'border-blue-400/60 bg-blue-700 text-blue-50' : 'border-indigo-400/60 bg-indigo-700 text-indigo-50'}`}>
                           {isSuperGroup ? 'SUPER ADMIN' : 'SECONDARY ADMIN'}
                         </div>
-                        {group.admin.is_pinned && <span className="rounded border border-amber-400/40 bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-200">PINNED</span>}
+                        {group.admin.is_pinned && (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-amber-400/70 bg-amber-600 px-1.5 py-0.5 text-[10px] font-bold text-amber-50">
+                            <Pin className="h-3 w-3" />
+                            PINNED
+                          </span>
+                        )}
                       </div>
                       <div className="flex min-w-0 items-center gap-2 flex-wrap">
                         {(() => {
