@@ -1482,7 +1482,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <div data-inactive-days-dropdown className="ml-2 inline-flex items-center gap-1">
           <button
             onClick={(e) => handleIdleDaysClick(adminId, e)}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold shadow-sm transition-all ${
+            className={`inline-flex h-7 w-[96px] shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold shadow-sm transition-all ${
               hasIdleFilter
                 ? 'border-teal-200 bg-teal-500 text-white shadow-teal-950/40 ring-1 ring-teal-300/40'
                 : 'border-teal-500/60 bg-teal-950/55 text-teal-200 hover:border-teal-300/80 hover:bg-teal-900/70 hover:text-teal-50'
