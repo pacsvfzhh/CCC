@@ -161,10 +161,10 @@ function PageNavigator({
     }
   };
 
-  const buttonClass = `inline-flex h-8 w-8 items-center justify-center rounded-md border text-sm font-bold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${toneStyles.button}`;
+  const buttonClass = `inline-flex h-8 w-8 items-center justify-center rounded-md border text-sm font-bold shadow-sm transition-all hover:shadow-md active:scale-90 active:border-white active:bg-white/30 active:text-white active:shadow-[0_0_0_2px_rgba(255,255,255,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-40 ${toneStyles.button}`;
 
   return (
-    <div className={`flex items-center gap-1.5 rounded-xl border-2 p-1.5 shadow-lg shadow-slate-950/40 ${toneStyles.border}`}>
+    <div className={`flex items-center gap-1.5 rounded-xl border-2 p-1.5 shadow-lg shadow-slate-950/40 focus-within:ring-2 focus-within:ring-white/25 ${toneStyles.border}`}>
       <button
         type="button"
         onClick={() => onPageChange(1)}
@@ -203,7 +203,7 @@ function PageNavigator({
           }}
           disabled={disabled}
           aria-label="Current page"
-          className="h-8 w-12 rounded-md border border-slate-300/90 bg-slate-100 px-1 text-center text-sm font-black text-slate-900 shadow-sm outline-none focus:border-cyan-200 focus:ring-2 focus:ring-cyan-300/50 disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-700 disabled:text-slate-300"
+          className="h-8 w-12 rounded-md border border-slate-300/90 bg-slate-100 px-1 text-center text-sm font-black text-slate-900 shadow-sm outline-none transition-all focus:border-white focus:ring-2 focus:ring-white/80 focus:shadow-[0_0_0_2px_rgba(255,255,255,0.45)] disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-700 disabled:text-slate-300"
         />
         <span className="whitespace-nowrap">/ {pageCount}</span>
       </div>
