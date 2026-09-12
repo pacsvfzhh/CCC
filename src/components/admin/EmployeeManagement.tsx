@@ -1025,20 +1025,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     try {
       const { error } = await supabase.from('admins').update({ is_pinned: newPinned }).eq('id', adminId);
       if (error) throw error;
-      setEmployeeGroups(prev => prev.map(group =>
-        group.admin.id === adminId
-          ? { ...group, admin: { ...group.admin, is_pinned: newPinned } }
-          : group
-      ));
-      setAdminPinOverrides(prev => {
-        const next = new Map(prev);
-        next.delete(adminId);
-        return next;
-      });
     } catch (error) {
       setAdminPinOverrides(prev => {
         const next = new Map(prev);
-        next.set(adminId, currentPinned);
+        next.delete(adminId);
         return next;
       });
     } finally {
