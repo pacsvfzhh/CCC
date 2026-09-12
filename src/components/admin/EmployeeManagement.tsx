@@ -1305,8 +1305,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         className="fixed z-[9999]"
         style={{ top: idleDaysDropdownPos.top, left: idleDaysDropdownPos.left }}
       >
-        <div className="w-[196px] overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-2xl shadow-black/60">
-          <div className="border-b border-slate-800 bg-slate-900 px-3 py-2">
+        <div className="w-[196px] overflow-hidden rounded-xl border border-slate-600 bg-slate-800 shadow-2xl shadow-black/60">
+          <div className="border-b border-slate-600 bg-slate-700 px-3 py-2">
             <div className="flex items-center gap-2">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-emerald-700/70 bg-emerald-950 text-emerald-300">
                 <Timer className="h-3.5 w-3.5" />
@@ -1337,10 +1337,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     setInactiveDaysDropdownOpen(null);
                     setIdleDaysDropdownPos(null);
                   }}
-                  className={`flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500 ${
+                  className={`flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 ${
                     isSelected
                       ? 'bg-emerald-700 text-white'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-emerald-100'
+                      : 'text-slate-200 hover:bg-slate-700 hover:text-emerald-50'
                   }`}
                 >
                   <span className={`h-2 w-2 shrink-0 rounded-full border ${isSelected ? 'border-white bg-white' : 'border-emerald-500/70 bg-emerald-900'}`} />
@@ -1355,7 +1355,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             })}
           </div>
           {inactiveDaysFilterByGroup.has(adminId) && (
-            <div className="border-t border-slate-800 bg-slate-900/70 p-1.5">
+            <div className="border-t border-slate-600 bg-slate-700 p-1.5">
               <button
                 type="button"
                 onClick={() => {
@@ -1568,7 +1568,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 }}
                 aria-label="Clear Idle Days filter"
                 title="Clear Idle Days filter"
-                className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-rose-400/50 bg-slate-800/90 text-rose-200 transition-all hover:border-rose-300/70 hover:bg-rose-950/70 hover:text-rose-100 active:scale-95 active:bg-rose-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-300 bg-rose-600 text-white transition-colors hover:border-rose-200 hover:bg-rose-500"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
