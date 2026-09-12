@@ -1334,7 +1334,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         className="fixed z-[9999]"
         style={{ top: idleDaysDropdownPos.top, left: idleDaysDropdownPos.left }}
       >
-        <div className="w-[164px] overflow-hidden rounded-xl border border-[#4d8b5c] bg-[#07150b] shadow-2xl shadow-black/70 ring-1 ring-inset ring-emerald-200/10">
+        <div className="w-[148px] overflow-hidden rounded-xl border border-[#4d8b5c] bg-[#07150b] shadow-2xl shadow-black/70 ring-1 ring-inset ring-emerald-200/10">
           <div role="menu" aria-label="Idle days filter" className="space-y-1 bg-[#07150b] p-1.5">
             {items.map(({ key, label, accent, badge }, index) => {
               const isSelected = inactiveDaysFilterByGroup.get(adminId) === key;
@@ -1407,7 +1407,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setIdleDaysDropdownPos(null);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      const menuWidth = 164;
+      const menuWidth = 148;
       const menuHeight = 204;
       const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
       const top = window.innerHeight - rect.bottom < menuHeight + 8
