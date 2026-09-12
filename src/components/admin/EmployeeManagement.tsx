@@ -1394,7 +1394,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <div className="w-px h-4 bg-slate-600 shrink-0 mx-1" />
 
         {/* Idle Days */}
-        <div data-inactive-days-dropdown className="ml-2 inline-flex items-center">
+        <div data-inactive-days-dropdown className="ml-2 inline-flex items-center gap-1">
           <button
             onClick={(e) => handleIdleDaysClick(adminId, e)}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold shadow-sm transition-all ${
@@ -1415,6 +1415,25 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             </span>
             <ChevronDown className={`h-3 w-3 transition-transform ${inactiveDaysDropdownOpen === adminId ? 'rotate-180' : ''}`} />
           </button>
+          {hasIdleFilter && (
+            <button
+              type="button"
+              onClick={() => {
+                setInactiveDaysFilterByGroup(prev => {
+                  const next = new Map(prev);
+                  next.delete(adminId);
+                  return next;
+                });
+                setInactiveDaysDropdownOpen(null);
+                setIdleDaysDropdownPos(null);
+              }}
+              aria-label="Clear Idle Days filter"
+              title="Clear Idle Days filter"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-300 bg-rose-600 text-white transition-colors hover:border-rose-200 hover:bg-rose-500"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
         {renderIdleDaysPortal(adminId)}
 
