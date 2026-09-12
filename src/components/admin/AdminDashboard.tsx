@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
-import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Database, Lock, Eye, EyeOff, Bell, PackageSearch, MessageCircle, Search, History, UserCog, Activity, Clock, Headphones } from 'lucide-react';
+import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Database, Lock, Eye, EyeOff, Bell, PackageSearch, MessageCircle, Search, History, UserCog, Activity, Clock, Headphones, ChevronDown } from 'lucide-react';
 import { Admin } from '../../types';
 import { logout, updateStoredUsername } from '../../lib/auth';
 import { hashPassword, verifyPassword } from '../../lib/passwordHash';
@@ -116,6 +116,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [usernameSuccess, setUsernameSuccess] = useState(false);
   const [changingUsername, setChangingUsername] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { companyName } = useCompanyName(admin.id);
 
   useEffect(() => {
@@ -627,6 +628,72 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     }
   };
 
+  const renderAccountMenu = (variant: 'sidebar' | 'mobile') => {
+    const isSidebar = variant === 'sidebar';
+
+    return (
+      <div className={`relative ${isSidebar ? 'w-full' : 'shrink-0'}`}>
+        <button
+          type="button"
+          onClick={() => setAccountMenuOpen((open) => !open)}
+          aria-haspopup="menu"
+          aria-expanded={accountMenuOpen}
+          className={`flex items-center justify-center gap-1.5 rounded-md border transition-colors ${isSidebar ? 'h-7 w-full justify-start border-slate-600/70 bg-slate-800/70 px-2 text-[10px] text-slate-200 hover:border-cyan-400/60 hover:bg-slate-800 hover:text-cyan-100' : 'h-6 border-slate-600/70 bg-slate-800/70 px-1.5 text-[9px] text-slate-200 hover:border-cyan-400/60 hover:bg-slate-800 hover:text-cyan-100 sm:px-2 sm:text-[10px]'}`}
+          title="Account actions"
+        >
+          <UserCog className="h-3 w-3 shrink-0 text-cyan-300" />
+          <span className="font-medium">Account</span>
+          <ChevronDown className={`h-3 w-3 shrink-0 text-slate-400 transition-transform ${accountMenuOpen ? 'rotate-180 text-cyan-200' : ''}`} />
+        </button>
+        {accountMenuOpen && (
+          <div
+            role="menu"
+            className={`absolute z-[70] min-w-[132px] overflow-hidden rounded-lg border border-slate-600/80 bg-slate-900 p-1 shadow-2xl shadow-slate-950/60 ${isSidebar ? 'left-0 right-0 top-[calc(100%+0.35rem)]' : 'right-0 top-[calc(100%+0.35rem)]'}`}
+          >
+            {admin.role === 'super_admin' && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setAccountMenuOpen(false);
+                  setShowUsernameModal(true);
+                }}
+                className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] text-purple-200 transition-colors hover:bg-purple-500/15 hover:text-purple-100"
+              >
+                <UserCog className="h-3 w-3 shrink-0 text-purple-300" />
+                <span>Username</span>
+              </button>
+            )}
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setAccountMenuOpen(false);
+                setShowPasswordModal(true);
+              }}
+              className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] text-blue-200 transition-colors hover:bg-blue-500/15 hover:text-blue-100"
+            >
+              <Lock className="h-3 w-3 shrink-0 text-blue-300" />
+              <span>Password</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setAccountMenuOpen(false);
+                logout();
+              }}
+              className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] text-red-200 transition-colors hover:bg-red-500/15 hover:text-red-100"
+            >
+              <LogOut className="h-3 w-3 shrink-0 text-red-300" />
+              <span>Logout</span>
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="admin-dashboard-root h-screen relative bg-slate-950 overflow-hidden" style={{ touchAction: 'pan-y' }}>
       {/* Professional dark background for admin interface */}
@@ -636,54 +703,30 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         <header className="bg-slate-900/90 backdrop-blur-xl border-b border-blue-500/30 w-full m-0 flex-shrink-0 lg:hidden" style={{ WebkitBackdropFilter: 'blur(24px)' }}>
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-cyan-500/10 to-blue-600/5 pointer-events-none"></div>
           <div className="w-full px-2 sm:px-2.5 lg:px-3 py-0 relative">
-            <div className="flex h-4 min-h-0 justify-between items-center gap-1 leading-none">
-              <div className="flex-1 min-w-0 flex items-center gap-1">
-                <div className="relative flex-shrink-0">
-                  <div className="relative w-3.5 h-3.5 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 rounded flex items-center justify-center shadow-md">
-                    <Zap className="w-2.5 h-2.5 text-white" fill="currentColor" />
+            <div className="flex min-h-[38px] items-center justify-between gap-2 py-1 leading-none">
+              <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                <div className="relative shrink-0">
+                  <div className="relative flex h-4 w-4 items-center justify-center rounded bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-md">
+                    <Zap className="h-2.5 w-2.5 text-white" fill="currentColor" />
                   </div>
                 </div>
-                <h1 className="text-[10px] sm:text-[13px] lg:text-sm font-bold leading-none bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent truncate">
-                  {companyName}
-                </h1>
-                <div className="hidden sm:flex items-center gap-1 px-1 py-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded border border-purple-400/30">
-                  <Shield className="w-3 h-3 text-purple-400" />
-                  <span className="text-[10px] text-purple-200 font-semibold uppercase">
-                    {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
-                  </span>
-                </div>
-                <div className="hidden sm:flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-[10px] text-slate-400 font-medium">{admin.username}</span>
+                <div className="min-w-0 flex flex-col gap-0.5">
+                  <h1 className="truncate text-[11px] font-bold leading-none bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent sm:text-xs">
+                    {companyName}
+                  </h1>
+                  <div className="flex min-w-0 items-center gap-1">
+                    <Shield className="h-2.5 w-2.5 shrink-0 text-purple-400" />
+                    <span className="truncate text-[9px] font-semibold uppercase text-purple-200">
+                      {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                    </span>
+                  </div>
+                  <div className="flex min-w-0 items-center gap-1">
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
+                    <span className="truncate text-[9px] font-medium text-slate-400">{admin.username}</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                {admin.role === 'super_admin' && (
-                  <button
-                    onClick={() => setShowUsernameModal(true)}
-                    className="flex items-center gap-0.5 px-1 py-0 sm:px-1.5 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 hover:border-purple-400/60 rounded text-purple-400 transition-all text-[10px]"
-                    title="Change Username"
-                  >
-                    <UserCog className="w-2.5 h-2.5" />
-                    <span className="hidden lg:inline font-medium">Username</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => setShowPasswordModal(true)}
-                  className="flex items-center gap-0.5 px-1 py-0 sm:px-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/40 hover:border-blue-400/60 rounded text-blue-400 transition-all text-[10px]"
-                  title="Change Password"
-                >
-                  <Lock className="w-2.5 h-2.5" />
-                  <span className="hidden lg:inline font-medium">Password</span>
-                </button>
-                <button
-                  onClick={() => logout()}
-                  className="flex items-center gap-0.5 px-1 py-0 sm:px-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/40 hover:border-red-400/60 rounded text-[10px]"
-                >
-                  <LogOut className="w-2.5 h-2.5" />
-                  <span className="font-medium">Logout</span>
-                </button>
-              </div>
+              {renderAccountMenu('mobile')}
             </div>
           </div>
         </header>
@@ -705,43 +748,22 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   {companyName}
                 </h1>
               </div>
-              <div className="mt-1 flex min-w-0 items-center gap-1.5">
-                <Shield className="h-3 w-3 shrink-0 text-purple-400" />
-                <span className="truncate text-[9px] font-semibold uppercase tracking-wide text-purple-200">
-                  {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
-                </span>
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
-                <span className="min-w-0 truncate text-[9px] font-medium text-slate-400" title={admin.username}>
-                  {admin.username}
-                </span>
+              <div className="mt-1 flex min-w-0 flex-col gap-0.5">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <Shield className="h-3 w-3 shrink-0 text-purple-400" />
+                  <span className="truncate text-[9px] font-semibold uppercase tracking-wide text-purple-200">
+                    {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                  </span>
+                </div>
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
+                  <span className="min-w-0 truncate text-[9px] font-medium text-slate-400" title={admin.username}>
+                    {admin.username}
+                  </span>
+                </div>
               </div>
-              <div className="mt-2 grid gap-1">
-                {admin.role === 'super_admin' && (
-                  <button
-                    onClick={() => setShowUsernameModal(true)}
-                    className="flex h-7 w-full items-center gap-1.5 rounded-md border border-purple-500/35 bg-purple-500/10 px-2 text-left text-[10px] text-purple-300 transition-colors hover:border-purple-400/60 hover:bg-purple-500/20 hover:text-purple-100"
-                    title="Change Username"
-                  >
-                    <UserCog className="h-3 w-3 shrink-0" />
-                    <span className="font-medium">Username</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => setShowPasswordModal(true)}
-                  className="flex h-7 w-full items-center gap-1.5 rounded-md border border-blue-500/35 bg-blue-500/10 px-2 text-left text-[10px] text-blue-300 transition-colors hover:border-blue-400/60 hover:bg-blue-500/20 hover:text-blue-100"
-                  title="Change Password"
-                >
-                  <Lock className="h-3 w-3 shrink-0" />
-                  <span className="font-medium">Password</span>
-                </button>
-                <button
-                  onClick={() => logout()}
-                  className="flex h-7 w-full items-center gap-1.5 rounded-md border border-red-500/35 bg-red-500/10 px-2 text-left text-[10px] text-red-300 transition-colors hover:border-red-400/60 hover:bg-red-500/20 hover:text-red-100"
-                  title="Logout"
-                >
-                  <LogOut className="h-3 w-3 shrink-0" />
-                  <span className="font-medium">Logout</span>
-                </button>
+              <div className="mt-2">
+                {renderAccountMenu('sidebar')}
               </div>
             </div>
             <nav className="flex flex-col gap-0.5 p-1.5 pt-2.5">
