@@ -60,22 +60,47 @@ interface WithdrawalRecord {
   created_at: string;
 }
 
-const withdrawalStatusConfig: Record<string, { label: string; className: string }> = {
+const withdrawalStatusConfig: Record<
+  string,
+  {
+    label: string;
+    className: string;
+    cardClassName: string;
+    iconClassName: string;
+    amountClassName: string;
+  }
+> = {
   pending: {
     label: "Pending",
-    className: "border-amber-300/40 bg-amber-500/15 text-amber-200",
+    className: "border-amber-200/60 bg-amber-500/20 text-amber-100",
+    cardClassName:
+      "border-amber-300/45 bg-gradient-to-r from-amber-950/75 via-slate-900/90 to-yellow-950/45 hover:border-amber-200/75",
+    iconClassName: "border-amber-200/45 bg-amber-500/20 text-amber-200",
+    amountClassName: "text-amber-100",
   },
   approved: {
     label: "Approved",
-    className: "border-emerald-300/40 bg-emerald-500/15 text-emerald-200",
+    className: "border-emerald-200/60 bg-emerald-500/20 text-emerald-100",
+    cardClassName:
+      "border-emerald-300/45 bg-gradient-to-r from-emerald-950/75 via-slate-900/90 to-teal-950/45 hover:border-emerald-200/75",
+    iconClassName: "border-emerald-200/45 bg-emerald-500/20 text-emerald-200",
+    amountClassName: "text-emerald-100",
   },
   rejected: {
     label: "Rejected",
-    className: "border-red-300/40 bg-red-500/15 text-red-200",
+    className: "border-rose-200/60 bg-rose-500/20 text-rose-100",
+    cardClassName:
+      "border-rose-300/45 bg-gradient-to-r from-rose-950/75 via-slate-900/90 to-red-950/45 hover:border-rose-200/75",
+    iconClassName: "border-rose-200/45 bg-rose-500/20 text-rose-200",
+    amountClassName: "text-rose-100",
   },
   cancelled: {
     label: "Cancelled",
-    className: "border-slate-500/50 bg-slate-700/50 text-slate-300",
+    className: "border-slate-300/55 bg-slate-600/50 text-slate-100",
+    cardClassName:
+      "border-slate-400/40 bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-slate-700/55 hover:border-slate-300/70",
+    iconClassName: "border-slate-300/45 bg-slate-600/45 text-slate-200",
+    amountClassName: "text-slate-100",
   },
 };
 
@@ -126,19 +151,19 @@ function PageNavigator({
   const [pageInput, setPageInput] = useState(String(page));
   const toneStyles = {
     cyan: {
-      border: "border-cyan-200/60 bg-cyan-950/75",
+      border: "border-cyan-200/60 bg-slate-950/90",
       text: "text-cyan-50",
-      button: "border-cyan-200/55 bg-cyan-500/25 text-cyan-50 hover:border-cyan-100 hover:bg-cyan-400/35 hover:text-white",
+      button: "border-cyan-200/55 bg-cyan-500/25 text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] hover:-translate-y-0.5 hover:border-cyan-100 hover:bg-cyan-400/45 hover:text-white hover:shadow-md",
     },
     amber: {
-      border: "border-amber-200/60 bg-amber-950/75",
+      border: "border-amber-200/60 bg-slate-950/90",
       text: "text-amber-50",
-      button: "border-amber-200/55 bg-amber-500/25 text-amber-50 hover:border-amber-100 hover:bg-amber-400/35 hover:text-white",
+      button: "border-amber-200/55 bg-amber-500/25 text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] hover:-translate-y-0.5 hover:border-amber-100 hover:bg-amber-400/45 hover:text-white hover:shadow-md",
     },
     emerald: {
-      border: "border-emerald-200/60 bg-emerald-950/75",
+      border: "border-emerald-200/60 bg-slate-950/90",
       text: "text-emerald-50",
-      button: "border-emerald-200/55 bg-emerald-500/25 text-emerald-50 hover:border-emerald-100 hover:bg-emerald-400/35 hover:text-white",
+      button: "border-emerald-200/55 bg-emerald-500/25 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] hover:-translate-y-0.5 hover:border-emerald-100 hover:bg-emerald-400/45 hover:text-white hover:shadow-md",
     },
   }[tone];
 
@@ -161,10 +186,10 @@ function PageNavigator({
     }
   };
 
-  const buttonClass = `inline-flex h-8 w-8 items-center justify-center rounded-md border text-sm font-bold shadow-sm transition-all hover:shadow-md active:scale-90 active:border-white active:bg-white/30 active:text-white active:shadow-[0_0_0_2px_rgba(255,255,255,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-40 ${toneStyles.button}`;
+  const buttonClass = `inline-flex h-8 w-8 items-center justify-center rounded-md border text-sm font-bold transition-all duration-150 active:translate-y-0 active:scale-[0.92] active:border-white active:bg-white active:text-slate-950 active:shadow-[0_0_0_2px_rgba(255,255,255,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 disabled:translate-y-0 disabled:cursor-not-allowed disabled:border-slate-700/70 disabled:bg-slate-900/70 disabled:text-slate-600 disabled:shadow-none disabled:opacity-100 ${toneStyles.button}`;
 
   return (
-    <div className={`flex items-center gap-1.5 rounded-xl border-2 p-1.5 shadow-lg shadow-slate-950/40 focus-within:ring-2 focus-within:ring-white/25 ${toneStyles.border}`}>
+    <div className={`flex items-center gap-1.5 rounded-xl border-2 p-1.5 shadow-lg shadow-slate-950/50 focus-within:ring-2 focus-within:ring-white/30 ${toneStyles.border}`}>
       <button
         type="button"
         onClick={() => onPageChange(1)}
@@ -203,7 +228,7 @@ function PageNavigator({
           }}
           disabled={disabled}
           aria-label="Current page"
-          className="h-8 w-12 rounded-md border border-slate-300/90 bg-slate-100 px-1 text-center text-sm font-black text-slate-900 shadow-sm outline-none transition-all focus:border-white focus:ring-2 focus:ring-white/80 focus:shadow-[0_0_0_2px_rgba(255,255,255,0.45)] disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-700 disabled:text-slate-300"
+          className="h-8 w-12 rounded-md border-2 border-white/90 bg-slate-100 px-1 text-center text-sm font-black text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.25)] outline-none transition-all focus:border-white focus:ring-2 focus:ring-white/90 focus:shadow-[0_0_0_2px_rgba(255,255,255,0.5)] disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-700 disabled:text-slate-300"
         />
         <span className="whitespace-nowrap">/ {pageCount}</span>
       </div>
@@ -1115,7 +1140,7 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Content */}
-        <div className={`min-h-0 flex-1 overflow-y-auto bg-slate-900 ${activeTab === "transactions" || activeTab === "withdrawals" ? "p-0" : "p-4 sm:p-5"}`}>
+        <div className={`employee-detail-scrollbar employee-detail-scrollbar--${activeTab === "withdrawals" ? "amber" : activeTab === "verification" ? "violet" : "cyan"} min-h-0 flex-1 overflow-y-auto bg-slate-900 ${activeTab === "transactions" || activeTab === "withdrawals" ? "p-0" : "p-4 sm:p-5"}`}>
           <div className={activeTab === "daily" ? "-mx-4 -my-4 min-h-full space-y-0 sm:-mx-5 sm:-my-5" : "hidden"}>
             {loadingStats ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -1241,7 +1266,7 @@ export default function EmployeeDetailModal({
                       />
                     )}
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="employee-detail-scrollbar employee-detail-scrollbar--cyan overflow-x-auto">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-cyan-300/20 bg-blue-950/45">
@@ -1408,7 +1433,7 @@ export default function EmployeeDetailModal({
                             </p>
                           </div>
                           <div
-                            className="scrollbar-dark max-h-64 overscroll-contain overflow-y-auto p-1"
+                            className="employee-detail-scrollbar employee-detail-scrollbar--cyan max-h-64 overscroll-contain overflow-y-auto p-1"
                             role="listbox"
                           >
                             {availableTransactionDates.map((date) => (
@@ -1596,50 +1621,54 @@ export default function EmployeeDetailModal({
                     .map((withdrawal) => {
                       const status = withdrawalStatusConfig[withdrawal.status] ?? {
                         label: withdrawal.status,
-                        className: "border-slate-500/50 bg-slate-700/50 text-slate-300",
+                        className: "border-slate-300/55 bg-slate-600/50 text-slate-100",
+                        cardClassName:
+                          "border-slate-400/40 bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-slate-700/55 hover:border-slate-300/70",
+                        iconClassName: "border-slate-300/45 bg-slate-600/45 text-slate-200",
+                        amountClassName: "text-slate-100",
                       };
 
                       return (
                         <div
                           key={withdrawal.id}
-                          className="rounded-xl border border-amber-300/15 bg-gradient-to-r from-slate-800/80 via-blue-950/35 to-slate-800/70 p-3 transition-colors hover:border-amber-300/35"
+                          className={`rounded-lg border p-2.5 shadow-sm shadow-slate-950/20 transition-colors ${status.cardClassName}`}
                         >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="flex items-start gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-300/25 bg-amber-500/10">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="flex min-w-0 items-start gap-2">
+                              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${status.iconClassName}`}>
                                 {withdrawal.status === "approved" ? (
-                                  <CheckCircle className="h-5 w-5 text-emerald-300" />
+                                  <CheckCircle className="h-4 w-4" />
                                 ) : withdrawal.status === "rejected" ? (
-                                  <XCircle className="h-5 w-5 text-red-300" />
+                                  <XCircle className="h-4 w-4" />
                                 ) : withdrawal.status === "cancelled" ? (
-                                  <Ban className="h-5 w-5 text-slate-300" />
+                                  <Ban className="h-4 w-4" />
                                 ) : (
-                                  <Clock className="h-5 w-5 text-amber-300" />
+                                  <Clock className="h-4 w-4" />
                                 )}
                               </div>
-                              <div>
-                                <p className="font-semibold text-slate-100">Withdrawal Request</p>
-                                <p className="mt-1 text-xs text-slate-400">
+                              <div className="min-w-0">
+                                <p className="truncate text-xs font-bold text-slate-100">Withdrawal Request</p>
+                                <p className="mt-0.5 truncate text-[10px] text-slate-300/80">
                                   Submitted {new Date(withdrawal.created_at).toLocaleString("zh-CN")}
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="text-lg font-bold text-amber-200">
+                            <div className="shrink-0 text-right">
+                              <p className={`text-base font-black leading-none ${status.amountClassName}`}>
                                 -${Number(withdrawal.amount).toFixed(2)}
                               </p>
-                              <span className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${status.className}`}>
+                              <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${status.className}`}>
                                 {status.label}
                               </span>
                             </div>
                           </div>
                           {(withdrawal.audit_remark || withdrawal.audited_at) && (
-                            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-700/60 pt-3 text-xs text-slate-400">
+                            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 border-t border-white/10 pt-2 text-[10px] leading-tight text-slate-300/80">
                               {withdrawal.audited_at && (
                                 <span>Processed {new Date(withdrawal.audited_at).toLocaleString("zh-CN")}</span>
                               )}
                               {withdrawal.audit_remark && (
-                                <span className="text-slate-300">Note: {withdrawal.audit_remark}</span>
+                                <span className="text-slate-100/85">Note: {withdrawal.audit_remark}</span>
                               )}
                             </div>
                           )}
