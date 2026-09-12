@@ -638,14 +638,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           onClick={() => setAccountMenuOpen((open) => !open)}
           aria-haspopup="menu"
           aria-expanded={accountMenuOpen}
-          className={`flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-all duration-200 ${isSidebar ? `h-8 w-full justify-between border-l-2 border-cyan-200 bg-gradient-to-r from-cyan-700 via-cyan-600 to-blue-700 px-1.5 text-[10px] text-white shadow-sm shadow-cyan-950/50 hover:-translate-y-px hover:border-cyan-100 hover:from-cyan-600 hover:via-cyan-500 hover:to-blue-600 hover:shadow-md hover:shadow-cyan-950/50 active:translate-y-0 ${accountMenuOpen ? 'border-cyan-50 bg-gradient-to-r from-cyan-500 via-cyan-500 to-blue-600 text-white ring-1 ring-cyan-200/60' : ''}` : `h-7 border border-cyan-300/80 bg-gradient-to-r from-cyan-700 via-cyan-600 to-blue-700 px-2 text-[10px] text-white shadow-sm shadow-cyan-950/45 hover:border-cyan-100 hover:from-cyan-600 hover:via-cyan-500 hover:to-blue-600 hover:shadow-md hover:shadow-cyan-950/50 sm:px-2.5 sm:text-[11px] ${accountMenuOpen ? 'border-cyan-50 bg-gradient-to-r from-cyan-500 via-cyan-500 to-blue-600 text-white ring-1 ring-cyan-200/60' : ''}`}`}
+          className={`flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-colors duration-200 ${isSidebar ? `h-8 w-full justify-between border-l-2 border-emerald-300 bg-emerald-700 px-1.5 text-[10px] text-white hover:border-emerald-100 hover:bg-emerald-600 ${accountMenuOpen ? 'border-emerald-100 bg-emerald-600' : ''}` : `h-7 border border-emerald-300/90 bg-emerald-700 px-2 text-[10px] text-white hover:border-emerald-100 hover:bg-emerald-600 sm:px-2.5 sm:text-[11px] ${accountMenuOpen ? 'border-emerald-100 bg-emerald-600' : ''}`}`}
           title="Account actions"
         >
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-cyan-300/25">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-600">
             <UserCog className="h-3 w-3 text-white" />
           </span>
           <span className="flex-1 text-left tracking-wide">Account</span>
-          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-100 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180 text-white' : ''}`} />
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-emerald-100 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180 text-white' : ''}`} />
         </button>
         {accountMenuOpen && (
           <div
