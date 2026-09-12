@@ -1305,19 +1305,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         className="fixed z-[9999]"
         style={{ top: idleDaysDropdownPos.top, left: idleDaysDropdownPos.left }}
       >
-        <div className="w-[196px] overflow-hidden rounded-xl border border-[#163c27] bg-[#07140d] shadow-2xl shadow-black/60">
-          <div className="border-b border-[#163c27] bg-[#0c2115] px-3 py-2">
-            <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#1b5535] bg-[#0a1c12] text-emerald-300">
-                <Timer className="h-3.5 w-3.5" />
-              </span>
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold text-emerald-50">Idle Days</div>
-                <div className="text-[10px] text-emerald-300/60">Never-started accounts</div>
-              </div>
-            </div>
-          </div>
-          <div role="menu" aria-label="Idle days filter" className="space-y-1 bg-[#07140d] p-1.5">
+        <div className="w-[196px] overflow-hidden rounded-xl border border-[#0d2a19] bg-[#04100a] shadow-2xl shadow-black/60">
+          <div role="menu" aria-label="Idle days filter" className="space-y-1 bg-[#04100a] p-1.5">
             {items.map(({ key, label }) => {
               const isSelected = inactiveDaysFilterByGroup.get(adminId) === key;
               return (
@@ -1355,7 +1344,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             })}
           </div>
           {inactiveDaysFilterByGroup.has(adminId) && (
-            <div className="border-t border-[#163c27] bg-[#0c2115] p-1.5">
+            <div className="border-t border-[#0d2a19] bg-[#071a10] p-1.5">
               <button
                 type="button"
                 onClick={() => {
@@ -1367,7 +1356,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   setInactiveDaysDropdownOpen(null);
                   setIdleDaysDropdownPos(null);
                 }}
-                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-rose-300 bg-rose-600 px-2 text-[11px] font-semibold text-white transition-all hover:border-rose-200 hover:bg-rose-500 active:scale-[0.98] active:bg-rose-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
+                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-rose-500 bg-rose-700 px-2 text-[11px] font-semibold text-rose-100 transition-all hover:border-rose-400 hover:bg-rose-600 hover:text-white active:scale-[0.98] active:bg-rose-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
               >
                 <X className="h-3.5 w-3.5" />
                 Clear filter
@@ -1387,7 +1376,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
       const menuWidth = 196;
-      const menuHeight = 252;
+      const menuHeight = 190;
       const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
       const top = window.innerHeight - rect.bottom < menuHeight + 8
         ? Math.max(8, rect.top - menuHeight - 6)
