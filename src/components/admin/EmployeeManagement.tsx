@@ -1328,11 +1328,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   }}
                   className={`flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/60 ${
                     isSelected
-                      ? 'bg-emerald-700 text-white'
-                      : 'bg-emerald-900 text-emerald-100 hover:bg-emerald-800 hover:text-emerald-50'
+                      ? 'border border-emerald-300/70 bg-emerald-600 text-white'
+                      : 'border border-emerald-900 bg-[#082015] text-emerald-200 hover:border-emerald-700 hover:bg-[#0d2d1b] hover:text-emerald-50'
                   }`}
                 >
-                  <span className={`h-2 w-2 shrink-0 rounded-full border ${isSelected ? 'border-white bg-white' : 'border-emerald-700 bg-emerald-950'}`} />
+                  <span className={`h-2 w-2 shrink-0 rounded-full border ${isSelected ? 'border-white bg-white' : 'border-emerald-700 bg-[#04100a]'}`} />
                   <span className="flex-1">{label}</span>
                   {isSelected ? (
                     <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-100" />
@@ -1356,7 +1356,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   setInactiveDaysDropdownOpen(null);
                   setIdleDaysDropdownPos(null);
                 }}
-                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-rose-500 bg-rose-700 px-2 text-[11px] font-semibold text-rose-100 transition-all hover:border-rose-400 hover:bg-rose-600 hover:text-white active:scale-[0.98] active:bg-rose-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
+                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-[#8f4652] bg-[#4a1c24] px-2 text-[11px] font-semibold text-rose-200 transition-all hover:border-[#b45c68] hover:bg-[#5b222d] hover:text-rose-100 active:scale-[0.98] active:bg-[#3a151c] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
               >
                 <X className="h-3.5 w-3.5" />
                 Clear filter
