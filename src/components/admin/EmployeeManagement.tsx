@@ -1329,10 +1329,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   className={`flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/60 ${
                     isSelected
                       ? 'border border-emerald-300/70 bg-emerald-600 text-white'
-                      : 'border border-emerald-900 bg-[#082015] text-emerald-200 hover:border-emerald-700 hover:bg-[#0d2d1b] hover:text-emerald-50'
+                      : 'border border-slate-600 bg-slate-800 text-slate-200 hover:border-slate-500 hover:bg-slate-700 hover:text-white'
                   }`}
                 >
-                  <span className={`h-2 w-2 shrink-0 rounded-full border ${isSelected ? 'border-white bg-white' : 'border-emerald-700 bg-[#04100a]'}`} />
+                  <span className={`h-2 w-2 shrink-0 rounded-full border ${isSelected ? 'border-white bg-white' : 'border-slate-500 bg-slate-900'}`} />
                   <span className="flex-1">{label}</span>
                   {isSelected ? (
                     <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-100" />
