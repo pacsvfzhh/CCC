@@ -51,6 +51,43 @@
   scrollbar-color: #3b82f6 transparent;
 }
 
+/* High-visibility scrollbar for the super-admin employee workspace */
+.employee-super-admin-scrollbar {
+  scrollbar-width: auto;
+  scrollbar-color: #22d3ee #0f172a;
+}
+
+.employee-super-admin-scrollbar::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.employee-super-admin-scrollbar::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-left: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+.employee-super-admin-scrollbar::-webkit-scrollbar-thumb {
+  min-height: 48px;
+  border: 2px solid #0f172a;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #67e8f9 0%, #0891b2 48%, #2563eb 100%);
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.45);
+}
+
+.employee-super-admin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #cffafe 0%, #22d3ee 45%, #3b82f6 100%);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.75);
+}
+
+.employee-super-admin-scrollbar::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #a5f3fc 0%, #06b6d4 45%, #1d4ed8 100%);
+}
+
+.employee-super-admin-scrollbar::-webkit-scrollbar-corner {
+  background: #0f172a;
+}
+
 /* Global keyframes - always available regardless of scope */
 @keyframes spin {
   from { transform: rotate(0deg); }

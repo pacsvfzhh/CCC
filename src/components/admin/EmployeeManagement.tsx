@@ -2168,7 +2168,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         </div>
       )}
 
-      <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div className={`${admin.role === 'super_admin' ? 'employee-super-admin-scrollbar' : 'dark-panel-scroll'} min-h-0 flex-1 overflow-y-auto overscroll-contain`}>
         {/* Content */}
         {loading ? (
         <div className="text-center py-8 text-slate-400">Loading employees...</div>
