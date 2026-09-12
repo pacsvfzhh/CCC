@@ -638,19 +638,19 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           onClick={() => setAccountMenuOpen((open) => !open)}
           aria-haspopup="menu"
           aria-expanded={accountMenuOpen}
-          className={`flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-all duration-200 ${isSidebar ? `h-8 w-full justify-between border-l-2 border-amber-300/90 bg-gradient-to-r from-amber-600 via-yellow-600 to-emerald-700 px-1.5 text-[10px] text-amber-50 shadow-sm shadow-emerald-950/45 hover:-translate-y-px hover:border-emerald-200 hover:from-amber-500 hover:via-yellow-500 hover:to-emerald-600 hover:shadow-md hover:shadow-emerald-950/45 active:translate-y-0 ${accountMenuOpen ? 'border-amber-100 bg-gradient-to-r from-amber-500 via-yellow-500 to-emerald-600 text-slate-950 ring-1 ring-amber-200/50' : ''}` : `h-7 border border-amber-400/80 bg-gradient-to-r from-amber-600 via-yellow-600 to-emerald-700 px-2 text-[10px] text-amber-50 shadow-sm shadow-emerald-950/40 hover:border-emerald-200/90 hover:from-amber-500 hover:via-yellow-500 hover:to-emerald-600 hover:shadow-md hover:shadow-emerald-950/40 sm:px-2.5 sm:text-[11px] ${accountMenuOpen ? 'border-amber-100 bg-gradient-to-r from-amber-500 via-yellow-500 to-emerald-600 text-slate-950 ring-1 ring-amber-200/50' : ''}`}`}
+          className={`flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-all duration-200 ${isSidebar ? `h-8 w-full justify-between border-l-2 border-cyan-200 bg-gradient-to-r from-cyan-700 via-cyan-600 to-blue-700 px-1.5 text-[10px] text-white shadow-sm shadow-cyan-950/50 hover:-translate-y-px hover:border-cyan-100 hover:from-cyan-600 hover:via-cyan-500 hover:to-blue-600 hover:shadow-md hover:shadow-cyan-950/50 active:translate-y-0 ${accountMenuOpen ? 'border-cyan-50 bg-gradient-to-r from-cyan-500 via-cyan-500 to-blue-600 text-white ring-1 ring-cyan-200/60' : ''}` : `h-7 border border-cyan-300/80 bg-gradient-to-r from-cyan-700 via-cyan-600 to-blue-700 px-2 text-[10px] text-white shadow-sm shadow-cyan-950/45 hover:border-cyan-100 hover:from-cyan-600 hover:via-cyan-500 hover:to-blue-600 hover:shadow-md hover:shadow-cyan-950/50 sm:px-2.5 sm:text-[11px] ${accountMenuOpen ? 'border-cyan-50 bg-gradient-to-r from-cyan-500 via-cyan-500 to-blue-600 text-white ring-1 ring-cyan-200/60' : ''}`}`}
           title="Account actions"
         >
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-200/25">
-            <UserCog className="h-3 w-3 text-amber-50" />
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-cyan-300/25">
+            <UserCog className="h-3 w-3 text-white" />
           </span>
           <span className="flex-1 text-left tracking-wide">Account</span>
-          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-emerald-100 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180 text-slate-950' : ''}`} />
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-100 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180 text-white' : ''}`} />
         </button>
         {accountMenuOpen && (
           <div
             role="menu"
-            className={`absolute z-[70] w-full min-w-0 overflow-hidden rounded-xl border border-amber-400/55 bg-slate-950 p-1.5 shadow-xl shadow-emerald-950/60 ring-1 ring-emerald-300/15 animate-[fadeIn_120ms_ease-out] ${isSidebar ? 'left-0 right-0 top-[calc(100%+0.35rem)]' : 'right-0 top-[calc(100%+0.35rem)] min-w-[164px]'}`}
+            className={`absolute z-[70] flex w-full min-w-0 flex-col gap-1.5 overflow-hidden rounded-xl border border-cyan-400/65 bg-slate-950 p-1.5 shadow-xl shadow-cyan-950/60 ring-1 ring-cyan-300/20 animate-[fadeIn_120ms_ease-out] ${isSidebar ? 'left-0 right-0 top-[calc(100%+0.35rem)]' : 'right-0 top-[calc(100%+0.35rem)] min-w-[164px]'}`}
           >
             {admin.role === 'super_admin' && (
               <button
@@ -660,10 +660,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   setAccountMenuOpen(false);
                   setShowUsernameModal(true);
                 }}
-                className="flex h-8 w-full items-center gap-2 rounded-lg border-l-2 border-violet-400/90 bg-violet-500/15 px-1.5 text-left text-[11px] font-medium text-violet-100 transition-all hover:bg-violet-500/25 hover:text-white"
+                className="flex h-9 w-full items-center gap-2 rounded-lg border-l-4 border-violet-300 bg-violet-700 px-1.5 text-left text-[11px] font-semibold text-white transition-all hover:bg-violet-600"
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-violet-400/20">
-                  <UserCog className="h-3.5 w-3.5 text-violet-300" />
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-violet-600">
+                  <UserCog className="h-3.5 w-3.5 text-violet-100" />
                 </span>
                 <span>Username</span>
               </button>
@@ -675,10 +675,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 setAccountMenuOpen(false);
                 setShowPasswordModal(true);
               }}
-              className="flex h-8 w-full items-center gap-2 rounded-lg border-l-2 border-cyan-400/90 bg-cyan-500/15 px-1.5 text-left text-[11px] font-medium text-cyan-100 transition-all hover:bg-cyan-500/25 hover:text-white"
+              className="flex h-9 w-full items-center gap-2 rounded-lg border-l-4 border-cyan-200 bg-cyan-700 px-1.5 text-left text-[11px] font-semibold text-white transition-all hover:bg-cyan-600"
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-cyan-400/20">
-                <Lock className="h-3.5 w-3.5 text-cyan-300" />
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-cyan-600">
+                <Lock className="h-3.5 w-3.5 text-cyan-100" />
               </span>
               <span>Password</span>
             </button>
@@ -689,10 +689,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 setAccountMenuOpen(false);
                 logout();
               }}
-              className="flex h-8 w-full items-center gap-2 rounded-lg border-l-2 border-rose-400/90 bg-rose-500/15 px-1.5 text-left text-[11px] font-medium text-rose-100 transition-all hover:bg-rose-500/25 hover:text-white"
+              className="flex h-9 w-full items-center gap-2 rounded-lg border-l-4 border-rose-300 bg-rose-700 px-1.5 text-left text-[11px] font-semibold text-white transition-all hover:bg-rose-600"
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-rose-400/20">
-                <LogOut className="h-3.5 w-3.5 text-rose-300" />
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-rose-600">
+                <LogOut className="h-3.5 w-3.5 text-rose-100" />
               </span>
               <span>Logout</span>
             </button>
