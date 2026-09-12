@@ -1346,7 +1346,7 @@ export default function EmployeeDetailModal({
                             </p>
                           </div>
                           <div
-                            className="scrollbar-dark max-h-64 overflow-y-auto p-1"
+                            className="scrollbar-dark max-h-64 overscroll-contain overflow-y-auto p-1"
                             role="listbox"
                           >
                             {availableTransactionDates.map((date) => (
