@@ -990,7 +990,7 @@ export default function EmployeeDetailModal({
                       </span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-6">
+                  <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-[5fr_5fr_5fr_3fr_3fr_3fr]">
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-blue-950/35 px-2.5 py-2">
                       <div className="flex min-w-0 items-center gap-1.5">
                         <DollarSign className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
@@ -1003,20 +1003,6 @@ export default function EmployeeDetailModal({
                         {dailyStats
                           .reduce((sum, stat) => sum + stat.totalCommission, 0)
                           .toFixed(2)}
-                      </div>
-                    </div>
-                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-blue-500/30 bg-blue-950/35 px-2.5 py-2">
-                      <div className="flex min-w-0 items-center gap-1.5">
-                        <TrendingUp className="h-3.5 w-3.5 shrink-0 text-blue-400" />
-                        <span className="truncate text-[10px] font-bold text-blue-300">
-                          Orders
-                        </span>
-                      </div>
-                      <div className="shrink-0 text-sm font-black leading-none text-white">
-                        {dailyStats.reduce(
-                          (sum, stat) => sum + stat.totalOrders,
-                          0,
-                        )}
                       </div>
                     </div>
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-violet-500/30 bg-blue-950/35 px-2.5 py-2">
@@ -1039,6 +1025,20 @@ export default function EmployeeDetailModal({
                       </div>
                       <div className="shrink-0 text-sm font-black leading-none text-sky-200">
                         {totalManualAdditionAmount === null ? "—" : `$${totalManualAdditionAmount.toFixed(2)}`}
+                      </div>
+                    </div>
+                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-blue-500/30 bg-blue-950/35 px-2.5 py-2">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <TrendingUp className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+                        <span className="truncate text-[10px] font-bold text-blue-300">
+                          Orders
+                        </span>
+                      </div>
+                      <div className="shrink-0 text-sm font-black leading-none text-white">
+                        {dailyStats.reduce(
+                          (sum, stat) => sum + stat.totalOrders,
+                          0,
+                        )}
                       </div>
                     </div>
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-green-500/30 bg-blue-950/35 px-2.5 py-2">
