@@ -876,9 +876,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const getSortIcon = (adminId: string, field: SortField) => {
     const s = sortByGroup.get(adminId);
-    if (!s || s.sortBy !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-slate-200" />;
-    if (s.sortDirection === 'desc') return <ArrowDown className="h-3.5 w-3.5 text-amber-300" />;
-    return <ArrowUp className="h-3.5 w-3.5 text-emerald-300" />;
+    if (!s || s.sortBy !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-white" />;
+    if (s.sortDirection === 'desc') return <ArrowDown className="h-3.5 w-3.5 text-white" />;
+    return <ArrowUp className="h-3.5 w-3.5 text-white" />;
   };
 
   const handleActiveFilter = (adminId: string, filter: 'all' | 'active' | 'inactive') => {
@@ -1197,10 +1197,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     const sortState = sortByGroup.get(adminId);
     const isActive = sortState?.sortBy === field;
     const activeStyles = !isActive
-      ? 'text-slate-200 hover:bg-slate-600/60 hover:text-white'
+      ? 'text-white hover:bg-blue-800/75 hover:text-white'
       : sortState?.sortDirection === 'desc'
-        ? 'bg-amber-500/15 text-amber-100 ring-1 ring-inset ring-amber-300/45'
-        : 'bg-emerald-500/15 text-emerald-100 ring-1 ring-inset ring-emerald-300/45';
+        ? 'bg-blue-700/70 text-white ring-1 ring-inset ring-white/25'
+        : 'bg-blue-600/55 text-white ring-1 ring-inset ring-white/25';
 
     return (
       <th className={`h-[40px] p-0 text-center text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${widthClass}`}>
@@ -1967,16 +1967,16 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   );
 
   const renderTableHeader = (adminId: string) => (
-    <thead className="sticky top-0 z-20 isolate bg-slate-700 shadow-[0_2px_4px_rgba(0,0,0,0.3)] border-b-2 border-slate-500/50">
+    <thead className="sticky top-0 z-20 isolate bg-blue-900/90 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
       <tr className="h-[40px]">
-        <th className="w-[54px] px-1.5 py-1 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">#</th>
-        <th className="w-[88px] px-1.5 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">User</th>
-        <th className="w-[98px] px-1.5 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Emp ID</th>
+        <th className="w-[54px] px-1.5 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
+        <th className="w-[88px] px-1.5 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">User</th>
+        <th className="w-[98px] px-1.5 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Emp ID</th>
         {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[62px]')}
-        <th className="h-[40px] w-[68px] px-1 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Tags</th>
-        <th className="h-[40px] w-[40px] px-1 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Ver</th>
-        <th className="h-[40px] w-[44px] px-1 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Status</th>
-        <th className="h-[40px] w-[66px] px-1 py-1 text-left text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Remarks</th>
+        <th className="h-[40px] w-[68px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Tags</th>
+        <th className="h-[40px] w-[40px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Ver</th>
+        <th className="h-[40px] w-[44px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Status</th>
+        <th className="h-[40px] w-[66px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Remarks</th>
         {renderSortableHeader(adminId, 'totalOrders', 'Total', 'w-[41px]')}
         {renderSortableHeader(adminId, 'todayOrders', 'Today', 'w-[41px]')}
         {renderSortableHeader(adminId, 'todayCompletedOrders', 'Success', 'w-[45px]')}
@@ -1986,8 +1986,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         {renderSortableHeader(adminId, 'todayCommission', "Today $", 'w-[58px]')}
         {renderSortableHeader(adminId, 'totalWorkMinutes', 'Total T', 'w-[54px]')}
         {renderSortableHeader(adminId, 'todayWorkMinutes', 'Today T', 'w-[54px]')}
-        <th className="h-[40px] w-[50px] px-1 py-1 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Work</th>
-        <th className="h-[40px] w-[132px] px-1 py-1 text-center text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Actions</th>
+        <th className="h-[40px] w-[50px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">Work</th>
+        <th className="h-[40px] w-[132px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">Actions</th>
       </tr>
     </thead>
   );
