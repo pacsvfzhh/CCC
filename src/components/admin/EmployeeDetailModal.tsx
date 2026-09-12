@@ -219,18 +219,36 @@ export default function EmployeeDetailModal({
           return result;
         });
 
-      const transactionsPromise = supabase
-        .from("wallet_transactions")
-        .select("*")
-        .eq("user_id", employee.id)
-        .order("created_at", { ascending: false })
-        .then((result) => {
-          if (!result.error && result.data) {
-            setTransactions(result.data);
+      const transactionsPromise = (async () => {
+        const pageSize = 1000;
+        let offset = 0;
+        const allTransactions: WalletTransaction[] = [];
+
+        while (true) {
+          const result = await supabase
+            .from("wallet_transactions")
+            .select("*")
+            .eq("user_id", employee.id)
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(offset, offset + pageSize - 1);
+
+          if (result.error) {
+            setLoadingTransactions(false);
+            return result;
           }
-          setLoadingTransactions(false);
-          return result;
-        });
+
+          allTransactions.push(...result.data);
+
+          if (result.data.length < pageSize) {
+            setTransactions(allTransactions);
+            setLoadingTransactions(false);
+            return result;
+          }
+
+          offset += pageSize;
+        }
+      })();
 
       const withdrawalsPromise = supabase
         .from("withdrawals")
