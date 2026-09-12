@@ -993,12 +993,12 @@ export default function EmployeeDetailModal({
                   <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-6">
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-blue-950/35 px-2.5 py-2">
                       <div className="flex min-w-0 items-center gap-1.5">
-                        <DollarSign className="h-4 w-4 shrink-0 text-emerald-400" />
-                        <span className="truncate text-xs font-bold text-emerald-300">
+                        <DollarSign className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                        <span className="truncate text-[10px] font-bold text-emerald-300">
                           Total Revenue
                         </span>
                       </div>
-                      <div className="shrink-0 text-lg font-black leading-none text-emerald-400">
+                      <div className="shrink-0 text-sm font-black leading-none text-emerald-400">
                         $
                         {dailyStats
                           .reduce((sum, stat) => sum + stat.totalCommission, 0)
@@ -1007,12 +1007,12 @@ export default function EmployeeDetailModal({
                     </div>
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-blue-500/30 bg-blue-950/35 px-2.5 py-2">
                       <div className="flex min-w-0 items-center gap-1.5">
-                        <TrendingUp className="h-4 w-4 shrink-0 text-blue-400" />
-                        <span className="truncate text-xs font-bold text-blue-300">
+                        <TrendingUp className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+                        <span className="truncate text-[10px] font-bold text-blue-300">
                           Orders
                         </span>
                       </div>
-                      <div className="shrink-0 text-lg font-black leading-none text-white">
+                      <div className="shrink-0 text-sm font-black leading-none text-white">
                         {dailyStats.reduce(
                           (sum, stat) => sum + stat.totalOrders,
                           0,
@@ -1021,34 +1021,34 @@ export default function EmployeeDetailModal({
                     </div>
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-violet-500/30 bg-blue-950/35 px-2.5 py-2">
                       <div className="flex min-w-0 items-center gap-1.5">
-                        <Gift className="h-4 w-4 shrink-0 text-violet-300" />
-                        <span className="truncate text-xs font-bold text-violet-200">
+                        <Gift className="h-3.5 w-3.5 shrink-0 text-violet-300" />
+                        <span className="truncate text-[10px] font-bold text-violet-200">
                           Tip Amount
                         </span>
                       </div>
-                      <div className="shrink-0 text-lg font-black leading-none text-amber-200">
+                      <div className="shrink-0 text-sm font-black leading-none text-amber-200">
                         {totalTipAmount === null ? "—" : `$${totalTipAmount.toFixed(2)}`}
                       </div>
                     </div>
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-sky-500/30 bg-blue-950/35 px-2.5 py-2">
                       <div className="flex min-w-0 items-center gap-1.5">
-                        <CreditCard className="h-4 w-4 shrink-0 text-sky-300" />
-                        <span className="truncate text-xs font-bold text-sky-200">
+                        <CreditCard className="h-3.5 w-3.5 shrink-0 text-sky-300" />
+                        <span className="truncate text-[10px] font-bold text-sky-200">
                           Admin Added
                         </span>
                       </div>
-                      <div className="shrink-0 text-lg font-black leading-none text-sky-200">
+                      <div className="shrink-0 text-sm font-black leading-none text-sky-200">
                         {totalManualAdditionAmount === null ? "—" : `$${totalManualAdditionAmount.toFixed(2)}`}
                       </div>
                     </div>
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-green-500/30 bg-blue-950/35 px-2.5 py-2">
                       <div className="flex min-w-0 items-center gap-1.5">
-                        <CheckCircle className="h-4 w-4 shrink-0 text-green-400" />
-                        <span className="truncate text-xs font-bold text-green-300">
+                        <CheckCircle className="h-3.5 w-3.5 shrink-0 text-green-400" />
+                        <span className="truncate text-[10px] font-bold text-green-300">
                           Success
                         </span>
                       </div>
-                      <div className="shrink-0 text-lg font-black leading-none text-green-400">
+                      <div className="shrink-0 text-sm font-black leading-none text-green-400">
                         {dailyStats.reduce(
                           (sum, stat) => sum + stat.successCount,
                           0,
@@ -1057,12 +1057,12 @@ export default function EmployeeDetailModal({
                     </div>
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-red-500/30 bg-blue-950/35 px-2.5 py-2">
                       <div className="flex min-w-0 items-center gap-1.5">
-                        <XCircle className="h-4 w-4 shrink-0 text-red-400" />
-                        <span className="truncate text-xs font-bold text-red-300">
+                        <XCircle className="h-3.5 w-3.5 shrink-0 text-red-400" />
+                        <span className="truncate text-[10px] font-bold text-red-300">
                           Failed
                         </span>
                       </div>
-                      <div className="shrink-0 text-lg font-black leading-none text-red-400">
+                      <div className="shrink-0 text-sm font-black leading-none text-red-400">
                         {dailyStats.reduce(
                           (sum, stat) => sum + stat.failureCount,
                           0,
