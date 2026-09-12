@@ -244,15 +244,6 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   }, [showCreateSecondaryAdmin, adminFilterOpen, editingEmployee, showPasswordReset, deletingEmployee, editingTags, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
 
   useEffect(() => {
-    if (searchTerm) {
-      const groupsWithMatches = employeeGroups
-        .filter(group => getFilteredEmployeesForGroup(group).length > 0)
-        .map(group => group.admin.id);
-      setExpandedGroups(new Set(groupsWithMatches));
-    }
-  }, [searchTerm, employeeGroups]);
-
-  useEffect(() => {
     guardedLoadEmployees(false);
 
     let realtimeReloadTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1156,10 +1147,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     const activeFilter = getActiveFilter(group.admin.id);
     const workStatusFilter = getWorkStatusFilter(group.admin.id);
     const summaryFilter = getSummaryFilter(group.admin.id);
+    const searchLower = searchTerm.toLowerCase();
+    const today = new Date();
+    const now = Date.now();
 
     return sortEmployees(
       group.employees.filter((emp) => {
-        const searchLower = searchTerm.toLowerCase();
         const matchesSearch = !searchTerm ||
           emp.username.toLowerCase().includes(searchLower) ||
           emp.employee_id.toLowerCase().includes(searchLower) ||
@@ -1177,7 +1170,6 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           emp.is_active === false;
 
         const matchesWorkStatus = workStatusFilter.size === 0 || workStatusFilter.has(emp.workStatus);
-        const today = new Date();
         const matchesSummary = !summaryFilter ||
           (summaryFilter === 'today_working' && emp.todayWorkMinutes > 0) ||
           (summaryFilter === 'new_today' && Boolean(emp.created_at) && new Date(emp.created_at).toDateString() === today.toDateString()) ||
@@ -1186,7 +1178,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         const inactiveDaysRange = inactiveDaysFilterByGroup.get(group.admin.id);
         const matchesInactiveDays = !inactiveDaysRange || (() => {
           if (emp.workStatus !== 'never_started' || !emp.created_at) return false;
-          const ageDays = (Date.now() - new Date(emp.created_at).getTime()) / (1000 * 60 * 60 * 24);
+          const ageDays = (now - new Date(emp.created_at).getTime()) / (1000 * 60 * 60 * 24);
           switch (inactiveDaysRange) {
             case '2-3': return ageDays > 2 && ageDays <= 3;
             case '3-7': return ageDays > 3 && ageDays <= 7;
@@ -1247,6 +1239,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     });
   }, [filteredEmployeeGroups, adminPinOverrides]);
 
+  useEffect(() => {
+    if (!searchTerm) return;
+    const groupsWithMatches = filteredEmployeeGroups
+      .filter(group => group.employees.length > 0)
+      .map(group => group.admin.id);
+    setExpandedGroups(prev => {
+      if (prev.size === groupsWithMatches.length && groupsWithMatches.every(groupId => prev.has(groupId))) return prev;
+      return new Set(groupsWithMatches);
+    });
+  }, [searchTerm, filteredEmployeeGroups]);
+
   const flatFilteredEmployees = admin.role === 'secondary_admin' && filteredGroups.length > 0
     ? filteredGroups[0].employees
     : [];
@@ -1287,7 +1290,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     if (status === 'online') {
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/20 border border-green-500/50">
-          <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
+          <span className="w-1 h-1 rounded-full bg-green-400" />
           <span className="text-xs font-medium text-green-400">On</span>
         </span>
       );
@@ -1986,16 +1989,16 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const renderEmployeeRow = (employee: EmployeeWithAdmin, index: number, isSuperAdmin: boolean) => (
     <tr
       key={employee.id}
-      className={`group border-t border-slate-700/50 transition-colors ${
+      className={`group border-t border-slate-700/50 transition-colors duration-75 ${
         employee.is_pinned
           ? 'bg-amber-500/10 hover:bg-amber-500/20'
-          : isSuperAdmin ? 'hover:bg-yellow-500/15 hover:shadow-[inset_5px_0_0_theme(colors.yellow.400)]' : 'hover:bg-blue-500/15 hover:shadow-[inset_5px_0_0_theme(colors.blue.400)]'
+          : isSuperAdmin ? 'hover:bg-yellow-500/15' : 'hover:bg-blue-500/15'
       }`}
     >
       <td className="relative w-[54px] py-0.5 px-1.5 text-xs text-slate-500 text-center whitespace-nowrap">
         <span
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-y-0 left-0 w-1 transition-opacity duration-150 ${
+          className={`pointer-events-none absolute inset-y-0 left-0 w-1 transition-opacity duration-75 ${
             employee.is_pinned
               ? 'bg-amber-400 opacity-100'
               : isSuperAdmin
@@ -2019,7 +2022,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
           </div>
           {employee.hasPendingWithdrawal && (
-            <span className="text-[10px] text-orange-400 animate-pulse">${employee.pendingWithdrawalAmount.toFixed(2)}</span>
+            <span className="text-[10px] text-orange-400">${employee.pendingWithdrawalAmount.toFixed(2)}</span>
           )}
         </div>
       </td>
