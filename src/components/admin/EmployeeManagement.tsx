@@ -2771,7 +2771,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       </div>
                     </div>
                     {group.employees.length > 0 ? (
-                      <div className={`-ml-1 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 min-h-[300px] dark-panel-scroll ${selectedAdminFilter !== 'all' ? 'min-h-0 flex-1' : 'max-h-[calc(100vh-140px)]'}`}>
+                      <div className={`-ml-1 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 min-h-[300px] dark-panel-scroll ${selectedAdminFilter !== 'all' ? 'min-h-0 flex-1' : 'max-h-[calc(100vh-160px)]'}`}>
                         <table className="w-full table-fixed">
                           {renderTableHeader(group.admin.id)}
                           <tbody>{employeeRowsByGroup.get(group.admin.id)}</tbody>
