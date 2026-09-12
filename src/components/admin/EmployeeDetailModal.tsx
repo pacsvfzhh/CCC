@@ -1092,7 +1092,7 @@ export default function EmployeeDetailModal({
                       <p className="mt-0.5 inline-flex items-baseline gap-1.5 rounded-md border border-cyan-300/30 bg-cyan-500/15 px-2 py-0.5">
                         <span className="text-base font-black leading-none tabular-nums text-cyan-50">{filteredTransactions.length}</span>
                         <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-200">
-                          {selectedTransactionDate ? "matching records" : "all records"}
+                          {selectedTransactionDate ? "matching wallet records" : "all wallet records"}
                         </span>
                       </p>
                     </div>
