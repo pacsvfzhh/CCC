@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
+import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { hashPassword } from '../../lib/passwordHash';
 import { Employee, Admin } from '../../types';
@@ -836,6 +836,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       else next.add(adminId);
       return next;
     });
+  };
+
+  const setAllGroupsExpanded = (expanded: boolean) => {
+    if (admin.role !== 'super_admin' || selectedAdminFilter !== 'all') return;
+    setExpandedGroups(expanded ? new Set(employeeGroups.map(group => group.admin.id)) : new Set());
   };
 
   const handleUpdateEmployee = async (employeeId: string, updates: Partial<EmployeeWithAdmin>) => {
@@ -2242,7 +2247,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
         <div className="relative z-40 flex h-9 w-full min-w-0 items-center overflow-visible rounded-none border border-cyan-200/45 bg-slate-950/95 shadow-lg shadow-cyan-950/25 shrink-0 sticky top-0 backdrop-blur-sm">
-          <div className="relative h-full min-w-[220px] flex-[1_1_0%] border-r border-cyan-300/25 bg-gradient-to-r from-cyan-500/15 via-cyan-500/10 to-blue-500/10">
+          <div className="relative h-full min-w-[180px] flex-[1_1_0%] border-r border-cyan-300/25 bg-gradient-to-r from-cyan-500/15 via-cyan-500/10 to-blue-500/10">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-200 drop-shadow-[0_0_6px_rgba(103,232,249,0.35)] pointer-events-none" />
             <input
               type="text"
@@ -2258,7 +2263,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </button>
             )}
           </div>
-          <div ref={adminFilterRef} className="relative h-full min-w-[200px] flex-[1_1_0%] border-r border-cyan-300/25">
+          <div ref={adminFilterRef} className="relative h-full min-w-[170px] flex-[1_1_0%] border-r border-cyan-300/25">
             <button
               type="button"
               onClick={() => setAdminFilterOpen((open) => !open)}
@@ -2312,6 +2317,28 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </div>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => setAllGroupsExpanded(true)}
+            disabled={selectedAdminFilter !== 'all'}
+            aria-label="Open all groups"
+            className="flex h-full w-[108px] shrink-0 items-center justify-center gap-1.5 border-r border-emerald-300/25 bg-emerald-600/85 px-2 text-[11px] font-bold text-white transition-all hover:bg-emerald-500 active:bg-emerald-700 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:text-slate-500"
+            title="Open all groups"
+          >
+            <ChevronsDown className="h-4 w-4 shrink-0" />
+            <span className="whitespace-nowrap">Open all</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setAllGroupsExpanded(false)}
+            disabled={selectedAdminFilter !== 'all'}
+            aria-label="Close all groups"
+            className="flex h-full w-[108px] shrink-0 items-center justify-center gap-1.5 border-r border-rose-300/25 bg-rose-600/85 px-2 text-[11px] font-bold text-white transition-all hover:bg-rose-500 active:bg-rose-700 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:text-slate-500"
+            title="Close all groups"
+          >
+            <ChevronsUp className="h-4 w-4 shrink-0" />
+            <span className="whitespace-nowrap">Close all</span>
+          </button>
           <button
             type="button"
             onClick={() => {
