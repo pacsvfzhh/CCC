@@ -910,7 +910,7 @@ export default function EmployeeDetailModal({
                 <div className="min-w-0 p-2.5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-sky-200">Member Since</p>
                   <p className="mt-1 truncate text-xs font-bold text-white">{new Date(employee.created_at).toLocaleDateString("zh-CN")}</p>
-                  {employee.first_success_order_date && <p className="truncate text-[10px] text-slate-500">First order: {new Date(employee.first_success_order_date).toLocaleDateString("zh-CN")}</p>}
+                  {employee.first_success_order_date && <p className="truncate text-[10px] text-sky-200/75">First order: {new Date(employee.first_success_order_date).toLocaleDateString("zh-CN")}</p>}
                 </div>
               </div>
               <button
