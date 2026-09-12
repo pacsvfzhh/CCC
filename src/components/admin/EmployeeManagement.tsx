@@ -1305,7 +1305,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         className="fixed z-[9999]"
         style={{ top: idleDaysDropdownPos.top, left: idleDaysDropdownPos.left }}
       >
-        <div className="w-[196px] overflow-hidden rounded-xl border border-[#0d2a19] bg-[#04100a] shadow-2xl shadow-black/60">
+        <div className="w-[196px] overflow-hidden rounded-xl border border-[#3b7a50] bg-[#04100a] shadow-2xl shadow-black/60">
           <div role="menu" aria-label="Idle days filter" className="space-y-1 bg-[#04100a] p-1.5">
             {items.map(({ key, label }) => {
               const isSelected = inactiveDaysFilterByGroup.get(adminId) === key;
