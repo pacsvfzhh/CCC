@@ -1828,7 +1828,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 hidden group-hover/tags:block rounded-lg border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-amber-950">
             <div className="flex gap-1">
               {(employee.tags || []).map((tag, idx) => (
-                <span key={idx} className="rounded-full border border-amber-300 bg-amber-50 px-1.5 py-px text-[10px] font-medium text-amber-900">{tag}</span>
+                <span key={idx} className="rounded-full border border-amber-700 bg-amber-900 px-1.5 py-px text-[10px] font-medium text-amber-100">{tag}</span>
               ))}
             </div>
           </div>
