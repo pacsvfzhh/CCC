@@ -154,6 +154,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const scrollLockRef = useRef(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const employeeGroupsScrollRef = useRef<HTMLDivElement>(null);
   const employeeGroupsRef = useRef<EmployeeGroup[]>([]);
   employeeGroupsRef.current = employeeGroups;
   const loadInProgressRef = useRef(false);
@@ -1227,6 +1228,34 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const flatAdminId = admin.id;
 
+  const navigateGroupPanel = (direction: -1 | 1) => {
+    if (admin.role !== 'super_admin' || selectedAdminFilter !== 'all') return;
+
+    const container = employeeGroupsScrollRef.current;
+    if (!container || filteredGroups.length === 0) return;
+
+    const panelsById = new Map(
+      Array.from(container.querySelectorAll<HTMLElement>('[data-admin-group-id]'))
+        .map(panel => [panel.dataset.adminGroupId, panel] as const)
+    );
+    const panels = filteredGroups
+      .map(group => panelsById.get(group.admin.id))
+      .filter((panel): panel is HTMLElement => Boolean(panel));
+    if (panels.length === 0) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const panelTops = panels.map(panel =>
+      panel.getBoundingClientRect().top - containerRect.top + container.scrollTop
+    );
+    const currentIndex = panelTops.reduce(
+      (index, top, panelIndex) => top <= container.scrollTop + 32 ? panelIndex : index,
+      0
+    );
+    const nextIndex = Math.max(0, Math.min(panels.length - 1, currentIndex + direction));
+
+    container.scrollTo({ top: panelTops[nextIndex], behavior: 'smooth' });
+  };
+
   // ===== Render helpers =====
 
   const renderWorkStatusBadge = (status: 'online' | 'offline' | 'never_started') => {
@@ -2250,7 +2279,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
         <div className="relative z-40 flex h-9 w-full min-w-0 items-center overflow-visible rounded-none border border-cyan-200/45 bg-slate-950/95 shadow-lg shadow-cyan-950/25 shrink-0 sticky top-0 backdrop-blur-sm">
-          <div className="relative h-full min-w-[180px] flex-[1_1_0%] border-r border-cyan-300/25 bg-gradient-to-r from-cyan-500/15 via-cyan-500/10 to-blue-500/10">
+          <div className="relative h-full min-w-[140px] flex-[1_1_0%] border-r border-cyan-300/25 bg-gradient-to-r from-cyan-500/15 via-cyan-500/10 to-blue-500/10">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-200 drop-shadow-[0_0_6px_rgba(103,232,249,0.35)] pointer-events-none" />
             <input
               type="text"
@@ -2266,7 +2295,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </button>
             )}
           </div>
-          <div ref={adminFilterRef} className="relative h-full min-w-[170px] flex-[1_1_0%] border-r border-cyan-300/25">
+          <div ref={adminFilterRef} className="relative h-full min-w-[135px] flex-[1_1_0%] border-r border-cyan-300/25">
             <button
               type="button"
               onClick={() => setAdminFilterOpen((open) => !open)}
@@ -2322,6 +2351,28 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           </div>
           <button
             type="button"
+            onClick={() => navigateGroupPanel(-1)}
+            disabled={selectedAdminFilter !== 'all'}
+            aria-label="Show previous group"
+            className="flex h-full w-[92px] shrink-0 items-center justify-center gap-1 border-r border-violet-300/25 bg-gradient-to-r from-violet-600/80 to-indigo-500/75 px-2 text-[10px] font-bold text-white shadow-sm shadow-violet-950/30 transition-all hover:from-violet-500 hover:to-indigo-400 active:from-violet-700 active:to-indigo-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
+            title="Show previous group"
+          >
+            <ChevronUp className="h-3.5 w-3.5 shrink-0" />
+            <span className="whitespace-nowrap">Prev group</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigateGroupPanel(1)}
+            disabled={selectedAdminFilter !== 'all'}
+            aria-label="Show next group"
+            className="flex h-full w-[92px] shrink-0 items-center justify-center gap-1 border-r border-indigo-300/25 bg-gradient-to-r from-indigo-600/80 to-blue-500/75 px-2 text-[10px] font-bold text-white shadow-sm shadow-indigo-950/30 transition-all hover:from-indigo-500 hover:to-blue-400 active:from-indigo-700 active:to-blue-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
+            title="Show next group"
+          >
+            <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+            <span className="whitespace-nowrap">Next group</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setAllGroupsExpanded(true)}
             disabled={selectedAdminFilter !== 'all'}
             aria-label="Open all groups"
@@ -2371,7 +2422,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         </div>
       )}
 
-      <div className={`${admin.role === 'super_admin' ? 'employee-super-admin-scrollbar overflow-y-auto' : 'dark-panel-scroll overflow-hidden'} flex min-h-0 flex-1 flex-col overscroll-contain`}>
+      <div ref={employeeGroupsScrollRef} className={`${admin.role === 'super_admin' ? 'employee-super-admin-scrollbar overflow-y-auto' : 'dark-panel-scroll overflow-hidden'} flex min-h-0 flex-1 flex-col overscroll-contain`}>
         {/* Content */}
         {loading ? (
         <div className="text-center py-8 text-slate-400">Loading employees...</div>
@@ -2544,6 +2595,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             return (
               <div
                 key={group.admin.id}
+                data-admin-group-id={group.admin.id}
                 className={`rounded-none overflow-hidden transition-all duration-300 ${
                   isSuperGroup
                     ? 'bg-gradient-to-br from-yellow-500/5 via-slate-800/40 to-slate-800/40 border-2 border-yellow-500/30 shadow-lg shadow-yellow-500/10'
