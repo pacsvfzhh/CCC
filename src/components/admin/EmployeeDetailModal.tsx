@@ -112,6 +112,10 @@ export default function EmployeeDetailModal({
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [totalOrderCount, setTotalOrderCount] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [transactionTotalCount, setTransactionTotalCount] = useState<number | null>(null);
+  const [transactionPage, setTransactionPage] = useState(1);
+  const [hasNextTransactionPage, setHasNextTransactionPage] = useState(false);
+  const [transactionDateCounts, setTransactionDateCounts] = useState<Record<string, number>>({});
   const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [verificationData, setVerificationData] = useState<VerificationRequest | null>(null);
   const [, setLoading] = useState(true);
@@ -135,6 +139,7 @@ export default function EmployeeDetailModal({
   const [imageLoading, setImageLoading] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
   const itemsPerPage = 10;
+  const transactionPageSize = 100;
 
   useEffect(() => {
     // Show modal immediately with basic info
@@ -143,6 +148,10 @@ export default function EmployeeDetailModal({
     setDailyStats([]);
     setTotalOrderCount(null);
     setTransactions([]);
+    setTransactionTotalCount(null);
+    setTransactionPage(1);
+    setHasNextTransactionPage(false);
+    setTransactionDateCounts({});
     setWithdrawals([]);
     setVerificationData(null);
     setLoading(false);
@@ -158,6 +167,84 @@ export default function EmployeeDetailModal({
       document.body.style.overflow = '';
     };
   }, []);
+
+  const loadTransactionPage = async (page: number, date: string) => {
+    setLoadingTransactions(true);
+
+    let query = supabase
+      .from("wallet_transactions")
+      .select("*", { count: "exact" })
+      .eq("user_id", employee.id)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
+
+    if (date) {
+      const start = new Date(`${date}T00:00:00`);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      query = query
+        .gte("created_at", start.toISOString())
+        .lt("created_at", end.toISOString());
+    }
+
+    const result = await query.range(
+      (page - 1) * transactionPageSize,
+      page * transactionPageSize - 1,
+    );
+
+    if (result.error) {
+      setTransactions([]);
+      setTransactionTotalCount(0);
+      setHasNextTransactionPage(false);
+      setLoadingTransactions(false);
+      return result;
+    }
+
+    const totalCount = result.count ?? 0;
+    setTransactions(result.data);
+    setTransactionTotalCount(totalCount);
+    setHasNextTransactionPage(page * transactionPageSize < totalCount);
+    setLoadingTransactions(false);
+    return result;
+  };
+
+  const loadTransactionDateCounts = async () => {
+    const pageSize = 1000;
+    let offset = 0;
+    const dateCounts: Record<string, number> = {};
+
+    while (true) {
+      const result = await supabase
+        .from("wallet_transactions")
+        .select("id, created_at")
+        .eq("user_id", employee.id)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(offset, offset + pageSize - 1);
+
+      if (result.error) {
+        if (!isSupabaseAbortError(result.error)) {
+          console.error(
+            "Transaction date counts load error:",
+            formatSupabaseError(result.error),
+          );
+        }
+        return;
+      }
+
+      result.data.forEach((transaction) => {
+        const date = formatTransactionDate(transaction.created_at);
+        dateCounts[date] = (dateCounts[date] || 0) + 1;
+      });
+
+      if (result.data.length < pageSize) {
+        setTransactionDateCounts(dateCounts);
+        return;
+      }
+
+      offset += pageSize;
+    }
+  };
 
   const loadEmployeeDetails = async () => {
     try {
@@ -254,36 +341,8 @@ export default function EmployeeDetailModal({
           return result;
         });
 
-      const transactionsPromise = (async () => {
-        const pageSize = 1000;
-        let offset = 0;
-        const allTransactions: WalletTransaction[] = [];
-
-        while (true) {
-          const result = await supabase
-            .from("wallet_transactions")
-            .select("*")
-            .eq("user_id", employee.id)
-            .order("created_at", { ascending: false })
-            .order("id", { ascending: false })
-            .range(offset, offset + pageSize - 1);
-
-          if (result.error) {
-            setLoadingTransactions(false);
-            return result;
-          }
-
-          allTransactions.push(...result.data);
-
-          if (result.data.length < pageSize) {
-            setTransactions(allTransactions);
-            setLoadingTransactions(false);
-            return result;
-          }
-
-          offset += pageSize;
-        }
-      })();
+      const transactionsPromise = loadTransactionPage(1, "");
+      void loadTransactionDateCounts();
 
       const withdrawalsPromise = supabase
         .from("withdrawals")
@@ -553,17 +612,7 @@ export default function EmployeeDetailModal({
     };
   };
 
-  const transactionDateCounts = transactions.reduce<Record<string, number>>((counts, tx) => {
-    const date = formatTransactionDate(tx.created_at);
-    counts[date] = (counts[date] || 0) + 1;
-    return counts;
-  }, {});
-
   const availableTransactionDates = Object.keys(transactionDateCounts).sort((a, b) => b.localeCompare(a));
-
-  const filteredTransactions = selectedTransactionDate
-    ? transactions.filter((tx) => formatTransactionDate(tx.created_at) === selectedTransactionDate)
-    : transactions;
 
   return createPortal(
     <>
@@ -1090,7 +1139,9 @@ export default function EmployeeDetailModal({
                     <div>
                       <p className="text-xs font-bold text-slate-100">Transaction History</p>
                       <p className="mt-0.5 inline-flex items-baseline gap-1.5 rounded-md border border-cyan-300/30 bg-cyan-500/15 px-2 py-0.5">
-                        <span className="text-base font-black leading-none tabular-nums text-cyan-50">{filteredTransactions.length}</span>
+                        <span className="text-base font-black leading-none tabular-nums text-cyan-50">
+                          {transactionTotalCount === null ? "—" : transactionTotalCount.toLocaleString()}
+                        </span>
                         <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-200">
                           {selectedTransactionDate ? "matching wallet records" : "all wallet records"}
                         </span>
@@ -1098,20 +1149,50 @@ export default function EmployeeDetailModal({
                     </div>
                   </div>
                   <div className="relative flex items-center gap-2 self-start sm:self-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedTransactionDate("");
-                        setIsDateFilterOpen(false);
-                      }}
-                      className={`h-8 rounded-lg border px-3 text-xs font-bold transition-colors ${
-                        selectedTransactionDate === ""
-                          ? "border-cyan-200 bg-cyan-500/25 text-cyan-50 shadow-sm shadow-cyan-950/40"
-                          : "border-slate-600/70 bg-slate-800 text-slate-300 hover:border-cyan-300/45 hover:bg-cyan-500/10 hover:text-cyan-100"
-                      }`}
-                    >
-                      ALL
-                    </button>
+                    <div className="flex items-center gap-1 rounded-lg border border-slate-700/80 bg-slate-950/60 p-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextPage = transactionPage - 1;
+                          setTransactionPage(nextPage);
+                          void loadTransactionPage(nextPage, selectedTransactionDate);
+                        }}
+                        disabled={transactionPage === 1 || loadingTransactions}
+                        aria-label="Previous transaction page"
+                        className="inline-flex h-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2 text-xs font-semibold text-slate-200 transition-colors hover:border-cyan-300/40 hover:bg-cyan-500/10 hover:text-cyan-100 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="min-w-[68px] text-center text-[11px] font-semibold tabular-nums text-cyan-100">
+                        Page {transactionPage} / {Math.max(1, Math.ceil((transactionTotalCount ?? 0) / transactionPageSize))}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextPage = transactionPage + 1;
+                          setTransactionPage(nextPage);
+                          void loadTransactionPage(nextPage, selectedTransactionDate);
+                        }}
+                        disabled={!hasNextTransactionPage || loadingTransactions}
+                        aria-label="Next transaction page"
+                        className="inline-flex h-7 items-center justify-center rounded-md border border-cyan-300/35 bg-cyan-500/10 px-2 text-xs font-semibold text-cyan-100 transition-colors hover:border-cyan-200/60 hover:bg-cyan-500/20 hover:text-white disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    {selectedTransactionDate && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTransactionDate("");
+                          setTransactionPage(1);
+                          void loadTransactionPage(1, "");
+                        }}
+                        className="inline-flex h-8 items-center rounded-lg border border-slate-600/70 bg-slate-800 px-2.5 text-xs font-semibold text-slate-300 transition-colors hover:border-cyan-300/45 hover:bg-cyan-500/10 hover:text-cyan-100"
+                      >
+                        All dates
+                      </button>
+                    )}
                     <div className="relative">
                       <button
                         type="button"
@@ -1155,7 +1236,9 @@ export default function EmployeeDetailModal({
                                 type="button"
                                 onClick={() => {
                                   setSelectedTransactionDate(date);
+                                  setTransactionPage(1);
                                   setIsDateFilterOpen(false);
+                                  void loadTransactionPage(1, date);
                                 }}
                                 className={`flex w-full items-center justify-between gap-3 rounded-md border px-2.5 py-1.5 text-left transition-colors ${
                                   selectedTransactionDate === date
@@ -1182,12 +1265,7 @@ export default function EmployeeDetailModal({
 
                 {/* Transaction List */}
                 <div className="space-y-2.5 px-4 pt-3 sm:px-5">
-                  {filteredTransactions.length === 0 ? (
-                    <div className="flex min-h-[260px] items-center justify-center text-center text-slate-400">
-                      No transactions found for the selected date
-                    </div>
-                  ) : (
-                    filteredTransactions.map((tx) => {
+                  {transactions.map((tx) => {
                       const style = getTransactionStyle(tx.type, Number(tx.amount));
                       const icon =
                         tx.type === "commission" ? (
@@ -1244,8 +1322,7 @@ export default function EmployeeDetailModal({
                           </div>
                         </div>
                       );
-                    })
-                  )}
+                    })}
                 </div>
               </>
             )}
