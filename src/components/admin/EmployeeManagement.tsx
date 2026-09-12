@@ -1427,7 +1427,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     const dim = 'bg-slate-800/60 border border-slate-600/50 font-medium';
 
     return (
-      <div className="flex gap-0.5 flex-wrap items-center">
+      <div className="flex gap-1 flex-wrap items-center">
         {/* Account status: ALL / Active / Off */}
         <button
           onClick={() => handleActiveFilter(adminId, 'all')}
