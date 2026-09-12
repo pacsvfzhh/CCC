@@ -115,7 +115,7 @@ export default function EmployeeDetailModal({
   const [, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"daily" | "transactions" | "withdrawals" | "verification">("daily");
   const [currentPage, setCurrentPage] = useState(1);
-  const [transactionPage, setTransactionPage] = useState(1);
+  const [selectedTransactionDate, setSelectedTransactionDate] = useState("");
   const [withdrawalPage, setWithdrawalPage] = useState(1);
   const [walletBalance, setWalletBalance] = useState({
     available: 0,
@@ -135,6 +135,7 @@ export default function EmployeeDetailModal({
 
   useEffect(() => {
     // Show modal immediately with basic info
+    setSelectedTransactionDate("");
     setLoading(false);
     // Load detailed data in background
     loadEmployeeDetails();
@@ -220,7 +221,6 @@ export default function EmployeeDetailModal({
         .select("*")
         .eq("user_id", employee.id)
         .order("created_at", { ascending: false })
-        .limit(100)
         .then((result) => {
           if (!result.error && result.data) {
             setTransactions(result.data);
@@ -407,18 +407,70 @@ export default function EmployeeDetailModal({
       withdrawal_approved: "Withdrawal Approved",
       withdrawal_rejected: "Withdrawal Rejected",
       manual_adjustment: "Admin Adjustment",
+      tip: "Tip",
     };
     return labels[type] || type;
   };
 
-  const getTransactionColor = (type: string) => {
-    if (type === "commission" || type === "withdrawal_rejected")
-      return "text-green-400";
-    if (type === "withdrawal_request" || type === "withdrawal_approved")
-      return "text-red-400";
-    if (type === "manual_adjustment") return "text-blue-400";
-    return "text-slate-400";
+  const getTransactionStyle = (type: string) => {
+    const styles: Record<string, { card: string; icon: string; iconBg: string; amount: string }> = {
+      commission: {
+        card: "border-emerald-400/25 bg-gradient-to-r from-emerald-950/45 via-slate-800/80 to-slate-800/70 hover:border-emerald-300/50",
+        icon: "text-emerald-300",
+        iconBg: "border-emerald-300/25 bg-emerald-500/10",
+        amount: "text-emerald-200",
+      },
+      tip: {
+        card: "border-violet-400/25 bg-gradient-to-r from-violet-950/45 via-slate-800/80 to-slate-800/70 hover:border-violet-300/50",
+        icon: "text-violet-300",
+        iconBg: "border-violet-300/25 bg-violet-500/10",
+        amount: "text-violet-200",
+      },
+      withdrawal_request: {
+        card: "border-amber-400/25 bg-gradient-to-r from-amber-950/45 via-slate-800/80 to-slate-800/70 hover:border-amber-300/50",
+        icon: "text-amber-300",
+        iconBg: "border-amber-300/25 bg-amber-500/10",
+        amount: "text-amber-200",
+      },
+      withdrawal_approved: {
+        card: "border-cyan-400/25 bg-gradient-to-r from-cyan-950/45 via-slate-800/80 to-slate-800/70 hover:border-cyan-300/50",
+        icon: "text-cyan-300",
+        iconBg: "border-cyan-300/25 bg-cyan-500/10",
+        amount: "text-cyan-200",
+      },
+      withdrawal_rejected: {
+        card: "border-red-400/25 bg-gradient-to-r from-red-950/45 via-slate-800/80 to-slate-800/70 hover:border-red-300/50",
+        icon: "text-red-300",
+        iconBg: "border-red-300/25 bg-red-500/10",
+        amount: "text-red-200",
+      },
+      manual_adjustment: {
+        card: "border-blue-400/25 bg-gradient-to-r from-blue-950/45 via-slate-800/80 to-slate-800/70 hover:border-blue-300/50",
+        icon: "text-blue-300",
+        iconBg: "border-blue-300/25 bg-blue-500/10",
+        amount: "text-blue-200",
+      },
+    };
+
+    return styles[type] ?? {
+      card: "border-slate-600/40 bg-slate-800/80 hover:border-slate-400/50",
+      icon: "text-slate-300",
+      iconBg: "border-slate-500/30 bg-slate-700/40",
+      amount: "text-slate-200",
+    };
   };
+
+  const filteredTransactions = selectedTransactionDate
+    ? transactions.filter((tx) => {
+        const date = new Date(tx.created_at);
+        const localDate = [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, "0"),
+          String(date.getDate()).padStart(2, "0"),
+        ].join("-");
+        return localDate === selectedTransactionDate;
+      })
+    : transactions;
 
   return createPortal(
     <>
@@ -940,102 +992,97 @@ export default function EmployeeDetailModal({
                     <div>
                       <p className="text-xs font-bold text-slate-100">Transaction History</p>
                       <p className="mt-0.5 inline-flex items-baseline gap-1.5 rounded-md border border-cyan-300/30 bg-cyan-500/15 px-2 py-0.5">
-                        <span className="text-base font-black leading-none tabular-nums text-cyan-50">{transactions.length}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-200">records loaded</span>
+                        <span className="text-base font-black leading-none tabular-nums text-cyan-50">{filteredTransactions.length}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-200">
+                          {selectedTransactionDate ? "matching records" : "all records"}
+                        </span>
                       </p>
                     </div>
                   </div>
-                  {transactions.length > itemsPerPage && (
-                    <div className="flex items-center gap-1.5 self-start rounded-xl border border-cyan-300/25 bg-slate-950/70 p-1 sm:self-center">
-                      <button
-                        onClick={() => setTransactionPage(Math.max(1, transactionPage - 1))}
-                        disabled={transactionPage === 1}
-                        aria-label="Previous transaction page"
-                        className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-600/70 bg-slate-800 px-2.5 text-xs font-semibold text-slate-200 transition-colors hover:border-cyan-300/50 hover:bg-cyan-500/15 hover:text-cyan-100 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                        <span className="hidden sm:inline">Prev</span>
-                      </button>
-                      <span className="min-w-[82px] rounded-lg px-2 text-center text-xs font-semibold text-cyan-100">
-                        Page {transactionPage} / {Math.ceil(transactions.length / itemsPerPage)}
-                      </span>
-                      <button
-                        onClick={() =>
-                          setTransactionPage(
-                            Math.min(Math.ceil(transactions.length / itemsPerPage), transactionPage + 1),
-                          )
-                        }
-                        disabled={transactionPage === Math.ceil(transactions.length / itemsPerPage)}
-                        aria-label="Next transaction page"
-                        className="inline-flex h-9 items-center gap-1 rounded-lg border border-cyan-300/45 bg-cyan-500/15 px-2.5 text-xs font-semibold text-cyan-100 transition-colors hover:border-cyan-200 hover:bg-cyan-500/25 hover:text-white disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
-                      >
-                        <span className="hidden sm:inline">Next</span>
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 self-start sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTransactionDate("")}
+                      className={`h-8 rounded-lg border px-3 text-xs font-bold transition-colors ${
+                        selectedTransactionDate === ""
+                          ? "border-cyan-200 bg-cyan-500/25 text-cyan-50 shadow-sm shadow-cyan-950/40"
+                          : "border-slate-600/70 bg-slate-800 text-slate-300 hover:border-cyan-300/45 hover:bg-cyan-500/10 hover:text-cyan-100"
+                      }`}
+                    >
+                      ALL
+                    </button>
+                    <label className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-slate-950/70 px-2 text-xs text-cyan-100">
+                      <Calendar className="h-3.5 w-3.5 text-cyan-300" />
+                      <span className="sr-only">Filter transactions by date</span>
+                      <input
+                        type="date"
+                        value={selectedTransactionDate}
+                        onChange={(event) => setSelectedTransactionDate(event.target.value)}
+                        className="w-[126px] bg-transparent text-xs font-semibold text-cyan-100 outline-none [color-scheme:dark]"
+                        aria-label="Filter transactions by date"
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 {/* Transaction List */}
-                <div className="space-y-3 px-4 pt-3 sm:px-5">
-                  {transactions
-                    .slice(
-                      (transactionPage - 1) * itemsPerPage,
-                      transactionPage * itemsPerPage,
-                    )
-                    .map((tx) => (
-                      <div
-                        key={tx.id}
-                        className="rounded-xl border border-blue-400/20 bg-gradient-to-r from-slate-800/80 via-blue-950/35 to-slate-800/70 p-4 transition-colors hover:border-cyan-300/35 hover:from-slate-700/80 hover:to-blue-900/45"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <DollarSign
-                                className={`w-5 h-5 ${getTransactionColor(tx.type)}`}
-                              />
-                              <span className="font-medium text-white">
-                                {getTransactionTypeLabel(tx.type)}
-                              </span>
-                              <span
-                                className={`text-lg font-bold ${getTransactionColor(tx.type)}`}
-                              >
-                                {Number(tx.amount) >= 0 ? "+" : ""}$
-                                {Number(tx.amount).toFixed(2)}
-                              </span>
+                <div className="space-y-2.5 px-4 pt-3 sm:px-5">
+                  {filteredTransactions.length === 0 ? (
+                    <div className="flex min-h-[260px] items-center justify-center text-center text-slate-400">
+                      No transactions found for the selected date
+                    </div>
+                  ) : (
+                    filteredTransactions.map((tx) => {
+                      const style = getTransactionStyle(tx.type);
+                      const icon =
+                        tx.type === "commission" ? (
+                          <TrendingUp className={`h-4 w-4 ${style.icon}`} />
+                        ) : tx.type === "tip" ? (
+                          <DollarSign className={`h-4 w-4 ${style.icon}`} />
+                        ) : tx.type === "withdrawal_request" ? (
+                          <Clock className={`h-4 w-4 ${style.icon}`} />
+                        ) : tx.type === "withdrawal_approved" ? (
+                          <CheckCircle className={`h-4 w-4 ${style.icon}`} />
+                        ) : tx.type === "withdrawal_rejected" ? (
+                          <XCircle className={`h-4 w-4 ${style.icon}`} />
+                        ) : (
+                          <Wallet className={`h-4 w-4 ${style.icon}`} />
+                        );
+
+                      return (
+                        <div
+                          key={tx.id}
+                          className={`rounded-lg border p-2.5 transition-colors ${style.card}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${style.iconBg}`}>
+                              {icon}
                             </div>
-                            <div className="text-sm text-slate-400 space-y-1">
-                              <div className="flex gap-4">
-                                <span>
-                                  Before: $
-                                  {Number(tx.balance_before).toFixed(2)}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <span className="text-sm font-semibold text-slate-100">
+                                  {getTransactionTypeLabel(tx.type)}
                                 </span>
-                                <span>→</span>
-                                <span>
-                                  After: $
-                                  {Number(tx.balance_after).toFixed(2)}
+                                <span className={`text-base font-black ${style.amount}`}>
+                                  {Number(tx.amount) >= 0 ? "+" : "-"}${Math.abs(Number(tx.amount)).toFixed(2)}
                                 </span>
                               </div>
-                              {tx.remarks && (
-                                <div className="mt-2 rounded-lg border border-blue-400/15 bg-blue-950/40 p-2">
-                                  <span className="text-xs text-slate-500">
-                                    Note:{" "}
-                                  </span>
-                                  <span className="text-white">
-                                    {tx.remarks}
-                                  </span>
-                                </div>
-                              )}
-                              <div className="text-xs text-slate-500 mt-2">
-                                {new Date(tx.created_at).toLocaleString(
-                                  "zh-CN",
-                                )}
+                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
+                                <span>Before ${Number(tx.balance_before).toFixed(2)}</span>
+                                <span>After ${Number(tx.balance_after).toFixed(2)}</span>
+                                <span className="text-slate-500">{new Date(tx.created_at).toLocaleString("zh-CN")}</span>
                               </div>
                             </div>
                           </div>
+                          {tx.remarks && (
+                            <div className="mt-2 border-t border-white/10 pt-1.5 text-[11px] leading-relaxed text-slate-300">
+                              <span className="font-semibold text-slate-500">Note:</span> {tx.remarks}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })
+                  )}
                 </div>
               </>
             )}
