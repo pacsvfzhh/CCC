@@ -1813,7 +1813,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         </button>
       </td>
       <td className="w-[68px] py-0.5 px-1 relative group/tags" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-0.5 max-w-[68px] min-w-0 overflow-hidden whitespace-nowrap" title={(employee.tags || []).join(', ')}>
+        <div className="flex items-center gap-0.5 max-w-[68px] min-w-0 overflow-hidden whitespace-nowrap">
           {(employee.tags || []).length > 0 && (
             <span className="min-w-0 flex-1 px-1.5 py-0 bg-amber-500/20 text-amber-400 text-[10px] font-medium rounded-full border border-amber-500/30 truncate">
               {(employee.tags || [])[0]}
