@@ -929,49 +929,53 @@ export default function EmployeeDetailModal({
           <button
             type="button"
             onClick={() => setActiveTab("daily")}
-            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
+            aria-pressed={activeTab === "daily"}
+            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b-2 border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-2 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
               activeTab === "daily"
-                ? "bg-cyan-500/18 text-cyan-50"
+                ? "border-cyan-100 bg-cyan-400/25 text-white shadow-[inset_0_-3px_0_rgba(103,232,249,0.95)]"
                 : "text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-100"
             }`}
           >
-            <TrendingUp className="h-4 w-4 shrink-0 text-cyan-300" />
+            <TrendingUp className={`h-4 w-4 shrink-0 ${activeTab === "daily" ? "text-cyan-100" : "text-cyan-300/70"}`} />
             <span className="truncate sm:whitespace-nowrap">Daily Statistics</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("transactions")}
-            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
+            aria-pressed={activeTab === "transactions"}
+            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b-2 border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-2 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
               activeTab === "transactions"
-                ? "bg-emerald-500/18 text-emerald-50"
+                ? "border-emerald-100 bg-emerald-400/25 text-white shadow-[inset_0_-3px_0_rgba(52,211,153,0.95)]"
                 : "text-slate-400 hover:bg-emerald-500/10 hover:text-emerald-100"
             }`}
           >
-            <DollarSign className="h-4 w-4 shrink-0 text-emerald-300" />
+            <DollarSign className={`h-4 w-4 shrink-0 ${activeTab === "transactions" ? "text-emerald-100" : "text-emerald-300/70"}`} />
             <span className="truncate sm:whitespace-nowrap">Transaction History</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("withdrawals")}
-            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
+            aria-pressed={activeTab === "withdrawals"}
+            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b-2 border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-2 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
               activeTab === "withdrawals"
-                ? "bg-amber-500/18 text-amber-50"
+                ? "border-amber-100 bg-amber-400/25 text-white shadow-[inset_0_-3px_0_rgba(251,191,36,0.95)]"
                 : "text-slate-400 hover:bg-amber-500/10 hover:text-amber-100"
             }`}
           >
-            <Wallet className="h-4 w-4 shrink-0 text-amber-300" />
+            <Wallet className={`h-4 w-4 shrink-0 ${activeTab === "withdrawals" ? "text-amber-100" : "text-amber-300/70"}`} />
             <span className="truncate sm:whitespace-nowrap">Withdrawal Records</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("verification")}
-            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
+            aria-pressed={activeTab === "verification"}
+            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b-2 border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-2 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
               activeTab === "verification"
-                ? "bg-violet-500/18 text-violet-50"
+                ? "border-violet-100 bg-violet-400/25 text-white shadow-[inset_0_-3px_0_rgba(196,181,253,0.95)]"
                 : "text-slate-400 hover:bg-violet-500/10 hover:text-violet-100"
             }`}
           >
-            <Shield className="h-4 w-4 shrink-0 text-violet-300" />
+            <Shield className={`h-4 w-4 shrink-0 ${activeTab === "verification" ? "text-violet-100" : "text-violet-300/70"}`} />
             <span className="truncate sm:whitespace-nowrap">Verification Info</span>
           </button>
         </div>
@@ -994,21 +998,11 @@ export default function EmployeeDetailModal({
               <>
                 {/* Overall Statistics Summary */}
                 <div className="w-full border-b border-cyan-300/20 px-4 pb-3 pt-3 sm:px-5">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-cyan-300" />
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-                        Overall Statistics
-                      </h3>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-200">
-                        All historical orders
-                      </span>
-                      <span className="rounded-full border border-blue-300/30 bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold text-blue-100">
-                        All-time orders: {totalOrderCount === null ? "—" : totalOrderCount.toLocaleString()}
-                      </span>
-                    </div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-cyan-300" />
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+                      Overall Statistics
+                    </h3>
                   </div>
                   <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-[5fr_5fr_5fr_3fr_3fr_3fr]">
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-blue-950/35 px-2.5 py-2">
@@ -1032,7 +1026,7 @@ export default function EmployeeDetailModal({
                           Tip Amount
                         </span>
                       </div>
-                      <div className="shrink-0 text-sm font-black leading-none text-amber-200">
+                      <div className="shrink-0 text-sm font-black leading-none text-violet-200">
                         {totalTipAmount === null ? "—" : `$${totalTipAmount.toFixed(2)}`}
                       </div>
                     </div>
@@ -1054,7 +1048,7 @@ export default function EmployeeDetailModal({
                           Orders
                         </span>
                       </div>
-                      <div className="shrink-0 text-sm font-black leading-none text-white">
+                      <div className="shrink-0 text-sm font-black leading-none text-blue-200">
                         {dailyStats.reduce(
                           (sum, stat) => sum + stat.totalOrders,
                           0,
