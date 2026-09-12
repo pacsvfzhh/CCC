@@ -881,7 +881,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     return <ArrowUp className="h-3.5 w-3.5 text-white" />;
   };
 
+  const clearPendingWithdrawalFilter = (adminId: string) => {
+    setPendingWithdrawalFilterByGroup(prev => {
+      if (!prev.has(adminId)) return prev;
+      const next = new Set(prev);
+      next.delete(adminId);
+      return next;
+    });
+  };
+
   const handleActiveFilter = (adminId: string, filter: 'all' | 'active' | 'inactive') => {
+    clearPendingWithdrawalFilter(adminId);
     setActiveFilterByGroup(prev => {
       const newMap = new Map(prev);
       if (filter === 'all') newMap.delete(adminId);
@@ -893,6 +903,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const getActiveFilter = (adminId: string): 'all' | 'active' | 'inactive' => activeFilterByGroup.get(adminId) || 'all';
 
   const handleWorkStatusFilter = (adminId: string, status: 'online' | 'offline' | 'never_started') => {
+    clearPendingWithdrawalFilter(adminId);
     setWorkStatusFilterByGroup(prev => {
       const newMap = new Map(prev);
       const current = newMap.get(adminId) || new Set<'online' | 'offline' | 'never_started'>();
@@ -908,6 +919,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const getWorkStatusFilter = (adminId: string): Set<'online' | 'offline' | 'never_started'> => workStatusFilterByGroup.get(adminId) || new Set();
 
   const handleSummaryFilter = (adminId: string, filter: SummaryFilter) => {
+    clearPendingWithdrawalFilter(adminId);
     setSummaryFilterByGroup(prev => {
       const next = new Map(prev);
       if (next.get(adminId) === filter) next.delete(adminId);
@@ -1239,6 +1251,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               <button
                 key={key}
                 onClick={() => {
+                  clearPendingWithdrawalFilter(adminId);
                   setInactiveDaysFilterByGroup(prev => {
                     const newMap = new Map(prev);
                     if (isSelected) newMap.delete(adminId);
@@ -1345,6 +1358,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         {/* Work status: ALL / Online / Offline / Never Started */}
         <button
           onClick={() => {
+            clearPendingWithdrawalFilter(adminId);
             setWorkStatusFilterByGroup(prev => {
               const newMap = new Map(prev);
               newMap.delete(adminId);
