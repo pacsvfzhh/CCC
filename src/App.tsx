@@ -62,7 +62,18 @@ function App() {
     if (isLowEnd) {
       console.log('[App] Low-end device detected, performance optimizations active');
     }
-  }, [deviceName, tier, isLowEnd, responsive.width, responsive.height]);
+  }, [
+    deviceName,
+    tier,
+    isLowEnd,
+    responsive.width,
+    responsive.height,
+    responsive.compactMode,
+    responsive.deviceName,
+    responsive.isNotchDevice,
+    responsive.needsSafeArea,
+    responsive.pixelRatio,
+  ]);
 
   useEffect(() => {
     const stored = getStoredAuth();

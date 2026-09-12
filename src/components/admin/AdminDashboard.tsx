@@ -481,7 +481,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       autoCleanupService.stop();
       console.log('[Admin Dashboard] Auto cleanup service stopped');
     };
-  }, [loadPendingCounts]);
+  }, [loadPendingCounts, admin.id]);
 
   const handleChangePassword = async () => {
     setPasswordError(null);
@@ -540,9 +540,9 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         setShowPasswordModal(false);
         setPasswordSuccess(false);
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error changing password:', error);
-      setPasswordError(error.message || 'Failed to change password');
+      setPasswordError(error instanceof Error ? error.message : 'Failed to change password');
     } finally {
       setChangingPassword(false);
     }
@@ -620,9 +620,9 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         setShowUsernameModal(false);
         setUsernameSuccess(false);
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error changing username:', error);
-      setUsernameError(error.message || 'Failed to change username');
+      setUsernameError(error instanceof Error ? error.message : 'Failed to change username');
     } finally {
       setChangingUsername(false);
     }

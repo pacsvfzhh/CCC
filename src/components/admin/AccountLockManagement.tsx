@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Shield, Unlock, AlertTriangle, Clock, User, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { unlockAccount, formatLockDuration } from '../../lib/rateLimitService';
@@ -31,7 +31,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [nextExpiry, setNextExpiry] = useState<number | null>(null);
 
-  const loadLocks = async (isInitial = false) => {
+  const loadLocks = useCallback(async (isInitial = false) => {
     try {
       if (isInitial) {
         setLoading(true);
@@ -67,9 +67,9 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
       } else {
         setNextExpiry(null);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load locks:', error);
-      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : String(error);
       if (isInitial) {
         setMessage({
           type: 'error',
@@ -83,10 +83,10 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
         setRefreshing(false);
       }
     }
-  };
+  }, [admin.id]);
 
   useEffect(() => {
-    loadLocks(true);
+    void loadLocks(true);
 
     // Subscribe to account_locks changes with immediate reload
     const subscription = supabase
@@ -97,7 +97,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
         table: 'account_locks'
       }, (payload) => {
         console.log('Account locks changed:', payload);
-        loadLocks(false);
+        void loadLocks(false);
       })
       .subscribe();
 
@@ -105,7 +105,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log('Page became visible, refreshing account locks...');
-        loadLocks(false);
+        void loadLocks(false);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -113,7 +113,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
     // Auto-refresh every 10 seconds to remove expired locks
     const autoRefreshInterval = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        loadLocks(false);
+        void loadLocks(false);
       }
     }, 10000);
 
@@ -122,7 +122,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(autoRefreshInterval);
     };
-  }, [admin.id]);
+  }, [loadLocks]);
 
   // Smart refresh based on next expiry time
   useEffect(() => {
@@ -135,12 +135,12 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
     if (timeUntilExpiry > 0 && timeUntilExpiry <= 30000) {
       const timeout = setTimeout(() => {
         console.log('Lock expired, refreshing...');
-        loadLocks(false);
+        void loadLocks(false);
       }, timeUntilExpiry + 1000); // Add 1 second buffer
 
       return () => clearTimeout(timeout);
     }
-  }, [nextExpiry]);
+  }, [nextExpiry, loadLocks]);
 
   const handleUnlock = async (lock: AccountLock) => {
     if (!admin?.id) {

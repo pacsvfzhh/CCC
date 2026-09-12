@@ -8,7 +8,7 @@ interface SystemConfigurationProps {
 
 export default function SystemConfiguration({ admin }: SystemConfigurationProps) {
   if (admin.role === 'super_admin') {
-    return <AdminGroupConfiguration admin={admin} />;
+    return <AdminGroupConfiguration />;
   }
 
   return <SecondaryAdminConfiguration admin={admin} />;

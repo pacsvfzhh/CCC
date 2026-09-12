@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Save, ArrowLeft, Users, TrendingUp, DollarSign, Calendar, Building2, CheckCircle, XCircle, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { Admin } from '../../types';
-
-interface AdminGroupConfigurationProps {
-  admin: Admin;
-}
 
 interface AdminGroup {
   id: string;
@@ -34,7 +29,7 @@ interface ConfigFormValues {
   withdrawal_condition_mode: string;
 }
 
-export default function AdminGroupConfiguration({}: AdminGroupConfigurationProps) {
+export default function AdminGroupConfiguration() {
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<AdminGroup | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,7 +106,7 @@ export default function AdminGroupConfiguration({}: AdminGroupConfigurationProps
         setSelectedGroup(updatedGroup);
       }
     }
-  }, [groups]);
+  }, [groups, selectedGroup]);
 
   const loadGlobalDefaults = async () => {
     try {
@@ -122,7 +117,7 @@ export default function AdminGroupConfiguration({}: AdminGroupConfigurationProps
 
       if (error) throw error;
 
-      const defaults: any = {};
+      const defaults: Record<string, string> = {};
       data?.forEach(config => {
         defaults[config.config_type] = config.config_value;
       });
@@ -165,7 +160,7 @@ export default function AdminGroupConfiguration({}: AdminGroupConfigurationProps
       const groupsWithConfigs: AdminGroup[] = await Promise.all(
         (adminsData || []).map(async (admin) => {
           const adminConfigs = configsData?.filter(c => c.admin_id === admin.id) || [];
-          const configs: any = {};
+          const configs: Record<string, string> = {};
           adminConfigs.forEach(config => {
             configs[config.config_type] = config.config_value;
           });
@@ -252,11 +247,11 @@ export default function AdminGroupConfiguration({}: AdminGroupConfigurationProps
         type: 'success',
         message: 'Configuration saved successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving config:', error);
       setNotification({
         type: 'error',
-        message: `Failed to save: ${error.message}`,
+        message: `Failed to save: ${error instanceof Error ? error.message : String(error)}`,
       });
     } finally {
       setSaving(false);
@@ -291,11 +286,11 @@ export default function AdminGroupConfiguration({}: AdminGroupConfigurationProps
         type: 'success',
         message: 'Login page settings saved successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving login settings:', error);
       setNotification({
         type: 'error',
-        message: `Failed to save: ${error.message}`,
+        message: `Failed to save: ${error instanceof Error ? error.message : String(error)}`,
       });
     } finally {
       setSavingLoginSettings(false);

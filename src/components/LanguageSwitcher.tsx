@@ -80,13 +80,20 @@ export default function LanguageSwitcher({ variant = 'desktop', onOpenModal }: L
   );
 }
 
-export function LanguageModal({ currentLanguage, onConfirm, onClose, t }: {
-  currentLanguage: string;
+interface LanguageModalProps {
+  currentLanguage: Language;
   onConfirm: (code: Language) => void;
   onClose: () => void;
-  t: any;
-}) {
-  const [selected, setSelected] = useState<Language>(currentLanguage as Language);
+  t: {
+    common: {
+      language: string;
+      confirm: string;
+    };
+  };
+}
+
+export function LanguageModal({ currentLanguage, onConfirm, onClose, t }: LanguageModalProps) {
+  const [selected, setSelected] = useState<Language>(currentLanguage);
 
   useEffect(() => {
     const scrollY = window.scrollY;

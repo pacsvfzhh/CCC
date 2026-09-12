@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Pin, CreditCard as Edit, Trash2, Globe, Users, ChevronDown, ChevronRight, PinOff, Play, Pause, Gauge, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -22,6 +22,18 @@ interface GroupedAnnouncements {
   adminId: string;
   adminName: string;
   announcements: Announcement[];
+}
+
+type AnnouncementUpdate = Pick<Announcement, 'title' | 'content' | 'is_pinned' | 'is_hidden' | 'pin_order' | 'publish_at'>
+  & Partial<Pick<Announcement, 'is_global'>>;
+type AnnouncementInsert = AnnouncementUpdate & Pick<Announcement, 'created_by'>;
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+  return fallback;
 }
 
 export default function AnnouncementManagement({ admin }: AnnouncementManagementProps) {
@@ -75,11 +87,11 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       const prevLine = i > 0 ? lines[i - 1] : '';
 
       // Check if current line looks like a list item (1. or 1) format)
-      const isOrderedList = /^\s*\d+[\.)]\s/.test(line);
+      const isOrderedList = /^\s*\d+[.)]\s/.test(line);
 
       if (isOrderedList && prevLine.trim() !== '' && i > 0) {
         // Add a blank line before the list if there isn't one
-        if (!(/^\s*\d+[\.)]\s/.test(prevLine)) && prevLine.trim() !== '') {
+        if (!(/^\s*\d+[.)]\s/.test(prevLine)) && prevLine.trim() !== '') {
           processedLines.push('');
         }
       }
@@ -90,14 +102,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     const rendered = marked(processedLines.join('\n'));
     return typeof rendered === 'string' ? rendered : '';
   };
-
-  useEffect(() => {
-    loadAnnouncements();
-    if (isSuperAdmin) {
-      loadSecondaryAdmins();
-      loadCarouselSettings();
-    }
-  }, []);
 
   useEffect(() => {
     if (deletingId || pinOrderModalId) {
@@ -111,7 +115,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     };
   }, [deletingId, pinOrderModalId]);
 
-  const loadSecondaryAdmins = async () => {
+  const loadSecondaryAdmins = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('admins')
@@ -125,9 +129,9 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     } catch (error) {
       console.error('Error loading secondary admins:', error);
     }
-  };
+  }, []);
 
-  const loadCarouselSettings = async () => {
+  const loadCarouselSettings = useCallback(async () => {
     try {
       // Load carousel enabled setting
       const { data: enabledData, error: enabledError } = await supabase
@@ -156,7 +160,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     } catch (error) {
       console.error('Error loading carousel settings:', error);
     }
-  };
+  }, []);
 
   const saveCarouselSettings = async () => {
     setSavingCarouselSettings(true);
@@ -189,9 +193,9 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       setTimeout(() => {
         setShowCarouselSuccessMessage(false);
       }, 3000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving carousel settings:', error);
-      setCarouselErrorMessage(error.message || 'Failed to save carousel settings');
+      setCarouselErrorMessage(getErrorMessage(error, 'Failed to save carousel settings'));
       setTimeout(() => {
         setCarouselErrorMessage(null);
       }, 5000);
@@ -200,7 +204,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     }
   };
 
-  const loadAnnouncements = async () => {
+  const loadAnnouncements = useCallback(async () => {
     try {
       let query = supabase
         .from('announcements')
@@ -222,8 +226,15 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     } finally {
       setLoading(false);
     }
-  };
+  }, [admin.id, isSuperAdmin]);
 
+  useEffect(() => {
+    void loadAnnouncements();
+    if (isSuperAdmin) {
+      void loadSecondaryAdmins();
+      void loadCarouselSettings();
+    }
+  }, [isSuperAdmin, loadAnnouncements, loadSecondaryAdmins, loadCarouselSettings]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,7 +251,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       const editorContent = await processContentImages(rawContent, 'announcements');
 
       if (editingId) {
-        const updateData: any = {
+        const updateData: AnnouncementUpdate = {
           title: formData.title,
           content: editorContent,
           is_pinned: formData.isPinned,
@@ -266,7 +277,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         }
         console.log('Update successful:', data);
       } else {
-        const insertData: any = {
+        const insertData: AnnouncementInsert = {
           title: formData.title,
           content: editorContent,
           is_pinned: formData.isPinned,
@@ -308,9 +319,9 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       await loadAnnouncements();
 
       console.log('Announcement saved successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving announcement:', error);
-      alert(`Failed to save announcement: ${error.message || 'Unknown error'}`);
+      alert(`Failed to save announcement: ${getErrorMessage(error, 'Unknown error')}`);
     }
   };
 

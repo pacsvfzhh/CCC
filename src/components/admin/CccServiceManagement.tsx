@@ -12,6 +12,7 @@ import { processContentImages } from '../../lib/imageOptimizer';
 import { cleanupContentImages } from '../../lib/storageCleanup';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
 import EmployeeMetadataPopover from './EmployeeMetadataPopover';
+import type { Database } from '../../types/database';
 
 function extractImageOnlyUrl(content: string): string | null {
   const container = document.createElement('div');
@@ -113,6 +114,8 @@ interface SimulatedCustomer {
   target_employee_ids?: string[] | null;
 }
 
+type CustomerBadgeType = NonNullable<SimulatedCustomer['badge_type']>;
+
 interface Employee {
   id: string;
   username: string;
@@ -145,6 +148,8 @@ interface Message {
   read_at?: string | null;
   created_at: string;
   rich_card_content_id?: string | null;
+  source_template_id?: string | null;
+  source_auto_message_id?: string | null;
 }
 
 interface ConversationHistory {
@@ -161,6 +166,17 @@ interface ConversationHistory {
   customer_name?: string;
   customer_avatar?: string;
   custom_avatar_url?: string;
+}
+
+type ConversationSummaryRow = Database['public']['Functions']['get_ccc_conversation_summaries']['Returns'][number];
+type SimulatedCustomerInsert = Omit<Database['public']['Tables']['simulated_customers']['Insert'], 'customer_id'> & {
+  customer_id?: string;
+};
+type SimulatedCustomerUpdate = Database['public']['Tables']['simulated_customers']['Update'];
+
+function getCccErrorMessage(error: unknown, fallback: string) {
+  const message = formatSupabaseError(error);
+  return message && message !== 'undefined' ? message : fallback;
 }
 
 function dedupeConversationHistory(history: ConversationHistory[]) {
@@ -262,7 +278,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const [isEditUnderlineActive, setIsEditUnderlineActive] = useState(false);
   const [editEditorFontSize, setEditEditorFontSize] = useState<'normal' | 'large' | 'xlarge' | null>(null);
   const editEditorRef = useRef<HTMLDivElement>(null);
-  const [, setPendingRating] = useState<any>(null);
+  const [, setPendingRating] = useState<Message | null>(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingValue, setRatingValue] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
@@ -273,7 +289,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     isSuper: false,
     superTitle: '',
     customId: '',
-    badgeType: '' as '' | 'diamond' | 'crown' | 'star' | 'vip' | 'premium',
+    badgeType: '' as '' | CustomerBadgeType,
     vipLabel: 'VIP',
     customAvatarFile: null as File | null,
     useCustomAvatar: false,
@@ -393,11 +409,10 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     try {
       let html: string | null = null;
-      const anyMsg = msg as any;
-      if (anyMsg.source_template_id) {
-        html = await fetchFromTemplate(anyMsg.source_template_id);
-      } else if (anyMsg.source_auto_message_id) {
-        html = await fetchFromAutoMessage(anyMsg.source_auto_message_id);
+      if (msg.source_template_id) {
+        html = await fetchFromTemplate(msg.source_template_id);
+      } else if (msg.source_auto_message_id) {
+        html = await fetchFromAutoMessage(msg.source_auto_message_id);
       } else if (msg.rich_card_content_id) {
         html = await fetchFromRichCardContents(msg.rich_card_content_id);
       } else if (msg.message_type === 'rich_card') {
@@ -794,7 +809,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     if (!adminIdToUse) return;
     const requestId = ++conversationHistoryLoadRequestRef.current;
     try {
-      const data = await prefetchConversationSummaries(
+      const data = await prefetchConversationSummaries<ConversationSummaryRow>(
         adminIdToUse,
         'manager',
         async () => {
@@ -811,7 +826,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
 
-      const employeeIds = data.map((row: any) => row.employee_id).filter(Boolean);
+      const employeeIds = data.map(row => row.employee_id).filter(Boolean);
       const employeeMetaById = new Map<string, { id: string; tags?: string[]; remarks?: string }>();
       allEmployeesRef.current.forEach(employee => {
         employeeMetaById.set(employee.id, employee);
@@ -836,8 +851,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
       const customerIds = new Set(allCustomersRef.current.map(customer => customer.id));
       const summaryHistory: ConversationHistory[] = (data || [])
-        .filter((row: any) => customerIds.has(row.customer_id))
-        .map((row: any) => {
+        .filter(row => customerIds.has(row.customer_id))
+        .map(row => {
         const employee = employeeMetaById.get(row.employee_id);
         const customer = allCustomersRef.current.find(item => item.id === row.customer_id);
         return {
@@ -1095,7 +1110,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         void loadAdminData(adminId);
       }
     }
-  }, [adminId, isSuperAdmin, loadAdminGroups]);
+  }, [adminId, isSuperAdmin, initialEmployee, loadAdminGroups]);
 
   useEffect(() => {
     if (!initialEmployee) return;
@@ -1135,7 +1150,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         onConsumeInitialEmployee?.();
       }
     }
-  }, [initialEmployee, loading, employees]);
+  }, [initialEmployee, loading, employees, onConsumeInitialEmployee]);
 
   // Auto-load all conversation history when admin is selected and no customer is focused
   useEffect(() => {
@@ -1212,7 +1227,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         supabase.removeChannel(channel);
       };
     }
-  }, [isSuperAdmin, adminGroups.length]);
+  }, [isSuperAdmin, adminGroups]);
 
 
 
@@ -1242,8 +1257,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         schema: 'public',
         table: 'customer_employee_conversations',
         filter: `customer_id=eq.${selectedCustomer.id}`
-      }, (payload: any) => {
-        scheduleRefresh(!(justSentRef.current && payload?.new?.sender_type === 'customer'));
+      }, (payload) => {
+        const newMessage = payload.new as Partial<Message>;
+        scheduleRefresh(!(justSentRef.current && newMessage.sender_type === 'customer'));
       })
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -1297,11 +1313,13 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           event: '*',
           schema: 'public',
           table: 'customer_employee_conversations'
-        }, (payload: any) => {
-
+        }, (payload) => {
           conversationHistoryLoadRequestRef.current += 1;
-          applyRealtimeConversation(payload);
-          if (payload?.eventType !== 'INSERT') {
+          applyRealtimeConversation({
+            eventType: payload.eventType,
+            new: payload.new as Partial<Message>,
+          });
+          if (payload.eventType !== 'INSERT') {
             reconcileAfterChange();
           }
         })
@@ -1372,7 +1390,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         supabase.removeChannel(channel);
       };
     }
-  }, [isActive, selectedCustomer?.id, selectedEmployee?.id]);
+  }, [isActive, selectedCustomer?.id, selectedEmployee?.id, checkPendingRating]);
 
   useEffect(() => {
     if (isActive && selectedCustomer?.id && employees.length > 0) {
@@ -1390,7 +1408,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       loadMessages();
       checkPendingRating();
     }
-  }, [isActive, selectedEmployee?.id, selectedCustomer?.id, loadMessages]);
+  }, [isActive, selectedEmployee?.id, selectedCustomer?.id, loadMessages, checkPendingRating]);
 
   const scrollToBottom = useCallback((smooth: boolean = true) => {
     const container = messagesContainerRef.current;
@@ -1444,18 +1462,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
   const pendingScrollRestoreRef = useRef(false);
 
-  useEffect(() => {
-    if (showHistoryView && pendingScrollRestoreRef.current && historyScrollTopRef.current > 0) {
-      requestAnimationFrame(() => {
-        if (historyListRef.current) {
-          historyListRef.current.scrollTop = historyScrollTopRef.current;
-        }
-        pendingScrollRestoreRef.current = false;
-      });
-    }
-  }, [showHistoryView, conversationHistory]);
-
-  const checkPendingRating = async () => {
+  const checkPendingRating = useCallback(async () => {
     if (!selectedCustomer || !selectedEmployee) return;
 
     try {
@@ -1488,7 +1495,19 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     } catch (error) {
       console.error('Error checking pending rating:', formatSupabaseError(error));
     }
-  };
+  }, [messages, selectedCustomer, selectedEmployee]);
+
+  useEffect(() => {
+    if (showHistoryView && pendingScrollRestoreRef.current && historyScrollTopRef.current > 0) {
+      requestAnimationFrame(() => {
+        if (historyListRef.current) {
+          historyListRef.current.scrollTop = historyScrollTopRef.current;
+        }
+        pendingScrollRestoreRef.current = false;
+      });
+    }
+  }, [showHistoryView, conversationHistory]);
+
 
   const handleSubmitRating = async () => {
     if (!selectedCustomer || !selectedEmployee || ratingValue === 0) return;
@@ -1519,8 +1538,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setRatingComment('');
       setPendingRating(null);
       loadMessages();
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to submit rating' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to submit rating') });
     }
   };
 
@@ -1565,8 +1584,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setShowTipModal(false);
       setTipAmount('');
       loadMessages();
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to send tip' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to send tip') });
     } finally {
       setSendingTip(false);
     }
@@ -1657,8 +1676,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setRichCardContent(''); { const rce = richCardEditorRef.current?.getEditor(); if (rce) rce.commands.setContent(''); }
       setNotification({ type: 'success', text: 'Template created!' });
       loadTemplates();
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to create template' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to create template') });
     } finally {
       setSavingTemplate(false);
     }
@@ -1692,8 +1711,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setRichCardContent(''); { const rce = richCardEditorRef.current?.getEditor(); if (rce) rce.commands.setContent(''); }
       setNotification({ type: 'success', text: 'Template updated!' });
       loadTemplates();
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to update template' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to update template') });
     } finally {
       setSavingTemplate(false);
     }
@@ -1713,8 +1732,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       if (error) throw error;
       setNotification({ type: 'success', text: 'Template deleted!' });
       loadTemplates();
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to delete template' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to delete template') });
     }
   };
 
@@ -1726,8 +1745,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         .eq('id', tpl.id);
       if (error) throw error;
       loadTemplates();
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to update pin' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to update pin') });
     }
   };
 
@@ -1761,8 +1780,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         templateEditorRef.current.appendChild(img);
       }
       setTemplateForm(prev => ({ ...prev, content: templateEditorRef.current?.innerHTML || '' }));
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to upload image' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to upload image') });
     } finally {
       setUploadingTemplateImage(false);
       if (templateImageInputRef.current) templateImageInputRef.current.value = '';
@@ -1796,9 +1815,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       } else {
         setNotification({ type: 'error', text: 'Unsupported file type. Use .txt or .docx files.' });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       setDocImportProgress(null);
-      setNotification({ type: 'error', text: error.message || 'Failed to import file' });
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to import file') });
     }
     e.target.value = '';
   };
@@ -2000,7 +2019,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         customAvatarUrl = publicUrl;
       }
 
-      const insertData: any = {
+      const insertData: SimulatedCustomerInsert = {
         admin_id: selectedAdminId,
         customer_name: customerForm.name,
         customer_avatar: customerForm.avatar,
@@ -2022,7 +2041,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
       const { data: createdCustomer, error } = await supabase
         .from('simulated_customers')
-        .insert(insertData)
+        .insert(insertData as Database['public']['Tables']['simulated_customers']['Insert'])
         .select('id')
         .single();
 
@@ -2061,8 +2080,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setAutoMessageDraftMasterEnabled(false);
       setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '', employeePinTop: false, employeeAlwaysVisible: false, targetEmployeeIds: [], _empSearch: '' });
       loadAdminData(selectedAdminId, true, true);
-    } catch (error: any) {
-      const msg = (error.message || '').includes('customer_id_unique') ? 'This Custom ID is already in use. Please use a different one.' : (error.message || 'Failed to create customer');
+    } catch (error: unknown) {
+      const errorMessage = getCccErrorMessage(error, 'Failed to create customer');
+      const msg = errorMessage.includes('customer_id_unique') ? 'This Custom ID is already in use. Please use a different one.' : errorMessage;
       setNotification({ type: 'error', text: msg });
     } finally {
       setSavingCustomer(false);
@@ -2121,7 +2141,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         customAvatarUrl = null;
       }
 
-      const updateData: any = {
+      const updateData: SimulatedCustomerUpdate = {
         customer_name: customerForm.name,
         customer_avatar: customerForm.avatar,
         is_super: customerForm.isSuper,
@@ -2151,8 +2171,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setEditingCustomer(null);
       setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '', employeePinTop: false, employeeAlwaysVisible: false, targetEmployeeIds: [], _empSearch: '' });
       loadAdminData(selectedAdminId, true, true);
-    } catch (error: any) {
-      const msg = (error.message || '').includes('customer_id_unique') ? 'This Custom ID is already in use. Please use a different one.' : (error.message || 'Failed to update customer');
+    } catch (error: unknown) {
+      const errorMessage = getCccErrorMessage(error, 'Failed to update customer');
+      const msg = errorMessage.includes('customer_id_unique') ? 'This Custom ID is already in use. Please use a different one.' : errorMessage;
       setNotification({ type: 'error', text: msg });
     }
   };
@@ -2165,8 +2186,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         .eq('id', customer.id);
       if (error) throw error;
       setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, is_pinned: !c.is_pinned } : c));
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to update pin' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to update pin') });
     }
   };
 
@@ -2233,8 +2254,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           }
           setCustomers(prev => prev.filter(c => c.id !== customerId));
           setConfirmDialog(null);
-        } catch (error: any) {
-          setNotification({ type: 'error', text: error.message || 'Failed to delete customer' });
+        } catch (error: unknown) {
+          setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to delete customer') });
           setConfirmDialog(null);
         }
       }
@@ -2349,9 +2370,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setUploadProgress(0);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       void loadConversationHistory();
-    } catch (error: any) {
+    } catch (error: unknown) {
       pendingImageMessagesRef.current.delete(tempId);
-      setNotification({ type: 'error', text: error.message || 'Failed to upload image' });
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to upload image') });
       setMessages(prev => prev.filter(m => m.id !== tempId));
       uploadingTempIdRef.current = null;
       setUploadingImage(false);
@@ -2685,8 +2706,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         setMessages(prev => prev.map(m => m.id === tempMessage.id ? newMsg : m));
       }
       loadConversationHistory();
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to send message' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to send message') });
     }
   };
 
@@ -2704,7 +2725,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     if (!path) return;
     try {
       await supabase.storage.from('chat-images').remove([path]);
-    } catch {}
+    } catch {
+      return;
+    }
   };
 
   const handleDeleteMessage = (messageId: string) => {
@@ -2729,8 +2752,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           setNotification({ type: 'success', text: 'Message deleted successfully' });
           loadMessages();
           loadConversationHistory();
-        } catch (error: any) {
-          setNotification({ type: 'error', text: error.message || 'Failed to delete message' });
+        } catch (error: unknown) {
+          setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to delete message') });
         }
         setConfirmDialog(null);
       },
@@ -2786,8 +2809,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setNotification({ type: 'success', text: 'Image replaced successfully' });
       preserveScrollUntilRef.current = Date.now() + 2000;
       loadMessages();
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to replace image' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to replace image') });
     } finally {
       replacingImageMsgIdRef.current = null;
       setReplacingImageMsgId(null);
@@ -2814,8 +2837,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setEditingContent('');
       preserveScrollUntilRef.current = Date.now() + 2000;
       loadMessages();
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to update message' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to update message') });
     }
   };
 
@@ -2846,8 +2869,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       img.style.borderRadius = '8px';
       img.style.margin = '4px 0';
       editEditorRef.current.appendChild(img);
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || 'Failed to upload image' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to upload image') });
     } finally {
       setUploadingEditImage(false);
       if (editFileInputRef.current) editFileInputRef.current.value = '';
@@ -2986,9 +3009,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           conversationMessagesCacheRef.current.delete(`${selectedCustomer.id}:${selectedEmployee.id}`);
           setMessages([]);
           loadConversationHistory();
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Delete conversation failed:', formatSupabaseError(error));
-          setNotification({ type: 'error', text: error.message || 'Failed to delete conversation' });
+          setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to delete conversation') });
         }
         setConfirmDialog(null);
       },
@@ -4473,9 +4496,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                         loadMessages();
                                         loadConversationHistory();
                                       }
-                                    } catch (err: any) {
+                                    } catch (err: unknown) {
                                       setMessages(prev => prev.filter(m => m.id !== optimisticId));
-                                      setNotification({ type: 'error', text: err.message || 'Failed to send rich card' });
+                                      setNotification({ type: 'error', text: getCccErrorMessage(err, 'Failed to send rich card') });
                                     } finally { setSendingRichCard(false); }
                                   }}
                                   className="group w-full rounded-xl border border-sky-400/35 bg-gradient-to-r from-sky-900/55 via-blue-950/45 to-indigo-950/50 px-3 py-2.5 text-left shadow-sm shadow-blue-950/25 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300/75 hover:from-sky-800/65 hover:via-blue-900/55 hover:to-indigo-900/60 hover:shadow-lg hover:shadow-blue-950/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70"
@@ -5097,7 +5120,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                         <button
                           key={badge.value}
                           type="button"
-                          onClick={() => setCustomerForm({ ...customerForm, badgeType: badge.value as any })}
+                          onClick={() => setCustomerForm({ ...customerForm, badgeType: badge.value as CustomerBadgeType })}
                           className={`p-2 rounded-lg flex flex-col items-center gap-0.5 transition-all ${
                             customerForm.badgeType === badge.value
                               ? 'bg-amber-600 scale-105 ring-2 ring-amber-400'

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, Shield, Trash2, Eye, EyeOff, CreditCard as Edit2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { hashPassword } from '../../lib/passwordHash';
@@ -30,13 +30,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
     password: '',
   });
 
-  useEffect(() => {
-    if (admin.role === 'super_admin') {
-      loadAdmins();
-    }
-  }, []); // Remove admin.role from dependencies
-
-  const loadAdmins = async () => {
+  const loadAdmins = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('admins')
@@ -51,7 +45,13 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (admin.role === 'super_admin') {
+      void loadAdmins();
+    }
+  }, [admin.role, loadAdmins]);
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,9 +91,9 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
       setShowCreateForm(false);
       setShowPassword(false);
       await loadAdmins();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating admin:', error);
-      setError(error.message || 'Failed to create admin. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to create admin. Please try again.');
     } finally {
       setCreating(false);
     }
@@ -107,7 +107,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
         .eq('id', adminId);
 
       if (error) throw error;
-      loadAdmins();
+      void loadAdmins();
     } catch (error) {
       console.error('Error toggling admin status:', error);
     }
@@ -124,10 +124,10 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
       if (error) throw error;
 
       setDeletingAdminId(null);
-      loadAdmins();
-    } catch (error: any) {
+      void loadAdmins();
+    } catch (error: unknown) {
       console.error('Error deleting admin:', error);
-      const message = error?.message || error?.details || 'Failed to delete admin. Please try again.';
+      const message = error instanceof Error ? error.message : 'Failed to delete admin. Please try again.';
       setDeleteError(message);
     }
   };
@@ -154,7 +154,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
         throw new Error('Username is required');
       }
 
-      const updates: any = {
+      const updates: { username: string; password_hash?: string } = {
         username: editFormData.username.trim(),
       };
 
@@ -187,9 +187,9 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
       setEditFormData({ username: '', password: '' });
       setShowEditPassword(false);
       await loadAdmins();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating admin:', error);
-      setEditError(error.message || 'Failed to update admin. Please try again.');
+      setEditError(error instanceof Error ? error.message : 'Failed to update admin. Please try again.');
     } finally {
       setUpdating(false);
     }
