@@ -1535,7 +1535,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           type="button"
           onClick={() => resetEmployeeListFilters(adminId)}
           title="Reset Staff list filters"
-          className={`ml-6 inline-flex h-7 min-w-[78px] items-center justify-center gap-1.5 rounded-lg border border-sky-300 px-3 py-1 text-[11px] font-semibold text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70 ${
+          className={`ml-6 inline-flex h-7 min-w-[78px] items-center justify-center gap-1.5 rounded-lg border border-blue-400/70 px-3 py-1 text-[11px] font-semibold text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70 ${
             resetFeedbackAdminId === adminId
               ? 'bg-emerald-600'
               : 'bg-blue-700 hover:bg-blue-500 hover:text-white active:bg-blue-900'
