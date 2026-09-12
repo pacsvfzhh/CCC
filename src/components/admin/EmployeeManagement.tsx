@@ -2495,8 +2495,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                                     'currently_working',
                                     'Now Working',
                                     allEmps.filter(e => e.workStatus === 'online').length,
-          
+
                                   )}
+                                  <button
+                                    type="button"
+                                    onClick={() => resetEmployeeListFilters(group.admin.id)}
+                                    title="Reset Staff list filters"
+                                    className="inline-flex items-center gap-1.5 rounded-md border border-violet-300 bg-violet-600 px-2.5 py-0.5 text-[11px] font-semibold text-white transition-colors hover:border-violet-200 hover:bg-violet-500"
+                                  >
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                    <span>Reset</span>
+                                  </button>
                                 </>
                               )}
                             </>
