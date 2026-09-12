@@ -1159,10 +1159,16 @@ export default function EmployeeDetailModal({
                                 </div>
                               )}
                             </div>
-                            <div className={`shrink-0 text-right text-[10px] font-semibold leading-tight sm:text-[11px] ${style.meta}`}>
-                              <div>Before ${Number(tx.balance_before).toFixed(2)}</div>
-                              <div>After ${Number(tx.balance_after).toFixed(2)}</div>
-                              <div className="mt-0.5 whitespace-nowrap opacity-80">
+                            <div className="shrink-0 text-right text-[10px] font-normal leading-tight sm:text-[11px]">
+                              <div>
+                                <span className="inline-block w-11 text-left text-slate-400">Before</span>
+                                <span className={style.meta}>${Number(tx.balance_before).toFixed(2)}</span>
+                              </div>
+                              <div>
+                                <span className="inline-block w-11 text-left text-slate-400">After</span>
+                                <span className={style.meta}>${Number(tx.balance_after).toFixed(2)}</span>
+                              </div>
+                              <div className="mt-0.5 whitespace-nowrap text-white">
                                 {new Date(tx.created_at).toLocaleString("zh-CN")}
                               </div>
                             </div>
