@@ -890,6 +890,47 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     });
   };
 
+  const resetEmployeeListFilters = (adminId: string) => {
+    setSearchTerm('');
+    setSortByGroup(prev => {
+      const next = new Map(prev);
+      next.delete(adminId);
+      return next;
+    });
+    setActiveFilterByGroup(prev => {
+      const next = new Map(prev);
+      next.delete(adminId);
+      return next;
+    });
+    setWorkStatusFilterByGroup(prev => {
+      const next = new Map(prev);
+      next.delete(adminId);
+      return next;
+    });
+    setInactiveDaysFilterByGroup(prev => {
+      const next = new Map(prev);
+      next.delete(adminId);
+      return next;
+    });
+    setPendingWithdrawalFilterByGroup(prev => {
+      const next = new Set(prev);
+      next.delete(adminId);
+      return next;
+    });
+    setSummaryFilterByGroup(prev => {
+      const next = new Map(prev);
+      next.delete(adminId);
+      return next;
+    });
+    setSelectedTagsByGroup(prev => {
+      const next = new Map(prev);
+      next.delete(adminId);
+      return next;
+    });
+    setInactiveDaysDropdownOpen(null);
+    setIdleDaysDropdownPos(null);
+  };
+
   const handleActiveFilter = (adminId: string, filter: 'all' | 'active' | 'inactive') => {
     clearPendingWithdrawalFilter(adminId);
     setActiveFilterByGroup(prev => {
@@ -2263,6 +2304,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           allEmps.filter(e => e.workStatus === 'online').length,
 
                         )}
+                        <button
+                          type="button"
+                          onClick={() => resetEmployeeListFilters(flatAdminId)}
+                          title="Reset Staff list filters"
+                          className="inline-flex items-center gap-1.5 rounded-md border border-violet-300 bg-violet-600 px-2.5 py-0.5 text-[11px] font-semibold text-white transition-colors hover:border-violet-200 hover:bg-violet-500"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          <span>Reset</span>
+                        </button>
                       </>
                     )}
                     </div>
