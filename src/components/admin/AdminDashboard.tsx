@@ -638,19 +638,19 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           onClick={() => setAccountMenuOpen((open) => !open)}
           aria-haspopup="menu"
           aria-expanded={accountMenuOpen}
-          className={`flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-all duration-200 ${isSidebar ? `h-8 w-full justify-between border-l-2 border-cyan-300/80 bg-gradient-to-r from-blue-700/90 via-blue-700/80 to-cyan-700/65 px-1.5 text-[10px] text-cyan-50 shadow-sm shadow-blue-950/45 hover:-translate-y-px hover:border-cyan-200 hover:from-blue-600/95 hover:to-cyan-600/75 hover:shadow-md hover:shadow-cyan-950/35 active:translate-y-0 ${accountMenuOpen ? 'border-cyan-100 bg-gradient-to-r from-blue-600 to-cyan-600 text-white ring-1 ring-cyan-200/40' : ''}` : `h-7 border border-blue-400/70 bg-gradient-to-r from-blue-700/90 to-cyan-700/70 px-2 text-[10px] text-cyan-50 shadow-sm shadow-blue-950/35 hover:border-cyan-200/90 hover:from-blue-600/95 hover:to-cyan-600/80 hover:shadow-md hover:shadow-cyan-950/35 sm:px-2.5 sm:text-[11px] ${accountMenuOpen ? 'border-cyan-100 bg-gradient-to-r from-blue-600 to-cyan-600 text-white ring-1 ring-cyan-200/40' : ''}`}`}
+          className={`flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-all duration-200 ${isSidebar ? `h-8 w-full justify-between border-l-2 border-amber-300/90 bg-gradient-to-r from-amber-600 via-yellow-600 to-emerald-700 px-1.5 text-[10px] text-amber-50 shadow-sm shadow-emerald-950/45 hover:-translate-y-px hover:border-emerald-200 hover:from-amber-500 hover:via-yellow-500 hover:to-emerald-600 hover:shadow-md hover:shadow-emerald-950/45 active:translate-y-0 ${accountMenuOpen ? 'border-amber-100 bg-gradient-to-r from-amber-500 via-yellow-500 to-emerald-600 text-slate-950 ring-1 ring-amber-200/50' : ''}` : `h-7 border border-amber-400/80 bg-gradient-to-r from-amber-600 via-yellow-600 to-emerald-700 px-2 text-[10px] text-amber-50 shadow-sm shadow-emerald-950/40 hover:border-emerald-200/90 hover:from-amber-500 hover:via-yellow-500 hover:to-emerald-600 hover:shadow-md hover:shadow-emerald-950/40 sm:px-2.5 sm:text-[11px] ${accountMenuOpen ? 'border-amber-100 bg-gradient-to-r from-amber-500 via-yellow-500 to-emerald-600 text-slate-950 ring-1 ring-amber-200/50' : ''}`}`}
           title="Account actions"
         >
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-cyan-300/20">
-            <UserCog className="h-3 w-3 text-cyan-100" />
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-200/25">
+            <UserCog className="h-3 w-3 text-amber-50" />
           </span>
           <span className="flex-1 text-left tracking-wide">Account</span>
-          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-100/80 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180 text-white' : ''}`} />
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-emerald-100 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180 text-slate-950' : ''}`} />
         </button>
         {accountMenuOpen && (
           <div
             role="menu"
-            className={`absolute z-[70] w-full min-w-0 overflow-hidden rounded-xl border border-blue-400/40 bg-gradient-to-b from-slate-900 via-blue-950/90 to-slate-950 p-1.5 shadow-xl shadow-blue-950/55 ring-1 ring-cyan-300/10 animate-[fadeIn_120ms_ease-out] ${isSidebar ? 'left-0 right-0 top-[calc(100%+0.35rem)]' : 'right-0 top-[calc(100%+0.35rem)] min-w-[164px]'}`}
+            className={`absolute z-[70] w-full min-w-0 overflow-hidden rounded-xl border border-amber-400/55 bg-slate-950 p-1.5 shadow-xl shadow-emerald-950/60 ring-1 ring-emerald-300/15 animate-[fadeIn_120ms_ease-out] ${isSidebar ? 'left-0 right-0 top-[calc(100%+0.35rem)]' : 'right-0 top-[calc(100%+0.35rem)] min-w-[164px]'}`}
           >
             {admin.role === 'super_admin' && (
               <button
