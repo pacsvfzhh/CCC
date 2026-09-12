@@ -792,7 +792,7 @@ export default function EmployeeDetailModal({
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm sm:p-4">
       <div className="flex h-[92vh] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-300/30 bg-slate-900 shadow-2xl shadow-blue-950/50 max-h-[92vh]">
         {/* Header */}
-        <div className="shrink-0 border-b border-cyan-300/20 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 px-4 py-3.5 sm:px-5">
+        <div className="shrink-0 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 px-4 py-3.5 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/25 to-blue-600/25 text-cyan-300 ring-1 ring-inset ring-cyan-300/25">
@@ -814,7 +814,7 @@ export default function EmployeeDetailModal({
               </div>
             </div>
             <div className="flex min-w-0 items-stretch gap-2">
-              <div className="grid min-w-0 flex-1 grid-cols-2 overflow-hidden rounded-xl border border-cyan-300/20 bg-slate-800/70 sm:grid-cols-4 lg:w-[560px] lg:flex-none">
+              <div className="grid min-w-0 flex-1 grid-cols-2 overflow-hidden rounded-xl border border-cyan-300/20 bg-slate-800/70 sm:grid-cols-5 lg:w-[680px] lg:flex-none">
                 <div className="min-w-0 border-b border-slate-700/70 p-2.5 sm:border-b-0 sm:border-r">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-100">Status</p>
                   <div className="mt-1 flex flex-wrap gap-1">
@@ -835,6 +835,13 @@ export default function EmployeeDetailModal({
                   <p className="mt-1 truncate text-sm font-bold text-purple-400">${walletBalance.available.toFixed(2)}</p>
                   {walletBalance.frozen > 0 && <p className="truncate text-[10px] text-slate-500">Frozen: ${walletBalance.frozen.toFixed(2)}</p>}
                 </div>
+                <div className="min-w-0 border-b border-slate-700/70 p-2.5 sm:border-b-0 sm:border-r">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-200">Total Orders</p>
+                  <p className="mt-1 truncate text-sm font-bold text-blue-100">
+                    {totalOrderCount === null ? "—" : totalOrderCount.toLocaleString()}
+                  </p>
+                  <p className="truncate text-[10px] text-slate-500">All history</p>
+                </div>
                 <div className="min-w-0 p-2.5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-sky-200">Member Since</p>
                   <p className="mt-1 truncate text-xs font-bold text-white">{new Date(employee.created_at).toLocaleDateString("zh-CN")}</p>
@@ -853,50 +860,54 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-cyan-300/20 bg-slate-950/50 px-3 py-2.5 sm:gap-2 sm:px-5 sm:py-3">
+        <div className="grid shrink-0 grid-cols-2 border-b border-cyan-300/20 border-t border-cyan-300/15 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 sm:grid-cols-4">
           <button
+            type="button"
             onClick={() => setActiveTab("daily")}
-            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-semibold transition-all sm:text-sm ${
+            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
               activeTab === "daily"
-                ? "border-cyan-300/50 bg-gradient-to-br from-cyan-500/25 to-blue-500/15 text-cyan-50 shadow-lg shadow-cyan-950/40 ring-1 ring-inset ring-cyan-300/20"
-                : "border-transparent bg-slate-800/55 text-slate-400 hover:border-cyan-300/25 hover:bg-blue-500/10 hover:text-cyan-100"
+                ? "bg-cyan-500/18 text-cyan-50"
+                : "text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-100"
             }`}
           >
-            <TrendingUp className="h-4 w-4 shrink-0 text-cyan-300 transition-transform group-hover:-translate-y-0.5" />
-            <span>Daily Statistics</span>
+            <TrendingUp className="h-4 w-4 shrink-0 text-cyan-300" />
+            <span className="truncate sm:whitespace-nowrap">Daily Statistics</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("transactions")}
-            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-semibold transition-all sm:text-sm ${
+            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
               activeTab === "transactions"
-                ? "border-emerald-300/50 bg-gradient-to-br from-emerald-500/20 to-cyan-500/10 text-emerald-50 shadow-lg shadow-emerald-950/30 ring-1 ring-inset ring-emerald-300/20"
-                : "border-transparent bg-slate-800/55 text-slate-400 hover:border-emerald-300/25 hover:bg-emerald-500/10 hover:text-emerald-100"
+                ? "bg-emerald-500/18 text-emerald-50"
+                : "text-slate-400 hover:bg-emerald-500/10 hover:text-emerald-100"
             }`}
           >
-            <DollarSign className="h-4 w-4 shrink-0 text-emerald-300 transition-transform group-hover:-translate-y-0.5" />
-            <span>Transaction History</span>
+            <DollarSign className="h-4 w-4 shrink-0 text-emerald-300" />
+            <span className="truncate sm:whitespace-nowrap">Transaction History</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("withdrawals")}
-            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-semibold transition-all sm:text-sm ${
+            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
               activeTab === "withdrawals"
-                ? "border-amber-300/50 bg-gradient-to-br from-amber-500/20 to-orange-500/10 text-amber-50 shadow-lg shadow-amber-950/30 ring-1 ring-inset ring-amber-300/20"
-                : "border-transparent bg-slate-800/55 text-slate-400 hover:border-amber-300/25 hover:bg-amber-500/10 hover:text-amber-100"
+                ? "bg-amber-500/18 text-amber-50"
+                : "text-slate-400 hover:bg-amber-500/10 hover:text-amber-100"
             }`}
           >
-            <Wallet className="h-4 w-4 shrink-0 text-amber-300 transition-transform group-hover:-translate-y-0.5" />
-            <span>Withdrawal Records</span>
+            <Wallet className="h-4 w-4 shrink-0 text-amber-300" />
+            <span className="truncate sm:whitespace-nowrap">Withdrawal Records</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("verification")}
-            className={`group relative flex min-w-[145px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-semibold transition-all sm:text-sm ${
+            className={`group flex min-w-0 items-center justify-center gap-1.5 border-b border-r border-cyan-300/15 px-2 py-2.5 text-[11px] font-semibold transition-colors even:border-r-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:py-3 sm:text-xs ${
               activeTab === "verification"
-                ? "border-violet-300/50 bg-gradient-to-br from-violet-500/20 to-blue-500/10 text-violet-50 shadow-lg shadow-violet-950/30 ring-1 ring-inset ring-violet-300/20"
-                : "border-transparent bg-slate-800/55 text-slate-400 hover:border-violet-300/25 hover:bg-violet-500/10 hover:text-violet-100"
+                ? "bg-violet-500/18 text-violet-50"
+                : "text-slate-400 hover:bg-violet-500/10 hover:text-violet-100"
             }`}
           >
-            <Shield className="h-4 w-4 shrink-0 text-violet-300 transition-transform group-hover:-translate-y-0.5" />
-            <span>Verification Info</span>
+            <Shield className="h-4 w-4 shrink-0 text-violet-300" />
+            <span className="truncate sm:whitespace-nowrap">Verification Info</span>
           </button>
         </div>
 
