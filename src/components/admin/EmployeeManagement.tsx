@@ -2788,7 +2788,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               {groupIndex < filteredGroups.length - 1 && (
                 <div
                   aria-hidden="true"
-                  className="h-4 shrink-0 border-y border-cyan-300/25 bg-gradient-to-r from-slate-950 via-cyan-950/80 to-slate-950 shadow-[inset_0_1px_0_rgba(103,232,249,0.12),inset_0_-1px_0_rgba(2,6,23,0.9)]"
+                  className="h-4 shrink-0 border-y border-blue-300/30 bg-gradient-to-r from-slate-950 via-blue-950/85 to-slate-950 shadow-[inset_0_1px_0_rgba(147,197,253,0.14),inset_0_-1px_0_rgba(2,6,23,0.9)]"
                 />
               )}
               </Fragment>
