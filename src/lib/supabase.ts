@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
 const REQUEST_TIMEOUT_MS = 8000;
+const MAX_NETWORK_RETRIES = 2;
+const NETWORK_RETRY_DELAY_MS = 250;
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -45,60 +47,101 @@ export function isSupabaseAbortError(error: unknown): boolean {
 const clientUrl = supabaseUrl || 'https://placeholder.supabase.co';
 const clientKey = supabaseAnonKey || 'missing-anon-key';
 
+const createSupabaseAbortError = () => {
+  const abortError = new Error('Supabase request was cancelled.');
+  abortError.name = 'AbortError';
+  return abortError;
+};
+
+const isNetworkFetchError = (error: unknown) => {
+  const errorName = typeof error === 'object' && error !== null && 'name' in error
+    ? String(error.name)
+    : '';
+  const errorMessage = error instanceof Error
+    ? error.message
+    : typeof error === 'object' && error !== null && 'message' in error
+      ? String(error.message)
+      : String(error);
+
+  return errorName === 'TypeError'
+    || errorMessage === 'Failed to fetch'
+    || errorMessage.includes('NetworkError');
+};
+
+const waitForNetworkRetry = (signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
+  if (signal?.aborted) {
+    reject(createSupabaseAbortError());
+    return;
+  }
+
+  const timeoutId = globalThis.setTimeout(() => {
+    signal?.removeEventListener('abort', handleAbort);
+    resolve();
+  }, NETWORK_RETRY_DELAY_MS);
+  const handleAbort = () => {
+    globalThis.clearTimeout(timeoutId);
+    signal?.removeEventListener('abort', handleAbort);
+    reject(createSupabaseAbortError());
+  };
+
+  signal?.addEventListener('abort', handleAbort, { once: true });
+});
+
+const getRequestMethod = (input: RequestInfo | URL, init?: RequestInit) => (
+  init?.method || (input instanceof Request ? input.method : 'GET')
+).toUpperCase();
+
 const fetchWithTimeout: typeof fetch = async (input, init) => {
-  const callerSignal = init?.signal;
-  if (callerSignal?.aborted) {
-    const abortError = new Error('Supabase request was cancelled.');
-    abortError.name = 'AbortError';
-    throw abortError;
+  const callerSignal = init?.signal || (input instanceof Request ? input.signal : undefined);
+  if (callerSignal?.aborted) throw createSupabaseAbortError();
+
+  const canRetry = ['GET', 'HEAD', 'OPTIONS'].includes(getRequestMethod(input, init));
+
+  for (let attempt = 0; attempt <= MAX_NETWORK_RETRIES; attempt += 1) {
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeoutId = globalThis.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, REQUEST_TIMEOUT_MS);
+    const forwardCallerAbort = () => controller.abort();
+
+    callerSignal?.addEventListener('abort', forwardCallerAbort, { once: true });
+
+    try {
+      return await fetch(input, { ...init, signal: controller.signal });
+    } catch (error) {
+      if (callerSignal?.aborted) throw createSupabaseAbortError();
+
+      const isTimeout = timedOut;
+      const shouldRetry = canRetry
+        && attempt < MAX_NETWORK_RETRIES
+        && (isTimeout || isNetworkFetchError(error));
+
+      if (shouldRetry) {
+        await waitForNetworkRetry(callerSignal);
+        continue;
+      }
+
+      if (isTimeout) {
+        const timeoutError = new Error('Supabase request timed out. Check your project URL and network connection.');
+        timeoutError.name = 'SupabaseTimeoutError';
+        throw timeoutError;
+      }
+
+      if (isNetworkFetchError(error)) {
+        const connectionError = new Error('Unable to connect to Supabase. Check your network connection and project URL.');
+        connectionError.name = 'SupabaseNetworkError';
+        throw connectionError;
+      }
+      throw error;
+    } finally {
+      globalThis.clearTimeout(timeoutId);
+      callerSignal?.removeEventListener('abort', forwardCallerAbort);
+    }
   }
 
-  const controller = new AbortController();
-  let timedOut = false;
-  const timeoutId = window.setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, REQUEST_TIMEOUT_MS);
-  const forwardCallerAbort = () => controller.abort();
-
-  callerSignal?.addEventListener('abort', forwardCallerAbort, { once: true });
-
-  try {
-    return await fetch(input, { ...init, signal: controller.signal });
-  } catch (error) {
-    if (callerSignal?.aborted) {
-      const abortError = new Error('Supabase request was cancelled.');
-      abortError.name = 'AbortError';
-      throw abortError;
-    }
-    if (timedOut) {
-      const timeoutError = new Error('Supabase request timed out. Check your project URL and network connection.');
-      timeoutError.name = 'SupabaseTimeoutError';
-      throw timeoutError;
-    }
-
-    const errorName = typeof error === 'object' && error !== null && 'name' in error
-      ? String(error.name)
-      : '';
-    const errorMessage = error instanceof Error
-      ? error.message
-      : typeof error === 'object' && error !== null && 'message' in error
-        ? String(error.message)
-        : String(error);
-    const isNetworkError = errorName === 'TypeError'
-      || errorMessage === 'Failed to fetch'
-      || errorMessage.includes('NetworkError');
-
-    if (isNetworkError) {
-      const connectionError = new Error('Unable to connect to Supabase. Check your network connection and project URL.');
-      connectionError.name = 'SupabaseNetworkError';
-      throw connectionError;
-    }
-    throw error;
-  } finally {
-    window.clearTimeout(timeoutId);
-    callerSignal?.removeEventListener('abort', forwardCallerAbort);
-  }
+  throw new Error('Supabase request failed after retries.');
 };
 
 export const supabase = createClient<Database>(clientUrl, clientKey, {
