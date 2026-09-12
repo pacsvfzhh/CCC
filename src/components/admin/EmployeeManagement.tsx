@@ -2695,13 +2695,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     {renderCreateForm(group.admin.id, group.admin)}
 
                     <div className={`flex min-h-8 items-center border-b px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-blue-500/30 bg-blue-500/5'}`}>
-                      <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
+                      <div className="min-w-0 flex-1 -translate-y-0.5 overflow-x-auto scrollbar-hide">
                         {renderStatusFilterButtons(group.admin.id)}
                       </div>
                       <button
                         type="button"
                         onClick={() => { setSelectedAdminForCreate(group.admin.id); setShowCreateForm(true); setExpandedGroups(prev => new Set(prev).add(group.admin.id)); }}
-                        className="ml-auto inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-yellow-400/50 bg-yellow-600/80 px-2.5 py-1 text-[11px] font-semibold text-yellow-50 shadow-lg shadow-yellow-950/30 transition-all hover:border-yellow-300/70 hover:bg-yellow-500 active:bg-yellow-700"
+                        className="ml-auto inline-flex h-7 shrink-0 -translate-y-0.5 items-center gap-1.5 rounded-lg border border-yellow-400/50 bg-yellow-600/80 px-2.5 py-1 text-[11px] font-semibold text-yellow-50 shadow-lg shadow-yellow-950/30 transition-all hover:border-yellow-300/70 hover:bg-yellow-500 active:bg-yellow-700"
                       >
                         <UserPlus className="h-3.5 w-3.5" /> Add
                       </button>
