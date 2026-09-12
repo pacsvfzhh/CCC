@@ -1360,16 +1360,6 @@ export default function EmployeeDetailModal({
                     </div>
                   </div>
                   <div className="relative flex items-center gap-2 self-start sm:self-center">
-                    <PageNavigator
-                      page={transactionPage}
-                      pageCount={Math.max(1, Math.ceil((transactionTotalCount ?? 0) / transactionPageSize))}
-                      onPageChange={(page) => {
-                        setTransactionPage(page);
-                        void loadTransactionPage(page, selectedTransactionDate);
-                      }}
-                      tone="cyan"
-                      disabled={loadingTransactions}
-                    />
                     {selectedTransactionDate && (
                       <button
                         type="button"
@@ -1451,6 +1441,16 @@ export default function EmployeeDetailModal({
                         </div>
                       )}
                     </div>
+                    <PageNavigator
+                      page={transactionPage}
+                      pageCount={Math.max(1, Math.ceil((transactionTotalCount ?? 0) / transactionPageSize))}
+                      onPageChange={(page) => {
+                        setTransactionPage(page);
+                        void loadTransactionPage(page, selectedTransactionDate);
+                      }}
+                      tone="cyan"
+                      disabled={loadingTransactions}
+                    />
                   </div>
                 </div>
 
