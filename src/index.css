@@ -3218,6 +3218,39 @@ button .animate-bell-ring.keep-animation,
   100% { background-position: 30px 30px; }
 }
 
+.employee-detail-scrollbar.employee-detail-scrollbar--dark {
+  color-scheme: dark;
+  scrollbar-color: #334155 #0b1220 !important;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--dark::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--dark::-webkit-scrollbar-track {
+  background: #0b1220 !important;
+  border: 1px solid #111827 !important;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--dark::-webkit-scrollbar-thumb {
+  background: #334155 !important;
+  border: 1px solid #475569 !important;
+  border-radius: 4px;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--dark::-webkit-scrollbar-thumb:hover {
+  background: #475569 !important;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--dark::-webkit-scrollbar-thumb:active {
+  background: #64748b !important;
+}
+
+.employee-detail-scrollbar.employee-detail-scrollbar--dark::-webkit-scrollbar-corner {
+  background: #0b1220 !important;
+}
+
 .create-customer-modal {
   box-sizing: border-box;
   color: #e2e8f0;
