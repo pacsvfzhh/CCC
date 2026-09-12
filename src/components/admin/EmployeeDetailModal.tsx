@@ -917,7 +917,7 @@ export default function EmployeeDetailModal({
           </div>
 
           <div
-            className={activeTab === "transactions" ? "space-y-4" : "hidden"}
+            className={activeTab === "transactions" ? "-mx-4 -mt-4 space-y-0 sm:-mx-5 sm:-mt-5" : "hidden"}
           >
             {loadingTransactions ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -932,15 +932,16 @@ export default function EmployeeDetailModal({
               </div>
             ) : (
               <>
-                <div className="sticky top-0 z-20 -mx-4 -mt-4 mb-4 flex flex-col gap-3 border-b border-cyan-300/25 bg-slate-900 px-4 py-3 shadow-lg shadow-slate-950/30 sm:-mx-5 sm:-mt-5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <div className="sticky top-0 z-20 flex flex-col gap-2 border-b border-cyan-300/25 bg-slate-900 px-4 py-2 shadow-lg shadow-slate-950/30 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-500/10">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-500/10">
                       <DollarSign className="h-4 w-4 text-cyan-300" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-100">Transaction History</p>
-                      <p className="text-xs text-slate-400">
-                        <span className="font-bold tabular-nums text-cyan-200">{transactions.length}</span> records loaded
+                      <p className="text-xs font-bold text-slate-100">Transaction History</p>
+                      <p className="mt-0.5 inline-flex items-baseline gap-1.5 rounded-md border border-cyan-300/30 bg-cyan-500/15 px-2 py-0.5">
+                        <span className="text-base font-black leading-none tabular-nums text-cyan-50">{transactions.length}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-200">records loaded</span>
                       </p>
                     </div>
                   </div>
@@ -976,7 +977,7 @@ export default function EmployeeDetailModal({
                 </div>
 
                 {/* Transaction List */}
-                <div className="space-y-3">
+                <div className="space-y-3 px-4 pt-3 sm:px-5">
                   {transactions
                     .slice(
                       (transactionPage - 1) * itemsPerPage,
