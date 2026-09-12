@@ -1866,7 +1866,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           {employee.is_active ? 'Active' : 'Off'}
         </button>
       </td>
-      <td className="w-[66px] py-0.5 px-1 relative group/remarks overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <td className="w-[66px] py-0.5 px-1 relative group/remarks" onClick={(e) => e.stopPropagation()}>
         <div className="flex min-w-0 items-center gap-0.5 max-w-[66px]">
           <span title={employee.remarks || '-'} className="text-xs text-blue-400 truncate flex-1">{employee.remarks || '-'}</span>
           <button onClick={() => setEditingRemarksOnly(employee)} className="opacity-0 group-hover/remarks:opacity-100 transition-opacity flex-shrink-0">
