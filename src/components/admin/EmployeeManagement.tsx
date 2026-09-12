@@ -1285,7 +1285,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         className="fixed z-[9999]"
         style={{ top: idleDaysDropdownPos.top, left: idleDaysDropdownPos.left }}
       >
-        <div className="bg-slate-800 border border-slate-600 rounded-lg shadow-xl shadow-black/50 min-w-[160px] py-1">
+        <div className="min-w-[160px] rounded-lg border border-emerald-800/70 bg-slate-900 py-1 shadow-xl shadow-black/50">
           {items.map(({ key, label }) => {
             const isSelected = inactiveDaysFilterByGroup.get(adminId) === key;
             return (
@@ -1304,11 +1304,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 }}
                 className={`w-full text-left px-3 py-2 text-xs font-semibold transition-colors flex items-center gap-2.5 ${
                   isSelected
-                    ? 'bg-teal-500 text-white'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-emerald-700 text-white'
+                    : 'text-slate-300 hover:bg-emerald-950 hover:text-emerald-50'
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-white' : 'bg-teal-400'}`} />
+                <span className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-white' : 'bg-emerald-400'}`} />
                 {label}
               </button>
             );
@@ -1484,8 +1484,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             onClick={(e) => handleIdleDaysClick(adminId, e)}
             className={`inline-flex h-7 w-[120px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-[11px] font-semibold transition-colors ${
               hasIdleFilter
-                ? 'border-teal-200 bg-teal-500 text-white'
-                : 'border-teal-500/60 bg-teal-950/55 text-teal-200 hover:border-teal-300/80 hover:bg-teal-900/70 hover:text-teal-50'
+                ? 'border-emerald-300 bg-emerald-700 text-white'
+                : 'border-emerald-500/60 bg-emerald-950 text-emerald-200 hover:border-emerald-300/80 hover:bg-emerald-900 hover:text-emerald-50'
             }`}
           >
             <Timer className="h-3.5 w-3.5" />
