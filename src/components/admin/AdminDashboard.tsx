@@ -633,7 +633,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       <AdminBackground />
 
       <div className="relative z-10 m-0 p-0 w-full h-full flex flex-col">
-        <header className="bg-slate-900/90 backdrop-blur-xl border-b border-blue-500/30 w-full m-0 flex-shrink-0" style={{ WebkitBackdropFilter: 'blur(24px)' }}>
+        <header className="bg-slate-900/90 backdrop-blur-xl border-b border-blue-500/30 w-full m-0 flex-shrink-0 lg:hidden" style={{ WebkitBackdropFilter: 'blur(24px)' }}>
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-cyan-500/10 to-blue-600/5 pointer-events-none"></div>
           <div className="w-full px-2 sm:px-2.5 lg:px-3 py-0 relative">
             <div className="flex h-4 min-h-0 justify-between items-center gap-1 leading-none">
@@ -696,7 +696,55 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         <div className="w-full lg:flex flex-1 min-h-0">
           {/* Desktop: Vertical Left Sidebar */}
           <aside className="hidden lg:flex lg:flex-col lg:w-40 xl:w-44 flex-shrink-0 bg-slate-900/70 border-r border-slate-700/50 overflow-y-auto scrollbar-hide">
-            <nav className="flex flex-col gap-0.5 p-1.5">
+            <div className="shrink-0 border-b border-slate-700/60 bg-slate-950/55 px-2 py-2.5">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-md shadow-blue-950/40">
+                  <Zap className="h-3 w-3 text-white" fill="currentColor" />
+                </div>
+                <h1 className="min-w-0 truncate text-[11px] font-bold leading-tight bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent" title={companyName}>
+                  {companyName}
+                </h1>
+              </div>
+              <div className="mt-1 flex min-w-0 items-center gap-1.5">
+                <Shield className="h-3 w-3 shrink-0 text-purple-400" />
+                <span className="truncate text-[9px] font-semibold uppercase tracking-wide text-purple-200">
+                  {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                </span>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
+                <span className="min-w-0 truncate text-[9px] font-medium text-slate-400" title={admin.username}>
+                  {admin.username}
+                </span>
+              </div>
+              <div className="mt-2 grid gap-1">
+                {admin.role === 'super_admin' && (
+                  <button
+                    onClick={() => setShowUsernameModal(true)}
+                    className="flex h-7 w-full items-center gap-1.5 rounded-md border border-purple-500/35 bg-purple-500/10 px-2 text-left text-[10px] text-purple-300 transition-colors hover:border-purple-400/60 hover:bg-purple-500/20 hover:text-purple-100"
+                    title="Change Username"
+                  >
+                    <UserCog className="h-3 w-3 shrink-0" />
+                    <span className="font-medium">Username</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className="flex h-7 w-full items-center gap-1.5 rounded-md border border-blue-500/35 bg-blue-500/10 px-2 text-left text-[10px] text-blue-300 transition-colors hover:border-blue-400/60 hover:bg-blue-500/20 hover:text-blue-100"
+                  title="Change Password"
+                >
+                  <Lock className="h-3 w-3 shrink-0" />
+                  <span className="font-medium">Password</span>
+                </button>
+                <button
+                  onClick={() => logout()}
+                  className="flex h-7 w-full items-center gap-1.5 rounded-md border border-red-500/35 bg-red-500/10 px-2 text-left text-[10px] text-red-300 transition-colors hover:border-red-400/60 hover:bg-red-500/20 hover:text-red-100"
+                  title="Logout"
+                >
+                  <LogOut className="h-3 w-3 shrink-0" />
+                  <span className="font-medium">Logout</span>
+                </button>
+              </div>
+            </div>
+            <nav className="flex flex-col gap-0.5 p-1.5 pt-2.5">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const pendingCount = tab.id === 'withdrawals' ? pendingWithdrawalsCount : tab.id === 'verifications' ? pendingVerificationsCount : tab.id === 'customerservice' ? unreadCustomerServiceCount : tab.id === 'cccservice' ? unreadCccServiceCount : tab.id === 'accountlocks' ? lockedAccountsCount : 0;
