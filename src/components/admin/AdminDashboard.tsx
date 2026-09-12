@@ -650,7 +650,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         {accountMenuOpen && (
           <div
             role="menu"
-            className={`absolute z-[70] flex w-full min-w-0 flex-col gap-1.5 overflow-hidden rounded-xl border border-cyan-400/65 bg-slate-950 p-1.5 shadow-xl shadow-cyan-950/60 ring-1 ring-cyan-300/20 animate-[fadeIn_120ms_ease-out] ${isSidebar ? 'left-0 right-0 top-[calc(100%+0.35rem)]' : 'right-0 top-[calc(100%+0.35rem)] min-w-[164px]'}`}
+            className={`absolute z-[70] flex w-full min-w-0 flex-col gap-1 overflow-hidden rounded-lg border border-emerald-400/50 bg-slate-950 p-1 shadow-xl shadow-emerald-950/40 ring-1 ring-emerald-200/10 animate-[fadeIn_120ms_ease-out] ${isSidebar ? 'left-0 right-0 top-[calc(100%+0.35rem)]' : 'right-0 top-[calc(100%+0.35rem)] min-w-[164px]'}`}
           >
             {admin.role === 'super_admin' && (
               <button
@@ -660,10 +660,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   setAccountMenuOpen(false);
                   setShowUsernameModal(true);
                 }}
-                className="flex h-9 w-full items-center gap-2 rounded-lg border-l-4 border-violet-300 bg-violet-700 px-1.5 text-left text-[11px] font-semibold text-white transition-all hover:bg-violet-600"
+                className="flex h-7 w-full items-center gap-1.5 rounded-md border-l-2 border-emerald-400/70 bg-emerald-900 px-1.5 text-left text-[10px] font-medium text-emerald-100 transition-colors hover:bg-emerald-800"
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-violet-600">
-                  <UserCog className="h-3.5 w-3.5 text-violet-100" />
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-800">
+                  <UserCog className="h-3 w-3 text-emerald-200" />
                 </span>
                 <span>Username</span>
               </button>
@@ -675,10 +675,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 setAccountMenuOpen(false);
                 setShowPasswordModal(true);
               }}
-              className="flex h-9 w-full items-center gap-2 rounded-lg border-l-4 border-cyan-200 bg-cyan-700 px-1.5 text-left text-[11px] font-semibold text-white transition-all hover:bg-cyan-600"
+              className="flex h-7 w-full items-center gap-1.5 rounded-md border-l-2 border-teal-400/70 bg-teal-900 px-1.5 text-left text-[10px] font-medium text-teal-100 transition-colors hover:bg-teal-800"
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-cyan-600">
-                <Lock className="h-3.5 w-3.5 text-cyan-100" />
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-teal-800">
+                <Lock className="h-3 w-3 text-teal-200" />
               </span>
               <span>Password</span>
             </button>
@@ -689,10 +689,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 setAccountMenuOpen(false);
                 logout();
               }}
-              className="flex h-9 w-full items-center gap-2 rounded-lg border-l-4 border-rose-300 bg-rose-700 px-1.5 text-left text-[11px] font-semibold text-white transition-all hover:bg-rose-600"
+              className="flex h-7 w-full items-center gap-1.5 rounded-md border-l-2 border-green-400/70 bg-green-900 px-1.5 text-left text-[10px] font-medium text-green-100 transition-colors hover:bg-green-800"
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-rose-600">
-                <LogOut className="h-3.5 w-3.5 text-rose-100" />
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-green-800">
+                <LogOut className="h-3 w-3 text-green-200" />
               </span>
               <span>Logout</span>
             </button>
