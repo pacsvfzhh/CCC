@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
@@ -132,6 +132,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [resetFeedbackAdminId, setResetFeedbackAdminId] = useState<string | null>(null);
   const [pinningAdminId, setPinningAdminId] = useState<string | null>(null);
+  const [adminPinOverrides, setAdminPinOverrides] = useState<Map<string, boolean>>(new Map());
   const resetFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -656,6 +657,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         });
 
       setEmployeeGroups(groupsArray);
+      setAdminPinOverrides(new Map());
       setExpandedGroups(prev => {
         if (prev.size === 0) return new Set(groupsArray.map(g => g.admin.id));
         return prev;
@@ -1013,33 +1015,31 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     if (pinningAdminId) return;
 
     const newPinned = !currentPinned;
-    const sortGroups = (groups: EmployeeGroup[]) => [...groups].sort((a, b) => {
-      if (a.admin.role === 'super_admin' && b.admin.role !== 'super_admin') return -1;
-      if (a.admin.role !== 'super_admin' && b.admin.role === 'super_admin') return 1;
-      if (a.admin.role === 'secondary_admin' && b.admin.role === 'secondary_admin') {
-        if (a.admin.is_pinned && !b.admin.is_pinned) return -1;
-        if (!a.admin.is_pinned && b.admin.is_pinned) return 1;
-      }
-      return a.admin.username.localeCompare(b.admin.username);
-    });
-
     setPinningAdminId(adminId);
-    setEmployeeGroups(prev => {
-      const updated = prev.map(g =>
-        g.admin.id === adminId ? { ...g, admin: { ...g.admin, is_pinned: newPinned } } : g
-      );
-      return sortGroups(updated);
+    setAdminPinOverrides(prev => {
+      const next = new Map(prev);
+      next.set(adminId, newPinned);
+      return next;
     });
 
     try {
       const { error } = await supabase.from('admins').update({ is_pinned: newPinned }).eq('id', adminId);
       if (error) throw error;
+      setEmployeeGroups(prev => prev.map(group =>
+        group.admin.id === adminId
+          ? { ...group, admin: { ...group.admin, is_pinned: newPinned } }
+          : group
+      ));
+      setAdminPinOverrides(prev => {
+        const next = new Map(prev);
+        next.delete(adminId);
+        return next;
+      });
     } catch (error) {
-      setEmployeeGroups(prev => {
-        const reverted = prev.map(g =>
-          g.admin.id === adminId ? { ...g, admin: { ...g.admin, is_pinned: currentPinned } } : g
-        );
-        return sortGroups(reverted);
+      setAdminPinOverrides(prev => {
+        const next = new Map(prev);
+        next.set(adminId, currentPinned);
+        return next;
       });
     } finally {
       setPinningAdminId(null);
@@ -1183,7 +1183,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     );
   };
 
-  const filteredGroups = employeeGroups.map(group => ({
+  const filteredEmployeeGroups = useMemo(() => employeeGroups.map(group => ({
     ...group,
     employees: getFilteredEmployeesForGroup(group)
   })).filter(group => {
@@ -1191,7 +1191,40 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       return group.admin.id === selectedAdminFilter;
     }
     return group.admin.role === 'secondary_admin' || group.admin.role === 'super_admin' || group.employees.length > 0;
-  });
+  }), [
+    employeeGroups,
+    selectedTagsByGroup,
+    activeFilterByGroup,
+    workStatusFilterByGroup,
+    summaryFilterByGroup,
+    inactiveDaysFilterByGroup,
+    pendingWithdrawalFilterByGroup,
+    sortByGroup,
+    searchTerm,
+    admin.role,
+    selectedAdminFilter,
+  ]);
+
+  const filteredGroups = useMemo(() => {
+    if (adminPinOverrides.size === 0) return filteredEmployeeGroups;
+
+    const groupsWithOverrides = filteredEmployeeGroups.map(group => {
+      const override = adminPinOverrides.get(group.admin.id);
+      return override === undefined || override === group.admin.is_pinned
+        ? group
+        : { ...group, admin: { ...group.admin, is_pinned: override } };
+    });
+
+    return [...groupsWithOverrides].sort((a, b) => {
+      if (a.admin.role === 'super_admin' && b.admin.role !== 'super_admin') return -1;
+      if (a.admin.role !== 'super_admin' && b.admin.role === 'super_admin') return 1;
+      if (a.admin.role === 'secondary_admin' && b.admin.role === 'secondary_admin') {
+        if (a.admin.is_pinned && !b.admin.is_pinned) return -1;
+        if (!a.admin.is_pinned && b.admin.is_pinned) return 1;
+      }
+      return a.admin.username.localeCompare(b.admin.username);
+    });
+  }, [filteredEmployeeGroups, adminPinOverrides]);
 
   const flatFilteredEmployees = admin.role === 'secondary_admin' && filteredGroups.length > 0
     ? filteredGroups[0].employees
