@@ -1060,11 +1060,11 @@ export default function EmployeeDetailModal({
                           className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-cyan-300/30 bg-slate-950 shadow-2xl shadow-slate-950/80"
                           aria-label="Available transaction dates"
                         >
-                          <div className="border-b border-cyan-300/20 bg-blue-950/80 px-3 py-2.5">
+                          <div className="flex items-center justify-between gap-3 border-b border-cyan-300/20 bg-blue-950/80 px-3 py-2">
                             <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-200">
                               Available dates
                             </p>
-                            <p className="mt-0.5 text-[11px] text-slate-400">
+                            <p className="shrink-0 text-[11px] font-semibold tabular-nums text-slate-300">
                               {availableTransactionDates.length} dates with records
                             </p>
                           </div>
