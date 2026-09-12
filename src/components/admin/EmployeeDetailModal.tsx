@@ -126,19 +126,19 @@ function PageNavigator({
   const [pageInput, setPageInput] = useState(String(page));
   const toneStyles = {
     cyan: {
-      border: "border-cyan-300/25",
-      text: "text-cyan-100",
-      button: "border-cyan-300/35 bg-cyan-500/10 hover:border-cyan-200/60 hover:bg-cyan-500/20 hover:text-white",
+      border: "border-cyan-200/60 bg-cyan-950/75",
+      text: "text-cyan-50",
+      button: "border-cyan-200/55 bg-cyan-500/25 text-cyan-50 hover:border-cyan-100 hover:bg-cyan-400/35 hover:text-white",
     },
     amber: {
-      border: "border-amber-300/25",
-      text: "text-amber-100",
-      button: "border-amber-300/35 bg-amber-500/10 hover:border-amber-200/60 hover:bg-amber-500/20 hover:text-white",
+      border: "border-amber-200/60 bg-amber-950/75",
+      text: "text-amber-50",
+      button: "border-amber-200/55 bg-amber-500/25 text-amber-50 hover:border-amber-100 hover:bg-amber-400/35 hover:text-white",
     },
     emerald: {
-      border: "border-emerald-300/25",
-      text: "text-emerald-100",
-      button: "border-emerald-300/35 bg-emerald-500/10 hover:border-emerald-200/60 hover:bg-emerald-500/20 hover:text-white",
+      border: "border-emerald-200/60 bg-emerald-950/75",
+      text: "text-emerald-50",
+      button: "border-emerald-200/55 bg-emerald-500/25 text-emerald-50 hover:border-emerald-100 hover:bg-emerald-400/35 hover:text-white",
     },
   }[tone];
 
@@ -161,10 +161,10 @@ function PageNavigator({
     }
   };
 
-  const buttonClass = `inline-flex h-7 w-7 items-center justify-center rounded-md border text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600 ${toneStyles.button}`;
+  const buttonClass = `inline-flex h-8 w-8 items-center justify-center rounded-md border text-sm font-bold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${toneStyles.button}`;
 
   return (
-    <div className={`flex items-center gap-1 rounded-lg border bg-slate-950/60 p-1 ${toneStyles.border}`}>
+    <div className={`flex items-center gap-1.5 rounded-xl border-2 p-1.5 shadow-lg shadow-slate-950/40 ${toneStyles.border}`}>
       <button
         type="button"
         onClick={() => onPageChange(1)}
@@ -185,7 +185,7 @@ function PageNavigator({
       >
         <ChevronLeft className="h-3.5 w-3.5" />
       </button>
-      <div className={`flex items-center gap-1 px-1 text-[11px] font-semibold tabular-nums ${toneStyles.text}`}>
+      <div className={`flex items-center gap-1.5 px-1 text-xs font-bold tabular-nums ${toneStyles.text}`}>
         <input
           type="number"
           min={1}
@@ -203,9 +203,9 @@ function PageNavigator({
           }}
           disabled={disabled}
           aria-label="Current page"
-          className="h-6 w-10 rounded border border-slate-700 bg-slate-800 px-1 text-center text-[11px] font-bold text-white outline-none focus:border-cyan-300/70 focus:ring-1 focus:ring-cyan-300/30 disabled:cursor-not-allowed disabled:text-slate-600"
+          className="h-8 w-12 rounded-md border border-slate-300/90 bg-slate-100 px-1 text-center text-sm font-black text-slate-900 shadow-sm outline-none focus:border-cyan-200 focus:ring-2 focus:ring-cyan-300/50 disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-700 disabled:text-slate-300"
         />
-        <span>/ {pageCount}</span>
+        <span className="whitespace-nowrap">/ {pageCount}</span>
       </div>
       <button
         type="button"
