@@ -638,19 +638,19 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           onClick={() => setAccountMenuOpen((open) => !open)}
           aria-haspopup="menu"
           aria-expanded={accountMenuOpen}
-          className={`flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-all duration-200 ${isSidebar ? `h-8 w-full justify-between border-l-2 border-slate-400/70 bg-slate-700/85 px-1.5 text-[10px] text-slate-100 shadow-sm shadow-slate-950/35 hover:-translate-y-px hover:border-slate-300/90 hover:bg-slate-600/90 hover:shadow-md hover:shadow-slate-950/45 active:translate-y-0 ${accountMenuOpen ? 'border-slate-200/90 bg-slate-600 text-white ring-1 ring-slate-300/25' : ''}` : `h-7 border border-slate-600/80 bg-slate-800/95 px-2 text-[10px] text-slate-200 hover:border-slate-400/80 hover:bg-slate-700/95 hover:shadow-md hover:shadow-slate-950/40 sm:px-2.5 sm:text-[11px] ${accountMenuOpen ? 'border-slate-300/80 bg-slate-700 text-white ring-1 ring-slate-300/20' : ''}`}`}
+          className={`flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-all duration-200 ${isSidebar ? `h-8 w-full justify-between border-l-2 border-cyan-300/80 bg-gradient-to-r from-blue-700/90 via-blue-700/80 to-cyan-700/65 px-1.5 text-[10px] text-cyan-50 shadow-sm shadow-blue-950/45 hover:-translate-y-px hover:border-cyan-200 hover:from-blue-600/95 hover:to-cyan-600/75 hover:shadow-md hover:shadow-cyan-950/35 active:translate-y-0 ${accountMenuOpen ? 'border-cyan-100 bg-gradient-to-r from-blue-600 to-cyan-600 text-white ring-1 ring-cyan-200/40' : ''}` : `h-7 border border-blue-400/70 bg-gradient-to-r from-blue-700/90 to-cyan-700/70 px-2 text-[10px] text-cyan-50 shadow-sm shadow-blue-950/35 hover:border-cyan-200/90 hover:from-blue-600/95 hover:to-cyan-600/80 hover:shadow-md hover:shadow-cyan-950/35 sm:px-2.5 sm:text-[11px] ${accountMenuOpen ? 'border-cyan-100 bg-gradient-to-r from-blue-600 to-cyan-600 text-white ring-1 ring-cyan-200/40' : ''}`}`}
           title="Account actions"
         >
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-700/80">
-            <UserCog className="h-3 w-3 text-slate-200" />
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-cyan-300/20">
+            <UserCog className="h-3 w-3 text-cyan-100" />
           </span>
           <span className="flex-1 text-left tracking-wide">Account</span>
-          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180 text-slate-100' : ''}`} />
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-100/80 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180 text-white' : ''}`} />
         </button>
         {accountMenuOpen && (
           <div
             role="menu"
-            className={`absolute z-[70] w-full min-w-0 overflow-hidden rounded-lg border border-slate-700/90 bg-slate-900 p-1 shadow-xl shadow-slate-950/70 animate-[fadeIn_120ms_ease-out] ${isSidebar ? 'left-0 right-0 top-[calc(100%+0.35rem)]' : 'right-0 top-[calc(100%+0.35rem)] min-w-[164px]'}`}
+            className={`absolute z-[70] w-full min-w-0 overflow-hidden rounded-xl border border-blue-400/40 bg-gradient-to-b from-slate-900 via-blue-950/90 to-slate-950 p-1.5 shadow-xl shadow-blue-950/55 ring-1 ring-cyan-300/10 animate-[fadeIn_120ms_ease-out] ${isSidebar ? 'left-0 right-0 top-[calc(100%+0.35rem)]' : 'right-0 top-[calc(100%+0.35rem)] min-w-[164px]'}`}
           >
             {admin.role === 'super_admin' && (
               <button
@@ -660,10 +660,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   setAccountMenuOpen(false);
                   setShowUsernameModal(true);
                 }}
-                className="flex h-8 w-full items-center gap-2 rounded-md border-l-2 border-purple-400/80 bg-purple-500/10 px-1.5 text-left text-[11px] font-medium text-purple-100 transition-all hover:bg-purple-500/20 hover:text-white"
+                className="flex h-8 w-full items-center gap-2 rounded-lg border-l-2 border-violet-400/90 bg-violet-500/15 px-1.5 text-left text-[11px] font-medium text-violet-100 transition-all hover:bg-violet-500/25 hover:text-white"
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-purple-500/20">
-                  <UserCog className="h-3.5 w-3.5 text-purple-300" />
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-violet-400/20">
+                  <UserCog className="h-3.5 w-3.5 text-violet-300" />
                 </span>
                 <span>Username</span>
               </button>
@@ -675,10 +675,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 setAccountMenuOpen(false);
                 setShowPasswordModal(true);
               }}
-              className="flex h-8 w-full items-center gap-2 rounded-md border-l-2 border-blue-400/80 bg-blue-500/10 px-1.5 text-left text-[11px] font-medium text-blue-100 transition-all hover:bg-blue-500/20 hover:text-white"
+              className="flex h-8 w-full items-center gap-2 rounded-lg border-l-2 border-cyan-400/90 bg-cyan-500/15 px-1.5 text-left text-[11px] font-medium text-cyan-100 transition-all hover:bg-cyan-500/25 hover:text-white"
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-500/20">
-                <Lock className="h-3.5 w-3.5 text-blue-300" />
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-cyan-400/20">
+                <Lock className="h-3.5 w-3.5 text-cyan-300" />
               </span>
               <span>Password</span>
             </button>
@@ -689,10 +689,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 setAccountMenuOpen(false);
                 logout();
               }}
-              className="flex h-8 w-full items-center gap-2 rounded-md border-l-2 border-red-400/80 bg-red-500/10 px-1.5 text-left text-[11px] font-medium text-red-100 transition-all hover:bg-red-500/20 hover:text-white"
+              className="flex h-8 w-full items-center gap-2 rounded-lg border-l-2 border-rose-400/90 bg-rose-500/15 px-1.5 text-left text-[11px] font-medium text-rose-100 transition-all hover:bg-rose-500/25 hover:text-white"
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-red-500/20">
-                <LogOut className="h-3.5 w-3.5 text-red-300" />
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-rose-400/20">
+                <LogOut className="h-3.5 w-3.5 text-rose-300" />
               </span>
               <span>Logout</span>
             </button>
