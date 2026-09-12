@@ -774,7 +774,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 {renderAccountMenu('sidebar')}
               </div>
             </div>
-            <nav className="flex flex-col gap-0.5 border-t border-slate-600/70 p-1.5 pt-4">
+            <nav className="flex flex-col gap-0.5 border-t border-slate-600/70 p-1.5 pt-6">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const pendingCount = tab.id === 'withdrawals' ? pendingWithdrawalsCount : tab.id === 'verifications' ? pendingVerificationsCount : tab.id === 'customerservice' ? unreadCustomerServiceCount : tab.id === 'cccservice' ? unreadCccServiceCount : tab.id === 'accountlocks' ? lockedAccountsCount : 0;
