@@ -1188,7 +1188,7 @@ export default function EmployeeDetailModal({
                           setTransactionPage(1);
                           void loadTransactionPage(1, "");
                         }}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-200/70 bg-cyan-500/25 px-2.5 text-xs font-bold text-cyan-50 shadow-sm shadow-cyan-950/40 transition-colors hover:border-cyan-100 hover:bg-cyan-400/35 hover:text-white"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-blue-300/35 bg-blue-950/80 px-2.5 text-xs font-semibold text-blue-100 transition-colors hover:border-blue-200/55 hover:bg-blue-900/90 hover:text-white"
                       >
                         <X className="h-3.5 w-3.5" />
                         All dates
@@ -1265,7 +1265,7 @@ export default function EmployeeDetailModal({
                 </div>
 
                 {/* Transaction List */}
-                <div className="relative space-y-2.5 px-4 pt-3 sm:px-5">
+                <div className="relative px-4 pt-3 sm:px-5">
                   {loadingTransactions && (
                     <div className="pointer-events-none absolute inset-x-4 top-3 z-10 flex items-center justify-center sm:inset-x-5">
                       <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/35 bg-slate-950/90 px-3 py-1.5 text-[11px] font-semibold text-cyan-100 shadow-lg shadow-slate-950/40">
@@ -1274,7 +1274,7 @@ export default function EmployeeDetailModal({
                       </div>
                     </div>
                   )}
-                  <div className={loadingTransactions ? "opacity-45 transition-opacity" : "transition-opacity"}>
+                  <div className={`space-y-2.5 transition-opacity ${loadingTransactions ? "opacity-45" : ""}`}>
                     {transactions.map((tx) => {
                       const style = getTransactionStyle(tx.type, Number(tx.amount));
                       const icon =
