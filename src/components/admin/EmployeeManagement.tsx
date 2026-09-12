@@ -1825,10 +1825,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           </button>
         </div>
         {(employee.tags || []).length > 0 && (
-          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 hidden group-hover/tags:block bg-slate-950 border border-amber-500/40 rounded-lg px-2.5 py-1 shadow-2xl shadow-black/60 ring-1 ring-amber-500/20 text-xs whitespace-nowrap">
+          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 hidden group-hover/tags:block rounded-lg border border-amber-300/70 bg-gradient-to-r from-amber-950 via-[#38240b] to-amber-900/95 px-2.5 py-1 text-xs whitespace-nowrap text-amber-50 shadow-[0_10px_28px_rgba(120,53,15,0.48)] ring-1 ring-inset ring-amber-100/20">
             <div className="flex gap-1">
               {(employee.tags || []).map((tag, idx) => (
-                <span key={idx} className="px-1.5 py-px bg-amber-500/25 text-amber-300 text-[10px] font-medium rounded-full border border-amber-500/40">{tag}</span>
+                <span key={idx} className="rounded-full border border-amber-200/55 bg-amber-400/30 px-1.5 py-px text-[10px] font-medium text-amber-50 shadow-sm shadow-amber-950/40">{tag}</span>
               ))}
             </div>
           </div>
@@ -1874,7 +1874,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           </button>
         </div>
         {employee.remarks && employee.remarks.length > 8 && (
-          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 hidden group-hover/remarks:block bg-slate-950 border border-sky-500/40 rounded-lg px-3 py-1.5 shadow-2xl shadow-black/60 ring-1 ring-sky-500/20 text-xs text-blue-300 whitespace-nowrap font-medium">
+          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 hidden group-hover/remarks:block rounded-lg border border-blue-300/70 bg-gradient-to-r from-blue-950 via-[#102b4a] to-slate-900 px-3 py-1.5 text-xs font-medium whitespace-nowrap text-blue-50 shadow-[0_10px_28px_rgba(30,64,175,0.42)] ring-1 ring-inset ring-blue-100/20">
             {employee.remarks}
           </div>
         )}
