@@ -158,6 +158,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const employeeGroupsScrollRef = useRef<HTMLDivElement>(null);
   const employeeGroupsRef = useRef<EmployeeGroup[]>([]);
   employeeGroupsRef.current = employeeGroups;
+  const isMountedRef = useRef(false);
+  const initialLoadStartedRef = useRef(false);
   const loadInProgressRef = useRef(false);
   const pendingReloadRef = useRef(false);
   const pendingReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -165,6 +167,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const lastUpdatedRef = useRef<Date>(new Date());
 
   const resetAutoRefreshTimer = (updateTimestamp = true) => {
+    if (!isMountedRef.current) return;
     if (autoRefreshTimerRef.current) clearInterval(autoRefreshTimerRef.current);
     autoRefreshTimerRef.current = setInterval(() => {
       guardedLoadEmployees(true);
@@ -173,7 +176,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   };
 
   const schedulePendingReload = () => {
-    if (pendingReloadTimerRef.current) return;
+    if (!isMountedRef.current || pendingReloadTimerRef.current) return;
     pendingReloadTimerRef.current = setTimeout(() => {
       pendingReloadTimerRef.current = null;
       if (!pendingReloadRef.current) return;
@@ -245,7 +248,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   }, [showCreateSecondaryAdmin, adminFilterOpen, editingEmployee, showPasswordReset, deletingEmployee, editingTags, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
 
   useEffect(() => {
-    guardedLoadEmployees(false);
+    isMountedRef.current = true;
+    if (!initialLoadStartedRef.current) {
+      initialLoadStartedRef.current = true;
+      void guardedLoadEmployees(false);
+    }
 
     let realtimeReloadTimer: ReturnType<typeof setTimeout> | null = null;
     const scheduleRealtimeReload = (delay: number) => {
@@ -376,6 +383,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     }, 1000);
 
     return () => {
+      isMountedRef.current = false;
+      pendingReloadRef.current = false;
       if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
       supabase.removeChannel(adminsSubscription);
       supabase.removeChannel(usersSubscription);
@@ -439,7 +448,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       resetAutoRefreshTimer(committed);
     } finally {
       loadInProgressRef.current = false;
-      if (pendingReloadRef.current) schedulePendingReload();
+      if (isMountedRef.current && pendingReloadRef.current) schedulePendingReload();
     }
   };
 
@@ -672,7 +681,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         && currentEmployeeCount > 0
         && nextEmployeeCount === 0
         && (admins.length === 0 || employees.length > 0);
-      if (hasIncompleteSilentResult) return false;
+      if (hasIncompleteSilentResult || !isMountedRef.current) return false;
 
       setEmployeeGroups(groupsArray);
       setAdminPinOverrides(new Map());
@@ -686,8 +695,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         console.error('Error loading employees:', formatSupabaseError(error));
       }
     } finally {
-      if (showInitialLoading) setLoading(false);
-      else setIsRefreshing(false);
+      if (isMountedRef.current) {
+        if (showInitialLoading) setLoading(false);
+        else setIsRefreshing(false);
+      }
     }
     return committed;
   };
