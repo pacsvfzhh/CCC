@@ -1323,10 +1323,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const renderIdleDaysPortal = (adminId: string) => {
     if (inactiveDaysDropdownOpen !== adminId || !idleDaysDropdownPos) return null;
     const items = [
-      { key: '2-3' as InactiveDaysRange, label: '2 ~ 3 days' },
-      { key: '3-7' as InactiveDaysRange, label: '3 ~ 7 days' },
-      { key: '7-15' as InactiveDaysRange, label: '7 ~ 15 days' },
-      { key: '15+' as InactiveDaysRange, label: '15+ days' },
+      { key: '2-3' as InactiveDaysRange, label: '2 ~ 3 days', accent: 'bg-sky-400', badge: 'border-sky-400/35 bg-sky-500/10 text-sky-200' },
+      { key: '3-7' as InactiveDaysRange, label: '3 ~ 7 days', accent: 'bg-emerald-400', badge: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-200' },
+      { key: '7-15' as InactiveDaysRange, label: '7 ~ 15 days', accent: 'bg-amber-400', badge: 'border-amber-400/35 bg-amber-500/10 text-amber-200' },
+      { key: '15+' as InactiveDaysRange, label: '15+ days', accent: 'bg-rose-400', badge: 'border-rose-400/35 bg-rose-500/10 text-rose-200' },
     ];
     return createPortal(
       <div
@@ -1334,9 +1334,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         className="fixed z-[9999]"
         style={{ top: idleDaysDropdownPos.top, left: idleDaysDropdownPos.left }}
       >
-        <div className="w-[196px] overflow-hidden rounded-xl border border-[#3b7a50] bg-[#04100a] shadow-2xl shadow-black/60">
-          <div role="menu" aria-label="Idle days filter" className="space-y-1 bg-[#04100a] p-1.5">
-            {items.map(({ key, label }) => {
+        <div className="w-[220px] overflow-hidden rounded-2xl border border-[#4d8b5c] bg-[#07150b] shadow-2xl shadow-black/70 ring-1 ring-inset ring-emerald-200/10">
+          <div role="menu" aria-label="Idle days filter" className="space-y-1.5 bg-[#07150b] p-2">
+            {items.map(({ key, label, accent, badge }, index) => {
               const isSelected = inactiveDaysFilterByGroup.get(adminId) === key;
               return (
                 <button
@@ -1355,25 +1355,28 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     setInactiveDaysDropdownOpen(null);
                     setIdleDaysDropdownPos(null);
                   }}
-                  className={`flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/60 ${
+                  className={`group relative flex h-10 w-full items-center gap-2.5 overflow-hidden rounded-xl border px-2.5 text-left text-[11px] font-semibold transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 ${
                     isSelected
-                      ? 'border border-emerald-300/70 bg-emerald-600 text-white'
-                      : 'border border-slate-600 bg-transparent text-slate-300 hover:border-slate-400 hover:bg-[#0b2114] hover:text-white'
+                      ? 'border-emerald-300/80 bg-gradient-to-r from-emerald-700 to-green-600 text-white shadow-md shadow-emerald-950/40'
+                      : 'border-slate-600/80 bg-[#0a1f13] text-slate-300 hover:border-emerald-400/70 hover:bg-[#12351f] hover:text-white'
                   }`}
                 >
-                  <span className={`h-2 w-2 shrink-0 rounded-full border ${isSelected ? 'border-white bg-white' : 'border-slate-500 bg-transparent'}`} />
-                  <span className="flex-1">{label}</span>
+                  <span className={`absolute bottom-2 left-0 top-2 w-1 rounded-r-full ${isSelected ? 'bg-emerald-100' : accent}`} />
+                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[10px] font-bold tabular-nums ${isSelected ? 'border-white/30 bg-white/15 text-white' : badge}`}>
+                    {index + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
                   {isSelected ? (
-                    <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-100" />
+                    <CheckCircle className="h-4 w-4 shrink-0 text-emerald-100" />
                   ) : (
-                    <span className="h-3 w-3 shrink-0 rounded-full border border-emerald-800" />
+                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full border-2 border-[#07150b] ${accent}`} />
                   )}
                 </button>
               );
             })}
           </div>
           {inactiveDaysFilterByGroup.has(adminId) && (
-            <div className="border-t border-[#0d2a19] bg-[#071a10] p-1.5">
+            <div className="border-t border-[#1b4a2a] bg-[#0a1d11] p-2">
               <button
                 type="button"
                 onClick={() => {
@@ -1385,7 +1388,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   setInactiveDaysDropdownOpen(null);
                   setIdleDaysDropdownPos(null);
                 }}
-                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-[#8f4652] bg-[#4a1c24] px-2 text-[11px] font-semibold text-rose-200 transition-all hover:border-[#b45c68] hover:bg-[#5b222d] hover:text-rose-100 active:scale-[0.98] active:bg-[#3a151c] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
+                className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-rose-400/45 bg-rose-950/75 px-2 text-[11px] font-semibold text-rose-200 transition-all hover:border-rose-300/75 hover:bg-rose-900/80 hover:text-rose-100 active:scale-[0.98] active:bg-rose-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50"
               >
                 <X className="h-3.5 w-3.5" />
                 Clear filter
@@ -1404,8 +1407,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setIdleDaysDropdownPos(null);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      const menuWidth = 196;
-      const menuHeight = 190;
+      const menuWidth = 220;
+      const menuHeight = 260;
       const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
       const top = window.innerHeight - rect.bottom < menuHeight + 8
         ? Math.max(8, rect.top - menuHeight - 6)
