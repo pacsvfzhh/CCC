@@ -1199,8 +1199,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     const activeStyles = !isActive
       ? 'text-white hover:bg-blue-800/75 hover:text-white'
       : sortState?.sortDirection === 'desc'
-        ? 'bg-emerald-600 font-bold text-white ring-2 ring-inset ring-white/80'
-        : 'bg-rose-600 font-bold text-white ring-2 ring-inset ring-white/80';
+        ? 'bg-emerald-600 font-bold text-white'
+        : 'bg-rose-600 font-bold text-white';
 
     return (
       <th className={`h-[40px] p-0 text-center text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${widthClass}`}>
