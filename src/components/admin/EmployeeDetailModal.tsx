@@ -693,7 +693,7 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Content */}
-        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-900 p-4 sm:p-5">
+        <div className={`min-h-0 flex-1 overflow-y-auto bg-slate-900 ${activeTab === "transactions" ? "p-0" : "p-4 sm:p-5"}`}>
           <div className={activeTab === "daily" ? "-mx-4 -my-4 min-h-full space-y-0 sm:-mx-5 sm:-my-5" : "hidden"}>
             {loadingStats ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -917,7 +917,7 @@ export default function EmployeeDetailModal({
           </div>
 
           <div
-            className={activeTab === "transactions" ? "-mx-4 -mt-4 space-y-0 sm:-mx-5 sm:-mt-5" : "hidden"}
+            className={activeTab === "transactions" ? "space-y-0" : "hidden"}
           >
             {loadingTransactions ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -932,7 +932,7 @@ export default function EmployeeDetailModal({
               </div>
             ) : (
               <>
-                <div className="sticky top-0 z-20 flex flex-col gap-2 border-b border-cyan-300/25 bg-slate-900 px-4 py-2 shadow-lg shadow-slate-950/30 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <div className="sticky top-0 z-30 flex flex-col gap-2 border-b border-cyan-300/25 bg-slate-900 px-4 py-2 shadow-lg shadow-slate-950/30 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-500/10">
                       <DollarSign className="h-4 w-4 text-cyan-300" />
