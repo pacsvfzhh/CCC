@@ -277,14 +277,11 @@ export default function EmployeeDetailModal({
           commission_amount: number | null;
           created_at: string;
         }> = [];
-        const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-
         while (true) {
           const result = await supabase
             .from("orders")
             .select("id, status, commission_amount, created_at")
             .eq("user_id", employee.id)
-            .gte("created_at", since)
             .order("created_at", { ascending: false })
             .order("id", { ascending: false })
             .range(offset, offset + pageSize - 1);
@@ -923,7 +920,7 @@ export default function EmployeeDetailModal({
               </div>
             ) : dailyStats.length === 0 ? (
               <div className="flex min-h-[360px] items-center justify-center text-center text-slate-400">
-                No order data available in the last 90 days
+                No order data available
               </div>
             ) : (
               <>
@@ -938,7 +935,7 @@ export default function EmployeeDetailModal({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-200">
-                        Showing statistics for the last 90 days
+                        All historical orders
                       </span>
                       <span className="rounded-full border border-blue-300/30 bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold text-blue-100">
                         All-time orders: {totalOrderCount === null ? "—" : totalOrderCount.toLocaleString()}
@@ -946,56 +943,56 @@ export default function EmployeeDetailModal({
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-                    <div className="rounded-lg border border-emerald-500/30 bg-blue-950/35 p-2.5">
-                      <div className="flex items-center gap-2 mb-1">
-                        <DollarSign className="w-4 h-4 text-emerald-400" />
-                        <span className="text-xs text-emerald-300 font-bold">
+                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-blue-950/35 px-2.5 py-2">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <DollarSign className="h-4 w-4 shrink-0 text-emerald-400" />
+                        <span className="truncate text-xs font-bold text-emerald-300">
                           Total Revenue
                         </span>
                       </div>
-                      <div className="text-2xl font-black text-emerald-400">
+                      <div className="shrink-0 text-lg font-black leading-none text-emerald-400">
                         $
                         {dailyStats
                           .reduce((sum, stat) => sum + stat.totalCommission, 0)
                           .toFixed(2)}
                       </div>
                     </div>
-                    <div className="rounded-lg border border-blue-500/30 bg-blue-950/35 p-2.5">
-                      <div className="flex items-center gap-2 mb-1">
-                        <TrendingUp className="w-4 h-4 text-blue-400" />
-                        <span className="text-xs text-blue-300 font-bold">
-                          Orders (90 Days)
+                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-blue-500/30 bg-blue-950/35 px-2.5 py-2">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <TrendingUp className="h-4 w-4 shrink-0 text-blue-400" />
+                        <span className="truncate text-xs font-bold text-blue-300">
+                          Orders
                         </span>
                       </div>
-                      <div className="text-2xl font-black text-white">
+                      <div className="shrink-0 text-lg font-black leading-none text-white">
                         {dailyStats.reduce(
                           (sum, stat) => sum + stat.totalOrders,
                           0,
                         )}
                       </div>
                     </div>
-                    <div className="rounded-lg border border-green-500/30 bg-blue-950/35 p-2.5">
-                      <div className="flex items-center gap-2 mb-1">
-                        <CheckCircle className="w-4 h-4 text-green-400" />
-                        <span className="text-xs text-green-300 font-bold">
+                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-green-500/30 bg-blue-950/35 px-2.5 py-2">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <CheckCircle className="h-4 w-4 shrink-0 text-green-400" />
+                        <span className="truncate text-xs font-bold text-green-300">
                           Success
                         </span>
                       </div>
-                      <div className="text-2xl font-black text-green-400">
+                      <div className="shrink-0 text-lg font-black leading-none text-green-400">
                         {dailyStats.reduce(
                           (sum, stat) => sum + stat.successCount,
                           0,
                         )}
                       </div>
                     </div>
-                    <div className="rounded-lg border border-red-500/30 bg-blue-950/35 p-2.5">
-                      <div className="flex items-center gap-2 mb-1">
-                        <XCircle className="w-4 h-4 text-red-400" />
-                        <span className="text-xs text-red-300 font-bold">
+                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-red-500/30 bg-blue-950/35 px-2.5 py-2">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <XCircle className="h-4 w-4 shrink-0 text-red-400" />
+                        <span className="truncate text-xs font-bold text-red-300">
                           Failed
                         </span>
                       </div>
-                      <div className="text-2xl font-black text-red-400">
+                      <div className="shrink-0 text-lg font-black leading-none text-red-400">
                         {dailyStats.reduce(
                           (sum, stat) => sum + stat.failureCount,
                           0,
