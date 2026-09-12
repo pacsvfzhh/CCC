@@ -161,6 +161,7 @@ export default function EmployeeDetailModal({
     setTransactionPage(1);
     setHasNextTransactionPage(false);
     setTransactionDateCounts({});
+    setWithdrawalPage(1);
     setWithdrawals([]);
     setVerificationData(null);
     setLoading(false);
@@ -993,7 +994,7 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Content */}
-        <div className={`min-h-0 flex-1 overflow-y-auto bg-slate-900 ${activeTab === "transactions" ? "p-0" : "p-4 sm:p-5"}`}>
+        <div className={`min-h-0 flex-1 overflow-y-auto bg-slate-900 ${activeTab === "transactions" || activeTab === "withdrawals" ? "p-0" : "p-4 sm:p-5"}`}>
           <div className={activeTab === "daily" ? "-mx-4 -my-4 min-h-full space-y-0 sm:-mx-5 sm:-my-5" : "hidden"}>
             {loadingStats ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -1473,7 +1474,7 @@ export default function EmployeeDetailModal({
           </div>
 
           <div
-            className={activeTab === "withdrawals" ? "space-y-4" : "hidden"}
+            className={activeTab === "withdrawals" ? "space-y-0" : "hidden"}
           >
             {loadingWithdrawals ? (
               <div className="flex h-48 flex-col items-center justify-center gap-3">
@@ -1486,19 +1487,53 @@ export default function EmployeeDetailModal({
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between rounded-xl border border-amber-300/20 bg-gradient-to-r from-amber-950/35 via-slate-800/70 to-blue-950/35 px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Wallet className="h-4 w-4 text-amber-300" />
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-amber-100">
-                      Withdrawal Records
-                    </h3>
+                <div className="sticky top-0 z-30 flex flex-col gap-2 border-b border-amber-300/25 bg-slate-900 px-4 py-2 shadow-lg shadow-slate-950/30 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-300/25 bg-amber-500/10">
+                      <Wallet className="h-4 w-4 text-amber-300" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-slate-100">Withdrawal Records</p>
+                      <p className="inline-flex items-center gap-1.5 rounded-md border border-amber-300/30 bg-amber-500/15 px-2 py-0.5">
+                        <FileText className="h-3 w-3 text-amber-300" />
+                        <span className="text-base font-black leading-none tabular-nums text-amber-50">
+                          {withdrawals.length}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-amber-200">
+                          total
+                        </span>
+                      </p>
+                    </div>
                   </div>
-                  <span className="rounded-full border border-amber-300/30 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold tabular-nums text-amber-200">
-                    {withdrawals.length} total
-                  </span>
+                  {withdrawals.length > itemsPerPage && (
+                    <div className="flex items-center gap-1 rounded-lg border border-slate-700/80 bg-slate-950/60 p-1 self-start sm:self-center">
+                      <button
+                        type="button"
+                        onClick={() => setWithdrawalPage(Math.max(1, withdrawalPage - 1))}
+                        disabled={withdrawalPage === 1}
+                        aria-label="Previous withdrawal page"
+                        className="inline-flex h-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2 text-xs font-semibold text-slate-200 transition-colors hover:border-amber-300/40 hover:bg-amber-500/10 hover:text-amber-100 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="min-w-[68px] text-center text-[11px] font-semibold tabular-nums text-amber-100">
+                        Page {withdrawalPage} / {Math.max(1, Math.ceil(withdrawals.length / itemsPerPage))}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setWithdrawalPage(Math.min(Math.ceil(withdrawals.length / itemsPerPage), withdrawalPage + 1))}
+                        disabled={withdrawalPage === Math.ceil(withdrawals.length / itemsPerPage)}
+                        aria-label="Next withdrawal page"
+                        className="inline-flex h-7 items-center justify-center rounded-md border border-amber-300/35 bg-amber-500/10 px-2 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-200/60 hover:bg-amber-500/20 hover:text-white disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-3">
+                <div className="relative px-4 pt-3 sm:px-5">
+                  <div className="space-y-2.5">
                   {withdrawals
                     .slice(
                       (withdrawalPage - 1) * itemsPerPage,
@@ -1513,7 +1548,7 @@ export default function EmployeeDetailModal({
                       return (
                         <div
                           key={withdrawal.id}
-                          className="rounded-xl border border-amber-300/15 bg-gradient-to-r from-slate-800/80 via-blue-950/35 to-slate-800/70 p-4 transition-colors hover:border-amber-300/35"
+                          className="rounded-xl border border-amber-300/15 bg-gradient-to-r from-slate-800/80 via-blue-950/35 to-slate-800/70 p-3 transition-colors hover:border-amber-300/35"
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="flex items-start gap-3">
@@ -1557,6 +1592,7 @@ export default function EmployeeDetailModal({
                         </div>
                       );
                     })}
+                  </div>
                 </div>
               </>
             )}
