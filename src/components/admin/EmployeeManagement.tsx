@@ -80,6 +80,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [showPasswordReset, setShowPasswordReset] = useState<{id: string; username: string} | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const expandedGroupsBeforeSearchRef = useRef<Set<string> | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<EmployeeWithAdmin | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -929,8 +930,25 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     });
   };
 
+  const handleSearchTermChange = (nextTerm: string) => {
+    const wasSearching = searchTerm.trim().length > 0;
+    const isSearching = nextTerm.trim().length > 0;
+
+    if (!wasSearching && isSearching) {
+      expandedGroupsBeforeSearchRef.current = new Set(expandedGroups);
+    } else if (wasSearching && !isSearching) {
+      const previousExpandedGroups = expandedGroupsBeforeSearchRef.current;
+      if (previousExpandedGroups) {
+        setExpandedGroups(new Set(previousExpandedGroups));
+      }
+      expandedGroupsBeforeSearchRef.current = null;
+    }
+
+    setSearchTerm(nextTerm);
+  };
+
   const resetEmployeeListFilters = (adminId: string) => {
-    setSearchTerm('');
+    handleSearchTermChange('');
     setResetFeedbackAdminId(adminId);
     if (resetFeedbackTimeoutRef.current) clearTimeout(resetFeedbackTimeoutRef.current);
     resetFeedbackTimeoutRef.current = setTimeout(() => {
@@ -2312,13 +2330,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchTermChange(e.target.value)}
               placeholder="Search employees..."
               autoComplete="off"
               className="h-full w-full rounded-none bg-transparent pl-10 pr-9 text-sm font-medium text-slate-50 placeholder:text-cyan-100/65 outline-none transition-colors focus:bg-cyan-900/30"
             />
             {searchTerm && (
-              <button type="button" onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-cyan-200/70 transition-colors hover:bg-cyan-300/15 hover:text-cyan-50">
+              <button type="button" onClick={() => handleSearchTermChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-cyan-200/70 transition-colors hover:bg-cyan-300/15 hover:text-cyan-50">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -2523,13 +2541,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         <input
                           type="text"
                           value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
+                          onChange={(e) => handleSearchTermChange(e.target.value)}
                           placeholder="Search employees..."
                           autoComplete="off"
                           className="h-8 w-[168px] rounded-lg border border-cyan-400/40 bg-cyan-950/30 pl-8 pr-7 text-xs text-cyan-50 placeholder:text-cyan-100/60 shadow-sm shadow-slate-950/30 outline-none transition-colors focus:border-cyan-300/80 focus:bg-cyan-900/40 focus:ring-2 focus:ring-cyan-400/20"
                         />
                         {searchTerm && (
-                          <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-cyan-200/70 hover:text-cyan-50 transition-colors">
+                          <button onClick={() => handleSearchTermChange('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-cyan-200/70 hover:text-cyan-50 transition-colors">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         )}
