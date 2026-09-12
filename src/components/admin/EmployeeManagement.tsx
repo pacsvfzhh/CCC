@@ -2617,7 +2617,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <div className="text-center py-8 text-slate-400">No employees found</div>
       ) : (
         // ===== SUPER ADMIN: grouped view =====
-        <div className="space-y-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4">
           {filteredGroups.map((group) => {
             const isSuperGroup = group.admin.role === 'super_admin';
             return (
@@ -2626,7 +2626,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 data-admin-group-id={group.admin.id}
                 className={`rounded-none overflow-hidden transition-all duration-300 ${
                   isSuperGroup
-                    ? 'bg-gradient-to-br from-yellow-500/5 via-slate-800/40 to-slate-800/40 border-2 border-yellow-500/30 shadow-lg shadow-yellow-500/10'
+                    ? `bg-gradient-to-br from-yellow-500/5 via-slate-800/40 to-slate-800/40 border-2 border-yellow-500/30 shadow-lg shadow-yellow-500/10 ${expandedGroups.has(group.admin.id) ? 'flex min-h-0 flex-1 flex-col' : ''}`
                     : 'bg-gradient-to-br from-blue-500/5 via-slate-800/40 to-slate-800/40 border-2 border-blue-500/30 shadow-lg shadow-blue-500/10'
                 }`}
               >
@@ -2771,14 +2771,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       </div>
                     </div>
                     {group.employees.length > 0 ? (
-                      <div className="-ml-1 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 min-h-[300px] dark-panel-scroll max-h-[calc(100vh-220px)]">
+                      <div className={`-ml-1 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 min-h-[300px] dark-panel-scroll ${isSuperGroup ? 'min-h-0 flex-1' : 'max-h-[calc(100vh-220px)]'}`}>
                         <table className="w-full table-fixed">
                           {renderTableHeader(group.admin.id)}
                           <tbody>{employeeRowsByGroup.get(group.admin.id)}</tbody>
                         </table>
                       </div>
                     ) : (
-                      <div className={`py-8 text-center ${isSuperGroup ? 'bg-yellow-500/5' : 'bg-blue-500/5'}`}>
+                      <div className={`py-8 text-center ${isSuperGroup ? 'flex flex-1 flex-col items-center justify-center bg-yellow-500/5' : 'bg-blue-500/5'}`}>
                         <p className="text-slate-400 text-sm">No employees match the current filter</p>
                       </div>
                     )}
