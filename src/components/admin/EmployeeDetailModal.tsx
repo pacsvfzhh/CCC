@@ -581,13 +581,13 @@ export default function EmployeeDetailModal({
         meta: "text-emerald-100",
       },
       tip: {
-        card: "border-pink-300/45 border-l-pink-300 bg-slate-950/50 hover:border-pink-200/65 hover:bg-slate-900/70",
-        icon: "text-pink-100",
-        iconBg: "border-pink-300/30 bg-slate-950/70",
-        amount: "text-pink-100",
-        meta: "text-pink-100",
+        card: "border-violet-300/45 border-l-violet-300 bg-violet-950/40 hover:border-violet-200/65 hover:bg-violet-950/55",
+        icon: "text-amber-200",
+        iconBg: "border-violet-300/30 bg-violet-950/70",
+        amount: "text-amber-100",
+        meta: "text-amber-100",
         backgroundImage:
-          "radial-gradient(ellipse at 14% 22%, rgba(234, 179, 8, 0.34) 0 14%, transparent 15%), radial-gradient(ellipse at 78% 18%, rgba(37, 99, 235, 0.34) 0 17%, transparent 18%), radial-gradient(ellipse at 42% 72%, rgba(34, 197, 94, 0.30) 0 20%, transparent 21%), radial-gradient(ellipse at 88% 78%, rgba(20, 184, 166, 0.28) 0 15%, transparent 16%), radial-gradient(ellipse at 8% 88%, rgba(59, 130, 246, 0.24) 0 16%, transparent 17%)",
+          "radial-gradient(ellipse at 14% 22%, rgba(245, 158, 11, 0.34) 0 14%, transparent 15%), radial-gradient(ellipse at 78% 18%, rgba(124, 58, 237, 0.34) 0 17%, transparent 18%), radial-gradient(ellipse at 42% 72%, rgba(217, 168, 74, 0.26) 0 20%, transparent 21%), radial-gradient(ellipse at 88% 78%, rgba(109, 40, 217, 0.30) 0 15%, transparent 16%), radial-gradient(ellipse at 8% 88%, rgba(251, 191, 36, 0.22) 0 16%, transparent 17%)",
       },
       withdrawal_request: {
         card: "border-amber-300/45 border-l-amber-300 bg-amber-950/35 hover:border-amber-200/65 hover:bg-amber-950/50",
