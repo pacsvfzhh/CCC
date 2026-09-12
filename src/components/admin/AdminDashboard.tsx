@@ -1006,17 +1006,20 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
       {/* Change Password Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                <Lock className="w-5 h-5 text-white" />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-900 p-5 shadow-[0_24px_70px_rgba(2,6,23,0.7)] sm:p-6">
+            <div className="mb-5 flex items-center gap-3 border-b border-slate-700/70 pb-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-500/15">
+                <Lock className="h-5 w-5 text-cyan-200" />
               </div>
-              <h3 className="text-xl font-bold text-white">Change Password</h3>
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold text-white sm:text-xl">Change Password</h3>
+                <p className="mt-0.5 text-xs text-slate-400">Update your administrator login credentials</p>
+              </div>
             </div>
 
             {passwordSuccess && (
-              <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm flex items-center gap-2">
+              <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-emerald-400/35 bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-200">
                 <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
                   <span className="text-white text-xs">✓</span>
                 </div>
@@ -1025,14 +1028,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             )}
 
             {passwordError && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+              <div className="mb-4 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-200">
                 {passwordError}
               </div>
             )}
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-300">
                   Current Password
                 </label>
                 <div className="relative">
@@ -1041,14 +1044,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                     autoComplete="current-password"
-                    className="w-full px-4 py-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 pr-10"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                     placeholder="Enter current password"
                     disabled={changingPassword}
                   />
                   <button
                     type="button"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
                   >
                     {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -1056,7 +1059,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-300">
                   New Password
                 </label>
                 <div className="relative">
@@ -1065,14 +1068,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                     autoComplete="new-password"
-                    className="w-full px-4 py-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 pr-10"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                     placeholder="Enter new password"
                     disabled={changingPassword}
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
                   >
                     {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -1080,7 +1083,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-300">
                   Confirm New Password
                 </label>
                 <div className="relative">
@@ -1089,7 +1092,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                     autoComplete="new-password"
-                    className="w-full px-4 py-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 pr-10"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                     placeholder="Confirm new password"
                     disabled={changingPassword}
                     onKeyPress={(e) => {
@@ -1101,7 +1104,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -1109,7 +1112,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="mt-6 flex gap-2.5 border-t border-slate-700/70 pt-4">
               <button
                 onClick={() => {
                   setShowPasswordModal(false);
@@ -1117,7 +1120,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   setPasswordError(null);
                   setPasswordSuccess(false);
                 }}
-                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
+                className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={changingPassword}
               >
                 Cancel
@@ -1125,7 +1128,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               <button
                 onClick={handleChangePassword}
                 disabled={changingPassword}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:from-cyan-500 hover:to-blue-500 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {changingPassword ? (
                   <>
@@ -1146,17 +1149,20 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
       {/* Change Username Modal */}
       {showUsernameModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <UserCog className="w-5 h-5 text-white" />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-900 p-5 shadow-[0_24px_70px_rgba(2,6,23,0.7)] sm:p-6">
+            <div className="mb-5 flex items-center gap-3 border-b border-slate-700/70 pb-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-violet-300/30 bg-violet-500/15">
+                <UserCog className="h-5 w-5 text-violet-200" />
               </div>
-              <h3 className="text-xl font-bold text-white">Change Username</h3>
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold text-white sm:text-xl">Change Username</h3>
+                <p className="mt-0.5 text-xs text-slate-400">Choose a new name for your administrator account</p>
+              </div>
             </div>
 
             {usernameSuccess && (
-              <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm flex items-center gap-2">
+              <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-emerald-400/35 bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-200">
                 <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
                   <span className="text-white text-xs">✓</span>
                 </div>
@@ -1165,14 +1171,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             )}
 
             {usernameError && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+              <div className="mb-4 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-200">
                 {usernameError}
               </div>
             )}
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-300">
                   New Username
                 </label>
                 <input
@@ -1180,17 +1186,17 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   value={usernameData.newUsername}
                   onChange={(e) => setUsernameData({ ...usernameData, newUsername: e.target.value })}
                   autoComplete="username"
-                  className="w-full px-4 py-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                   placeholder="Enter new username"
                   disabled={changingUsername}
                 />
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1.5 text-[11px] text-slate-400">
                   Only letters, numbers and underscores (minimum 3 characters)
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-300">
                   Current Password
                 </label>
                 <div className="relative">
@@ -1199,7 +1205,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     value={usernameData.currentPassword}
                     onChange={(e) => setUsernameData({ ...usernameData, currentPassword: e.target.value })}
                     autoComplete="current-password"
-                    className="w-full px-4 py-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:border-purple-500 pr-10"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                     placeholder="Confirm with your password"
                     disabled={changingUsername}
                     onKeyPress={(e) => {
@@ -1211,7 +1217,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     type="button"
                     onClick={() => setShowUsernamePassword(!showUsernamePassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
                   >
                     {showUsernamePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -1219,7 +1225,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="mt-6 flex gap-2.5 border-t border-slate-700/70 pt-4">
               <button
                 onClick={() => {
                   setShowUsernameModal(false);
@@ -1227,7 +1233,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   setUsernameError(null);
                   setUsernameSuccess(false);
                 }}
-                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
+                className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={changingUsername}
               >
                 Cancel
@@ -1235,7 +1241,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               <button
                 onClick={handleChangeUsername}
                 disabled={changingUsername}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:from-violet-500 hover:to-purple-600 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {changingUsername ? (
                   <>
