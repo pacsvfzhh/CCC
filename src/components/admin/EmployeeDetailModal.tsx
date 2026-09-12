@@ -7,6 +7,7 @@ import {
   XCircle,
   Ban,
   Calendar,
+  ChevronDown,
   DollarSign,
   User,
   Clock,
@@ -116,6 +117,7 @@ export default function EmployeeDetailModal({
   const [activeTab, setActiveTab] = useState<"daily" | "transactions" | "withdrawals" | "verification">("daily");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransactionDate, setSelectedTransactionDate] = useState("");
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
   const [withdrawalPage, setWithdrawalPage] = useState(1);
   const [walletBalance, setWalletBalance] = useState({
     available: 0,
@@ -136,6 +138,7 @@ export default function EmployeeDetailModal({
   useEffect(() => {
     // Show modal immediately with basic info
     setSelectedTransactionDate("");
+    setIsDateFilterOpen(false);
     setLoading(false);
     // Load detailed data in background
     loadEmployeeDetails();
@@ -412,64 +415,82 @@ export default function EmployeeDetailModal({
     return labels[type] || type;
   };
 
-  const getTransactionStyle = (type: string) => {
+  const formatTransactionDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+  };
+
+  const getTransactionStyle = (type: string, amount: number) => {
+    if (amount < 0) {
+      return {
+        card: "border-slate-700/70 border-l-red-400/90 bg-slate-800/95 hover:border-slate-500/80",
+        icon: "text-red-300",
+        iconBg: "border-slate-700 bg-slate-900/70",
+        amount: "text-red-300",
+      };
+    }
+
     const styles: Record<string, { card: string; icon: string; iconBg: string; amount: string }> = {
       commission: {
-        card: "border-emerald-400/25 bg-gradient-to-r from-emerald-950/45 via-slate-800/80 to-slate-800/70 hover:border-emerald-300/50",
+        card: "border-slate-700/70 border-l-emerald-400/90 bg-slate-800/95 hover:border-slate-500/80",
         icon: "text-emerald-300",
-        iconBg: "border-emerald-300/25 bg-emerald-500/10",
-        amount: "text-emerald-200",
+        iconBg: "border-slate-700 bg-slate-900/70",
+        amount: "text-emerald-300",
       },
       tip: {
-        card: "border-violet-400/25 bg-gradient-to-r from-violet-950/45 via-slate-800/80 to-slate-800/70 hover:border-violet-300/50",
-        icon: "text-violet-300",
-        iconBg: "border-violet-300/25 bg-violet-500/10",
-        amount: "text-violet-200",
+        card: "border-slate-700/70 border-l-amber-400/90 bg-slate-800/95 hover:border-slate-500/80",
+        icon: "text-amber-300",
+        iconBg: "border-slate-700 bg-slate-900/70",
+        amount: "text-amber-300",
       },
       withdrawal_request: {
-        card: "border-amber-400/25 bg-gradient-to-r from-amber-950/45 via-slate-800/80 to-slate-800/70 hover:border-amber-300/50",
+        card: "border-slate-700/70 border-l-amber-400/90 bg-slate-800/95 hover:border-slate-500/80",
         icon: "text-amber-300",
-        iconBg: "border-amber-300/25 bg-amber-500/10",
-        amount: "text-amber-200",
+        iconBg: "border-slate-700 bg-slate-900/70",
+        amount: "text-amber-300",
       },
       withdrawal_approved: {
-        card: "border-cyan-400/25 bg-gradient-to-r from-cyan-950/45 via-slate-800/80 to-slate-800/70 hover:border-cyan-300/50",
+        card: "border-slate-700/70 border-l-cyan-400/90 bg-slate-800/95 hover:border-slate-500/80",
         icon: "text-cyan-300",
-        iconBg: "border-cyan-300/25 bg-cyan-500/10",
-        amount: "text-cyan-200",
+        iconBg: "border-slate-700 bg-slate-900/70",
+        amount: "text-cyan-300",
       },
       withdrawal_rejected: {
-        card: "border-red-400/25 bg-gradient-to-r from-red-950/45 via-slate-800/80 to-slate-800/70 hover:border-red-300/50",
+        card: "border-slate-700/70 border-l-red-400/90 bg-slate-800/95 hover:border-slate-500/80",
         icon: "text-red-300",
-        iconBg: "border-red-300/25 bg-red-500/10",
-        amount: "text-red-200",
+        iconBg: "border-slate-700 bg-slate-900/70",
+        amount: "text-red-300",
       },
       manual_adjustment: {
-        card: "border-blue-400/25 bg-gradient-to-r from-blue-950/45 via-slate-800/80 to-slate-800/70 hover:border-blue-300/50",
+        card: "border-slate-700/70 border-l-blue-400/90 bg-slate-800/95 hover:border-slate-500/80",
         icon: "text-blue-300",
-        iconBg: "border-blue-300/25 bg-blue-500/10",
-        amount: "text-blue-200",
+        iconBg: "border-slate-700 bg-slate-900/70",
+        amount: "text-blue-300",
       },
     };
 
     return styles[type] ?? {
-      card: "border-slate-600/40 bg-slate-800/80 hover:border-slate-400/50",
+      card: "border-slate-700/70 border-l-slate-400/80 bg-slate-800/95 hover:border-slate-500/80",
       icon: "text-slate-300",
-      iconBg: "border-slate-500/30 bg-slate-700/40",
+      iconBg: "border-slate-700 bg-slate-900/70",
       amount: "text-slate-200",
     };
   };
 
+  const transactionDateCounts = transactions.reduce<Record<string, number>>((counts, tx) => {
+    const date = formatTransactionDate(tx.created_at);
+    counts[date] = (counts[date] || 0) + 1;
+    return counts;
+  }, {});
+
+  const availableTransactionDates = Object.keys(transactionDateCounts).sort((a, b) => b.localeCompare(a));
+
   const filteredTransactions = selectedTransactionDate
-    ? transactions.filter((tx) => {
-        const date = new Date(tx.created_at);
-        const localDate = [
-          date.getFullYear(),
-          String(date.getMonth() + 1).padStart(2, "0"),
-          String(date.getDate()).padStart(2, "0"),
-        ].join("-");
-        return localDate === selectedTransactionDate;
-      })
+    ? transactions.filter((tx) => formatTransactionDate(tx.created_at) === selectedTransactionDate)
     : transactions;
 
   return createPortal(
@@ -999,10 +1020,13 @@ export default function EmployeeDetailModal({
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 self-start sm:self-center">
+                  <div className="relative flex items-center gap-2 self-start sm:self-center">
                     <button
                       type="button"
-                      onClick={() => setSelectedTransactionDate("")}
+                      onClick={() => {
+                        setSelectedTransactionDate("");
+                        setIsDateFilterOpen(false);
+                      }}
                       className={`h-8 rounded-lg border px-3 text-xs font-bold transition-colors ${
                         selectedTransactionDate === ""
                           ? "border-cyan-200 bg-cyan-500/25 text-cyan-50 shadow-sm shadow-cyan-950/40"
@@ -1011,17 +1035,57 @@ export default function EmployeeDetailModal({
                     >
                       ALL
                     </button>
-                    <label className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-slate-950/70 px-2 text-xs text-cyan-100">
-                      <Calendar className="h-3.5 w-3.5 text-cyan-300" />
-                      <span className="sr-only">Filter transactions by date</span>
-                      <input
-                        type="date"
-                        value={selectedTransactionDate}
-                        onChange={(event) => setSelectedTransactionDate(event.target.value)}
-                        className="w-[126px] bg-transparent text-xs font-semibold text-cyan-100 outline-none [color-scheme:dark]"
-                        aria-label="Filter transactions by date"
-                      />
-                    </label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsDateFilterOpen((open) => !open)}
+                        aria-expanded={isDateFilterOpen}
+                        aria-haspopup="listbox"
+                        className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition-colors ${
+                          selectedTransactionDate
+                            ? "border-cyan-200/60 bg-cyan-500/15 text-cyan-50"
+                            : "border-slate-600/70 bg-slate-800 text-slate-300 hover:border-cyan-300/45 hover:bg-cyan-500/10 hover:text-cyan-100"
+                        }`}
+                      >
+                        <Calendar className="h-3.5 w-3.5 text-cyan-300" />
+                        <span>
+                          {selectedTransactionDate
+                            ? selectedTransactionDate.split("-").join("/")
+                            : "Select date"}
+                        </span>
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isDateFilterOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {isDateFilterOpen && (
+                        <div
+                          className="scrollbar-dark absolute right-0 top-full z-50 mt-1 max-h-64 w-52 overflow-y-auto rounded-lg border border-cyan-300/25 bg-slate-900 p-1 shadow-xl shadow-slate-950/70"
+                          role="listbox"
+                          aria-label="Available transaction dates"
+                        >
+                          {availableTransactionDates.map((date) => (
+                            <button
+                              key={date}
+                              type="button"
+                              onClick={() => {
+                                setSelectedTransactionDate(date);
+                                setIsDateFilterOpen(false);
+                              }}
+                              className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-xs transition-colors ${
+                                selectedTransactionDate === date
+                                  ? "bg-cyan-500/20 font-bold text-cyan-50"
+                                  : "text-slate-300 hover:bg-slate-800 hover:text-cyan-100"
+                              }`}
+                              role="option"
+                              aria-selected={selectedTransactionDate === date}
+                            >
+                              <span>{date.split("-").join("/")}</span>
+                              <span className="text-[10px] tabular-nums text-slate-500">
+                                {transactionDateCounts[date]} records
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -1033,7 +1097,7 @@ export default function EmployeeDetailModal({
                     </div>
                   ) : (
                     filteredTransactions.map((tx) => {
-                      const style = getTransactionStyle(tx.type);
+                      const style = getTransactionStyle(tx.type, Number(tx.amount));
                       const icon =
                         tx.type === "commission" ? (
                           <TrendingUp className={`h-4 w-4 ${style.icon}`} />
