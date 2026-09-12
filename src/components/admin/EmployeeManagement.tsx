@@ -2320,7 +2320,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               {renderCreateForm(admin.id)}
 
               {/* Table - fixed ~22 rows */}
-              <div className="-ml-1 pl-1 overflow-x-auto overflow-y-auto bg-slate-900/50 flex-1 min-h-0 dark-panel-scroll">
+              <div className="-ml-1 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 flex-1 min-h-0 dark-panel-scroll">
                 <table className="w-full table-fixed">
                   {renderTableHeader(flatAdminId)}
                   <tbody>
@@ -2492,7 +2492,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       </div>
                     </div>
                     {group.employees.length > 0 ? (
-                      <div className={`-ml-1 pl-1 overflow-x-auto overflow-y-auto bg-slate-900/50 min-h-[300px] dark-panel-scroll ${admin.role === 'super_admin' ? 'max-h-[calc(100vh-280px)]' : 'max-h-[calc(100vh-300px)]'}`}>
+                      <div className={`-ml-1 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 min-h-[300px] dark-panel-scroll ${admin.role === 'super_admin' ? 'max-h-[calc(100vh-280px)]' : 'max-h-[calc(100vh-300px)]'}`}>
                         <table className="w-full table-fixed">
                           {renderTableHeader(group.admin.id)}
                           <tbody>
