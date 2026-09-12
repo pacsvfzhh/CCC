@@ -2085,7 +2085,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </button>
             )}
           </div>
-          <div ref={adminFilterRef} className="relative h-full min-w-[240px] flex-[1.35_1_0%] border-r border-cyan-300/25">
+          <div ref={adminFilterRef} className="relative h-full min-w-[200px] flex-[1_1_0%] border-r border-cyan-300/25">
             <button
               type="button"
               onClick={() => setAdminFilterOpen((open) => !open)}
@@ -2146,7 +2146,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               setCreateSecondaryAdminError(null);
               setShowCreateSecondaryAdmin(true);
             }}
-            className="flex h-full w-[190px] shrink-0 items-center justify-center gap-2 border-l border-cyan-300/20 bg-gradient-to-r from-blue-600/80 to-cyan-600/80 px-4 text-xs font-semibold text-white transition-all hover:from-blue-500 hover:to-cyan-500 active:from-blue-700 active:to-cyan-700"
+            className="flex h-full w-[220px] shrink-0 items-center justify-center gap-2 border-l border-cyan-300/20 bg-gradient-to-r from-blue-600/80 to-cyan-600/80 px-4 text-xs font-semibold text-white transition-all hover:from-blue-500 hover:to-cyan-500 active:from-blue-700 active:to-cyan-700"
             title="Create a secondary administrator"
           >
             <UserPlus className="h-4 w-4" />
@@ -2160,7 +2160,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <button
             onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployees(employeeGroups.length > 0 ? true : false); }}
             disabled={loading || isRefreshing}
-            className="flex h-full w-16 min-w-16 shrink-0 items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-500 px-4 text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-blue-400 hover:to-cyan-400 active:from-blue-600 active:to-cyan-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:bg-none"
+            className="flex h-full w-20 min-w-20 shrink-0 items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-500 px-4 text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-blue-400 hover:to-cyan-400 active:from-blue-600 active:to-cyan-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:bg-none"
             title="Refresh now"
           >
             <RefreshCw className={`w-4 h-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
