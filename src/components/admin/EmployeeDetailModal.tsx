@@ -548,7 +548,7 @@ export default function EmployeeDetailModal({
   };
 
   const getTransactionStyle = (type: string, amount: number) => {
-    if (amount < 0) {
+    if (amount < 0 && type !== "tip" && !type.startsWith("withdrawal_")) {
       return {
         card: "border-red-300/45 border-l-red-300 bg-red-950/40 hover:border-red-200/65 hover:bg-red-950/55",
         icon: "text-red-200",
@@ -567,25 +567,25 @@ export default function EmployeeDetailModal({
         meta: "text-emerald-100",
       },
       tip: {
-        card: "border-amber-300/50 border-l-amber-300 bg-amber-950/35 hover:border-amber-200/70 hover:bg-amber-950/50",
+        card: "border-pink-300/45 border-l-pink-300 bg-pink-950/35 hover:border-pink-200/65 hover:bg-pink-950/50",
+        icon: "text-pink-100",
+        iconBg: "border-pink-300/30 bg-pink-950/70",
+        amount: "text-pink-100",
+        meta: "text-pink-100",
+      },
+      withdrawal_request: {
+        card: "border-amber-300/45 border-l-amber-300 bg-amber-950/35 hover:border-amber-200/65 hover:bg-amber-950/50",
         icon: "text-amber-100",
-        iconBg: "border-amber-300/35 bg-amber-950/70",
+        iconBg: "border-amber-300/30 bg-amber-950/70",
         amount: "text-amber-100",
         meta: "text-amber-100",
       },
-      withdrawal_request: {
-        card: "border-orange-300/50 border-l-orange-300 bg-orange-950/35 hover:border-orange-200/70 hover:bg-orange-950/50",
-        icon: "text-orange-100",
-        iconBg: "border-orange-300/35 bg-orange-950/70",
-        amount: "text-orange-100",
-        meta: "text-orange-100",
-      },
       withdrawal_approved: {
-        card: "border-cyan-300/45 border-l-cyan-300 bg-cyan-950/35 hover:border-cyan-200/65 hover:bg-cyan-950/50",
-        icon: "text-cyan-100",
-        iconBg: "border-cyan-300/35 bg-cyan-950/70",
-        amount: "text-cyan-100",
-        meta: "text-cyan-100",
+        card: "border-amber-300/45 border-l-amber-300 bg-amber-950/35 hover:border-amber-200/65 hover:bg-amber-950/50",
+        icon: "text-amber-100",
+        iconBg: "border-amber-300/30 bg-amber-950/70",
+        amount: "text-amber-100",
+        meta: "text-amber-100",
       },
       withdrawal_rejected: {
         card: "border-rose-300/50 border-l-rose-300 bg-rose-950/35 hover:border-rose-200/70 hover:bg-rose-950/50",
