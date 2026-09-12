@@ -836,11 +836,11 @@ export default function EmployeeDetailModal({
                   {walletBalance.frozen > 0 && <p className="truncate text-[10px] text-slate-500">Frozen: ${walletBalance.frozen.toFixed(2)}</p>}
                 </div>
                 <div className="min-w-0 border-b border-slate-700/70 p-2.5 sm:border-b-0 sm:border-r">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-200">Total Orders</p>
-                  <p className="mt-1 truncate text-sm font-bold text-blue-100">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-300">Total Orders</p>
+                  <p className="mt-1 truncate text-sm font-bold text-blue-400">
                     {totalOrderCount === null ? "—" : totalOrderCount.toLocaleString()}
                   </p>
-                  <p className="truncate text-[10px] text-slate-500">All history</p>
+                  <p className="truncate text-[10px] text-blue-200/70">All history</p>
                 </div>
                 <div className="min-w-0 p-2.5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-sky-200">Member Since</p>
