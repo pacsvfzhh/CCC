@@ -746,7 +746,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
         <div className="w-full lg:flex flex-1 min-h-0">
           {/* Desktop: Vertical Left Sidebar */}
-          <aside className="hidden lg:flex lg:flex-col lg:w-32 xl:w-36 flex-shrink-0 bg-slate-900/70 border-r border-slate-700/50 overflow-y-auto scrollbar-hide">
+          <aside className="hidden lg:flex lg:flex-col lg:w-32 xl:w-36 flex-shrink-0 bg-slate-900/70 border-r-2 border-slate-600/80 shadow-[4px_0_16px_rgba(2,6,23,0.55)] overflow-y-auto scrollbar-hide">
             <div className="shrink-0 border-b border-slate-700/60 bg-slate-950/55 px-1.5 py-2.5">
               <div className="flex min-w-0 items-center gap-1.5">
                 <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-md shadow-blue-950/40">
@@ -774,7 +774,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 {renderAccountMenu('sidebar')}
               </div>
             </div>
-            <nav className="flex flex-col gap-0.5 p-1.5 pt-2.5">
+            <nav className="flex flex-col gap-0.5 border-t border-slate-600/70 p-1.5 pt-4">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const pendingCount = tab.id === 'withdrawals' ? pendingWithdrawalsCount : tab.id === 'verifications' ? pendingVerificationsCount : tab.id === 'customerservice' ? unreadCustomerServiceCount : tab.id === 'cccservice' ? unreadCccServiceCount : tab.id === 'accountlocks' ? lockedAccountsCount : 0;
