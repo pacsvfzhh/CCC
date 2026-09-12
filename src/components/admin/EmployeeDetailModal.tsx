@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -141,6 +141,7 @@ export default function EmployeeDetailModal({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [imageLoading, setImageLoading] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  const orderDateByIdRef = useRef<Record<string, string>>({});
   const itemsPerPage = 10;
   const transactionPageSize = 100;
 
@@ -151,6 +152,7 @@ export default function EmployeeDetailModal({
     setDailyStats([]);
     setTotalOrderCount(null);
     setTotalTipAmount(null);
+    orderDateByIdRef.current = {};
     setTotalManualAdditionAmount(null);
     setTransactions([]);
     setTransactionTotalCount(null);
@@ -187,9 +189,21 @@ export default function EmployeeDetailModal({
       const start = new Date(`${date}T00:00:00`);
       const end = new Date(start);
       end.setDate(end.getDate() + 1);
-      query = query
-        .gte("created_at", start.toISOString())
-        .lt("created_at", end.toISOString());
+      const matchingOrderIds = Object.entries(orderDateByIdRef.current)
+        .filter(([, orderDate]) => orderDate === date)
+        .map(([orderId]) => orderId);
+      const nonCommissionFilter = `and(type.neq.commission,created_at.gte.${start.toISOString()},created_at.lt.${end.toISOString()})`;
+
+      if (matchingOrderIds.length > 0) {
+        query = query.or(
+          `and(type.eq.commission,reference_id.in.(${matchingOrderIds.join(",")})),${nonCommissionFilter}`,
+        );
+      } else {
+        query = query
+          .neq("type", "commission")
+          .gte("created_at", start.toISOString())
+          .lt("created_at", end.toISOString());
+      }
     }
 
     const result = await query.range(
@@ -221,7 +235,7 @@ export default function EmployeeDetailModal({
     while (true) {
       const result = await supabase
         .from("wallet_transactions")
-        .select("id, created_at")
+        .select("id, type, reference_id, created_at")
         .eq("user_id", employee.id)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
@@ -238,7 +252,11 @@ export default function EmployeeDetailModal({
       }
 
       result.data.forEach((transaction) => {
-        const date = formatTransactionDate(transaction.created_at);
+        const date =
+          transaction.type === "commission" && transaction.reference_id
+            ? orderDateByIdRef.current[transaction.reference_id] ??
+              formatCalendarDate(transaction.created_at)
+            : formatCalendarDate(transaction.created_at);
         dateCounts[date] = (dateCounts[date] || 0) + 1;
       });
 
@@ -278,6 +296,7 @@ export default function EmployeeDetailModal({
         const pageSize = 1000;
         let offset = 0;
         const allOrders: Array<{
+          id: string;
           status: string;
           commission_amount: number | null;
           created_at: string;
@@ -297,13 +316,14 @@ export default function EmployeeDetailModal({
           }
 
           allOrders.push(...result.data);
+          result.data.forEach((order) => {
+            orderDateByIdRef.current[order.id] = formatCalendarDate(order.created_at);
+          });
 
           if (result.data.length < pageSize) {
             const dailyStatsMap = new Map<string, DailyStats>();
             allOrders.forEach((order) => {
-              const date = new Date(order.created_at).toLocaleDateString(
-                "zh-CN",
-              );
+              const date = formatCalendarDate(order.created_at);
 
               if (!dailyStatsMap.has(date)) {
                 dailyStatsMap.set(date, {
@@ -384,7 +404,7 @@ export default function EmployeeDetailModal({
       })();
 
       const transactionsPromise = loadTransactionPage(1, "");
-      void loadTransactionDateCounts();
+      void ordersPromise.then(() => loadTransactionDateCounts());
 
       const withdrawalsPromise = supabase
         .from("withdrawals")
@@ -583,7 +603,7 @@ export default function EmployeeDetailModal({
     return labels[type] || type;
   };
 
-  const formatTransactionDate = (timestamp: string) => {
+  const formatCalendarDate = (timestamp: string) => {
     const date = new Date(timestamp);
     return [
       date.getFullYear(),
@@ -1173,7 +1193,7 @@ export default function EmployeeDetailModal({
                                 <div className="flex items-center gap-2">
                                   <div className="w-1 h-1 rounded-full bg-blue-400"></div>
                                   <span className="text-sm text-slate-200 font-medium">
-                                    {stat.date}
+                                    {stat.date.split("-").join("/")}
                                   </span>
                                 </div>
                               </td>
@@ -1313,7 +1333,7 @@ export default function EmployeeDetailModal({
                         >
                           <div className="flex items-center justify-between gap-3 border-b border-cyan-300/20 bg-blue-950/80 px-3 py-2">
                             <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-200">
-                              Available dates
+                              Activity dates
                             </p>
                             <p className="shrink-0 text-[11px] font-semibold tabular-nums text-slate-300">
                               {availableTransactionDates.length} dates with records
@@ -1369,6 +1389,11 @@ export default function EmployeeDetailModal({
                   <div className={`space-y-2.5 transition-opacity ${loadingTransactions ? "opacity-45" : ""}`}>
                     {transactions.map((tx) => {
                       const style = getTransactionStyle(tx.type, Number(tx.amount));
+                      const activityDate =
+                        tx.type === "commission" && tx.reference_id
+                          ? orderDateByIdRef.current[tx.reference_id] ??
+                            formatCalendarDate(tx.created_at)
+                          : formatCalendarDate(tx.created_at);
                       const icon =
                         tx.type === "commission" ? (
                           <TrendingUp className={`h-4 w-4 ${style.icon}`} />
@@ -1422,7 +1447,13 @@ export default function EmployeeDetailModal({
                                 <span className={style.meta}>${Number(tx.balance_after).toFixed(2)}</span>
                               </div>
                               <div className="mt-0.5 whitespace-nowrap text-white">
-                                {new Date(tx.created_at).toLocaleString("zh-CN")}
+                                {activityDate.split("-").join("/")}
+                                <span className="ml-1 text-slate-300">
+                                  {new Date(tx.created_at).toLocaleTimeString("zh-CN", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
                               </div>
                             </div>
                           </div>
