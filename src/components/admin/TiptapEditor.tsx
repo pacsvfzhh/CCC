@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Mark, mergeAttributes, Node } from '@tiptap/core';
+import type { CommandProps, RawCommands } from '@tiptap/core';
 import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
@@ -25,9 +26,20 @@ import {
   FileText,
   Highlighter
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 
 // Custom Video extension for Tiptap
+type VideoChain = {
+  setVideo: (options: { src: string }) => { run: () => boolean };
+};
+type TextSizeChain = {
+  toggleTextSize: (size: string) => { run: () => boolean };
+};
+type HighlightChain = {
+  setHighlightBg: (color: string) => { run: () => boolean };
+  unsetHighlightBg: () => { run: () => boolean };
+};
+
 const Video = Node.create({
   name: 'video',
 
@@ -75,13 +87,13 @@ const Video = Node.create({
 
   addCommands() {
     return {
-      setVideo: (options: { src: string }) => ({ commands }: any) => {
+      setVideo: (options: { src: string }) => ({ commands }: CommandProps) => {
         return commands.insertContent({
           type: this.name,
           attrs: options,
         });
       },
-    } as any;
+    } as unknown as Partial<RawCommands>;
   },
 });
 
@@ -103,9 +115,9 @@ const HighlightMark = Mark.create({
   renderHTML({ HTMLAttributes }) { return ['span', mergeAttributes(HTMLAttributes), 0]; },
   addCommands() {
     return {
-      setHighlightBg: (color: string) => ({ commands }: any) => commands.setMark(this.name, { color }),
-      unsetHighlightBg: () => ({ commands }: any) => commands.unsetMark(this.name),
-    } as any;
+      setHighlightBg: (color: string) => ({ commands }: CommandProps) => commands.setMark(this.name, { color }),
+      unsetHighlightBg: () => ({ commands }: CommandProps) => commands.unsetMark(this.name),
+    } as unknown as Partial<RawCommands>;
   },
 });
 
@@ -151,20 +163,20 @@ const TextSize = Mark.create({
 
   addCommands() {
     return {
-      setTextSize: (size: string) => ({ commands }: any) => {
+      setTextSize: (size: string) => ({ commands }: CommandProps) => {
         return commands.setMark(this.name, { size });
       },
-      toggleTextSize: (size: string) => ({ commands, editor }: any) => {
+      toggleTextSize: (size: string) => ({ commands, editor }: CommandProps) => {
         const isActive = editor.isActive(this.name, { size });
         if (isActive) {
           return commands.unsetMark(this.name);
         }
         return commands.setMark(this.name, { size });
       },
-      unsetTextSize: () => ({ commands }: any) => {
+      unsetTextSize: () => ({ commands }: CommandProps) => {
         return commands.unsetMark(this.name);
       },
-    } as any;
+    } as unknown as Partial<RawCommands>;
   },
 });
 
@@ -329,7 +341,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
     fileName: string,
     bucketName: string,
     onProgress: (progress: number, loaded: number, total: number) => void
-  ): Promise<{ data: any; error: any }> => {
+  ): Promise<{ data: { path: string } | null; error: { message: string } | null }> => {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -448,9 +460,9 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
         setUploadStatus('');
         setUploadProgress(0);
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading image:', error);
-      setUploadStatus(`Error: ${error.message}`);
+      setUploadStatus(`Error: ${formatSupabaseError(error)}`);
       setTimeout(() => {
         setUploadStatus('');
         setUploadProgress(0);
@@ -539,7 +551,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
         if (editor) {
           if (file.type.startsWith('video/')) {
             console.log('Inserting video into editor');
-            (editor.chain().focus() as any).setVideo({ src: publicUrl }).run();
+            (editor.chain().focus() as unknown as VideoChain).setVideo({ src: publicUrl }).run();
           } else {
             console.log('Inserting image into editor');
             editor.chain().focus().setImage({ src: publicUrl }).run();
@@ -553,9 +565,9 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
         setUploadStatus('');
         setUploadProgress(0);
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading video:', error);
-      setUploadStatus(`Error: ${error.message}`);
+      setUploadStatus(`Error: ${formatSupabaseError(error)}`);
       setTimeout(() => {
         setUploadStatus('');
         setUploadProgress(0);
@@ -591,7 +603,10 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       const mammoth = mammothModule.default || mammothModule;
 
       let imageCount = 0;
-      const uploadImageDuringConversion = async (image: any) => {
+      const uploadImageDuringConversion = async (image: {
+        contentType: string;
+        read: (encoding?: string) => Promise<string | Buffer>;
+      }) => {
         try {
           const imageBuffer: string = await image.read("base64");
           const contentType: string = image.contentType || 'image/png';
@@ -624,10 +639,9 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
         return { src: `data:${image.contentType || 'image/png'};base64,${await image.read("base64")}` };
       };
 
-      const convertOptions: any = {};
-      if (mammoth.images && mammoth.images.imgElement) {
-        convertOptions.convertImage = mammoth.images.imgElement(uploadImageDuringConversion);
-      }
+      const convertOptions = mammoth.images?.imgElement
+        ? { convertImage: mammoth.images.imgElement(uploadImageDuringConversion) }
+        : {};
 
       const result = await mammoth.convertToHtml({ arrayBuffer }, convertOptions);
 
@@ -645,9 +659,9 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       if (result.messages.length > 0) {
         console.warn('Word import warnings:', result.messages);
       }
-    } catch (error: any) {
-      console.error('Error importing Word document:', error);
-      setUploadStatus(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      console.error('Error importing Word document:', formatSupabaseError(error));
+      setUploadStatus(`Error: ${formatSupabaseError(error)}`);
     } finally {
       setUploading(false);
       setTimeout(() => setUploadStatus(''), 3000);
@@ -669,7 +683,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
     },
     insertVideo: (url: string) => {
       if (editor) {
-        (editor.chain().focus() as any).setVideo({ src: url }).run();
+        (editor.chain().focus() as unknown as VideoChain).setVideo({ src: url }).run();
       }
     },
     getEditor: () => editor,
@@ -844,7 +858,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <div className={`w-px h-6 mx-1 ${theme === 'light' ? 'bg-slate-200' : 'bg-slate-700'}`} />
 
             <MenuButton
-              onClick={() => (editor.chain().focus() as any).toggleTextSize('2em').run()}
+              onClick={() => (editor.chain().focus() as unknown as TextSizeChain).toggleTextSize('2em').run()}
               active={editor.isActive('textSize', { size: '2em' })}
               title="Large Text (H1 size)"
             >
@@ -852,7 +866,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             </MenuButton>
 
             <MenuButton
-              onClick={() => (editor.chain().focus() as any).toggleTextSize('1.5em').run()}
+              onClick={() => (editor.chain().focus() as unknown as TextSizeChain).toggleTextSize('1.5em').run()}
               active={editor.isActive('textSize', { size: '1.5em' })}
               title="Medium Text (H2 size)"
             >
@@ -860,7 +874,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             </MenuButton>
 
             <MenuButton
-              onClick={() => (editor.chain().focus() as any).toggleTextSize('1.25em').run()}
+              onClick={() => (editor.chain().focus() as unknown as TextSizeChain).toggleTextSize('1.25em').run()}
               active={editor.isActive('textSize', { size: '1.25em' })}
               title="Small Heading (H3 size)"
             >
@@ -1048,7 +1062,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            (editor.chain().focus() as any).setHighlightBg(color).run();
+                            (editor.chain().focus() as unknown as HighlightChain).setHighlightBg(color).run();
                             setShowBgColorPicker(false);
                           }}
                           className={`w-7 h-7 rounded-md border-2 hover:scale-110 hover:border-blue-500 transition-all cursor-pointer ${theme === 'light' ? 'border-slate-200' : 'border-slate-600'}`}
@@ -1062,7 +1076,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        (editor.chain().focus() as any).unsetHighlightBg().run();
+                        (editor.chain().focus() as unknown as HighlightChain).unsetHighlightBg().run();
                         setShowBgColorPicker(false);
                       }}
                       className={`w-full mt-2 px-2 py-1 text-[11px] font-bold rounded-md transition-all text-center ${theme === 'light' ? 'text-red-500 bg-red-50 border border-red-200 hover:bg-red-100' : 'text-red-400 bg-red-900/30 border border-red-700/50 hover:bg-red-900/50'}`}

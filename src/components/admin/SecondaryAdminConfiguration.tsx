@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Save, CheckCircle, XCircle, Building2, RefreshCw } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { Admin } from '../../types';
 
 interface SecondaryAdminConfigurationProps {
@@ -62,8 +62,8 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
       console.log('Secondary Admin Config - Raw data:', data);
       console.log('Secondary Admin ID:', admin.id);
 
-      const configMap: any = {};
-      const globalMap: any = {};
+      const configMap: Record<string, string> = {};
+      const globalMap: Record<string, string> = {};
 
       data?.forEach((config) => {
         if (config.admin_id === admin.id) {
@@ -139,11 +139,11 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
       });
 
       await loadConfigs();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving configs:', error);
       setNotification({
         type: 'error',
-        message: `Failed to save configuration: ${error.message || 'Unknown error'}`,
+        message: `Failed to save configuration: ${formatSupabaseError(error) || 'Unknown error'}`,
       });
     } finally {
       setSaving(false);

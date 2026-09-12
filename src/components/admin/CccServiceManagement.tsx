@@ -104,7 +104,7 @@ interface SimulatedCustomer {
   is_super?: boolean;
   super_customer_title?: string;
   badge_type?: 'diamond' | 'crown' | 'star' | 'vip' | 'premium';
-  custom_avatar_url?: string;
+  custom_avatar_url?: string | null;
   is_pinned?: boolean;
   vip_label?: string;
   remarks?: string;
@@ -164,8 +164,8 @@ interface ConversationHistory {
   unread_count: number;
   customer_id?: string;
   customer_name?: string;
-  customer_avatar?: string;
-  custom_avatar_url?: string;
+  customer_avatar?: string | null;
+  custom_avatar_url?: string | null;
 }
 
 type ConversationSummaryRow = Database['public']['Functions']['get_ccc_conversation_summaries']['Returns'][number];
@@ -867,7 +867,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         custom_avatar_url: customer?.custom_avatar_url || row.custom_avatar_url,
         message_count: Number(row.message_count),
         last_message: row.last_message_type === 'image' ? '__IMAGE__' : (row.last_message || ''),
-        last_message_time: row.last_message_time,
+        last_message_time: row.last_message_time || '',
         unread_count: Number(row.unread_count),
         };
       });
@@ -1372,6 +1372,41 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     }
   }, [isActive, selectedAdminId, loadAllConversationHistory]);
 
+  const checkPendingRating = useCallback(async () => {
+    if (!selectedCustomer || !selectedEmployee) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('customer_employee_conversations')
+        .select('*')
+        .eq('customer_id', selectedCustomer.id)
+        .eq('employee_id', selectedEmployee.id)
+        .eq('message_type', 'rating_request')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        const hasRating = messages.some(
+          m => m.message_type === 'rating_result' &&
+          new Date(m.created_at) > new Date(data.created_at)
+        );
+
+        if (!hasRating) {
+          setPendingRating(data);
+        } else {
+          setPendingRating(null);
+        }
+      } else {
+        setPendingRating(null);
+      }
+    } catch (error) {
+      console.error('Error checking pending rating:', formatSupabaseError(error));
+    }
+  }, [messages, selectedCustomer, selectedEmployee]);
+
   useEffect(() => {
     if (isActive && selectedCustomer?.id && selectedEmployee?.id) {
       const channel = supabase
@@ -1461,41 +1496,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   }, [hasMoreMessages, loadingOlderMessages]);
 
   const pendingScrollRestoreRef = useRef(false);
-
-  const checkPendingRating = useCallback(async () => {
-    if (!selectedCustomer || !selectedEmployee) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('customer_employee_conversations')
-        .select('*')
-        .eq('customer_id', selectedCustomer.id)
-        .eq('employee_id', selectedEmployee.id)
-        .eq('message_type', 'rating_request')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        const hasRating = messages.some(
-          m => m.message_type === 'rating_result' &&
-          new Date(m.created_at) > new Date(data.created_at)
-        );
-
-        if (!hasRating) {
-          setPendingRating(data);
-        } else {
-          setPendingRating(null);
-        }
-      } else {
-        setPendingRating(null);
-      }
-    } catch (error) {
-      console.error('Error checking pending rating:', formatSupabaseError(error));
-    }
-  }, [messages, selectedCustomer, selectedEmployee]);
 
   useEffect(() => {
     if (showHistoryView && pendingScrollRestoreRef.current && historyScrollTopRef.current > 0) {

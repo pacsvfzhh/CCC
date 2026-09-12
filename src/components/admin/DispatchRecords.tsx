@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { CheckCircle, XCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Users, Shield, Pin, Search, DollarSign, RefreshCw } from 'lucide-react';
 
 interface Admin {
@@ -123,8 +123,8 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
         // Secondary admin: load only own employees
         await loadSecondaryAdminView(todayISO);
       }
-    } catch (error: any) {
-      console.error('Failed to load dispatch records:', error);
+    } catch (error: unknown) {
+      console.error('Failed to load dispatch records:', formatSupabaseError(error));
     } finally {
       if (!silent) {
         setLoading(false);
@@ -267,10 +267,10 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
       // Build work status map (get latest session for each user)
       const workStatusMap = new Map<string, { status: string; ended_at: string | null; last_activity_at: string | null }>();
       if (workStatusResult.data) {
-        workStatusResult.data.forEach((session: any) => {
-          if (!workStatusMap.has(session.user_id)) {
+        workStatusResult.data.forEach((session) => {
+          if (session.user_id && !workStatusMap.has(session.user_id)) {
             workStatusMap.set(session.user_id, {
-              status: session.status,
+              status: session.status || '',
               ended_at: session.ended_at,
               last_activity_at: session.last_activity_at
             });
@@ -313,7 +313,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
 
       // Aggregate total orders
       if (totalOrdersResult.data) {
-        totalOrdersResult.data.forEach((row: any) => {
+        totalOrdersResult.data.forEach((row) => {
           const stats = userStatsMap.get(row.user_id);
           if (stats) stats.total_orders = row.count || 0;
         });
@@ -321,7 +321,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
 
       // Aggregate today's orders
       if (todayOrdersResult.data) {
-        todayOrdersResult.data.forEach((row: any) => {
+        todayOrdersResult.data.forEach((row) => {
           const stats = userStatsMap.get(row.user_id);
           if (stats) stats.today_orders = row.count || 0;
         });
@@ -329,7 +329,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
 
       // Aggregate today's completed orders
       if (todayCompletedOrdersResult.data) {
-        todayCompletedOrdersResult.data.forEach((row: any) => {
+        todayCompletedOrdersResult.data.forEach((row) => {
           const stats = userStatsMap.get(row.user_id);
           if (stats) stats.today_completed_orders = row.count || 0;
         });
@@ -337,7 +337,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
 
       // Aggregate failed orders
       if (failedOrdersResult.data) {
-        failedOrdersResult.data.forEach((row: any) => {
+        failedOrdersResult.data.forEach((row) => {
           const stats = userStatsMap.get(row.user_id);
           if (stats) stats.failed_orders = row.count || 0;
         });
@@ -346,9 +346,9 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
       // Aggregate today's commission from orders
       if (todayCommissionResult.data) {
         const commissionMap = new Map<string, number>();
-        todayCommissionResult.data.forEach((order: any) => {
+        todayCommissionResult.data.forEach((order) => {
           const currentTotal = commissionMap.get(order.user_id) || 0;
-          commissionMap.set(order.user_id, currentTotal + (parseFloat(order.commission_amount) || 0));
+          commissionMap.set(order.user_id, currentTotal + (Number(order.commission_amount) || 0));
         });
 
         commissionMap.forEach((total, userId) => {
@@ -366,7 +366,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
         if (workTimeError) throw workTimeError;
 
         if (workTimeData) {
-          workTimeData.forEach((row: any) => {
+          workTimeData.forEach((row) => {
             const stats = userStatsMap.get(row.user_id);
             if (stats) {
               stats.total_work_minutes = row.total_work_minutes || 0;
@@ -516,10 +516,10 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
     // Build work status map (get latest session for each user)
     const workStatusMap = new Map<string, { status: string; ended_at: string | null; last_activity_at: string | null }>();
     if (workStatusResult.data) {
-      workStatusResult.data.forEach((session: any) => {
-        if (!workStatusMap.has(session.user_id)) {
+      workStatusResult.data.forEach((session) => {
+        if (session.user_id && !workStatusMap.has(session.user_id)) {
           workStatusMap.set(session.user_id, {
-            status: session.status,
+            status: session.status || '',
             ended_at: session.ended_at,
             last_activity_at: session.last_activity_at
           });
@@ -562,28 +562,28 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
 
     // Aggregate statistics
     if (totalOrdersResult.data) {
-      totalOrdersResult.data.forEach((row: any) => {
+      totalOrdersResult.data.forEach((row) => {
         const stats = userStatsMap.get(row.user_id);
         if (stats) stats.total_orders = row.count || 0;
       });
     }
 
     if (todayOrdersResult.data) {
-      todayOrdersResult.data.forEach((row: any) => {
+      todayOrdersResult.data.forEach((row) => {
         const stats = userStatsMap.get(row.user_id);
         if (stats) stats.today_orders = row.count || 0;
       });
     }
 
     if (todayCompletedOrdersResult.data) {
-      todayCompletedOrdersResult.data.forEach((row: any) => {
+      todayCompletedOrdersResult.data.forEach((row) => {
         const stats = userStatsMap.get(row.user_id);
         if (stats) stats.today_completed_orders = row.count || 0;
       });
     }
 
     if (failedOrdersResult.data) {
-      failedOrdersResult.data.forEach((row: any) => {
+      failedOrdersResult.data.forEach((row) => {
         const stats = userStatsMap.get(row.user_id);
         if (stats) stats.failed_orders = row.count || 0;
       });
@@ -592,9 +592,9 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
     // Aggregate today's commission from orders
     if (todayCommissionResult.data) {
       const commissionMap = new Map<string, number>();
-      todayCommissionResult.data.forEach((order: any) => {
+      todayCommissionResult.data.forEach((order) => {
         const currentTotal = commissionMap.get(order.user_id) || 0;
-        commissionMap.set(order.user_id, currentTotal + (parseFloat(order.commission_amount) || 0));
+        commissionMap.set(order.user_id, currentTotal + (Number(order.commission_amount) || 0));
       });
 
       commissionMap.forEach((total, userId) => {
@@ -612,7 +612,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
       if (workTimeError) throw workTimeError;
 
       if (workTimeData) {
-        workTimeData.forEach((row: any) => {
+        workTimeData.forEach((row) => {
           const stats = userStatsMap.get(row.user_id);
           if (stats) {
             stats.total_work_minutes = row.total_work_minutes || 0;
@@ -740,9 +740,9 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
       setTimeout(() => {
         isTogglingPinRef.current = false;
       }, 500);
-    } catch (error: any) {
-      console.error('Failed to toggle pin:', error);
-      alert('Failed to toggle pin: ' + error.message);
+    } catch (error: unknown) {
+      console.error('Failed to toggle pin:', formatSupabaseError(error));
+      alert('Failed to toggle pin: ' + formatSupabaseError(error));
       isTogglingPinRef.current = false;
     }
   };

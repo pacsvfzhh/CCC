@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, CreditCard as Edit, Eye, EyeOff, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { ProductType } from '../../types';
 
 export default function ProductTypeManagement() {
@@ -131,11 +131,11 @@ export default function ProductTypeManagement() {
       setFormData({ name: '' });
       setShowForm(false);
       setEditingId(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving product type:', error);
       setNotification({
         type: 'error',
-        message: error.message || 'Failed to save product type'
+        message: formatSupabaseError(error) || 'Failed to save product type'
       });
     }
   };
@@ -168,11 +168,11 @@ export default function ProductTypeManagement() {
         type: 'success',
         message: `Product type ${newStatus ? 'enabled' : 'disabled'} successfully`
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error toggling status:', error);
       setNotification({
         type: 'error',
-        message: error.message || 'Failed to toggle status'
+        message: formatSupabaseError(error) || 'Failed to toggle status'
       });
     } finally {
       setTogglingId(null);
@@ -217,11 +217,11 @@ export default function ProductTypeManagement() {
 
       setShowDeleteConfirm(false);
       setProductTypeToDelete(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error removing product type:', error);
       setNotification({
         type: 'error',
-        message: error.message || 'Failed to remove product type'
+        message: formatSupabaseError(error) || 'Failed to remove product type'
       });
       setShowDeleteConfirm(false);
       setProductTypeToDelete(null);

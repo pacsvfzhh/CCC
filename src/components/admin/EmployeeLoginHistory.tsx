@@ -261,7 +261,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         console.log('Admins available:', adminList.length);
 
         // Create groups for ALL admins, including those with no employees
-        const grouped = adminList.map((adm: any) => {
+        const grouped = adminList.map((adm) => {
           const adminEmployees = employees.filter(e => e.created_by === adm.id);
           return {
             admin_id: adm.id,

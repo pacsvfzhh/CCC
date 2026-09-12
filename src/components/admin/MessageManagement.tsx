@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
-import TiptapEditor from './TiptapEditor';
+import TiptapEditor, { type TiptapEditorRef } from './TiptapEditor';
 import {
   Send, Users, Bell, AlertCircle, X, Search,
   Check, CheckSquare, Square, Trash2, AlertTriangle,
@@ -163,10 +163,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [templateEditorContent, setTemplateEditorContent] = useState('');
   const [templateFormTitle, setTemplateFormTitle] = useState('');
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
-  const templateEditorRef2 = useRef<any>(null);
+  const templateEditorRef2 = useRef<TiptapEditorRef>(null);
 
-  const composeEditorRef = useRef<any>(null);
-  const editEditorRef = useRef<any>(null);
+  const composeEditorRef = useRef<TiptapEditorRef>(null);
+  const editEditorRef = useRef<TiptapEditorRef>(null);
   const tagDropdownRef = useRef<HTMLDivElement>(null);
   const templateDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -383,8 +383,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       setTemplateEditorContent('');
       setTemplateFormTitle('');
       loadTemplates();
-    } catch (error: any) {
-      setNotification({ type: 'error', message: error.message || 'Failed to save template' });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', message: formatSupabaseError(error) || 'Failed to save template' });
     } finally {
       setSavingTemplate(false);
     }
@@ -604,8 +604,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       setSelectedEmployeeIds(new Set());
 
       await loadSentMessages();
-    } catch (error: any) {
-      console.error('Error sending message:', error);
+    } catch (error: unknown) {
+      console.error('Error sending message:', formatSupabaseError(error));
       setNotification({ type: 'error', message: error.message || 'Failed to send message' });
     } finally {
       setSending(false);
@@ -818,8 +818,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       setEditingMessage(false);
       setNotification({ type: 'success', message: 'Message updated successfully' });
       loadSentMessages();
-    } catch (error: any) {
-      console.error('Error updating message:', error);
+    } catch (error: unknown) {
+      console.error('Error updating message:', formatSupabaseError(error));
       setNotification({ type: 'error', message: error.message || 'Failed to update message' });
     } finally {
       setSaving(false);
@@ -1531,7 +1531,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           ? 'text-violet-300/80 hover:bg-violet-950/70 hover:text-violet-100'
                           : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100';
                       return (
-                        <button key={val} onClick={() => setMessageTypeFilter(val as any)}
+                        <button key={val} onClick={() => setMessageTypeFilter(val)}
                           className={`min-w-0 flex-1 rounded border px-1 py-1 text-[9px] font-bold transition-colors ${messageTypeFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
                           {label}
                         </button>
@@ -1552,7 +1552,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         ? 'text-emerald-300/80 hover:bg-emerald-950/70 hover:text-emerald-100'
                         : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100';
                       return (
-                        <button key={val} onClick={() => setReadStatusFilter(val as any)}
+                        <button key={val} onClick={() => setReadStatusFilter(val)}
                           className={`min-w-0 flex-1 rounded border px-1 py-1 text-[9px] font-bold transition-colors ${readStatusFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
                           {label}
                         </button>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AUTH_STORAGE_KEY } from '../../lib/auth';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { Upload, Trash2, CreditCard as Edit2, Save, X, PackageSearch, Settings, CheckCircle, XCircle, Users, Plus, FolderPlus, Layers, Search, Filter, BarChart3, ArrowRight } from 'lucide-react';
 
 interface DispatchGroup {
@@ -54,6 +54,10 @@ interface AdminGroup {
 interface Notification {
   type: 'success' | 'error';
   message: string;
+}
+
+function getDispatchErrorMessage(error: unknown) {
+  return formatSupabaseError(error);
 }
 
 export default function DispatchManagement() {
@@ -373,8 +377,8 @@ export default function DispatchManagement() {
         setSelectedGroup(groupsWithCounts.find(g => g.is_default) || groupsWithCounts[0]);
         setHasManuallySelectedGroup(true);
       }
-    } catch (error: any) {
-      showNotification('error', 'Failed to load groups: ' + error.message);
+    } catch (error: unknown) {
+      showNotification('error', 'Failed to load groups: ' + getDispatchErrorMessage(error));
     }
   };
 
@@ -431,11 +435,11 @@ export default function DispatchManagement() {
       setOrders(data || []);
       setTotalCount(count || 0);
       setCurrentPage(page);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[loadOrders] Failed to load orders:', error);
 
       // Retry once after a short delay if it's a network error
-      if (retryCount === 0 && (error.message.includes('fetch') || error.message.includes('network'))) {
+      if (retryCount === 0 && (getDispatchErrorMessage(error).includes('fetch') || getDispatchErrorMessage(error).includes('network'))) {
         console.log('[loadOrders] Retrying after network error...');
         setIsLoadingOrders(false);
         setTimeout(() => {
@@ -444,7 +448,7 @@ export default function DispatchManagement() {
         return;
       }
 
-      showNotification('error', 'Failed to load orders: ' + error.message);
+      showNotification('error', 'Failed to load orders: ' + getDispatchErrorMessage(error));
       setOrders([]);
       setTotalCount(0);
     } finally {
@@ -504,7 +508,7 @@ export default function DispatchManagement() {
           ...emp,
           wallet_balance,
           group_id: membership?.group_id,
-          group_name: membership ? (membership.dispatch_groups as any)?.group_name : undefined,
+          group_name: membership?.dispatch_groups?.group_name,
           is_own_employee: isOwnEmployee,
         };
       });
@@ -559,8 +563,8 @@ export default function DispatchManagement() {
       setAdminGroups(Array.from(adminMap.values()).sort((a, b) =>
         a.admin_username.localeCompare(b.admin_username)
       ));
-    } catch (error: any) {
-      showNotification('error', 'Failed to load employees: ' + error.message);
+    } catch (error: unknown) {
+      showNotification('error', 'Failed to load employees: ' + getDispatchErrorMessage(error));
     }
   };
 
@@ -638,8 +642,8 @@ export default function DispatchManagement() {
       setTimeout(() => {
         setIsOptimisticUpdate(false);
       }, 1000);
-    } catch (error: any) {
-      showNotification('error', 'Create group failed: ' + error.message);
+    } catch (error: unknown) {
+      showNotification('error', 'Create group failed: ' + getDispatchErrorMessage(error));
       setIsOptimisticUpdate(false);
       // Revert on error - reload to get real data
       loadGroups();
@@ -690,8 +694,8 @@ export default function DispatchManagement() {
       setTimeout(() => {
         setIsOptimisticUpdate(false);
       }, 1000);
-    } catch (error: any) {
-      showNotification('error', 'Update group failed: ' + error.message);
+    } catch (error: unknown) {
+      showNotification('error', 'Update group failed: ' + getDispatchErrorMessage(error));
       setIsOptimisticUpdate(false);
       // Revert on error
       loadGroups();
@@ -756,8 +760,8 @@ export default function DispatchManagement() {
       setTimeout(() => {
         setIsOptimisticUpdate(false);
       }, 1000);
-    } catch (error: any) {
-      showNotification('error', error.message || 'Delete group failed');
+    } catch (error: unknown) {
+      showNotification('error', getDispatchErrorMessage(error) || 'Delete group failed');
       setIsOptimisticUpdate(false);
       // Revert on error
       loadGroups();
@@ -835,7 +839,7 @@ export default function DispatchManagement() {
           .insert(batch);
 
         if (error) {
-          throw new Error(`Batch ${i + 1}/${totalBatches} failed: ${error.message}`);
+          throw new Error(`Batch ${i + 1}/${totalBatches} failed: ${getDispatchErrorMessage(error)}`);
         }
 
         successCount += batch.length;
@@ -875,8 +879,8 @@ export default function DispatchManagement() {
         loadOrders();
         loadGroups();
       }, waitTime);
-    } catch (error: any) {
-      showNotification('error', 'Import failed: ' + error.message);
+    } catch (error: unknown) {
+      showNotification('error', 'Import failed: ' + getDispatchErrorMessage(error));
       setIsBulkImporting(false);
       setIsOptimisticUpdate(false);
       setIsUploading(false);
@@ -938,8 +942,8 @@ export default function DispatchManagement() {
         setIsOptimisticUpdate(false);
         loadGroups();
       }, 1000);
-    } catch (error: any) {
-      showNotification('error', 'Delete failed: ' + error.message);
+    } catch (error: unknown) {
+      showNotification('error', 'Delete failed: ' + getDispatchErrorMessage(error));
       setShowDeleteOrderConfirm(false);
       setOrderToDelete(null);
       setIsOptimisticUpdate(false);
@@ -1079,9 +1083,9 @@ export default function DispatchManagement() {
       setTimeout(() => {
         loadGroups();
       }, 800);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[Delete All] Error:', error);
-      showNotification('error', 'Delete all failed: ' + error.message);
+      showNotification('error', 'Delete all failed: ' + getDispatchErrorMessage(error));
       setIsOptimisticUpdate(false);
       setIsDeleting(false);
       setDeleteProgress({ current: 0, total: 0, percentage: 0 });
@@ -1106,8 +1110,8 @@ export default function DispatchManagement() {
 
       if (error) throw error;
       loadOrders();
-    } catch (error: any) {
-      showNotification('error', 'Update status failed: ' + error.message);
+    } catch (error: unknown) {
+      showNotification('error', 'Update status failed: ' + getDispatchErrorMessage(error));
     }
   };
 
@@ -1158,8 +1162,8 @@ export default function DispatchManagement() {
       setTimeout(() => {
         setIsOptimisticUpdate(false);
       }, 1000);
-    } catch (error: any) {
-      showNotification('error', 'Save failed: ' + error.message);
+    } catch (error: unknown) {
+      showNotification('error', 'Save failed: ' + getDispatchErrorMessage(error));
       setIsOptimisticUpdate(false);
     }
   };
@@ -1236,8 +1240,8 @@ export default function DispatchManagement() {
         await loadGroups();
         setIsOptimisticUpdate(false);
       }, 500);
-    } catch (error: any) {
-      showNotification('error', 'Move failed: ' + error.message);
+    } catch (error: unknown) {
+      showNotification('error', 'Move failed: ' + getDispatchErrorMessage(error));
       setIsOptimisticUpdate(false);
       loadEmployees();
       loadGroups();
@@ -2497,8 +2501,8 @@ export default function DispatchManagement() {
                           setTimeout(() => {
                             setIsOptimisticUpdate(false);
                           }, 1000);
-                        } catch (error: any) {
-                          showNotification('error', 'Remove failed: ' + error.message);
+                        } catch (error: unknown) {
+                          showNotification('error', 'Remove failed: ' + getDispatchErrorMessage(error));
                           setIsOptimisticUpdate(false);
                           // Revert on error
                           loadEmployees();
@@ -2768,8 +2772,8 @@ export default function DispatchManagement() {
                           setTimeout(() => {
                             setIsOptimisticUpdate(false);
                           }, 1000);
-                        } catch (error: any) {
-                          showNotification('error', 'Add failed: ' + error.message);
+                        } catch (error: unknown) {
+                          showNotification('error', 'Add failed: ' + getDispatchErrorMessage(error));
                           setIsOptimisticUpdate(false);
                           // Revert on error
                           loadEmployees();

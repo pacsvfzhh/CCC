@@ -189,9 +189,9 @@ export default function EmployeeSearch() {
       console.log('Final results:', combined.length);
       setProgress({ step: 5, totalSteps: 5, currentTask: 'Complete', percentage: 100 });
       setResults(combined);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Ignore abort errors
-      if (error?.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.log('Search aborted');
         setProgress(null);
         return;

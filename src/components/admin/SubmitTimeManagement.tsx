@@ -56,7 +56,7 @@ export default function SubmitTimeManagement({ admin }: SubmitTimeManagementProp
   const loadData = useCallback(async () => {
     try {
       let adminIds: string[] = [];
-      let adminMap: Record<string, { username: string; role: string }> = {};
+      const adminMap: Record<string, { username: string; role: string }> = {};
 
       if (admin.role === 'super_admin') {
         const { data: admins } = await supabase

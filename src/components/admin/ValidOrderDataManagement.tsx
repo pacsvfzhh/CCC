@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Database, Upload, Trash2, Plus, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 
 interface ValidOrderData {
@@ -138,8 +138,8 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       setCurrentPage(1);
       loadValidData();
       loadStatistics();
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to add valid order data' });
+    } catch (error: unknown) {
+      setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to add valid order data' });
     }
   };
 
@@ -228,8 +228,8 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       setCurrentPage(1);
       loadValidData();
       loadStatistics();
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to upload bulk data' });
+    } catch (error: unknown) {
+      setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to upload bulk data' });
     } finally {
       setUploading(false);
       setUploadProgress({ current: 0, total: 0 });
@@ -282,8 +282,8 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       }
 
       console.log(`Cleanup completed: Deleted ${idsToDelete.length} old records, kept ${idsToKeep.size} recent records`);
-    } catch (error: any) {
-      console.error('Error cleaning up old records:', error);
+    } catch (error: unknown) {
+      console.error('Error cleaning up old records:', formatSupabaseError(error));
       // Don't throw - this is a cleanup operation and shouldn't fail the upload
     }
   };
@@ -317,8 +317,8 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       if (error) throw error;
 
       setMessage({ type: 'success', text: `Status updated successfully!` });
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to update status' });
+    } catch (error: unknown) {
+      setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to update status' });
       // Revert on error
       loadValidData();
       loadStatistics();
@@ -365,8 +365,8 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
       setMessage({ type: 'success', text: 'Valid order data deleted successfully!' });
       setDeletingId(null);
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to delete valid order data' });
+    } catch (error: unknown) {
+      setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to delete valid order data' });
       // Revert on error
       loadValidData();
       loadStatistics();
@@ -484,8 +484,8 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
         setDeleting(false);
         setDeleteProgress({ current: 0, total: 0, percentage: 0 });
       }, 500);
-    } catch (error: any) {
-      console.error('[Delete All] Error:', error);
+    } catch (error: unknown) {
+      console.error('[Delete All] Error:', formatSupabaseError(error));
       setMessage({
         type: 'error',
         text: `Failed to delete records: ${error.message || 'Unknown error'}`

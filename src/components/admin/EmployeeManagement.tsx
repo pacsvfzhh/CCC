@@ -6,6 +6,12 @@ import { hashPassword } from '../../lib/passwordHash';
 import { Employee, Admin } from '../../types';
 import EmployeeDetailModal from './EmployeeDetailModal';
 
+interface OrderRealtimeData {
+  user_id: string;
+  status: string;
+  commission_amount?: number | string | null;
+}
+
 interface EmployeeWithAdmin extends Employee {
   admin?: {
     id: string;
@@ -323,25 +329,26 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       .channel('employee_mgmt_orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
         if (payload.eventType === 'UPDATE' && payload.new && payload.new.user_id) {
-          const order = payload.new as any;
+          const order = payload.new as unknown as OrderRealtimeData;
+          const previousOrder = payload.old as unknown as Partial<OrderRealtimeData>;
           const userId = order.user_id;
           setEmployeeGroups(prev => prev.map(group => ({
             ...group,
             employees: group.employees.map(emp => {
               if (emp.id !== userId) return emp;
-              const wasSuccess = payload.old && (payload.old as any).status === 'success';
+              const wasSuccess = previousOrder.status === 'success';
               const isSuccess = order.status === 'success';
-              const wasFailed = payload.old && (payload.old as any).status === 'failed';
+              const wasFailed = previousOrder.status === 'failed';
               const isFailed = order.status === 'failed';
               let todayCompletedDelta = 0;
               let failedDelta = 0;
               let commissionDelta = 0;
               if (isSuccess && !wasSuccess) {
                 todayCompletedDelta = 1;
-                commissionDelta = parseFloat(order.commission_amount) || 0;
+                commissionDelta = Number(order.commission_amount) || 0;
               } else if (!isSuccess && wasSuccess) {
                 todayCompletedDelta = -1;
-                commissionDelta = -(parseFloat((payload.old as any).commission_amount) || 0);
+                commissionDelta = -(Number(previousOrder.commission_amount) || 0);
               }
               if (isFailed && !wasFailed) failedDelta = 1;
               else if (!isFailed && wasFailed) failedDelta = -1;
@@ -356,7 +363,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           return;
         }
         if (payload.eventType === 'INSERT' && payload.new && payload.new.user_id) {
-          const order = payload.new as any;
+          const order = payload.new as unknown as OrderRealtimeData;
           const userId = order.user_id;
           setEmployeeGroups(prev => prev.map(group => ({
             ...group,
@@ -368,7 +375,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 totalOrders: emp.totalOrders + 1,
                 todayCompletedOrders: order.status === 'success' ? emp.todayCompletedOrders + 1 : emp.todayCompletedOrders,
                 failedOrders: order.status === 'failed' ? emp.failedOrders + 1 : emp.failedOrders,
-                todayCommission: order.status === 'success' ? emp.todayCommission + (parseFloat(order.commission_amount) || 0) : emp.todayCommission,
+                todayCommission: order.status === 'success' ? emp.todayCommission + (Number(order.commission_amount) || 0) : emp.todayCommission,
               };
             }),
           })));
@@ -543,13 +550,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       // Build maps
       const walletTotalMap = new Map<string, number>();
       const walletAvailableMap = new Map<string, number>();
-      walletsResult.data?.forEach((w: any) => {
-        walletTotalMap.set(w.user_id, (parseFloat(w.available_balance) || 0) + (parseFloat(w.frozen_balance) || 0));
-        walletAvailableMap.set(w.user_id, parseFloat(w.available_balance) || 0);
+      walletsResult.data?.forEach((w) => {
+        walletTotalMap.set(w.user_id, (Number(w.available_balance) || 0) + (Number(w.frozen_balance) || 0));
+        walletAvailableMap.set(w.user_id, Number(w.available_balance) || 0);
       });
 
       const verificationMap = new Map(
-        verificationsResult.data?.map((v: any) => [v.user_id, {
+        verificationsResult.data?.map((v) => [v.user_id, {
           real_name: v.real_name,
           wallet_address: v.wallet_address,
           phone: v.phone,
@@ -559,49 +566,49 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
       const totalOrdersMap = new Map<string, number>();
       if (totalOrdersResult.data) {
-        totalOrdersResult.data.forEach((row: any) => {
+        totalOrdersResult.data.forEach((row) => {
           totalOrdersMap.set(row.user_id, row.count || 0);
         });
       }
 
       const todayOrdersMap = new Map<string, number>();
       if (todayOrdersResult.data) {
-        todayOrdersResult.data.forEach((row: any) => {
+        todayOrdersResult.data.forEach((row) => {
           todayOrdersMap.set(row.user_id, row.count || 0);
         });
       }
 
       const todayCompletedMap = new Map<string, number>();
       if (todayCompletedOrdersResult.data) {
-        todayCompletedOrdersResult.data.forEach((row: any) => {
+        todayCompletedOrdersResult.data.forEach((row) => {
           todayCompletedMap.set(row.user_id, row.count || 0);
         });
       }
 
       const failedOrdersMap = new Map<string, number>();
       if (failedOrdersResult.data) {
-        failedOrdersResult.data.forEach((row: any) => {
+        failedOrdersResult.data.forEach((row) => {
           failedOrdersMap.set(row.user_id, row.count || 0);
         });
       }
 
       const todayCommissionMap = new Map<string, number>();
       if (todayCommissionResult.data) {
-        todayCommissionResult.data.forEach((row: any) => {
-          todayCommissionMap.set(row.user_id, parseFloat(row.today_commission) || 0);
+        todayCommissionResult.data.forEach((row) => {
+          todayCommissionMap.set(row.user_id, Number(row.today_commission) || 0);
         });
       }
 
       const workStatusMap = new Map<string, string>();
       if (workStatusResult.data) {
-        workStatusResult.data.forEach((row: any) => {
+        workStatusResult.data.forEach((row) => {
           workStatusMap.set(row.user_id, row.work_status);
         });
       }
 
       const workTimeMap = new Map<string, { total: number; today: number }>();
       if (workTimeResult.data) {
-        workTimeResult.data.forEach((row: any) => {
+        workTimeResult.data.forEach((row) => {
           workTimeMap.set(row.user_id, {
             total: row.total_work_minutes || 0,
             today: row.today_work_minutes || 0,
@@ -612,16 +619,16 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       const pendingWithdrawalSet = new Set<string>();
       const pendingWithdrawalAmountMap = new Map<string, number>();
       if (pendingWithdrawalsResult.data) {
-        pendingWithdrawalsResult.data.forEach((row: any) => {
+        pendingWithdrawalsResult.data.forEach((row) => {
           pendingWithdrawalSet.add(row.user_id);
           pendingWithdrawalAmountMap.set(row.user_id, (pendingWithdrawalAmountMap.get(row.user_id) || 0) + Number(row.amount || 0));
         });
       }
 
-      const adminMap = new Map(admins.map((a: any) => [a.id, a]));
+      const adminMap = new Map(admins.map((a) => [a.id, a]));
 
       const groups = new Map<string, EmployeeGroup>();
-      admins.forEach((adminInfo: any) => {
+      admins.forEach((adminInfo) => {
         groups.set(adminInfo.id, {
           admin: adminInfo,
           employees: []
@@ -728,11 +735,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
       if (error) {
         if (error.code === '23505') {
-          if (error.message.includes('username')) throw new Error('Username already exists');
-          if (error.message.includes('employee_id')) throw new Error('Employee ID already exists');
+          if (formatSupabaseError(error).includes('username')) throw new Error('Username already exists');
+          if (formatSupabaseError(error).includes('employee_id')) throw new Error('Employee ID already exists');
           throw new Error('Username or Employee ID already exists');
         }
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${formatSupabaseError(error)}`);
       }
       if (!data || data.length === 0) throw new Error('Failed to create employee - no data returned');
 
@@ -741,8 +748,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setCreateError(null);
       setSelectedAdminForCreate(null);
       await guardedLoadEmployees(false);
-    } catch (error: any) {
-      setCreateError(error.message || 'Failed to create employee.');
+    } catch (error: unknown) {
+      setCreateError(formatSupabaseError(error) || 'Failed to create employee.');
     } finally {
       setCreating(false);
     }
@@ -853,8 +860,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setShowPasswordReset(null);
       setNewPassword('');
       setNotification({ show: true, type: 'success', title: 'Success', message: 'Password reset successfully' });
-    } catch (error: any) {
-      setNotification({ show: true, type: 'error', title: 'Error', message: error.message || 'Failed to reset password' });
+    } catch (error: unknown) {
+      setNotification({ show: true, type: 'error', title: 'Error', message: formatSupabaseError(error) || 'Failed to reset password' });
     }
   };
 
@@ -893,7 +900,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     setDeleteError(null);
     try {
       const { data, error } = await supabase.from('users').delete().eq('id', employee.id).select();
-      if (error) throw new Error(error.message || 'Database error occurred');
+      if (error) throw new Error(formatSupabaseError(error) || 'Database error occurred');
       if (!data || data.length === 0) throw new Error('Unable to delete employee.');
       setEmployeeGroups(prev => prev.map(g => ({
         ...g,
@@ -901,8 +908,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       })).filter(g => g.employees.length > 0 || g.admin.role === 'super_admin' || g.admin.role === 'secondary_admin'));
       setDeletingEmployee(null);
       setDeleteError(null);
-    } catch (error: any) {
-      setDeleteError(error.message || 'Failed to delete employee.');
+    } catch (error: unknown) {
+      setDeleteError(formatSupabaseError(error) || 'Failed to delete employee.');
     } finally {
       setIsDeleting(false);
     }
@@ -1054,7 +1061,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     try {
       const { error } = await supabase.from('users').update({ is_pinned: newPinned }).eq('id', employeeId);
       if (error) throw error;
-    } catch (error) {
+    } catch {
       setEmployeeGroups(prev => prev.map(g => ({
         ...g,
         employees: g.employees.map(emp => emp.id === employeeId ? { ...emp, is_pinned: currentPinned } : emp)
@@ -1076,7 +1083,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     try {
       const { error } = await supabase.from('admins').update({ is_pinned: newPinned }).eq('id', adminId);
       if (error) throw error;
-    } catch (error) {
+    } catch {
       setAdminPinOverrides(prev => {
         const next = new Map(prev);
         next.delete(adminId);
@@ -1100,7 +1107,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     try {
       const { error } = await supabase.from('users').update({ tags: updatedTags }).eq('id', employee.id);
       if (error) throw error;
-    } catch (error) {
+    } catch {
       const originalTags = employee.tags || [];
       setEmployeeGroups(prev => prev.map(g => ({
         ...g,
@@ -1122,7 +1129,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     try {
       const { error } = await supabase.from('users').update({ tags: updatedTags }).eq('id', employee.id);
       if (error) throw error;
-    } catch (error) {
+    } catch {
       setEmployeeGroups(prev => prev.map(g => ({
         ...g,
         employees: g.employees.map(emp => emp.id === employee.id ? { ...emp, tags: originalTags } : emp)
@@ -1162,8 +1169,22 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           const bVal = b.created_at ? new Date(b.created_at).getTime() : 0;
           return groupSort.sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
         }
-        const aVal = (a as any)[groupSort.sortBy] || 0;
-        const bVal = (b as any)[groupSort.sortBy] || 0;
+        const getSortValue = (employee: EmployeeWithAdmin) => {
+          const values: Partial<Record<SortField, number>> = {
+            totalOrders: employee.totalOrders,
+            todayOrders: employee.todayOrders,
+            todayCompletedOrders: employee.todayCompletedOrders,
+            failedOrders: employee.failedOrders,
+            walletBalance: employee.walletBalance,
+            accountBalance: employee.accountBalance,
+            todayCommission: employee.todayCommission,
+            totalWorkMinutes: employee.totalWorkMinutes,
+            todayWorkMinutes: employee.todayWorkMinutes,
+          };
+          return values[groupSort.sortBy!] || 0;
+        };
+        const aVal = getSortValue(a);
+        const bVal = getSortValue(b);
         return groupSort.sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
       }
       return 0;
@@ -1868,9 +1889,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       });
       setWalletAdjustData({ amount: '', remarks: '' });
       setWalletNotification({ type: 'success', message: 'Balance adjusted successfully' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error adjusting wallet:', formatSupabaseError(err));
-      setWalletNotification({ type: 'error', message: err?.message || 'Failed to adjust balance' });
+      setWalletNotification({ type: 'error', message: formatSupabaseError(err) || 'Failed to adjust balance' });
     } finally {
       setWalletAdjusting(false);
     }
