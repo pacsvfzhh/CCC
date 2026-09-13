@@ -182,6 +182,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       : { order: [], labels: {} }
   );
   const [navigationDraft, setNavigationDraft] = useState<Array<{ id: AdminTabId; label: string }>>([]);
+  const [navigationSelectedItemId, setNavigationSelectedItemId] = useState<AdminTabId | null>(null);
   const [navigationDragState, setNavigationDragState] = useState<NavigationDragState | null>(null);
   const navigationListRef = useRef<HTMLDivElement>(null);
   const navigationDragTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -343,6 +344,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const openNavigationSettings = () => {
     if (admin.role !== 'super_admin') return;
     setNavigationDraft(tabs.map(tab => ({ id: tab.id, label: tab.label })));
+    setNavigationSelectedItemId(null);
     setShowNavigationSettings(true);
   };
 
@@ -364,6 +366,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   ) => {
     if (admin.role !== 'super_admin') return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
+    setNavigationSelectedItemId(tabId);
 
     const card = event.currentTarget.closest<HTMLElement>('[data-navigation-item-id]');
     if (!card) return;
@@ -1393,15 +1396,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     const definition = defaultTabs.find(tab => tab.id === item.id);
                     const originalLabel = definition?.label || item.id;
                     const hasCustomLabel = item.label.trim() !== originalLabel;
-                    const hasCustomPosition = defaultTabs.findIndex(tab => tab.id === item.id) !== index;
-                    const isModified = hasCustomLabel || hasCustomPosition;
                     const Icon = definition?.icon || Settings;
 
                     return (
                       <div
                         key={item.id}
                         data-navigation-item-id={item.id}
-                        className={`group relative grid grid-cols-[26px_30px_minmax(0,1fr)] items-center gap-2 rounded-lg border p-2 shadow-sm transition-all duration-150 sm:grid-cols-[26px_30px_minmax(0,1fr)_132px] ${navigationDragState?.tabId === item.id ? 'scale-[0.99] border-cyan-300 bg-cyan-950/60 opacity-30' : isModified ? 'border-amber-600/75 bg-gradient-to-r from-amber-950/45 via-slate-800 to-slate-800 shadow-[inset_3px_0_0_rgba(245,158,11,0.7)] hover:-translate-y-px hover:border-cyan-400 hover:bg-cyan-950/35 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.24),0_6px_14px_rgba(2,6,23,0.48)] focus-within:border-blue-400 focus-within:bg-blue-950/50 focus-within:ring-1 focus-within:ring-blue-400/50' : 'border-slate-600/90 bg-slate-800/85 hover:-translate-y-px hover:border-cyan-400 hover:bg-cyan-950/35 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.24),0_6px_14px_rgba(2,6,23,0.48)] focus-within:border-blue-400 focus-within:bg-blue-950/50 focus-within:ring-1 focus-within:ring-blue-400/50'}`}
+                        onClick={() => setNavigationSelectedItemId(item.id)}
+                        className={`group relative grid grid-cols-[26px_30px_minmax(0,1fr)] items-center gap-2 rounded-lg border p-2 shadow-sm transition-all duration-150 sm:grid-cols-[26px_30px_minmax(0,1fr)_132px] ${navigationDragState?.tabId === item.id ? 'scale-[0.99] border-cyan-300 bg-cyan-950/60 opacity-30' : navigationSelectedItemId === item.id ? 'scale-[1.005] border-blue-300 bg-blue-950/65 shadow-[0_0_0_1px_rgba(96,165,250,0.5),0_7px_16px_rgba(2,6,23,0.55)] ring-1 ring-blue-400/50 hover:border-cyan-300 hover:bg-blue-900/60' : 'border-slate-600/90 bg-slate-800/85 hover:scale-[1.01] hover:border-cyan-400 hover:bg-cyan-950/35 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.28),0_6px_14px_rgba(2,6,23,0.48)]'}`}
                       >
                         <div className="flex h-7 w-[26px] items-center justify-center rounded-md border border-yellow-200/70 bg-yellow-400 text-[10px] font-black tabular-nums text-slate-950 shadow-sm shadow-yellow-950/30 transition-transform group-hover:scale-105 group-focus-within:scale-105" title={`Position ${index + 1}`}>
                           {String(index + 1).padStart(2, '0')}
@@ -1416,7 +1418,9 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             type="text"
                             value={item.label}
                             maxLength={30}
+                            onFocus={() => setNavigationSelectedItemId(item.id)}
                             onChange={(event) => {
+                              setNavigationSelectedItemId(item.id);
                               const label = event.target.value;
                               setNavigationDraft(current => current.map(entry => entry.id === item.id ? { ...entry, label } : entry));
                             }}
@@ -1428,7 +1432,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                         <div className="col-span-3 flex items-center justify-end gap-1 sm:col-span-1">
                           <button
                             type="button"
-                            onClick={() => restoreNavigationItemLabel(item.id)}
+                            onClick={() => {
+                              setNavigationSelectedItemId(item.id);
+                              restoreNavigationItemLabel(item.id);
+                            }}
+                            onFocus={() => setNavigationSelectedItemId(item.id)}
                             disabled={!hasCustomLabel}
                             className="inline-flex h-8 w-[66px] items-center justify-center gap-1 rounded-md border border-amber-500/80 bg-gradient-to-b from-amber-700/80 to-amber-900 px-1.5 text-[10px] font-bold text-amber-100 shadow-sm shadow-slate-950/60 transition-colors hover:border-yellow-300 hover:from-amber-500 hover:to-amber-700 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 disabled:shadow-none"
                             title={`Restore “${originalLabel}”`}
@@ -1440,6 +1448,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             type="button"
                             onClick={() => handleNavigationMoveClick(index, -1)}
                             onPointerDown={(event) => startNavigationDrag(event, item.id, -1)}
+                            onFocus={() => setNavigationSelectedItemId(item.id)}
                             onPointerMove={updateNavigationDrag}
                             onPointerUp={endNavigationDrag}
                             onPointerCancel={endNavigationDrag}
@@ -1454,6 +1463,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             type="button"
                             onClick={() => handleNavigationMoveClick(index, 1)}
                             onPointerDown={(event) => startNavigationDrag(event, item.id, 1)}
+                            onFocus={() => setNavigationSelectedItemId(item.id)}
                             onPointerMove={updateNavigationDrag}
                             onPointerUp={endNavigationDrag}
                             onPointerCancel={endNavigationDrag}
