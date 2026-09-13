@@ -26,6 +26,8 @@ interface PendingWithdrawalCorrection {
 }
 
 const FINANCIAL_CORRECTION_REMARK = 'Withdrawal accounting adjustment, please resubmit your application';
+const formatFinancialCorrectionRemark = (remark: string | null) =>
+  remark === 'Financial system correction' ? FINANCIAL_CORRECTION_REMARK : remark;
 
 type FilterStatus = 'all' | 'today' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'processed';
 type SortOption = 'submit_time_desc' | 'submit_time_asc' | 'audit_time_desc' | 'audit_time_asc';
@@ -324,7 +326,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const startEditing = (withdrawal: WithdrawalWithEmployee) => {
     setEditing(withdrawal.id);
     setEditStatus(withdrawal.status === 'rejected' ? 'rejected' : 'approved');
-    setEditRemark(withdrawal.audit_remark || '');
+    setEditRemark(formatFinancialCorrectionRemark(withdrawal.audit_remark) || '');
   };
 
   const cancelEditing = () => {
@@ -1192,6 +1194,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   const isReviewing = reviewing === withdrawal.id;
                   const isEditing = editing === withdrawal.id;
                   const adminName = withdrawal.admin?.username || '未分配';
+                  const displayAuditRemark = formatFinancialCorrectionRemark(withdrawal.audit_remark);
                   const adminAccentClass = withdrawal.admin?.role === 'super_admin'
                     ? 'border-l-amber-300'
                     : withdrawal.admin?.role === 'secondary_admin'
@@ -1321,7 +1324,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                               <div className={`font-medium ${amountClass}`}>
                                 {new Date(withdrawal.audited_at).toLocaleString()}
                               </div>
-                              {withdrawal.audit_remark && (
+                              {displayAuditRemark && (
                                 <div className="group/remark relative mt-1 max-w-[440px]">
                                   <div
                                     className={`cursor-help truncate pb-0.5 transition-colors ${auditTheme.trigger}`}
@@ -1340,7 +1343,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                                       popup.style.transform = isFirstVisibleRow ? 'none' : 'translateY(-100%)';
                                     }}
                                   >
-                                    {withdrawal.audit_remark}
+                                    {displayAuditRemark}
                                   </div>
                                   <div className={`pointer-events-auto fixed z-[100] hidden w-[500px] max-w-[calc(100vw-2rem)] rounded-xl border p-3 text-left shadow-2xl shadow-black/50 ring-1 ring-white/10 group-hover/remark:block ${auditTheme.panel}`}>
                                     <div className={`flex items-center gap-2 border-b pb-2 text-[10px] font-bold uppercase tracking-[0.16em] ${auditTheme.heading}`}>
@@ -1348,7 +1351,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                                       審核備註
                                     </div>
                                     <div className={`mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-xs font-medium leading-5 dark-panel-scroll ${auditTheme.body}`}>
-                                      {withdrawal.audit_remark}
+                                      {displayAuditRemark}
                                     </div>
                                   </div>
                                 </div>
