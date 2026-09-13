@@ -464,7 +464,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   );
 
   const todayKey = new Date().toDateString();
-  const todayCount = allRows.filter((w) => new Date(w.created_at).toDateString() === todayKey).length;
+  const scopedRows = adminFilter === 'all'
+    ? allRows
+    : allRows.filter((w) => (w.admin?.id || 'unassigned') === adminFilter);
+  const scopedStats = getGroupStats(scopedRows);
+  const todayCount = scopedRows.filter((w) => new Date(w.created_at).toDateString() === todayKey).length;
 
   const adminFilterOptions = adminGroups.map((group) => ({
     key: group.admin?.id || 'unassigned',
@@ -688,10 +692,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <h1 className="text-sm font-bold tracking-tight text-white sm:text-base">提現審核</h1>
-                {overallStats.pending > 0 && (
+                {scopedStats.pending > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-orange-400/35 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-200">
                     <AlertCircle className="h-3 w-3 text-orange-300" />
-                    {overallStats.pending} 筆待審核
+                    {scopedStats.pending} 筆待審核
                   </span>
                 )}
               </div>
@@ -783,19 +787,19 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 </div>
                 <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-orange-300/75">待審核</div>
-                  <div className="mt-0.5 text-base font-bold tabular-nums text-orange-200">{overallStats.pending}</div>
+                  <div className="mt-0.5 text-base font-bold tabular-nums text-orange-200">{scopedStats.pending}</div>
                 </div>
                 <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-300/75">申請總數</div>
-                  <div className="mt-0.5 text-base font-bold tabular-nums text-white">{overallStats.total}</div>
+                  <div className="mt-0.5 text-base font-bold tabular-nums text-white">{scopedStats.total}</div>
                 </div>
                 <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">已批准</div>
-                  <div className="mt-0.5 text-base font-bold tabular-nums text-emerald-200">{overallStats.approved}</div>
+                  <div className="mt-0.5 text-base font-bold tabular-nums text-emerald-200">{scopedStats.approved}</div>
                 </div>
                 <div className="min-w-[82px] flex-1 px-3.5 py-1.5">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-red-300/75">已拒絕</div>
-                  <div className="mt-0.5 text-base font-bold tabular-nums text-red-200">{overallStats.rejected}</div>
+                  <div className="mt-0.5 text-base font-bold tabular-nums text-red-200">{scopedStats.rejected}</div>
                 </div>
               </div>
             </div>
@@ -808,13 +812,13 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             <div className="min-w-0 overflow-x-auto pb-0 scrollbar-hide">
               <div className="flex min-w-max items-center gap-1.5">
                 {([
-                  { key: 'all', label: '全部', count: overallStats.total, activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-500/40', inactiveClass: 'border border-blue-500/45 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-blue-100' },
+                  { key: 'all', label: '全部', count: scopedStats.total, activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-500/40', inactiveClass: 'border border-blue-500/45 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-blue-100' },
                   { key: 'today', label: '今日提交', count: todayCount, activeClass: 'bg-amber-500 text-white shadow-md shadow-amber-500/40', inactiveClass: 'border border-amber-500/45 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 hover:text-amber-100' },
-                  { key: 'pending', label: '待審核', count: overallStats.pending, activeClass: 'bg-orange-600 text-white shadow-md shadow-orange-500/40', inactiveClass: 'border border-orange-500/45 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20 hover:text-orange-100' },
-                  { key: 'approved', label: '已批准', count: overallStats.approved, activeClass: 'bg-green-600 text-white shadow-md shadow-green-500/40', inactiveClass: 'border border-green-500/45 bg-green-500/10 text-green-200 hover:bg-green-500/20 hover:text-green-100' },
-                  { key: 'rejected', label: '已拒絕', count: overallStats.rejected, activeClass: 'bg-red-600 text-white shadow-md shadow-red-500/40', inactiveClass: 'border border-red-500/45 bg-red-500/10 text-red-200 hover:bg-red-500/20 hover:text-red-100' },
-                  { key: 'cancelled', label: '已取消', count: overallStats.cancelled, activeClass: 'bg-slate-600 text-white shadow-md shadow-slate-500/40', inactiveClass: 'border border-slate-500/45 bg-slate-500/10 text-slate-200 hover:bg-slate-500/20 hover:text-slate-100' },
-                  { key: 'processed', label: '已處理', count: overallStats.processed, activeClass: 'bg-cyan-600 text-white shadow-md shadow-cyan-500/40', inactiveClass: 'border border-cyan-500/45 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 hover:text-cyan-100' },
+                  { key: 'pending', label: '待審核', count: scopedStats.pending, activeClass: 'bg-orange-600 text-white shadow-md shadow-orange-500/40', inactiveClass: 'border border-orange-500/45 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20 hover:text-orange-100' },
+                  { key: 'approved', label: '已批准', count: scopedStats.approved, activeClass: 'bg-green-600 text-white shadow-md shadow-green-500/40', inactiveClass: 'border border-green-500/45 bg-green-500/10 text-green-200 hover:bg-green-500/20 hover:text-green-100' },
+                  { key: 'rejected', label: '已拒絕', count: scopedStats.rejected, activeClass: 'bg-red-600 text-white shadow-md shadow-red-500/40', inactiveClass: 'border border-red-500/45 bg-red-500/10 text-red-200 hover:bg-red-500/20 hover:text-red-100' },
+                  { key: 'cancelled', label: '已取消', count: scopedStats.cancelled, activeClass: 'bg-slate-600 text-white shadow-md shadow-slate-500/40', inactiveClass: 'border border-slate-500/45 bg-slate-500/10 text-slate-200 hover:bg-slate-500/20 hover:text-slate-100' },
+                  { key: 'processed', label: '已處理', count: scopedStats.processed, activeClass: 'bg-cyan-600 text-white shadow-md shadow-cyan-500/40', inactiveClass: 'border border-cyan-500/45 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 hover:text-cyan-100' },
                 ] as const).map((item) => (
                   <button
                     key={item.key}
