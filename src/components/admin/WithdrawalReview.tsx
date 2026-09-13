@@ -353,7 +353,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     };
 
     return (
-      <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-sm font-medium ${styles[status as keyof typeof styles]}`}>
+      <div className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold ${styles[status as keyof typeof styles]}`}>
         {icons[status as keyof typeof icons]}
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </div>
@@ -418,8 +418,13 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
   if (loading) {
     return (
-      <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-6">
-        <div className="text-center py-8 text-slate-400">Loading withdrawals...</div>
+      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-950/55 px-3 py-3 sm:px-4 lg:px-5">
+        <div className="flex h-full min-h-0 items-center justify-center rounded-2xl border border-blue-500/20 bg-slate-900/70 shadow-2xl shadow-slate-950/30">
+          <div className="flex items-center gap-3 text-sm text-slate-400">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-400/25 border-t-blue-400" />
+            Loading withdrawals...
+          </div>
+        </div>
       </div>
     );
   }
@@ -469,19 +474,49 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         </div>
       )}
 
-      <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-6">
-      <div className="flex items-center justify-end mb-6">
-        {overallStats.pending > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-600/20 to-red-600/20 border-2 border-orange-500/50 rounded-lg animate-pulse">
-            <AlertCircle className="w-5 h-5 text-orange-400" />
-            <span className="text-orange-300 font-bold">
-              {overallStats.pending} Pending Request{overallStats.pending !== 1 ? 's' : ''}
-            </span>
+      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-950/55 px-3 py-3 sm:px-4 lg:px-5">
+        <section className="shrink-0 rounded-2xl border border-blue-500/20 bg-slate-900/80 p-4 shadow-2xl shadow-slate-950/25 backdrop-blur-xl sm:p-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-400/25 bg-gradient-to-br from-blue-600/30 via-cyan-500/15 to-amber-400/10 shadow-inner shadow-cyan-400/10">
+                <ArrowUpDown className="h-5 w-5 text-cyan-300" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl">Withdrawal Review</h1>
+                  {overallStats.pending > 0 && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/35 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-200">
+                      <AlertCircle className="h-3.5 w-3.5 text-orange-300" />
+                      {overallStats.pending} pending
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-slate-400 sm:text-sm">Review requests, track processing status, and manage audit records.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[440px]">
+              <div className="rounded-xl border border-blue-400/15 bg-blue-500/[0.07] px-3 py-2.5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-300/75">Requests</div>
+                <div className="mt-1 text-lg font-bold tabular-nums text-white">{overallStats.total}</div>
+              </div>
+              <div className="rounded-xl border border-orange-400/20 bg-orange-500/[0.07] px-3 py-2.5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-orange-300/75">Pending</div>
+                <div className="mt-1 text-lg font-bold tabular-nums text-orange-200">{overallStats.pending}</div>
+              </div>
+              <div className="rounded-xl border border-emerald-400/15 bg-emerald-500/[0.07] px-3 py-2.5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">Approved</div>
+                <div className="mt-1 text-lg font-bold tabular-nums text-emerald-200">{overallStats.approved}</div>
+              </div>
+              <div className="rounded-xl border border-cyan-400/15 bg-cyan-500/[0.07] px-3 py-2.5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300/75">Total value</div>
+                <div className="mt-1 truncate text-lg font-bold tabular-nums text-cyan-100">${overallStats.totalAmount.toFixed(2)}</div>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+        </section>
 
-      <div className="mb-6 flex flex-wrap gap-3">
+      <div className="mt-3 shrink-0 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex min-w-max gap-2">
         <button
           onClick={() => setFilterStatus('all')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
@@ -584,15 +619,16 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             {overallStats.processed}
           </span>
         </button>
+        </div>
       </div>
 
       {/* Sort Options */}
-      <div className="mb-6 flex items-center gap-3 p-4 bg-slate-800/30 rounded-lg border border-slate-700">
-        <div className="flex items-center gap-2 text-slate-300">
+      <div className="mt-2 shrink-0 rounded-xl border border-slate-700/80 bg-slate-800/30 p-3">
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
           <ArrowUpDown className="w-4 h-4" />
           <span className="text-sm font-medium">Sort by:</span>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex min-w-0 flex-wrap gap-2">
           <button
             onClick={() => setSortOption('submit_time_desc')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
@@ -644,8 +680,9 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         </div>
       </div>
 
+      <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 dark-panel-scroll">
       {filteredAdminGroups.length === 0 ? (
-        <div className="text-center py-8 text-slate-400">
+        <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-slate-700/80 bg-slate-900/40 px-6 py-8 text-center text-sm text-slate-400">
           {filterStatus === 'all' && 'No withdrawal requests'}
           {filterStatus === 'pending' && 'No pending withdrawal requests'}
           {filterStatus === 'approved' && 'No approved withdrawal requests'}
@@ -654,53 +691,53 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
           {filterStatus === 'processed' && 'No processed withdrawal requests'}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 pb-3">
           {filteredAdminGroups.map((group) => {
             const adminId = group.admin?.id || 'unassigned';
             const isExpanded = expandedGroups.has(adminId);
             const stats = getGroupStats(group.withdrawals);
 
             return (
-              <div key={adminId} className="bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
+              <div key={adminId} className="overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-900/70 shadow-lg shadow-slate-950/20">
                 <button
                   onClick={() => toggleGroup(adminId)}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-700/30 transition-colors"
+                  className="flex w-full items-center justify-between gap-3 border-b border-transparent px-4 py-3.5 text-left transition-colors hover:bg-blue-950/25"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-500/20 rounded-lg">
-                      <Users className="w-5 h-5 text-blue-400" />
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
+                      <Users className="h-5 w-5 text-blue-300" />
                     </div>
-                    <div className="text-left">
-                      <div className="text-white font-semibold">
+                    <div className="min-w-0 text-left">
+                      <div className="truncate text-sm font-semibold text-white sm:text-base">
                         {group.admin ? `${group.admin.username} (${group.admin.admin_id})` : 'Unassigned'}
                       </div>
-                      <div className="text-sm text-slate-400">
-                        {stats.total} withdrawal{stats.total !== 1 ? 's' : ''} · ${stats.totalAmount.toFixed(2)}
+                      <div className="mt-0.5 text-xs text-slate-400">
+                        {stats.total} withdrawal{stats.total !== 1 ? 's' : ''} <span className="text-slate-600">·</span> ${stats.totalAmount.toFixed(2)} total
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     {stats.pending > 0 && (
-                      <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/10 rounded text-yellow-400 text-sm">
+                      <div className="flex items-center gap-1 rounded-lg border border-orange-400/20 bg-orange-500/10 px-2 py-1 text-xs font-semibold text-orange-300">
                         <Clock className="w-3 h-3" />
                         {stats.pending}
                       </div>
                     )}
                     {stats.approved > 0 && (
-                      <div className="flex items-center gap-1 px-2 py-1 bg-green-500/10 rounded text-green-400 text-sm">
+                      <div className="flex items-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">
                         <CheckCircle className="w-3 h-3" />
                         {stats.approved}
                       </div>
                     )}
                     {stats.rejected > 0 && (
-                      <div className="flex items-center gap-1 px-2 py-1 bg-red-500/10 rounded text-red-400 text-sm">
+                      <div className="flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-300">
                         <XCircle className="w-3 h-3" />
                         {stats.rejected}
                       </div>
                     )}
                     {stats.cancelled > 0 && (
-                      <div className="flex items-center gap-1 px-2 py-1 bg-slate-500/10 rounded text-slate-400 text-sm">
+                      <div className="flex items-center gap-1 rounded-lg border border-slate-600/50 bg-slate-500/10 px-2 py-1 text-xs font-semibold text-slate-300">
                         <Ban className="w-3 h-3" />
                         {stats.cancelled}
                       </div>
@@ -714,29 +751,29 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 </button>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 space-y-3 max-h-[1200px] overflow-y-auto">
+                  <div className="space-y-3 border-t border-slate-800/80 bg-slate-950/20 px-3 pb-3 pt-3 sm:px-4 sm:pt-4">
                     {group.withdrawals.map((withdrawal) => {
                       const isPending = withdrawal.status === 'pending';
                       return (
                       <div
                         key={withdrawal.id}
-                        className={`rounded-lg p-4 transition-all ${
+                        className={`rounded-xl p-3.5 transition-all sm:p-4 ${
                           isPending
-                            ? 'bg-gradient-to-r from-orange-900/30 to-red-900/30 border-2 border-orange-500/50 shadow-lg shadow-orange-500/20'
-                            : 'bg-slate-900/50 border border-slate-700/50'
+                            ? 'border border-orange-400/45 bg-gradient-to-br from-orange-950/45 via-slate-900/80 to-red-950/30 shadow-lg shadow-orange-950/20'
+                            : 'border border-slate-700/70 bg-slate-900/65 hover:border-blue-400/25'
                         }`}
                       >
-                        <div className="flex flex-col md:flex-row justify-between gap-4">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <span className="text-white font-medium">{withdrawal.employee?.username}</span>
-                              <span className="text-slate-500 text-sm">{withdrawal.employee?.employee_id}</span>
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-semibold text-white sm:text-base">{withdrawal.employee?.username}</span>
+                              <span className="rounded-md border border-slate-700 bg-slate-950/35 px-1.5 py-0.5 text-[11px] text-slate-400">{withdrawal.employee?.employee_id}</span>
                               {getStatusBadge(withdrawal.status)}
                             </div>
-                            <div className="text-2xl font-bold text-green-400 mb-2">
+                            <div className="mb-2 text-2xl font-bold tabular-nums text-emerald-300">
                               ${withdrawal.amount.toFixed(2)}
                             </div>
-                            <div className="space-y-1 text-slate-400 text-sm">
+                            <div className="space-y-1 text-xs text-slate-400 sm:text-sm">
                               <div>Requested: {new Date(withdrawal.created_at).toLocaleString()}</div>
                               {withdrawal.audited_at && (
                                 <div className={`font-medium ${
@@ -752,14 +789,14 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                               )}
                             </div>
                             {withdrawal.audit_remark && (
-                              <div className="mt-2 p-2 bg-slate-800 rounded text-slate-300 text-sm">
-                                <strong>Audit Note:</strong> {withdrawal.audit_remark}
+                              <div className="mt-3 rounded-lg border border-slate-700/70 bg-slate-950/45 px-3 py-2 text-xs text-slate-300 sm:text-sm">
+                                <span className="font-semibold text-slate-200">Audit note:</span> {withdrawal.audit_remark}
                               </div>
                             )}
                           </div>
 
                           {withdrawal.status === 'pending' && (
-                            <div className="md:w-80">
+                            <div className="w-full shrink-0 lg:w-80">
                               {reviewing === withdrawal.id ? (
                                 <div className="space-y-3">
                                   <textarea
@@ -821,7 +858,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           )}
 
                           {withdrawal.status !== 'pending' && (
-                            <div className="md:w-80">
+                            <div className="w-full shrink-0 lg:w-80">
                               {editing === withdrawal.id ? (
                                 <div className="space-y-3">
                                   <div>
@@ -901,6 +938,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
           })}
         </div>
       )}
+      </div>
 
       {/* Error Display */}
       {error && (

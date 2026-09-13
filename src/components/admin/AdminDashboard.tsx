@@ -1189,7 +1189,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         `}</style>
 
-        <div className="w-full lg:flex flex-1 min-h-0">
+        <div className="flex w-full flex-1 min-h-0">
           {/* Desktop: Vertical Left Sidebar */}
           <aside className="relative isolate hidden flex-shrink-0 overflow-y-auto border-r border-cyan-800/70 bg-[linear-gradient(180deg,#071225_0%,#092433_34%,#171b2e_68%,#292116_100%)] shadow-[6px_0_18px_rgba(2,6,23,0.72)] scrollbar-hide lg:flex lg:w-32 lg:flex-col xl:w-36">
             <div className="pointer-events-none absolute inset-y-0 right-0 w-[2px] bg-gradient-to-b from-blue-600/80 via-cyan-700/75 to-amber-700/75" aria-hidden="true" />
@@ -1274,7 +1274,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           </aside>
 
           {/* Mobile: Horizontal Scrolling Tabs */}
-          <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'messages' ? 'lg:overflow-hidden' : 'lg:overflow-y-auto'} scrollbar-hide`} style={activeTab === 'customerservice' ? {
+          <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'withdrawals' ? 'overflow-hidden' : activeTab === 'messages' ? 'lg:overflow-hidden' : 'lg:overflow-y-auto'} scrollbar-hide`} style={activeTab === 'customerservice' ? {
             background: `
               radial-gradient(ellipse 80% 60% at 10% 15%, rgba(249,115,22,0.11) 0%, transparent 50%),
               radial-gradient(ellipse 60% 50% at 80% 10%, rgba(245,158,11,0.1) 0%, transparent 50%),
@@ -1394,7 +1394,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('withdrawals') && (
-              <div className={activeTab === 'withdrawals' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'withdrawals' ? 'flex-1 min-h-0 flex flex-col overflow-hidden animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <WithdrawalReview admin={admin} />
               </div>
             )}
