@@ -182,6 +182,27 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, [admin.id, admin.role]);
 
   useEffect(() => {
+    if (!showNavigationSettings) return;
+
+    const bodyOverflow = document.body.style.overflow;
+    const bodyOverscrollBehavior = document.body.style.overscrollBehavior;
+    const documentOverflow = document.documentElement.style.overflow;
+    const documentOverscrollBehavior = document.documentElement.style.overscrollBehavior;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehavior = 'none';
+
+    return () => {
+      document.body.style.overflow = bodyOverflow;
+      document.body.style.overscrollBehavior = bodyOverscrollBehavior;
+      document.documentElement.style.overflow = documentOverflow;
+      document.documentElement.style.overscrollBehavior = documentOverscrollBehavior;
+    };
+  }, [showNavigationSettings]);
+
+  useEffect(() => {
     if (admin.role === 'super_admin') {
       void prefetchAdminGroups(admin.id, 'customer').catch(error => {
         console.warn('Unable to prefetch customer service workspaces:', error);
@@ -1123,7 +1144,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       </div>
 
       {admin.role === 'super_admin' && showNavigationSettings && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-sm sm:p-5">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden overscroll-none bg-slate-950/90 p-3 backdrop-blur-sm sm:p-5">
           <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-cyan-800/80 bg-[#172235] shadow-[0_24px_70px_rgba(2,10,24,0.78)]">
             <div className="flex shrink-0 items-center justify-between border-b border-cyan-800/70 bg-[linear-gradient(110deg,#172f55_0%,#164653_55%,#42361f_100%)] px-4 py-3 sm:px-5">
               <div className="flex min-w-0 items-center gap-3">
@@ -1138,7 +1159,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               <button
                 type="button"
                 onClick={() => setShowNavigationSettings(false)}
-                className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-500/70 bg-slate-950/30 text-slate-300 transition-colors hover:border-cyan-600 hover:bg-slate-700/70 hover:text-white"
+                className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-600/80 bg-rose-950/65 text-rose-200 shadow-sm shadow-slate-950/50 transition-colors hover:border-rose-400 hover:bg-rose-800/80 hover:text-white"
                 aria-label="Close navigation settings"
               >
                 <X className="h-4 w-4" />
@@ -1181,7 +1202,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 </div>
               </aside>
 
-              <div className="min-h-0 overflow-y-auto bg-[linear-gradient(180deg,#1b293b_0%,#233143_100%)] p-2.5 scrollbar-dark sm:p-3">
+              <div className="min-h-0 overflow-y-auto overscroll-contain bg-[linear-gradient(180deg,#1b293b_0%,#233143_100%)] p-2.5 scrollbar-dark sm:p-3">
                 <div className="space-y-1.5">
                   {navigationDraft.map((item, index) => {
                     const definition = defaultTabs.find(tab => tab.id === item.id);
@@ -1208,7 +1229,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                               const label = event.target.value;
                               setNavigationDraft(current => current.map(entry => entry.id === item.id ? { ...entry, label } : entry));
                             }}
-                            className="h-8 w-full rounded-md border border-slate-500 bg-slate-900/90 px-2.5 text-xs font-semibold text-slate-100 shadow-inner outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-700/25"
+                            className="h-8 w-full rounded-md border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-950 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25"
                             placeholder={originalLabel}
                             title={`Original name: ${originalLabel}`}
                           />
@@ -1218,7 +1239,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             type="button"
                             onClick={() => restoreNavigationItemLabel(item.id)}
                             disabled={!hasCustomLabel}
-                            className="inline-flex h-8 w-[66px] items-center justify-center gap-1 rounded-md border border-amber-700/75 bg-amber-950/65 px-1.5 text-[10px] font-bold text-amber-200 transition-colors hover:border-amber-500 hover:bg-amber-800/80 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800/70 disabled:text-slate-600"
+                            className="inline-flex h-8 w-[66px] items-center justify-center gap-1 rounded-md border border-amber-500/80 bg-gradient-to-b from-amber-700/80 to-amber-900 px-1.5 text-[10px] font-bold text-amber-100 shadow-sm shadow-slate-950/60 transition-colors hover:border-yellow-300 hover:from-amber-500 hover:to-amber-700 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 disabled:shadow-none"
                             title={`Restore “${originalLabel}”`}
                           >
                             <RotateCcw className="h-3 w-3" />
@@ -1228,7 +1249,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             type="button"
                             onClick={() => moveNavigationItem(index, -1)}
                             disabled={index === 0}
-                            className="flex h-8 w-[29px] items-center justify-center rounded-md border border-cyan-800/80 bg-blue-950/70 text-cyan-200 transition-colors hover:border-cyan-600 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800/70 disabled:text-slate-600"
+                            className="flex h-8 w-[29px] items-center justify-center rounded-md border border-blue-400/80 bg-gradient-to-b from-blue-600 to-blue-800 text-white shadow-sm shadow-slate-950/60 transition-colors hover:border-blue-200 hover:from-blue-500 hover:to-blue-700 disabled:cursor-not-allowed disabled:border-slate-700 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 disabled:shadow-none"
                             aria-label={`Move ${item.label || originalLabel} up`}
                             title="Move up"
                           >
@@ -1238,7 +1259,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             type="button"
                             onClick={() => moveNavigationItem(index, 1)}
                             disabled={index === navigationDraft.length - 1}
-                            className="flex h-8 w-[29px] items-center justify-center rounded-md border border-cyan-800/80 bg-blue-950/70 text-cyan-200 transition-colors hover:border-cyan-600 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800/70 disabled:text-slate-600"
+                            className="flex h-8 w-[29px] items-center justify-center rounded-md border border-cyan-400/80 bg-gradient-to-b from-cyan-600 to-cyan-800 text-white shadow-sm shadow-slate-950/60 transition-colors hover:border-cyan-200 hover:from-cyan-500 hover:to-cyan-700 disabled:cursor-not-allowed disabled:border-slate-700 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 disabled:shadow-none"
                             aria-label={`Move ${item.label || originalLabel} down`}
                             title="Move down"
                           >
@@ -1256,7 +1277,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               <button
                 type="button"
                 onClick={() => setShowNavigationSettings(false)}
-                className="h-9 rounded-lg border border-slate-600 bg-slate-800 px-4 text-xs font-semibold text-slate-200 shadow-sm transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white"
+                className="h-9 rounded-lg border border-rose-700/80 bg-rose-950/60 px-4 text-xs font-bold text-rose-200 shadow-sm shadow-slate-950/40 transition-colors hover:border-rose-500 hover:bg-rose-800/70 hover:text-white"
               >
                 Cancel
               </button>
