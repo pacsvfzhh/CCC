@@ -1124,21 +1124,21 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
       {admin.role === 'super_admin' && showNavigationSettings && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-sm sm:p-5">
-          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-cyan-400/55 bg-slate-700 shadow-[0_24px_70px_rgba(2,20,38,0.72)]">
-            <div className="flex shrink-0 items-center justify-between border-b border-cyan-300/45 bg-gradient-to-r from-blue-700 via-cyan-700 to-blue-800 px-4 py-3 sm:px-5">
+          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-cyan-800/80 bg-[#172235] shadow-[0_24px_70px_rgba(2,10,24,0.78)]">
+            <div className="flex shrink-0 items-center justify-between border-b border-cyan-800/70 bg-[linear-gradient(110deg,#172f55_0%,#164653_55%,#42361f_100%)] px-4 py-3 sm:px-5">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white ring-1 ring-white/30">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950/30 text-cyan-100 ring-1 ring-cyan-700/70">
                   <SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={2.4} />
                 </div>
                 <div className="min-w-0">
                   <h3 className="truncate text-base font-bold text-white">Navigation Settings</h3>
-                  <p className="text-[11px] text-cyan-50/80">Preview updates instantly. Save to apply.</p>
+                  <p className="text-[11px] text-slate-300">Preview updates instantly. Save to apply.</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowNavigationSettings(false)}
-                className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/30 bg-white/10 text-cyan-50 transition-colors hover:bg-white/20 hover:text-white"
+                className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-500/70 bg-slate-950/30 text-slate-300 transition-colors hover:border-cyan-600 hover:bg-slate-700/70 hover:text-white"
                 aria-label="Close navigation settings"
               >
                 <X className="h-4 w-4" />
@@ -1146,8 +1146,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             </div>
 
             <div className="grid min-h-0 flex-1 lg:grid-cols-[180px_minmax(0,1fr)]">
-              <aside className="hidden min-h-0 border-r border-cyan-500/35 bg-[linear-gradient(180deg,#244a6b_0%,#24556a_58%,#49452f_100%)] lg:flex lg:flex-col">
-                <div className="shrink-0 border-b border-cyan-300/25 bg-blue-950/20 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-cyan-50/75">
+              <aside className="hidden min-h-0 border-r border-cyan-800/60 bg-[linear-gradient(180deg,#11253f_0%,#123743_58%,#3a311f_100%)] lg:flex lg:flex-col">
+                <div className="shrink-0 border-b border-cyan-800/60 bg-slate-950/25 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">
                   Live preview
                 </div>
                 <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden p-2">
@@ -1166,12 +1166,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     return (
                       <div
                         key={item.id}
-                        className={`flex h-6 items-center gap-1.5 rounded px-1.5 text-left ${index === 0 ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-100 hover:bg-white/10'}`}
+                        className={`flex h-6 items-center gap-1.5 rounded px-1.5 text-left ${index === 0 ? 'bg-blue-700 text-white shadow-sm' : 'text-slate-300 hover:bg-cyan-900/35 hover:text-white'}`}
                       >
                         <Icon className="h-3 w-3 shrink-0" />
                         <span className="min-w-0 flex-1 truncate text-[10px] font-medium leading-none">{previewLabel}</span>
                         {previewBadgeCount > 0 && (
-                          <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full border border-orange-200 bg-orange-500 px-1 text-[8px] font-bold leading-none text-white shadow-sm" title="Notification preview">
+                          <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full border border-orange-300/70 bg-orange-600 px-1 text-[8px] font-bold leading-none text-white shadow-sm" title="Notification preview">
                             {previewBadgeCount}
                           </span>
                         )}
@@ -1181,7 +1181,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 </div>
               </aside>
 
-              <div className="min-h-0 overflow-y-auto bg-[linear-gradient(180deg,#314761_0%,#283d57_100%)] p-2.5 scrollbar-dark sm:p-3">
+              <div className="min-h-0 overflow-y-auto bg-[linear-gradient(180deg,#1b293b_0%,#233143_100%)] p-2.5 scrollbar-dark sm:p-3">
                 <div className="space-y-1.5">
                   {navigationDraft.map((item, index) => {
                     const definition = defaultTabs.find(tab => tab.id === item.id);
@@ -1190,11 +1190,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     const Icon = definition?.icon || Settings;
 
                     return (
-                      <div key={item.id} className="grid grid-cols-[26px_30px_minmax(0,1fr)] items-center gap-2 rounded-lg border border-slate-400/70 bg-slate-700/85 p-2 shadow-sm transition-colors hover:border-cyan-300/80 hover:bg-slate-700 sm:grid-cols-[26px_30px_minmax(0,1fr)_132px]">
-                        <div className="flex h-7 w-[26px] items-center justify-center rounded-md border border-yellow-200/70 bg-yellow-400 text-[10px] font-black tabular-nums text-slate-950 shadow-sm" title={`Position ${index + 1}`}>
+                      <div key={item.id} className="grid grid-cols-[26px_30px_minmax(0,1fr)] items-center gap-2 rounded-lg border border-slate-600/90 bg-slate-800/85 p-2 shadow-sm transition-colors hover:border-cyan-700/80 hover:bg-slate-800 sm:grid-cols-[26px_30px_minmax(0,1fr)_132px]">
+                        <div className="flex h-7 w-[26px] items-center justify-center rounded-md border border-yellow-200/70 bg-yellow-400 text-[10px] font-black tabular-nums text-slate-950 shadow-sm shadow-yellow-950/30" title={`Position ${index + 1}`}>
                           {String(index + 1).padStart(2, '0')}
                         </div>
-                        <div className="flex h-7 w-[30px] items-center justify-center rounded-md border border-cyan-300/40 bg-cyan-600/35 text-cyan-50" title={originalLabel}>
+                        <div className="flex h-7 w-[30px] items-center justify-center rounded-md border border-cyan-700/70 bg-cyan-950/65 text-cyan-200" title={originalLabel}>
                           <Icon className="h-3.5 w-3.5" strokeWidth={2.3} />
                         </div>
                         <div className="min-w-0">
@@ -1208,7 +1208,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                               const label = event.target.value;
                               setNavigationDraft(current => current.map(entry => entry.id === item.id ? { ...entry, label } : entry));
                             }}
-                            className="h-8 w-full rounded-md border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-950 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/25"
+                            className="h-8 w-full rounded-md border border-slate-500 bg-slate-900/90 px-2.5 text-xs font-semibold text-slate-100 shadow-inner outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-700/25"
                             placeholder={originalLabel}
                             title={`Original name: ${originalLabel}`}
                           />
@@ -1218,7 +1218,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             type="button"
                             onClick={() => restoreNavigationItemLabel(item.id)}
                             disabled={!hasCustomLabel}
-                            className="inline-flex h-8 w-[66px] items-center justify-center gap-1 rounded-md border border-yellow-300/70 bg-yellow-500/20 px-1.5 text-[10px] font-bold text-yellow-100 transition-colors hover:bg-yellow-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:border-slate-500/40 disabled:bg-slate-600/50 disabled:text-slate-400"
+                            className="inline-flex h-8 w-[66px] items-center justify-center gap-1 rounded-md border border-amber-700/75 bg-amber-950/65 px-1.5 text-[10px] font-bold text-amber-200 transition-colors hover:border-amber-500 hover:bg-amber-800/80 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800/70 disabled:text-slate-600"
                             title={`Restore “${originalLabel}”`}
                           >
                             <RotateCcw className="h-3 w-3" />
@@ -1228,7 +1228,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             type="button"
                             onClick={() => moveNavigationItem(index, -1)}
                             disabled={index === 0}
-                            className="flex h-8 w-[29px] items-center justify-center rounded-md border border-cyan-300/70 bg-blue-600/40 text-cyan-50 transition-colors hover:bg-cyan-500 hover:text-white disabled:cursor-not-allowed disabled:border-slate-500/40 disabled:bg-slate-600/50 disabled:text-slate-400"
+                            className="flex h-8 w-[29px] items-center justify-center rounded-md border border-cyan-800/80 bg-blue-950/70 text-cyan-200 transition-colors hover:border-cyan-600 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800/70 disabled:text-slate-600"
                             aria-label={`Move ${item.label || originalLabel} up`}
                             title="Move up"
                           >
@@ -1238,7 +1238,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             type="button"
                             onClick={() => moveNavigationItem(index, 1)}
                             disabled={index === navigationDraft.length - 1}
-                            className="flex h-8 w-[29px] items-center justify-center rounded-md border border-cyan-300/70 bg-blue-600/40 text-cyan-50 transition-colors hover:bg-cyan-500 hover:text-white disabled:cursor-not-allowed disabled:border-slate-500/40 disabled:bg-slate-600/50 disabled:text-slate-400"
+                            className="flex h-8 w-[29px] items-center justify-center rounded-md border border-cyan-800/80 bg-blue-950/70 text-cyan-200 transition-colors hover:border-cyan-600 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800/70 disabled:text-slate-600"
                             aria-label={`Move ${item.label || originalLabel} down`}
                             title="Move down"
                           >
@@ -1252,18 +1252,18 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-cyan-500/35 bg-[#263c56] px-4 py-3 sm:px-5">
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-cyan-800/60 bg-[#17263a] px-4 py-3 sm:px-5">
               <button
                 type="button"
                 onClick={() => setShowNavigationSettings(false)}
-                className="h-9 rounded-lg border border-slate-300/60 bg-slate-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-slate-500"
+                className="h-9 rounded-lg border border-slate-600 bg-slate-800 px-4 text-xs font-semibold text-slate-200 shadow-sm transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={saveNavigationDraft}
-                className="inline-flex h-9 items-center gap-2 rounded-lg border border-cyan-200/60 bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-xs font-bold text-white shadow-md shadow-blue-950/30 transition-colors hover:from-blue-500 hover:to-cyan-500"
+                className="inline-flex h-9 items-center gap-2 rounded-lg border border-cyan-700/70 bg-gradient-to-r from-blue-700 to-cyan-700 px-4 text-xs font-bold text-white shadow-md shadow-slate-950/40 transition-colors hover:from-blue-600 hover:to-cyan-600"
               >
                 <Save className="h-3.5 w-3.5" />
                 Save settings
