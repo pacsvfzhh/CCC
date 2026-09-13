@@ -2748,6 +2748,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     {flatFilteredEmployees.map((emp, idx) => renderEmployeeRow(emp, idx, true))}
                   </tbody>
                 </table>
+                <div aria-hidden="true" className="h-8 shrink-0" />
               </div>
             </div>
           )}
@@ -2927,6 +2928,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           {renderTableHeader(group.admin.id)}
                           <tbody>{employeeRowsByGroup.get(group.admin.id)}</tbody>
                         </table>
+                        <div aria-hidden="true" className="h-8 shrink-0" />
                       </div>
                     ) : (
                       <div className={`py-8 text-center ${selectedAdminFilter !== 'all' ? `flex flex-1 flex-col items-center justify-center ${isSuperGroup ? 'bg-yellow-500/5' : 'bg-blue-500/5'}` : isSuperGroup ? 'bg-yellow-500/5' : 'bg-blue-500/5'}`}>
