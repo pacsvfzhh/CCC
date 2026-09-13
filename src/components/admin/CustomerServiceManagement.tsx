@@ -9,6 +9,7 @@ import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPic
 import CustomerAutoMessages, { type AutoMessageDraft } from './CustomerAutoMessages';
 import EmployeeMetadataPopover from './EmployeeMetadataPopover';
 import type { Database } from '../../types/database';
+import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
 
 function extractImageOnlyUrl(content: string): string | null {
   const container = document.createElement('div');
@@ -247,6 +248,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   const [showTipModal, setShowTipModal] = useState(false);
   const [tipAmount, setTipAmount] = useState('');
   const [sendingTip, setSendingTip] = useState(false);
+  const tipOperationIdRef = useRef<string | null>(null);
   const [messageTemplates, setMessageTemplates] = useState<MessageTemplate[]>([]);
   const [showTemplateManager, setShowTemplateManager] = useState(false);
   const [showTemplatePopup, setShowTemplatePopup] = useState(false);
@@ -1355,32 +1357,22 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
     setSendingTip(true);
     try {
-      const { data: msgData, error: msgError } = await supabase
-        .from('customer_employee_conversations')
-        .insert({
-          customer_id: selectedCustomer.id,
-          employee_id: selectedEmployee.id,
-          sender_type: 'customer',
-          message_type: 'tip',
-          message_content: `Tip: ${amount.toFixed(2)}`,
-          rating_data: { tip_amount: amount },
-          is_read: false,
-          source_type: 'aaa_service',
-        })
-        .select('id')
-        .single();
-
-      if (msgError) throw msgError;
-
-      const { data: tipResult, error: tipError } = await supabase
-        .rpc('process_customer_service_tip', {
+      tipOperationIdRef.current ||= createFinancialOperationId();
+      const { data: tipResult, error: tipError } = await supabase.rpc(
+        'send_customer_service_tip_atomic',
+        {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_customer_id: selectedCustomer.id,
           p_employee_id: selectedEmployee.id,
           p_amount: amount,
-          p_message_id: msgData.id,
-        });
+          p_source_type: 'aaa_service',
+          p_operation_id: tipOperationIdRef.current,
+        },
+      );
 
       if (tipError) throw tipError;
       if (!tipResult?.success) throw new Error(tipResult?.error || 'Failed to process tip');
+      tipOperationIdRef.current = null;
 
       setNotification({ type: 'success', text: `Tip of $${amount.toFixed(2)} sent to ${selectedEmployee.username}!` });
       setShowTipModal(false);
@@ -4319,7 +4311,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                     min="0.01"
                     step="0.01"
                     value={tipAmount}
-                    onChange={(e) => setTipAmount(e.target.value)}
+                    onChange={(e) => {
+                      tipOperationIdRef.current = null;
+                      setTipAmount(e.target.value);
+                    }}
                     placeholder="0.00"
                     className="w-full rounded-xl border border-orange-200/20 bg-slate-900/80 py-4 pl-12 pr-16 text-3xl font-black tracking-tight text-white placeholder-slate-700 outline-none transition-all focus:border-orange-300/70 focus:ring-2 focus:ring-orange-400/20"
                     autoFocus
@@ -4332,7 +4327,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                     <button
                       key={preset}
                       type="button"
-                      onClick={() => setTipAmount(preset.toString())}
+                      onClick={() => {
+                        tipOperationIdRef.current = null;
+                        setTipAmount(preset.toString());
+                      }}
                       className={`rounded-lg border px-2 py-2 text-xs font-bold transition-all ${tipAmount === preset.toString() ? 'border-orange-300 bg-orange-500/25 text-orange-100 shadow-sm shadow-orange-500/20' : 'border-slate-700/80 bg-slate-900/70 text-slate-400 hover:border-orange-300/60 hover:bg-orange-500/10 hover:text-orange-100'}`}
                     >
                       ${preset}

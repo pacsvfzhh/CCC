@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
-import { hashPassword } from '../../lib/passwordHash';
 import { Employee, Admin } from '../../types';
+import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
 import EmployeeDetailModal from './EmployeeDetailModal';
 
 interface OrderRealtimeData {
@@ -162,6 +162,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [walletAdjustData, setWalletAdjustData] = useState({ amount: '', remarks: '' });
   const [walletAdjusting, setWalletAdjusting] = useState(false);
   const [walletNotification, setWalletNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const walletAdjustmentOperationIdRef = useRef<string | null>(null);
 
   const scrollLockRef = useRef(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
@@ -760,28 +761,21 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       if (formData.password.length < 6) throw new Error('Password must be at least 6 characters');
       if (!formData.employeeId.trim()) throw new Error('Employee ID is required');
 
-      const hashedPassword = await hashPassword(formData.password);
       const createdBy = admin.role === 'secondary_admin'
         ? admin.id
         : (selectedAdminForCreate || admin.id);
 
-      const { data, error } = await supabase.from('users').insert({
-        username: formData.username.trim(),
-        password_hash: hashedPassword,
-        employee_id: formData.employeeId.trim(),
-        created_by: createdBy,
-        remarks: formData.remarks.trim(),
-      }).select();
+      const { data: result, error } = await supabase.rpc('admin_create_employee_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_username: formData.username.trim(),
+        p_password: formData.password,
+        p_employee_id: formData.employeeId.trim(),
+        p_created_by: createdBy,
+        p_remarks: formData.remarks.trim(),
+      });
 
-      if (error) {
-        if (error.code === '23505') {
-          if (formatSupabaseError(error).includes('username')) throw new Error('Username already exists');
-          if (formatSupabaseError(error).includes('employee_id')) throw new Error('Employee ID already exists');
-          throw new Error('Username or Employee ID already exists');
-        }
-        throw new Error(`Database error: ${formatSupabaseError(error)}`);
-      }
-      if (!data || data.length === 0) throw new Error('Failed to create employee - no data returned');
+      if (error) throw new Error(formatSupabaseError(error));
+      if (!result?.success) throw new Error(result?.error || 'Failed to create employee');
 
       setFormData({ username: '', password: '', employeeId: '', remarks: '' });
       setShowCreateForm(false);
@@ -804,19 +798,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       if (!secondaryAdminForm.username.trim()) throw new Error('Username is required');
       if (secondaryAdminForm.password.length < 6) throw new Error('Password must be at least 6 characters');
 
-      const hashedPassword = await hashPassword(secondaryAdminForm.password);
-      const { data, error } = await supabase.from('admins').insert({
-        username: secondaryAdminForm.username.trim(),
-        password_hash: hashedPassword,
-        role: 'secondary_admin',
-        parent_id: admin.id,
-      }).select();
+      const { data: result, error } = await supabase.rpc('admin_create_secondary_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_username: secondaryAdminForm.username.trim(),
+        p_password: secondaryAdminForm.password,
+      });
 
-      if (error) {
-        if (error.code === '23505') throw new Error('Username already exists');
-        throw error;
-      }
-      if (!data || data.length === 0) throw new Error('Failed to create admin - no data returned');
+      if (error) throw error;
+      if (!result?.success) throw new Error(result?.error || 'Failed to create admin');
 
       setSecondaryAdminForm({ username: '', password: '' });
       setShowSecondaryAdminPassword(false);
@@ -843,7 +832,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             ...g,
             employees: g.employees.map(emp => emp.id === employeeId ? { ...emp, is_active: newStatus } : emp)
           })));
-          const { error } = await supabase.from('users').update({ is_active: newStatus }).eq('id', employeeId);
+          const { error } = await supabase.rpc('admin_update_employee_account', {
+            p_admin_session_token: getAdminFinancialSessionToken(),
+            p_user_id: employeeId,
+            p_updates: { is_active: newStatus },
+          });
           if (error) {
             setEmployeeGroups(prev => prev.map(g => ({
               ...g,
@@ -871,7 +864,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             ...g,
             employees: g.employees.map(emp => emp.id === employeeId ? { ...emp, is_verified: newStatus } : emp)
           })));
-          const { error: userError } = await supabase.from('users').update({ is_verified: newStatus }).eq('id', employeeId);
+          const { error: userError } = await supabase.rpc('admin_update_employee_account', {
+            p_admin_session_token: getAdminFinancialSessionToken(),
+            p_user_id: employeeId,
+            p_updates: { is_verified: newStatus },
+          });
           if (userError) throw userError;
           if (!newStatus) {
             await supabase.from('verification_requests').delete().eq('user_id', employeeId).eq('status', 'approved');
@@ -893,10 +890,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       return;
     }
     try {
-      const hashedPassword = await hashPassword(newPassword);
-      const { data, error } = await supabase.from('users').update({ password_hash: hashedPassword }).eq('id', employeeId).select('id');
+      const { data, error } = await supabase.rpc('admin_reset_employee_password', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_user_id: employeeId,
+        p_new_password: newPassword,
+      });
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error('No rows were updated.');
+      if (!data) throw new Error('No rows were updated.');
       setShowPasswordReset(null);
       setNewPassword('');
       setNotification({ show: true, type: 'success', title: 'Success', message: 'Password reset successfully' });
@@ -925,7 +925,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         ...g,
         employees: g.employees.map(emp => emp.id === employeeId ? { ...emp, ...updates } : emp)
       })));
-      const { error } = await supabase.from('users').update(updates).eq('id', employeeId);
+      const allowedUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([key, value]) =>
+          value !== undefined
+          && ['username', 'employee_id', 'is_verified', 'is_active', 'remarks', 'tags', 'is_pinned', 'created_at'].includes(key)
+        ),
+      );
+      const { error } = await supabase.rpc('admin_update_employee_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_user_id: employeeId,
+        p_updates: allowedUpdates,
+      });
       if (error) throw error;
       setEditingEmployee(null);
     } catch (error) {
@@ -939,9 +949,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      const { data, error } = await supabase.from('users').delete().eq('id', employee.id).select();
+      const { data, error } = await supabase.rpc('admin_delete_employee_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_user_id: employee.id,
+      });
       if (error) throw new Error(formatSupabaseError(error) || 'Database error occurred');
-      if (!data || data.length === 0) throw new Error('Unable to delete employee.');
+      if (!data) throw new Error('Unable to delete employee.');
       setEmployeeGroups(prev => prev.map(g => ({
         ...g,
         employees: g.employees.filter(emp => emp.id !== employee.id)
@@ -1099,7 +1112,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       employees: g.employees.map(emp => emp.id === employeeId ? { ...emp, is_pinned: newPinned } : emp)
     })));
     try {
-      const { error } = await supabase.from('users').update({ is_pinned: newPinned }).eq('id', employeeId);
+      const { error } = await supabase.rpc('admin_update_employee_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_user_id: employeeId,
+        p_updates: { is_pinned: newPinned },
+      });
       if (error) throw error;
     } catch {
       setEmployeeGroups(prev => prev.map(g => ({
@@ -1121,7 +1138,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     });
 
     try {
-      const { error } = await supabase.from('admins').update({ is_pinned: newPinned }).eq('id', adminId);
+      const { error } = await supabase.rpc('admin_update_admin_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_target_admin_id: adminId,
+        p_updates: { is_pinned: newPinned },
+      });
       if (error) throw error;
     } catch {
       setAdminPinOverrides(prev => {
@@ -1145,7 +1166,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     if (editingTags && editingTags.id === employee.id) setEditingTags({ ...editingTags, tags: updatedTags });
     setNewTag('');
     try {
-      const { error } = await supabase.from('users').update({ tags: updatedTags }).eq('id', employee.id);
+      const { error } = await supabase.rpc('admin_update_employee_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_user_id: employee.id,
+        p_updates: { tags: updatedTags },
+      });
       if (error) throw error;
     } catch {
       const originalTags = employee.tags || [];
@@ -1167,7 +1192,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     })));
     if (editingTags && editingTags.id === employee.id) setEditingTags({ ...editingTags, tags: updatedTags });
     try {
-      const { error } = await supabase.from('users').update({ tags: updatedTags }).eq('id', employee.id);
+      const { error } = await supabase.rpc('admin_update_employee_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_user_id: employee.id,
+        p_updates: { tags: updatedTags },
+      });
       if (error) throw error;
     } catch {
       setEmployeeGroups(prev => prev.map(g => ({
@@ -1871,6 +1900,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     setWalletAdjustData({ amount: '', remarks: '' });
     setWalletAdjusting(false);
     setWalletNotification(null);
+    walletAdjustmentOperationIdRef.current = null;
     setWalletLoading(true);
     try {
       const { data, error } = await supabase
@@ -1906,11 +1936,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     setWalletNotification(null);
     try {
       const adjustmentAmount = type === 'add' ? amount : -amount;
-      const { data: result, error: adjustError } = await supabase.rpc('adjust_wallet_balance', {
+      walletAdjustmentOperationIdRef.current ||= createFinancialOperationId();
+      const { data: result, error: adjustError } = await supabase.rpc('admin_adjust_wallet_balance_atomic', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
         p_user_id: walletEmployee.id,
         p_amount: adjustmentAmount,
         p_remarks: walletAdjustData.remarks.trim(),
-        p_created_by: admin.id,
+        p_operation_id: walletAdjustmentOperationIdRef.current,
       });
       if (adjustError) throw adjustError;
       if (!result?.success) {
@@ -1928,6 +1960,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         available: refreshed?.available_balance ?? 0,
         frozen: refreshed?.frozen_balance ?? 0,
       });
+      walletAdjustmentOperationIdRef.current = null;
       setWalletAdjustData({ amount: '', remarks: '' });
       setWalletNotification({ type: 'success', message: 'Balance adjusted successfully' });
     } catch (err: unknown) {
@@ -1985,14 +2018,20 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       step="0.01"
                       min="0"
                       value={walletAdjustData.amount}
-                      onChange={(e) => setWalletAdjustData(d => ({ ...d, amount: e.target.value }))}
+                      onChange={(e) => {
+                        walletAdjustmentOperationIdRef.current = null;
+                        setWalletAdjustData(d => ({ ...d, amount: e.target.value }));
+                      }}
                       placeholder="0.00"
                       className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm font-medium focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 focus:outline-none placeholder-slate-400"
                     />
                   </div>
                   <textarea
                     value={walletAdjustData.remarks}
-                    onChange={(e) => setWalletAdjustData(d => ({ ...d, remarks: e.target.value }))}
+                    onChange={(e) => {
+                      walletAdjustmentOperationIdRef.current = null;
+                      setWalletAdjustData(d => ({ ...d, remarks: e.target.value }));
+                    }}
                     placeholder="Remarks (required)"
                     rows={3}
                     className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 focus:outline-none placeholder-slate-400 resize-none"
@@ -3076,7 +3115,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   setSavingCreatedAt(true);
                   try {
                     const isoDate = new Date(newCreatedAt).toISOString();
-                    const { error } = await supabase.from('users').update({ created_at: isoDate }).eq('id', editingCreatedAt.id);
+                    const { error } = await supabase.rpc('admin_update_employee_account', {
+                      p_admin_session_token: getAdminFinancialSessionToken(),
+                      p_user_id: editingCreatedAt.id,
+                      p_updates: { created_at: isoDate },
+                    });
                     if (!error) {
                       setEmployeeGroups(prev => prev.map(g => ({
                         ...g,

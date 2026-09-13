@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { CheckCircle, XCircle, Clock, User, Wallet, Phone, Mail, Trash2, RotateCcw, AlertCircle, Eye, EyeOff, FileText, Image as ImageIcon, Shield, Calendar, Hash, Search, Users, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { VerificationRequest, Employee, Admin } from '../../types';
+import { getAdminFinancialSessionToken } from '../../lib/auth';
 
 interface VerificationWithEmployee extends VerificationRequest {
   employee?: Employee;
@@ -368,10 +369,11 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
       if (status === 'approved') {
         console.log('Updating user verification status for user:', verification.user_id);
-        const { error: userError } = await supabase
-          .from('users')
-          .update({ is_verified: true })
-          .eq('id', verification.user_id);
+        const { error: userError } = await supabase.rpc('admin_update_employee_account', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_user_id: verification.user_id,
+          p_updates: { is_verified: true },
+        });
 
         if (userError) {
           console.error('User update error:', userError);
@@ -478,10 +480,11 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           if (updateError) throw updateError;
 
           if (verification.status === 'approved') {
-            const { error: userError } = await supabase
-              .from('users')
-              .update({ is_verified: false })
-              .eq('id', verification.user_id);
+            const { error: userError } = await supabase.rpc('admin_update_employee_account', {
+              p_admin_session_token: getAdminFinancialSessionToken(),
+              p_user_id: verification.user_id,
+              p_updates: { is_verified: false },
+            });
 
             if (userError) throw userError;
           }

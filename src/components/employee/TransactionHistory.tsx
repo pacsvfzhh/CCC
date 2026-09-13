@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { History, ArrowUpRight, CheckCircle, XCircle, Clock, Calendar, MessageSquare, Ban, X, DollarSign, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { getCurrentTimestamp, formatDateUTC, formatTimeUTC } from '../../lib/dateUtils';
+import { formatDateUTC, formatTimeUTC } from '../../lib/dateUtils';
 import { Withdrawal, WalletTransaction } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
 import { usePaginatedList } from '../../lib/usePaginatedList';
+import { createFinancialOperationId, getEmployeeFinancialSession } from '../../lib/auth';
 
 interface TransactionHistoryProps {
   employeeId: string;
@@ -23,6 +24,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
   const { isMobile } = useResponsive();
   const { t } = useLanguage();
   const loadTransactionsRef = useRef<(() => Promise<void>) | null>(null);
+  const cancellationOperationIdsRef = useRef(new Map<string, string>());
 
   const ITEMS_PER_PAGE = isMobile ? 10 : 15;
   const { pageItems, page, totalPages, totalItems, hasNext, hasPrev, goNext, goPrev } = usePaginatedList({
@@ -262,76 +264,23 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
     setCancellingId(withdrawal.id);
 
     try {
-      // First, verify the withdrawal is still pending
-      const { data: currentWithdrawal, error: checkError } = await supabase
-        .from('withdrawals')
-        .select('status, amount')
-        .eq('id', withdrawal.id)
-        .single();
+      const financialSession = getEmployeeFinancialSession();
+      const operationId = cancellationOperationIdsRef.current.get(withdrawal.id)
+        || createFinancialOperationId();
+      cancellationOperationIdsRef.current.set(withdrawal.id, operationId);
 
-      if (checkError) throw checkError;
+      const { data: result, error } = await supabase.rpc('cancel_employee_withdrawal', {
+        p_user_id: employeeId,
+        p_session_token: financialSession.token,
+        p_tab_id: financialSession.tabId,
+        p_withdrawal_id: withdrawal.id,
+        p_operation_id: operationId,
+      });
 
-      if (currentWithdrawal.status !== 'pending') {
-        alert('This withdrawal has already been processed and cannot be cancelled.');
-        void loadTransactionsRef.current?.();
-        setCancellingId(null);
-        return;
-      }
+      if (error) throw error;
+      if (!result?.success) throw new Error(result?.error || 'Failed to cancel withdrawal.');
 
-      // Get current wallet state
-      const { data: wallet, error: walletError } = await supabase
-        .from('wallets')
-        .select('*')
-        .eq('user_id', employeeId)
-        .single();
-
-      if (walletError) throw walletError;
-
-      // Calculate new balances
-      const newAvailable = wallet.available_balance + currentWithdrawal.amount;
-      const newFrozen = wallet.frozen_balance - currentWithdrawal.amount;
-
-      // Validate that frozen balance is sufficient
-      if (newFrozen < 0) {
-        throw new Error('Insufficient frozen balance. Please refresh and try again.');
-      }
-
-      // Update withdrawal status first
-      const { error: withdrawalUpdateError } = await supabase
-        .from('withdrawals')
-        .update({
-          status: 'cancelled',
-          audit_remark: t.withdrawals.cancelledByUser,
-          audited_at: getCurrentTimestamp(),
-        })
-        .eq('id', withdrawal.id)
-        .eq('status', 'pending'); // Only update if still pending
-
-      if (withdrawalUpdateError) throw withdrawalUpdateError;
-
-      // Then update wallet balances
-      const { error: walletUpdateError } = await supabase
-        .from('wallets')
-        .update({
-          available_balance: newAvailable,
-          frozen_balance: newFrozen,
-        })
-        .eq('user_id', employeeId);
-
-      if (walletUpdateError) {
-        // Try to rollback withdrawal status
-        await supabase
-          .from('withdrawals')
-          .update({
-            status: 'pending',
-            audit_remark: null,
-            audited_at: null,
-          })
-          .eq('id', withdrawal.id);
-        throw walletUpdateError;
-      }
-
-      // Reload transactions to reflect changes
+      cancellationOperationIdsRef.current.delete(withdrawal.id);
       await loadTransactions();
       alert('Withdrawal cancelled successfully. Funds have been returned to your available balance.');
     } catch (error) {

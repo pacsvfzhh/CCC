@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, Fragment } from 'react';
 import { CheckCircle, XCircle, Clock, Ban, AlertCircle, ArrowUpDown, Pencil, Save, X, Search, Users, Layers, ChevronDown, Check } from 'lucide-react';
 import { formatSupabaseError, supabase, supabaseConfigurationError } from '../../lib/supabase';
 import { Withdrawal, Employee, Admin } from '../../types';
+import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
 
 interface WithdrawalWithEmployee extends Withdrawal {
   employee?: Employee;
@@ -18,11 +19,6 @@ interface WithdrawalReviewProps {
 interface AdminGroup {
   admin: Admin | null;
   withdrawals: WithdrawalWithEmployee[];
-}
-
-interface PendingWithdrawalCorrection {
-  ids: string[];
-  amount: number;
 }
 
 const FINANCIAL_CORRECTION_REMARK = 'Withdrawal accounting adjustment, please resubmit your application';
@@ -65,6 +61,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const selectAllRef = useRef<HTMLInputElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
+  const financialOperationIdsRef = useRef(new Map<string, string>());
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -230,62 +227,24 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const processWithdrawalDecision = async (
     withdrawal: WithdrawalWithEmployee,
     status: 'approved' | 'rejected',
-    remark: string
+    remark: string,
   ) => {
-    // Update withdrawal status with condition to prevent duplicate processing
-    const { error: updateError } = await supabase
-      .from('withdrawals')
-      .update({
-        status,
-        audit_remark: remark,
-        audited_by: admin.id,
-        audited_at: new Date().toISOString(),
-      })
-      .eq('id', withdrawal.id)
-      .eq('status', 'pending');
+    const operationKey = `review:${withdrawal.id}:${status}:${remark.trim()}`;
+    const operationId = financialOperationIdsRef.current.get(operationKey)
+      || createFinancialOperationId();
+    financialOperationIdsRef.current.set(operationKey, operationId);
 
-    if (updateError) throw updateError;
+    const { data: result, error } = await supabase.rpc('review_withdrawal_atomic', {
+      p_admin_session_token: getAdminFinancialSessionToken(),
+      p_withdrawal_id: withdrawal.id,
+      p_status: status,
+      p_remark: remark.trim(),
+      p_operation_id: operationId,
+    });
 
-    const { data: wallet } = await supabase
-      .from('wallets')
-      .select('*')
-      .eq('user_id', withdrawal.user_id)
-      .single();
-
-    if (!wallet) return;
-
-    if (status === 'approved') {
-      const newFrozenBalance = wallet.frozen_balance - withdrawal.amount;
-
-      await supabase
-        .from('wallets')
-        .update({ frozen_balance: newFrozenBalance })
-        .eq('user_id', withdrawal.user_id);
-
-      await supabase.from('wallet_transactions').insert({
-        user_id: withdrawal.user_id,
-        type: 'withdrawal_approved',
-        amount: -withdrawal.amount,
-        balance_before: wallet.frozen_balance,
-        balance_after: newFrozenBalance,
-        reference_id: withdrawal.id,
-        remarks: `提現已批准：${remark}`,
-      });
-    } else {
-      // When rejecting, move money from frozen back to available.
-      // This is an internal transfer, so no wallet_transactions record is created
-      // (it would incorrectly increase the reported total balance).
-      const newFrozenBalance = wallet.frozen_balance - withdrawal.amount;
-      const newAvailableBalance = wallet.available_balance + withdrawal.amount;
-
-      await supabase
-        .from('wallets')
-        .update({
-          available_balance: newAvailableBalance,
-          frozen_balance: newFrozenBalance,
-        })
-        .eq('user_id', withdrawal.user_id);
-    }
+    if (error) throw error;
+    if (!result?.success) throw new Error(result?.error || '審核提現失敗');
+    financialOperationIdsRef.current.delete(operationKey);
   };
 
   const handleReview = async (withdrawalId: string, status: 'approved' | 'rejected') => {
@@ -334,162 +293,6 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     setEditRemark('');
   };
 
-  const rollbackCancelledWithdrawalsToPending = async (withdrawalIds: string[]) => {
-    const { data: restoredWithdrawals, error: restoreError } = await supabase
-      .from('withdrawals')
-      .update({ status: 'pending', audit_remark: null, audited_by: null, audited_at: null })
-      .in('id', withdrawalIds)
-      .eq('status', 'cancelled')
-      .eq('audit_remark', FINANCIAL_CORRECTION_REMARK)
-      .select('id');
-
-    if (restoreError) throw restoreError;
-    if (restoredWithdrawals?.length !== withdrawalIds.length) {
-      throw new Error('Some cancelled withdrawals changed before they could be restored.');
-    }
-  };
-
-  const rollbackRestoredWithdrawalsToCancelled = async (withdrawalIds: string[]) => {
-    const { data: cancelledWithdrawals, error: cancelError } = await supabase
-      .from('withdrawals')
-      .update({
-        status: 'cancelled',
-        audit_remark: FINANCIAL_CORRECTION_REMARK,
-        audited_by: admin.id,
-        audited_at: new Date().toISOString(),
-      })
-      .in('id', withdrawalIds)
-      .eq('status', 'pending')
-      .select('id');
-
-    if (cancelError) throw cancelError;
-    if (cancelledWithdrawals?.length !== withdrawalIds.length) {
-      throw new Error('Some pending withdrawals changed before cancellation could be restored.');
-    }
-  };
-
-  const cancelPendingWithdrawalsForFinancialCorrection = async (
-    userId: string,
-    excludedWithdrawalId: string,
-  ): Promise<PendingWithdrawalCorrection> => {
-    const { data: pendingWithdrawals, error: pendingError } = await supabase
-      .from('withdrawals')
-      .select('id, amount')
-      .eq('user_id', userId)
-      .eq('status', 'pending')
-      .neq('id', excludedWithdrawalId);
-
-    if (pendingError) throw pendingError;
-    if (!pendingWithdrawals?.length) return { ids: [], amount: 0 };
-
-    const pendingIds = pendingWithdrawals.map((item) => item.id);
-    const auditedAt = new Date().toISOString();
-    const { data: cancelledWithdrawals, error: cancelError } = await supabase
-      .from('withdrawals')
-      .update({
-        status: 'cancelled',
-        audit_remark: FINANCIAL_CORRECTION_REMARK,
-        audited_by: admin.id,
-        audited_at: auditedAt,
-      })
-      .in('id', pendingIds)
-      .eq('status', 'pending')
-      .select('id, amount');
-
-    if (cancelError) throw cancelError;
-    if (!cancelledWithdrawals?.length) return { ids: [], amount: 0 };
-
-    const cancelledIds = cancelledWithdrawals.map((item) => item.id);
-    const cancelledAmount = cancelledWithdrawals.reduce((sum, item) => sum + item.amount, 0);
-    const { data: wallet, error: walletError } = await supabase
-      .from('wallets')
-      .select('available_balance, frozen_balance')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (walletError || !wallet || wallet.frozen_balance < cancelledAmount) {
-      await rollbackCancelledWithdrawalsToPending(cancelledIds);
-      if (walletError) throw walletError;
-      throw new Error('Unable to release the pending withdrawal balance. Please refresh and try again.');
-    }
-
-    const nextAvailableBalance = wallet.available_balance + cancelledAmount;
-    const nextFrozenBalance = wallet.frozen_balance - cancelledAmount;
-    const { data: updatedWallet, error: walletUpdateError } = await supabase
-      .from('wallets')
-      .update({
-        available_balance: nextAvailableBalance,
-        frozen_balance: nextFrozenBalance,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .eq('available_balance', wallet.available_balance)
-      .eq('frozen_balance', wallet.frozen_balance)
-      .select('user_id')
-      .maybeSingle();
-
-    if (walletUpdateError || !updatedWallet) {
-      await rollbackCancelledWithdrawalsToPending(cancelledIds);
-      if (walletUpdateError) throw walletUpdateError;
-      throw new Error('The wallet changed during the correction. Please refresh and try again.');
-    }
-
-    return { ids: cancelledIds, amount: cancelledAmount };
-  };
-
-  const restorePendingWithdrawalsAfterFailedCorrection = async (
-    userId: string,
-    correction: PendingWithdrawalCorrection,
-  ) => {
-    if (!correction.ids.length || correction.amount <= 0) return;
-
-    const { data: restoredWithdrawals, error: restoreError } = await supabase
-      .from('withdrawals')
-      .update({ status: 'pending', audit_remark: null, audited_by: null, audited_at: null })
-      .in('id', correction.ids)
-      .eq('status', 'cancelled')
-      .eq('audit_remark', FINANCIAL_CORRECTION_REMARK)
-      .select('id, amount');
-
-    if (restoreError) throw restoreError;
-    if (!restoredWithdrawals?.length) return;
-
-    const restoredIds = restoredWithdrawals.map((item) => item.id);
-    const restoredAmount = restoredWithdrawals.reduce((sum, item) => sum + item.amount, 0);
-    const { data: wallet, error: walletError } = await supabase
-      .from('wallets')
-      .select('available_balance, frozen_balance')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (walletError || !wallet || wallet.available_balance < restoredAmount) {
-      await rollbackRestoredWithdrawalsToCancelled(restoredIds);
-      if (walletError) throw walletError;
-      throw new Error('Unable to restore pending withdrawals after the correction failed.');
-    }
-
-    const restoredAvailableBalance = wallet.available_balance - restoredAmount;
-    const restoredFrozenBalance = wallet.frozen_balance + restoredAmount;
-    const { data: restoredWallet, error: walletUpdateError } = await supabase
-      .from('wallets')
-      .update({
-        available_balance: restoredAvailableBalance,
-        frozen_balance: restoredFrozenBalance,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .eq('available_balance', wallet.available_balance)
-      .eq('frozen_balance', wallet.frozen_balance)
-      .select('user_id')
-      .maybeSingle();
-
-    if (walletUpdateError || !restoredWallet) {
-      await rollbackRestoredWithdrawalsToCancelled(restoredIds);
-      if (walletUpdateError) throw walletUpdateError;
-      throw new Error('The wallet changed before pending withdrawals could be restored.');
-    }
-  };
-
   const handleEditSave = async (withdrawal: WithdrawalWithEmployee) => {
     setConfirmDialog({
       isOpen: true,
@@ -501,101 +304,35 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         setConfirmDialog(null);
         setEditSaving(true);
 
-        const oldStatus = withdrawal.status;
-        const newStatus = editStatus;
-        let pendingCorrection: PendingWithdrawalCorrection = { ids: [], amount: 0 };
-        let walletAdjustmentAmount = 0;
-        let walletAdjusted = false;
+        const operationKey = `correct:${withdrawal.id}:${editStatus}:${editRemark.trim()}`;
+        const operationId = financialOperationIdsRef.current.get(operationKey)
+          || createFinancialOperationId();
+        financialOperationIdsRef.current.set(operationKey, operationId);
 
         try {
-          if (oldStatus !== newStatus) {
-            pendingCorrection = await cancelPendingWithdrawalsForFinancialCorrection(
-              withdrawal.user_id,
-              withdrawal.id,
-            );
+          const { data: result, error } = await supabase.rpc(
+            'correct_withdrawal_status_atomic',
+            {
+              p_admin_session_token: getAdminFinancialSessionToken(),
+              p_withdrawal_id: withdrawal.id,
+              p_status: editStatus,
+              p_remark: editRemark.trim(),
+              p_operation_id: operationId,
+            },
+          );
 
-            const oldStatusDebitedBalance = oldStatus === 'approved' || oldStatus === 'processed';
-            const newStatusDebitsBalance = newStatus === 'approved';
-            walletAdjustmentAmount =
-              (oldStatusDebitedBalance ? withdrawal.amount : 0)
-              - (newStatusDebitsBalance ? withdrawal.amount : 0);
-
-            if (walletAdjustmentAmount !== 0) {
-              const { data: walletResult, error: walletAdjustmentError } = await supabase.rpc(
-                'adjust_wallet_balance',
-                {
-                  p_user_id: withdrawal.user_id,
-                  p_amount: walletAdjustmentAmount,
-                  p_remarks: `${FINANCIAL_CORRECTION_REMARK}: withdrawal ${withdrawal.id} changed from ${oldStatus} to ${newStatus}`,
-                  p_created_by: admin.id,
-                },
-              );
-
-              if (walletAdjustmentError) throw walletAdjustmentError;
-              if (!walletResult?.success) {
-                throw new Error(walletResult?.error || 'Unable to correct the wallet balance.');
-              }
-              walletAdjusted = true;
-            }
+          if (error) throw error;
+          if (!result?.success) {
+            throw new Error(result?.error || 'Unable to correct the withdrawal.');
           }
 
-          const { data: updatedWithdrawal, error: updateError } = await supabase
-            .from('withdrawals')
-            .update({
-              status: newStatus,
-              audit_remark: editRemark || null,
-              audited_by: admin.id,
-              audited_at: new Date().toISOString(),
-            })
-            .eq('id', withdrawal.id)
-            .eq('status', oldStatus as 'pending' | 'approved' | 'rejected' | 'cancelled')
-            .select('id')
-            .maybeSingle();
-
-          if (updateError) throw updateError;
-          if (!updatedWithdrawal) {
-            throw new Error('This withdrawal changed before the correction was saved. Please refresh and try again.');
-          }
-
+          financialOperationIdsRef.current.delete(operationKey);
           setEditing(null);
           setEditRemark('');
           void loadWithdrawalsRef.current?.();
         } catch (err) {
-          const rollbackErrors: string[] = [];
-
-          if (walletAdjusted && walletAdjustmentAmount !== 0) {
-            const { data: rollbackResult, error: rollbackError } = await supabase.rpc(
-              'adjust_wallet_balance',
-              {
-                p_user_id: withdrawal.user_id,
-                p_amount: -walletAdjustmentAmount,
-                p_remarks: `${FINANCIAL_CORRECTION_REMARK} rollback: withdrawal ${withdrawal.id}`,
-                p_created_by: admin.id,
-              },
-            );
-
-            if (rollbackError || !rollbackResult?.success) {
-              rollbackErrors.push(
-                formatSupabaseError(rollbackError || rollbackResult?.error || 'Wallet rollback failed.'),
-              );
-            }
-          }
-
-          try {
-            await restorePendingWithdrawalsAfterFailedCorrection(
-              withdrawal.user_id,
-              pendingCorrection,
-            );
-          } catch (rollbackError) {
-            rollbackErrors.push(formatSupabaseError(rollbackError));
-          }
-
-          console.error('Error updating withdrawal:', err, rollbackErrors);
-          setError(
-            rollbackErrors.length > 0
-              ? `更新提現記錄失敗，回滾異常：${rollbackErrors.join('；')}`
-              : `更新提現記錄失敗：${formatSupabaseError(err)}`,
-          );
+          console.error('Error updating withdrawal:', err);
+          setError(`更新提現記錄失敗：${formatSupabaseError(err)}`);
         } finally {
           setEditSaving(false);
         }

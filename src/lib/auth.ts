@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
-import { verifyPassword } from './passwordHash';
 import { tabSessionManager } from './TabSessionManager';
 import { logEmployeeLogin, logEmployeeLogout } from './loginHistoryService';
+import type { Admin, Employee } from '../types';
 
 export const AUTH_STORAGE_KEY = 'work_platform_auth';
 export const AUTH_LOGOUT_EVENT = 'work_platform_logout';
@@ -13,147 +13,151 @@ export interface LoginCredentials {
   password: string;
 }
 
-export async function login(credentials: LoginCredentials) {
-  console.log('Attempting login for:', credentials.username);
+export type StoredAuth =
+  | {
+      user: Admin;
+      userType: 'admin';
+      adminSessionToken: string;
+    }
+  | {
+      user: Employee;
+      userType: 'employee';
+      sessionToken: string;
+      financialSessionToken: string;
+      tabId: string;
+    };
 
-  // Parallel query for both admin and employee to reduce latency
-  const [adminResult, employeeResult] = await Promise.all([
+type FinancialLoginResult<T> = {
+  success?: boolean;
+  error?: string;
+  session_token?: string;
+  user?: T;
+};
+
+export async function login(credentials: LoginCredentials): Promise<StoredAuth> {
+  const [adminAccount, employeeAccount] = await Promise.all([
     supabase
       .from('admins')
-      .select('*')
+      .select('id, is_active')
       .eq('username', credentials.username)
       .maybeSingle(),
     supabase
       .from('users')
-      .select('*')
+      .select('id, is_active')
       .eq('username', credentials.username)
-      .maybeSingle()
+      .maybeSingle(),
   ]);
 
-  const { data: admin, error: adminError } = adminResult;
-  const { data: employee, error: employeeError } = employeeResult;
+  if (adminAccount.error) throw adminAccount.error;
+  if (employeeAccount.error) throw employeeAccount.error;
 
-  // Try admin login first
-  if (!adminError && admin) {
-    if (!admin.is_active) {
+  if (adminAccount.data) {
+    if (!adminAccount.data.is_active) {
       throw new Error('Account has been deactivated. Please contact administrator.');
     }
 
-    const isValidPassword = await verifyPassword(credentials.password, admin.password_hash);
-    if (isValidPassword) {
-      console.log('Admin login successful');
-      return { user: admin, userType: 'admin' as const };
+    const { data, error } = await supabase.rpc('create_admin_financial_session', {
+      p_username: credentials.username,
+      p_password: credentials.password,
+    });
+    if (error) throw error;
+
+    const result = data as FinancialLoginResult<Admin>;
+    if (!result.success || !result.session_token || !result.user) {
+      throw new Error(result.error || 'Invalid credentials');
     }
+
+    return {
+      user: result.user,
+      userType: 'admin',
+      adminSessionToken: result.session_token,
+    };
   }
 
-  // Try employee login
-  if (!employeeError && employee) {
-    if (!employee.is_active) {
+  if (employeeAccount.data) {
+    if (!employeeAccount.data.is_active) {
       throw new Error('Account has been deactivated. Please contact administrator.');
     }
 
-    const isValidPassword = await verifyPassword(credentials.password, employee.password_hash);
-    if (isValidPassword) {
-      console.log('Employee login successful');
+    const tabId = tabSessionManager.getTabId();
+    const { data, error } = await supabase.rpc('create_employee_financial_session', {
+      p_username: credentials.username,
+      p_password: credentials.password,
+      p_tab_id: tabId,
+    });
+    if (error) throw error;
 
-      const sessionToken = generateSessionToken();
-      const tabId = tabSessionManager.getTabId();
-
-      // Update database with new session token and tab ID
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({
-          current_session_token: sessionToken,
-          current_tab_id: tabId,
-          session_created_at: new Date().toISOString()
-        })
-        .eq('id', employee.id);
-
-      if (updateError) {
-        console.error('Failed to update session token:', updateError);
-        throw new Error('Failed to create session');
-      }
-
-      const authData = {
-        user: employee,
-        userType: 'employee' as const,
-        sessionToken,
-        tabId
-      };
-      storeAuth(authData);
-
-      // Log employee login asynchronously (don't wait)
-      logEmployeeLogin(
-        employee.id,
-        employee.username,
-        employee.employee_id,
-        sessionToken
-      ).catch(err => console.error('Failed to log employee login:', err));
-
-      return authData;
+    const result = data as FinancialLoginResult<Employee>;
+    if (!result.success || !result.session_token || !result.user) {
+      throw new Error(result.error || 'Invalid credentials');
     }
+
+    const authData: StoredAuth = {
+      user: result.user,
+      userType: 'employee',
+      sessionToken: result.session_token,
+      financialSessionToken: result.session_token,
+      tabId,
+    };
+    storeAuth(authData);
+
+    logEmployeeLogin(
+      result.user.id,
+      result.user.username,
+      result.user.employee_id,
+      result.session_token,
+    ).catch(err => console.error('Failed to log employee login:', err));
+
+    return authData;
   }
 
   throw new Error('Invalid credentials');
 }
 
 export async function logout(isUserInitiated: boolean = true) {
-  // Get current user info before clearing storage
   const auth = getStoredAuth();
 
-  // If user is an employee, handle critical cleanup operations synchronously
-  if (auth?.userType === 'employee' && auth?.user?.id) {
-    try {
-      // Execute critical operations in parallel with a reasonable timeout (500ms)
-      await Promise.race([
-        Promise.all([
-          // End work session - CRITICAL: releases pending orders
-          supabase.rpc('end_work_session', { p_user_id: auth.user.id })
-            .then(
-              () => console.log('Work session ended on logout'),
-              () => {},
-            ), // Silent catch
+  if (auth) {
+    const financialSessionToken = auth.userType === 'admin'
+      ? auth.adminSessionToken
+      : auth.financialSessionToken;
+    const operations: Array<Promise<unknown>> = [
+      supabase
+        .rpc('revoke_financial_session', { p_token: financialSessionToken })
+        .then(() => undefined, () => undefined),
+    ];
 
-          // Clear session token - CRITICAL: prevents session conflicts
-          supabase
-            .from('users')
-            .update({
-              current_session_token: null,
-              current_tab_id: null
-            })
-            .eq('id', auth.user.id)
-            .then(
-              () => console.log('Session cleared from database'),
-              () => {},
-            ), // Silent catch
-
-          // Log employee logout - IMPORTANT: for audit trail (run in background)
-          logEmployeeLogout(
-            auth.user.id,
-            auth.user.username,
-            auth.user.employee_id,
-            auth.sessionToken
-          ).catch(() => {}) // Silent catch
-        ]),
-        // Timeout after 500ms - proceed with logout even if operations haven't completed
-        new Promise(resolve => setTimeout(() => {
-          resolve(null);
-        }, 500))
-      ]);
-    } catch {
-      // Silent catch - don't show errors to user during logout
+    if (auth.userType === 'employee') {
+      operations.push(
+        supabase
+          .rpc('end_work_session', { p_user_id: auth.user.id })
+          .then(() => undefined, () => undefined),
+        logEmployeeLogout(
+          auth.user.id,
+          auth.user.username,
+          auth.user.employee_id,
+          auth.sessionToken,
+        ).catch(() => undefined),
+      );
     }
 
-    // Stop tab session tracking (after DB operations)
-    tabSessionManager.stopSession(isUserInitiated);
+    try {
+      await Promise.race([
+        Promise.all(operations),
+        new Promise(resolve => setTimeout(resolve, 500)),
+      ]);
+    } catch {
+      // Logout must continue even when the network is unavailable.
+    }
+
+    if (auth.userType === 'employee') {
+      tabSessionManager.stopSession(isUserInitiated);
+    }
   }
 
-  // Clear local storage and dispatch event
   sessionStorage.removeItem(AUTH_STORAGE_KEY);
   sessionStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
   sessionStorage.removeItem('tabId');
-
-  // Clear all announcement-related cache to prevent data leakage between users
   sessionStorage.removeItem('announcement_admin_id');
   sessionStorage.removeItem('announcement_categories');
   sessionStorage.removeItem('announcement_carousel_enabled');
@@ -165,7 +169,7 @@ export async function logout(isUserInitiated: boolean = true) {
   window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT));
 }
 
-export function getStoredAuth() {
+export function getStoredAuth(): StoredAuth | null {
   let stored = sessionStorage.getItem(AUTH_STORAGE_KEY);
 
   if (!stored) {
@@ -177,58 +181,71 @@ export function getStoredAuth() {
     }
   }
 
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return null;
-    }
+  if (!stored) return null;
+
+  try {
+    const auth = JSON.parse(stored) as StoredAuth;
+    if (auth.userType === 'admin' && !auth.adminSessionToken) return null;
+    if (auth.userType === 'employee' && !auth.financialSessionToken) return null;
+    return auth;
+  } catch {
+    return null;
   }
-  return null;
 }
 
-export function storeAuth(data: unknown) {
+export function storeAuth(data: StoredAuth) {
   sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data));
+}
+
+export function getAdminFinancialSessionToken(): string {
+  const auth = getStoredAuth();
+  if (!auth || auth.userType !== 'admin' || !auth.adminSessionToken) {
+    throw new Error('Administrator session has expired. Please sign in again.');
+  }
+  return auth.adminSessionToken;
+}
+
+export function getEmployeeFinancialSession() {
+  const auth = getStoredAuth();
+  if (!auth || auth.userType !== 'employee' || !auth.financialSessionToken) {
+    throw new Error('Employee session has expired. Please sign in again.');
+  }
+  return {
+    token: auth.financialSessionToken,
+    tabId: auth.tabId,
+  };
+}
+
+export function createFinancialOperationId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, character => {
+    const random = Math.random() * 16 | 0;
+    const value = character === 'x' ? random : (random & 0x3 | 0x8);
+    return value.toString(16);
+  });
 }
 
 export function updateStoredUsername(newUsername: string) {
   const stored = getStoredAuth();
-  if (stored && stored.user) {
+  if (stored) {
     stored.user.username = newUsername;
     storeAuth(stored);
     window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
   }
 }
 
-/**
- * Generate a unique session token (UUID format)
- */
-function generateSessionToken(): string {
-  // Always generate a valid UUID for consistency with database type
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // Fallback UUID v4 format for older browsers
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-/**
- * Validate employee session with backend
- */
 export async function validateEmployeeSession(
   userId: string,
   sessionToken: string,
-  tabId?: string
+  tabId?: string,
 ): Promise<boolean> {
   try {
     const { data, error } = await supabase.rpc('validate_employee_session', {
       p_user_id: userId,
       p_session_token: sessionToken,
-      p_tab_id: tabId || null
+      p_tab_id: tabId || null,
     });
 
     if (error) {

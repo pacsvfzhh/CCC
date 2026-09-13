@@ -8,6 +8,7 @@ import WithdrawalHistory from './WithdrawalHistory';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 import { useLanguage } from '../../lib/i18n/context';
+import { createFinancialOperationId, getEmployeeFinancialSession } from '../../lib/auth';
 
 interface WalletOverviewProps {
   employeeId: string;
@@ -33,6 +34,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const loadWalletRef = useRef<(() => Promise<void>) | null>(null);
   const loadEmployeeDataRef = useRef<(() => Promise<void>) | null>(null);
   const loadVerificationRequestRef = useRef<(() => Promise<void>) | null>(null);
+  const withdrawalOperationIdRef = useRef<string | null>(null);
 
   const isTabletDevice = deviceType === 'tablet';
 
@@ -202,21 +204,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         .select('*')
         .eq('user_id', employeeId)
         .maybeSingle();
-      let walletData = walletResult.data;
-      const walletError = walletResult.error;
-
-      if (walletError) throw walletError;
-
-      if (!walletData) {
-        const { data: newWallet, error: createError } = await supabase
-          .from('wallets')
-          .insert({ user_id: employeeId })
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        walletData = newWallet;
-      }
+      const walletData = walletResult.data;
+      if (walletResult.error) throw walletResult.error;
+      if (!walletData) throw new Error('Employee wallet was not found.');
 
       setWallet(walletData);
     } catch (error) {
@@ -408,45 +398,24 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         return;
       }
 
-      const amount = wallet.available_balance;
-      const newFrozen = wallet.frozen_balance + amount;
+      const financialSession = getEmployeeFinancialSession();
+      withdrawalOperationIdRef.current ||= createFinancialOperationId();
+      const { data: result, error: withdrawalError } = await supabase.rpc(
+        'request_employee_withdrawal',
+        {
+          p_user_id: employeeId,
+          p_session_token: financialSession.token,
+          p_tab_id: financialSession.tabId,
+          p_operation_id: withdrawalOperationIdRef.current,
+        },
+      );
 
-      console.log('Creating withdrawal request first (before updating wallet)...');
-
-      // Insert withdrawal record FIRST (RLS checks available_balance > 0)
-      const { error: insertError } = await supabase.from('withdrawals').insert({
-        user_id: employeeId,
-        amount: amount,
-        status: 'pending',
-      });
-
-      if (insertError) {
-        console.error('Withdrawal insert error:', insertError);
-        throw insertError;
+      if (withdrawalError) throw withdrawalError;
+      if (!result?.success) {
+        throw new Error(result?.error || t.wallet.eligibilityFailed);
       }
 
-      console.log('Withdrawal created, now freezing funds in wallet...');
-
-      // Then update wallet to freeze the funds
-      const { error: updateError } = await supabase.from('wallets').update({
-        available_balance: 0,
-        frozen_balance: newFrozen,
-      }).eq('user_id', employeeId);
-
-      if (updateError) {
-        console.error('Wallet update error:', updateError);
-        // Rollback: delete the withdrawal record we just created
-        await supabase.from('withdrawals')
-          .delete()
-          .eq('user_id', employeeId)
-          .eq('amount', amount)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1);
-        throw updateError;
-      }
-
-      console.log('Withdrawal submitted successfully');
+      withdrawalOperationIdRef.current = null;
       setMessage({ type: 'success', text: t.wallet.withdrawalSuccess });
       setShowConfirmModal(false);
 

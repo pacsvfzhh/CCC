@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
 import { usePaginatedList } from '../../lib/usePaginatedList';
+import { createFinancialOperationId, getEmployeeFinancialSession } from '../../lib/auth';
 
 interface Withdrawal {
   id: string;
@@ -47,6 +48,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
   const { isMobile } = useResponsive();
   const { t, dateLocale } = useLanguage();
   const loadAllRecordsRef = useRef<(() => Promise<void>) | null>(null);
+  const cancellationOperationIdsRef = useRef(new Map<string, string>());
   const ITEMS_PER_PAGE = isMobile ? 10 : 20;
   const { pageItems, page, totalPages, totalItems, hasNext, hasPrev, goNext, goPrev } = usePaginatedList({
     items: records,
@@ -143,68 +145,23 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
     setMessage(null);
 
     try {
-      const { data: withdrawal, error: fetchError } = await supabase
-        .from('withdrawals')
-        .select('amount, status')
-        .eq('id', withdrawalId)
-        .single();
+      const financialSession = getEmployeeFinancialSession();
+      const operationId = cancellationOperationIdsRef.current.get(withdrawalId)
+        || createFinancialOperationId();
+      cancellationOperationIdsRef.current.set(withdrawalId, operationId);
 
-      if (fetchError) throw fetchError;
+      const { data: result, error } = await supabase.rpc('cancel_employee_withdrawal', {
+        p_user_id: employeeId,
+        p_session_token: financialSession.token,
+        p_tab_id: financialSession.tabId,
+        p_withdrawal_id: withdrawalId,
+        p_operation_id: operationId,
+      });
 
-      if (withdrawal.status !== 'pending') {
-        setMessage({ type: 'error', text: t.withdrawals.alreadyProcessed });
-        void loadAllRecordsRef.current?.();
-        setCancelling(null);
-        return;
-      }
+      if (error) throw error;
+      if (!result?.success) throw new Error(result?.error || t.withdrawals.cancelFailed);
 
-      const { data: wallet, error: walletError } = await supabase
-        .from('wallets')
-        .select('available_balance, frozen_balance')
-        .eq('user_id', employeeId)
-        .single();
-
-      if (walletError) throw walletError;
-
-      const newAvailableBalance = wallet.available_balance + withdrawal.amount;
-      const newFrozenBalance = wallet.frozen_balance - withdrawal.amount;
-
-      if (newFrozenBalance < 0) {
-        throw new Error('Insufficient frozen balance. Please refresh and try again.');
-      }
-
-      const { error: withdrawalUpdateError } = await supabase
-        .from('withdrawals')
-        .update({
-          status: 'cancelled',
-          audit_remark: t.withdrawals.cancelledByUser,
-          audited_at: new Date().toISOString(),
-        })
-        .eq('id', withdrawalId)
-        .eq('status', 'pending');
-
-      if (withdrawalUpdateError) throw withdrawalUpdateError;
-
-      const { error: walletUpdateError } = await supabase
-        .from('wallets')
-        .update({
-          available_balance: newAvailableBalance,
-          frozen_balance: newFrozenBalance,
-        })
-        .eq('user_id', employeeId);
-
-      if (walletUpdateError) {
-        await supabase
-          .from('withdrawals')
-          .update({
-            status: 'pending',
-            audit_remark: null,
-            audited_at: null,
-          })
-          .eq('id', withdrawalId);
-        throw walletUpdateError;
-      }
-
+      cancellationOperationIdsRef.current.delete(withdrawalId);
       setMessage({ type: 'success', text: t.withdrawals.cancelSuccess });
 
       setTimeout(() => loadAllRecords(), 500);
