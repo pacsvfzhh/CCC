@@ -436,7 +436,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
   const adminFilterOptions = adminGroups.map((group) => ({
     key: group.admin?.id || 'unassigned',
-    label: group.admin ? `${group.admin.username} (${group.admin.admin_id})` : 'Unassigned',
+    label: group.admin
+      ? group.admin.admin_id
+        ? `${group.admin.username} (${group.admin.admin_id})`
+        : group.admin.username
+      : 'Unassigned',
     count: group.withdrawals.length,
   }));
 
