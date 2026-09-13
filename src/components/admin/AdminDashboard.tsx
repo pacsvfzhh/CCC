@@ -185,27 +185,27 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   // Build tabs array based on admin role
   const tabs = admin.role === 'emergency_admin' ? [
     // Emergency admin only has access to Account Locks
-    { id: 'accountlocks' as const, label: 'Locks', icon: Shield },
+    { id: 'accountlocks' as const, label: 'Account Locks', icon: Shield },
   ] : [
     // Normal admin tabs
-    { id: 'employees' as const, label: 'Staff', icon: Users },
-    { id: 'employeesearch' as const, label: 'Emp Search', icon: Search },
-    { id: 'loginhistory' as const, label: 'Logins', icon: Activity },
-    { id: 'accountlocks' as const, label: 'Locks', icon: Shield },
-    { id: 'messages' as const, label: 'Msgs', icon: Bell },
-    { id: 'announcements' as const, label: 'Notices', icon: FileText },
+    { id: 'employees' as const, label: 'Employees', icon: Users },
+    { id: 'employeesearch' as const, label: 'Employee Search', icon: Search },
+    { id: 'loginhistory' as const, label: 'Login History', icon: Activity },
+    { id: 'accountlocks' as const, label: 'Account Locks', icon: Shield },
+    { id: 'messages' as const, label: 'Messages', icon: Bell },
+    { id: 'announcements' as const, label: 'Announcements', icon: FileText },
     { id: 'customerservice' as const, label: '模拟客户', icon: MessageCircle },
     { id: 'cccservice' as const, label: '经理', icon: Headphones },
-    { id: 'dispatch' as const, label: 'Dispatch', icon: PackageSearch },
-    { id: 'withdrawals' as const, label: 'Withdraw', icon: FileText },
-    { id: 'verifications' as const, label: 'Verify', icon: UserCheck },
-    { id: 'config' as const, label: 'Config', icon: Settings },
-    { id: 'submittime' as const, label: 'Time', icon: Clock },
+    { id: 'dispatch' as const, label: 'Order Assignment', icon: PackageSearch },
+    { id: 'withdrawals' as const, label: 'Withdrawals', icon: FileText },
+    { id: 'verifications' as const, label: 'Verifications', icon: UserCheck },
+    { id: 'config' as const, label: 'Configuration', icon: Settings },
+    { id: 'submittime' as const, label: 'Submit Time', icon: Clock },
     ...(admin.role === 'super_admin' ? [
       { id: 'products' as const, label: 'Products', icon: Package },
-      { id: 'validdata' as const, label: 'Valid', icon: Database },
+      { id: 'validdata' as const, label: 'Valid Data', icon: Database },
       { id: 'admins' as const, label: 'Admins', icon: Shield },
-      { id: 'history' as const, label: 'History', icon: History },
+      { id: 'history' as const, label: 'History Data', icon: History },
     ] : []),
   ];
 
