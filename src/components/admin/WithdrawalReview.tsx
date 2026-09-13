@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import { CheckCircle, XCircle, Clock, Ban, AlertCircle, ArrowUpDown, Pencil, Save, X, Search, Users, Layers, ChevronDown, Check } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase, supabaseConfigurationError } from '../../lib/supabase';
 import { Withdrawal, Employee, Admin } from '../../types';
 
 interface WithdrawalWithEmployee extends Withdrawal {
@@ -92,6 +92,12 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   }, [sortMenuOpen]);
 
   useEffect(() => {
+    if (supabaseConfigurationError) {
+      setError(supabaseConfigurationError);
+      setLoading(false);
+      return;
+    }
+
     void loadWithdrawalsRef.current?.();
 
     // Set up real-time subscription for withdrawal requests
@@ -125,6 +131,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
   const loadWithdrawals = async () => {
     try {
+      if (supabaseConfigurationError) {
+        setError(supabaseConfigurationError);
+        return;
+      }
+
       let employeeIds: string[] = [];
 
       if (admin.role === 'secondary_admin') {
@@ -200,6 +211,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       setAdminGroups(groups);
     } catch (error) {
       console.error('Error loading withdrawals:', error);
+      setError(formatSupabaseError(error));
     } finally {
       setLoading(false);
     }
