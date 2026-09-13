@@ -778,23 +778,23 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
               <div className="flex overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-950/40 scrollbar-hide">
                 <div className="min-w-[112px] flex-[1.6] border-r border-yellow-600/40 bg-gradient-to-br from-yellow-500/30 via-amber-500/20 to-yellow-600/10 px-3.5 py-1.5">
-                  <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-yellow-200">今日提交</div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-yellow-200">今日提交</div>
                   <div className="mt-0.5 text-lg font-extrabold tabular-nums text-yellow-50">{todayCount}</div>
                 </div>
                 <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-orange-300/75">待審核</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-orange-300/75">待審核</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-orange-200">{overallStats.pending}</div>
                 </div>
                 <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-blue-300/75">申請總數</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-300/75">申請總數</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-white">{overallStats.total}</div>
                 </div>
                 <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">已批准</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">已批准</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-emerald-200">{overallStats.approved}</div>
                 </div>
                 <div className="min-w-[82px] flex-1 px-3.5 py-1.5">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-red-300/75">已拒絕</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-red-300/75">已拒絕</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-red-200">{overallStats.rejected}</div>
                 </div>
               </div>
