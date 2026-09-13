@@ -686,7 +686,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   </button>
 
                   {groupMenuOpen && (
-                    <div className="absolute left-0 z-30 mt-2 w-full max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-700/70 bg-slate-900/95 shadow-2xl shadow-black/50 backdrop-blur-xl">
+                    <div className="absolute left-0 z-30 mt-2 w-full max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-cyan-400/30 bg-slate-800/95 shadow-2xl shadow-cyan-950/50 ring-1 ring-white/10 backdrop-blur-xl">
                       <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-amber-400" />
                       <div className="max-h-72 overflow-y-auto p-1.5 dark-panel-scroll">
                         <button
@@ -696,7 +696,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                             setGroupMenuOpen(false);
                           }}
                           className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold transition-all ${
-                            adminFilter === 'all' ? 'bg-blue-600/90 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                            adminFilter === 'all' ? 'bg-blue-600/90 text-white' : 'text-slate-200 hover:bg-slate-700/80 hover:text-white'
                           }`}
                         >
                           <span className="flex items-center gap-2">
@@ -711,7 +711,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           </span>
                         </button>
 
-                        <div className="my-1 h-px bg-slate-800" />
+                        <div className="my-1 h-px bg-cyan-300/15" />
 
                         {adminFilterOptions.map((opt) => (
                           <button
@@ -722,7 +722,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                               setGroupMenuOpen(false);
                             }}
                             className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium transition-all ${
-                              adminFilter === opt.key ? 'bg-blue-600/90 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                              adminFilter === opt.key ? 'bg-blue-600/90 text-white' : 'text-slate-200 hover:bg-slate-700/80 hover:text-white'
                             }`}
                           >
                             <span className="flex min-w-0 items-center gap-2">
