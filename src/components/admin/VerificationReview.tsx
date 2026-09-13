@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CheckCircle, XCircle, Clock, User, Wallet, Phone, Mail, Trash2, RotateCcw, AlertCircle, Eye, EyeOff, FileText, Image as ImageIcon, Shield, Calendar, Hash, Search, Users, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { VerificationRequest, Employee, Admin } from '../../types';
@@ -53,6 +53,15 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [imageLoading, setImageLoading] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  const loadVerificationsRef = useRef<(() => Promise<void>) | null>(null);
+  const loadVerifiedEmployeesRef = useRef<(() => Promise<void>) | null>(null);
+  const loadAdminsRef = useRef<(() => Promise<void>) | null>(null);
+  const nextImageRef = useRef<(() => void) | null>(null);
+  const prevImageRef = useRef<(() => void) | null>(null);
+  const zoomInRef = useRef<(() => void) | null>(null);
+  const zoomOutRef = useRef<(() => void) | null>(null);
+  const resetZoomRef = useRef<(() => void) | null>(null);
+  const isSuperAdmin = admin.role === 'super_admin';
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -61,15 +70,15 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
       if (e.key === 'Escape') {
         closeImagePreview();
       } else if (e.key === 'ArrowLeft' && imagePreview.currentIndex > 0) {
-        prevImage();
+        prevImageRef.current?.();
       } else if (e.key === 'ArrowRight' && imagePreview.currentIndex < imagePreview.images.length - 1) {
-        nextImage();
+        nextImageRef.current?.();
       } else if (e.key === '+' || e.key === '=') {
-        zoomIn();
+        zoomInRef.current?.();
       } else if (e.key === '-' || e.key === '_') {
-        zoomOut();
+        zoomOutRef.current?.();
       } else if (e.key === '0') {
-        resetZoom();
+        resetZoomRef.current?.();
       }
     };
 
@@ -78,10 +87,10 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
   }, [imagePreview]);
 
   useEffect(() => {
-    loadVerifications();
-    loadVerifiedEmployees();
-    if (admin.role === 'super_admin') {
-      loadAdmins();
+    void loadVerificationsRef.current?.();
+    void loadVerifiedEmployeesRef.current?.();
+    if (isSuperAdmin) {
+      void loadAdminsRef.current?.();
     }
 
     // Set up real-time subscription for verification requests
@@ -99,7 +108,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
             return;
           }
           if (verifyDebounce) clearTimeout(verifyDebounce);
-          verifyDebounce = setTimeout(() => loadVerifications(), 800);
+          verifyDebounce = setTimeout(() => { void loadVerificationsRef.current?.(); }, 800);
         }
       )
       .on(
@@ -107,7 +116,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
         { event: 'INSERT', schema: 'public', table: 'verification_requests' },
         () => {
           if (verifyDebounce) clearTimeout(verifyDebounce);
-          verifyDebounce = setTimeout(() => loadVerifications(), 800);
+          verifyDebounce = setTimeout(() => { void loadVerificationsRef.current?.(); }, 800);
         }
       )
       .on(
@@ -115,7 +124,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
         { event: 'DELETE', schema: 'public', table: 'verification_requests' },
         () => {
           if (verifyDebounce) clearTimeout(verifyDebounce);
-          verifyDebounce = setTimeout(() => loadVerifications(), 800);
+          verifyDebounce = setTimeout(() => { void loadVerificationsRef.current?.(); }, 800);
         }
       )
       .subscribe();
@@ -129,7 +138,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
         { event: 'UPDATE', schema: 'public', table: 'users', filter: 'is_verified=eq.true' },
         () => {
           if (userDebounce) clearTimeout(userDebounce);
-          userDebounce = setTimeout(() => loadVerifiedEmployees(), 800);
+          userDebounce = setTimeout(() => { void loadVerifiedEmployeesRef.current?.(); }, 800);
         }
       )
       .subscribe();
@@ -161,7 +170,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
       supabase.removeChannel(userChannel);
       supabase.removeChannel(walletChannel);
     };
-  }, []); // Remove admin.id from dependencies
+  }, [isSuperAdmin]);
 
   const loadVerifications = async () => {
     try {
@@ -226,6 +235,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
       setLoading(false);
     }
   };
+  loadVerificationsRef.current = loadVerifications;
 
   const loadVerifiedEmployees = async () => {
     try {
@@ -292,6 +302,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
       console.error('Error loading verified employees:', formatSupabaseError(error));
     }
   };
+  loadVerifiedEmployeesRef.current = loadVerifiedEmployees;
 
   const loadAdmins = async () => {
     try {
@@ -308,6 +319,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
       console.error('Error loading admins:', formatSupabaseError(error));
     }
   };
+  loadAdminsRef.current = loadAdmins;
 
   const handleReview = async (verificationId: string, status: 'approved' | 'rejected') => {
     if (status === 'rejected' && !auditRemark.trim()) {
@@ -745,6 +757,12 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
       setPosition({ x: 0, y: 0 });
     }
   };
+
+  nextImageRef.current = nextImage;
+  prevImageRef.current = prevImage;
+  zoomInRef.current = zoomIn;
+  zoomOutRef.current = zoomOut;
+  resetZoomRef.current = resetZoom;
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (imagePreview && imagePreview.scale > 1) {

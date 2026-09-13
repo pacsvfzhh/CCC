@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Save, CheckCircle, XCircle, Building2, RefreshCw } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { Admin } from '../../types';
@@ -34,9 +34,10 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const loadConfigsRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
-    loadConfigs();
+    void loadConfigsRef.current?.();
   }, []);
 
   useEffect(() => {
@@ -104,6 +105,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
       setLoading(false);
     }
   };
+  loadConfigsRef.current = loadConfigs;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +140,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
         message: 'Configuration saved successfully',
       });
 
-      await loadConfigs();
+      await loadConfigsRef.current?.();
     } catch (error: unknown) {
       console.error('Error saving configs:', error);
       setNotification({
@@ -159,7 +161,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
 
       if (error) throw error;
 
-      await loadConfigs();
+      await loadConfigsRef.current?.();
       setNotification({
         type: 'success',
         message: 'Configuration reset to global defaults successfully',

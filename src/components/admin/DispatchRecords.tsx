@@ -64,6 +64,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [, setTimeTick] = useState(0);
   const isTogglingPinRef = useRef(false);
+  const loadDispatchRecordsRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
 
   // Use refs to track current sort state for use in async functions
   const sortFieldRef = useRef<SortField | null>(null);
@@ -84,12 +85,12 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
   }, [statusFilter]);
 
   useEffect(() => {
-    loadDispatchRecords();
+    void loadDispatchRecordsRef.current?.();
 
     // Auto-refresh every 3 minutes
     const autoRefreshInterval = setInterval(() => {
       if (!isTogglingPinRef.current) {
-        loadDispatchRecords(true);
+        void loadDispatchRecordsRef.current?.(true);
       }
     }, 180000);
 
@@ -149,6 +150,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     return lastUpdated.toLocaleTimeString();
   };
+  loadDispatchRecordsRef.current = loadDispatchRecords;
 
   const loadSecondaryAdminView = async (todayISO: string) => {
     // Fetch users for this admin

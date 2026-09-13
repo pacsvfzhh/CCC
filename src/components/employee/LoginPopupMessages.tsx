@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, AlertTriangle, Bell, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -18,9 +18,10 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
   const [loading, setLoading] = useState(true);
   const { isMobile, isDesktop } = useResponsive();
   const { t } = useLanguage();
+  const loadLoginPopupMessagesRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
-    loadLoginPopupMessages();
+    void loadLoginPopupMessagesRef.current?.();
   }, [employee.id]);
 
   useEffect(() => {
@@ -80,6 +81,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
       setLoading(false);
     }
   };
+  loadLoginPopupMessagesRef.current = loadLoginPopupMessages;
 
   const markCurrentAsShown = async () => {
     if (messages.length === 0 || !messages[currentIndex]) return;

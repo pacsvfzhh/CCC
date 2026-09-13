@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Bell, Eye, AlertCircle, CheckCircle, Clock, Zap, Shield, Radio, ChevronRight, MailOpen, Sparkles } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -19,9 +19,10 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
   const [filter, setFilter] = useState<'all' | 'unread' | 'login' | 'realtime'>('all');
   const [selectedMessage, setSelectedMessage] = useState<MessageWithRecipient | null>(null);
   const { isDesktop } = useResponsive();
+  const loadMessagesRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
-    loadMessages();
+    void loadMessagesRef.current?.();
   }, [employee.id, filter]);
 
   useEffect(() => {
@@ -87,6 +88,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
       setLoading(false);
     }
   };
+  loadMessagesRef.current = loadMessages;
 
   const markAsRead = async (messageId: string) => {
     try {

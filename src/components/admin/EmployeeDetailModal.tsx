@@ -295,6 +295,14 @@ export default function EmployeeDetailModal({
   const orderDateByIdRef = useRef<Record<string, string>>({});
   const loadControllerRef = useRef<AbortController | null>(null);
   const transactionDateCountsLoadedRef = useRef(false);
+  const loadEmployeeDetailsRef = useRef<((signal: AbortSignal) => Promise<void>) | null>(null);
+  const loadTransactionPageRef = useRef<((page: number, date: string, signal?: AbortSignal) => Promise<unknown>) | null>(null);
+  const loadTransactionDateCountsRef = useRef<((signal?: AbortSignal) => Promise<void>) | null>(null);
+  const nextImageRef = useRef<(() => void) | null>(null);
+  const prevImageRef = useRef<(() => void) | null>(null);
+  const zoomInRef = useRef<(() => void) | null>(null);
+  const zoomOutRef = useRef<(() => void) | null>(null);
+  const resetZoomRef = useRef<(() => void) | null>(null);
   const itemsPerPage = 10;
   const transactionPageSize = 100;
 
@@ -321,7 +329,7 @@ export default function EmployeeDetailModal({
     setVerificationData(null);
     setLoading(false);
     setOrdersLoaded(false);
-    void loadEmployeeDetails(controller.signal);
+    void loadEmployeeDetailsRef.current?.(controller.signal);
 
     return () => {
       controller.abort();
@@ -336,7 +344,7 @@ export default function EmployeeDetailModal({
       return;
     }
 
-    void loadTransactionPage(1, "", loadControllerRef.current?.signal);
+    void loadTransactionPageRef.current?.(1, "", loadControllerRef.current?.signal);
   }, [activeTab, employee.id, transactionTotalCount]);
 
   useEffect(() => {
@@ -349,7 +357,7 @@ export default function EmployeeDetailModal({
     }
 
     transactionDateCountsLoadedRef.current = true;
-    void loadTransactionDateCounts(loadControllerRef.current?.signal);
+    void loadTransactionDateCountsRef.current?.(loadControllerRef.current?.signal);
   }, [activeTab, employee.id, ordersLoaded]);
 
   useEffect(() => {
@@ -720,6 +728,10 @@ export default function EmployeeDetailModal({
     setImageLoading(false);
   };
 
+  loadEmployeeDetailsRef.current = loadEmployeeDetails;
+  loadTransactionPageRef.current = loadTransactionPage;
+  loadTransactionDateCountsRef.current = loadTransactionDateCounts;
+
   const nextImage = () => {
     if (imagePreview && imagePreview.currentIndex < imagePreview.images.length - 1) {
       const nextIndex = imagePreview.currentIndex + 1;
@@ -782,6 +794,12 @@ export default function EmployeeDetailModal({
     setIsDragging(false);
   };
 
+  nextImageRef.current = nextImage;
+  prevImageRef.current = prevImage;
+  zoomInRef.current = zoomIn;
+  zoomOutRef.current = zoomOut;
+  resetZoomRef.current = resetZoom;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!imagePreview) return;
@@ -789,15 +807,15 @@ export default function EmployeeDetailModal({
       if (e.key === 'Escape') {
         closeImagePreview();
       } else if (e.key === 'ArrowLeft' && imagePreview.currentIndex > 0) {
-        prevImage();
+        prevImageRef.current?.();
       } else if (e.key === 'ArrowRight' && imagePreview.currentIndex < imagePreview.images.length - 1) {
-        nextImage();
+        nextImageRef.current?.();
       } else if (e.key === '+' || e.key === '=') {
-        zoomIn();
+        zoomInRef.current?.();
       } else if (e.key === '-' || e.key === '_') {
-        zoomOut();
+        zoomOutRef.current?.();
       } else if (e.key === '0') {
-        resetZoom();
+        resetZoomRef.current?.();
       }
     };
 
@@ -1446,7 +1464,7 @@ export default function EmployeeDetailModal({
                         onClick={() => {
                           setSelectedTransactionDate("");
                           setTransactionPage(1);
-                          void loadTransactionPage(1, "", loadControllerRef.current?.signal);
+                          void loadTransactionPageRef.current?.(1, "", loadControllerRef.current?.signal);
                         }}
                         className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-blue-300/35 bg-blue-950/80 px-2.5 text-xs font-semibold text-blue-100 transition-colors hover:border-blue-200/55 hover:bg-blue-900/90 hover:text-white"
                       >

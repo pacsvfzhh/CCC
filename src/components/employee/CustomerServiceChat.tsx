@@ -4,7 +4,8 @@ import { MessageCircle, X, Send, Image, Star, ArrowLeft, Search, Clock, Zap, Spa
 import { supabase } from '../../lib/supabase';
 import { sanitizeChatMessage, sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import { useLanguage } from '../../lib/i18n';
-import { CustomerAvatarDisplay, preloadCustomerAvatar } from '../admin/CustomerAvatarPicker';
+import { CustomerAvatarDisplay } from '../admin/CustomerAvatarPicker';
+import { preloadCustomerAvatar } from '../admin/customerAvatarUtils';
 
 function extractImageOnlyUrl(content: string): string | null {
   const container = document.createElement('div');

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TrendingUp, Calendar, CheckCircle, XCircle, DollarSign, ListChecks, BarChart3, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
@@ -43,6 +43,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
   const ITEMS_PER_PAGE = 7;
   const { isMobile, isTablet, deviceType } = useDeviceOptimization();
   const { t } = useLanguage();
+  const loadStatisticsRef = useRef<(() => Promise<void>) | null>(null);
 
   // Tablet-specific detection
   const isTabletDevice = deviceType === 'tablet';
@@ -71,8 +72,8 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
   }, [deviceType, isTablet, isMobile, isTabletDevice]);
 
   useEffect(() => {
-    loadStatistics();
-    const interval = setInterval(loadStatistics, 10000);
+    void loadStatisticsRef.current?.();
+    const interval = setInterval(() => { void loadStatisticsRef.current?.(); }, 10000);
     return () => clearInterval(interval);
   }, [employeeId]);
 
@@ -180,6 +181,7 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
       setLoading(false);
     }
   };
+  loadStatisticsRef.current = loadStatistics;
 
   if (loading) {
     return (

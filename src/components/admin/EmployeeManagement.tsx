@@ -1,4 +1,5 @@
 import { Fragment, useState, useEffect, useRef, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
@@ -171,12 +172,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const pendingReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoRefreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastUpdatedRef = useRef<Date>(new Date());
+  const guardedLoadEmployeesRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
 
   const resetAutoRefreshTimer = (updateTimestamp = true) => {
     if (!isMountedRef.current) return;
     if (autoRefreshTimerRef.current) clearInterval(autoRefreshTimerRef.current);
     autoRefreshTimerRef.current = setInterval(() => {
-      guardedLoadEmployees(true);
+      guardedLoadEmployeesRef.current?.(true);
     }, 180000);
     if (updateTimestamp) lastUpdatedRef.current = new Date();
   };
@@ -187,7 +189,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       pendingReloadTimerRef.current = null;
       if (!pendingReloadRef.current) return;
       pendingReloadRef.current = false;
-      void guardedLoadEmployees(true);
+      void guardedLoadEmployeesRef.current?.(true);
     }, 750);
   };
 
@@ -257,7 +259,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     isMountedRef.current = true;
     if (!initialLoadStartedRef.current) {
       initialLoadStartedRef.current = true;
-      void guardedLoadEmployees(false);
+      void guardedLoadEmployeesRef.current?.(false);
     }
 
     let realtimeReloadTimer: ReturnType<typeof setTimeout> | null = null;
@@ -265,7 +267,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
       realtimeReloadTimer = setTimeout(() => {
         realtimeReloadTimer = null;
-        void guardedLoadEmployees(true);
+        void guardedLoadEmployeesRef.current?.(true);
       }, delay);
     };
     const debouncedStructureReload = () => scheduleRealtimeReload(800);
@@ -458,6 +460,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       if (isMountedRef.current && pendingReloadRef.current) schedulePendingReload();
     }
   };
+  guardedLoadEmployeesRef.current = guardedLoadEmployees;
 
   const loadEmployees = async (silent: boolean = false) => {
     const hasExistingGroups = employeeGroupsRef.current.length > 0;
@@ -747,7 +750,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setShowCreateForm(false);
       setCreateError(null);
       setSelectedAdminForCreate(null);
-      await guardedLoadEmployees(false);
+      await guardedLoadEmployeesRef.current?.(false);
     } catch (error: unknown) {
       setCreateError(formatSupabaseError(error) || 'Failed to create employee.');
     } finally {
@@ -781,7 +784,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setSecondaryAdminForm({ username: '', password: '' });
       setShowSecondaryAdminPassword(false);
       setShowCreateSecondaryAdmin(false);
-      await guardedLoadEmployees(false);
+      await guardedLoadEmployeesRef.current?.(false);
     } catch (error) {
       console.error('Error creating secondary admin:', formatSupabaseError(error));
       setCreateSecondaryAdminError(formatSupabaseError(error) || 'Failed to create secondary admin.');
@@ -891,7 +894,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     } catch (error) {
       console.error('Error updating employee:', formatSupabaseError(error));
       setNotification({ show: true, type: 'error', title: 'Error', message: 'Failed to update employee' });
-      guardedLoadEmployees(true);
+      guardedLoadEmployeesRef.current?.(true);
     }
   };
 
@@ -1245,7 +1248,6 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       group.admin.id
     );
   };
-
   const filteredEmployeeGroups = useMemo(() => employeeGroups.map(group => ({
     ...group,
     employees: getFilteredEmployeesForGroup(group)
@@ -1266,6 +1268,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     searchTerm,
     admin.role,
     selectedAdminFilter,
+    getFilteredEmployeesForGroup,
   ]);
 
   const filteredGroups = useMemo(() => {
@@ -2244,15 +2247,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       </td>
     </tr>
   );
-
   const employeeRowsByGroup = useMemo(() => {
-    const rows = new Map<string, ReturnType<typeof renderEmployeeRow>[]>();
+    const rows = new Map<string, ReactNode[]>();
     filteredEmployeeGroups.forEach(group => {
       const isSuperAdminGroup = group.admin.role === 'super_admin';
       rows.set(group.admin.id, group.employees.map((employee, index) => renderEmployeeRow(employee, index, isSuperAdminGroup)));
     });
     return rows;
-  }, [filteredEmployeeGroups, openActionMenu, onQuickAction]);
+  }, [filteredEmployeeGroups, renderEmployeeRow]);
 
   const renderTableHeader = (adminId: string) => (
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
@@ -2513,7 +2515,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             <span className="text-sm text-cyan-100 font-mono font-bold tabular-nums w-[40px] text-center">{formatCountdown()}s</span>
           </div>
           <button
-            onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployees(employeeGroups.length > 0 ? true : false); }}
+            onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployeesRef.current?.(employeeGroups.length > 0 ? true : false); }}
             disabled={loading || isRefreshing}
             className="flex h-full w-20 min-w-20 shrink-0 items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-500 px-4 text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-blue-400 hover:to-cyan-400 active:from-blue-600 active:to-cyan-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:bg-none"
             title="Refresh now"
@@ -2622,7 +2624,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           <span className="text-xs text-cyan-100 font-mono font-bold tabular-nums w-[34px] text-center">{formatCountdown()}s</span>
                         </div>
                         <button
-                          onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployees(employeeGroups.length > 0 ? true : false); }}
+                          onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployeesRef.current?.(employeeGroups.length > 0 ? true : false); }}
                           disabled={loading || isRefreshing}
                           className="flex h-full items-center justify-center gap-1 bg-gradient-to-r from-blue-500 to-cyan-500 px-2.5 text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-blue-400 hover:to-cyan-400 active:from-blue-600 active:to-cyan-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:bg-none"
                           title="Refresh now"

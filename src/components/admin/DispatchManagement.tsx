@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AUTH_STORAGE_KEY } from '../../lib/auth';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
@@ -116,6 +116,10 @@ export default function DispatchManagement() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteOrderConfirm, setShowDeleteOrderConfirm] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<{id: string, content: string} | null>(null);
+  const loadGroupsRef = useRef<(() => Promise<void>) | null>(null);
+  const loadEmployeesRef = useRef<(() => Promise<void>) | null>(null);
+  const loadOrdersRef = useRef<((page?: number, showLoading?: boolean, retryCount?: number) => Promise<void>) | null>(null);
+  const selectedGroupId = selectedGroup?.id;
 
   const isAnyModalOpen = showBulkImport || showDeleteConfirm || showCreateGroup || showEditGroup || showMemberManagement || showMoveConfirm || showDeleteGroupConfirm || showDeleteOrderConfirm || (isDeleting && deleteProgress.total > 0);
 
@@ -149,15 +153,15 @@ export default function DispatchManagement() {
 
   useEffect(() => {
     checkAdminRole();
-    loadGroups();
+    void loadGroupsRef.current?.();
   }, []);
 
   useEffect(() => {
-    if (selectedGroup) {
-      loadOrders();
-      loadEmployees();
+    if (selectedGroupId) {
+      void loadOrdersRef.current?.();
+      void loadEmployeesRef.current?.();
     }
-  }, [selectedGroup?.id, filterStatus]);
+  }, [selectedGroupId, filterStatus]);
 
   useEffect(() => {
     let debounceEmployees: ReturnType<typeof setTimeout> | null = null;
@@ -165,21 +169,21 @@ export default function DispatchManagement() {
     let debounceOrders: ReturnType<typeof setTimeout> | null = null;
     const debouncedLoadEmployees = () => {
       if (debounceEmployees) clearTimeout(debounceEmployees);
-      debounceEmployees = setTimeout(() => { loadEmployees(); }, 800);
+      debounceEmployees = setTimeout(() => { void loadEmployeesRef.current?.(); }, 800);
     };
     const debouncedLoadGroups = () => {
       if (debounceGroups) clearTimeout(debounceGroups);
-      debounceGroups = setTimeout(() => { loadGroups(); }, 800);
+      debounceGroups = setTimeout(() => { void loadGroupsRef.current?.(); }, 800);
     };
     const debouncedLoadOrders = () => {
       if (debounceOrders) clearTimeout(debounceOrders);
-      debounceOrders = setTimeout(() => { loadOrders(); }, 800);
+      debounceOrders = setTimeout(() => { void loadOrdersRef.current?.(); }, 800);
     };
 
     const usersChannel = supabase
       .channel('dispatch-users-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-        if (selectedGroup && !isOptimisticUpdate && !isBulkImporting) {
+        if (selectedGroupId && !isOptimisticUpdate && !isBulkImporting) {
           debouncedLoadEmployees();
         }
       })
@@ -188,7 +192,7 @@ export default function DispatchManagement() {
     const adminsChannel = supabase
       .channel('dispatch-admins-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'admins' }, () => {
-        if (selectedGroup && !isOptimisticUpdate && !isBulkImporting) {
+        if (selectedGroupId && !isOptimisticUpdate && !isBulkImporting) {
           debouncedLoadEmployees();
         }
       })
@@ -199,7 +203,7 @@ export default function DispatchManagement() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'dispatch_group_members' }, () => {
         if (!isOptimisticUpdate && !isBulkImporting) {
           debouncedLoadGroups();
-          if (selectedGroup) {
+          if (selectedGroupId) {
             debouncedLoadEmployees();
           }
         }
@@ -219,7 +223,7 @@ export default function DispatchManagement() {
       .channel('dispatch-orders-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'dispatch_group_orders' }, () => {
         if (!isOptimisticUpdate && !isBulkImporting) {
-          if (selectedGroup) {
+          if (selectedGroupId) {
             debouncedLoadOrders();
           }
           debouncedLoadGroups();
@@ -237,7 +241,7 @@ export default function DispatchManagement() {
       supabase.removeChannel(groupsChannel);
       supabase.removeChannel(ordersChannel);
     };
-  }, [selectedGroup, isOptimisticUpdate, isBulkImporting]);
+  }, [selectedGroupId, isOptimisticUpdate, isBulkImporting]);
 
   const checkAdminRole = () => {
     const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
@@ -567,6 +571,9 @@ export default function DispatchManagement() {
       showNotification('error', 'Failed to load employees: ' + getDispatchErrorMessage(error));
     }
   };
+  loadGroupsRef.current = loadGroups;
+  loadOrdersRef.current = loadOrders;
+  loadEmployeesRef.current = loadEmployees;
 
   const handleCreateGroup = async () => {
     if (!newGroup.group_name.trim()) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Database, Upload, Trash2, Plus, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
@@ -40,9 +40,10 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   const [inactiveCount, setInactiveCount] = useState(0);
   const [pageInput, setPageInput] = useState('');
   const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0, percentage: 0 });
+  const loadValidDataRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
-    loadValidData();
+    void loadValidDataRef.current?.();
   }, [currentPage, statusFilter]);
 
   useEffect(() => {
@@ -118,6 +119,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       setLoading(false);
     }
   };
+  loadValidDataRef.current = loadValidData;
 
   const handleAddSingle = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,7 +138,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       setFormData({ productValue: '', transactionId: '' });
       setShowAddForm(false);
       setCurrentPage(1);
-      loadValidData();
+      void loadValidDataRef.current?.();
       loadStatistics();
     } catch (error: unknown) {
       setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to add valid order data' });
@@ -226,7 +228,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       setMessage({ type: 'success', text: `Successfully uploaded ${dataToInsert.length.toLocaleString()} records! Total pool now has ${(activeCount + inactiveCount + dataToInsert.length).toLocaleString()} records.` });
       setBulkText('');
       setCurrentPage(1);
-      loadValidData();
+      void loadValidDataRef.current?.();
       loadStatistics();
     } catch (error: unknown) {
       setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to upload bulk data' });
@@ -320,7 +322,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
     } catch (error: unknown) {
       setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to update status' });
       // Revert on error
-      loadValidData();
+      void loadValidDataRef.current?.();
       loadStatistics();
     }
   };
@@ -368,7 +370,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
     } catch (error: unknown) {
       setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to delete valid order data' });
       // Revert on error
-      loadValidData();
+      void loadValidDataRef.current?.();
       loadStatistics();
     }
   };
@@ -479,7 +481,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       // Reset to first page and reload data
       setCurrentPage(1);
       setTimeout(async () => {
-        await loadValidData();
+        await void loadValidDataRef.current?.();
         await loadStatistics();
         setDeleting(false);
         setDeleteProgress({ current: 0, total: 0, percentage: 0 });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CheckCircle, XCircle, Clock, Ban, ChevronDown, ChevronRight, Users, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Save, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Withdrawal, Employee, Admin } from '../../types';
@@ -33,6 +33,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [editStatus, setEditStatus] = useState<'approved' | 'rejected'>('approved');
   const [editRemark, setEditRemark] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const loadWithdrawalsRef = useRef<(() => Promise<void>) | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -43,7 +44,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   } | null>(null);
 
   useEffect(() => {
-    loadWithdrawals();
+    void loadWithdrawalsRef.current?.();
 
     // Set up real-time subscription for withdrawal requests
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -63,7 +64,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             return;
           }
           if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => loadWithdrawals(), 800);
+          debounceTimer = setTimeout(() => { void loadWithdrawalsRef.current?.(); }, 800);
         }
       )
       .subscribe();
@@ -148,6 +149,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       setLoading(false);
     }
   };
+  loadWithdrawalsRef.current = loadWithdrawals;
 
   const toggleGroup = (adminId: string) => {
     const newExpanded = new Set(expandedGroups);
@@ -247,7 +249,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
           setReviewing(null);
           setAuditRemark('');
-          loadWithdrawals();
+          void loadWithdrawalsRef.current?.();
         } catch (error) {
           console.error('Error reviewing withdrawal:', error);
           setError('Failed to review withdrawal');
@@ -324,7 +326,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
           setEditing(null);
           setEditRemark('');
-          loadWithdrawals();
+          void loadWithdrawalsRef.current?.();
         } catch (err) {
           console.error('Error updating withdrawal:', err);
           setError('Failed to update withdrawal record');

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Clock, CheckCircle, XCircle, History, ChevronDown, ChevronUp, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -46,6 +46,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const { isMobile } = useResponsive();
   const { t, dateLocale } = useLanguage();
+  const loadAllRecordsRef = useRef<(() => Promise<void>) | null>(null);
   const ITEMS_PER_PAGE = isMobile ? 10 : 20;
   const { pageItems, page, totalPages, totalItems, hasNext, hasPrev, goNext, goPrev } = usePaginatedList({
     items: records,
@@ -53,10 +54,10 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
   });
 
   useEffect(() => {
-    loadAllRecords();
+    void loadAllRecordsRef.current?.();
 
     const interval = setInterval(() => {
-      loadAllRecords();
+      void loadAllRecordsRef.current?.();
     }, 5000);
 
     return () => clearInterval(interval);
@@ -128,6 +129,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
       setLoading(false);
     }
   };
+  loadAllRecordsRef.current = loadAllRecords;
 
   const handleClose = () => {
     setExpandedId(null);
@@ -151,7 +153,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
 
       if (withdrawal.status !== 'pending') {
         setMessage({ type: 'error', text: t.withdrawals.alreadyProcessed });
-        loadAllRecords();
+        void loadAllRecordsRef.current?.();
         setCancelling(null);
         return;
       }
@@ -210,7 +212,7 @@ export default function WithdrawalHistory({ employeeId, onClose }: WithdrawalHis
       console.error('Error cancelling withdrawal:', error);
       const errorMessage = error instanceof Error ? error.message : t.withdrawals.cancelFailed;
       setMessage({ type: 'error', text: errorMessage });
-      loadAllRecords();
+      void loadAllRecordsRef.current?.();
     } finally {
       setCancelling(null);
     }

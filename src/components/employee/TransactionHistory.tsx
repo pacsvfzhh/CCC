@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { History, ArrowUpRight, CheckCircle, XCircle, Clock, Calendar, MessageSquare, Ban, X, DollarSign, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getCurrentTimestamp, formatDateUTC, formatTimeUTC } from '../../lib/dateUtils';
@@ -22,6 +22,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
   const [selectedTransaction, setSelectedTransaction] = useState<CombinedTransaction | null>(null);
   const { isMobile } = useResponsive();
   const { t } = useLanguage();
+  const loadTransactionsRef = useRef<(() => Promise<void>) | null>(null);
 
   const ITEMS_PER_PAGE = isMobile ? 10 : 15;
   const { pageItems, page, totalPages, totalItems, hasNext, hasPrev, goNext, goPrev } = usePaginatedList({
@@ -30,7 +31,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
   });
 
   useEffect(() => {
-    loadTransactions();
+    void loadTransactionsRef.current?.();
 
     // Realtime subscription for new wallet transactions
     const txChannel = supabase
@@ -39,21 +40,21 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'wallet_transactions', filter: `user_id=eq.${employeeId}` },
         () => {
-          loadTransactions();
+          void loadTransactionsRef.current?.();
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'withdrawals', filter: `user_id=eq.${employeeId}` },
         () => {
-          loadTransactions();
+          void loadTransactionsRef.current?.();
         }
       )
       .subscribe();
 
     // Fallback polling at longer interval since realtime handles most updates
     const interval = setInterval(() => {
-      loadTransactions();
+      void loadTransactionsRef.current?.();
     }, 15000);
 
     return () => {
@@ -124,6 +125,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       setLoading(false);
     }
   };
+  loadTransactionsRef.current = loadTransactions;
 
   const getTransactionIcon = (transaction: CombinedTransaction) => {
     if (transaction.type === 'withdrawal') {
@@ -271,7 +273,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
 
       if (currentWithdrawal.status !== 'pending') {
         alert('This withdrawal has already been processed and cannot be cancelled.');
-        loadTransactions();
+        void loadTransactionsRef.current?.();
         setCancellingId(null);
         return;
       }
@@ -336,7 +338,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       console.error('Error cancelling withdrawal:', error);
       alert(`Failed to cancel withdrawal: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
       // Reload to ensure UI reflects actual state
-      loadTransactions();
+      void loadTransactionsRef.current?.();
     } finally {
       setCancellingId(null);
     }

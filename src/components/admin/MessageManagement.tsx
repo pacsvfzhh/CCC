@@ -174,6 +174,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const wasActiveRef = useRef(false);
   const userDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recipientDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onConsumeInitialEmployeeRef = useRef<(() => void) | undefined>(undefined);
+  const loadAllDataRef = useRef<((isBackgroundRefresh?: boolean) => Promise<void>) | null>(null);
+  const loadSentMessagesRef = useRef<((isBackgroundRefresh?: boolean) => Promise<void>) | null>(null);
+  const loadTemplatesRef = useRef<(() => Promise<void>) | null>(null);
+  const loadRecipientDetailsRef = useRef<((messageId: string) => Promise<void>) | null>(null);
+  onConsumeInitialEmployeeRef.current = onConsumeInitialEmployee;
 
   useEffect(() => {
     if (isActive && !wasActiveRef.current && !initialEmployee) {
@@ -197,22 +203,22 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     setFilterStatus('all');
     setSelectedTags(new Set());
     setSelectedEmployeeIds(new Set([initialEmployee.id]));
-    onConsumeInitialEmployee?.();
+    onConsumeInitialEmployeeRef.current?.();
   }, [initialEmployee, loading, allEmployees]);
 
   useEffect(() => {
-    loadAllData();
-    loadSentMessages();
-    loadTemplates();
+    void loadAllDataRef.current?.();
+    void loadSentMessagesRef.current?.();
+    void loadTemplatesRef.current?.();
 
     const debouncedLoadAllData = () => {
       if (userDebounceTimer.current) clearTimeout(userDebounceTimer.current);
-      userDebounceTimer.current = setTimeout(() => loadAllData(true), 3000);
+      userDebounceTimer.current = setTimeout(() => { void loadAllDataRef.current?.(true); }, 3000);
     };
 
     const debouncedLoadSentMessages = () => {
       if (recipientDebounceTimer.current) clearTimeout(recipientDebounceTimer.current);
-      recipientDebounceTimer.current = setTimeout(() => loadSentMessages(true), 2000);
+      recipientDebounceTimer.current = setTimeout(() => { void loadSentMessagesRef.current?.(true); }, 2000);
     };
 
     const usersChannel = supabase
@@ -338,6 +344,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       hasInitiallyLoaded.current = true;
     }
   };
+  loadAllDataRef.current = loadAllData;
 
   const loadTemplates = async () => {
     try {
@@ -612,6 +619,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       setSendProgress(null);
     }
   };
+  loadTemplatesRef.current = loadTemplates;
 
   const loadSentMessages = async (isBackgroundRefresh = false) => {
     if (!isBackgroundRefresh) setMessagesLoading(true);
@@ -685,6 +693,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       if (!isBackgroundRefresh) setMessagesLoading(false);
     }
   };
+  loadSentMessagesRef.current = loadSentMessages;
 
   const loadRecipientDetails = async (messageId: string) => {
     if (recipientDetails.has(messageId)) return;
@@ -730,6 +739,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       setLoadingRecipientDetails(false);
     }
   };
+  loadRecipientDetailsRef.current = loadRecipientDetails;
 
   const handleDeleteSelected = async () => {
     if (selectedMessageIds.size === 0) return;
@@ -882,6 +892,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     (currentPage - 1) * messagesPerPage,
     currentPage * messagesPerPage
   );
+  const paginatedMessageIds = paginatedMessages.map(message => message.id).join(',');
 
   useEffect(() => {
     setCurrentPage(1);
@@ -891,11 +902,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     if (paginatedMessages.length > 0) {
       paginatedMessages.forEach(msg => {
         if (msg.recipient_ids && msg.recipient_ids.length > 0 && !recipientDetails.has(msg.id)) {
-          loadRecipientDetails(msg.id);
+          void loadRecipientDetailsRef.current?.(msg.id);
         }
       });
     }
-  }, [paginatedMessages.map(m => m.id).join(',')]);
+  }, [paginatedMessages, paginatedMessageIds, recipientDetails]);
 
   const toggleSelectAll = () => {
     if (selectedMessageIds.size === filteredMessages.length && filteredMessages.every(m => selectedMessageIds.has(m.id))) {
@@ -1588,7 +1599,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         setRecipientSearchQuery('');
                         setRecipientStatusFilter('all');
                         setEditingMessage(false);
-                        loadRecipientDetails(msg.id);
+                        void loadRecipientDetailsRef.current?.(msg.id);
                       }
                     }}
                     className={`cursor-pointer rounded-lg border border-slate-700/40 border-l-[3px] px-2.5 py-2.5 transition-colors duration-150 ${getPriorityBorderColor(msg.priority)} ${

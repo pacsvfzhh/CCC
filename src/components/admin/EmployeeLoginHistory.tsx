@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, History, Eye, Users, Clock, MapPin, Monitor, X, ChevronDown, ChevronRight, Pin, PinOff, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -47,11 +47,14 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   const [detailedHistory, setDetailedHistory] = useState<LoginHistoryRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [admins, setAdmins] = useState<{ id: string; username: string; role?: string; is_pinned?: boolean }[]>([]);
+  const loadAdminsRef = useRef<(() => Promise<void>) | null>(null);
+  const loadEmployeeSummaryRef = useRef<((silentRefresh?: boolean) => Promise<void>) | null>(null);
+  const adminCount = admins.length;
 
   useEffect(() => {
     const initialize = async () => {
-      await loadAdmins();
-      await loadEmployeeSummary();
+      await loadAdminsRef.current?.();
+      await loadEmployeeSummaryRef.current?.();
     };
     initialize();
 
@@ -67,7 +70,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         },
         (payload) => {
           console.log('New user detected:', payload);
-          loadEmployeeSummary(true);
+          void loadEmployeeSummaryRef.current?.(true);
         }
       )
       .on(
@@ -79,7 +82,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         },
         (payload) => {
           console.log('User updated:', payload);
-          loadEmployeeSummary(true);
+          void loadEmployeeSummaryRef.current?.(true);
         }
       )
       .on(
@@ -91,7 +94,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         },
         (payload) => {
           console.log('User deleted:', payload);
-          loadEmployeeSummary(true);
+          void loadEmployeeSummaryRef.current?.(true);
         }
       )
       .subscribe((status) => {
@@ -109,8 +112,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         },
         (payload) => {
           console.log('New admin detected:', payload);
-          loadAdmins();
-          loadEmployeeSummary(true);
+          void loadAdminsRef.current?.();
+          void loadEmployeeSummaryRef.current?.(true);
         }
       )
       .on(
@@ -122,8 +125,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         },
         (payload) => {
           console.log('Admin updated:', payload);
-          loadAdmins();
-          loadEmployeeSummary(true);
+          void loadAdminsRef.current?.();
+          void loadEmployeeSummaryRef.current?.(true);
         }
       )
       .on(
@@ -135,8 +138,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         },
         (payload) => {
           console.log('Admin deleted:', payload);
-          loadAdmins();
-          loadEmployeeSummary(true);
+          void loadAdminsRef.current?.();
+          void loadEmployeeSummaryRef.current?.(true);
         }
       )
       .subscribe((status) => {
@@ -154,7 +157,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         },
         (payload) => {
           console.log('Login history changed:', payload);
-          loadEmployeeSummary(true);
+          void loadEmployeeSummaryRef.current?.(true);
         }
       )
       .subscribe((status) => {
@@ -170,16 +173,16 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   }, [admin.id]);
 
   useEffect(() => {
-    if (admins.length > 0) {
-      loadEmployeeSummary();
+    if (adminCount > 0) {
+      void loadEmployeeSummaryRef.current?.();
     }
-  }, [searchTerm]);
+  }, [searchTerm, adminCount]);
 
   // Auto-refresh data every 30 seconds (silent refresh, no loading state)
   useEffect(() => {
     const refreshInterval = setInterval(() => {
       if (!selectedEmployee) {
-        loadEmployeeSummary(true); // Pass true for silent refresh
+        void loadEmployeeSummaryRef.current?.(true); // Pass true for silent refresh
       }
     }, 30000);
 
@@ -305,6 +308,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
       }
     }
   };
+  loadAdminsRef.current = loadAdmins;
+  loadEmployeeSummaryRef.current = loadEmployeeSummary;
 
   const toggleGroupCollapse = (adminId: string) => {
     setAdminGroups(prev =>
@@ -527,8 +532,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           </div>
           <button
             onClick={() => {
-              loadAdmins();
-              loadEmployeeSummary();
+              void loadAdminsRef.current?.();
+              void loadEmployeeSummaryRef.current?.();
             }}
             disabled={loading}
             className="px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-xl text-blue-400 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
