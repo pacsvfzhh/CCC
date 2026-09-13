@@ -982,6 +982,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     : withdrawal.admin?.role === 'secondary_admin'
                       ? 'bg-blue-500/15 text-blue-200 ring-blue-300/30'
                       : 'bg-slate-700 text-slate-300 ring-slate-500/40';
+                  const adminNameClass = withdrawal.admin?.role === 'super_admin'
+                    ? 'text-amber-100'
+                    : withdrawal.admin?.role === 'secondary_admin'
+                      ? 'text-blue-100'
+                      : 'text-slate-300';
 
                   return (
                     <Fragment key={withdrawal.id}>
@@ -1007,7 +1012,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                               <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-extrabold uppercase ring-1 ring-inset ${adminAvatarClass}`}>
                                 {adminName.slice(0, 1)}
                               </span>
-                              <span className="min-w-0 truncate text-[11px] font-semibold text-slate-100">{adminName}</span>
+                              <span className={`min-w-0 truncate text-[11px] font-semibold ${adminNameClass}`}>{adminName}</span>
                             </div>
                           </td>
                         )}
