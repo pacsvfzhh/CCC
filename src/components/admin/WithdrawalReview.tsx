@@ -954,7 +954,6 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 <th className="px-3 py-2.5 font-semibold">員工</th>
                 <th className="px-3 py-2.5 font-semibold">金額</th>
                 <th className="px-3 py-2.5 font-semibold">狀態</th>
-                <th className="px-3 py-2.5 font-semibold">申請時間</th>
                 <th className="min-w-[280px] px-3 py-2.5 font-semibold">審核資訊</th>
                 <th className="px-3 py-2.5 text-right font-semibold">操作</th>
               </tr>
@@ -962,7 +961,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             <tbody className="divide-y divide-slate-800/70">
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={showAdminColumn ? 8 : 7} className="px-4 py-14 text-center text-sm text-slate-400">
+                  <td colSpan={showAdminColumn ? 7 : 6} className="px-4 py-14 text-center text-sm text-slate-400">
                     沒有符合目前篩選條件的提現申請
                   </td>
                 </tr>
@@ -1045,17 +1044,17 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                         )}
                         <td className="px-3 py-2.5 align-top">
                           <div className="font-medium text-white">{withdrawal.employee?.username}</div>
-                          <div className="mt-0.5 text-xs text-slate-500">
+                          <div className="mt-0.5 text-xs font-medium tracking-wide text-cyan-300/90">
                             {withdrawal.employee?.employee_id}
                           </div>
                         </td>
                         <td className={`px-3 py-2.5 align-top font-bold tabular-nums ${amountClass}`}>
-                          ${withdrawal.amount.toFixed(2)}
+                          <div>${withdrawal.amount.toFixed(2)}</div>
+                          <div className="mt-1 whitespace-nowrap text-[10px] font-medium tabular-nums text-slate-300/75">
+                            {new Date(withdrawal.created_at).toLocaleString()}
+                          </div>
                         </td>
                         <td className="px-3 py-2.5 align-top">{getStatusBadge(withdrawal.status)}</td>
-                        <td className="px-3 py-2.5 align-top text-xs text-slate-400">
-                          {new Date(withdrawal.created_at).toLocaleString()}
-                        </td>
                         <td className="min-w-[280px] px-3 py-2.5 align-top text-xs text-slate-400">
                           {withdrawal.audited_at ? (
                             <>
@@ -1127,7 +1126,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
                       {isReviewing && (
                         <tr>
-                          <td colSpan={showAdminColumn ? 8 : 7} className="border-t border-slate-800/80 bg-slate-950/40 px-4 py-3.5">
+                          <td colSpan={showAdminColumn ? 7 : 6} className="border-t border-slate-800/80 bg-slate-950/40 px-4 py-3.5">
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
                               <div className="flex-1">
                                 <textarea
@@ -1172,7 +1171,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
                       {isEditing && (
                         <tr>
-                          <td colSpan={showAdminColumn ? 8 : 7} className="border-t border-slate-800/80 bg-slate-950/40 px-4 py-3.5">
+                          <td colSpan={showAdminColumn ? 7 : 6} className="border-t border-slate-800/80 bg-slate-950/40 px-4 py-3.5">
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
                               <div className="flex shrink-0 gap-2 lg:w-56">
                                 <button
