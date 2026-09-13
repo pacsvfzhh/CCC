@@ -45,6 +45,8 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
   const [, setSubmitTimeMax] = useState(20);
   const adminIdRef = useRef<string | null>(propAdminId || null);
   const [activeAssignment, setActiveAssignment] = useState<{ id: string; assignment_id: string } | null>(null);
+  const fetchSubmitTimeRef = useRef<(() => Promise<{ min: number; max: number }>) | null>(null);
+  const loadProductTypesRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     if (propAdminId) {
@@ -130,7 +132,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
     if (!data) return { min: 5, max: 20 };
     const adminConfigs: Record<string, string> = {};
     const globalConfigs: Record<string, string> = {};
-    data.forEach((row: any) => {
+    data.forEach((row) => {
       if (row.admin_id === currentAdminId) {
         adminConfigs[row.config_type] = row.config_value;
       } else {
@@ -141,17 +143,18 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
     const max = Math.max(min, parseInt(adminConfigs.order_submit_time_max || globalConfigs.order_submit_time_max || '20', 10));
     return { min, max };
   };
+  fetchSubmitTimeRef.current = fetchSubmitTime;
 
   useEffect(() => {
     if (!adminId) return;
-    fetchSubmitTime().then(({ min, max }) => {
+    void fetchSubmitTimeRef.current?.().then(({ min, max }) => {
       setSubmitTimeMin(min);
       setSubmitTimeMax(max);
     });
   }, [adminId, employeeId]);
 
   useEffect(() => {
-    loadProductTypes();
+    void loadProductTypesRef.current?.();
 
     // Subscribe to real-time updates for product types with debouncing
     let reloadTimeout: NodeJS.Timeout | null = null;
@@ -170,7 +173,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
           if (reloadTimeout) clearTimeout(reloadTimeout);
 
           reloadTimeout = setTimeout(() => {
-            loadProductTypes();
+            void loadProductTypesRef.current?.();
 
             // Check if selected product type was affected
             if (selectedProductType) {
@@ -279,6 +282,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       console.error('Error loading product types:', error);
     }
   };
+  loadProductTypesRef.current = loadProductTypes;
 
   const handleProductTypeSelect = (type: ProductType) => {
     setSelectedProductType(type);
@@ -536,13 +540,13 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
           console.error('Error triggering order processing:', error);
         }
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Order submission error:', error);
       animation.cancel();
       setSubmissionProgress(100);
       setShowSubmitAnimation(false);
       setResultType('error');
-      setResultMessage(error.message || t.orderSubmission.failedRetry);
+      setResultMessage(error instanceof Error ? error.message : t.orderSubmission.failedRetry);
       setShowResultModal(true);
     } finally {
       setLoading(false);

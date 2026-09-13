@@ -116,9 +116,9 @@ export default function PasswordChange({ employeeId, onClose, onLogout }: Passwo
         onLogout();
       }, 2000);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error changing password:', error);
-      setError(error.message || t.passwordChange.errorGeneric);
+      setError(error instanceof Error ? error.message : t.passwordChange.errorGeneric);
     } finally {
       setLoading(false);
     }

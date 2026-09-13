@@ -81,23 +81,23 @@ export function safeDateTime(
  * Returns default value if path doesn't exist
  */
 export function safeGet<T>(
-  obj: any,
+  obj: unknown,
   path: string,
   defaultValue: T
 ): T {
   if (!obj) return defaultValue;
 
   const keys = path.split('.');
-  let result = obj;
+  let result: unknown = obj;
 
   for (const key of keys) {
-    if (result === null || result === undefined || !(key in result)) {
+    if (result === null || typeof result !== 'object' || !(key in result)) {
       return defaultValue;
     }
-    result = result[key];
+    result = (result as Record<string, unknown>)[key];
   }
 
-  return result === null || result === undefined ? defaultValue : result;
+  return result === null || result === undefined ? defaultValue : result as T;
 }
 
 /**

@@ -140,7 +140,7 @@ export async function logout(isUserInitiated: boolean = true) {
           resolve(null);
         }, 500))
       ]);
-    } catch (error) {
+    } catch {
       // Silent catch - don't show errors to user during logout
     }
 
@@ -187,7 +187,7 @@ export function getStoredAuth() {
   return null;
 }
 
-export function storeAuth(data: any) {
+export function storeAuth(data: unknown) {
   sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data));
 }
 

@@ -28,14 +28,13 @@ function queueRequest<T>(
   const pending = pendingRequests.get(cacheKey);
   if (pending && !force) return pending;
 
-  let trackedRequest!: Promise<T>;
   const request = loader().then(value => {
     if (pendingRequests.get(cacheKey) === trackedRequest) {
       onSuccess(value);
     }
     return value;
   });
-  trackedRequest = request.finally(() => {
+  const trackedRequest = request.finally(() => {
     if (pendingRequests.get(cacheKey) === trackedRequest) {
       pendingRequests.delete(cacheKey);
     }

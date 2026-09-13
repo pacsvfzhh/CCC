@@ -235,7 +235,7 @@ export function useTouchOptimization() {
 /**
  * Apply responsive meta tags
  */
-export function applyResponsiveMeta() {
+export function useApplyResponsiveMeta() {
   useEffect(() => {
     // Ensure viewport meta tag is set correctly
     let viewport = document.querySelector('meta[name="viewport"]');

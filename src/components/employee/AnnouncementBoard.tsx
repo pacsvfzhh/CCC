@@ -195,7 +195,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
   const sanitizedSelectedContent = useMemo(() => {
     if (!selectedAnnouncement) return '';
     return sanitizeAnnouncementContent(renderContent(selectedAnnouncement.content));
-  }, [selectedAnnouncement?.id, selectedAnnouncement?.content]);
+  }, [selectedAnnouncement]);
 
   const handleAnnouncementClick = useCallback(async (item: AnnouncementListItem) => {
     const cachedContent = contentCacheRef.current.get(item.id);

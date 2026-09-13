@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Clock, CheckCircle, XCircle, DollarSign, Package, Percent, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getTodayStartUTC } from '../../lib/dateUtils';
@@ -31,10 +31,11 @@ export default function OrderList({ employeeId }: OrderListProps) {
   const [ordersPage, setOrdersPage] = useState(0);
   const ORDERS_PER_PAGE = isMobile ? 7 : 20;
   const { t } = useLanguage();
+  const loadOrdersRef = useRef<((isManualRefresh?: boolean) => Promise<void>) | null>(null);
 
   useEffect(() => {
-    loadOrders();
-    const interval = setInterval(loadOrders, 5000);
+    void loadOrdersRef.current?.();
+    const interval = setInterval(() => { void loadOrdersRef.current?.(); }, 5000);
 
     const ordersChannel = supabase
       .channel('orders_changes')
@@ -47,7 +48,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
           filter: `user_id=eq.${employeeId}`
         },
         () => {
-          loadOrders();
+          void loadOrdersRef.current?.();
         }
       )
       .subscribe();
@@ -62,7 +63,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
           table: 'product_types'
         },
         () => {
-          loadOrders();
+          void loadOrdersRef.current?.();
         }
       )
       .subscribe();
@@ -78,8 +79,8 @@ export default function OrderList({ employeeId }: OrderListProps) {
           filter: `user_id=eq.${employeeId}`
         },
         (payload) => {
-          if ((payload.new as any)?.type === 'tip') {
-            loadOrders();
+          if ((payload.new as { type?: string }).type === 'tip') {
+            void loadOrdersRef.current?.();
           }
         }
       )
@@ -145,6 +146,7 @@ export default function OrderList({ employeeId }: OrderListProps) {
       }
     }
   };
+  loadOrdersRef.current = loadOrders;
 
   const totalTipAmount = todayTips.reduce((sum, t) => sum + t.amount, 0);
 

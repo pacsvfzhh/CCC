@@ -417,7 +417,6 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       }
     }
   }, [fetchRichCardContent, fetchTemplateContentForViewer, fetchAutoMsgContentForViewer]);
-
   const [imageZoom, setImageZoom] = useState(1);
   const [imageDrag, setImageDrag] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -446,6 +445,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const showMessagePopupRef = useRef<((customer: Customer, message: string) => void) | null>(null);
   const updateOnlineStatusRef = useRef<(() => void) | null>(null);
   const loadMessagesRef = useRef<(() => Promise<void>) | null>(null);
+  prefetchRichCardRef.current = prefetchRichCard;
 
   // Lock body scroll when chat is open (mobile only - full-screen overlay)
   useEffect(() => {
@@ -477,7 +477,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   }, [isOpen]);
 
   useEffect(() => {
-    loadConversations();
+    void loadConversationsRef.current?.();
 
     const channel = supabase
       .channel(`customer_employee_messages_${employeeId}`)
@@ -580,14 +580,14 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       }
       conversationRefreshCustomerIdsRef.current.clear();
     };
-  }, [employeeId]);
+  }, [employeeId, t.customerService.newMessage]);
 
   useEffect(() => {
     if (selectedCustomer) {
       isInitialLoadRef.current = true;
       shouldAutoScrollRef.current = true;
       conversationOpenedAtRef.current = new Date().toISOString();
-      loadMessages();
+      void loadMessagesRef.current?.();
     }
   }, [selectedCustomer]);
 
@@ -628,7 +628,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   }, [notification]);
 
   useEffect(() => {
-    updateOnlineStatus();
+    updateOnlineStatusRef.current?.();
   }, [conversations]);
 
   const scrollToBottom = () => {
@@ -712,6 +712,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     startContinuousSound(customer.is_super || false);
     console.log('⏰ Popup will persist until clicked');
   };
+  showMessagePopupRef.current = showMessagePopup;
 
   const isCustomerOnline = (customerId: string): boolean => {
     const conv = conversations.find(c => c.customer.id === customerId);
@@ -731,6 +732,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     });
     setCustomerOnlineStatus(newStatus);
   };
+  updateOnlineStatusRef.current = updateOnlineStatus;
 
   const renderMessageContent = (msg: Message) => {
     if (msg.message_type === 'image' && !msg.image_url) {
@@ -1164,6 +1166,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     );
     return request;
   };
+  loadConversationsRef.current = loadConversations;
 
   const applyIncomingConversationMessage = (message: IncomingMessage, incrementUnread = false) => {
     const customerId = message?.customer_id;
@@ -1212,6 +1215,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       return next;
     });
   };
+  applyIncomingConversationMessageRef.current = applyIncomingConversationMessage;
 
   const scheduleConversationRefresh = (customerId?: string) => {
     if (customerId) {
@@ -1228,7 +1232,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       conversationRefreshCustomerIdsRef.current = new Set<string>();
       const selectedId = selectedCustomerRef.current?.id;
 
-      void loadConversations(true);
+      void loadConversationsRef.current?.(true);
       if (
         selectedId &&
         customerIds.has(selectedId) &&
@@ -1238,10 +1242,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       }
     }, 120);
   };
+  scheduleConversationRefreshRef.current = scheduleConversationRefresh;
 
   useEffect(() => {
     if (isOpen) {
-      void loadConversations();
+      void loadConversationsRef.current?.();
     }
   }, [isOpen]);
 
@@ -1332,6 +1337,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       }
     }
   };
+  loadMessagesRef.current = loadMessages;
 
   const loadOlderMessages = async () => {
     const currentCustomer = selectedCustomerRef.current;
@@ -1484,7 +1490,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         .eq('sender_type', 'customer')
         .eq('is_read', false);
 
-      void loadConversations(true);
+      void loadConversationsRef.current?.(true);
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }

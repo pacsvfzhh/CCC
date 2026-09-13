@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Play, Square, Clock, Zap, Timer, Radio } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../lib/i18n';
@@ -19,9 +19,10 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
   const [currentDuration, setCurrentDuration] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { t } = useLanguage();
+  const checkActiveSessionRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
-    checkActiveSession();
+    void checkActiveSessionRef.current?.();
 
     const channel = supabase
       .channel('work_sessions_updates')
@@ -34,7 +35,7 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
           filter: `user_id=eq.${userId}`
         },
         () => {
-          checkActiveSession();
+          void checkActiveSessionRef.current?.();
         }
       )
       .subscribe();
@@ -78,6 +79,7 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
       console.error('Failed to check active session:', error);
     }
   };
+  checkActiveSessionRef.current = checkActiveSession;
 
   const startWorkSession = async () => {
     if (isLoading) return;
@@ -105,11 +107,11 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
 
       console.log('Work session started successfully, session_id:', data);
       await checkActiveSession();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to start work session:', error);
 
       let errMsg = 'Failed to start work session. ';
-      if (error.message) {
+      if (error instanceof Error) {
         errMsg += error.message;
       } else {
         errMsg += 'Please try again.';
@@ -140,9 +142,9 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
 
       setActiveSession(null);
       setCurrentDuration(0);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to end work session:', error);
-      setErrorMessage('Failed to end work session: ' + error.message);
+      setErrorMessage('Failed to end work session: ' + (error instanceof Error ? error.message : 'Unknown error'));
       setTimeout(() => setErrorMessage(null), 5000);
     } finally {
       setIsLoading(false);

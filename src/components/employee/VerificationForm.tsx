@@ -78,7 +78,7 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
         .getPublicUrl(filePath);
 
       return publicUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('File upload error:', error);
       throw error;
     }
@@ -178,9 +178,9 @@ export default function VerificationForm({ employeeId, onVerificationComplete, e
       setTimeout(() => {
         onVerificationComplete();
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error submitting verification:', error);
-      const errorMessage = error?.message || t.verification.submitError;
+      const errorMessage = error instanceof Error ? error.message : t.verification.submitError;
       setMessage({ type: 'error', text: errorMessage });
     } finally {
       setLoading(false);

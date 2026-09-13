@@ -6,7 +6,7 @@ import { LanguageProvider } from './lib/i18n';
 import { AUTH_LOGOUT_EVENT, getStoredAuth, PROFILE_UPDATED_EVENT } from './lib/auth';
 import { startOrderProcessing } from './services/orderProcessor';
 import { useDeviceOptimization } from './lib/useDeviceOptimization';
-import { useResponsive, applyResponsiveMeta } from './lib/useResponsive';
+import { useResponsive, useApplyResponsiveMeta } from './lib/useResponsive';
 import type { AuthState } from './types';
 
 const EmployeeDashboard = lazy(() => import('./components/employee/EmployeeDashboard'));
@@ -20,7 +20,7 @@ function App() {
 
   const { deviceName, tier, isLowEnd } = useDeviceOptimization();
   const responsive = useResponsive();
-  applyResponsiveMeta();
+  useApplyResponsiveMeta();
 
   useEffect(() => {
     const setVH = () => {

@@ -251,6 +251,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const sessionActiveRef = useRef<boolean>(false);
   const unacceptedCountRef = useRef<number>(0);
   const currentGroupConfigRef = useRef<DispatchConfig | null>(null);
+  const configRef = useRef(config);
+  configRef.current = config;
+  const isMobileRef = useRef(isMobile);
+  isMobileRef.current = isMobile;
+  const startTimeoutCheckRef = useRef<(() => void) | null>(null);
+  const startActivityMonitorRef = useRef<(() => void) | null>(null);
+  const handleAcceptTimeoutRef = useRef<((assignmentId: string) => Promise<void>) | null>(null);
   const currentOrderRef = useRef<DispatchAssignment | null>(null);
   const startWorkLockRef = useRef<boolean>(false);
 
@@ -293,12 +300,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         // Store previous config from ref (more reliable than state)
         const previousConfig = currentGroupConfigRef.current ?
           { ...currentGroupConfigRef.current } :
-          { ...config };
+          { ...configRef.current };
 
         await loadConfig();
 
         // Get current config after reload
-        const currentConfig = currentGroupConfigRef.current || config;
+        const currentConfig = currentGroupConfigRef.current || configRef.current;
 
         // Check if config changed
         const hasChanged =
@@ -316,7 +323,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           // If session timeout changed and we have a current order, restart timeout check
           if (previousConfig.session_timeout_minutes !== currentConfig.session_timeout_minutes && currentOrderRef.current) {
             console.log('Session timeout changed, restarting timeout check silently');
-            startTimeoutCheck();
+            startTimeoutCheckRef.current?.();
           }
         }
       }
@@ -412,7 +419,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         }
 
         // MOBILE OPTIMIZATION: Very brief animation suppression to prevent flash
-        if (isMobile) {
+        if (isMobileRef.current) {
           setSuppressAnimations(true);
           requestAnimationFrame(() => {
             setTimeout(() => {
@@ -470,8 +477,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   useEffect(() => {
     if (session.isWorking) {
-      startActivityMonitor();
-      startTimeoutCheck();
+      startActivityMonitorRef.current?.();
+      startTimeoutCheckRef.current?.();
     } else {
       if (activityTimerRef.current) {
         clearInterval(activityTimerRef.current);
@@ -527,7 +534,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         clearTimeout(acceptTimeoutRef.current);
       }
       acceptTimeoutRef.current = setTimeout(() => {
-        handleAcceptTimeout(currentOrder.id);
+        void handleAcceptTimeoutRef.current?.(currentOrder.id);
       }, remaining * 1000);
     } else if (currentOrder && currentOrder.status === 'accepted') {
       // Clear accept timeout when accepted
@@ -536,7 +543,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         acceptTimeoutRef.current = null;
       }
       acceptDeadlineRef.current = null;
-      startTimeoutCheck();
+      startTimeoutCheckRef.current?.();
     } else {
       // Clear all timeouts when no current order
       if (acceptTimeoutRef.current) {
@@ -609,7 +616,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
 
     // Get timeout configuration from group config or default config
-    const currentConfig = currentGroupConfigRef.current || config;
+    const currentConfig = currentGroupConfigRef.current || configRef.current;
     const timeoutMinutes = currentConfig.session_timeout_minutes;
     // Dynamic warning time: warn 3 minutes before timeout, with minimum of 3 minutes
     // BUT: if timeout is too short, warning should be at most 60% of timeout duration
@@ -681,7 +688,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         const minutesPassed = (now.getTime() - acceptedTime.getTime()) / 1000 / 60;
 
         // Get current config for accurate timeout checking
-        const checkConfig = currentGroupConfigRef.current || config;
+        const checkConfig = currentGroupConfigRef.current || configRef.current;
         const checkTimeoutMinutes = checkConfig.session_timeout_minutes;
         let checkWarningMinutes = Math.max(3, checkTimeoutMinutes - 3); // Dynamic warning
 
@@ -702,6 +709,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
     }, 10000);
   };
+  startTimeoutCheckRef.current = startTimeoutCheck;
 
   const playOrderNotificationSound = () => {
     try {
@@ -1033,6 +1041,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
     }, 30000);
   };
+  startActivityMonitorRef.current = startActivityMonitor;
 
   const updateActivity = () => {
     lastActivityRef.current = new Date();
@@ -1540,7 +1549,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
 
     // Priority: provided config > ref config > state config
-    const currentConfig = groupConfig || currentGroupConfigRef.current || config;
+    const currentConfig = groupConfig || currentGroupConfigRef.current || configRef.current;
     const minSeconds = currentConfig.dispatch_interval_min;
     const maxSeconds = currentConfig.dispatch_interval_max;
 
@@ -1770,7 +1779,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         clearTimeout(acceptTimeoutRef.current);
       }
       acceptTimeoutRef.current = setTimeout(() => {
-        handleAcceptTimeout(newAssignment.id);
+        void handleAcceptTimeoutRef.current?.(newAssignment.id);
       }, 60000);
     } catch (error: unknown) {
       console.error('Failed to dispatch order:', error);
@@ -1881,6 +1890,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       scheduleNextOrder();
     }
   };
+  handleAcceptTimeoutRef.current = handleAcceptTimeout;
 
   const handleProcessTimeout = async (assignmentId: string) => {
     try {

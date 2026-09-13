@@ -86,7 +86,7 @@ export function sanitizeHTML(
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
     // 只允许 http/https 协议
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[-a-z+.]+(?:[^-a-z+.:]|$))/i,
   };
 
   // 合并自定义配置
@@ -217,6 +217,6 @@ export function sanitizeChatMessage(html: string): string {
       'table', 'thead', 'tbody', 'tr', 'th', 'td',
     ],
     ALLOWED_ATTR: ['style', 'class', 'size', 'color', 'href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'controls', 'autoplay', 'loop', 'muted', 'poster', 'preload', 'playsinline', 'type'],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[-a-z+.]+(?:[^-a-z+.:]|$))/i,
   });
 }

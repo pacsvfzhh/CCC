@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Wallet as WalletIcon, DollarSign, Lock, TrendingUp, AlertCircle, Send, Clock, History } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -30,6 +30,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   const [verificationRequest, setVerificationRequest] = useState<VerificationRequest | null>(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
   const { deviceType } = useDeviceOptimization();
+  const loadWalletRef = useRef<(() => Promise<void>) | null>(null);
+  const loadEmployeeDataRef = useRef<(() => Promise<void>) | null>(null);
+  const loadVerificationRequestRef = useRef<(() => Promise<void>) | null>(null);
 
   const isTabletDevice = deviceType === 'tablet';
 
@@ -55,9 +58,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
   };
 
   useEffect(() => {
-    loadWallet();
-    loadEmployeeData();
-    loadVerificationRequest();
+    void loadWalletRef.current?.();
+    void loadEmployeeDataRef.current?.();
+    void loadVerificationRequestRef.current?.();
 
     // Set up real-time subscription for employee verification status changes
     const userChannel = supabase
@@ -86,7 +89,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
           if (payload.eventType === 'DELETE') {
             setVerificationRequest(null);
           } else {
-            loadVerificationRequest();
+            void loadVerificationRequestRef.current?.();
           }
         }
       )
@@ -115,16 +118,16 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'wallet_transactions', filter: `user_id=eq.${employeeId}` },
         () => {
-          loadWallet();
+          void loadWalletRef.current?.();
         }
       )
       .subscribe();
 
     // Fallback polling for redundancy
     const interval = setInterval(() => {
-      loadWallet();
-      loadEmployeeData();
-      loadVerificationRequest();
+      void loadWalletRef.current?.();
+    void loadEmployeeDataRef.current?.();
+    void loadVerificationRequestRef.current?.();
     }, 15000);
 
     return () => {
@@ -194,11 +197,13 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
 
   const loadWallet = async () => {
     try {
-      let { data: walletData, error: walletError } = await supabase
+      const walletResult = await supabase
         .from('wallets')
         .select('*')
         .eq('user_id', employeeId)
         .maybeSingle();
+      let walletData = walletResult.data;
+      const walletError = walletResult.error;
 
       if (walletError) throw walletError;
 
@@ -220,6 +225,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       setLoading(false);
     }
   };
+  loadWalletRef.current = loadWallet;
+  loadEmployeeDataRef.current = loadEmployeeData;
+  loadVerificationRequestRef.current = loadVerificationRequest;
 
   const handleVerificationComplete = () => {
     setShowVerificationForm(false);
@@ -448,9 +456,9 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       }, 3000);
 
       loadWallet();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error in handleConfirmWithdrawal:', error);
-      setMessage({ type: 'error', text: t.wallet.withdrawalRequestFailed(error.message || t.wallet.unknownError) });
+      setMessage({ type: 'error', text: t.wallet.withdrawalRequestFailed(error instanceof Error ? error.message : t.wallet.unknownError) });
       setShowConfirmModal(false);
     } finally {
       setSubmitting(false);

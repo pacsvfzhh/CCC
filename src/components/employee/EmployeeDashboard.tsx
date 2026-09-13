@@ -51,6 +51,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const { companyName } = useCompanyName(employee.created_by);
   const { isMobile, isTablet } = useResponsive();
   const { t, language, setLanguage } = useLanguage();
+  const loadUnreadCountRef = useRef<(() => Promise<void>) | null>(null);
+  const checkLoginPopupMessagesRef = useRef<(() => Promise<void>) | null>(null);
+  const loadLatestMessageRef = useRef<(() => Promise<void>) | null>(null);
 
   // Trigger auto messages for all eligible customers on login
   useEffect(() => {
@@ -129,7 +132,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       }
     })();
     return () => { cancelled = true; };
-  }, [employee.id]);
+  }, [employee.id, employee.created_by]);
 
   // Real-time sync employee data (especially is_verified status and session token)
   useEffect(() => {
@@ -291,8 +294,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   // Load unread message count
   useEffect(() => {
     // Load data asynchronously without blocking render
-    loadUnreadCount();
-    checkLoginPopupMessages();
+    void loadUnreadCountRef.current?.();
+    void checkLoginPopupMessagesRef.current?.();
 
     // Subscribe to new messages
     const channel = supabase
@@ -306,7 +309,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           filter: `recipient_id=eq.${employee.id}`
         },
         async () => {
-          loadUnreadCount();
+          void loadUnreadCountRef.current?.();
 
           const { data: latest } = await supabase
             .from('message_recipients')
@@ -320,7 +323,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
           playNotificationSound();
           setHasNewMessage(true);
-          await loadLatestMessage();
+          await loadLatestMessageRef.current?.();
         }
       )
       .on(
@@ -332,7 +335,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           filter: `recipient_id=eq.${employee.id}`
         },
         () => {
-          loadUnreadCount();
+          void loadUnreadCountRef.current?.();
         }
       )
       .subscribe();
@@ -463,6 +466,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       console.error('Error loading latest message:', error);
     }
   };
+  loadUnreadCountRef.current = loadUnreadCount;
+  checkLoginPopupMessagesRef.current = checkLoginPopupMessages;
+  loadLatestMessageRef.current = loadLatestMessage;
 
   return (
     <div className={`min-h-screen relative nav-root-padding employee-shell`} style={{ background: '#f8fafc' }}>
@@ -1242,7 +1248,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           employee={employee}
           onClose={() => {
             setShowMessageCenter(false);
-            loadUnreadCount();
+            void loadUnreadCountRef.current?.();
           }}
         />
       )}
@@ -1253,7 +1259,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           employee={employee}
           onClose={() => {
             setShowLoginPopup(false);
-            loadUnreadCount();
+            void loadUnreadCountRef.current?.();
           }}
         />
       )}
