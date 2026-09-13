@@ -386,7 +386,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       pending: 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400',
       approved: 'bg-green-500/10 border-green-500/50 text-green-400',
       rejected: 'bg-red-500/10 border-red-500/50 text-red-400',
-      cancelled: 'bg-slate-500/10 border-slate-500/50 text-slate-400',
+      cancelled: 'bg-slate-800/70 border-slate-600/70 text-slate-500',
       processed: 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400',
     };
 
@@ -994,7 +994,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                       : withdrawal.status === 'rejected'
                         ? 'bg-gradient-to-r from-red-500/[0.21] via-red-500/[0.08] to-transparent hover:from-red-500/[0.3] hover:via-red-500/[0.12]'
                         : withdrawal.status === 'cancelled'
-                          ? 'bg-gradient-to-r from-slate-400/[0.18] via-slate-400/[0.07] to-transparent hover:from-slate-400/[0.25] hover:via-slate-400/[0.11]'
+                          ? 'bg-gradient-to-r from-slate-700/[0.2] via-slate-800/[0.08] to-transparent hover:from-slate-600/[0.28] hover:via-slate-700/[0.12]'
                           : 'bg-gradient-to-r from-cyan-500/[0.19] via-cyan-500/[0.07] to-transparent hover:from-cyan-500/[0.27] hover:via-cyan-500/[0.11]';
                   const amountClass = withdrawal.status === 'pending'
                     ? 'text-orange-200'
@@ -1003,7 +1003,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                       : withdrawal.status === 'rejected'
                         ? 'text-red-200'
                         : withdrawal.status === 'cancelled'
-                          ? 'text-slate-200'
+                          ? 'text-slate-400'
                           : 'text-cyan-200';
                   const statusAccentClass = withdrawal.status === 'pending'
                     ? 'border-l-orange-400'
@@ -1012,7 +1012,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                       : withdrawal.status === 'rejected'
                         ? 'border-l-red-400'
                         : withdrawal.status === 'cancelled'
-                          ? 'border-l-slate-400'
+                          ? 'border-l-slate-600'
                           : 'border-l-cyan-400';
 
                   return (
