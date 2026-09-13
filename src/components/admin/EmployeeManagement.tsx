@@ -42,6 +42,9 @@ interface EmployeeWithAdmin extends Employee {
 type SortField = 'totalOrders' | 'todayOrders' | 'todayCompletedOrders' | 'failedOrders' | 'walletBalance' | 'accountBalance' | 'todayCommission' | 'totalWorkMinutes' | 'todayWorkMinutes' | 'created_at';
 type SummaryFilter = 'today_working' | 'new_today' | 'currently_working';
 
+const AUTO_REFRESH_INTERVAL_MS = 180000;
+const AUTO_REFRESH_RETRY_MS = 15000;
+
 interface EmployeeGroup {
   admin: {
     id: string;
@@ -170,18 +173,19 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const loadInProgressRef = useRef(false);
   const pendingReloadRef = useRef(false);
   const pendingReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autoRefreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastUpdatedRef = useRef<Date>(new Date());
+  const autoRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nextAutoRefreshAtRef = useRef(Date.now() + AUTO_REFRESH_INTERVAL_MS);
   const guardedLoadEmployeesRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
 
-  const resetAutoRefreshTimer = (updateTimestamp = true) => {
+  const resetAutoRefreshTimer = useCallback((delayMs = AUTO_REFRESH_INTERVAL_MS) => {
     if (!isMountedRef.current) return;
-    if (autoRefreshTimerRef.current) clearInterval(autoRefreshTimerRef.current);
-    autoRefreshTimerRef.current = setInterval(() => {
-      guardedLoadEmployeesRef.current?.(true);
-    }, 180000);
-    if (updateTimestamp) lastUpdatedRef.current = new Date();
-  };
+    if (autoRefreshTimerRef.current) clearTimeout(autoRefreshTimerRef.current);
+    nextAutoRefreshAtRef.current = Date.now() + delayMs;
+    setTimeTick(tick => tick + 1);
+    autoRefreshTimerRef.current = setTimeout(() => {
+      void guardedLoadEmployeesRef.current?.(true);
+    }, delayMs);
+  }, []);
 
   const schedulePendingReload = () => {
     if (!isMountedRef.current || pendingReloadTimerRef.current) return;
@@ -260,6 +264,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     if (!initialLoadStartedRef.current) {
       initialLoadStartedRef.current = true;
       void guardedLoadEmployeesRef.current?.(false);
+    } else {
+      resetAutoRefreshTimer();
     }
 
     let realtimeReloadTimer: ReturnType<typeof setTimeout> | null = null;
@@ -302,6 +308,27 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       .channel('employee_mgmt_users')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
         if (hasRelevantEmployeeChange(payload)) debouncedStructureReload();
+      })
+      .subscribe();
+
+    const verificationRequestsSubscription = supabase
+      .channel('employee_mgmt_verification_requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'verification_requests' }, () => {
+        debouncedStructureReload();
+      })
+      .subscribe();
+
+    const workSessionsSubscription = supabase
+      .channel('employee_mgmt_work_sessions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_sessions' }, () => {
+        debouncedStatsReload();
+      })
+      .subscribe();
+
+    const withdrawalsSubscription = supabase
+      .channel('employee_mgmt_withdrawals')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => {
+        debouncedStatsReload();
       })
       .subscribe();
 
@@ -387,6 +414,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       })
       .subscribe();
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      setTimeTick(tick => tick + 1);
+      if (Date.now() >= nextAutoRefreshAtRef.current && !loadInProgressRef.current) {
+        void guardedLoadEmployeesRef.current?.(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     const timeUpdateInterval = setInterval(() => {
       setTimeTick(tick => tick + 1);
     }, 1000);
@@ -397,13 +433,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
       supabase.removeChannel(adminsSubscription);
       supabase.removeChannel(usersSubscription);
+      supabase.removeChannel(verificationRequestsSubscription);
+      supabase.removeChannel(workSessionsSubscription);
+      supabase.removeChannel(withdrawalsSubscription);
       supabase.removeChannel(walletsSubscription);
       supabase.removeChannel(ordersSubscription);
-      if (autoRefreshTimerRef.current) clearInterval(autoRefreshTimerRef.current);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (autoRefreshTimerRef.current) clearTimeout(autoRefreshTimerRef.current);
       if (pendingReloadTimerRef.current) clearTimeout(pendingReloadTimerRef.current);
       clearInterval(timeUpdateInterval);
     };
-  }, []);
+  }, [resetAutoRefreshTimer]);
 
   const formatTime = useCallback((minutes: number): string => {
     const hours = Math.floor(minutes / 60);
@@ -411,12 +451,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     return `${hours}h ${mins}m`;
   }, []);
 
-  const AUTO_REFRESH_SECONDS = 180;
-
   const getCountdownSeconds = () => {
     void timeTick;
-    const elapsed = Math.floor((Date.now() - lastUpdatedRef.current.getTime()) / 1000);
-    return Math.max(0, AUTO_REFRESH_SECONDS - elapsed);
+    return Math.max(0, Math.ceil((nextAutoRefreshAtRef.current - Date.now()) / 1000));
   };
 
   const formatCountdown = () => {
@@ -454,7 +491,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     loadInProgressRef.current = true;
     try {
       const committed = await loadEmployees(silent);
-      resetAutoRefreshTimer(committed);
+      resetAutoRefreshTimer(committed ? AUTO_REFRESH_INTERVAL_MS : AUTO_REFRESH_RETRY_MS);
     } finally {
       loadInProgressRef.current = false;
       if (isMountedRef.current && pendingReloadRef.current) schedulePendingReload();
@@ -2525,12 +2562,19 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             <span className="text-sm text-cyan-100 font-mono font-bold tabular-nums w-[40px] text-center">{formatCountdown()}s</span>
           </div>
           <button
-            onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployeesRef.current?.(employeeGroups.length > 0 ? true : false); }}
+            type="button"
+            onClick={() => { if (!loading && !isRefreshing) void guardedLoadEmployeesRef.current?.(employeeGroups.length > 0); }}
             disabled={loading || isRefreshing}
-            className="flex h-full w-20 min-w-20 shrink-0 items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-500 px-4 text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-blue-400 hover:to-cyan-400 active:from-blue-600 active:to-cyan-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:bg-none"
-            title="Refresh now"
+            aria-label={(loading || isRefreshing) ? 'Refreshing staff data' : 'Refresh staff data now'}
+            aria-busy={loading || isRefreshing}
+            className="group relative flex h-full w-20 min-w-20 shrink-0 items-center justify-center overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 px-4 text-white shadow-sm shadow-cyan-950/30 transition-all duration-300 hover:from-blue-400 hover:to-cyan-400 hover:shadow-md hover:shadow-cyan-500/25 active:from-blue-600 active:to-cyan-600 disabled:cursor-wait disabled:opacity-90"
+            title={(loading || isRefreshing) ? 'Refreshing staff data...' : 'Refresh now'}
           >
-            <RefreshCw className={`w-4 h-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
+            <span className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-opacity ${(loading || isRefreshing) ? 'animate-pulse opacity-100' : 'opacity-0 group-hover:opacity-60'}`} />
+            <span className="relative flex h-8 w-8 items-center justify-center">
+              {(loading || isRefreshing) && <span className="absolute h-7 w-7 animate-ping rounded-full border border-white/60 [animation-duration:1200ms]" />}
+              <RefreshCw className={`h-4 w-4 drop-shadow-sm ${(loading || isRefreshing) ? 'animate-[spin_700ms_linear_infinite]' : 'transition-transform duration-500 group-hover:rotate-180 group-active:rotate-[270deg]'}`} />
+            </span>
           </button>
         </div>
       )}
@@ -2634,12 +2678,19 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           <span className="text-xs text-cyan-100 font-mono font-bold tabular-nums w-[34px] text-center">{formatCountdown()}s</span>
                         </div>
                         <button
-                          onClick={() => { if (!loading && !isRefreshing) guardedLoadEmployeesRef.current?.(employeeGroups.length > 0 ? true : false); }}
+                          type="button"
+                          onClick={() => { if (!loading && !isRefreshing) void guardedLoadEmployeesRef.current?.(employeeGroups.length > 0); }}
                           disabled={loading || isRefreshing}
-                          className="flex h-full items-center justify-center gap-1 bg-gradient-to-r from-blue-500 to-cyan-500 px-2.5 text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-blue-400 hover:to-cyan-400 active:from-blue-600 active:to-cyan-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:bg-none"
-                          title="Refresh now"
+                          aria-label={(loading || isRefreshing) ? 'Refreshing staff data' : 'Refresh staff data now'}
+                          aria-busy={loading || isRefreshing}
+                          className="group relative flex h-full min-w-10 items-center justify-center overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 px-2.5 text-white shadow-sm shadow-cyan-950/30 transition-all duration-300 hover:from-blue-400 hover:to-cyan-400 hover:shadow-md hover:shadow-cyan-500/25 active:from-blue-600 active:to-cyan-600 disabled:cursor-wait disabled:opacity-90"
+                          title={(loading || isRefreshing) ? 'Refreshing staff data...' : 'Refresh now'}
                         >
-                          <RefreshCw className={`w-4 h-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
+                          <span className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-opacity ${(loading || isRefreshing) ? 'animate-pulse opacity-100' : 'opacity-0 group-hover:opacity-60'}`} />
+                          <span className="relative flex h-7 w-7 items-center justify-center">
+                            {(loading || isRefreshing) && <span className="absolute h-6 w-6 animate-ping rounded-full border border-white/60 [animation-duration:1200ms]" />}
+                            <RefreshCw className={`h-4 w-4 drop-shadow-sm ${(loading || isRefreshing) ? 'animate-[spin_700ms_linear_infinite]' : 'transition-transform duration-500 group-hover:rotate-180 group-active:rotate-[270deg]'}`} />
+                          </span>
                         </button>
                       </div>
                     </div>
