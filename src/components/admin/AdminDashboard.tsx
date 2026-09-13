@@ -121,9 +121,17 @@ interface NavigationDragState {
 const NAVIGATION_PREFERENCES_KEY = 'admin_navigation_preferences';
 const NAVIGATION_LABEL_MAX_LENGTH = 12;
 
-function loadNavigationPreferences(adminId: string): NavigationPreferences {
+function getNavigationPreferencesOwnerId(admin: Admin): string | null {
+  if (admin.role === 'super_admin') return admin.id;
+  if (admin.role === 'secondary_admin') return admin.parent_id;
+  return null;
+}
+
+function loadNavigationPreferences(ownerId: string | null): NavigationPreferences {
+  if (!ownerId) return { order: [], labels: {} };
+
   try {
-    const stored = localStorage.getItem(`${NAVIGATION_PREFERENCES_KEY}:${adminId}`);
+    const stored = localStorage.getItem(`${NAVIGATION_PREFERENCES_KEY}:${ownerId}`);
     if (!stored) return { order: [], labels: {} };
 
     const parsed = JSON.parse(stored) as { order?: unknown; labels?: unknown };
@@ -142,15 +150,18 @@ function loadNavigationPreferences(adminId: string): NavigationPreferences {
   }
 }
 
-function saveNavigationPreferences(adminId: string, preferences: NavigationPreferences) {
+function saveNavigationPreferences(ownerId: string | null, preferences: NavigationPreferences) {
+  if (!ownerId) return;
+
   try {
-    localStorage.setItem(`${NAVIGATION_PREFERENCES_KEY}:${adminId}`, JSON.stringify(preferences));
+    localStorage.setItem(`${NAVIGATION_PREFERENCES_KEY}:${ownerId}`, JSON.stringify(preferences));
   } catch {
     return;
   }
 }
 
 export default function AdminDashboard({ admin }: AdminDashboardProps) {
+  const navigationPreferencesOwnerId = getNavigationPreferencesOwnerId(admin);
   const [activeTab, setActiveTab] = useState<AdminTabId>(
     admin.role === 'emergency_admin' ? 'accountlocks' : 'employees'
   );
@@ -178,9 +189,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [showNavigationSettings, setShowNavigationSettings] = useState(false);
   const [navigationPreferences, setNavigationPreferences] = useState<NavigationPreferences>(() =>
-    admin.role === 'super_admin'
-      ? loadNavigationPreferences(admin.id)
-      : { order: [], labels: {} }
+    loadNavigationPreferences(navigationPreferencesOwnerId)
   );
   const [navigationDraft, setNavigationDraft] = useState<Array<{ id: AdminTabId; label: string }>>([]);
   const [navigationSelectedItemId, setNavigationSelectedItemId] = useState<AdminTabId | null>(null);
@@ -207,14 +216,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const { companyName } = useCompanyName(admin.id);
 
   useEffect(() => {
-    setNavigationPreferences(
-      admin.role === 'super_admin'
-        ? loadNavigationPreferences(admin.id)
-        : { order: [], labels: {} }
-    );
+    setNavigationPreferences(loadNavigationPreferences(navigationPreferencesOwnerId));
     setNavigationDraft([]);
     setShowNavigationSettings(false);
-  }, [admin.id, admin.role]);
+  }, [navigationPreferencesOwnerId]);
 
   useEffect(() => () => {
     if (navigationDragTimerRef.current) {
@@ -336,8 +341,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   ], [admin.role]);
 
   const tabs = useMemo<NavigationTab[]>(() => {
-    if (admin.role !== 'super_admin') return defaultTabs;
-
     const tabsById = new Map(defaultTabs.map(tab => [tab.id, tab]));
     const orderedIds = navigationPreferences.order.filter(id => tabsById.has(id));
     defaultTabs.forEach(tab => {
@@ -349,7 +352,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       const customLabel = navigationPreferences.labels[id]?.trim();
       return { ...tab, label: customLabel || tab.label };
     });
-  }, [admin.role, defaultTabs, navigationPreferences]);
+  }, [defaultTabs, navigationPreferences]);
 
   const openNavigationSettings = () => {
     if (admin.role !== 'super_admin') return;
@@ -560,7 +563,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       ])) as Partial<Record<AdminTabId, string>>,
     };
     setNavigationPreferences(nextPreferences);
-    saveNavigationPreferences(admin.id, nextPreferences);
+    saveNavigationPreferences(navigationPreferencesOwnerId, nextPreferences);
     setShowNavigationSettings(false);
   };
 
