@@ -954,7 +954,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 <th className="px-3 py-2.5 font-semibold">員工</th>
                 <th className="px-3 py-2.5 font-semibold">金額</th>
                 <th className="px-3 py-2.5 font-semibold">狀態</th>
-                <th className="min-w-[280px] px-3 py-2.5 font-semibold">審核資訊</th>
+                <th className="w-[36%] min-w-[360px] px-3 py-2.5 font-semibold">審核資訊</th>
                 <th className="px-3 py-2.5 text-right font-semibold">操作</th>
               </tr>
             </thead>
@@ -1055,7 +1055,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           </div>
                         </td>
                         <td className="px-3 py-2.5 align-top">{getStatusBadge(withdrawal.status)}</td>
-                        <td className="min-w-[280px] px-3 py-2.5 align-top text-xs text-slate-400">
+                        <td className="w-[36%] min-w-[360px] px-3 py-2.5 align-top text-xs text-slate-400">
                           {withdrawal.audited_at ? (
                             <>
                               <div className={
@@ -1066,11 +1066,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                                 {new Date(withdrawal.audited_at).toLocaleString()}
                               </div>
                               {withdrawal.audit_remark && (
-                                <div className="group/remark relative mt-1 max-w-[280px]">
+                                <div className="group/remark relative mt-1 max-w-[360px]">
                                   <div className="truncate cursor-help border-b border-dotted border-slate-600 pb-0.5 text-slate-400 transition-colors group-hover/remark:border-cyan-300/60 group-hover/remark:text-cyan-200">
                                     {withdrawal.audit_remark}
                                   </div>
-                                  <div className="pointer-events-none absolute bottom-full left-0 z-40 mb-2 hidden w-[320px] max-w-[calc(100vw-2rem)] rounded-xl border border-cyan-400/35 bg-slate-800/[0.98] p-3 text-left shadow-2xl shadow-black/50 ring-1 ring-white/10 group-hover/remark:block">
+                                  <div className="pointer-events-none absolute bottom-full left-0 z-40 mb-2 hidden w-[420px] max-w-[calc(100vw-2rem)] rounded-xl border border-cyan-400/35 bg-slate-800/[0.98] p-3 text-left shadow-2xl shadow-black/50 ring-1 ring-white/10 group-hover/remark:block">
                                     <div className="flex items-center gap-2 border-b border-slate-700/80 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200">
                                       <span className="h-1.5 w-1.5 rounded-full bg-cyan-300" />
                                       審核備註
