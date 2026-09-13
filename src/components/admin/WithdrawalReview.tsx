@@ -25,7 +25,7 @@ interface PendingWithdrawalCorrection {
   amount: number;
 }
 
-const FINANCIAL_CORRECTION_REMARK = 'Financial correction';
+const FINANCIAL_CORRECTION_REMARK = 'Financial system correction';
 
 type FilterStatus = 'all' | 'today' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'processed';
 type SortOption = 'submit_time_desc' | 'submit_time_asc' | 'audit_time_desc' | 'audit_time_asc';
@@ -492,7 +492,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     setConfirmDialog({
       isOpen: true,
       title: '修改提現記錄',
-      message: `確定要將這筆提現修改為「${editStatus === 'approved' ? '已批准' : '已拒絕'}」嗎？系統會同步修正員工錢包；如有待審核提現，將自動取消並標記為 Financial correction。`,
+      message: `確定要將這筆提現修改為「${editStatus === 'approved' ? '已批准' : '已拒絕'}」嗎？系統會同步修正員工錢包；如有待審核提現，將自動取消並標記為 ${FINANCIAL_CORRECTION_REMARK}。`,
       confirmText: '儲存變更',
       confirmColor: editStatus === 'approved' ? 'green' : 'red',
       onConfirm: async () => {
