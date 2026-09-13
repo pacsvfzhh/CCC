@@ -163,14 +163,23 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [changingUsername, setChangingUsername] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [showNavigationSettings, setShowNavigationSettings] = useState(false);
-  const [navigationPreferences, setNavigationPreferences] = useState<NavigationPreferences>(() => loadNavigationPreferences(admin.id));
+  const [navigationPreferences, setNavigationPreferences] = useState<NavigationPreferences>(() =>
+    admin.role === 'super_admin'
+      ? loadNavigationPreferences(admin.id)
+      : { order: [], labels: {} }
+  );
   const [navigationDraft, setNavigationDraft] = useState<Array<{ id: AdminTabId; label: string }>>([]);
   const { companyName } = useCompanyName(admin.id);
 
   useEffect(() => {
-    setNavigationPreferences(loadNavigationPreferences(admin.id));
+    setNavigationPreferences(
+      admin.role === 'super_admin'
+        ? loadNavigationPreferences(admin.id)
+        : { order: [], labels: {} }
+    );
+    setNavigationDraft([]);
     setShowNavigationSettings(false);
-  }, [admin.id]);
+  }, [admin.id, admin.role]);
 
   useEffect(() => {
     if (admin.role === 'super_admin') {
@@ -260,6 +269,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   ], [admin.role]);
 
   const tabs = useMemo<NavigationTab[]>(() => {
+    if (admin.role !== 'super_admin') return defaultTabs;
+
     const tabsById = new Map(defaultTabs.map(tab => [tab.id, tab]));
     const orderedIds = navigationPreferences.order.filter(id => tabsById.has(id));
     defaultTabs.forEach(tab => {
@@ -271,14 +282,16 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       const customLabel = navigationPreferences.labels[id]?.trim();
       return { ...tab, label: customLabel || tab.label };
     });
-  }, [defaultTabs, navigationPreferences]);
+  }, [admin.role, defaultTabs, navigationPreferences]);
 
   const openNavigationSettings = () => {
+    if (admin.role !== 'super_admin') return;
     setNavigationDraft(tabs.map(tab => ({ id: tab.id, label: tab.label })));
     setShowNavigationSettings(true);
   };
 
   const moveNavigationItem = (index: number, direction: -1 | 1) => {
+    if (admin.role !== 'super_admin') return;
     const targetIndex = index + direction;
     if (targetIndex < 0 || targetIndex >= navigationDraft.length) return;
     setNavigationDraft(current => {
@@ -289,10 +302,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   };
 
   const resetNavigationDraft = () => {
+    if (admin.role !== 'super_admin') return;
     setNavigationDraft(defaultTabs.map(tab => ({ id: tab.id, label: tab.label })));
   };
 
   const saveNavigationDraft = () => {
+    if (admin.role !== 'super_admin') return;
     const defaultLabels = new Map(defaultTabs.map(tab => [tab.id, tab.label]));
     const nextPreferences: NavigationPreferences = {
       order: navigationDraft.map(item => item.id),
@@ -900,18 +915,20 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 );
               })}
             </nav>
-            <div className="relative z-10 mt-auto border-t border-cyan-900/60 bg-slate-950/35 p-1.5">
-              <button
-                type="button"
-                onClick={openNavigationSettings}
-                className="flex h-8 w-full items-center gap-1.5 rounded-lg border border-amber-800/55 bg-gradient-to-r from-blue-950/90 via-cyan-950/70 to-amber-950/50 px-2 text-left text-[10px] font-semibold text-slate-200 transition-colors hover:border-amber-700/70 hover:text-white"
-                title="Customize navigation order and names"
-              >
-                <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-amber-300" />
-                <span className="min-w-0 flex-1 truncate">Nav Settings</span>
-                <Settings className="h-3 w-3 shrink-0 text-cyan-400" />
-              </button>
-            </div>
+            {admin.role === 'super_admin' && (
+              <div className="relative z-10 mt-auto border-t border-cyan-900/60 bg-slate-950/35 p-1.5">
+                <button
+                  type="button"
+                  onClick={openNavigationSettings}
+                  className="flex h-8 w-full items-center gap-1.5 rounded-lg border border-amber-800/55 bg-gradient-to-r from-blue-950/90 via-cyan-950/70 to-amber-950/50 px-2 text-left text-[10px] font-semibold text-slate-200 transition-colors hover:border-amber-700/70 hover:text-white"
+                  title="Customize navigation order and names"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-amber-300" />
+                  <span className="min-w-0 flex-1 truncate">Nav Settings</span>
+                  <Settings className="h-3 w-3 shrink-0 text-cyan-400" />
+                </button>
+              </div>
+            )}
           </aside>
 
           {/* Mobile: Horizontal Scrolling Tabs */}
@@ -1100,7 +1117,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         </div>
       </div>
 
-      {showNavigationSettings && (
+      {admin.role === 'super_admin' && showNavigationSettings && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
           <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-cyan-800/65 bg-slate-900 shadow-[0_24px_70px_rgba(2,6,23,0.78)]">
             <div className="flex shrink-0 items-center justify-between border-b border-slate-700/80 bg-gradient-to-r from-blue-950/90 via-cyan-950/65 to-amber-950/45 px-5 py-4">
