@@ -1,8 +1,8 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { Language, LANGUAGES } from './types';
+import { useState, useCallback, useEffect, ReactNode } from 'react';
+import { LanguageContext } from './context';
+import type { Translations } from './context';
+import type { Language } from './types';
 import en from './locales/en';
-
-type Translations = typeof en;
 type TranslationModule = { default: unknown };
 
 const loaders: Record<Language, () => Promise<TranslationModule>> = {
@@ -35,15 +35,6 @@ function getInitialLanguage(): Language {
   return 'en';
 }
 
-interface LanguageContextType {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  t: Translations;
-  dateLocale: string;
-}
-
-const LanguageContext = createContext<LanguageContextType | null>(null);
-
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(getInitialLanguage);
   const [translations, setTranslations] = useState<Translations>(cache.get(language) || en);
@@ -74,14 +65,3 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     </LanguageContext.Provider>
   );
 }
-
-export function useLanguage(): LanguageContextType {
-  const context = useContext(LanguageContext);
-  if (!context) {
-    return { language: 'en', setLanguage: () => {}, t: en, dateLocale: 'en-US' };
-  }
-  return context;
-}
-
-export { LANGUAGES };
-export type { Language };

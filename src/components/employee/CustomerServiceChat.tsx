@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { MessageCircle, X, Send, Image, Star, ArrowLeft, Search, Clock, Zap, Sparkles, Award, Gift, ZoomIn, ZoomOut, RotateCcw, Megaphone, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { sanitizeChatMessage, sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 import { CustomerAvatarDisplay } from '../admin/CustomerAvatarPicker';
 import { preloadCustomerAvatar } from '../admin/customerAvatarUtils';
 

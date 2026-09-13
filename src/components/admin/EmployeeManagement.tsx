@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useRef, useMemo } from 'react';
+import { Fragment, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
@@ -405,11 +405,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     };
   }, []);
 
-  const formatTime = (minutes: number): string => {
+  const formatTime = useCallback((minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const mins = Math.round(minutes % 60);
     return `${hours}h ${mins}m`;
-  };
+  }, []);
 
   const AUTO_REFRESH_SECONDS = 180;
 
@@ -793,7 +793,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     }
   };
 
-  const toggleEmployeeStatus = async (employeeId: string, currentStatus: boolean, employeeUsername: string) => {
+  const toggleEmployeeStatus = useCallback(async (employeeId: string, currentStatus: boolean, employeeUsername: string) => {
     const newStatus = !currentStatus;
     setConfirmDialog({
       show: true,
@@ -819,9 +819,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         }
       }
     });
-  };
+  }, []);
 
-  const toggleVerification = async (employeeId: string, currentStatus: boolean, employeeUsername: string) => {
+  const toggleVerification = useCallback(async (employeeId: string, currentStatus: boolean, employeeUsername: string) => {
     const newStatus = !currentStatus;
     setConfirmDialog({
       show: true,
@@ -848,7 +848,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         }
       }
     });
-  };
+  }, []);
 
   const handleResetPassword = async (employeeId: string) => {
     if (!newPassword.trim()) {
@@ -1160,7 +1160,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     });
   };
 
-  const sortEmployees = (employees: EmployeeWithAdmin[], adminId: string) => {
+  const sortEmployees = useCallback((employees: EmployeeWithAdmin[], adminId: string) => {
     const sorted = [...employees];
     const groupSort = sortByGroup.get(adminId);
     sorted.sort((a, b) => {
@@ -1193,13 +1193,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       return 0;
     });
     return sorted;
-  };
+  }, [sortByGroup]);
 
-  const getFilteredEmployeesForGroup = (group: EmployeeGroup) => {
-    const selectedTags = getSelectedTagsForGroup(group.admin.id);
-    const activeFilter = getActiveFilter(group.admin.id);
-    const workStatusFilter = getWorkStatusFilter(group.admin.id);
-    const summaryFilter = getSummaryFilter(group.admin.id);
+  const getFilteredEmployeesForGroup = useCallback((group: EmployeeGroup) => {
+    const selectedTags = selectedTagsByGroup.get(group.admin.id) || [];
+    const activeFilter = activeFilterByGroup.get(group.admin.id) || 'all';
+    const workStatusFilter = workStatusFilterByGroup.get(group.admin.id) || new Set<'online' | 'offline' | 'never_started'>();
+    const summaryFilter = summaryFilterByGroup.get(group.admin.id) || null;
     const searchLower = searchTerm.toLowerCase();
     const today = new Date();
     const now = Date.now();
@@ -1247,7 +1247,16 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       }),
       group.admin.id
     );
-  };
+  }, [
+    activeFilterByGroup,
+    inactiveDaysFilterByGroup,
+    pendingWithdrawalFilterByGroup,
+    searchTerm,
+    selectedTagsByGroup,
+    sortEmployees,
+    summaryFilterByGroup,
+    workStatusFilterByGroup,
+  ]);
   const filteredEmployeeGroups = useMemo(() => employeeGroups.map(group => ({
     ...group,
     employees: getFilteredEmployeesForGroup(group)
@@ -1258,14 +1267,6 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     return group.admin.role === 'secondary_admin' || group.admin.role === 'super_admin' || group.employees.length > 0;
   }), [
     employeeGroups,
-    selectedTagsByGroup,
-    activeFilterByGroup,
-    workStatusFilterByGroup,
-    summaryFilterByGroup,
-    inactiveDaysFilterByGroup,
-    pendingWithdrawalFilterByGroup,
-    sortByGroup,
-    searchTerm,
     admin.role,
     selectedAdminFilter,
     getFilteredEmployeesForGroup,
@@ -1339,7 +1340,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   // ===== Render helpers =====
 
-  const renderWorkStatusBadge = (status: 'online' | 'offline' | 'never_started') => {
+  const renderWorkStatusBadge = useCallback((status: 'online' | 'offline' | 'never_started') => {
     if (status === 'online') {
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/20 border border-green-500/50">
@@ -1362,7 +1363,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <span className="text-xs font-medium text-slate-400">New</span>
       </span>
     );
-  };
+  }, []);
 
   const renderSummaryFilterButton = (
     adminId: string,
@@ -1733,7 +1734,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     );
   };
 
-  const handleViewLoginIP = async (employee: { id: string; username: string; employeeId?: string }) => {
+  const handleViewLoginIP = useCallback(async (employee: { id: string; username: string; employeeId?: string }) => {
     setLoginIPEmployee(employee);
     setLoginIPRecords([]);
     setLoginIPLoading(true);
@@ -1751,7 +1752,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     } finally {
       setLoginIPLoading(false);
     }
-  };
+  }, [admin.id]);
 
   const renderLoginIPModal = () => {
     if (!loginIPEmployee) return null;
@@ -1827,7 +1828,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     );
   };
 
-  const handleOpenWallet = async (employee: { id: string; username: string; employeeId?: string }) => {
+  const handleOpenWallet = useCallback(async (employee: { id: string; username: string; employeeId?: string }) => {
     setWalletEmployee(employee);
     setWalletData(null);
     setWalletAdjustData({ amount: '', remarks: '' });
@@ -1851,7 +1852,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     } finally {
       setWalletLoading(false);
     }
-  };
+  }, []);
 
   const handleWalletAdjust = async (type: 'add' | 'subtract') => {
     if (!walletEmployee || !walletData) return;
@@ -1996,7 +1997,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     );
   };
 
-  const renderActionsDropdown = (employee: EmployeeWithAdmin) => {
+  const renderActionsDropdown = useCallback((employee: EmployeeWithAdmin) => {
     const isOpen = openActionMenu === employee.id;
     return (
       <div className="relative" ref={isOpen ? actionMenuRef : undefined}>
@@ -2037,9 +2038,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         )}
       </div>
     );
-  };
+  }, [openActionMenu]);
 
-  const renderEmployeeRow = (employee: EmployeeWithAdmin, index: number, isSuperAdmin: boolean) => (
+  const renderEmployeeRow = useCallback((employee: EmployeeWithAdmin, index: number, isSuperAdmin: boolean) => (
     <tr
       key={employee.id}
       className={`group border-t border-slate-700/50 transition-colors duration-75 ${
@@ -2246,7 +2247,16 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         </div>
       </td>
     </tr>
-  );
+  ), [
+    formatTime,
+    handleOpenWallet,
+    handleViewLoginIP,
+    onQuickAction,
+    renderActionsDropdown,
+    renderWorkStatusBadge,
+    toggleEmployeeStatus,
+    toggleVerification,
+  ]);
   const employeeRowsByGroup = useMemo(() => {
     const rows = new Map<string, ReactNode[]>();
     filteredEmployeeGroups.forEach(group => {

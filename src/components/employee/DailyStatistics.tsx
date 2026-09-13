@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { TrendingUp, Calendar, CheckCircle, XCircle, DollarSign, ListChecks, BarChart3, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface DailyStatisticsProps {
   employeeId: string;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Square, Clock, Zap, Timer, Radio } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface WorkSessionTrackerProps {
   userId: string;

@@ -7,7 +7,7 @@ import { Announcement, AnnouncementListItem } from '../../types';
 import { marked } from 'marked';
 import { sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface AnnouncementBoardProps {
   userId: string;

@@ -3,7 +3,7 @@ import { CheckCircle, Upload, User, CreditCard, AlertCircle } from 'lucide-react
 import { supabase } from '../../lib/supabase';
 import { getCurrentTimestamp } from '../../lib/dateUtils';
 import { validateImageFile } from '../../lib/fileValidation';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface VerificationFormProps {
   employeeId: string;

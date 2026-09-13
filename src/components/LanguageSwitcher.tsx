@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Globe, Check, X } from 'lucide-react';
-import { useLanguage, LANGUAGES } from '../lib/i18n';
-import type { Language } from '../lib/i18n';
+import { useLanguage } from '../lib/i18n/context';
+import { LANGUAGES } from '../lib/i18n/types';
+import type { Language } from '../lib/i18n/types';
 
 interface LanguageSwitcherProps {
   variant?: 'desktop' | 'mobile';

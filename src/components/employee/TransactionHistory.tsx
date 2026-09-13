@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { getCurrentTimestamp, formatDateUTC, formatTimeUTC } from '../../lib/dateUtils';
 import { Withdrawal, WalletTransaction } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 import { usePaginatedList } from '../../lib/usePaginatedList';
 
 interface TransactionHistoryProps {

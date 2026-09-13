@@ -5,9 +5,10 @@ import { useCompanyName } from '../lib/useCompanyName';
 import { useResponsive } from '../lib/useResponsive';
 import { checkLoginRateLimit, recordLoginAttempt, formatLockDuration } from '../lib/rateLimitService';
 import { formatSupabaseError, isSupabaseAbortError, supabase, supabaseConfigurationError } from '../lib/supabase';
-import { useLanguage, LANGUAGES } from '../lib/i18n';
+import { useLanguage } from '../lib/i18n/context';
+import { LANGUAGES } from '../lib/i18n/types';
 import { LanguageModal } from '../components/LanguageSwitcher';
-import type { Language } from '../lib/i18n';
+import type { Language } from '../lib/i18n/types';
 import LoginDecorations from '../components/LoginDecorations';
 
 interface LoginProps {

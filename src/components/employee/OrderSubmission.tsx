@@ -4,7 +4,7 @@ import { Send, Search, Check, ChevronDown, Package, DollarSign, Hash, FileText, 
 import { supabase } from '../../lib/supabase';
 import { ProductType } from '../../types';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface OrderSubmissionProps {
   employeeId: string;

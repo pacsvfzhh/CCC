@@ -6,7 +6,7 @@ import { getTodayStartUTC, getCurrentTimestamp } from '../../lib/dateUtils';
 import { Play, Square, CheckCircle, XCircle, Clock, Package, TrendingUp, AlertTriangle, AlertCircle, Zap, Timer, FileText, ShieldAlert, CheckSquare, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useResponsive } from '../../lib/useResponsive';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 import type { Employee } from '../../types';
 
 interface DispatchAssignment {

@@ -3,7 +3,7 @@ import { Lock, Eye, EyeOff, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { hashPassword } from '../../lib/passwordHash';
 import { verifyPassword } from '../../lib/passwordHash';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface PasswordChangeProps {
   employeeId: string;

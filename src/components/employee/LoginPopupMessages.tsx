@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface LoginPopupMessagesProps {
   employee: Employee;

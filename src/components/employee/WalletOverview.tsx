@@ -7,7 +7,7 @@ import VerificationForm from './VerificationForm';
 import WithdrawalHistory from './WithdrawalHistory';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface WalletOverviewProps {
   employeeId: string;

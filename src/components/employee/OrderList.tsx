@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { getTodayStartUTC } from '../../lib/dateUtils';
 import { Order } from '../../types';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage } from '../../lib/i18n/context';
 
 interface OrderListProps {
   employeeId: string;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase, supabaseConfigurationError } from './supabase';
 
 const CACHE_KEY_PREFIX = 'cached_company_name';
@@ -34,6 +34,7 @@ function writeCachedName(adminId: string | null | undefined, value: string) {
 export function useCompanyName(adminId?: string | null) {
   const [companyName, setCompanyName] = useState<string>(() => readCachedName(adminId) || DEFAULT_COMPANY_NAME);
   const [loading, setLoading] = useState(true);
+  const loadCompanyNameRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     const cached = readCachedName(adminId);
@@ -44,7 +45,7 @@ export function useCompanyName(adminId?: string | null) {
       return;
     }
 
-    void loadCompanyName();
+    void loadCompanyNameRef.current?.();
 
     const channel = supabase
       .channel(`company-name-changes-${adminId || 'global'}`)
@@ -75,11 +76,11 @@ export function useCompanyName(adminId?: string | null) {
                 setCompanyName(newRecord.config_value);
                 writeCachedName(adminId, newRecord.config_value);
               } else if (newRecord.admin_id === null && newRecord.config_value) {
-                void loadCompanyName();
+                void loadCompanyNameRef.current?.();
               }
             }
           } else if (payload.eventType === 'DELETE') {
-            void loadCompanyName();
+            void loadCompanyNameRef.current?.();
           }
         }
       )
@@ -146,6 +147,7 @@ export function useCompanyName(adminId?: string | null) {
       setLoading(false);
     }
   };
+  loadCompanyNameRef.current = loadCompanyName;
 
   return { companyName, loading };
 }
