@@ -25,7 +25,7 @@ interface PendingWithdrawalCorrection {
   amount: number;
 }
 
-const FINANCIAL_CORRECTION_REMARK = 'Financial system correction';
+const FINANCIAL_CORRECTION_REMARK = 'Withdrawal accounting adjustment, please resubmit your application';
 
 type FilterStatus = 'all' | 'today' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'processed';
 type SortOption = 'submit_time_desc' | 'submit_time_asc' | 'audit_time_desc' | 'audit_time_asc';
