@@ -987,11 +987,29 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     : withdrawal.admin?.role === 'secondary_admin'
                       ? 'text-blue-100'
                       : 'text-slate-300';
+                  const statusSurfaceClass = withdrawal.status === 'pending'
+                    ? 'bg-gradient-to-r from-orange-500/[0.14] via-orange-500/[0.05] to-transparent hover:from-orange-500/[0.22] hover:via-orange-500/[0.08]'
+                    : withdrawal.status === 'approved'
+                      ? 'bg-gradient-to-r from-emerald-500/[0.11] via-emerald-500/[0.035] to-transparent hover:from-emerald-500/[0.18] hover:via-emerald-500/[0.06]'
+                      : withdrawal.status === 'rejected'
+                        ? 'bg-gradient-to-r from-red-500/[0.12] via-red-500/[0.04] to-transparent hover:from-red-500/[0.19] hover:via-red-500/[0.07]'
+                        : withdrawal.status === 'cancelled'
+                          ? 'bg-gradient-to-r from-slate-500/[0.12] via-slate-500/[0.04] to-transparent hover:from-slate-500/[0.18] hover:via-slate-500/[0.07]'
+                          : 'bg-gradient-to-r from-cyan-500/[0.11] via-cyan-500/[0.035] to-transparent hover:from-cyan-500/[0.18] hover:via-cyan-500/[0.06]';
+                  const statusAccentClass = withdrawal.status === 'pending'
+                    ? 'border-l-orange-400'
+                    : withdrawal.status === 'approved'
+                      ? 'border-l-emerald-400'
+                      : withdrawal.status === 'rejected'
+                        ? 'border-l-red-400'
+                        : withdrawal.status === 'cancelled'
+                          ? 'border-l-slate-400'
+                          : 'border-l-cyan-400';
 
                   return (
                     <Fragment key={withdrawal.id}>
-                      <tr className={isPending ? 'bg-orange-500/[0.06] hover:bg-orange-500/[0.1]' : 'hover:bg-slate-800/40'}>
-                        <td className="px-3 py-2.5 align-top">
+                      <tr className={`${statusSurfaceClass} transition-colors`}>
+                        <td className={`border-l-2 px-3 py-2.5 align-top ${statusAccentClass}`}>
                           {isPending && (
                             <input
                               type="checkbox"
