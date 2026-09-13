@@ -949,7 +949,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     aria-label="選取目前檢視中的所有待審核提現"
                   />
                 </th>
-                <th className="min-w-[170px] px-3 py-2.5 font-semibold">所屬管理員</th>
+                <th className="w-[132px] px-3 py-2.5 font-semibold">所屬管理員</th>
                 <th className="px-3 py-2.5 font-semibold">員工</th>
                 <th className="px-3 py-2.5 font-semibold">金額</th>
                 <th className="px-3 py-2.5 font-semibold">狀態</th>
@@ -970,16 +970,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   const isPending = withdrawal.status === 'pending';
                   const isReviewing = reviewing === withdrawal.id;
                   const isEditing = editing === withdrawal.id;
-                  const adminRoleLabel = withdrawal.admin?.role === 'super_admin'
-                    ? '超級管理員'
+                  const adminBadgeClass = withdrawal.admin?.role === 'super_admin'
+                    ? 'border-amber-300/70 bg-amber-400/20 text-amber-100 shadow-amber-950/30'
                     : withdrawal.admin?.role === 'secondary_admin'
-                      ? '二級管理員'
-                      : '未分配';
-                  const adminIndicatorClass = withdrawal.admin?.role === 'super_admin'
-                    ? 'border-amber-200/80 bg-amber-400 shadow-amber-400/50'
-                    : withdrawal.admin?.role === 'secondary_admin'
-                      ? 'border-blue-200/80 bg-blue-400 shadow-blue-400/50'
-                      : 'border-slate-400/70 bg-slate-600 shadow-slate-500/30';
+                      ? 'border-blue-300/70 bg-blue-500/20 text-blue-100 shadow-blue-950/30'
+                      : 'border-slate-500/70 bg-slate-700/70 text-slate-300 shadow-black/20';
 
                   return (
                     <Fragment key={withdrawal.id}>
@@ -995,15 +990,14 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                             />
                           )}
                         </td>
-                        <td className="relative min-w-[170px] px-3 py-2.5 align-top">
-                          <div className="pr-6 font-medium text-white">{withdrawal.admin?.username || '未分配'}</div>
-                          <div className="mt-0.5 pr-6 text-xs text-slate-500">{adminRoleLabel}</div>
+                        <td className="w-[132px] px-3 py-2.5 align-top">
                           <span
-                            role="img"
-                            aria-label={adminRoleLabel}
-                            title={adminRoleLabel}
-                            className={`absolute right-3 top-3 h-2.5 w-2.5 rounded-full border shadow-lg ${adminIndicatorClass}`}
-                          />
+                            title={withdrawal.admin?.username || '未分配'}
+                            aria-label={`所屬管理員：${withdrawal.admin?.username || '未分配'}`}
+                            className={`inline-flex max-w-[108px] items-center rounded-lg border px-2 py-1 text-xs font-semibold shadow-md ${adminBadgeClass}`}
+                          >
+                            <span className="truncate">{withdrawal.admin?.username || '未分配'}</span>
+                          </span>
                         </td>
                         <td className="px-3 py-2.5 align-top">
                           <div className="font-medium text-white">{withdrawal.employee?.username}</div>
