@@ -23,6 +23,13 @@ interface AdminGroup {
 type FilterStatus = 'all' | 'today' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'processed';
 type SortOption = 'submit_time_desc' | 'submit_time_asc' | 'audit_time_desc' | 'audit_time_asc';
 
+const sortOptions: Array<{ key: SortOption; label: string; description: string }> = [
+  { key: 'submit_time_desc', label: '最新提交', description: '按提交時間從新到舊' },
+  { key: 'submit_time_asc', label: '最早提交', description: '按提交時間從舊到新' },
+  { key: 'audit_time_desc', label: '最新審核', description: '按審核時間從新到舊' },
+  { key: 'audit_time_asc', label: '最早審核', description: '按審核時間從舊到新' },
+];
+
 export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,9 +51,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [bulkValidationError, setBulkValidationError] = useState<string | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const loadWithdrawalsRef = useRef<(() => Promise<void>) | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -68,6 +77,19 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [groupMenuOpen]);
+
+  useEffect(() => {
+    if (!sortMenuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
+        setSortMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [sortMenuOpen]);
 
   useEffect(() => {
     void loadWithdrawalsRef.current?.();
@@ -804,25 +826,64 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search employee or ID"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950/60 py-1 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:w-52"
+                  placeholder="搜尋員工姓名或 ID"
+                  aria-label="搜尋員工姓名或 ID"
+                  className="w-full rounded-xl border border-white/70 bg-white py-1.5 pl-9 pr-3 text-xs font-medium text-slate-800 shadow-lg shadow-black/20 placeholder-slate-400 outline-none transition-all focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30 sm:w-60"
                 />
               </div>
 
-              <select
-                value={sortOption}
-                onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-1 text-xs text-slate-200 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="submit_time_desc">Newest submitted</option>
-                <option value="submit_time_asc">Oldest submitted</option>
-                <option value="audit_time_desc">Newest audited</option>
-                <option value="audit_time_asc">Oldest audited</option>
-              </select>
+              <div className="relative" ref={sortMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setSortMenuOpen((open) => !open)}
+                  className={`flex min-w-44 items-center justify-between gap-3 rounded-xl border px-3 py-1.5 text-left text-xs font-semibold shadow-lg transition-all ${
+                    sortMenuOpen
+                      ? 'border-cyan-300/80 bg-gradient-to-r from-blue-700/85 via-cyan-700/65 to-slate-800 text-white shadow-cyan-950/50 ring-1 ring-inset ring-cyan-200/20'
+                      : 'border-slate-600/80 bg-slate-800/95 text-slate-100 shadow-black/25 hover:border-cyan-400/60 hover:bg-slate-700/95'
+                  }`}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-cyan-200" />
+                    <span className="truncate">{sortOptions.find((option) => option.key === sortOption)?.label}</span>
+                  </span>
+                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200/80 transition-transform ${sortMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {sortMenuOpen && (
+                  <div className="absolute right-0 z-30 mt-2 w-60 overflow-hidden rounded-xl border border-cyan-400/30 bg-slate-800/95 shadow-2xl shadow-cyan-950/50 ring-1 ring-white/10 backdrop-blur-xl">
+                    <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-amber-400" />
+                    <div className="p-1.5">
+                      {sortOptions.map((option) => (
+                        <button
+                          key={option.key}
+                          type="button"
+                          onClick={() => {
+                            setSortOption(option.key);
+                            setSortMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left transition-all ${
+                            sortOption === option.key
+                              ? 'bg-cyan-600/85 text-white shadow-md shadow-cyan-950/30'
+                              : 'text-slate-200 hover:bg-slate-700/85 hover:text-white'
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block text-xs font-semibold">{option.label}</span>
+                            <span className={`mt-0.5 block text-[10px] ${sortOption === option.key ? 'text-cyan-100/80' : 'text-slate-400'}`}>
+                              {option.description}
+                            </span>
+                          </span>
+                          {sortOption === option.key && <Check className="h-3.5 w-3.5 shrink-0 text-cyan-100" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
