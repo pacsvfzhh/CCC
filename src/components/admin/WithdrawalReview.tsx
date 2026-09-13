@@ -1050,7 +1050,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                         </td>
                         <td className={`px-3 py-2.5 align-top font-bold tabular-nums ${amountClass}`}>
                           <div>${withdrawal.amount.toFixed(2)}</div>
-                          <div className="mt-1 whitespace-nowrap text-[10px] font-medium tabular-nums text-slate-300/75">
+                          <div className="mt-1 whitespace-nowrap text-[10px] font-bold tabular-nums text-slate-200">
                             {new Date(withdrawal.created_at).toLocaleString()}
                           </div>
                         </td>
