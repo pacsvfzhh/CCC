@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
-import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Database, Lock, Eye, EyeOff, Bell, PackageSearch, MessageCircle, Search, History, UserCog, Activity, Clock, Headphones, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
+import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Database, Lock, Eye, EyeOff, Bell, PackageSearch, MessageCircle, Search, History, UserCog, Activity, Clock, Headphones, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Save, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Admin } from '../../types';
 import { logout, updateStoredUsername } from '../../lib/auth';
 import { hashPassword, verifyPassword } from '../../lib/passwordHash';
@@ -91,8 +92,52 @@ interface AdminDashboardProps {
   admin: Admin;
 }
 
+type AdminTabId = 'employees' | 'products' | 'withdrawals' | 'verifications' | 'announcements' | 'config' | 'admins' | 'validdata' | 'messages' | 'dispatch' | 'records' | 'customerservice' | 'cccservice' | 'employeesearch' | 'history' | 'accountlocks' | 'loginhistory' | 'submittime';
+
+interface NavigationTab {
+  id: AdminTabId;
+  label: string;
+  icon: LucideIcon;
+}
+
+interface NavigationPreferences {
+  order: AdminTabId[];
+  labels: Partial<Record<AdminTabId, string>>;
+}
+
+const NAVIGATION_PREFERENCES_KEY = 'admin_navigation_preferences';
+
+function loadNavigationPreferences(adminId: string): NavigationPreferences {
+  try {
+    const stored = localStorage.getItem(`${NAVIGATION_PREFERENCES_KEY}:${adminId}`);
+    if (!stored) return { order: [], labels: {} };
+
+    const parsed = JSON.parse(stored) as { order?: unknown; labels?: unknown };
+    const order = Array.isArray(parsed.order)
+      ? parsed.order.filter((value): value is AdminTabId => typeof value === 'string')
+      : [];
+    const labels = parsed.labels && typeof parsed.labels === 'object'
+      ? Object.fromEntries(
+          Object.entries(parsed.labels).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+        ) as Partial<Record<AdminTabId, string>>
+      : {};
+
+    return { order, labels };
+  } catch {
+    return { order: [], labels: {} };
+  }
+}
+
+function saveNavigationPreferences(adminId: string, preferences: NavigationPreferences) {
+  try {
+    localStorage.setItem(`${NAVIGATION_PREFERENCES_KEY}:${adminId}`, JSON.stringify(preferences));
+  } catch {
+    return;
+  }
+}
+
 export default function AdminDashboard({ admin }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'employees' | 'products' | 'withdrawals' | 'verifications' | 'announcements' | 'config' | 'admins' | 'validdata' | 'messages' | 'dispatch' | 'records' | 'customerservice' | 'cccservice' | 'employeesearch' | 'history' | 'accountlocks' | 'loginhistory' | 'submittime'>(
+  const [activeTab, setActiveTab] = useState<AdminTabId>(
     admin.role === 'emergency_admin' ? 'accountlocks' : 'employees'
   );
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set([admin.role === 'emergency_admin' ? 'accountlocks' : 'employees']));
@@ -117,7 +162,15 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [usernameSuccess, setUsernameSuccess] = useState(false);
   const [changingUsername, setChangingUsername] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [showNavigationSettings, setShowNavigationSettings] = useState(false);
+  const [navigationPreferences, setNavigationPreferences] = useState<NavigationPreferences>(() => loadNavigationPreferences(admin.id));
+  const [navigationDraft, setNavigationDraft] = useState<Array<{ id: AdminTabId; label: string }>>([]);
   const { companyName } = useCompanyName(admin.id);
+
+  useEffect(() => {
+    setNavigationPreferences(loadNavigationPreferences(admin.id));
+    setShowNavigationSettings(false);
+  }, [admin.id]);
 
   useEffect(() => {
     if (admin.role === 'super_admin') {
@@ -182,32 +235,76 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const consumeCustomerServiceEmployee = useCallback(() => setNavigateToCustomerServiceEmployee(null), []);
   const consumeCccServiceEmployee = useCallback(() => setNavigateToCccServiceEmployee(null), []);
 
-  // Build tabs array based on admin role
-  const tabs = admin.role === 'emergency_admin' ? [
-    // Emergency admin only has access to Account Locks
-    { id: 'accountlocks' as const, label: 'Locked', icon: Shield },
+  const defaultTabs = useMemo<NavigationTab[]>(() => admin.role === 'emergency_admin' ? [
+    { id: 'accountlocks', label: 'Locked', icon: Shield },
   ] : [
-    // Normal admin tabs
-    { id: 'employees' as const, label: 'Employees', icon: Users },
-    { id: 'employeesearch' as const, label: 'Employee Search', icon: Search },
-    { id: 'loginhistory' as const, label: 'Login History', icon: Activity },
-    { id: 'accountlocks' as const, label: 'Locked', icon: Shield },
-    { id: 'messages' as const, label: 'Messages', icon: Bell },
-    { id: 'announcements' as const, label: 'Announcements', icon: FileText },
-    { id: 'customerservice' as const, label: '模拟客户', icon: MessageCircle },
-    { id: 'cccservice' as const, label: '经理', icon: Headphones },
-    { id: 'dispatch' as const, label: 'Order Assignment', icon: PackageSearch },
-    { id: 'withdrawals' as const, label: 'Withdrawals', icon: FileText },
-    { id: 'verifications' as const, label: 'Verifications', icon: UserCheck },
-    { id: 'config' as const, label: 'Configuration', icon: Settings },
-    { id: 'submittime' as const, label: 'Submit Time', icon: Clock },
+    { id: 'employees', label: 'Employees', icon: Users },
+    { id: 'employeesearch', label: 'Employee Search', icon: Search },
+    { id: 'loginhistory', label: 'Login History', icon: Activity },
+    { id: 'accountlocks', label: 'Locked', icon: Shield },
+    { id: 'messages', label: 'Messages', icon: Bell },
+    { id: 'announcements', label: 'Announcements', icon: FileText },
+    { id: 'customerservice', label: '模拟客户', icon: MessageCircle },
+    { id: 'cccservice', label: '经理', icon: Headphones },
+    { id: 'dispatch', label: 'Order Assignment', icon: PackageSearch },
+    { id: 'withdrawals', label: 'Withdrawals', icon: FileText },
+    { id: 'verifications', label: 'Verifications', icon: UserCheck },
+    { id: 'config', label: 'Configuration', icon: Settings },
+    { id: 'submittime', label: 'Submit Time', icon: Clock },
     ...(admin.role === 'super_admin' ? [
       { id: 'products' as const, label: 'Products', icon: Package },
       { id: 'validdata' as const, label: 'Valid Data', icon: Database },
       { id: 'admins' as const, label: 'Admins', icon: Shield },
       { id: 'history' as const, label: 'History Data', icon: History },
     ] : []),
-  ];
+  ], [admin.role]);
+
+  const tabs = useMemo<NavigationTab[]>(() => {
+    const tabsById = new Map(defaultTabs.map(tab => [tab.id, tab]));
+    const orderedIds = navigationPreferences.order.filter(id => tabsById.has(id));
+    defaultTabs.forEach(tab => {
+      if (!orderedIds.includes(tab.id)) orderedIds.push(tab.id);
+    });
+
+    return orderedIds.map(id => {
+      const tab = tabsById.get(id)!;
+      const customLabel = navigationPreferences.labels[id]?.trim();
+      return { ...tab, label: customLabel || tab.label };
+    });
+  }, [defaultTabs, navigationPreferences]);
+
+  const openNavigationSettings = () => {
+    setNavigationDraft(tabs.map(tab => ({ id: tab.id, label: tab.label })));
+    setShowNavigationSettings(true);
+  };
+
+  const moveNavigationItem = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= navigationDraft.length) return;
+    setNavigationDraft(current => {
+      const next = [...current];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return next;
+    });
+  };
+
+  const resetNavigationDraft = () => {
+    setNavigationDraft(defaultTabs.map(tab => ({ id: tab.id, label: tab.label })));
+  };
+
+  const saveNavigationDraft = () => {
+    const defaultLabels = new Map(defaultTabs.map(tab => [tab.id, tab.label]));
+    const nextPreferences: NavigationPreferences = {
+      order: navigationDraft.map(item => item.id),
+      labels: Object.fromEntries(navigationDraft.map(item => [
+        item.id,
+        item.label.trim() || defaultLabels.get(item.id) || item.id,
+      ])) as Partial<Record<AdminTabId, string>>,
+    };
+    setNavigationPreferences(nextPreferences);
+    saveNavigationPreferences(admin.id, nextPreferences);
+    setShowNavigationSettings(false);
+  };
 
   const loadPendingCounts = useCallback(async () => {
     const requestId = ++pendingCountsRequestRef.current;
@@ -803,6 +900,18 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 );
               })}
             </nav>
+            <div className="relative z-10 mt-auto border-t border-cyan-900/60 bg-slate-950/35 p-1.5">
+              <button
+                type="button"
+                onClick={openNavigationSettings}
+                className="flex h-8 w-full items-center gap-1.5 rounded-lg border border-amber-800/55 bg-gradient-to-r from-blue-950/90 via-cyan-950/70 to-amber-950/50 px-2 text-left text-[10px] font-semibold text-slate-200 transition-colors hover:border-amber-700/70 hover:text-white"
+                title="Customize navigation order and names"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-amber-300" />
+                <span className="min-w-0 flex-1 truncate">Nav Settings</span>
+                <Settings className="h-3 w-3 shrink-0 text-cyan-400" />
+              </button>
+            </div>
           </aside>
 
           {/* Mobile: Horizontal Scrolling Tabs */}
@@ -990,6 +1099,118 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           </div>
         </div>
       </div>
+
+      {showNavigationSettings && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-cyan-800/65 bg-slate-900 shadow-[0_24px_70px_rgba(2,6,23,0.78)]">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-700/80 bg-gradient-to-r from-blue-950/90 via-cyan-950/65 to-amber-950/45 px-5 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-700/60 bg-amber-950/55">
+                  <SlidersHorizontal className="h-5 w-5 text-amber-300" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="truncate text-lg font-bold text-white">Navigation Settings</h3>
+                  <p className="mt-0.5 text-xs text-slate-400">Customize display order and names for this administrator</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNavigationSettings(false)}
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                aria-label="Close navigation settings"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="shrink-0 border-b border-slate-800 bg-blue-950/25 px-5 py-3 text-xs leading-relaxed text-cyan-100/80">
+              These settings change presentation only. Routes, permissions, actions, notifications, and page functionality remain unchanged.
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 scrollbar-dark sm:p-5">
+              <div className="space-y-2">
+                {navigationDraft.map((item, index) => {
+                  const definition = defaultTabs.find(tab => tab.id === item.id);
+                  const Icon = definition?.icon || Settings;
+                  return (
+                    <div key={item.id} className="flex items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-950/45 p-2.5 transition-colors hover:border-cyan-800/70 hover:bg-slate-950/65">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-800/70 bg-blue-950/70 text-[11px] font-bold tabular-nums text-blue-200">
+                        {index + 1}
+                      </div>
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-800/65 bg-cyan-950/55">
+                        <Icon className="h-4 w-4 text-cyan-300" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <label htmlFor={`navigation-label-${item.id}`} className="sr-only">Display name for {definition?.label || item.id}</label>
+                        <input
+                          id={`navigation-label-${item.id}`}
+                          type="text"
+                          value={item.label}
+                          maxLength={30}
+                          onChange={(event) => {
+                            const label = event.target.value;
+                            setNavigationDraft(current => current.map(entry => entry.id === item.id ? { ...entry, label } : entry));
+                          }}
+                          className="h-8 w-full rounded-lg border border-slate-600 bg-white px-3 text-sm font-medium text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
+                          placeholder={definition?.label || item.id}
+                        />
+                      </div>
+                      <div className="flex shrink-0 items-center overflow-hidden rounded-lg border border-slate-700 bg-slate-900">
+                        <button
+                          type="button"
+                          onClick={() => moveNavigationItem(index, -1)}
+                          disabled={index === 0}
+                          className="flex h-8 w-8 items-center justify-center text-blue-300 transition-colors hover:bg-blue-950 hover:text-white disabled:cursor-not-allowed disabled:text-slate-700"
+                          aria-label={`Move ${item.label || definition?.label || item.id} up`}
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveNavigationItem(index, 1)}
+                          disabled={index === navigationDraft.length - 1}
+                          className="flex h-8 w-8 items-center justify-center border-l border-slate-700 text-amber-300 transition-colors hover:bg-amber-950/55 hover:text-white disabled:cursor-not-allowed disabled:text-slate-700"
+                          aria-label={`Move ${item.label || definition?.label || item.id} down`}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-700/80 bg-slate-950/55 px-5 py-4">
+              <button
+                type="button"
+                onClick={resetNavigationDraft}
+                className="inline-flex h-9 items-center gap-2 rounded-lg border border-amber-800/70 bg-amber-950/45 px-3 text-xs font-semibold text-amber-200 transition-colors hover:border-amber-700 hover:bg-amber-950/70 hover:text-white"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Restore defaults
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNavigationSettings(false)}
+                  className="h-9 rounded-lg border border-slate-600 bg-slate-800 px-4 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveNavigationDraft}
+                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-cyan-700/70 bg-gradient-to-r from-blue-700 to-cyan-700 px-4 text-xs font-semibold text-white transition-colors hover:from-blue-600 hover:to-cyan-600"
+                >
+                  <Save className="h-4 w-4" />
+                  Save settings
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Change Password Modal */}
       {showPasswordModal && (
