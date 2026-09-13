@@ -1114,7 +1114,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                               </div>
                               {withdrawal.audit_remark && (
                                 <div className="group/remark relative mt-1 max-w-[440px]">
-                                  <div className={`cursor-help whitespace-normal break-words border-b border-dotted pb-0.5 transition-colors ${auditTheme.trigger}`}>
+                                  <div className={`cursor-help truncate pb-0.5 transition-colors ${auditTheme.trigger}`}>
                                     {withdrawal.audit_remark}
                                   </div>
                                   <div className={`pointer-events-none absolute bottom-full left-0 z-40 mb-2 hidden w-[500px] max-w-[calc(100vw-2rem)] rounded-xl border p-3 text-left shadow-2xl shadow-black/50 ring-1 ring-white/10 group-hover/remark:block ${auditTheme.panel}`}>
