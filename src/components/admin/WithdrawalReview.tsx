@@ -670,19 +670,19 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   <button
                     type="button"
                     onClick={() => setGroupMenuOpen((open) => !open)}
-                    className={`flex w-full items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-sm transition-all ${
+                    className={`flex w-full items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all ${
                       groupMenuOpen
-                        ? 'border-cyan-500/60 bg-slate-800/90 text-white'
-                        : 'border-slate-700/70 bg-slate-900/70 text-slate-200 hover:border-cyan-500/50 hover:bg-slate-800/80 hover:text-white'
+                        ? 'border-cyan-300/80 bg-gradient-to-r from-blue-700/80 via-cyan-700/60 to-amber-500/35 text-white shadow-lg shadow-cyan-950/60 ring-1 ring-inset ring-cyan-200/20'
+                        : 'border-cyan-500/35 bg-gradient-to-r from-slate-800/95 via-blue-950/80 to-cyan-950/70 text-cyan-50 shadow-md shadow-cyan-950/30 ring-1 ring-inset ring-white/5 hover:border-cyan-300/60 hover:from-slate-700/95 hover:via-blue-900/80 hover:to-cyan-900/70 hover:text-white'
                     }`}
                   >
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-blue-600/40 to-cyan-500/25 text-cyan-200">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-blue-500/60 to-cyan-400/40 text-cyan-100 shadow-inner shadow-cyan-300/20">
                       {adminFilter === 'all' ? <Layers className="h-3 w-3" /> : <Users className="h-3 w-3" />}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-left">
                       {adminFilter === 'all' ? 'All groups' : adminFilterOptions.find((opt) => opt.key === adminFilter)?.label || 'All groups'}
                     </span>
-                    <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200/80 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {groupMenuOpen && (
