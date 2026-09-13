@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
-import { CheckCircle, XCircle, Clock, Ban, AlertCircle, ArrowUpDown, Pencil, Save, X, Search } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Ban, AlertCircle, ArrowUpDown, Pencil, Save, X, Search, Users, Layers, ChevronDown, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Withdrawal, Employee, Admin } from '../../types';
 
@@ -43,8 +43,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [bulkRemark, setBulkRemark] = useState('');
   const [bulkValidationError, setBulkValidationError] = useState<string | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [groupMenuOpen, setGroupMenuOpen] = useState(false);
   const loadWithdrawalsRef = useRef<(() => Promise<void>) | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
+  const groupMenuRef = useRef<HTMLDivElement>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -53,6 +55,19 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     confirmText: string;
     confirmColor: 'green' | 'red';
   } | null>(null);
+
+  useEffect(() => {
+    if (!groupMenuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (groupMenuRef.current && !groupMenuRef.current.contains(event.target as Node)) {
+        setGroupMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [groupMenuOpen]);
 
   useEffect(() => {
     void loadWithdrawalsRef.current?.();
@@ -631,26 +646,106 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
               </div>
             </div>
 
-            <div className="flex overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-950/40 scrollbar-hide">
-              <div className="min-w-[112px] flex-[1.6] border-r border-yellow-600/40 bg-gradient-to-br from-yellow-500/30 via-amber-500/20 to-yellow-600/10 px-3.5 py-2">
-                <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-yellow-200">Submitted Today</div>
-                <div className="mt-0.5 text-xl font-extrabold tabular-nums text-yellow-50">{todayCount}</div>
-              </div>
-              <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
-                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-orange-300/75">Pending</div>
-                <div className="mt-0.5 text-base font-bold tabular-nums text-orange-200">{overallStats.pending}</div>
-              </div>
-              <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
-                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-blue-300/75">Requests</div>
-                <div className="mt-0.5 text-base font-bold tabular-nums text-white">{overallStats.total}</div>
-              </div>
-              <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
-                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">Approved</div>
-                <div className="mt-0.5 text-base font-bold tabular-nums text-emerald-200">{overallStats.approved}</div>
-              </div>
-              <div className="min-w-[82px] flex-1 px-3.5 py-2">
-                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-red-300/75">Rejected</div>
-                <div className="mt-0.5 text-base font-bold tabular-nums text-red-200">{overallStats.rejected}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              {adminFilterOptions.length > 1 && (
+                <div className="relative shrink-0" ref={groupMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setGroupMenuOpen((open) => !open)}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm transition-all ${
+                      groupMenuOpen
+                        ? 'border-cyan-500/60 bg-slate-800/90 text-white'
+                        : 'border-slate-700/70 bg-slate-900/70 text-slate-200 hover:border-cyan-500/50 hover:bg-slate-800/80 hover:text-white'
+                    }`}
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-blue-600/40 to-cyan-500/25 text-cyan-200">
+                      {adminFilter === 'all' ? <Layers className="h-3 w-3" /> : <Users className="h-3 w-3" />}
+                    </span>
+                    <span className="max-w-[130px] truncate">
+                      {adminFilter === 'all' ? 'All groups' : adminFilterOptions.find((opt) => opt.key === adminFilter)?.label || 'All groups'}
+                    </span>
+                    <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {groupMenuOpen && (
+                    <div className="absolute left-0 z-30 mt-2 w-72 overflow-hidden rounded-xl border border-slate-700/70 bg-slate-900/95 shadow-2xl shadow-black/50 backdrop-blur-xl">
+                      <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-amber-400" />
+                      <div className="max-h-72 overflow-y-auto p-1.5 dark-panel-scroll">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdminFilter('all');
+                            setGroupMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold transition-all ${
+                            adminFilter === 'all' ? 'bg-blue-600/90 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <Layers className="h-3.5 w-3.5" />
+                            All groups
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${adminFilter === 'all' ? 'bg-white/20' : 'bg-slate-700/70 text-slate-300'}`}>
+                              {overallStats.total}
+                            </span>
+                            {adminFilter === 'all' && <Check className="h-3.5 w-3.5" />}
+                          </span>
+                        </button>
+
+                        <div className="my-1 h-px bg-slate-800" />
+
+                        {adminFilterOptions.map((opt) => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => {
+                              setAdminFilter(opt.key);
+                              setGroupMenuOpen(false);
+                            }}
+                            className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium transition-all ${
+                              adminFilter === opt.key ? 'bg-blue-600/90 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                            }`}
+                          >
+                            <span className="flex min-w-0 items-center gap-2">
+                              <Users className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">{opt.label}</span>
+                            </span>
+                            <span className="flex shrink-0 items-center gap-1.5">
+                              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${adminFilter === opt.key ? 'bg-white/20' : 'bg-slate-700/70 text-slate-300'}`}>
+                                {opt.count}
+                              </span>
+                              {adminFilter === opt.key && <Check className="h-3.5 w-3.5" />}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-950/40 scrollbar-hide">
+                <div className="min-w-[112px] flex-[1.6] border-r border-yellow-600/40 bg-gradient-to-br from-yellow-500/30 via-amber-500/20 to-yellow-600/10 px-3.5 py-2">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-yellow-200">Submitted Today</div>
+                  <div className="mt-0.5 text-xl font-extrabold tabular-nums text-yellow-50">{todayCount}</div>
+                </div>
+                <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-orange-300/75">Pending</div>
+                  <div className="mt-0.5 text-base font-bold tabular-nums text-orange-200">{overallStats.pending}</div>
+                </div>
+                <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-blue-300/75">Requests</div>
+                  <div className="mt-0.5 text-base font-bold tabular-nums text-white">{overallStats.total}</div>
+                </div>
+                <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">Approved</div>
+                  <div className="mt-0.5 text-base font-bold tabular-nums text-emerald-200">{overallStats.approved}</div>
+                </div>
+                <div className="min-w-[82px] flex-1 px-3.5 py-2">
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-red-300/75">Rejected</div>
+                  <div className="mt-0.5 text-base font-bold tabular-nums text-red-200">{overallStats.rejected}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -688,19 +783,6 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {adminFilterOptions.length > 1 && (
-                <select
-                  value={adminFilter}
-                  onChange={(e) => setAdminFilter(e.target.value)}
-                  className="rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-1.5 text-xs text-slate-200 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="all">All admins</option>
-                  {adminFilterOptions.map((opt) => (
-                    <option key={opt.key} value={opt.key}>{opt.label} · {opt.count}</option>
-                  ))}
-                </select>
-              )}
-
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                 <input
