@@ -1257,16 +1257,17 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               })}
             </nav>
             {admin.role === 'super_admin' && (
-              <div className="relative z-10 mt-auto border-t border-cyan-900/60 bg-slate-950/35 p-1.5">
+              <div className="relative z-10 mt-auto border-t border-slate-700/70 bg-slate-950/45 p-1.5">
                 <button
                   type="button"
                   onClick={openNavigationSettings}
-                  className="flex h-8 w-full items-center gap-1.5 rounded-lg border border-amber-800/55 bg-gradient-to-r from-blue-950/90 via-cyan-950/70 to-amber-950/50 px-2 text-left text-[10px] font-semibold text-slate-200 transition-colors hover:border-amber-700/70 hover:text-white"
+                  className="group flex h-8 w-full items-center gap-1.5 rounded-lg border border-slate-600/90 bg-slate-800/90 px-2 text-left text-[10px] font-semibold text-slate-200 shadow-sm shadow-slate-950/50 transition-[background-color,border-color,box-shadow,color,transform] hover:-translate-y-px hover:border-cyan-500/80 hover:bg-slate-700/95 hover:text-white hover:shadow-[0_5px_12px_rgba(2,6,23,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/80 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
                   title="Customize navigation order and names"
+                  aria-label="Customize navigation order and names"
                 >
-                  <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-amber-300" />
+                  <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-cyan-300 transition-colors group-hover:text-cyan-100" />
                   <span className="min-w-0 flex-1 truncate">Nav Settings</span>
-                  <Settings className="h-3 w-3 shrink-0 text-cyan-400" />
+                  <Settings className="h-3 w-3 shrink-0 text-slate-400 transition-colors group-hover:text-cyan-200" />
                 </button>
               </div>
             )}
