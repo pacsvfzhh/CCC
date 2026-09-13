@@ -12,11 +12,13 @@ import type { AuthState } from './types';
 const EmployeeDashboard = lazy(() => import('./components/employee/EmployeeDashboard'));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 
+const EMPTY_AUTH_STATE: AuthState = {
+  user: null,
+  userType: null,
+};
+
 function App() {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    userType: null,
-  });
+  const [authState, setAuthState] = useState<AuthState>(() => getStoredAuth() || EMPTY_AUTH_STATE);
 
   const { deviceName, tier, isLowEnd } = useDeviceOptimization();
   const responsive = useResponsive();
