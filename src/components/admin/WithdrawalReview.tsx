@@ -966,7 +966,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 <th className="px-3 py-2.5 font-semibold">員工</th>
                 <th className="px-3 py-2.5 font-semibold">金額</th>
                 <th className="px-3 py-2.5 font-semibold">狀態</th>
-                <th className="w-[36%] min-w-[360px] px-3 py-2.5 font-semibold">審核資訊</th>
+                <th className="w-[42%] min-w-[440px] px-3 py-2.5 font-semibold">審核資訊</th>
                 <th className="px-3 py-2.5 text-right font-semibold">操作</th>
               </tr>
             </thead>
@@ -1025,6 +1025,45 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                         : withdrawal.status === 'cancelled'
                           ? 'border-l-slate-600'
                           : 'border-l-cyan-400';
+                  const auditTheme = withdrawal.status === 'pending'
+                    ? {
+                        trigger: 'border-orange-400/45 text-orange-200 group-hover/remark:border-orange-300 group-hover/remark:text-orange-100',
+                        panel: 'border-orange-400/45 bg-orange-950/[0.97]',
+                        heading: 'border-orange-300/25 text-orange-200',
+                        dot: 'bg-orange-300',
+                        body: 'text-orange-50',
+                      }
+                    : withdrawal.status === 'approved'
+                      ? {
+                          trigger: 'border-emerald-400/45 text-emerald-200 group-hover/remark:border-emerald-300 group-hover/remark:text-emerald-100',
+                          panel: 'border-emerald-400/45 bg-emerald-950/[0.97]',
+                          heading: 'border-emerald-300/25 text-emerald-200',
+                          dot: 'bg-emerald-300',
+                          body: 'text-emerald-50',
+                        }
+                      : withdrawal.status === 'rejected'
+                        ? {
+                            trigger: 'border-red-400/45 text-red-200 group-hover/remark:border-red-300 group-hover/remark:text-red-100',
+                            panel: 'border-red-400/45 bg-red-950/[0.97]',
+                            heading: 'border-red-300/25 text-red-200',
+                            dot: 'bg-red-300',
+                            body: 'text-red-50',
+                          }
+                        : withdrawal.status === 'cancelled'
+                          ? {
+                              trigger: 'border-slate-600 text-slate-400 group-hover/remark:border-slate-500 group-hover/remark:text-slate-300',
+                              panel: 'border-slate-600/80 bg-slate-900/[0.98]',
+                              heading: 'border-slate-600/80 text-slate-400',
+                              dot: 'bg-slate-500',
+                              body: 'text-slate-300',
+                            }
+                          : {
+                              trigger: 'border-cyan-400/45 text-cyan-200 group-hover/remark:border-cyan-300 group-hover/remark:text-cyan-100',
+                              panel: 'border-cyan-400/45 bg-cyan-950/[0.97]',
+                              heading: 'border-cyan-300/25 text-cyan-200',
+                              dot: 'bg-cyan-300',
+                              body: 'text-cyan-50',
+                            };
 
                   return (
                     <Fragment key={withdrawal.id}>
@@ -1067,27 +1106,23 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           </div>
                         </td>
                         <td className="px-3 py-2.5 align-top">{getStatusBadge(withdrawal.status)}</td>
-                        <td className="w-[36%] min-w-[360px] px-3 py-2.5 align-top text-xs text-slate-400">
+                        <td className="w-[42%] min-w-[440px] px-3 py-2.5 align-top text-xs">
                           {withdrawal.audited_at ? (
                             <>
-                              <div className={
-                                withdrawal.status === 'approved' ? 'font-medium text-green-400' :
-                                withdrawal.status === 'rejected' ? 'font-medium text-red-400' :
-                                'font-medium text-slate-300'
-                              }>
+                              <div className={`font-medium ${amountClass}`}>
                                 {new Date(withdrawal.audited_at).toLocaleString()}
                               </div>
                               {withdrawal.audit_remark && (
-                                <div className="group/remark relative mt-1 max-w-[360px]">
-                                  <div className="truncate cursor-help border-b border-dotted border-slate-600 pb-0.5 text-slate-400 transition-colors group-hover/remark:border-cyan-300/60 group-hover/remark:text-cyan-200">
+                                <div className="group/remark relative mt-1 max-w-[440px]">
+                                  <div className={`cursor-help truncate border-b border-dotted pb-0.5 transition-colors ${auditTheme.trigger}`}>
                                     {withdrawal.audit_remark}
                                   </div>
-                                  <div className="pointer-events-none absolute bottom-full left-0 z-40 mb-2 hidden w-[420px] max-w-[calc(100vw-2rem)] rounded-xl border border-cyan-400/35 bg-slate-800/[0.98] p-3 text-left shadow-2xl shadow-black/50 ring-1 ring-white/10 group-hover/remark:block">
-                                    <div className="flex items-center gap-2 border-b border-slate-700/80 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200">
-                                      <span className="h-1.5 w-1.5 rounded-full bg-cyan-300" />
+                                  <div className={`pointer-events-none absolute bottom-full left-0 z-40 mb-2 hidden w-[500px] max-w-[calc(100vw-2rem)] rounded-xl border p-3 text-left shadow-2xl shadow-black/50 ring-1 ring-white/10 group-hover/remark:block ${auditTheme.panel}`}>
+                                    <div className={`flex items-center gap-2 border-b pb-2 text-[10px] font-bold uppercase tracking-[0.16em] ${auditTheme.heading}`}>
+                                      <span className={`h-1.5 w-1.5 rounded-full ${auditTheme.dot}`} />
                                       審核備註
                                     </div>
-                                    <div className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-5 text-slate-100 dark-panel-scroll">
+                                    <div className={`mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-xs font-medium leading-5 dark-panel-scroll ${auditTheme.body}`}>
                                       {withdrawal.audit_remark}
                                     </div>
                                   </div>
