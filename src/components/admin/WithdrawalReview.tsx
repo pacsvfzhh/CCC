@@ -146,6 +146,15 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         groupedByAdmin.get(createdBy)!.push(withdrawal);
       });
 
+      // Include every admin as a selectable group, even those with no withdrawal records yet
+      if (admin.role === 'super_admin') {
+        (admins || []).forEach((a) => {
+          if (!groupedByAdmin.has(a.id)) {
+            groupedByAdmin.set(a.id, []);
+          }
+        });
+      }
+
       const groups: AdminGroup[] = Array.from(groupedByAdmin.entries())
         .map(([adminId, withdrawals]) => ({
           admin: adminId === 'unassigned' ? null : adminMap.get(adminId) || null,
@@ -648,11 +657,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
             <div className="flex flex-wrap items-center gap-2">
               {adminFilterOptions.length > 0 && (
-                <div className="relative shrink-0" ref={groupMenuRef}>
+                <div className="relative w-56 shrink-0" ref={groupMenuRef}>
                   <button
                     type="button"
                     onClick={() => setGroupMenuOpen((open) => !open)}
-                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm transition-all ${
+                    className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm transition-all ${
                       groupMenuOpen
                         ? 'border-cyan-500/60 bg-slate-800/90 text-white'
                         : 'border-slate-700/70 bg-slate-900/70 text-slate-200 hover:border-cyan-500/50 hover:bg-slate-800/80 hover:text-white'
@@ -661,14 +670,14 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-blue-600/40 to-cyan-500/25 text-cyan-200">
                       {adminFilter === 'all' ? <Layers className="h-3 w-3" /> : <Users className="h-3 w-3" />}
                     </span>
-                    <span className="max-w-[130px] truncate">
+                    <span className="min-w-0 flex-1 truncate text-left">
                       {adminFilter === 'all' ? 'All groups' : adminFilterOptions.find((opt) => opt.key === adminFilter)?.label || 'All groups'}
                     </span>
                     <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {groupMenuOpen && (
-                    <div className="absolute left-0 z-30 mt-2 w-72 overflow-hidden rounded-xl border border-slate-700/70 bg-slate-900/95 shadow-2xl shadow-black/50 backdrop-blur-xl">
+                    <div className="absolute left-0 z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-700/70 bg-slate-900/95 shadow-2xl shadow-black/50 backdrop-blur-xl">
                       <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-amber-400" />
                       <div className="max-h-72 overflow-y-auto p-1.5 dark-panel-scroll">
                         <button
