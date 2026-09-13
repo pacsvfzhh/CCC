@@ -858,7 +858,15 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     setSelectedMessageIds(new Set());
   };
 
+  const selectedGroupEmployeeIds = new Set(
+    (selectedAdminId ? allEmployees.get(selectedAdminId) || [] : []).map(employee => employee.id),
+  );
+
   const filteredMessages = sentMessages.filter(msg => {
+    if (selectedAdminId) {
+      const recipientIds = msg.recipient_ids || [];
+      if (!recipientIds.some(recipientId => selectedGroupEmployeeIds.has(recipientId))) return false;
+    }
     if (messageTypeFilter !== 'all') {
       if (messageTypeFilter === 'realtime' && msg.message_type !== 'realtime') return false;
       if (messageTypeFilter === 'login_popup' && msg.message_type !== 'login_popup') return false;
@@ -896,7 +904,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [messageTypeFilter, messageScopeFilter, readStatusFilter, sentMessagesSearchQuery]);
+    setSelectedMessageIds(new Set());
+  }, [selectedAdminId, messageTypeFilter, messageScopeFilter, readStatusFilter, sentMessagesSearchQuery]);
 
   useEffect(() => {
     if (paginatedMessages.length > 0) {
@@ -1039,7 +1048,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 return (
                   <button
                     key={group.id}
-                    onClick={() => setSelectedAdminId(group.id)}
+                    onClick={() => {
+                      setSelectedAdminId(group.id);
+                      setSelectedMessageIds(new Set());
+                      setSelectedMessageDetail(null);
+                    }}
                     className={`group w-full text-left px-3 py-3 rounded-xl transition-all duration-200 border ${
                       isActive
                         ? 'bg-blue-600/20 border-blue-400/60 ring-1 ring-blue-400/30 shadow-md shadow-blue-900/20 border-l-[3px] border-l-blue-400'
