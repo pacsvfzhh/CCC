@@ -643,11 +643,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
       <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-950/60">
         {/* Header + Stats */}
-        <section className="shrink-0 border-b border-slate-800/70 bg-slate-900/70 px-4 py-2 sm:px-5 lg:px-6">
-          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+        <section className="shrink-0 border-b border-slate-800/70 bg-slate-900/70 px-4 py-1.5 sm:px-5 lg:px-6">
+          <div className="flex flex-col gap-1.5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 items-center gap-2">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-400/25 bg-gradient-to-br from-blue-600/30 via-cyan-500/15 to-amber-400/10">
-                <ArrowUpDown className="h-3.5 w-3.5 text-cyan-300" />
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-400/25 bg-gradient-to-br from-blue-600/30 via-cyan-500/15 to-amber-400/10">
+                <ArrowUpDown className="h-3 w-3 text-cyan-300" />
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <h1 className="text-sm font-bold tracking-tight text-white sm:text-base">Withdrawal Review</h1>
@@ -666,7 +666,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   <button
                     type="button"
                     onClick={() => setGroupMenuOpen((open) => !open)}
-                    className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm transition-all ${
+                    className={`flex w-full items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-sm transition-all ${
                       groupMenuOpen
                         ? 'border-cyan-500/60 bg-slate-800/90 text-white'
                         : 'border-slate-700/70 bg-slate-900/70 text-slate-200 hover:border-cyan-500/50 hover:bg-slate-800/80 hover:text-white'
@@ -740,23 +740,23 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
               )}
 
               <div className="flex overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-950/40 scrollbar-hide">
-                <div className="min-w-[112px] flex-[1.6] border-r border-yellow-600/40 bg-gradient-to-br from-yellow-500/30 via-amber-500/20 to-yellow-600/10 px-3.5 py-2">
+                <div className="min-w-[112px] flex-[1.6] border-r border-yellow-600/40 bg-gradient-to-br from-yellow-500/30 via-amber-500/20 to-yellow-600/10 px-3.5 py-1.5">
                   <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-yellow-200">Submitted Today</div>
-                  <div className="mt-0.5 text-xl font-extrabold tabular-nums text-yellow-50">{todayCount}</div>
+                  <div className="mt-0.5 text-lg font-extrabold tabular-nums text-yellow-50">{todayCount}</div>
                 </div>
-                <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
+                <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
                   <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-orange-300/75">Pending</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-orange-200">{overallStats.pending}</div>
                 </div>
-                <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
+                <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
                   <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-blue-300/75">Requests</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-white">{overallStats.total}</div>
                 </div>
-                <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
+                <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
                   <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">Approved</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-emerald-200">{overallStats.approved}</div>
                 </div>
-                <div className="min-w-[82px] flex-1 px-3.5 py-2">
+                <div className="min-w-[82px] flex-1 px-3.5 py-1.5">
                   <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-red-300/75">Rejected</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-red-200">{overallStats.rejected}</div>
                 </div>
