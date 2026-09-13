@@ -978,8 +978,9 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   </td>
                 </tr>
               ) : (
-                filteredRows.map((withdrawal) => {
+                filteredRows.map((withdrawal, index) => {
                   const isPending = withdrawal.status === 'pending';
+                  const isFirstVisibleRow = index === 0;
                   const isReviewing = reviewing === withdrawal.id;
                   const isEditing = editing === withdrawal.id;
                   const adminName = withdrawal.admin?.username || '未分配';
@@ -1117,7 +1118,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                                   <div className={`cursor-help truncate pb-0.5 transition-colors ${auditTheme.trigger}`}>
                                     {withdrawal.audit_remark}
                                   </div>
-                                  <div className={`pointer-events-none absolute left-0 top-full z-40 mt-2 hidden w-[500px] max-w-[calc(100vw-2rem)] rounded-xl border p-3 text-left shadow-2xl shadow-black/50 ring-1 ring-white/10 group-hover/remark:block ${auditTheme.panel}`}>
+                                  <div className={`pointer-events-none absolute z-40 hidden w-[500px] max-w-[calc(100vw-2rem)] rounded-xl border p-3 text-left shadow-2xl shadow-black/50 ring-1 ring-white/10 group-hover/remark:block ${isFirstVisibleRow ? 'left-0 top-full mt-2' : 'bottom-full left-0 mb-2'} ${auditTheme.panel}`}>
                                     <div className={`flex items-center gap-2 border-b pb-2 text-[10px] font-bold uppercase tracking-[0.16em] ${auditTheme.heading}`}>
                                       <span className={`h-1.5 w-1.5 rounded-full ${auditTheme.dot}`} />
                                       審核備註
