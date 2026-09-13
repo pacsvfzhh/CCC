@@ -501,6 +501,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     })
   );
 
+  const showAdminColumn = admin.role === 'super_admin' && adminFilter === 'all';
   const pendingInView = filteredRows.filter((w) => w.status === 'pending');
   const allPendingSelected = pendingInView.length > 0 && pendingInView.every((w) => selectedIds.has(w.id));
 
@@ -935,7 +936,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
         {/* Data table */}
         <div className="min-h-0 flex-1 overflow-auto bg-slate-950/30 dark-panel-scroll">
-          <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
+          <table className={`w-full ${showAdminColumn ? 'min-w-[1040px]' : 'min-w-[920px]'} border-collapse text-left text-sm`}>
             <thead className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur">
               <tr className="text-[10px] uppercase tracking-wider text-slate-400">
                 <th className="w-10 px-3 py-2.5">
@@ -949,7 +950,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     aria-label="選取目前檢視中的所有待審核提現"
                   />
                 </th>
-                <th className="w-[132px] px-3 py-2.5 font-semibold">所屬管理員</th>
+                {showAdminColumn && <th className="w-[132px] px-3 py-2.5 font-semibold">所屬管理員</th>}
                 <th className="px-3 py-2.5 font-semibold">員工</th>
                 <th className="px-3 py-2.5 font-semibold">金額</th>
                 <th className="px-3 py-2.5 font-semibold">狀態</th>
@@ -961,7 +962,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             <tbody className="divide-y divide-slate-800/70">
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-14 text-center text-sm text-slate-400">
+                  <td colSpan={showAdminColumn ? 8 : 7} className="px-4 py-14 text-center text-sm text-slate-400">
                     沒有符合目前篩選條件的提現申請
                   </td>
                 </tr>
@@ -990,15 +991,17 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                             />
                           )}
                         </td>
-                        <td className="w-[132px] px-3 py-2.5 align-top">
-                          <span
-                            title={withdrawal.admin?.username || '未分配'}
-                            aria-label={`所屬管理員：${withdrawal.admin?.username || '未分配'}`}
-                            className={`inline-flex max-w-[108px] items-center rounded-md border px-2 py-1 text-xs font-semibold tracking-wide ${adminBadgeClass}`}
-                          >
-                            <span className="truncate">{withdrawal.admin?.username || '未分配'}</span>
-                          </span>
-                        </td>
+                        {showAdminColumn && (
+                          <td className="w-[132px] px-3 py-2.5 align-top">
+                            <span
+                              title={withdrawal.admin?.username || '未分配'}
+                              aria-label={`所屬管理員：${withdrawal.admin?.username || '未分配'}`}
+                              className={`inline-flex max-w-[108px] items-center rounded-md border px-2 py-1 text-xs font-semibold tracking-wide ${adminBadgeClass}`}
+                            >
+                              <span className="truncate">{withdrawal.admin?.username || '未分配'}</span>
+                            </span>
+                          </td>
+                        )}
                         <td className="px-3 py-2.5 align-top">
                           <div className="font-medium text-white">{withdrawal.employee?.username}</div>
                           <div className="mt-0.5 text-xs text-slate-500">
@@ -1072,7 +1075,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
                       {isReviewing && (
                         <tr>
-                          <td colSpan={8} className="border-t border-slate-800/80 bg-slate-950/40 px-4 py-3.5">
+                          <td colSpan={showAdminColumn ? 8 : 7} className="border-t border-slate-800/80 bg-slate-950/40 px-4 py-3.5">
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
                               <div className="flex-1">
                                 <textarea
@@ -1117,7 +1120,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
                       {isEditing && (
                         <tr>
-                          <td colSpan={8} className="border-t border-slate-800/80 bg-slate-950/40 px-4 py-3.5">
+                          <td colSpan={showAdminColumn ? 8 : 7} className="border-t border-slate-800/80 bg-slate-950/40 px-4 py-3.5">
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
                               <div className="flex shrink-0 gap-2 lg:w-56">
                                 <button
