@@ -936,7 +936,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
         {/* Data table */}
         <div className="min-h-0 flex-1 overflow-auto bg-slate-950/30 dark-panel-scroll">
-          <table className={`w-full ${showAdminColumn ? 'min-w-[1020px]' : 'min-w-[920px]'} border-collapse text-left text-sm`}>
+          <table className={`w-full ${showAdminColumn ? 'min-w-[1032px]' : 'min-w-[920px]'} border-collapse text-left text-sm`}>
             <thead className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur">
               <tr className="text-[10px] uppercase tracking-wider text-slate-400">
                 <th className="w-10 px-3 py-2.5">
@@ -971,11 +971,17 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   const isPending = withdrawal.status === 'pending';
                   const isReviewing = reviewing === withdrawal.id;
                   const isEditing = editing === withdrawal.id;
-                  const adminBadgeClass = withdrawal.admin?.role === 'super_admin'
-                    ? 'border-amber-300/70 border-t-0 bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-200 text-slate-950'
+                  const adminName = withdrawal.admin?.username || '未分配';
+                  const adminAccentClass = withdrawal.admin?.role === 'super_admin'
+                    ? 'border-l-amber-300'
                     : withdrawal.admin?.role === 'secondary_admin'
-                      ? 'border-blue-300/70 border-t-0 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-400 text-white'
-                      : 'border-slate-500/80 border-t-0 bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 text-slate-100';
+                      ? 'border-l-blue-400'
+                      : 'border-l-slate-500';
+                  const adminAvatarClass = withdrawal.admin?.role === 'super_admin'
+                    ? 'bg-amber-400/15 text-amber-200 ring-amber-300/30'
+                    : withdrawal.admin?.role === 'secondary_admin'
+                      ? 'bg-blue-500/15 text-blue-200 ring-blue-300/30'
+                      : 'bg-slate-700 text-slate-300 ring-slate-500/40';
 
                   return (
                     <Fragment key={withdrawal.id}>
@@ -992,14 +998,17 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           )}
                         </td>
                         {showAdminColumn && (
-                          <td className="w-[112px] px-1.5 pb-2.5 pt-0 align-top">
-                            <span
-                              title={withdrawal.admin?.username || '未分配'}
-                              aria-label={`所屬管理員：${withdrawal.admin?.username || '未分配'}`}
-                              className={`inline-flex min-h-7 max-w-[96px] items-center rounded-b-md border-x border-b px-1.5 py-1 text-[11px] font-bold leading-tight tracking-tight ${adminBadgeClass}`}
+                          <td className="w-[124px] px-1.5 py-2.5 align-top">
+                            <div
+                              title={adminName}
+                              aria-label={`所屬管理員：${adminName}`}
+                              className={`flex w-full max-w-[112px] items-center gap-1.5 rounded-r-lg border border-slate-700/80 border-l-2 bg-slate-900/65 px-1.5 py-1.5 ${adminAccentClass}`}
                             >
-                              <span className="truncate">{withdrawal.admin?.username || '未分配'}</span>
-                            </span>
+                              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-extrabold uppercase ring-1 ring-inset ${adminAvatarClass}`}>
+                                {adminName.slice(0, 1)}
+                              </span>
+                              <span className="min-w-0 truncate text-[11px] font-semibold text-slate-100">{adminName}</span>
+                            </div>
                           </td>
                         )}
                         <td className="px-3 py-2.5 align-top">
