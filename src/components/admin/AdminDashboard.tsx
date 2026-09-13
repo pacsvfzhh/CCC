@@ -127,36 +127,80 @@ function getNavigationPreferencesOwnerId(admin: Admin): string | null {
   return null;
 }
 
+function getNavigationPreferencesKey(ownerId: string): string {
+  return `${NAVIGATION_PREFERENCES_KEY}:${ownerId}`;
+}
+
+function parseNavigationPreferences(value: unknown): NavigationPreferences {
+  if (!value || typeof value !== 'object') return { order: [], labels: {} };
+
+  const parsed = value as { order?: unknown; labels?: unknown };
+  const order = Array.isArray(parsed.order)
+    ? parsed.order.filter((entry): entry is AdminTabId => typeof entry === 'string')
+    : [];
+  const labels = parsed.labels && typeof parsed.labels === 'object'
+    ? Object.fromEntries(
+        Object.entries(parsed.labels).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+      ) as Partial<Record<AdminTabId, string>>
+    : {};
+
+  return { order, labels };
+}
+
 function loadNavigationPreferences(ownerId: string | null): NavigationPreferences {
   if (!ownerId) return { order: [], labels: {} };
 
   try {
-    const stored = localStorage.getItem(`${NAVIGATION_PREFERENCES_KEY}:${ownerId}`);
-    if (!stored) return { order: [], labels: {} };
-
-    const parsed = JSON.parse(stored) as { order?: unknown; labels?: unknown };
-    const order = Array.isArray(parsed.order)
-      ? parsed.order.filter((value): value is AdminTabId => typeof value === 'string')
-      : [];
-    const labels = parsed.labels && typeof parsed.labels === 'object'
-      ? Object.fromEntries(
-          Object.entries(parsed.labels).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
-        ) as Partial<Record<AdminTabId, string>>
-      : {};
-
-    return { order, labels };
+    const stored = localStorage.getItem(getNavigationPreferencesKey(ownerId));
+    return stored ? parseNavigationPreferences(JSON.parse(stored)) : { order: [], labels: {} };
   } catch {
     return { order: [], labels: {} };
   }
 }
 
-function saveNavigationPreferences(ownerId: string | null, preferences: NavigationPreferences) {
+function saveLocalNavigationPreferences(ownerId: string | null, preferences: NavigationPreferences) {
   if (!ownerId) return;
 
   try {
-    localStorage.setItem(`${NAVIGATION_PREFERENCES_KEY}:${ownerId}`, JSON.stringify(preferences));
+    localStorage.setItem(getNavigationPreferencesKey(ownerId), JSON.stringify(preferences));
   } catch {
     return;
+  }
+}
+
+async function loadSharedNavigationPreferences(ownerId: string): Promise<NavigationPreferences | null> {
+  const { data, error } = await supabase
+    .from('system_configs')
+    .select('value')
+    .eq('key', getNavigationPreferencesKey(ownerId))
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? parseNavigationPreferences(data.value) : null;
+}
+
+async function saveSharedNavigationPreferences(ownerId: string | null, preferences: NavigationPreferences) {
+  if (!ownerId) return;
+
+  try {
+    const { error } = await supabase
+      .from('system_configs')
+      .upsert(
+        {
+          key: getNavigationPreferencesKey(ownerId),
+          value: preferences,
+          description: 'Administrator navigation display preferences',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      );
+
+    if (error) throw error;
+  } catch (error: unknown) {
+    console.warn(
+      'Unable to persist shared navigation preferences:',
+      error instanceof Error ? error.message : error
+    );
   }
 }
 
@@ -216,10 +260,44 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const { companyName } = useCompanyName(admin.id);
 
   useEffect(() => {
-    setNavigationPreferences(loadNavigationPreferences(navigationPreferencesOwnerId));
+    const localPreferences = loadNavigationPreferences(navigationPreferencesOwnerId);
+    setNavigationPreferences(localPreferences);
     setNavigationDraft([]);
     setShowNavigationSettings(false);
-  }, [navigationPreferencesOwnerId]);
+
+    if (!navigationPreferencesOwnerId) return;
+
+    let cancelled = false;
+    void loadSharedNavigationPreferences(navigationPreferencesOwnerId)
+      .then(sharedPreferences => {
+        if (cancelled) return;
+
+        if (sharedPreferences) {
+          saveLocalNavigationPreferences(navigationPreferencesOwnerId, sharedPreferences);
+          setNavigationPreferences(sharedPreferences);
+          return;
+        }
+
+        if (
+          admin.role === 'super_admin'
+          && (localPreferences.order.length > 0 || Object.keys(localPreferences.labels).length > 0)
+        ) {
+          void saveSharedNavigationPreferences(navigationPreferencesOwnerId, localPreferences);
+        }
+      })
+      .catch(error => {
+        if (!cancelled) {
+          console.warn(
+            'Unable to load shared navigation preferences:',
+            error instanceof Error ? error.message : error
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [admin.role, navigationPreferencesOwnerId]);
 
   useEffect(() => () => {
     if (navigationDragTimerRef.current) {
@@ -563,7 +641,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       ])) as Partial<Record<AdminTabId, string>>,
     };
     setNavigationPreferences(nextPreferences);
-    saveNavigationPreferences(navigationPreferencesOwnerId, nextPreferences);
+    saveLocalNavigationPreferences(navigationPreferencesOwnerId, nextPreferences);
+    void saveSharedNavigationPreferences(navigationPreferencesOwnerId, nextPreferences);
     setShowNavigationSettings(false);
   };
 
