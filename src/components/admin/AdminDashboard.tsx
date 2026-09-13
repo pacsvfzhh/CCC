@@ -738,21 +738,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
         <div className="w-full lg:flex flex-1 min-h-0">
           {/* Desktop: Vertical Left Sidebar */}
-          <aside className="relative isolate hidden flex-shrink-0 overflow-y-auto border-r border-cyan-300/50 bg-[linear-gradient(180deg,rgba(7,18,43,0.98)_0%,rgba(7,35,66,0.97)_34%,rgba(24,24,51,0.98)_67%,rgba(45,29,18,0.97)_100%)] shadow-[8px_0_24px_rgba(2,8,23,0.72)] scrollbar-hide lg:flex lg:w-32 lg:flex-col xl:w-36">
-            <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-              <div className="absolute -left-14 top-10 h-40 w-40 rounded-full bg-blue-500/20 blur-3xl" />
-              <div className="absolute -right-16 top-[28%] h-44 w-44 rounded-full bg-cyan-400/15 blur-3xl" />
-              <div className="absolute -left-16 top-[52%] h-40 w-40 rounded-full bg-violet-500/12 blur-3xl" />
-              <div className="absolute -right-16 bottom-10 h-44 w-44 rounded-full bg-amber-400/15 blur-3xl" />
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(125,211,252,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(125,211,252,0.035)_1px,transparent_1px)] bg-[size:18px_18px]" />
-              <div className="absolute inset-y-0 right-0 w-[3px] bg-gradient-to-b from-blue-400 via-cyan-300 to-amber-300 shadow-[-3px_0_12px_rgba(34,211,238,0.28)]" />
-            </div>
-            <div className="relative z-10 shrink-0 border-b border-cyan-300/25 bg-gradient-to-br from-blue-950/80 via-slate-950/70 to-amber-950/30 px-1.5 py-2.5 shadow-[0_8px_20px_rgba(2,8,23,0.28)]">
+          <aside className="relative isolate hidden flex-shrink-0 overflow-y-auto border-r border-cyan-800/70 bg-[linear-gradient(180deg,#071225_0%,#092433_34%,#171b2e_68%,#292116_100%)] shadow-[6px_0_18px_rgba(2,6,23,0.72)] scrollbar-hide lg:flex lg:w-32 lg:flex-col xl:w-36">
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-[2px] bg-gradient-to-b from-blue-600/80 via-cyan-700/75 to-amber-700/75" aria-hidden="true" />
+            <div className="relative z-10 shrink-0 border-b border-cyan-800/55 bg-gradient-to-br from-blue-950/90 via-cyan-950/65 to-amber-950/45 px-1.5 py-2.5 shadow-[0_8px_18px_rgba(2,6,23,0.35)]">
               <div className="grid min-w-0 grid-cols-[20px_minmax(0,1fr)] items-center gap-x-1.5 gap-y-1">
                 <div className="flex h-5 w-5 shrink-0 items-center justify-center justify-self-center rounded-md bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-md shadow-blue-950/40">
                   <Zap className="h-3 w-3 text-white" fill="currentColor" />
                 </div>
-                <h1 className="min-w-0 truncate text-[11px] font-bold leading-tight bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent" title={companyName}>
+                <h1 className="min-w-0 truncate bg-gradient-to-r from-blue-300 via-cyan-200 to-amber-200 bg-clip-text text-[11px] font-bold leading-tight text-transparent" title={companyName}>
                   {companyName}
                 </h1>
                 <Shield className="h-4 w-4 shrink-0 justify-self-center text-purple-400" />
@@ -760,7 +753,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                 </span>
                 <span className="h-2 w-2 shrink-0 justify-self-center rounded-full border border-green-200/70 bg-green-400 shadow-sm shadow-green-500/40" />
-                <span className="min-w-0 truncate text-[11px] font-semibold tracking-wide text-cyan-100 drop-shadow-[0_0_5px_rgba(103,232,249,0.25)]" title={admin.username}>
+                <span className="min-w-0 truncate text-[11px] font-semibold tracking-wide text-cyan-100" title={admin.username}>
                   {admin.username}
                 </span>
               </div>
@@ -785,12 +778,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                           ? 'bg-orange-700 text-white shadow-lg shadow-orange-900/40'
                           : tab.id === 'cccservice'
                             ? 'bg-emerald-800 text-white shadow-lg shadow-emerald-950/40'
-                            : 'bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-700 text-white shadow-lg shadow-blue-950/50 ring-1 ring-inset ring-cyan-200/45'
+                            : 'border border-cyan-700/55 bg-gradient-to-r from-blue-700 via-cyan-800 to-slate-800 text-white shadow-md shadow-slate-950/45'
                         : tab.id === 'customerservice'
                           ? 'text-orange-400 hover:text-orange-100 hover:bg-orange-950/70'
                           : tab.id === 'cccservice'
                             ? 'text-emerald-400 hover:text-emerald-100 hover:bg-emerald-950/70'
-                            : 'text-slate-300 hover:bg-gradient-to-r hover:from-blue-900/80 hover:via-cyan-900/55 hover:to-amber-900/35 hover:text-white hover:shadow-sm hover:shadow-cyan-950/40'
+                            : 'border border-transparent text-slate-300 hover:border-cyan-900/60 hover:bg-gradient-to-r hover:from-blue-950/90 hover:via-cyan-950/70 hover:to-amber-950/45 hover:text-white'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5 flex-shrink-0" />
