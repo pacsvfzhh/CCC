@@ -971,10 +971,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   const isReviewing = reviewing === withdrawal.id;
                   const isEditing = editing === withdrawal.id;
                   const adminBadgeClass = withdrawal.admin?.role === 'super_admin'
-                    ? 'border-amber-300/70 bg-amber-400/20 text-amber-100 shadow-amber-950/30'
+                    ? 'border-amber-300/45 border-l-4 border-l-amber-300 bg-amber-950/40 text-amber-100'
                     : withdrawal.admin?.role === 'secondary_admin'
-                      ? 'border-blue-300/70 bg-blue-500/20 text-blue-100 shadow-blue-950/30'
-                      : 'border-slate-500/70 bg-slate-700/70 text-slate-300 shadow-black/20';
+                      ? 'border-blue-300/45 border-l-4 border-l-blue-300 bg-blue-950/40 text-blue-100'
+                      : 'border-slate-600 border-l-4 border-l-slate-500 bg-slate-800/80 text-slate-300';
 
                   return (
                     <Fragment key={withdrawal.id}>
@@ -994,7 +994,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           <span
                             title={withdrawal.admin?.username || '未分配'}
                             aria-label={`所屬管理員：${withdrawal.admin?.username || '未分配'}`}
-                            className={`inline-flex max-w-[108px] items-center rounded-lg border px-2 py-1 text-xs font-semibold shadow-md ${adminBadgeClass}`}
+                            className={`inline-flex max-w-[108px] items-center rounded-md border px-2 py-1 text-xs font-semibold tracking-wide ${adminBadgeClass}`}
                           >
                             <span className="truncate">{withdrawal.admin?.username || '未分配'}</span>
                           </span>
