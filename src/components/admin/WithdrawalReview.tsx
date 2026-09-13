@@ -666,7 +666,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
             <div className="flex flex-wrap items-center gap-2">
               {adminFilterOptions.length > 0 && (
-                <div className="relative w-56 shrink-0" ref={groupMenuRef}>
+                <div className="relative w-44 shrink-0" ref={groupMenuRef}>
                   <button
                     type="button"
                     onClick={() => setGroupMenuOpen((open) => !open)}
@@ -686,7 +686,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   </button>
 
                   {groupMenuOpen && (
-                    <div className="absolute left-0 z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-700/70 bg-slate-900/95 shadow-2xl shadow-black/50 backdrop-blur-xl">
+                    <div className="absolute left-0 z-30 mt-2 w-full max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-700/70 bg-slate-900/95 shadow-2xl shadow-black/50 backdrop-blur-xl">
                       <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-amber-400" />
                       <div className="max-h-72 overflow-y-auto p-1.5 dark-panel-scroll">
                         <button
