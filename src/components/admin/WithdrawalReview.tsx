@@ -1095,8 +1095,8 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           </td>
                         )}
                         <td className="px-3 py-2.5 align-top">
-                          <div className="font-medium text-white">{withdrawal.employee?.username}</div>
-                          <div className="mt-0.5 text-xs font-medium tracking-wide text-cyan-300/90">
+                          <div className={`font-medium ${amountClass}`}>{withdrawal.employee?.username}</div>
+                          <div className={`mt-0.5 text-xs font-medium tracking-wide ${amountClass}`}>
                             {withdrawal.employee?.employee_id}
                           </div>
                         </td>
