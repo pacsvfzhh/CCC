@@ -936,7 +936,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
         {/* Data table */}
         <div className="min-h-0 flex-1 overflow-auto bg-slate-950/30 dark-panel-scroll">
-          <table className={`w-full ${showAdminColumn ? 'min-w-[1040px]' : 'min-w-[920px]'} border-collapse text-left text-sm`}>
+          <table className={`w-full ${showAdminColumn ? 'min-w-[1020px]' : 'min-w-[920px]'} border-collapse text-left text-sm`}>
             <thead className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur">
               <tr className="text-[10px] uppercase tracking-wider text-slate-400">
                 <th className="w-10 px-3 py-2.5">
@@ -950,7 +950,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     aria-label="選取目前檢視中的所有待審核提現"
                   />
                 </th>
-                {showAdminColumn && <th className="w-[132px] px-3 py-2.5 font-semibold">所屬管理員</th>}
+                {showAdminColumn && <th className="w-[112px] px-1.5 py-2.5 font-semibold">所屬管理員</th>}
                 <th className="px-3 py-2.5 font-semibold">員工</th>
                 <th className="px-3 py-2.5 font-semibold">金額</th>
                 <th className="px-3 py-2.5 font-semibold">狀態</th>
@@ -972,10 +972,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   const isReviewing = reviewing === withdrawal.id;
                   const isEditing = editing === withdrawal.id;
                   const adminBadgeClass = withdrawal.admin?.role === 'super_admin'
-                    ? 'border-amber-300/45 border-l-4 border-l-amber-300 bg-amber-950/40 text-amber-100'
+                    ? 'border-amber-200 bg-amber-400 text-slate-950'
                     : withdrawal.admin?.role === 'secondary_admin'
-                      ? 'border-blue-300/45 border-l-4 border-l-blue-300 bg-blue-950/40 text-blue-100'
-                      : 'border-slate-600 border-l-4 border-l-slate-500 bg-slate-800/80 text-slate-300';
+                      ? 'border-blue-200 bg-blue-500 text-white'
+                      : 'border-slate-500 bg-slate-700 text-slate-100';
 
                   return (
                     <Fragment key={withdrawal.id}>
@@ -992,11 +992,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           )}
                         </td>
                         {showAdminColumn && (
-                          <td className="w-[132px] px-3 py-2.5 align-top">
+                          <td className="w-[112px] px-1.5 py-2.5 align-top">
                             <span
                               title={withdrawal.admin?.username || '未分配'}
                               aria-label={`所屬管理員：${withdrawal.admin?.username || '未分配'}`}
-                              className={`inline-flex max-w-[108px] items-center rounded-md border px-2 py-1 text-xs font-semibold tracking-wide ${adminBadgeClass}`}
+                              className={`inline-flex min-h-7 max-w-[96px] items-center rounded-md border px-1.5 text-[11px] font-bold leading-tight tracking-tight ${adminBadgeClass}`}
                             >
                               <span className="truncate">{withdrawal.admin?.username || '未分配'}</span>
                             </span>
