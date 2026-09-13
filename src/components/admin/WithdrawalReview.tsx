@@ -332,6 +332,40 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     setEditRemark('');
   };
 
+  const rollbackCancelledWithdrawalsToPending = async (withdrawalIds: string[]) => {
+    const { data: restoredWithdrawals, error: restoreError } = await supabase
+      .from('withdrawals')
+      .update({ status: 'pending', audit_remark: null, audited_by: null, audited_at: null })
+      .in('id', withdrawalIds)
+      .eq('status', 'cancelled')
+      .eq('audit_remark', FINANCIAL_CORRECTION_REMARK)
+      .select('id');
+
+    if (restoreError) throw restoreError;
+    if (restoredWithdrawals?.length !== withdrawalIds.length) {
+      throw new Error('Some cancelled withdrawals changed before they could be restored.');
+    }
+  };
+
+  const rollbackRestoredWithdrawalsToCancelled = async (withdrawalIds: string[]) => {
+    const { data: cancelledWithdrawals, error: cancelError } = await supabase
+      .from('withdrawals')
+      .update({
+        status: 'cancelled',
+        audit_remark: FINANCIAL_CORRECTION_REMARK,
+        audited_by: admin.id,
+        audited_at: new Date().toISOString(),
+      })
+      .in('id', withdrawalIds)
+      .eq('status', 'pending')
+      .select('id');
+
+    if (cancelError) throw cancelError;
+    if (cancelledWithdrawals?.length !== withdrawalIds.length) {
+      throw new Error('Some pending withdrawals changed before cancellation could be restored.');
+    }
+  };
+
   const cancelPendingWithdrawalsForFinancialCorrection = async (
     userId: string,
     excludedWithdrawalId: string,
@@ -372,12 +406,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       .maybeSingle();
 
     if (walletError || !wallet || wallet.frozen_balance < cancelledAmount) {
-      await supabase
-        .from('withdrawals')
-        .update({ status: 'pending', audit_remark: null, audited_by: null, audited_at: null })
-        .in('id', cancelledIds)
-        .eq('status', 'cancelled')
-        .eq('audit_remark', FINANCIAL_CORRECTION_REMARK);
+      await rollbackCancelledWithdrawalsToPending(cancelledIds);
       if (walletError) throw walletError;
       throw new Error('Unable to release the pending withdrawal balance. Please refresh and try again.');
     }
@@ -398,12 +427,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       .maybeSingle();
 
     if (walletUpdateError || !updatedWallet) {
-      await supabase
-        .from('withdrawals')
-        .update({ status: 'pending', audit_remark: null, audited_by: null, audited_at: null })
-        .in('id', cancelledIds)
-        .eq('status', 'cancelled')
-        .eq('audit_remark', FINANCIAL_CORRECTION_REMARK);
+      await rollbackCancelledWithdrawalsToPending(cancelledIds);
       if (walletUpdateError) throw walletUpdateError;
       throw new Error('The wallet changed during the correction. Please refresh and try again.');
     }
@@ -437,16 +461,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       .maybeSingle();
 
     if (walletError || !wallet || wallet.available_balance < restoredAmount) {
-      await supabase
-        .from('withdrawals')
-        .update({
-          status: 'cancelled',
-          audit_remark: FINANCIAL_CORRECTION_REMARK,
-          audited_by: admin.id,
-          audited_at: new Date().toISOString(),
-        })
-        .in('id', restoredIds)
-        .eq('status', 'pending');
+      await rollbackRestoredWithdrawalsToCancelled(restoredIds);
       if (walletError) throw walletError;
       throw new Error('Unable to restore pending withdrawals after the correction failed.');
     }
@@ -467,16 +482,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       .maybeSingle();
 
     if (walletUpdateError || !restoredWallet) {
-      await supabase
-        .from('withdrawals')
-        .update({
-          status: 'cancelled',
-          audit_remark: FINANCIAL_CORRECTION_REMARK,
-          audited_by: admin.id,
-          audited_at: new Date().toISOString(),
-        })
-        .in('id', restoredIds)
-        .eq('status', 'pending');
+      await rollbackRestoredWithdrawalsToCancelled(restoredIds);
       if (walletUpdateError) throw walletUpdateError;
       throw new Error('The wallet changed before pending withdrawals could be restored.');
     }
