@@ -955,7 +955,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 <th className="px-3 py-2.5 font-semibold">金額</th>
                 <th className="px-3 py-2.5 font-semibold">狀態</th>
                 <th className="px-3 py-2.5 font-semibold">申請時間</th>
-                <th className="px-3 py-2.5 font-semibold">審核資訊</th>
+                <th className="min-w-[280px] px-3 py-2.5 font-semibold">審核資訊</th>
                 <th className="px-3 py-2.5 text-right font-semibold">操作</th>
               </tr>
             </thead>
@@ -988,14 +988,23 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                       ? 'text-blue-100'
                       : 'text-slate-300';
                   const statusSurfaceClass = withdrawal.status === 'pending'
-                    ? 'bg-gradient-to-r from-orange-500/[0.14] via-orange-500/[0.05] to-transparent hover:from-orange-500/[0.22] hover:via-orange-500/[0.08]'
+                    ? 'bg-gradient-to-r from-orange-500/[0.24] via-orange-500/[0.09] to-transparent hover:from-orange-500/[0.32] hover:via-orange-500/[0.14]'
                     : withdrawal.status === 'approved'
-                      ? 'bg-gradient-to-r from-emerald-500/[0.11] via-emerald-500/[0.035] to-transparent hover:from-emerald-500/[0.18] hover:via-emerald-500/[0.06]'
+                      ? 'bg-gradient-to-r from-emerald-500/[0.19] via-emerald-500/[0.07] to-transparent hover:from-emerald-500/[0.27] hover:via-emerald-500/[0.11]'
                       : withdrawal.status === 'rejected'
-                        ? 'bg-gradient-to-r from-red-500/[0.12] via-red-500/[0.04] to-transparent hover:from-red-500/[0.19] hover:via-red-500/[0.07]'
+                        ? 'bg-gradient-to-r from-red-500/[0.21] via-red-500/[0.08] to-transparent hover:from-red-500/[0.3] hover:via-red-500/[0.12]'
                         : withdrawal.status === 'cancelled'
-                          ? 'bg-gradient-to-r from-slate-500/[0.12] via-slate-500/[0.04] to-transparent hover:from-slate-500/[0.18] hover:via-slate-500/[0.07]'
-                          : 'bg-gradient-to-r from-cyan-500/[0.11] via-cyan-500/[0.035] to-transparent hover:from-cyan-500/[0.18] hover:via-cyan-500/[0.06]';
+                          ? 'bg-gradient-to-r from-slate-400/[0.18] via-slate-400/[0.07] to-transparent hover:from-slate-400/[0.25] hover:via-slate-400/[0.11]'
+                          : 'bg-gradient-to-r from-cyan-500/[0.19] via-cyan-500/[0.07] to-transparent hover:from-cyan-500/[0.27] hover:via-cyan-500/[0.11]';
+                  const amountClass = withdrawal.status === 'pending'
+                    ? 'text-orange-200'
+                    : withdrawal.status === 'approved'
+                      ? 'text-emerald-200'
+                      : withdrawal.status === 'rejected'
+                        ? 'text-red-200'
+                        : withdrawal.status === 'cancelled'
+                          ? 'text-slate-200'
+                          : 'text-cyan-200';
                   const statusAccentClass = withdrawal.status === 'pending'
                     ? 'border-l-orange-400'
                     : withdrawal.status === 'approved'
@@ -1009,7 +1018,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   return (
                     <Fragment key={withdrawal.id}>
                       <tr className={`${statusSurfaceClass} transition-colors`}>
-                        <td className={`border-l-2 px-3 py-2.5 align-top ${statusAccentClass}`}>
+                        <td className={`border-l-[3px] px-3 py-2.5 align-top ${statusAccentClass}`}>
                           {isPending && (
                             <input
                               type="checkbox"
@@ -1040,14 +1049,14 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                             {withdrawal.employee?.employee_id}
                           </div>
                         </td>
-                        <td className="px-3 py-2.5 align-top font-bold tabular-nums text-emerald-300">
+                        <td className={`px-3 py-2.5 align-top font-bold tabular-nums ${amountClass}`}>
                           ${withdrawal.amount.toFixed(2)}
                         </td>
                         <td className="px-3 py-2.5 align-top">{getStatusBadge(withdrawal.status)}</td>
                         <td className="px-3 py-2.5 align-top text-xs text-slate-400">
                           {new Date(withdrawal.created_at).toLocaleString()}
                         </td>
-                        <td className="px-3 py-2.5 align-top text-xs text-slate-400">
+                        <td className="min-w-[280px] px-3 py-2.5 align-top text-xs text-slate-400">
                           {withdrawal.audited_at ? (
                             <>
                               <div className={
@@ -1058,8 +1067,19 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                                 {new Date(withdrawal.audited_at).toLocaleString()}
                               </div>
                               {withdrawal.audit_remark && (
-                                <div className="mt-0.5 max-w-[220px] truncate text-slate-500" title={withdrawal.audit_remark}>
-                                  {withdrawal.audit_remark}
+                                <div className="group/remark relative mt-1 max-w-[280px]">
+                                  <div className="truncate cursor-help border-b border-dotted border-slate-600 pb-0.5 text-slate-400 transition-colors group-hover/remark:border-cyan-300/60 group-hover/remark:text-cyan-200">
+                                    {withdrawal.audit_remark}
+                                  </div>
+                                  <div className="pointer-events-none absolute bottom-full left-0 z-40 mb-2 hidden w-[320px] max-w-[calc(100vw-2rem)] rounded-xl border border-cyan-400/35 bg-slate-800/[0.98] p-3 text-left shadow-2xl shadow-black/50 ring-1 ring-white/10 group-hover/remark:block">
+                                    <div className="flex items-center gap-2 border-b border-slate-700/80 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-cyan-300" />
+                                      審核備註
+                                    </div>
+                                    <div className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-5 text-slate-100 dark-panel-scroll">
+                                      {withdrawal.audit_remark}
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </>
