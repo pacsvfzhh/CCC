@@ -738,8 +738,16 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
         <div className="w-full lg:flex flex-1 min-h-0">
           {/* Desktop: Vertical Left Sidebar */}
-          <aside className="hidden lg:flex lg:flex-col lg:w-32 xl:w-36 flex-shrink-0 bg-slate-900/70 border-r-2 border-slate-600/80 shadow-[4px_0_16px_rgba(2,6,23,0.55)] overflow-y-auto scrollbar-hide">
-            <div className="shrink-0 border-b border-slate-700/60 bg-slate-950/55 px-1.5 py-2.5">
+          <aside className="relative isolate hidden flex-shrink-0 overflow-y-auto border-r border-cyan-300/50 bg-[linear-gradient(180deg,rgba(7,18,43,0.98)_0%,rgba(7,35,66,0.97)_34%,rgba(24,24,51,0.98)_67%,rgba(45,29,18,0.97)_100%)] shadow-[8px_0_24px_rgba(2,8,23,0.72)] scrollbar-hide lg:flex lg:w-32 lg:flex-col xl:w-36">
+            <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+              <div className="absolute -left-14 top-10 h-40 w-40 rounded-full bg-blue-500/20 blur-3xl" />
+              <div className="absolute -right-16 top-[28%] h-44 w-44 rounded-full bg-cyan-400/15 blur-3xl" />
+              <div className="absolute -left-16 top-[52%] h-40 w-40 rounded-full bg-violet-500/12 blur-3xl" />
+              <div className="absolute -right-16 bottom-10 h-44 w-44 rounded-full bg-amber-400/15 blur-3xl" />
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(125,211,252,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(125,211,252,0.035)_1px,transparent_1px)] bg-[size:18px_18px]" />
+              <div className="absolute inset-y-0 right-0 w-[3px] bg-gradient-to-b from-blue-400 via-cyan-300 to-amber-300 shadow-[-3px_0_12px_rgba(34,211,238,0.28)]" />
+            </div>
+            <div className="relative z-10 shrink-0 border-b border-cyan-300/25 bg-gradient-to-br from-blue-950/80 via-slate-950/70 to-amber-950/30 px-1.5 py-2.5 shadow-[0_8px_20px_rgba(2,8,23,0.28)]">
               <div className="grid min-w-0 grid-cols-[20px_minmax(0,1fr)] items-center gap-x-1.5 gap-y-1">
                 <div className="flex h-5 w-5 shrink-0 items-center justify-center justify-self-center rounded-md bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-md shadow-blue-950/40">
                   <Zap className="h-3 w-3 text-white" fill="currentColor" />
@@ -760,7 +768,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 {renderAccountMenu('sidebar')}
               </div>
             </div>
-            <nav className="flex flex-col gap-0.5 border-t border-slate-600/70 p-1.5 pt-8">
+            <nav className="relative z-10 flex flex-col gap-0.5 border-t border-blue-300/15 bg-slate-950/10 p-1.5 pt-8">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const pendingCount = tab.id === 'withdrawals' ? pendingWithdrawalsCount : tab.id === 'verifications' ? pendingVerificationsCount : tab.id === 'customerservice' ? unreadCustomerServiceCount : tab.id === 'cccservice' ? unreadCccServiceCount : tab.id === 'accountlocks' ? lockedAccountsCount : 0;
@@ -777,12 +785,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                           ? 'bg-orange-700 text-white shadow-lg shadow-orange-900/40'
                           : tab.id === 'cccservice'
                             ? 'bg-emerald-800 text-white shadow-lg shadow-emerald-950/40'
-                            : 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                            : 'bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-700 text-white shadow-lg shadow-blue-950/50 ring-1 ring-inset ring-cyan-200/45'
                         : tab.id === 'customerservice'
                           ? 'text-orange-400 hover:text-orange-100 hover:bg-orange-950/70'
                           : tab.id === 'cccservice'
                             ? 'text-emerald-400 hover:text-emerald-100 hover:bg-emerald-950/70'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
+                            : 'text-slate-300 hover:bg-gradient-to-r hover:from-blue-900/80 hover:via-cyan-900/55 hover:to-amber-900/35 hover:text-white hover:shadow-sm hover:shadow-cyan-950/40'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5 flex-shrink-0" />
