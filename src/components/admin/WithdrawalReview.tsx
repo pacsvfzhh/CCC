@@ -647,7 +647,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {adminFilterOptions.length > 1 && (
+              {adminFilterOptions.length > 0 && (
                 <div className="relative shrink-0" ref={groupMenuRef}>
                   <button
                     type="button"
