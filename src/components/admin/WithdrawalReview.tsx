@@ -972,10 +972,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   const isReviewing = reviewing === withdrawal.id;
                   const isEditing = editing === withdrawal.id;
                   const adminBadgeClass = withdrawal.admin?.role === 'super_admin'
-                    ? 'border-amber-200 bg-amber-400 text-slate-950'
+                    ? 'border-amber-300/70 border-t-0 bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-200 text-slate-950'
                     : withdrawal.admin?.role === 'secondary_admin'
-                      ? 'border-blue-200 bg-blue-500 text-white'
-                      : 'border-slate-500 bg-slate-700 text-slate-100';
+                      ? 'border-blue-300/70 border-t-0 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-400 text-white'
+                      : 'border-slate-500/80 border-t-0 bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 text-slate-100';
 
                   return (
                     <Fragment key={withdrawal.id}>
@@ -992,11 +992,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           )}
                         </td>
                         {showAdminColumn && (
-                          <td className="w-[112px] px-1.5 py-2.5 align-top">
+                          <td className="w-[112px] px-1.5 pb-2.5 pt-0 align-top">
                             <span
                               title={withdrawal.admin?.username || '未分配'}
                               aria-label={`所屬管理員：${withdrawal.admin?.username || '未分配'}`}
-                              className={`inline-flex min-h-7 max-w-[96px] items-center rounded-md border px-1.5 text-[11px] font-bold leading-tight tracking-tight ${adminBadgeClass}`}
+                              className={`inline-flex min-h-7 max-w-[96px] items-center rounded-b-md border-x border-b px-1.5 py-1 text-[11px] font-bold leading-tight tracking-tight ${adminBadgeClass}`}
                             >
                               <span className="truncate">{withdrawal.admin?.username || '未分配'}</span>
                             </span>
