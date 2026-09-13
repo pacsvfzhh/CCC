@@ -770,9 +770,9 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         </section>
 
         {/* Toolbar: status filter, admin filter, search, sort */}
-        <section className="shrink-0 border-b border-slate-800/60 bg-slate-900/35 px-4 py-2.5 sm:px-5 lg:px-6">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0 overflow-x-auto pb-1 scrollbar-hide lg:pb-0">
+        <section className="shrink-0 border-b border-slate-800/60 bg-slate-900/35 px-4 py-2 sm:px-5 lg:px-6">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0 overflow-x-auto pb-0 scrollbar-hide">
               <div className="flex min-w-max items-center gap-1.5">
                 {([
                   { key: 'all', label: 'All', count: overallStats.total, activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-500/40' },
@@ -785,7 +785,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   <button
                     key={item.key}
                     onClick={() => setFilterStatus(item.key)}
-                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all ${
+                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
                       filterStatus === item.key
                         ? item.activeClass
                         : 'border border-slate-700 bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -807,14 +807,14 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search employee or ID"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950/60 py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:w-52"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950/60 py-1 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:w-52"
                 />
               </div>
 
               <select
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-1.5 text-xs text-slate-200 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-1 text-xs text-slate-200 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="submit_time_desc">Newest submitted</option>
                 <option value="submit_time_asc">Oldest submitted</option>
