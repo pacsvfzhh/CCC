@@ -185,13 +185,13 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   // Build tabs array based on admin role
   const tabs = admin.role === 'emergency_admin' ? [
     // Emergency admin only has access to Account Locks
-    { id: 'accountlocks' as const, label: 'Account Locks', icon: Shield },
+    { id: 'accountlocks' as const, label: 'Locked', icon: Shield },
   ] : [
     // Normal admin tabs
     { id: 'employees' as const, label: 'Employees', icon: Users },
     { id: 'employeesearch' as const, label: 'Employee Search', icon: Search },
     { id: 'loginhistory' as const, label: 'Login History', icon: Activity },
-    { id: 'accountlocks' as const, label: 'Account Locks', icon: Shield },
+    { id: 'accountlocks' as const, label: 'Locked', icon: Shield },
     { id: 'messages' as const, label: 'Messages', icon: Bell },
     { id: 'announcements' as const, label: 'Announcements', icon: FileText },
     { id: 'customerservice' as const, label: '模拟客户', icon: MessageCircle },
