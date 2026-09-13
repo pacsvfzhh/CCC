@@ -119,7 +119,7 @@ interface NavigationDragState {
 }
 
 const NAVIGATION_PREFERENCES_KEY = 'admin_navigation_preferences';
-const NAVIGATION_LABEL_MAX_LENGTH = 18;
+const NAVIGATION_LABEL_MAX_LENGTH = 12;
 
 function loadNavigationPreferences(adminId: string): NavigationPreferences {
   try {
@@ -199,6 +199,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     height: number;
   } | null>(null);
   const navigationDragActiveRef = useRef(false);
+  const navigationDragFrameRef = useRef<number | null>(null);
+  const navigationDragPointerRef = useRef<{ pointerId: number; clientX: number; clientY: number } | null>(null);
+  const navigationDragPreviewRef = useRef<HTMLDivElement>(null);
+  const navigationDragLastTargetRef = useRef<AdminTabId | null>(null);
   const navigationDragSuppressClickUntilRef = useRef(0);
   const { companyName } = useCompanyName(admin.id);
 
@@ -216,6 +220,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     if (navigationDragTimerRef.current) {
       clearTimeout(navigationDragTimerRef.current);
     }
+    if (navigationDragFrameRef.current !== null) {
+      cancelAnimationFrame(navigationDragFrameRef.current);
+    }
+    navigationDragPointerRef.current = null;
+    navigationDragLastTargetRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -375,6 +384,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       height: rect.height,
     };
     navigationDragActiveRef.current = false;
+    navigationDragLastTargetRef.current = null;
 
     if (navigationDragTimerRef.current) clearTimeout(navigationDragTimerRef.current);
     navigationDragTimerRef.current = setTimeout(() => {
@@ -401,6 +411,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     const origin = navigationDragOriginRef.current;
     if (!origin || origin.pointerId !== event.pointerId) return;
 
+    navigationDragPointerRef.current = {
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
+
     if (!navigationDragActiveRef.current) {
       const directionalDistance = event.clientY - origin.startY;
       if (Math.abs(directionalDistance) <= 5) return;
@@ -426,46 +442,73 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     }
 
     event.preventDefault();
-    setNavigationDragState(current => current ? {
-      ...current,
-      direction: event.clientY < origin.startY ? -1 : 1,
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-    } : current);
+    if (navigationDragFrameRef.current !== null) return;
 
-    const list = navigationListRef.current;
-    if (!list) return;
+    const processNavigationDrag = () => {
+      navigationDragFrameRef.current = null;
+      const pointer = navigationDragPointerRef.current;
+      const currentOrigin = navigationDragOriginRef.current;
+      const list = navigationListRef.current;
+      if (!pointer || !currentOrigin || !list || !navigationDragActiveRef.current) return;
 
-    const listRect = list.getBoundingClientRect();
-    if (event.clientY < listRect.top + 36) list.scrollBy({ top: -18 });
-    if (event.clientY > listRect.bottom - 36) list.scrollBy({ top: 18 });
+      const listRect = list.getBoundingClientRect();
+      const edgeDistance = 52;
+      const distanceToTop = pointer.clientY - listRect.top;
+      const distanceToBottom = listRect.bottom - pointer.clientY;
+      let scrollStep = 0;
 
-    const cards = Array.from(list.querySelectorAll<HTMLElement>('[data-navigation-item-id]'));
-    if (cards.length === 0) return;
-
-    let targetCard = cards[0];
-    let closestDistance = Number.POSITIVE_INFINITY;
-    cards.forEach(card => {
-      const rect = card.getBoundingClientRect();
-      const distance = Math.abs(event.clientY - (rect.top + rect.height / 2));
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        targetCard = card;
+      if (distanceToTop < edgeDistance) {
+        scrollStep = -Math.max(6, Math.min(28, Math.round((edgeDistance - distanceToTop) * 0.65)));
+      } else if (distanceToBottom < edgeDistance) {
+        scrollStep = Math.max(6, Math.min(28, Math.round((edgeDistance - distanceToBottom) * 0.65)));
       }
-    });
 
-    const targetId = targetCard.dataset.navigationItemId as AdminTabId | undefined;
-    if (!targetId || targetId === origin.tabId) return;
+      if (scrollStep !== 0) list.scrollTop += scrollStep;
 
-    setNavigationDraft(current => {
-      const currentIndex = current.findIndex(item => item.id === origin.tabId);
-      const targetIndex = current.findIndex(item => item.id === targetId);
-      if (currentIndex < 0 || targetIndex < 0) return current;
-      const next = [...current];
-      const [movedItem] = next.splice(currentIndex, 1);
-      next.splice(targetIndex, 0, movedItem);
-      return next;
-    });
+      const direction = pointer.clientY < currentOrigin.startY ? -1 : 1;
+      if (navigationDragPreviewRef.current) {
+        navigationDragPreviewRef.current.style.transform = `translate3d(${pointer.clientX - currentOrigin.offsetX}px, ${pointer.clientY - currentOrigin.offsetY}px, 0)`;
+      }
+      setNavigationDragState(current => current && current.direction !== direction
+        ? { ...current, direction }
+        : current);
+
+      const cards = Array.from(list.querySelectorAll<HTMLElement>('[data-navigation-item-id]'));
+      if (cards.length > 0) {
+        let targetCard = cards[0];
+        let closestDistance = Number.POSITIVE_INFINITY;
+        cards.forEach(card => {
+          const rect = card.getBoundingClientRect();
+          const distance = Math.abs(pointer.clientY - (rect.top + rect.height / 2));
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            targetCard = card;
+          }
+        });
+
+        const targetId = targetCard.dataset.navigationItemId as AdminTabId | undefined;
+        if (targetId === currentOrigin.tabId) {
+          navigationDragLastTargetRef.current = null;
+        } else if (targetId && targetId !== navigationDragLastTargetRef.current) {
+          navigationDragLastTargetRef.current = targetId;
+          setNavigationDraft(current => {
+            const currentIndex = current.findIndex(item => item.id === currentOrigin.tabId);
+            const targetIndex = current.findIndex(item => item.id === targetId);
+            if (currentIndex < 0 || targetIndex < 0) return current;
+            const next = [...current];
+            const [movedItem] = next.splice(currentIndex, 1);
+            next.splice(targetIndex, 0, movedItem);
+            return next;
+          });
+        }
+      }
+
+      if (scrollStep !== 0 && navigationDragPointerRef.current?.pointerId === currentOrigin.pointerId) {
+        navigationDragFrameRef.current = requestAnimationFrame(processNavigationDrag);
+      }
+    };
+
+    navigationDragFrameRef.current = requestAnimationFrame(processNavigationDrag);
   };
 
   const endNavigationDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -483,6 +526,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
     navigationDragActiveRef.current = false;
     navigationDragOriginRef.current = null;
+    navigationDragPointerRef.current = null;
+    navigationDragLastTargetRef.current = null;
+    if (navigationDragFrameRef.current !== null) {
+      cancelAnimationFrame(navigationDragFrameRef.current);
+      navigationDragFrameRef.current = null;
+    }
     setNavigationDragState(null);
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -1474,10 +1523,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
             return (
               <div
-                className="pointer-events-none fixed z-[10000] flex items-center gap-2 rounded-lg border-2 border-cyan-300 bg-cyan-950/95 p-2 text-white opacity-95 shadow-[0_0_10px_rgba(34,211,238,0.95),0_0_28px_rgba(6,182,212,0.75)]"
+                ref={navigationDragPreviewRef}
+                className="pointer-events-none fixed left-0 top-0 z-[10000] flex items-center gap-2 rounded-lg border-2 border-cyan-300 bg-cyan-950/95 p-2 text-white opacity-95 shadow-[0_0_10px_rgba(34,211,238,0.95),0_0_28px_rgba(6,182,212,0.75)] will-change-transform"
                 style={{
-                  left: navigationDragState.pointerX - navigationDragState.offsetX,
-                  top: navigationDragState.pointerY - navigationDragState.offsetY,
+                  transform: `translate3d(${navigationDragState.pointerX - navigationDragState.offsetX}px, ${navigationDragState.pointerY - navigationDragState.offsetY}px, 0)`,
                   width: navigationDragState.width,
                   height: navigationDragState.height,
                 }}
