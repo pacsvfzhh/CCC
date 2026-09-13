@@ -147,8 +147,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       });
 
       // Include every admin as a selectable group, even those with no withdrawal records yet
+      // (emergency admin accounts don't manage employees, so they're excluded)
       if (admin.role === 'super_admin') {
         (admins || []).forEach((a) => {
+          if (a.role === 'emergency_admin') return;
           if (!groupedByAdmin.has(a.id)) {
             groupedByAdmin.set(a.id, []);
           }
@@ -165,8 +167,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
           }),
         }))
         .sort((a, b) => {
+          if (!a.admin && !b.admin) return 0;
           if (!a.admin) return 1;
           if (!b.admin) return -1;
+          if (a.admin.role === 'super_admin' && b.admin.role !== 'super_admin') return -1;
+          if (b.admin.role === 'super_admin' && a.admin.role !== 'super_admin') return 1;
           return (a.admin.username || '').localeCompare(b.admin.username || '');
         });
 
