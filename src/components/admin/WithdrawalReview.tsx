@@ -402,6 +402,9 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     group.withdrawals.map((w) => ({ ...w, admin: group.admin }))
   );
 
+  const todayKey = new Date().toDateString();
+  const todayCount = allRows.filter((w) => new Date(w.created_at).toDateString() === todayKey).length;
+
   const adminFilterOptions = adminGroups.map((group) => ({
     key: group.admin?.id || 'unassigned',
     label: group.admin ? `${group.admin.username} (${group.admin.admin_id})` : 'Unassigned',
@@ -611,41 +614,43 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
       <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-950/60">
         {/* Header + Stats */}
-        <section className="shrink-0 border-b border-slate-800/70 bg-slate-900/70 px-4 py-3.5 sm:px-5 sm:py-4 lg:px-6">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-400/25 bg-gradient-to-br from-blue-600/30 via-cyan-500/15 to-amber-400/10 shadow-inner shadow-cyan-400/10">
-                <ArrowUpDown className="h-5 w-5 text-cyan-300" />
+        <section className="shrink-0 border-b border-slate-800/70 bg-slate-900/70 px-4 py-2 sm:px-5 lg:px-6">
+          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-400/25 bg-gradient-to-br from-blue-600/30 via-cyan-500/15 to-amber-400/10">
+                <ArrowUpDown className="h-3.5 w-3.5 text-cyan-300" />
               </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl">Withdrawal Review</h1>
-                  {overallStats.pending > 0 && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/35 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-200">
-                      <AlertCircle className="h-3.5 w-3.5 text-orange-300" />
-                      {overallStats.pending} pending
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-slate-400 sm:text-sm">Search, filter, and process withdrawal requests in bulk or one at a time.</p>
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <h1 className="text-sm font-bold tracking-tight text-white sm:text-base">Withdrawal Review</h1>
+                {overallStats.pending > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-orange-400/35 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-200">
+                    <AlertCircle className="h-3 w-3 text-orange-300" />
+                    {overallStats.pending} pending
+                  </span>
+                )}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[440px]">
-              <div className="rounded-xl border border-blue-400/15 bg-blue-500/[0.07] px-3 py-2.5">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-300/75">Requests</div>
-                <div className="mt-1 text-lg font-bold tabular-nums text-white">{overallStats.total}</div>
+
+            <div className="flex overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-950/40 scrollbar-hide">
+              <div className="min-w-[104px] flex-[1.6] border-r border-slate-700/60 bg-gradient-to-br from-cyan-500/25 via-blue-500/15 to-blue-600/10 px-3.5 py-2">
+                <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-200">Today</div>
+                <div className="mt-0.5 text-xl font-extrabold tabular-nums text-white">{todayCount}</div>
               </div>
-              <div className="rounded-xl border border-orange-400/20 bg-orange-500/[0.07] px-3 py-2.5">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-orange-300/75">Pending</div>
-                <div className="mt-1 text-lg font-bold tabular-nums text-orange-200">{overallStats.pending}</div>
+              <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-blue-300/75">Requests</div>
+                <div className="mt-0.5 text-base font-bold tabular-nums text-white">{overallStats.total}</div>
               </div>
-              <div className="rounded-xl border border-emerald-400/15 bg-emerald-500/[0.07] px-3 py-2.5">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">Approved</div>
-                <div className="mt-1 text-lg font-bold tabular-nums text-emerald-200">{overallStats.approved}</div>
+              <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-orange-300/75">Pending</div>
+                <div className="mt-0.5 text-base font-bold tabular-nums text-orange-200">{overallStats.pending}</div>
               </div>
-              <div className="rounded-xl border border-cyan-400/15 bg-cyan-500/[0.07] px-3 py-2.5">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300/75">Total value</div>
-                <div className="mt-1 truncate text-lg font-bold tabular-nums text-cyan-100">${overallStats.totalAmount.toFixed(2)}</div>
+              <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-2">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">Approved</div>
+                <div className="mt-0.5 text-base font-bold tabular-nums text-emerald-200">{overallStats.approved}</div>
+              </div>
+              <div className="min-w-[82px] flex-1 px-3.5 py-2">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-red-300/75">Rejected</div>
+                <div className="mt-0.5 text-base font-bold tabular-nums text-red-200">{overallStats.rejected}</div>
               </div>
             </div>
           </div>
