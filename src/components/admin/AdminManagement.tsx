@@ -34,7 +34,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
     try {
       const { data, error } = await supabase
         .from('admins')
-        .select('*')
+        .select('id, username, role, parent_id, is_active, is_pinned, created_at, updated_at')
         .eq('role', 'secondary_admin')
         .order('created_at', { ascending: false });
 

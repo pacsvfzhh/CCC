@@ -1907,6 +1907,7 @@ export interface Database {
           success?: boolean;
           error?: string;
           session_token?: string;
+          session_marker?: string;
           user?: Record<string, unknown>;
         };
       };

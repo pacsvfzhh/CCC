@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, History, Eye, Users, Clock, MapPin, Monitor, X, ChevronDown, ChevronRight, Pin, PinOff, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { Admin } from '../../types';
 
 interface EmployeeLoginHistoryProps {
@@ -329,11 +330,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
 
       const newPinnedStatus = !group.isPinned;
 
-      // Update in database
-      const { error } = await supabase
-        .from('admins')
-        .update({ is_pinned: newPinnedStatus })
-        .eq('id', adminId);
+      const { error } = await supabase.rpc('admin_update_admin_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_target_admin_id: adminId,
+        p_updates: { is_pinned: newPinnedStatus },
+      });
 
       if (error) {
         console.error('Error updating pin status:', error);

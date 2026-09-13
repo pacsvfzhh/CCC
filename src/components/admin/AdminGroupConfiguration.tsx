@@ -167,7 +167,7 @@ export default function AdminGroupConfiguration() {
 
           const { count } = await supabase
             .from('users')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('created_by', admin.id);
 
           return {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
+import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { CheckCircle, XCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Users, Shield, Pin, Search, DollarSign, RefreshCw } from 'lucide-react';
 
 interface Admin {
@@ -703,10 +704,11 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
       // Set flag to prevent reload during pin toggle
       isTogglingPinRef.current = true;
 
-      const { error } = await supabase
-        .from('admins')
-        .update({ is_pinned: !currentPinned })
-        .eq('id', adminId);
+      const { error } = await supabase.rpc('admin_update_admin_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_target_admin_id: adminId,
+        p_updates: { is_pinned: !currentPinned },
+      });
 
       if (error) throw error;
 

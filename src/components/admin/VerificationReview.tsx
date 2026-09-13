@@ -212,7 +212,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
         throw verificationsError;
       }
 
-      const { data: employees } = await supabase.from('users').select('*');
+      const { data: employees } = await supabase.from('users').select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at');
       const employeeMap = new Map(employees?.map((e) => [e.id, e]));
 
       const verificationsWithEmployees = verificationsData?.map((v) => ({
@@ -244,7 +244,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
       let query = supabase
         .from('users')
-        .select('*')
+        .select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at')
         .eq('is_verified', true)
         .order('created_at', { ascending: false });
 
@@ -309,7 +309,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
     try {
       const { data, error } = await supabase
         .from('admins')
-        .select('*')
+        .select('id, username, role, parent_id, is_active, is_pinned, created_at, updated_at')
         .eq('is_active', true)
         .order('username', { ascending: true });
 

@@ -167,7 +167,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at')
         .eq('id', employeeId)
         .single();
 

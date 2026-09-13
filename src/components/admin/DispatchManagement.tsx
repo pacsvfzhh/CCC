@@ -281,7 +281,7 @@ export default function DispatchManagement() {
             // For default group, count employees NOT assigned to any group
             let userQuery = supabase
               .from('users')
-              .select('*', { count: 'exact', head: true });
+              .select('id', { count: 'exact', head: true });
 
             // If not super admin, only count own employees
             if (currentAdmin && !isCurrentSuperAdmin) {
@@ -327,7 +327,7 @@ export default function DispatchManagement() {
                 const userIds = groupMembers.map(m => m.user_id);
                 const { count } = await supabase
                   .from('users')
-                  .select('*', { count: 'exact', head: true })
+                  .select('id', { count: 'exact', head: true })
                   .in('id', userIds)
                   .eq('created_by', currentAdmin.id);
 

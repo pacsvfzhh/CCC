@@ -515,7 +515,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
       let employeesQuery = supabase
         .from('users')
-        .select('*')
+        .select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at')
         .order('created_at', { ascending: false });
 
       if (admin.role === 'secondary_admin') {

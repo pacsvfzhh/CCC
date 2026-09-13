@@ -68,7 +68,7 @@ export default function EmployeeSearch() {
       setProgress({ step: 1, totalSteps: 5, currentTask: 'Searching users by username and ID...', percentage: 20 });
       const { data: usersFromDirect, error: userError } = await supabase
         .from('users')
-        .select('*')
+        .select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at')
         .or(`username.eq.${trimmedValue},employee_id.eq.${trimmedValue}`);
 
       if (userError) {
@@ -111,7 +111,7 @@ export default function EmployeeSearch() {
       setProgress({ step: 4, totalSteps: 5, currentTask: 'Fetching complete user data...', percentage: 80 });
       const { data: allUsers, error: allUsersError } = await supabase
         .from('users')
-        .select('*')
+        .select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at')
         .in('id', allUserIds);
 
       if (allUsersError) {

@@ -193,17 +193,23 @@ class TabSessionManager {
 
     try {
       const storedTabId = sessionStorage.getItem('tabId');
-      const storedAuth = localStorage.getItem('employeeAuth');
+      const storedAuth = sessionStorage.getItem('work_platform_auth');
 
       if (!storedAuth || !storedTabId) {
         this.handleSessionExpired();
         return;
       }
 
-      const { userId, sessionToken } = JSON.parse(storedAuth);
+      const auth = JSON.parse(storedAuth);
+      const userId = auth.user?.id;
+      const financialSessionToken = auth.financialSessionToken;
 
-      // Validate session with backend
-      const isValid = await validateEmployeeSession(userId, sessionToken, storedTabId);
+      if (!userId || !financialSessionToken) {
+        this.handleSessionExpired();
+        return;
+      }
+
+      const isValid = await validateEmployeeSession(userId, financialSessionToken, storedTabId);
 
       if (!isValid) {
         console.log('[TabSessionManager] Session validation failed');

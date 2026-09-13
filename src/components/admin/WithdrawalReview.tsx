@@ -164,10 +164,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       const { data: withdrawalsData, error: withdrawalsError } = await query;
       if (withdrawalsError) throw withdrawalsError;
 
-      const { data: employees } = await supabase.from('users').select('*');
+      const { data: employees } = await supabase.from('users').select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at');
       const employeeMap = new Map(employees?.map((e) => [e.id, e]));
 
-      const { data: admins } = await supabase.from('admins').select('*');
+      const { data: admins } = await supabase.from('admins').select('id, username, role, parent_id, is_active, is_pinned, created_at, updated_at');
       const adminMap = new Map(admins?.map((a) => [a.id, a]));
 
       const withdrawalsWithEmployees = withdrawalsData?.map((w) => ({

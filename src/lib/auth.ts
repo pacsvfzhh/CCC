@@ -31,6 +31,7 @@ type FinancialLoginResult<T> = {
   success?: boolean;
   error?: string;
   session_token?: string;
+  session_marker?: string;
   user?: T;
 };
 
@@ -88,14 +89,14 @@ export async function login(credentials: LoginCredentials): Promise<StoredAuth> 
     if (error) throw error;
 
     const result = data as FinancialLoginResult<Employee>;
-    if (!result.success || !result.session_token || !result.user) {
+    if (!result.success || !result.session_token || !result.session_marker || !result.user) {
       throw new Error(result.error || 'Invalid credentials');
     }
 
     const authData: StoredAuth = {
       user: result.user,
       userType: 'employee',
-      sessionToken: result.session_token,
+      sessionToken: result.session_marker,
       financialSessionToken: result.session_token,
       tabId,
     };
@@ -105,7 +106,7 @@ export async function login(credentials: LoginCredentials): Promise<StoredAuth> 
       result.user.id,
       result.user.username,
       result.user.employee_id,
-      result.session_token,
+      result.session_marker,
     ).catch(err => console.error('Failed to log employee login:', err));
 
     return authData;
@@ -186,7 +187,7 @@ export function getStoredAuth(): StoredAuth | null {
   try {
     const auth = JSON.parse(stored) as StoredAuth;
     if (auth.userType === 'admin' && !auth.adminSessionToken) return null;
-    if (auth.userType === 'employee' && !auth.financialSessionToken) return null;
+    if (auth.userType === 'employee' && (!auth.financialSessionToken || !auth.sessionToken)) return null;
     return auth;
   } catch {
     return null;

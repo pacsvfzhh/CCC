@@ -1,11 +1,28 @@
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
 
+LOCK TABLE wallets, users, wallet_transactions, withdrawals IN ACCESS EXCLUSIVE MODE;
+
 ALTER TABLE wallet_transactions
   ADD COLUMN IF NOT EXISTS operation_id uuid;
 
 ALTER TABLE withdrawals
   ADD COLUMN IF NOT EXISTS last_operation_id uuid;
+
+ALTER TABLE wallets
+  ADD CONSTRAINT wallets_balances_finite_check CHECK (
+    available_balance::text <> 'NaN' AND frozen_balance::text <> 'NaN'
+  );
+ALTER TABLE wallet_transactions
+  ADD CONSTRAINT wallet_transactions_amounts_finite_check CHECK (
+    amount::text <> 'NaN'
+    AND balance_before::text <> 'NaN'
+    AND balance_after::text <> 'NaN'
+  );
+ALTER TABLE withdrawals
+  ADD CONSTRAINT withdrawals_amount_finite_check CHECK (amount::text <> 'NaN');
+ALTER TABLE users
+  ADD CONSTRAINT users_total_income_finite_check CHECK (total_income::text <> 'NaN');
 
 DROP INDEX IF EXISTS idx_wallet_transactions_reference_type;
 ALTER TABLE wallet_transactions
@@ -51,6 +68,7 @@ CREATE TABLE IF NOT EXISTS employee_financial_sessions (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token_hash text NOT NULL UNIQUE,
   tab_id text,
+  session_marker uuid NOT NULL,
   expires_at timestamptz NOT NULL,
   revoked_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -77,9 +95,9 @@ CREATE TABLE IF NOT EXISTS financial_operations (
 
 CREATE TABLE IF NOT EXISTS wallet_balance_baselines (
   user_id uuid PRIMARY KEY,
-  available_balance numeric NOT NULL CHECK (available_balance >= 0),
-  frozen_balance numeric NOT NULL CHECK (frozen_balance >= 0),
-  total_income numeric NOT NULL,
+  available_balance numeric NOT NULL CHECK (available_balance >= 0 AND available_balance::text <> 'NaN'),
+  frozen_balance numeric NOT NULL CHECK (frozen_balance >= 0 AND frozen_balance::text <> 'NaN'),
+  total_income numeric NOT NULL CHECK (total_income::text <> 'NaN'),
   last_ledger_id bigint NOT NULL DEFAULT 0,
   established_at timestamptz NOT NULL DEFAULT now()
 );
@@ -91,9 +109,9 @@ CREATE TABLE IF NOT EXISTS wallet_ledger_entries (
   source_type text NOT NULL CHECK (source_type IN ('wallet_transaction', 'withdrawal')),
   source_id uuid NOT NULL,
   event_type text NOT NULL,
-  available_delta numeric NOT NULL DEFAULT 0,
-  frozen_delta numeric NOT NULL DEFAULT 0,
-  income_delta numeric NOT NULL DEFAULT 0,
+  available_delta numeric NOT NULL DEFAULT 0 CHECK (available_delta::text <> 'NaN'),
+  frozen_delta numeric NOT NULL DEFAULT 0 CHECK (frozen_delta::text <> 'NaN'),
+  income_delta numeric NOT NULL DEFAULT 0 CHECK (income_delta::text <> 'NaN'),
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (operation_id, source_type, source_id, event_type)
 );
@@ -356,6 +374,10 @@ DECLARE
   v_password_hash text;
   v_token uuid;
 BEGIN
+  IF p_username IS NULL OR length(trim(p_username)) = 0 OR p_password IS NULL OR length(p_password) = 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Invalid credentials');
+  END IF;
+
   SELECT *
   INTO v_attempt
   FROM financial_login_attempts
@@ -380,7 +402,7 @@ BEGIN
     AND a.role IN ('super_admin', 'secondary_admin', 'emergency_admin')
   LIMIT 1;
 
-  IF NOT FOUND OR v_password_hash <> extensions.crypt(p_password, v_password_hash) THEN
+  IF NOT FOUND OR v_password_hash IS DISTINCT FROM extensions.crypt(p_password, v_password_hash) THEN
     INSERT INTO financial_login_attempts AS attempts (
       account_type,
       username,
@@ -440,7 +462,13 @@ DECLARE
   v_attempt financial_login_attempts%ROWTYPE;
   v_password_hash text;
   v_token uuid;
+  v_session_marker uuid;
 BEGIN
+  IF p_username IS NULL OR length(trim(p_username)) = 0 OR p_password IS NULL OR length(p_password) = 0
+    OR p_tab_id IS NULL OR length(trim(p_tab_id)) = 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Invalid credentials');
+  END IF;
+
   SELECT *
   INTO v_attempt
   FROM financial_login_attempts
@@ -464,7 +492,7 @@ BEGIN
     AND u.is_active = true
   LIMIT 1;
 
-  IF NOT FOUND OR v_password_hash <> extensions.crypt(p_password, v_password_hash) THEN
+  IF NOT FOUND OR v_password_hash IS DISTINCT FROM extensions.crypt(p_password, v_password_hash) THEN
     INSERT INTO financial_login_attempts AS attempts (
       account_type,
       username,
@@ -494,6 +522,7 @@ BEGIN
     AND username = trim(p_username);
 
   v_token := gen_random_uuid();
+  v_session_marker := gen_random_uuid();
 
   UPDATE employee_financial_sessions
   SET revoked_at = now()
@@ -504,26 +533,54 @@ BEGIN
     user_id,
     token_hash,
     tab_id,
+    session_marker,
     expires_at
   ) VALUES (
     v_user.id,
     private.hash_financial_token(v_token),
     p_tab_id,
+    v_session_marker,
     now() + interval '24 hours'
   );
 
   UPDATE users
-  SET current_session_token = v_token,
+  SET current_session_token = v_session_marker,
       current_tab_id = p_tab_id,
       session_created_at = now()
-  WHERE id = v_user.id;
+  WHERE id = v_user.id
+  RETURNING * INTO v_user;
 
   RETURN jsonb_build_object(
     'success', true,
     'session_token', v_token,
+    'session_marker', v_session_marker,
     'user', to_jsonb(v_user) - 'password_hash'
   );
 END;
+$$;
+
+CREATE OR REPLACE FUNCTION validate_employee_session(
+  p_user_id uuid,
+  p_session_token uuid,
+  p_tab_id text DEFAULT NULL
+)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path TO 'public', 'private', 'pg_temp'
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM employee_financial_sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.user_id = p_user_id
+      AND s.token_hash = private.hash_financial_token(p_session_token)
+      AND s.revoked_at IS NULL
+      AND s.expires_at > now()
+      AND (p_tab_id IS NULL OR s.tab_id = p_tab_id)
+      AND u.is_active = true
+  );
 $$;
 
 CREATE OR REPLACE FUNCTION revoke_financial_session(p_token uuid)
@@ -534,6 +591,8 @@ SET search_path TO 'public', 'private', 'extensions', 'pg_temp'
 AS $$
 DECLARE
   v_revoked boolean := false;
+  v_employee_id uuid;
+  v_session_marker uuid;
 BEGIN
   UPDATE admin_financial_sessions
   SET revoked_at = now()
@@ -544,8 +603,18 @@ BEGIN
   UPDATE employee_financial_sessions
   SET revoked_at = now()
   WHERE token_hash = private.hash_financial_token(p_token)
-    AND revoked_at IS NULL;
-  v_revoked := v_revoked OR FOUND;
+    AND revoked_at IS NULL
+  RETURNING user_id, session_marker INTO v_employee_id, v_session_marker;
+
+  IF v_employee_id IS NOT NULL THEN
+    UPDATE users
+    SET current_session_token = NULL,
+        current_tab_id = NULL,
+        session_created_at = NULL
+    WHERE id = v_employee_id
+      AND current_session_token = v_session_marker;
+    v_revoked := true;
+  END IF;
 
   RETURN v_revoked;
 END;
@@ -790,7 +859,7 @@ BEGIN
     AND s.expires_at > now()
     AND a.is_active = true;
 
-  IF v_admin_id IS NULL OR v_password_hash <> extensions.crypt(p_current_password, v_password_hash) THEN
+  IF v_admin_id IS NULL OR v_password_hash IS DISTINCT FROM extensions.crypt(p_current_password, v_password_hash) THEN
     RAISE EXCEPTION 'Current password is incorrect.';
   END IF;
   IF length(p_new_password) < 6 THEN
@@ -838,7 +907,7 @@ BEGIN
     AND s.expires_at > now()
     AND a.is_active = true;
 
-  IF v_admin_id IS NULL OR v_password_hash <> extensions.crypt(p_current_password, v_password_hash) THEN
+  IF v_admin_id IS NULL OR v_password_hash IS DISTINCT FROM extensions.crypt(p_current_password, v_password_hash) THEN
     RAISE EXCEPTION 'Current password is incorrect.';
   END IF;
   IF length(trim(p_new_username)) < 3 OR trim(p_new_username) !~ '^[A-Za-z0-9_]+$' THEN
@@ -881,7 +950,7 @@ BEGIN
   FROM financial_employee_credentials
   WHERE user_id = v_actor_id;
 
-  IF v_password_hash <> extensions.crypt(p_current_password, v_password_hash) THEN
+  IF v_password_hash IS DISTINCT FROM extensions.crypt(p_current_password, v_password_hash) THEN
     RAISE EXCEPTION 'Current password is incorrect.';
   END IF;
   IF length(p_new_password) < 6 THEN
@@ -972,6 +1041,11 @@ BEGIN
   INTO v_admin_id, v_admin_role
   FROM private.get_financial_admin_context(p_admin_session_token);
   PERFORM private.assert_admin_can_manage_user(v_admin_id, v_admin_role, p_user_id);
+
+  PERFORM 1
+  FROM wallets
+  WHERE user_id = p_user_id
+  FOR UPDATE;
 
   DELETE FROM users WHERE id = p_user_id;
   RETURN FOUND;
@@ -1816,8 +1890,8 @@ BEGIN
   FROM private.get_financial_admin_context(p_admin_session_token);
 
   PERFORM private.assert_admin_can_manage_user(v_admin_id, v_admin_role, p_user_id);
-  IF p_amount = 0 THEN
-    RAISE EXCEPTION 'Adjustment amount must not be zero.';
+  IF p_amount IS NULL OR p_amount = 0 OR p_amount::text = 'NaN' THEN
+    RAISE EXCEPTION 'Adjustment amount must be a finite non-zero number.';
   END IF;
   IF trim(COALESCE(p_remarks, '')) = '' THEN
     RAISE EXCEPTION 'Adjustment remarks are required.';
@@ -1927,8 +2001,8 @@ BEGIN
   FROM private.get_financial_admin_context(p_admin_session_token);
 
   PERFORM private.assert_admin_can_manage_user(v_admin_id, v_admin_role, p_employee_id);
-  IF p_amount <= 0 THEN
-    RAISE EXCEPTION 'Tip amount must be positive.';
+  IF p_amount IS NULL OR p_amount <= 0 OR p_amount::text = 'NaN' THEN
+    RAISE EXCEPTION 'Tip amount must be a finite positive number.';
   END IF;
   IF p_source_type NOT IN ('aaa_service', 'ccc_service') THEN
     RAISE EXCEPTION 'Unsupported customer service source.';
@@ -2090,18 +2164,27 @@ BEGIN
   WHERE user_id = p_user_id;
 
   IF NOT FOUND THEN
+    SELECT COALESCE(max(id), 0)
+    INTO v_last_ledger_id
+    FROM wallet_ledger_entries
+    WHERE user_id = p_user_id;
+
     INSERT INTO wallet_balance_baselines (
       user_id,
       available_balance,
       frozen_balance,
-      total_income
+      total_income,
+      last_ledger_id
     ) VALUES (
       p_user_id,
       v_wallet.available_balance,
       v_wallet.frozen_balance,
-      v_income_before
-    )
-    RETURNING * INTO v_baseline;
+      v_income_before,
+      v_last_ledger_id
+    );
+
+    DELETE FROM wallet_reconciliation_queue WHERE user_id = p_user_id;
+    RETURN jsonb_build_object('success', true, 'skipped', true, 'baseline_created', true);
   END IF;
 
   SELECT
@@ -2316,6 +2399,7 @@ REVOKE ALL ON wallet_reconciliation_audit FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION create_admin_financial_session(text, text) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION create_employee_financial_session(text, text, text) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION revoke_financial_session(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION validate_employee_session(uuid, uuid, text) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION admin_create_employee_account(uuid, text, text, text, uuid, text) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION admin_create_secondary_account(uuid, text, text) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION admin_reset_employee_password(uuid, uuid, text) FROM PUBLIC;
@@ -2340,6 +2424,7 @@ REVOKE EXECUTE ON FUNCTION enqueue_all_wallets_for_reconciliation() FROM PUBLIC,
 GRANT EXECUTE ON FUNCTION create_admin_financial_session(text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION create_employee_financial_session(text, text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION revoke_financial_session(uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION validate_employee_session(uuid, uuid, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_create_employee_account(uuid, text, text, text, uuid, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_create_secondary_account(uuid, text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_reset_employee_password(uuid, uuid, text) TO anon, authenticated;
