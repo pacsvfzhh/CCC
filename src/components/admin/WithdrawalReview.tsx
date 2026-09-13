@@ -1106,7 +1106,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           </div>
                         </td>
                         <td className="px-3 py-2.5 align-top">{getStatusBadge(withdrawal.status)}</td>
-                        <td className="w-[42%] min-w-[440px] px-3 py-2.5 align-top text-xs">
+                        <td className="w-[42%] min-w-[440px] px-3 py-2.5 align-middle text-xs">
                           {withdrawal.audited_at ? (
                             <>
                               <div className={`font-medium ${amountClass}`}>
