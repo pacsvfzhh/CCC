@@ -533,13 +533,6 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
         }, 1500);
       }
 
-      setTimeout(async () => {
-        try {
-          await supabase.rpc('process_pending_orders');
-        } catch (error) {
-          console.error('Error triggering order processing:', error);
-        }
-      }, 2000);
     } catch (error: unknown) {
       console.error('Order submission error:', error);
       animation.cancel();

@@ -4,7 +4,6 @@ import BlockchainBackground from './components/BlockchainBackground';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LanguageProvider } from './lib/i18n';
 import { AUTH_LOGOUT_EVENT, getStoredAuth, PROFILE_UPDATED_EVENT } from './lib/auth';
-import { startOrderProcessing } from './services/orderProcessor';
 import { useDeviceOptimization } from './lib/useDeviceOptimization';
 import { useResponsive, useApplyResponsiveMeta } from './lib/useResponsive';
 import type { AuthState } from './types';
@@ -101,11 +100,6 @@ function App() {
       window.removeEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate);
     };
   }, []);
-
-  useEffect(() => {
-    if (authState.userType !== 'employee' || !authState.user?.id) return;
-    return startOrderProcessing();
-  }, [authState.user?.id, authState.userType]);
 
   const handleLoginSuccess = () => {
     const stored = getStoredAuth();

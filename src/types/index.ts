@@ -64,13 +64,14 @@ export interface Wallet {
 export interface WalletTransaction {
   id: string;
   user_id: string;
-  type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'manual_adjustment' | 'tip';
+  type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip';
   amount: number;
   balance_before: number;
   balance_after: number;
   reference_id: string | null;
   remarks: string;
   created_by: string | null;
+  operation_id?: string | null;
   created_at: string;
 }
 
@@ -82,6 +83,7 @@ export interface Withdrawal {
   audit_remark: string | null;
   audited_by: string | null;
   audited_at: string | null;
+  last_operation_id?: string | null;
   created_at: string;
 }
 

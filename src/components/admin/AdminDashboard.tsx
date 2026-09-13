@@ -3,8 +3,7 @@ import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Dat
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Admin } from '../../types';
-import { logout, updateStoredUsername } from '../../lib/auth';
-import { hashPassword, verifyPassword } from '../../lib/passwordHash';
+import { getAdminFinancialSessionToken, logout, updateStoredUsername } from '../../lib/auth';
 import { useCompanyName } from '../../lib/useCompanyName';
 import { AdminBackground } from '../AdminBackground';
 import { supabase } from '../../lib/supabase';
@@ -958,33 +957,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setChangingPassword(true);
 
     try {
-      // Verify current password
-      const { data: adminData, error: verifyError } = await supabase
-        .from('admins')
-        .select('password_hash')
-        .eq('id', admin.id)
-        .single();
-
-      if (verifyError) throw verifyError;
-
-      // Verify password hash
-      const isValidPassword = await verifyPassword(passwordData.currentPassword, adminData.password_hash);
-      if (!isValidPassword) {
-        setPasswordError('Current password is incorrect');
-        setChangingPassword(false);
-        return;
-      }
-
-      // Hash the new password before storing
-      const hashedPassword = await hashPassword(passwordData.newPassword);
-
-      // Update password
-      const { error: updateError } = await supabase
-        .from('admins')
-        .update({ password_hash: hashedPassword })
-        .eq('id', admin.id);
+      const { data, error: updateError } = await supabase.rpc('change_admin_password_atomic', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_current_password: passwordData.currentPassword,
+        p_new_password: passwordData.newPassword,
+      });
 
       if (updateError) throw updateError;
+      if (!data) throw new Error('Failed to change password');
 
       setPasswordSuccess(true);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -1023,45 +1003,17 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setChangingUsername(true);
 
     try {
-      // Verify current password
-      const { data: adminData, error: verifyError } = await supabase
-        .from('admins')
-        .select('password_hash')
-        .eq('id', admin.id)
-        .single();
+      const { data, error: updateError } = await supabase.rpc('change_admin_username_atomic', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_current_password: usernameData.currentPassword,
+        p_new_username: usernameData.newUsername,
+      });
 
-      if (verifyError) throw verifyError;
-
-      // Verify password hash
-      const isValidPassword = await verifyPassword(usernameData.currentPassword, adminData.password_hash);
-      if (!isValidPassword) {
-        setUsernameError('Password is incorrect');
-        setChangingUsername(false);
-        return;
+      if (updateError) {
+        if (updateError.code === '23505') throw new Error('Username already exists');
+        throw updateError;
       }
-
-      // Check if username already exists
-      const { data: existingAdmin, error: checkError } = await supabase
-        .from('admins')
-        .select('id')
-        .eq('username', usernameData.newUsername)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      if (existingAdmin && existingAdmin.id !== admin.id) {
-        setUsernameError('Username already exists');
-        setChangingUsername(false);
-        return;
-      }
-
-      // Update username
-      const { error: updateError } = await supabase
-        .from('admins')
-        .update({ username: usernameData.newUsername })
-        .eq('id', admin.id);
-
-      if (updateError) throw updateError;
+      if (!data?.success) throw new Error('Failed to change username');
 
       setUsernameSuccess(true);
       setUsernameData({ newUsername: '', currentPassword: '' });

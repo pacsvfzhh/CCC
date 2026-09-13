@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { hashPassword } from '../../lib/passwordHash';
-import { verifyPassword } from '../../lib/passwordHash';
+import { getEmployeeFinancialSession } from '../../lib/auth';
 import { useLanguage } from '../../lib/i18n/context';
 
 interface PasswordChangeProps {
@@ -82,29 +81,17 @@ export default function PasswordChange({ employeeId, onClose, onLogout }: Passwo
     setLoading(true);
 
     try {
-      const { data: user, error: fetchError } = await supabase
-        .from('users')
-        .select('password_hash')
-        .eq('id', employeeId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const isValid = await verifyPassword(currentPassword, user.password_hash);
-      if (!isValid) {
-        setError(t.passwordChange.errorCurrentIncorrect);
-        setLoading(false);
-        return;
-      }
-
-      const hashedPassword = await hashPassword(newPassword);
-
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ password_hash: hashedPassword })
-        .eq('id', employeeId);
+      const financialSession = getEmployeeFinancialSession();
+      const { data, error: updateError } = await supabase.rpc('change_employee_password_atomic', {
+        p_user_id: employeeId,
+        p_session_token: financialSession.token,
+        p_tab_id: financialSession.tabId,
+        p_current_password: currentPassword,
+        p_new_password: newPassword,
+      });
 
       if (updateError) throw updateError;
+      if (!data) throw new Error(t.passwordChange.errorGeneric);
 
       setSuccess(true);
       setCurrentPassword('');

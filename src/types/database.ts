@@ -1081,25 +1081,27 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'manual_adjustment' | 'tip';
+          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip';
           amount: number;
           balance_before: number;
           balance_after: number;
           reference_id: string | null;
           remarks: string;
           created_by: string | null;
+          operation_id: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
-          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'manual_adjustment' | 'tip';
+          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip';
           amount: number;
           balance_before: number;
           balance_after: number;
           reference_id?: string | null;
           remarks?: string;
           created_by?: string | null;
+          operation_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -1112,6 +1114,7 @@ export interface Database {
           reference_id?: string | null;
           remarks?: string;
           created_by?: string | null;
+          operation_id?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -1125,6 +1128,7 @@ export interface Database {
           audit_remark: string | null;
           audited_by: string | null;
           audited_at: string | null;
+          last_operation_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -1135,6 +1139,7 @@ export interface Database {
           audit_remark?: string | null;
           audited_by?: string | null;
           audited_at?: string | null;
+          last_operation_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -1145,6 +1150,7 @@ export interface Database {
           audit_remark?: string | null;
           audited_by?: string | null;
           audited_at?: string | null;
+          last_operation_id?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -1886,6 +1892,145 @@ export interface Database {
       };
     };
     Functions: {
+      create_admin_financial_session: {
+        Args: { p_password: string; p_username: string };
+        Returns: {
+          success?: boolean;
+          error?: string;
+          session_token?: string;
+          user?: Record<string, unknown>;
+        };
+      };
+      create_employee_financial_session: {
+        Args: { p_password: string; p_tab_id: string; p_username: string };
+        Returns: {
+          success?: boolean;
+          error?: string;
+          session_token?: string;
+          user?: Record<string, unknown>;
+        };
+      };
+      revoke_financial_session: {
+        Args: { p_token: string };
+        Returns: boolean;
+      };
+      admin_create_employee_account: {
+        Args: {
+          p_admin_session_token: string;
+          p_created_by: string;
+          p_employee_id: string;
+          p_password: string;
+          p_remarks: string;
+          p_username: string;
+        };
+        Returns: { success?: boolean; error?: string; user?: Record<string, unknown> };
+      };
+      admin_create_secondary_account: {
+        Args: { p_admin_session_token: string; p_password: string; p_username: string };
+        Returns: { success?: boolean; error?: string; user?: Record<string, unknown> };
+      };
+      admin_reset_employee_password: {
+        Args: { p_admin_session_token: string; p_new_password: string; p_user_id: string };
+        Returns: boolean;
+      };
+      admin_update_secondary_account: {
+        Args: {
+          p_admin_session_token: string;
+          p_new_password?: string | null;
+          p_target_admin_id: string;
+          p_username: string;
+        };
+        Returns: boolean;
+      };
+      change_admin_password_atomic: {
+        Args: { p_admin_session_token: string; p_current_password: string; p_new_password: string };
+        Returns: boolean;
+      };
+      change_admin_username_atomic: {
+        Args: { p_admin_session_token: string; p_current_password: string; p_new_username: string };
+        Returns: { success?: boolean; user?: Record<string, unknown> };
+      };
+      change_employee_password_atomic: {
+        Args: {
+          p_current_password: string;
+          p_new_password: string;
+          p_session_token: string;
+          p_tab_id: string;
+          p_user_id: string;
+        };
+        Returns: boolean;
+      };
+      admin_update_employee_account: {
+        Args: { p_admin_session_token: string; p_updates: Record<string, unknown>; p_user_id: string };
+        Returns: Record<string, unknown>;
+      };
+      admin_delete_employee_account: {
+        Args: { p_admin_session_token: string; p_user_id: string };
+        Returns: boolean;
+      };
+      admin_delete_secondary_account: {
+        Args: { p_admin_session_token: string; p_target_admin_id: string };
+        Returns: boolean;
+      };
+      admin_update_admin_account: {
+        Args: { p_admin_session_token: string; p_target_admin_id: string; p_updates: Record<string, unknown> };
+        Returns: Record<string, unknown>;
+      };
+      request_employee_withdrawal: {
+        Args: { p_operation_id: string; p_session_token: string; p_tab_id: string; p_user_id: string };
+        Returns: { success?: boolean; error?: string; withdrawal_id?: string; amount?: number };
+      };
+      cancel_employee_withdrawal: {
+        Args: {
+          p_operation_id: string;
+          p_session_token: string;
+          p_tab_id: string;
+          p_user_id: string;
+          p_withdrawal_id: string;
+        };
+        Returns: { success?: boolean; error?: string };
+      };
+      review_withdrawal_atomic: {
+        Args: {
+          p_admin_session_token: string;
+          p_operation_id: string;
+          p_remark: string;
+          p_status: string;
+          p_withdrawal_id: string;
+        };
+        Returns: { success?: boolean; error?: string };
+      };
+      correct_withdrawal_status_atomic: {
+        Args: {
+          p_admin_session_token: string;
+          p_operation_id: string;
+          p_remark: string;
+          p_status: string;
+          p_withdrawal_id: string;
+        };
+        Returns: { success?: boolean; error?: string };
+      };
+      admin_adjust_wallet_balance_atomic: {
+        Args: {
+          p_admin_session_token: string;
+          p_amount: number;
+          p_operation_id: string;
+          p_remarks: string;
+          p_user_id: string;
+        };
+        Returns: { success?: boolean; error?: string };
+      };
+      send_customer_service_tip_atomic: {
+        Args: {
+          p_admin_session_token: string;
+          p_amount: number;
+          p_customer_id: string;
+          p_employee_id: string;
+          p_operation_id: string;
+          p_source_type: string;
+        };
+        Returns: { success?: boolean; error?: string; message_id?: string };
+      };
       cleanup_all_stale_sessions: {
         Args: Record<string, never>;
         Returns: unknown;

@@ -121,7 +121,7 @@ export async function logout(isUserInitiated: boolean = true) {
     const financialSessionToken = auth.userType === 'admin'
       ? auth.adminSessionToken
       : auth.financialSessionToken;
-    const operations: Array<Promise<unknown>> = [
+    const operations: Array<PromiseLike<unknown>> = [
       supabase
         .rpc('revoke_financial_session', { p_token: financialSessionToken })
         .then(() => undefined, () => undefined),

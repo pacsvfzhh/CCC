@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, Shield, Trash2, Eye, EyeOff, CreditCard as Edit2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { hashPassword } from '../../lib/passwordHash';
+import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { Admin } from '../../types';
 
 interface AdminManagementProps {
@@ -66,15 +66,11 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
         throw new Error('Password must be at least 6 characters');
       }
 
-      // Hash the password before storing
-      const hashedPassword = await hashPassword(formData.password);
-
-      const { data, error } = await supabase.from('admins').insert({
-        username: formData.username.trim(),
-        password_hash: hashedPassword,
-        role: 'secondary_admin',
-        parent_id: admin.id,
-      }).select();
+      const { data, error } = await supabase.rpc('admin_create_secondary_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_username: formData.username.trim(),
+        p_password: formData.password,
+      });
 
       if (error) {
         if (error.code === '23505') {
@@ -83,7 +79,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
         throw error;
       }
 
-      if (!data || data.length === 0) {
+      if (!data?.success) {
         throw new Error('Failed to create admin - no data returned');
       }
 
@@ -101,10 +97,11 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
 
   const toggleAdminStatus = async (adminId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('admins')
-        .update({ is_active: !currentStatus })
-        .eq('id', adminId);
+      const { error } = await supabase.rpc('admin_update_admin_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_target_admin_id: adminId,
+        p_updates: { is_active: !currentStatus },
+      });
 
       if (error) throw error;
       void loadAdmins();
@@ -116,12 +113,13 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
   const handleDeleteAdmin = async (adminId: string) => {
     try {
       setDeleteError(null);
-      const { error } = await supabase
-        .from('admins')
-        .delete()
-        .eq('id', adminId);
+      const { data, error } = await supabase.rpc('admin_delete_secondary_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_target_admin_id: adminId,
+      });
 
       if (error) throw error;
+      if (!data) throw new Error('Unable to delete administrator.');
 
       setDeletingAdminId(null);
       void loadAdmins();
@@ -154,27 +152,16 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
         throw new Error('Username is required');
       }
 
-      const updates: { username: string; password_hash?: string } = {
-        username: editFormData.username.trim(),
-      };
-
-      // Only update password if provided
-      if (editFormData.password) {
-        if (editFormData.password.length < 6) {
-          throw new Error('Password must be at least 6 characters');
-        }
-        console.log('Hashing new password...');
-        const hashedPassword = await hashPassword(editFormData.password);
-        console.log('Password hashed successfully, updating database...');
-        updates.password_hash = hashedPassword;
+      if (editFormData.password && editFormData.password.length < 6) {
+        throw new Error('Password must be at least 6 characters');
       }
 
-      console.log('Updating admin with data:', updates);
-      const { error } = await supabase
-        .from('admins')
-        .update(updates)
-        .eq('id', editingAdmin.id);
-      console.log('Update result:', { error });
+      const { error } = await supabase.rpc('admin_update_secondary_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_target_admin_id: editingAdmin.id,
+        p_username: editFormData.username.trim(),
+        p_new_password: editFormData.password || null,
+      });
 
       if (error) {
         if (error.code === '23505') {
