@@ -127,7 +127,7 @@ function getNavigationPreferencesOwnerId(admin: Admin): string | null {
   return null;
 }
 
-function getNavigationPreferencesKey(ownerId: string): string {
+function getLegacyNavigationPreferencesKey(ownerId: string): string {
   return `${NAVIGATION_PREFERENCES_KEY}:${ownerId}`;
 }
 
@@ -147,47 +147,64 @@ function parseNavigationPreferences(value: unknown): NavigationPreferences {
   return { order, labels };
 }
 
-function loadNavigationPreferences(ownerId: string | null): NavigationPreferences {
-  if (!ownerId) return { order: [], labels: {} };
+function hasNavigationPreferences(preferences: NavigationPreferences): boolean {
+  return preferences.order.length > 0 || Object.keys(preferences.labels).length > 0;
+}
 
+function loadStoredNavigationPreferences(storageKey: string): NavigationPreferences {
   try {
-    const stored = localStorage.getItem(getNavigationPreferencesKey(ownerId));
+    const stored = localStorage.getItem(storageKey);
     return stored ? parseNavigationPreferences(JSON.parse(stored)) : { order: [], labels: {} };
   } catch {
     return { order: [], labels: {} };
   }
 }
 
-function saveLocalNavigationPreferences(ownerId: string | null, preferences: NavigationPreferences) {
-  if (!ownerId) return;
+function loadNavigationPreferences(legacyOwnerId: string | null): NavigationPreferences {
+  const globalPreferences = loadStoredNavigationPreferences(NAVIGATION_PREFERENCES_KEY);
+  if (hasNavigationPreferences(globalPreferences) || !legacyOwnerId) return globalPreferences;
 
+  return loadStoredNavigationPreferences(getLegacyNavigationPreferencesKey(legacyOwnerId));
+}
+
+function saveLocalNavigationPreferences(preferences: NavigationPreferences) {
   try {
-    localStorage.setItem(getNavigationPreferencesKey(ownerId), JSON.stringify(preferences));
+    localStorage.setItem(NAVIGATION_PREFERENCES_KEY, JSON.stringify(preferences));
   } catch {
     return;
   }
 }
 
-async function loadSharedNavigationPreferences(ownerId: string): Promise<NavigationPreferences | null> {
+async function loadSharedNavigationPreferences(legacyOwnerId: string | null): Promise<{
+  preferences: NavigationPreferences;
+  isLegacy: boolean;
+} | null> {
+  const keys = [NAVIGATION_PREFERENCES_KEY];
+  if (legacyOwnerId) keys.push(getLegacyNavigationPreferencesKey(legacyOwnerId));
+
   const { data, error } = await supabase
     .from('system_configs')
-    .select('value')
-    .eq('key', getNavigationPreferencesKey(ownerId))
-    .maybeSingle();
+    .select('key, value')
+    .in('key', keys);
 
   if (error) throw error;
-  return data ? parseNavigationPreferences(data.value) : null;
+
+  const sharedConfig = data?.find(config => config.key === NAVIGATION_PREFERENCES_KEY) || data?.[0];
+  return sharedConfig
+    ? {
+        preferences: parseNavigationPreferences(sharedConfig.value),
+        isLegacy: sharedConfig.key !== NAVIGATION_PREFERENCES_KEY,
+      }
+    : null;
 }
 
-async function saveSharedNavigationPreferences(ownerId: string | null, preferences: NavigationPreferences) {
-  if (!ownerId) return;
-
+async function saveSharedNavigationPreferences(preferences: NavigationPreferences) {
   try {
     const { error } = await supabase
       .from('system_configs')
       .upsert(
         {
-          key: getNavigationPreferencesKey(ownerId),
+          key: NAVIGATION_PREFERENCES_KEY,
           value: preferences,
           description: 'Administrator navigation display preferences',
           updated_at: new Date().toISOString(),
@@ -265,24 +282,23 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setNavigationDraft([]);
     setShowNavigationSettings(false);
 
-    if (!navigationPreferencesOwnerId) return;
-
     let cancelled = false;
     void loadSharedNavigationPreferences(navigationPreferencesOwnerId)
-      .then(sharedPreferences => {
+      .then(sharedConfig => {
         if (cancelled) return;
 
-        if (sharedPreferences) {
-          saveLocalNavigationPreferences(navigationPreferencesOwnerId, sharedPreferences);
-          setNavigationPreferences(sharedPreferences);
+        if (sharedConfig) {
+          saveLocalNavigationPreferences(sharedConfig.preferences);
+          setNavigationPreferences(sharedConfig.preferences);
+
+          if (admin.role === 'super_admin' && sharedConfig.isLegacy) {
+            void saveSharedNavigationPreferences(sharedConfig.preferences);
+          }
           return;
         }
 
-        if (
-          admin.role === 'super_admin'
-          && (localPreferences.order.length > 0 || Object.keys(localPreferences.labels).length > 0)
-        ) {
-          void saveSharedNavigationPreferences(navigationPreferencesOwnerId, localPreferences);
+        if (admin.role === 'super_admin' && hasNavigationPreferences(localPreferences)) {
+          void saveSharedNavigationPreferences(localPreferences);
         }
       })
       .catch(error => {
@@ -641,8 +657,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       ])) as Partial<Record<AdminTabId, string>>,
     };
     setNavigationPreferences(nextPreferences);
-    saveLocalNavigationPreferences(navigationPreferencesOwnerId, nextPreferences);
-    void saveSharedNavigationPreferences(navigationPreferencesOwnerId, nextPreferences);
+    saveLocalNavigationPreferences(nextPreferences);
+    void saveSharedNavigationPreferences(nextPreferences);
     setShowNavigationSettings(false);
   };
 
