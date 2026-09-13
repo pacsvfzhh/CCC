@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
-import { CheckCircle, XCircle, Clock, Ban, Users, AlertCircle, ArrowUpDown, Pencil, Save, X, Search } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Ban, AlertCircle, ArrowUpDown, Pencil, Save, X, Search } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Withdrawal, Employee, Admin } from '../../types';
 
@@ -502,12 +502,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
   if (loading) {
     return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-950/55 px-3 py-3 sm:px-4 lg:px-5">
-        <div className="flex h-full min-h-0 items-center justify-center rounded-2xl border border-blue-500/20 bg-slate-900/70 shadow-2xl shadow-slate-950/30">
-          <div className="flex items-center gap-3 text-sm text-slate-400">
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-400/25 border-t-blue-400" />
-            Loading withdrawals...
-          </div>
+      <div className="flex h-full min-h-0 flex-col items-center justify-center overflow-hidden bg-slate-950/60">
+        <div className="flex items-center gap-3 text-sm text-slate-400">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-400/25 border-t-blue-400" />
+          Loading withdrawals...
         </div>
       </div>
     );
@@ -611,9 +609,9 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         </div>
       )}
 
-      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-950/55 px-3 py-3 sm:px-4 lg:px-5">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-950/60">
         {/* Header + Stats */}
-        <section className="shrink-0 rounded-2xl border border-blue-500/20 bg-slate-900/80 p-4 shadow-2xl shadow-slate-950/25 backdrop-blur-xl sm:p-5">
+        <section className="shrink-0 border-b border-slate-800/70 bg-slate-900/70 px-4 py-3.5 sm:px-5 sm:py-4 lg:px-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-400/25 bg-gradient-to-br from-blue-600/30 via-cyan-500/15 to-amber-400/10 shadow-inner shadow-cyan-400/10">
@@ -654,7 +652,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         </section>
 
         {/* Toolbar: status filter, admin filter, search, sort */}
-        <section className="mt-3 shrink-0 rounded-2xl border border-slate-700/70 bg-slate-900/60 p-3">
+        <section className="shrink-0 border-b border-slate-800/60 bg-slate-900/35 px-4 py-2.5 sm:px-5 lg:px-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 overflow-x-auto pb-1 scrollbar-hide lg:pb-0">
               <div className="flex min-w-max items-center gap-1.5">
@@ -724,7 +722,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
         {/* Bulk action bar */}
         {selectedIds.size > 0 && (
-          <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-400/40 bg-blue-500/10 px-3.5 py-2.5">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-blue-400/30 bg-blue-500/10 px-4 py-2.5 sm:px-5 lg:px-6">
             <div className="text-xs font-semibold text-blue-200">
               {selectedIds.size} withdrawal{selectedIds.size !== 1 ? 's' : ''} selected
             </div>
@@ -754,7 +752,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         )}
 
         {/* Data table */}
-        <div className="mt-3 min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-700/70 bg-slate-900/50 dark-panel-scroll">
+        <div className="min-h-0 flex-1 overflow-auto bg-slate-950/30 dark-panel-scroll">
           <table className="w-full min-w-[920px] border-collapse text-left text-sm">
             <thead className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur">
               <tr className="text-[10px] uppercase tracking-wider text-slate-400">
@@ -984,17 +982,9 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
           </table>
         </div>
 
-        {/* Empty admin overview hint */}
-        {adminGroups.length === 0 && !loading && (
-          <div className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-slate-700/80 bg-slate-900/40 px-4 py-3 text-xs text-slate-400">
-            <Users className="h-4 w-4 text-slate-500" />
-            No admin groups found yet.
-          </div>
-        )}
-
         {/* Error Display */}
         {error && (
-          <div className="mt-3 shrink-0 rounded-lg border border-red-500/50 bg-red-500/10 p-3">
+          <div className="shrink-0 border-t border-red-500/40 bg-red-500/10 px-4 py-2.5 sm:px-5 lg:px-6">
             <div className="flex items-center gap-2 text-red-400">
               <AlertCircle className="h-4 w-4" />
               <span className="text-sm font-medium">{error}</span>
