@@ -417,19 +417,42 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   ) => {
     if (!correction.ids.length || correction.amount <= 0) return;
 
+    const { data: restoredWithdrawals, error: restoreError } = await supabase
+      .from('withdrawals')
+      .update({ status: 'pending', audit_remark: null, audited_by: null, audited_at: null })
+      .in('id', correction.ids)
+      .eq('status', 'cancelled')
+      .eq('audit_remark', FINANCIAL_CORRECTION_REMARK)
+      .select('id, amount');
+
+    if (restoreError) throw restoreError;
+    if (!restoredWithdrawals?.length) return;
+
+    const restoredIds = restoredWithdrawals.map((item) => item.id);
+    const restoredAmount = restoredWithdrawals.reduce((sum, item) => sum + item.amount, 0);
     const { data: wallet, error: walletError } = await supabase
       .from('wallets')
       .select('available_balance, frozen_balance')
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (walletError) throw walletError;
-    if (!wallet || wallet.available_balance < correction.amount) {
+    if (walletError || !wallet || wallet.available_balance < restoredAmount) {
+      await supabase
+        .from('withdrawals')
+        .update({
+          status: 'cancelled',
+          audit_remark: FINANCIAL_CORRECTION_REMARK,
+          audited_by: admin.id,
+          audited_at: new Date().toISOString(),
+        })
+        .in('id', restoredIds)
+        .eq('status', 'pending');
+      if (walletError) throw walletError;
       throw new Error('Unable to restore pending withdrawals after the correction failed.');
     }
 
-    const restoredAvailableBalance = wallet.available_balance - correction.amount;
-    const restoredFrozenBalance = wallet.frozen_balance + correction.amount;
+    const restoredAvailableBalance = wallet.available_balance - restoredAmount;
+    const restoredFrozenBalance = wallet.frozen_balance + restoredAmount;
     const { data: restoredWallet, error: walletUpdateError } = await supabase
       .from('wallets')
       .update({
@@ -443,28 +466,19 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       .select('user_id')
       .maybeSingle();
 
-    if (walletUpdateError) throw walletUpdateError;
-    if (!restoredWallet) throw new Error('The wallet changed before pending withdrawals could be restored.');
-
-    const { error: restoreError } = await supabase
-      .from('withdrawals')
-      .update({ status: 'pending', audit_remark: null, audited_by: null, audited_at: null })
-      .in('id', correction.ids)
-      .eq('status', 'cancelled')
-      .eq('audit_remark', FINANCIAL_CORRECTION_REMARK);
-
-    if (restoreError) {
+    if (walletUpdateError || !restoredWallet) {
       await supabase
-        .from('wallets')
+        .from('withdrawals')
         .update({
-          available_balance: wallet.available_balance,
-          frozen_balance: wallet.frozen_balance,
-          updated_at: new Date().toISOString(),
+          status: 'cancelled',
+          audit_remark: FINANCIAL_CORRECTION_REMARK,
+          audited_by: admin.id,
+          audited_at: new Date().toISOString(),
         })
-        .eq('user_id', userId)
-        .eq('available_balance', restoredAvailableBalance)
-        .eq('frozen_balance', restoredFrozenBalance);
-      throw restoreError;
+        .in('id', restoredIds)
+        .eq('status', 'pending');
+      if (walletUpdateError) throw walletUpdateError;
+      throw new Error('The wallet changed before pending withdrawals could be restored.');
     }
   };
 
