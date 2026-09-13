@@ -488,7 +488,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       console.error('[Delete All] Error:', formatSupabaseError(error));
       setMessage({
         type: 'error',
-        text: `Failed to delete records: ${error.message || 'Unknown error'}`
+        text: `Failed to delete records: ${formatSupabaseError(error) || 'Unknown error'}`
       });
       setDeleting(false);
       setDeleteProgress({ current: 0, total: 0, percentage: 0 });

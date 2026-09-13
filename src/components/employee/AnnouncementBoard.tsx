@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Pin, Calendar, Bell, Sparkles, Radio, ChevronRight, X, Zap, Star, Eye, TrendingUp, Lock, Shield, Layers, Database } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Announcement, AnnouncementListItem } from '../../types';
 import { marked } from 'marked';
@@ -71,12 +72,16 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           return JSON.parse(cached);
         }
       }
-    } catch (e) {
+    } catch {
       // Ignore cache errors
     }
     return [];
   });
   const [loading, setLoading] = useState(false);
+  const loadUserAdminRef = useRef<(() => Promise<string | null>) | null>(null);
+  const loadCategoriesRef = useRef<(() => Promise<void>) | null>(null);
+  const loadInitialAnnouncementsRef = useRef<(() => Promise<void>) | null>(null);
+  const loadAnnouncementsRef = useRef<((skipLoadingState?: boolean) => Promise<void>) | null>(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
   const contentCacheRef = useRef<Map<string, string>>(new Map());
@@ -128,7 +133,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
         const parsed = JSON.parse(cached);
         return new Map(Object.entries(parsed));
       }
-    } catch (e) {
+    } catch {
       // Ignore cache errors
     }
     return new Map();
@@ -140,7 +145,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
   });
 
   const getCategoryIcon = (announcement: AnnouncementListItem | Announcement) => {
-    const iconMap: { [key: string]: any } = {
+    const iconMap: Record<string, LucideIcon> = {
       'bell': Bell,
       'sparkles': Sparkles,
       'radio': Radio,
@@ -224,9 +229,9 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
   useEffect(() => {
     // Parallel loading for better performance
     Promise.all([
-      loadUserAdmin(),
-      loadCategories(),
-      loadInitialAnnouncements()
+      loadUserAdminRef.current?.(),
+      loadCategoriesRef.current?.(),
+      loadInitialAnnouncementsRef.current?.()
     ]);
 
     // Cleanup on unmount
@@ -258,7 +263,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     };
   }, [isIOS]);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       // Check cache first
       const cached = sessionStorage.getItem(CACHE_KEYS.CATEGORIES);
@@ -285,18 +290,20 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
       // Cache the result
       try {
-        const cacheObj: Record<string, any> = {};
+        const cacheObj: Record<string, { icon_name: string; color_scheme: string }> = {};
         categoryMap.forEach((value, key) => {
           cacheObj[key] = value;
         });
         sessionStorage.setItem(CACHE_KEYS.CATEGORIES, JSON.stringify(cacheObj));
-      } catch (e) {
-        // Ignore cache errors
-      }
+      } catch {
+      // Ignore cache errors
+    }
     } catch (error) {
       console.error('Error loading categories:', error);
     }
-  };
+  }, [categories.size]);
+
+  loadCategoriesRef.current = loadCategories;
 
   // Load and subscribe to carousel settings
   useEffect(() => {
@@ -357,7 +364,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           filter: 'key=in.(announcement_carousel_enabled,announcement_carousel_speed)'
         },
         (payload) => {
-          const newRecord = payload.new as any;
+          const newRecord = payload.new as { key?: string; value?: unknown };
 
           if (newRecord.key === 'announcement_carousel_enabled') {
             const newValue = newRecord.value === true;
@@ -406,7 +413,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
   useEffect(() => {
     // Check if device is low-end based on hardware concurrency and memory
     const hardwareConcurrency = navigator.hardwareConcurrency || 2;
-    const deviceMemory = (navigator as any).deviceMemory || 4;
+    const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory || 4;
 
     // Low-end if: <= 4 CPU cores OR <= 2GB RAM
     const isLowEnd = hardwareConcurrency <= 4 || deviceMemory <= 2;
@@ -562,11 +569,11 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
             try {
               sessionStorage.removeItem(CACHE_KEYS.ANNOUNCEMENTS);
               sessionStorage.removeItem(CACHE_KEYS.CACHE_TIME);
-            } catch (e) {
+            } catch {
               // Ignore storage errors
             }
 
-            loadAnnouncements(true);
+            void loadAnnouncementsRef.current?.(true);
           }, 300);
         }
       )
@@ -762,7 +769,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [announcements.length, carouselEnabled, carouselSpeed, selectedAnnouncement, isIOS]);
+  }, [announcements.length, carouselEnabled, carouselSpeed, selectedAnnouncement, isIOS, isHovering, isPageVisible]);
 
   // Detect manual scrolling and add class to disable animations
   useEffect(() => {
@@ -802,7 +809,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     };
   }, []);
 
-  const loadUserAdmin = async () => {
+  const loadUserAdmin = useCallback(async () => {
     try {
       // Check cache first
       const cached = sessionStorage.getItem(CACHE_KEYS.ADMIN_ID);
@@ -835,7 +842,8 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
       setAdminResolved(true);
       return null;
     }
-  };
+  }, [userId]);
+  loadUserAdminRef.current = loadUserAdmin;
 
   // Initial load with user lookup embedded in query
   const loadInitialAnnouncements = async () => {
@@ -867,7 +875,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
           // Background refresh after 500ms to ensure data is up-to-date
           backgroundRefreshTimeoutRef.current = setTimeout(() => {
-            loadAnnouncementsFromServer();
+            void loadAnnouncementsFromServer();
             backgroundRefreshTimeoutRef.current = null;
           }, 500);
           return;
@@ -884,6 +892,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
       isLoadingRef.current = false;
     }
   };
+  loadInitialAnnouncementsRef.current = loadInitialAnnouncements;
 
   const loadAnnouncementsFromServer = async () => {
     try {
@@ -932,7 +941,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
         sessionStorage.setItem(CACHE_KEYS.ANNOUNCEMENTS, JSON.stringify(newData));
         sessionStorage.setItem(CACHE_KEYS.CACHE_TIME, Date.now().toString());
         sessionStorage.setItem(CACHE_KEYS.CACHE_USER_ID, userId);
-      } catch (e) {
+      } catch {
         // Ignore cache errors (quota exceeded, etc.)
       }
 
@@ -980,9 +989,9 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
         sessionStorage.setItem(CACHE_KEYS.ANNOUNCEMENTS, JSON.stringify(newData));
         sessionStorage.setItem(CACHE_KEYS.CACHE_TIME, Date.now().toString());
         sessionStorage.setItem(CACHE_KEYS.CACHE_USER_ID, userId);
-      } catch (e) {
-        // Ignore cache errors
-      }
+      } catch {
+      // Ignore cache errors
+    }
 
       // Invalidate content cache on realtime update
       contentCacheRef.current.clear();
@@ -1002,6 +1011,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
       }
     }
   };
+  loadAnnouncementsRef.current = loadAnnouncements;
 
   return (
     <>
@@ -1629,10 +1639,10 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
         }
 
         /* Safe area support for mobile devices */
-        .max-sm\:pt-safe {
+        .max-sm\\:pt-safe {
           padding-top: max(1rem, env(safe-area-inset-top));
         }
-        .max-sm\:pb-safe {
+        .max-sm\\:pb-safe {
           padding-bottom: max(1rem, env(safe-area-inset-bottom));
         }
         .line-clamp-2 {

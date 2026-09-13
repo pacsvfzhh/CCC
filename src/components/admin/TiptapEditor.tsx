@@ -608,7 +608,8 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
         read: (encoding?: string) => Promise<string | Buffer>;
       }) => {
         try {
-          const imageBuffer: string = await image.read("base64");
+          const imageData = await image.read("base64");
+          const imageBuffer = typeof imageData === 'string' ? imageData : imageData.toString('base64');
           const contentType: string = image.contentType || 'image/png';
           imageCount++;
           setUploadStatus(`Uploading image ${imageCount} from Word...`);

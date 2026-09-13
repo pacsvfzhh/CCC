@@ -20,6 +20,7 @@ interface DispatchAssignment {
   assignment_id?: string | null;
   order_submitted?: boolean;
   dispatch_orders: {
+    id?: string;
     order_content: string;
   };
 }
@@ -35,6 +36,14 @@ interface DispatchConfig {
   dispatch_interval_max: number;
   session_timeout_minutes: number;
   dispatch_order_mode: 'random' | 'sequential';
+}
+
+interface DispatchGroupConfig extends DispatchConfig {
+  is_active: boolean;
+}
+
+function getOrderDispatchErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Unknown error occurred';
 }
 
 interface OrderDispatchProps {
@@ -165,7 +174,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const [, setUnacceptedCount] = useState(0);
   const [showAutoStopModal, setShowAutoStopModal] = useState(false);
   const [showTimeoutStopModal, setShowTimeoutStopModal] = useState(false);
-  const [selectedOrderDetail, setSelectedOrderDetail] = useState<any | null>(null);
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState<DispatchAssignment | null>(null);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
   const [showGrabFailedModal, setShowGrabFailedModal] = useState(false);
   const [showGrabSuccessAnimation, setShowGrabSuccessAnimation] = useState(false);
@@ -696,7 +705,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const playOrderNotificationSound = () => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextConstructor) return;
+      const audioContext = new AudioContextConstructor();
 
       // Create a more prominent multi-tone notification sound
       const playTone = (frequency: number, startTime: number, duration: number, volume: number = 0.3) => {
@@ -867,7 +878,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
       if (error) throw error;
 
-      const configMap: any = {};
+      const configMap: Record<string, number | string> = {};
       data?.forEach(item => {
         if (item.config_key === 'dispatch_order_mode') {
           configMap[item.config_key] = item.config_value;
@@ -876,11 +887,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         }
       });
 
-      const globalConfig = {
-        dispatch_interval_min: configMap['dispatch_interval_min'] || 30,
-        dispatch_interval_max: configMap['dispatch_interval_max'] || 120,
-        session_timeout_minutes: configMap['session_timeout_minutes'] || 10,
-        dispatch_order_mode: configMap['dispatch_order_mode'] || 'random',
+      const globalConfig: DispatchConfig = {
+        dispatch_interval_min: Number(configMap['dispatch_interval_min']) || 30,
+        dispatch_interval_max: Number(configMap['dispatch_interval_max']) || 120,
+        session_timeout_minutes: Number(configMap['session_timeout_minutes']) || 10,
+        dispatch_order_mode: configMap['dispatch_order_mode'] === 'sequential' ? 'sequential' : 'random',
       };
 
       setConfig(globalConfig);
@@ -897,7 +908,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           .maybeSingle();
 
         if (membershipData && membershipData.dispatch_groups) {
-          const group = membershipData.dispatch_groups as any;
+          const group = membershipData.dispatch_groups as unknown as DispatchGroupConfig;
           if (group.is_active) {
             const userGroupConfig = {
               dispatch_interval_min: group.dispatch_interval_min,
@@ -1005,7 +1016,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           .gte('created_at', todayStartUTC);
         setTodaySubmittedOrders(count || 0);
       } catch { /* ignore */ }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load today orders:', error);
     }
   };
@@ -1150,7 +1161,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       let groupConfig: DispatchConfig = config;
 
       if (membershipResult.status === 'fulfilled' && membershipResult.value.data?.dispatch_groups) {
-        const group = membershipResult.value.data.dispatch_groups as any;
+        const group = membershipResult.value.data.dispatch_groups as unknown as DispatchGroupConfig;
         if (group.is_active) {
           groupConfig = {
             dispatch_interval_min: group.dispatch_interval_min,
@@ -1303,17 +1314,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           setTimeout(() => setShowStartSuccess(false), 1200);
         }, 100);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to start work:', error);
       console.error('Error details:', {
-        message: error.message,
-        hint: error.hint,
-        details: error.details,
-        code: error.code
+        message: getOrderDispatchErrorMessage(error)
       });
 
       // User-friendly error message
-      const errorMsg = error.message || 'Unknown error occurred';
+      const errorMsg = getOrderDispatchErrorMessage(error);
       showNotification({
         type: 'error',
         title: 'Failed to Start',
@@ -1515,7 +1523,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
       // Reload today's orders in background (non-blocking for better UX)
       loadTodayOrders().catch(err => console.error('Failed to reload orders:', err));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to stop work:', error);
       // Reset processing state even on error
       if (!timeout) {
@@ -1582,7 +1590,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       let groupConfig: DispatchConfig | null = null;
 
       if (membershipData && membershipData.dispatch_groups) {
-        const group = membershipData.dispatch_groups as any;
+        const group = membershipData.dispatch_groups as unknown as DispatchGroupConfig;
         if (group.is_active) {
           userGroupId = membershipData.group_id;
           groupConfig = {
@@ -1764,18 +1772,19 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       acceptTimeoutRef.current = setTimeout(() => {
         handleAcceptTimeout(newAssignment.id);
       }, 60000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to dispatch order:', error);
 
       // Show error notifications based on error type
-      if (error.message?.includes('network') || error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
+      const errorMessage = getOrderDispatchErrorMessage(error);
+      if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch')) {
         showNotification({
           type: 'error',
           title: t.dispatch.networkFailed,
           message: t.dispatch.networkFailedMsg,
           duration: 5000
         });
-      } else if (error.message === 'Request timeout') {
+      } else if (errorMessage === 'Request timeout') {
         showNotification({
           type: 'warning',
           title: t.dispatch.requestTimeout,
@@ -1786,7 +1795,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         showNotification({
           type: 'error',
           title: t.dispatch.assignmentFailed,
-          message: error.message || 'Unknown error. The system will automatically retry.',
+          message: getOrderDispatchErrorMessage(error) || 'Unknown error. The system will automatically retry.',
           duration: 5000
         });
       }
@@ -1864,7 +1873,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         // Schedule next order anyway to keep the flow going
         scheduleNextOrder();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to handle accept timeout:', error);
       // On error, always try to clear and schedule next
       setCurrentOrder(null);
@@ -1939,7 +1948,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         }
         // DO NOT schedule next order - timeout handler will stop work session
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to handle process timeout:', error);
       // Clear UI state but DO NOT schedule next order - work session will be stopped
       setCurrentOrder(null);
@@ -2113,7 +2122,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZORQ=');
             audio.volume = 0.3;
             audio.play().catch(() => {});
-          } catch (e) {}
+          } catch {
+            return;
+          }
         }, 0);
       }
 
@@ -2122,7 +2133,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         updateActivity();
         loadTodayOrders().catch(err => console.error('Failed to reload orders:', err));
       }, isMobile ? 200 : 100);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to accept order:', error);
       setIsAccepting(false);
 
@@ -2130,7 +2141,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       showNotification({
         type: 'error',
         title: 'Order Accept Failed',
-        message: `Failed to accept order: ${error.message}. The order has been skipped and the next order will be dispatched.`,
+        message: `Failed to accept order: ${getOrderDispatchErrorMessage(error)}. The order has been skipped and the next order will be dispatched.`,
         duration: 6000
       });
 
@@ -2216,7 +2227,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       loadTodayOrders();
       scheduleNextOrder();
       setIsCompleting(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to complete order:', error);
       setIsCompleting(false);
 
@@ -2224,7 +2235,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       showNotification({
         type: 'error',
         title: 'Order Completion Failed',
-        message: `Failed to complete order: ${error.message}. The order has been skipped and the next order will be dispatched.`,
+        message: `Failed to complete order: ${getOrderDispatchErrorMessage(error)}. The order has been skipped and the next order will be dispatched.`,
         duration: 6000
       });
 
@@ -2318,7 +2329,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       loadTodayOrders();
       scheduleNextOrder();
       setIsReporting(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to submit error report:', error);
       setIsReporting(false);
 
@@ -2326,7 +2337,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       showNotification({
         type: 'error',
         title: 'Error Report Failed',
-        message: `Failed to submit error report: ${error.message}. The order has been skipped and the next order will be dispatched.`,
+        message: `Failed to submit error report: ${getOrderDispatchErrorMessage(error)}. The order has been skipped and the next order will be dispatched.`,
         duration: 6000
       });
 
@@ -2380,7 +2391,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     return date.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  const handleOrderClick = (order: any) => {
+  const handleOrderClick = (order: DispatchAssignment) => {
     // If order is accepted (displayed as "In Progress"), reopen the feedback panel
     if (order.status === 'accepted') {
       setCurrentOrder(order);
@@ -5112,7 +5123,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     </div>
                     <div>
                       <span className="text-gray-400 uppercase tracking-wider text-[10px] font-semibold">{t.dispatch.orderId}</span>
-                      <div className="text-gray-600 font-mono mt-0.5 text-[11px] break-all leading-tight">{selectedOrderDetail.dispatch_orders.id.slice(0, 8)}...</div>
+                      <div className="text-gray-600 font-mono mt-0.5 text-[11px] break-all leading-tight">{selectedOrderDetail.dispatch_orders.id?.slice(0, 8) || selectedOrderDetail.dispatch_order_id.slice(0, 8)}...</div>
                     </div>
                   </div>
                 </div>

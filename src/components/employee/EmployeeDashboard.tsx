@@ -9,6 +9,7 @@ import { useResponsive } from '../../lib/useResponsive';
 import { tabSessionManager } from '../../lib/TabSessionManager';
 import { useLanguage } from '../../lib/i18n';
 import type { Language } from '../../lib/i18n';
+import type { Database } from '../../types/database';
 import LanguageSwitcher, { LanguageModal } from '../LanguageSwitcher';
 import SessionExpiredModal from './SessionExpiredModal';
 
@@ -64,7 +65,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           .eq('admin_id', employee.created_by);
         if (cancelled || !customers || customers.length === 0) return;
 
-        const customerIds = customers.map((c: any) => c.id);
+        const customerIds = customers.map(c => c.id);
 
         const [autoMsgsRes, logsRes] = await Promise.all([
           supabase
@@ -81,25 +82,25 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         ]);
         if (cancelled) return;
 
-        const sentIds = new Set((logsRes.data || []).map((l: any) => l.auto_message_id));
-        const unsent = (autoMsgsRes.data || []).filter((m: any) => !sentIds.has(m.id));
+        const sentIds = new Set((logsRes.data || []).map(l => l.auto_message_id));
+        const unsent = (autoMsgsRes.data || []).filter(m => !sentIds.has(m.id));
         if (unsent.length === 0) return;
 
-        const unsentIds = unsent.map((m: any) => m.id);
+        const unsentIds = unsent.map(m => m.id);
         const { data: fullMsgs } = await supabase
           .from('customer_auto_messages')
           .select('*')
           .in('id', unsentIds);
         if (cancelled || !fullMsgs || fullMsgs.length === 0) return;
 
-        const fullMsgMap = new Map(fullMsgs.map((m: any) => [m.id, m]));
+        const fullMsgMap = new Map(fullMsgs.map(m => [m.id, m]));
 
 
         const baseTime = Date.now();
-        const conversationPayloads = unsent.map((msg: any, idx: number) => {
-          const full = fullMsgMap.get(msg.id) || msg;
+        const conversationPayloads = unsent.map((msg, idx: number) => {
+          const full = fullMsgMap.get(msg.id) || { ...msg, content: '' };
           const isRichCard = full.content_type === 'rich_card';
-          const payload: any = {
+          const payload: Database['public']['Tables']['customer_employee_conversations']['Insert'] = {
             customer_id: full.customer_id,
             employee_id: employee.id,
             sender_type: 'customer',
@@ -113,7 +114,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           return payload;
         });
 
-        const logPayloads = unsent.map((msg: any) => ({
+        const logPayloads = unsent.map(msg => ({
           customer_id: msg.customer_id,
           employee_id: employee.id,
           auto_message_id: msg.id,
@@ -215,7 +216,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     const initAudioContext = () => {
       if (!audioContextReady) {
         try {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+          if (!AudioContextConstructor) return;
+          const audioContext = new AudioContextConstructor();
           audioContext.resume().then(() => {
             setAudioContextReady(true);
             console.log('Audio context initialized and ready');
@@ -344,7 +347,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const playNotificationSound = () => {
     // Create a pleasant notification sound with two tones
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextConstructor) return;
+      const audioContext = new AudioContextConstructor();
 
       // Resume audio context if suspended (browser autoplay policy)
       if (audioContext.state === 'suspended') {

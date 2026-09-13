@@ -606,7 +606,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       await loadSentMessages();
     } catch (error: unknown) {
       console.error('Error sending message:', formatSupabaseError(error));
-      setNotification({ type: 'error', message: error.message || 'Failed to send message' });
+      setNotification({ type: 'error', message: formatSupabaseError(error) || 'Failed to send message' });
     } finally {
       setSending(false);
       setSendProgress(null);
@@ -820,7 +820,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       loadSentMessages();
     } catch (error: unknown) {
       console.error('Error updating message:', formatSupabaseError(error));
-      setNotification({ type: 'error', message: error.message || 'Failed to update message' });
+      setNotification({ type: 'error', message: formatSupabaseError(error) || 'Failed to update message' });
     } finally {
       setSaving(false);
     }

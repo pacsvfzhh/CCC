@@ -147,7 +147,11 @@ interface Message {
   created_at: string | null;
   rich_card_content_id?: string | null;
   rating_value?: number | null;
+  source_template_id?: string | null;
+  source_auto_message_id?: string | null;
 }
+
+type IncomingMessage = Partial<Message> & { customer_id?: string };
 
 interface CustomerConversation {
   customer: Customer;
@@ -342,17 +346,16 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     }
   }, []);
 
-  const prefetchRichCard = useCallback((msg: Message) => {
-    const anyMsg = msg as any;
-    const key = anyMsg.source_template_id ? `tpl:${anyMsg.source_template_id}` :
-                anyMsg.source_auto_message_id ? `auto:${anyMsg.source_auto_message_id}` :
+  const prefetchRichCard = useCallback((msg: Message | IncomingMessage) => {
+    const key = msg.source_template_id ? `tpl:${msg.source_template_id}` :
+                msg.source_auto_message_id ? `auto:${msg.source_auto_message_id}` :
                 msg.rich_card_content_id || null;
     if (!key) return;
     if (richCardCacheRef.current.has(key)) return;
     if (richCardPrefetchingRef.current.has(key)) return;
     richCardPrefetchingRef.current.add(key);
-    const p = anyMsg.source_template_id ? fetchTemplateContentForViewer(anyMsg.source_template_id) :
-              anyMsg.source_auto_message_id ? fetchAutoMsgContentForViewer(anyMsg.source_auto_message_id) :
+    const p = msg.source_template_id ? fetchTemplateContentForViewer(msg.source_template_id) :
+              msg.source_auto_message_id ? fetchAutoMsgContentForViewer(msg.source_auto_message_id) :
               fetchRichCardContent(key);
     p.finally(() => richCardPrefetchingRef.current.delete(key));
   }, [fetchRichCardContent, fetchTemplateContentForViewer, fetchAutoMsgContentForViewer]);
@@ -361,9 +364,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     richCardCancelRef.current = false;
     setViewingRichCard(msg);
 
-    const anyMsg = msg as any;
-    const cacheKey = anyMsg.source_template_id ? `tpl:${anyMsg.source_template_id}` :
-                     anyMsg.source_auto_message_id ? `auto:${anyMsg.source_auto_message_id}` :
+    const cacheKey = msg.source_template_id ? `tpl:${msg.source_template_id}` :
+                     msg.source_auto_message_id ? `auto:${msg.source_auto_message_id}` :
                      msg.rich_card_content_id || null;
     if (cacheKey && richCardCacheRef.current.has(cacheKey)) {
       setRichCardFullContent(richCardCacheRef.current.get(cacheKey)!);
@@ -376,10 +378,10 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
     try {
       let html: string | null = null;
-      if (anyMsg.source_template_id) {
-        html = await fetchTemplateContentForViewer(anyMsg.source_template_id);
-      } else if (anyMsg.source_auto_message_id) {
-        html = await fetchAutoMsgContentForViewer(anyMsg.source_auto_message_id);
+      if (msg.source_template_id) {
+        html = await fetchTemplateContentForViewer(msg.source_template_id);
+      } else if (msg.source_auto_message_id) {
+        html = await fetchAutoMsgContentForViewer(msg.source_auto_message_id);
       } else if (msg.rich_card_content_id) {
         html = await fetchRichCardContent(msg.rich_card_content_id);
       } else if (msg.message_type === 'rich_card') {
@@ -420,7 +422,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const [imageDrag, setImageDrag] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const popupTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [customerOnlineStatus, setCustomerOnlineStatus] = useState<Map<string, boolean>>(new Map());
   const onlineCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -437,6 +439,13 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const conversationLoadPromiseRef = useRef<Promise<void> | null>(null);
   const conversationRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const conversationRefreshCustomerIdsRef = useRef(new Set<string>());
+  const loadConversationsRef = useRef<((force?: boolean) => Promise<void>) | null>(null);
+  const applyIncomingConversationMessageRef = useRef<((message: IncomingMessage, incrementUnread?: boolean) => void) | null>(null);
+  const prefetchRichCardRef = useRef<((message: Message | IncomingMessage) => void) | null>(null);
+  const scheduleConversationRefreshRef = useRef<((customerId?: string) => void) | null>(null);
+  const showMessagePopupRef = useRef<((customer: Customer, message: string) => void) | null>(null);
+  const updateOnlineStatusRef = useRef<(() => void) | null>(null);
+  const loadMessagesRef = useRef<(() => Promise<void>) | null>(null);
 
   // Lock body scroll when chat is open (mobile only - full-screen overlay)
   useEffect(() => {
@@ -477,14 +486,14 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         schema: 'public',
         table: 'customer_employee_conversations',
         filter: `employee_id=eq.${employeeId}`,
-      }, async (payload: any) => {
-        const message = payload?.new;
-        if (!message) return;
+      }, async (payload) => {
+        const message = payload.new as IncomingMessage;
+        if (!message?.customer_id) return;
 
-        scheduleConversationRefresh(message.customer_id);
+        scheduleConversationRefreshRef.current?.(message.customer_id);
 
         if (message.message_type === 'rich_card') {
-          prefetchRichCard(message as any);
+          prefetchRichCardRef.current?.(message);
         }
 
         const isNewUnreadMessage = Boolean(
@@ -499,7 +508,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
             setUnreadCount(previous => previous + 1);
           }
         }
-        applyIncomingConversationMessage(message, isNewUnreadMessage);
+        applyIncomingConversationMessageRef.current?.(message, isNewUnreadMessage);
 
         if (
           !isOpenRef.current &&
@@ -531,7 +540,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
                     .trim();
                   return text || (hasEmbeddedImg ? '\ud83d\udcf7 Photo' : t.customerService.newMessage);
                 })();
-            showMessagePopup(customerData as Customer, messageText);
+            showMessagePopupRef.current?.(customerData as Customer, messageText);
           }
         }
       })
@@ -540,21 +549,24 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         schema: 'public',
         table: 'customer_employee_conversations',
         filter: `employee_id=eq.${employeeId}`,
-      }, (payload: any) => {
-        scheduleConversationRefresh(payload?.new?.customer_id);
+      }, (payload) => {
+        const message = payload.new as Partial<Message>;
+        scheduleConversationRefreshRef.current?.(message.customer_id);
       })
       .on('postgres_changes', {
         event: 'DELETE',
         schema: 'public',
         table: 'customer_employee_conversations',
         filter: `employee_id=eq.${employeeId}`,
-      }, (payload: any) => {
-        scheduleConversationRefresh(payload?.old?.customer_id || payload?.new?.customer_id);
+      }, (payload) => {
+        const oldMessage = payload.old as Partial<Message>;
+        const newMessage = payload.new as Partial<Message>;
+        scheduleConversationRefreshRef.current?.(oldMessage.customer_id || newMessage.customer_id);
       })
       .subscribe();
 
     onlineCheckIntervalRef.current = setInterval(() => {
-      updateOnlineStatus();
+      updateOnlineStatusRef.current?.();
     }, 30000);
 
     return () => {
@@ -627,7 +639,9 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   };
 
   const playNotificationSound = (isSuper: boolean) => {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+    const audioContext = new AudioContextConstructor();
 
     const playTone = (frequency: number, startTime: number, duration: number, volume: number) => {
       const oscillator = audioContext.createOscillator();
@@ -667,15 +681,15 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     }, isSuper ? 1500 : 2000);
 
     if (audioRef.current) {
-      clearInterval(audioRef.current as any);
+      clearInterval(audioRef.current);
     }
-    audioRef.current = interval as any;
+    audioRef.current = interval;
   };
 
   const stopContinuousSound = () => {
     setPlayingSound(false);
     if (audioRef.current) {
-      clearInterval(audioRef.current as any);
+      clearInterval(audioRef.current);
       audioRef.current = null;
     }
   };
@@ -879,7 +893,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     }
 
     if (msg.message_type === 'tip' && msg.rating_data) {
-      const tipAmt = (msg.rating_data as any).tip_amount || 0;
+      const tipAmt = msg.rating_data?.tip_amount || 0;
       return (
         <div className="my-2 w-[min(280px,100%)] max-w-full">
           <div className="overflow-hidden rounded-[22px] border border-amber-200/40 bg-gradient-to-br from-amber-300/80 via-emerald-400 to-emerald-700 p-[2px] shadow-[0_14px_36px_rgba(120,53,15,0.35)]">
@@ -1151,7 +1165,7 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     return request;
   };
 
-  const applyIncomingConversationMessage = (message: any, incrementUnread = false) => {
+  const applyIncomingConversationMessage = (message: IncomingMessage, incrementUnread = false) => {
     const customerId = message?.customer_id;
     if (!customerId) return;
 
@@ -1257,8 +1271,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       messagesCache.current.set(customerId, sorted);
       preloadChatImages(sorted);
       for (const message of sorted) {
-        if ((message as any).message_type === 'rich_card') {
-          prefetchRichCard(message as Message);
+        if (message.message_type === 'rich_card') {
+          prefetchRichCardRef.current?.(message);
         }
       }
     })();
@@ -1347,8 +1361,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         }
         setHasMoreMessages(data.length >= MESSAGE_PAGE_SIZE);
         for (const m of olderMessages) {
-          if ((m as any).message_type === 'rich_card') {
-            prefetchRichCard(m as any);
+          if (m.message_type === 'rich_card') {
+            prefetchRichCard(m);
           }
         }
       } else {
@@ -1414,8 +1428,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
               previousMessage.title !== nextMessage.title ||
               previousMessage.subtitle !== nextMessage.subtitle ||
               previousMessage.rich_card_content_id !== nextMessage.rich_card_content_id ||
-              (previousMessage as any).source_template_id !== (nextMessage as any).source_template_id ||
-              (previousMessage as any).source_auto_message_id !== (nextMessage as any).source_auto_message_id ||
+              previousMessage.source_template_id !== nextMessage.source_template_id ||
+              previousMessage.source_auto_message_id !== nextMessage.source_auto_message_id ||
               JSON.stringify(previousMessage.rating_data) !== JSON.stringify(nextMessage.rating_data)
             );
           });
@@ -1424,8 +1438,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
         }
 
         for (const m of sorted) {
-          if ((m as any).message_type === 'rich_card') {
-            prefetchRichCard(m as any);
+          if (m.message_type === 'rich_card') {
+            prefetchRichCard(m);
           }
         }
 
@@ -1574,8 +1588,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           setMessages(prev => prev.filter(m => m.id !== tempId));
           setNotification({ type: 'error', text: t.customerService.saveImageError });
         });
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || t.customerService.uploadError });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: error instanceof Error ? error.message : t.customerService.uploadError });
       setMessages(prev => prev.filter(m => m.id !== tempId));
       uploadingTempIdRef.current = null;
       setUploadingImage(false);
@@ -1708,8 +1722,8 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           messagesCache.current.set(selectedCustomer.id, cached.map(m => m.id === tempMessage.id ? newMsg : m));
         }
       }
-    } catch (error: any) {
-      setNotification({ type: 'error', text: error.message || t.customerService.ratingRequestError });
+    } catch (error: unknown) {
+      setNotification({ type: 'error', text: error instanceof Error ? error.message : t.customerService.ratingRequestError });
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, User, Wallet, Phone, Mail, Trash2, RotateCcw, AlertCircle, Eye, EyeOff, FileText, Image as ImageIcon, Shield, Calendar, Hash, Search, Users, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { VerificationRequest, Employee, Admin } from '../../types';
 
 interface VerificationWithEmployee extends VerificationRequest {
@@ -219,9 +219,9 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
       setVerifications(verificationsWithEmployees);
       setError(null);
-    } catch (error: any) {
-      console.error('Error loading verifications:', error);
-      setError(error?.message || 'Failed to load verifications');
+    } catch (error: unknown) {
+      console.error('Error loading verifications:', formatSupabaseError(error));
+      setError(formatSupabaseError(error) || 'Failed to load verifications');
     } finally {
       setLoading(false);
     }
@@ -288,8 +288,8 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           });
         }
       }
-    } catch (error: any) {
-      console.error('Error loading verified employees:', error);
+    } catch (error: unknown) {
+      console.error('Error loading verified employees:', formatSupabaseError(error));
     }
   };
 
@@ -304,8 +304,8 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
       if (error) throw error;
       setAdmins(data || []);
       console.log('Admins loaded:', data);
-    } catch (error: any) {
-      console.error('Error loading admins:', error);
+    } catch (error: unknown) {
+      console.error('Error loading admins:', formatSupabaseError(error));
     }
   };
 
@@ -674,14 +674,14 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
   const openImagePreview = (verification: VerificationWithEmployee) => {
     const images: { url: string; label: string }[] = [];
 
-    if ((verification as any).id_front_url) {
-      images.push({ url: (verification as any).id_front_url, label: 'ID Front' });
+    if (verification.id_front_url) {
+      images.push({ url: verification.id_front_url, label: 'ID Front' });
     }
-    if ((verification as any).id_back_url) {
-      images.push({ url: (verification as any).id_back_url, label: 'ID Back' });
+    if (verification.id_back_url) {
+      images.push({ url: verification.id_back_url, label: 'ID Back' });
     }
-    if ((verification as any).selfie_url) {
-      images.push({ url: (verification as any).selfie_url, label: 'Selfie Photo' });
+    if (verification.selfie_url) {
+      images.push({ url: verification.selfie_url, label: 'Selfie Photo' });
     }
 
     if (images.length > 0) {
@@ -1213,7 +1213,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                                     </div>
                                   </div>
 
-                                  {((verification as any).id_front_url || (verification as any).id_back_url || (verification as any).selfie_url) && (
+                                  {(verification.id_front_url || verification.id_back_url || verification.selfie_url) && (
                                     <div className="mt-4 pt-4 border-t border-slate-700">
                                       <div className="flex items-center gap-2 mb-3">
                                         <ImageIcon className="w-4 h-4 text-blue-400" />
@@ -1227,7 +1227,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                                         View Verification Documents
                                       </button>
                                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
-                                        {(verification as any).id_front_url && (
+                                        {verification.id_front_url && (
                                           <div className="group relative bg-slate-800/50 rounded-lg p-3 border border-slate-700">
                                             <div className="flex items-center gap-2 mb-2">
                                               <ImageIcon className="w-4 h-4 text-blue-400" />
@@ -1235,7 +1235,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                                             </div>
                                           </div>
                                         )}
-                                        {(verification as any).id_back_url && (
+                                        {verification.id_back_url && (
                                           <div className="group relative bg-slate-800/50 rounded-lg p-3 border border-slate-700">
                                             <div className="flex items-center gap-2 mb-2">
                                               <ImageIcon className="w-4 h-4 text-blue-400" />
@@ -1243,7 +1243,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                                             </div>
                                           </div>
                                         )}
-                                        {(verification as any).selfie_url && (
+                                        {verification.selfie_url && (
                                           <div className="group relative bg-slate-800/50 rounded-lg p-3 border border-slate-700">
                                             <div className="flex items-center gap-2 mb-2">
                                               <ImageIcon className="w-4 h-4 text-blue-400" />
@@ -1511,7 +1511,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                         </div>
                       </div>
 
-                      {((verification as any).id_front_url || (verification as any).id_back_url || (verification as any).selfie_url) && (
+                      {(verification.id_front_url || verification.id_back_url || verification.selfie_url) && (
                         <div className="mt-4 pt-4 border-t border-slate-700">
                           <div className="flex items-center gap-2 mb-3">
                             <ImageIcon className="w-4 h-4 text-blue-400" />
@@ -2138,7 +2138,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                                           </div>
                                         </div>
 
-                                        {((verification as any).id_front_url || (verification as any).id_back_url || (verification as any).selfie_url) && (
+                                        {(verification.id_front_url || verification.id_back_url || verification.selfie_url) && (
                                           <div className="mt-4 pt-4 border-t border-slate-700">
                                             <div className="flex items-center gap-2 mb-3">
                                               <ImageIcon className="w-4 h-4 text-blue-400" />
@@ -2304,7 +2304,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                               </div>
                             </div>
 
-                            {((verification as any).id_front_url || (verification as any).id_back_url || (verification as any).selfie_url) && (
+                            {(verification.id_front_url || verification.id_back_url || verification.selfie_url) && (
                               <div className="mt-4 pt-4 border-t border-slate-700">
                                 <div className="flex items-center gap-2 mb-3">
                                   <ImageIcon className="w-4 h-4 text-blue-400" />
