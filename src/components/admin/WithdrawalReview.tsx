@@ -1,10 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
-import { CheckCircle, XCircle, Clock, Ban, ChevronDown, ChevronRight, Users, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Save, X } from 'lucide-react';
+import { useState, useEffect, useRef, Fragment } from 'react';
+import { CheckCircle, XCircle, Clock, Ban, Users, AlertCircle, ArrowUpDown, Pencil, Save, X, Search } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Withdrawal, Employee, Admin } from '../../types';
 
 interface WithdrawalWithEmployee extends Withdrawal {
   employee?: Employee;
+}
+
+interface WithdrawalRow extends WithdrawalWithEmployee {
+  admin: Admin | null;
 }
 
 interface WithdrawalReviewProps {
@@ -21,11 +25,12 @@ type SortOption = 'submit_time_desc' | 'submit_time_asc' | 'audit_time_desc' | '
 
 export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [auditRemark, setAuditRemark] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [adminFilter, setAdminFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('submit_time_desc');
   const [error, setError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -33,7 +38,13 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [editStatus, setEditStatus] = useState<'approved' | 'rejected'>('approved');
   const [editRemark, setEditRemark] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<'approved' | 'rejected' | null>(null);
+  const [bulkRemark, setBulkRemark] = useState('');
+  const [bulkValidationError, setBulkValidationError] = useState<string | null>(null);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
   const loadWithdrawalsRef = useRef<(() => Promise<void>) | null>(null);
+  const selectAllRef = useRef<HTMLInputElement>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -136,13 +147,6 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         });
 
       setAdminGroups(groups);
-
-      const initialExpanded = new Set<string>();
-      groups.forEach((group) => {
-        const key = group.admin?.id || 'unassigned';
-        initialExpanded.add(key);
-      });
-      setExpandedGroups(initialExpanded);
     } catch (error) {
       console.error('Error loading withdrawals:', error);
     } finally {
@@ -151,14 +155,65 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   };
   loadWithdrawalsRef.current = loadWithdrawals;
 
-  const toggleGroup = (adminId: string) => {
-    const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(adminId)) {
-      newExpanded.delete(adminId);
+  const processWithdrawalDecision = async (
+    withdrawal: WithdrawalWithEmployee,
+    status: 'approved' | 'rejected',
+    remark: string
+  ) => {
+    // Update withdrawal status with condition to prevent duplicate processing
+    const { error: updateError } = await supabase
+      .from('withdrawals')
+      .update({
+        status,
+        audit_remark: remark,
+        audited_by: admin.id,
+        audited_at: new Date().toISOString(),
+      })
+      .eq('id', withdrawal.id)
+      .eq('status', 'pending');
+
+    if (updateError) throw updateError;
+
+    const { data: wallet } = await supabase
+      .from('wallets')
+      .select('*')
+      .eq('user_id', withdrawal.user_id)
+      .single();
+
+    if (!wallet) return;
+
+    if (status === 'approved') {
+      const newFrozenBalance = wallet.frozen_balance - withdrawal.amount;
+
+      await supabase
+        .from('wallets')
+        .update({ frozen_balance: newFrozenBalance })
+        .eq('user_id', withdrawal.user_id);
+
+      await supabase.from('wallet_transactions').insert({
+        user_id: withdrawal.user_id,
+        type: 'withdrawal_approved',
+        amount: -withdrawal.amount,
+        balance_before: wallet.frozen_balance,
+        balance_after: newFrozenBalance,
+        reference_id: withdrawal.id,
+        remarks: `Withdrawal approved: ${remark}`,
+      });
     } else {
-      newExpanded.add(adminId);
+      // When rejecting, move money from frozen back to available.
+      // This is an internal transfer, so no wallet_transactions record is created
+      // (it would incorrectly increase the reported total balance).
+      const newFrozenBalance = wallet.frozen_balance - withdrawal.amount;
+      const newAvailableBalance = wallet.available_balance + withdrawal.amount;
+
+      await supabase
+        .from('wallets')
+        .update({
+          available_balance: newAvailableBalance,
+          frozen_balance: newFrozenBalance,
+        })
+        .eq('user_id', withdrawal.user_id);
     }
-    setExpandedGroups(newExpanded);
   };
 
   const handleReview = async (withdrawalId: string, status: 'approved' | 'rejected') => {
@@ -180,72 +235,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         setValidationError(null);
 
         try {
-          const withdrawal = adminGroups
-            .flatMap((g) => g.withdrawals)
-            .find((w) => w.id === withdrawalId);
+          const withdrawal = allRows.find((w) => w.id === withdrawalId);
           if (!withdrawal) return;
 
-          // First, update withdrawal status with condition to prevent duplicate processing
-          const { error: updateError } = await supabase
-            .from('withdrawals')
-            .update({
-              status,
-              audit_remark: auditRemark,
-              audited_by: admin.id,
-              audited_at: new Date().toISOString(),
-            })
-            .eq('id', withdrawalId)
-            .eq('status', 'pending');
-
-          if (updateError) throw updateError;
-
-          const { data: wallet } = await supabase
-            .from('wallets')
-            .select('*')
-            .eq('user_id', withdrawal.user_id)
-            .single();
-
-          if (!wallet) return;
-
-          if (status === 'approved') {
-            const newFrozenBalance = wallet.frozen_balance - withdrawal.amount;
-
-            await supabase
-              .from('wallets')
-              .update({
-                frozen_balance: newFrozenBalance,
-              })
-              .eq('user_id', withdrawal.user_id);
-
-            await supabase.from('wallet_transactions').insert({
-              user_id: withdrawal.user_id,
-              type: 'withdrawal_approved',
-              amount: -withdrawal.amount,
-              balance_before: wallet.frozen_balance,
-              balance_after: newFrozenBalance,
-              reference_id: withdrawalId,
-              remarks: `Withdrawal approved: ${auditRemark}`,
-            });
-          } else {
-            // When rejecting, move money from frozen back to available
-            // This is an internal transfer, NOT a new transaction
-            // DO NOT create wallet_transactions record (it would incorrectly increase total balance)
-            const newFrozenBalance = wallet.frozen_balance - withdrawal.amount;
-            const newAvailableBalance = wallet.available_balance + withdrawal.amount;
-
-            await supabase
-              .from('wallets')
-              .update({
-                available_balance: newAvailableBalance,
-                frozen_balance: newFrozenBalance,
-              })
-              .eq('user_id', withdrawal.user_id);
-
-            // NOTE: We do NOT create a wallet_transaction here because:
-            // 1. This is just moving funds internally (frozen -> available)
-            // 2. Creating a transaction would incorrectly ADD to the total balance
-            // 3. The wallet table itself tracks the state correctly
-          }
+          await processWithdrawalDecision(withdrawal, status, auditRemark);
 
           setReviewing(null);
           setAuditRemark('');
@@ -346,10 +339,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     };
 
     const icons = {
-      pending: <Clock className="w-4 h-4" />,
-      approved: <CheckCircle className="w-4 h-4" />,
-      rejected: <XCircle className="w-4 h-4" />,
-      cancelled: <Ban className="w-4 h-4" />,
+      pending: <Clock className="w-3.5 h-3.5" />,
+      approved: <CheckCircle className="w-3.5 h-3.5" />,
+      rejected: <XCircle className="w-3.5 h-3.5" />,
+      cancelled: <Ban className="w-3.5 h-3.5" />,
     };
 
     return (
@@ -376,7 +369,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     return getGroupStats(allWithdrawals);
   };
 
-  const sortWithdrawals = (withdrawals: WithdrawalWithEmployee[]) => {
+  const sortWithdrawals = <T extends WithdrawalWithEmployee,>(withdrawals: T[]): T[] => {
     const sorted = [...withdrawals];
 
     switch (sortOption) {
@@ -403,18 +396,109 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     }
   };
 
-  const filteredAdminGroups = adminGroups.map(group => ({
-    ...group,
-    withdrawals: sortWithdrawals(group.withdrawals.filter(w => {
-      if (filterStatus === 'all') return true;
-      if (filterStatus === 'pending') return w.status === 'pending';
-      if (filterStatus === 'approved') return w.status === 'approved';
-      if (filterStatus === 'rejected') return w.status === 'rejected';
-      if (filterStatus === 'cancelled') return w.status === 'cancelled';
-      if (filterStatus === 'processed') return w.status !== 'pending';
+  const overallStats = getOverallStats();
+
+  const allRows: WithdrawalRow[] = adminGroups.flatMap((group) =>
+    group.withdrawals.map((w) => ({ ...w, admin: group.admin }))
+  );
+
+  const adminFilterOptions = adminGroups.map((group) => ({
+    key: group.admin?.id || 'unassigned',
+    label: group.admin ? `${group.admin.username} (${group.admin.admin_id})` : 'Unassigned',
+    count: group.withdrawals.length,
+  }));
+
+  const searchLower = searchQuery.trim().toLowerCase();
+
+  const filteredRows = sortWithdrawals(
+    allRows.filter((w) => {
+      const ownerKey = w.admin?.id || 'unassigned';
+      if (adminFilter !== 'all' && ownerKey !== adminFilter) return false;
+      if (filterStatus === 'pending' && w.status !== 'pending') return false;
+      if (filterStatus === 'approved' && w.status !== 'approved') return false;
+      if (filterStatus === 'rejected' && w.status !== 'rejected') return false;
+      if (filterStatus === 'cancelled' && w.status !== 'cancelled') return false;
+      if (filterStatus === 'processed' && w.status === 'pending') return false;
+      if (searchLower) {
+        const username = (w.employee?.username || '').toLowerCase();
+        const empId = (w.employee?.employee_id || '').toLowerCase();
+        if (!username.includes(searchLower) && !empId.includes(searchLower)) return false;
+      }
       return true;
-    }))
-  })).filter(group => group.withdrawals.length > 0);
+    })
+  );
+
+  const pendingInView = filteredRows.filter((w) => w.status === 'pending');
+  const allPendingSelected = pendingInView.length > 0 && pendingInView.every((w) => selectedIds.has(w.id));
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = !allPendingSelected && pendingInView.some((w) => selectedIds.has(w.id));
+    }
+  });
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allPendingSelected) {
+        pendingInView.forEach((w) => next.delete(w.id));
+      } else {
+        pendingInView.forEach((w) => next.add(w.id));
+      }
+      return next;
+    });
+  };
+
+  const openBulkAction = (status: 'approved' | 'rejected') => {
+    if (selectedIds.size === 0) return;
+    setBulkAction(status);
+    setBulkRemark('');
+    setBulkValidationError(null);
+  };
+
+  const closeBulkAction = () => {
+    if (bulkProcessing) return;
+    setBulkAction(null);
+    setBulkRemark('');
+    setBulkValidationError(null);
+  };
+
+  const confirmBulkAction = async () => {
+    if (!bulkAction) return;
+    if (!bulkRemark.trim()) {
+      setBulkValidationError('Please enter audit remarks');
+      return;
+    }
+
+    setBulkProcessing(true);
+    try {
+      const targets = allRows.filter((w) => selectedIds.has(w.id) && w.status === 'pending');
+      for (const withdrawal of targets) {
+        await processWithdrawalDecision(withdrawal, bulkAction, bulkRemark.trim());
+      }
+      setSelectedIds(new Set());
+      setBulkAction(null);
+      setBulkRemark('');
+      void loadWithdrawalsRef.current?.();
+    } catch (err) {
+      console.error('Error processing bulk action:', err);
+      setError('Failed to process bulk action');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -428,8 +512,6 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       </div>
     );
   }
-
-  const overallStats = getOverallStats();
 
   return (
     <>
@@ -474,7 +556,63 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         </div>
       )}
 
+      {/* Bulk Action Remark Modal */}
+      {bulkAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <div className="mb-4 flex items-start gap-3">
+              <div className={`rounded-full p-2.5 ${bulkAction === 'approved' ? 'border border-green-500/40 bg-green-500/10' : 'border border-red-500/40 bg-red-500/10'}`}>
+                {bulkAction === 'approved' ? <CheckCircle className="h-5 w-5 text-green-400" /> : <XCircle className="h-5 w-5 text-red-400" />}
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-white">
+                  {bulkAction === 'approved' ? 'Approve' : 'Reject'} {selectedIds.size} withdrawal{selectedIds.size !== 1 ? 's' : ''}
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-400">This remark will be applied to every selected request.</p>
+              </div>
+            </div>
+            <textarea
+              value={bulkRemark}
+              onChange={(e) => {
+                setBulkRemark(e.target.value);
+                if (bulkValidationError) setBulkValidationError(null);
+              }}
+              rows={3}
+              placeholder="Enter audit remarks (required)"
+              className={`w-full resize-none rounded-lg border bg-slate-950/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 ${
+                bulkValidationError ? 'border-red-500 focus:ring-red-500' : 'border-slate-700 focus:ring-blue-500'
+              }`}
+            />
+            {bulkValidationError && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-red-400">
+                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                {bulkValidationError}
+              </div>
+            )}
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={closeBulkAction}
+                disabled={bulkProcessing}
+                className="flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-slate-700 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBulkAction}
+                disabled={bulkProcessing}
+                className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all disabled:opacity-50 ${
+                  bulkAction === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {bulkProcessing ? 'Processing...' : bulkAction === 'approved' ? `Approve ${selectedIds.size}` : `Reject ${selectedIds.size}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-950/55 px-3 py-3 sm:px-4 lg:px-5">
+        {/* Header + Stats */}
         <section className="shrink-0 rounded-2xl border border-blue-500/20 bg-slate-900/80 p-4 shadow-2xl shadow-slate-950/25 backdrop-blur-xl sm:p-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex min-w-0 items-start gap-3">
@@ -491,7 +629,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-xs text-slate-400 sm:text-sm">Review requests, track processing status, and manage audit records.</p>
+                <p className="mt-1 text-xs text-slate-400 sm:text-sm">Search, filter, and process withdrawal requests in bulk or one at a time.</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[440px]">
@@ -515,440 +653,354 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
           </div>
         </section>
 
-      <div className="mt-3 shrink-0 overflow-x-auto pb-1 scrollbar-hide">
-        <div className="flex min-w-max gap-2">
-        <button
-          onClick={() => setFilterStatus('all')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-            filterStatus === 'all'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50'
-              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <span>All Requests</span>
-            <span className="px-2 py-0.5 bg-white/10 rounded-full text-xs font-bold">
-              {overallStats.total}
-            </span>
-          </div>
-        </button>
-
-        <button
-          onClick={() => setFilterStatus('pending')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-            filterStatus === 'pending'
-              ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/50'
-              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          <span>Pending</span>
-          {overallStats.pending > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-              filterStatus === 'pending'
-                ? 'bg-white/20'
-                : 'bg-orange-500/20 text-orange-400'
-            }`}>
-              {overallStats.pending}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setFilterStatus('approved')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-            filterStatus === 'approved'
-              ? 'bg-green-600 text-white shadow-lg shadow-green-500/50'
-              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
-          }`}
-        >
-          <CheckCircle className="w-4 h-4" />
-          <span>Approved</span>
-          {overallStats.approved > 0 && (
-            <span className="px-2 py-0.5 bg-white/10 rounded-full text-xs font-bold">
-              {overallStats.approved}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setFilterStatus('rejected')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-            filterStatus === 'rejected'
-              ? 'bg-red-600 text-white shadow-lg shadow-red-500/50'
-              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
-          }`}
-        >
-          <XCircle className="w-4 h-4" />
-          <span>Rejected</span>
-          {overallStats.rejected > 0 && (
-            <span className="px-2 py-0.5 bg-white/10 rounded-full text-xs font-bold">
-              {overallStats.rejected}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setFilterStatus('cancelled')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-            filterStatus === 'cancelled'
-              ? 'bg-slate-600 text-white shadow-lg shadow-slate-500/50'
-              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
-          }`}
-        >
-          <Ban className="w-4 h-4" />
-          <span>Cancelled</span>
-          {overallStats.cancelled > 0 && (
-            <span className="px-2 py-0.5 bg-white/10 rounded-full text-xs font-bold">
-              {overallStats.cancelled}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setFilterStatus('processed')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-            filterStatus === 'processed'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50'
-              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
-          }`}
-        >
-          <CheckCircle className="w-4 h-4" />
-          <span>All Processed</span>
-          <span className="px-2 py-0.5 bg-white/10 rounded-full text-xs font-bold">
-            {overallStats.processed}
-          </span>
-        </button>
-        </div>
-      </div>
-
-      {/* Sort Options */}
-      <div className="mt-2 shrink-0 rounded-xl border border-slate-700/80 bg-slate-800/30 p-3">
-        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-          <ArrowUpDown className="w-4 h-4" />
-          <span className="text-sm font-medium">Sort by:</span>
-        </div>
-        <div className="flex min-w-0 flex-wrap gap-2">
-          <button
-            onClick={() => setSortOption('submit_time_desc')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              sortOption === 'submit_time_desc'
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 hover:text-white'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Submit Time</span>
-            <ArrowDown className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => setSortOption('submit_time_asc')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              sortOption === 'submit_time_asc'
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 hover:text-white'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Submit Time</span>
-            <ArrowUp className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => setSortOption('audit_time_desc')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              sortOption === 'audit_time_desc'
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 hover:text-white'
-            }`}
-          >
-            <CheckCircle className="w-3.5 h-3.5" />
-            <span>Audit Time</span>
-            <ArrowDown className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => setSortOption('audit_time_asc')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              sortOption === 'audit_time_asc'
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 hover:text-white'
-            }`}
-          >
-            <CheckCircle className="w-3.5 h-3.5" />
-            <span>Audit Time</span>
-            <ArrowUp className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 dark-panel-scroll">
-      {filteredAdminGroups.length === 0 ? (
-        <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-slate-700/80 bg-slate-900/40 px-6 py-8 text-center text-sm text-slate-400">
-          {filterStatus === 'all' && 'No withdrawal requests'}
-          {filterStatus === 'pending' && 'No pending withdrawal requests'}
-          {filterStatus === 'approved' && 'No approved withdrawal requests'}
-          {filterStatus === 'rejected' && 'No rejected withdrawal requests'}
-          {filterStatus === 'cancelled' && 'No cancelled withdrawal requests'}
-          {filterStatus === 'processed' && 'No processed withdrawal requests'}
-        </div>
-      ) : (
-        <div className="space-y-3 pb-3">
-          {filteredAdminGroups.map((group) => {
-            const adminId = group.admin?.id || 'unassigned';
-            const isExpanded = expandedGroups.has(adminId);
-            const stats = getGroupStats(group.withdrawals);
-
-            return (
-              <div key={adminId} className="overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-900/70 shadow-lg shadow-slate-950/20">
-                <button
-                  onClick={() => toggleGroup(adminId)}
-                  className="flex w-full items-center justify-between gap-3 border-b border-transparent px-4 py-3.5 text-left transition-colors hover:bg-blue-950/25"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
-                      <Users className="h-5 w-5 text-blue-300" />
-                    </div>
-                    <div className="min-w-0 text-left">
-                      <div className="truncate text-sm font-semibold text-white sm:text-base">
-                        {group.admin ? `${group.admin.username} (${group.admin.admin_id})` : 'Unassigned'}
-                      </div>
-                      <div className="mt-0.5 text-xs text-slate-400">
-                        {stats.total} withdrawal{stats.total !== 1 ? 's' : ''} <span className="text-slate-600">·</span> ${stats.totalAmount.toFixed(2)} total
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    {stats.pending > 0 && (
-                      <div className="flex items-center gap-1 rounded-lg border border-orange-400/20 bg-orange-500/10 px-2 py-1 text-xs font-semibold text-orange-300">
-                        <Clock className="w-3 h-3" />
-                        {stats.pending}
-                      </div>
-                    )}
-                    {stats.approved > 0 && (
-                      <div className="flex items-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">
-                        <CheckCircle className="w-3 h-3" />
-                        {stats.approved}
-                      </div>
-                    )}
-                    {stats.rejected > 0 && (
-                      <div className="flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-300">
-                        <XCircle className="w-3 h-3" />
-                        {stats.rejected}
-                      </div>
-                    )}
-                    {stats.cancelled > 0 && (
-                      <div className="flex items-center gap-1 rounded-lg border border-slate-600/50 bg-slate-500/10 px-2 py-1 text-xs font-semibold text-slate-300">
-                        <Ban className="w-3 h-3" />
-                        {stats.cancelled}
-                      </div>
-                    )}
-                    {isExpanded ? (
-                      <ChevronDown className="w-5 h-5 text-slate-400" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-slate-400" />
-                    )}
-                  </div>
-                </button>
-
-                {isExpanded && (
-                  <div className="space-y-3 border-t border-slate-800/80 bg-slate-950/20 px-3 pb-3 pt-3 sm:px-4 sm:pt-4">
-                    {group.withdrawals.map((withdrawal) => {
-                      const isPending = withdrawal.status === 'pending';
-                      return (
-                      <div
-                        key={withdrawal.id}
-                        className={`rounded-xl p-3.5 transition-all sm:p-4 ${
-                          isPending
-                            ? 'border border-orange-400/45 bg-gradient-to-br from-orange-950/45 via-slate-900/80 to-red-950/30 shadow-lg shadow-orange-950/20'
-                            : 'border border-slate-700/70 bg-slate-900/65 hover:border-blue-400/25'
-                        }`}
-                      >
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="flex-1">
-                            <div className="mb-2 flex flex-wrap items-center gap-2">
-                              <span className="text-sm font-semibold text-white sm:text-base">{withdrawal.employee?.username}</span>
-                              <span className="rounded-md border border-slate-700 bg-slate-950/35 px-1.5 py-0.5 text-[11px] text-slate-400">{withdrawal.employee?.employee_id}</span>
-                              {getStatusBadge(withdrawal.status)}
-                            </div>
-                            <div className="mb-2 text-2xl font-bold tabular-nums text-emerald-300">
-                              ${withdrawal.amount.toFixed(2)}
-                            </div>
-                            <div className="space-y-1 text-xs text-slate-400 sm:text-sm">
-                              <div>Requested: {new Date(withdrawal.created_at).toLocaleString()}</div>
-                              {withdrawal.audited_at && (
-                                <div className={`font-medium ${
-                                  withdrawal.status === 'approved' ? 'text-green-400' :
-                                  withdrawal.status === 'rejected' ? 'text-red-400' :
-                                  'text-slate-300'
-                                }`}>
-                                  {withdrawal.status === 'approved' && 'Approved: '}
-                                  {withdrawal.status === 'rejected' && 'Rejected: '}
-                                  {withdrawal.status === 'cancelled' && 'Cancelled: '}
-                                  {new Date(withdrawal.audited_at).toLocaleString()}
-                                </div>
-                              )}
-                            </div>
-                            {withdrawal.audit_remark && (
-                              <div className="mt-3 rounded-lg border border-slate-700/70 bg-slate-950/45 px-3 py-2 text-xs text-slate-300 sm:text-sm">
-                                <span className="font-semibold text-slate-200">Audit note:</span> {withdrawal.audit_remark}
-                              </div>
-                            )}
-                          </div>
-
-                          {withdrawal.status === 'pending' && (
-                            <div className="w-full shrink-0 lg:w-80">
-                              {reviewing === withdrawal.id ? (
-                                <div className="space-y-3">
-                                  <textarea
-                                    value={auditRemark}
-                                    onChange={(e) => {
-                                      setAuditRemark(e.target.value);
-                                      if (validationError) setValidationError(null);
-                                    }}
-                                    placeholder="Enter audit remarks (required)"
-                                    className={`w-full px-3 py-2 bg-slate-900/50 backdrop-blur-sm border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 resize-none ${
-                                      validationError && reviewing === withdrawal.id
-                                        ? 'border-red-500 focus:ring-red-500'
-                                        : 'border-slate-700 focus:ring-blue-500'
-                                    }`}
-                                    rows={3}
-                                  />
-                                  {validationError && reviewing === withdrawal.id && (
-                                    <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
-                                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                                      <span>{validationError}</span>
-                                    </div>
-                                  )}
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => handleReview(withdrawal.id, 'approved')}
-                                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all"
-                                    >
-                                      <CheckCircle className="w-4 h-4" />
-                                      Approve
-                                    </button>
-                                    <button
-                                      onClick={() => handleReview(withdrawal.id, 'rejected')}
-                                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all"
-                                    >
-                                      <XCircle className="w-4 h-4" />
-                                      Reject
-                                    </button>
-                                  </div>
-                                  <button
-                                    onClick={() => {
-                                      setReviewing(null);
-                                      setAuditRemark('');
-                                      setValidationError(null);
-                                    }}
-                                    className="w-full px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-all"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setReviewing(withdrawal.id)}
-                                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all"
-                                >
-                                  Review Request
-                                </button>
-                              )}
-                            </div>
-                          )}
-
-                          {withdrawal.status !== 'pending' && (
-                            <div className="w-full shrink-0 lg:w-80">
-                              {editing === withdrawal.id ? (
-                                <div className="space-y-3">
-                                  <div>
-                                    <label className="text-xs text-slate-400 mb-1 block">Status</label>
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => setEditStatus('approved')}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                                          editStatus === 'approved'
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                                        }`}
-                                      >
-                                        <CheckCircle className="w-4 h-4" />
-                                        Approved
-                                      </button>
-                                      <button
-                                        onClick={() => setEditStatus('rejected')}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                                          editStatus === 'rejected'
-                                            ? 'bg-red-600 text-white'
-                                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                                        }`}
-                                      >
-                                        <XCircle className="w-4 h-4" />
-                                        Rejected
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <label className="text-xs text-slate-400 mb-1 block">Audit Remark</label>
-                                    <textarea
-                                      value={editRemark}
-                                      onChange={(e) => setEditRemark(e.target.value)}
-                                      placeholder="Enter audit remarks"
-                                      className="w-full px-3 py-2 bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                                      rows={3}
-                                    />
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => handleEditSave(withdrawal)}
-                                      disabled={editSaving}
-                                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all"
-                                    >
-                                      <Save className="w-4 h-4" />
-                                      {editSaving ? 'Saving...' : 'Save'}
-                                    </button>
-                                    <button
-                                      onClick={cancelEditing}
-                                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-all"
-                                    >
-                                      <X className="w-4 h-4" />
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => startEditing(withdrawal)}
-                                  className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white rounded-lg text-sm font-medium transition-all"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                  Edit Record
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      );
-                    })}
-                  </div>
-                )}
+        {/* Toolbar: status filter, admin filter, search, sort */}
+        <section className="mt-3 shrink-0 rounded-2xl border border-slate-700/70 bg-slate-900/60 p-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0 overflow-x-auto pb-1 scrollbar-hide lg:pb-0">
+              <div className="flex min-w-max items-center gap-1.5">
+                {([
+                  { key: 'all', label: 'All', count: overallStats.total, activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-500/40' },
+                  { key: 'pending', label: 'Pending', count: overallStats.pending, activeClass: 'bg-orange-600 text-white shadow-md shadow-orange-500/40' },
+                  { key: 'approved', label: 'Approved', count: overallStats.approved, activeClass: 'bg-green-600 text-white shadow-md shadow-green-500/40' },
+                  { key: 'rejected', label: 'Rejected', count: overallStats.rejected, activeClass: 'bg-red-600 text-white shadow-md shadow-red-500/40' },
+                  { key: 'cancelled', label: 'Cancelled', count: overallStats.cancelled, activeClass: 'bg-slate-600 text-white shadow-md shadow-slate-500/40' },
+                  { key: 'processed', label: 'Processed', count: overallStats.processed, activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-500/40' },
+                ] as const).map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => setFilterStatus(item.key)}
+                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all ${
+                      filterStatus === item.key
+                        ? item.activeClass
+                        : 'border border-slate-700 bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
+                    }`}
+                  >
+                    {item.label}
+                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${filterStatus === item.key ? 'bg-white/20' : 'bg-slate-700/70 text-slate-300'}`}>
+                      {item.count}
+                    </span>
+                  </button>
+                ))}
               </div>
-            );
-          })}
-        </div>
-      )}
-      </div>
+            </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="mt-4 p-4 bg-red-500/10 border border-red-500/50 rounded-lg">
-          <div className="flex items-center gap-2 text-red-400">
-            <AlertCircle className="w-5 h-5" />
-            <span className="font-medium">{error}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              {adminFilterOptions.length > 1 && (
+                <select
+                  value={adminFilter}
+                  onChange={(e) => setAdminFilter(e.target.value)}
+                  className="rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-1.5 text-xs text-slate-200 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="all">All admins</option>
+                  {adminFilterOptions.map((opt) => (
+                    <option key={opt.key} value={opt.key}>{opt.label} · {opt.count}</option>
+                  ))}
+                </select>
+              )}
+
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search employee or ID"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950/60 py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:w-52"
+                />
+              </div>
+
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as SortOption)}
+                className="rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-1.5 text-xs text-slate-200 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="submit_time_desc">Newest submitted</option>
+                <option value="submit_time_asc">Oldest submitted</option>
+                <option value="audit_time_desc">Newest audited</option>
+                <option value="audit_time_asc">Oldest audited</option>
+              </select>
+            </div>
           </div>
+        </section>
+
+        {/* Bulk action bar */}
+        {selectedIds.size > 0 && (
+          <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-400/40 bg-blue-500/10 px-3.5 py-2.5">
+            <div className="text-xs font-semibold text-blue-200">
+              {selectedIds.size} withdrawal{selectedIds.size !== 1 ? 's' : ''} selected
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => openBulkAction('approved')}
+                className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-green-700"
+              >
+                <CheckCircle className="h-3.5 w-3.5" />
+                Approve Selected
+              </button>
+              <button
+                onClick={() => openBulkAction('rejected')}
+                className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-700"
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                Reject Selected
+              </button>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Data table */}
+        <div className="mt-3 min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-700/70 bg-slate-900/50 dark-panel-scroll">
+          <table className="w-full min-w-[920px] border-collapse text-left text-sm">
+            <thead className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur">
+              <tr className="text-[10px] uppercase tracking-wider text-slate-400">
+                <th className="w-10 px-3 py-2.5">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    className="h-3.5 w-3.5 accent-blue-500"
+                    checked={allPendingSelected}
+                    onChange={toggleSelectAll}
+                    disabled={pendingInView.length === 0}
+                    aria-label="Select all pending withdrawals in view"
+                  />
+                </th>
+                <th className="px-3 py-2.5 font-semibold">Employee</th>
+                <th className="px-3 py-2.5 font-semibold">Amount</th>
+                <th className="px-3 py-2.5 font-semibold">Status</th>
+                <th className="px-3 py-2.5 font-semibold">Requested</th>
+                <th className="px-3 py-2.5 font-semibold">Audit</th>
+                <th className="px-3 py-2.5 text-right font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/70">
+              {filteredRows.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-14 text-center text-sm text-slate-400">
+                    No withdrawal requests match the current filters
+                  </td>
+                </tr>
+              ) : (
+                filteredRows.map((withdrawal) => {
+                  const isPending = withdrawal.status === 'pending';
+                  const isReviewing = reviewing === withdrawal.id;
+                  const isEditing = editing === withdrawal.id;
+
+                  return (
+                    <Fragment key={withdrawal.id}>
+                      <tr className={isPending ? 'bg-orange-500/[0.06] hover:bg-orange-500/[0.1]' : 'hover:bg-slate-800/40'}>
+                        <td className="px-3 py-2.5 align-top">
+                          {isPending && (
+                            <input
+                              type="checkbox"
+                              className="h-3.5 w-3.5 accent-blue-500"
+                              checked={selectedIds.has(withdrawal.id)}
+                              onChange={() => toggleSelectOne(withdrawal.id)}
+                              aria-label={`Select withdrawal from ${withdrawal.employee?.username || 'employee'}`}
+                            />
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 align-top">
+                          <div className="font-medium text-white">{withdrawal.employee?.username}</div>
+                          <div className="mt-0.5 text-xs text-slate-500">
+                            {withdrawal.employee?.employee_id}
+                            <span className="text-slate-700"> · </span>
+                            {withdrawal.admin ? withdrawal.admin.username : 'Unassigned'}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 align-top font-bold tabular-nums text-emerald-300">
+                          ${withdrawal.amount.toFixed(2)}
+                        </td>
+                        <td className="px-3 py-2.5 align-top">{getStatusBadge(withdrawal.status)}</td>
+                        <td className="px-3 py-2.5 align-top text-xs text-slate-400">
+                          {new Date(withdrawal.created_at).toLocaleString()}
+                        </td>
+                        <td className="px-3 py-2.5 align-top text-xs text-slate-400">
+                          {withdrawal.audited_at ? (
+                            <>
+                              <div className={
+                                withdrawal.status === 'approved' ? 'font-medium text-green-400' :
+                                withdrawal.status === 'rejected' ? 'font-medium text-red-400' :
+                                'font-medium text-slate-300'
+                              }>
+                                {new Date(withdrawal.audited_at).toLocaleString()}
+                              </div>
+                              {withdrawal.audit_remark && (
+                                <div className="mt-0.5 max-w-[220px] truncate text-slate-500" title={withdrawal.audit_remark}>
+                                  {withdrawal.audit_remark}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-slate-600">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 align-top text-right">
+                          {isPending ? (
+                            <button
+                              onClick={() => {
+                                if (isReviewing) {
+                                  setReviewing(null);
+                                  setAuditRemark('');
+                                  setValidationError(null);
+                                } else {
+                                  setReviewing(withdrawal.id);
+                                  setAuditRemark('');
+                                  setValidationError(null);
+                                }
+                              }}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                                isReviewing
+                                  ? 'bg-slate-700 text-white hover:bg-slate-600'
+                                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                              }`}
+                            >
+                              {isReviewing ? 'Close' : 'Review'}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => (isEditing ? cancelEditing() : startEditing(withdrawal))}
+                              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                                isEditing
+                                  ? 'bg-slate-700 text-white hover:bg-slate-600'
+                                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
+                              }`}
+                            >
+                              <Pencil className="h-3 w-3" />
+                              {isEditing ? 'Close' : 'Edit'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+
+                      {isReviewing && (
+                        <tr>
+                          <td colSpan={7} className="border-t border-slate-800/80 bg-slate-950/40 px-4 py-3.5">
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+                              <div className="flex-1">
+                                <textarea
+                                  value={auditRemark}
+                                  onChange={(e) => {
+                                    setAuditRemark(e.target.value);
+                                    if (validationError) setValidationError(null);
+                                  }}
+                                  placeholder="Enter audit remarks (required)"
+                                  className={`w-full resize-none rounded-lg border bg-slate-900/50 px-3 py-2 text-sm text-white placeholder-slate-500 backdrop-blur-sm focus:outline-none focus:ring-2 ${
+                                    validationError ? 'border-red-500 focus:ring-red-500' : 'border-slate-700 focus:ring-blue-500'
+                                  }`}
+                                  rows={2}
+                                />
+                                {validationError && (
+                                  <div className="mt-2 flex items-center gap-2 text-xs text-red-400">
+                                    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                                    {validationError}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex shrink-0 gap-2 lg:w-64">
+                                <button
+                                  onClick={() => handleReview(withdrawal.id, 'approved')}
+                                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-green-700"
+                                >
+                                  <CheckCircle className="h-3.5 w-3.5" />
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleReview(withdrawal.id, 'rejected')}
+                                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-red-700"
+                                >
+                                  <XCircle className="h-3.5 w-3.5" />
+                                  Reject
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+
+                      {isEditing && (
+                        <tr>
+                          <td colSpan={7} className="border-t border-slate-800/80 bg-slate-950/40 px-4 py-3.5">
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+                              <div className="flex shrink-0 gap-2 lg:w-56">
+                                <button
+                                  onClick={() => setEditStatus('approved')}
+                                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                                    editStatus === 'approved' ? 'bg-green-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                  }`}
+                                >
+                                  <CheckCircle className="h-3.5 w-3.5" />
+                                  Approved
+                                </button>
+                                <button
+                                  onClick={() => setEditStatus('rejected')}
+                                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                                    editStatus === 'rejected' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                  }`}
+                                >
+                                  <XCircle className="h-3.5 w-3.5" />
+                                  Rejected
+                                </button>
+                              </div>
+                              <div className="flex-1">
+                                <textarea
+                                  value={editRemark}
+                                  onChange={(e) => setEditRemark(e.target.value)}
+                                  placeholder="Enter audit remarks"
+                                  className="w-full resize-none rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-white placeholder-slate-500 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  rows={2}
+                                />
+                              </div>
+                              <div className="flex shrink-0 gap-2 lg:w-48">
+                                <button
+                                  onClick={() => handleEditSave(withdrawal)}
+                                  disabled={editSaving}
+                                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                  <Save className="h-3.5 w-3.5" />
+                                  {editSaving ? 'Saving...' : 'Save'}
+                                </button>
+                                <button
+                                  onClick={cancelEditing}
+                                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-700 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-slate-600"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {/* Empty admin overview hint */}
+        {adminGroups.length === 0 && !loading && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-slate-700/80 bg-slate-900/40 px-4 py-3 text-xs text-slate-400">
+            <Users className="h-4 w-4 text-slate-500" />
+            No admin groups found yet.
+          </div>
+        )}
+
+        {/* Error Display */}
+        {error && (
+          <div className="mt-3 shrink-0 rounded-lg border border-red-500/50 bg-red-500/10 p-3">
+            <div className="flex items-center gap-2 text-red-400">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm font-medium">{error}</span>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
