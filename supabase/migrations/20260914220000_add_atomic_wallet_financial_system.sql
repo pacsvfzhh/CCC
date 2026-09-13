@@ -231,6 +231,31 @@ AS $$
   SELECT encode(extensions.digest(p_token::text, 'sha256'), 'hex');
 $$;
 
+CREATE OR REPLACE FUNCTION private.verify_bcrypt_password(
+  p_password text,
+  p_hash text
+)
+RETURNS boolean
+LANGUAGE plpgsql
+IMMUTABLE
+SET search_path TO 'extensions', 'pg_catalog'
+AS $$
+DECLARE
+  v_hash text;
+BEGIN
+  IF p_password IS NULL OR p_hash IS NULL THEN
+    RETURN false;
+  END IF;
+
+  v_hash := CASE
+    WHEN left(p_hash, 4) IN ('$2b$', '$2y$') THEN '$2a$' || substring(p_hash FROM 5)
+    ELSE p_hash
+  END;
+
+  RETURN v_hash = extensions.crypt(p_password, v_hash);
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION private.get_financial_admin_context(p_token uuid)
 RETURNS TABLE(admin_id uuid, admin_role text)
 LANGUAGE plpgsql
@@ -421,8 +446,8 @@ BEGIN
     );
   END IF;
 
-  SELECT a, credentials.password_hash
-  INTO v_admin, v_password_hash
+  SELECT a.*
+  INTO v_admin
   FROM admins a
   JOIN financial_admin_credentials credentials ON credentials.admin_id = a.id
   WHERE a.username = trim(p_username)
@@ -430,7 +455,13 @@ BEGIN
     AND a.role IN ('super_admin', 'secondary_admin', 'emergency_admin')
   LIMIT 1;
 
-  IF NOT FOUND OR v_password_hash IS DISTINCT FROM extensions.crypt(p_password, v_password_hash) THEN
+  IF FOUND THEN
+    SELECT password_hash INTO v_password_hash
+    FROM financial_admin_credentials
+    WHERE admin_id = v_admin.id;
+  END IF;
+
+  IF v_admin.id IS NULL OR NOT private.verify_bcrypt_password(p_password, v_password_hash) THEN
     INSERT INTO financial_login_attempts AS attempts (
       account_type,
       username,
@@ -512,15 +543,21 @@ BEGIN
     );
   END IF;
 
-  SELECT u, credentials.password_hash
-  INTO v_user, v_password_hash
+  SELECT u.*
+  INTO v_user
   FROM users u
   JOIN financial_employee_credentials credentials ON credentials.user_id = u.id
   WHERE u.username = trim(p_username)
     AND u.is_active = true
   LIMIT 1;
 
-  IF NOT FOUND OR v_password_hash IS DISTINCT FROM extensions.crypt(p_password, v_password_hash) THEN
+  IF FOUND THEN
+    SELECT password_hash INTO v_password_hash
+    FROM financial_employee_credentials
+    WHERE user_id = v_user.id;
+  END IF;
+
+  IF v_user.id IS NULL OR NOT private.verify_bcrypt_password(p_password, v_password_hash) THEN
     INSERT INTO financial_login_attempts AS attempts (
       account_type,
       username,
@@ -887,7 +924,7 @@ BEGIN
     AND s.expires_at > now()
     AND a.is_active = true;
 
-  IF v_admin_id IS NULL OR v_password_hash IS DISTINCT FROM extensions.crypt(p_current_password, v_password_hash) THEN
+  IF v_admin_id IS NULL OR NOT private.verify_bcrypt_password(p_current_password, v_password_hash) THEN
     RAISE EXCEPTION 'Current password is incorrect.';
   END IF;
   IF length(p_new_password) < 6 THEN
@@ -935,7 +972,7 @@ BEGIN
     AND s.expires_at > now()
     AND a.is_active = true;
 
-  IF v_admin_id IS NULL OR v_password_hash IS DISTINCT FROM extensions.crypt(p_current_password, v_password_hash) THEN
+  IF v_admin_id IS NULL OR NOT private.verify_bcrypt_password(p_current_password, v_password_hash) THEN
     RAISE EXCEPTION 'Current password is incorrect.';
   END IF;
   IF length(trim(p_new_username)) < 3 OR trim(p_new_username) !~ '^[A-Za-z0-9_]+$' THEN
@@ -978,7 +1015,7 @@ BEGIN
   FROM financial_employee_credentials
   WHERE user_id = v_actor_id;
 
-  IF v_password_hash IS DISTINCT FROM extensions.crypt(p_current_password, v_password_hash) THEN
+  IF NOT private.verify_bcrypt_password(p_current_password, v_password_hash) THEN
     RAISE EXCEPTION 'Current password is incorrect.';
   END IF;
   IF length(p_new_password) < 6 THEN
@@ -2468,6 +2505,11 @@ REVOKE EXECUTE ON FUNCTION send_customer_service_tip_atomic(uuid, uuid, uuid, nu
 REVOKE EXECUTE ON FUNCTION reconcile_wallet_from_ledger(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION process_wallet_reconciliation_queue(integer) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION enqueue_all_wallets_for_reconciliation() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION enqueue_wallet_reconciliation(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION track_wallet_transaction_in_ledger() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION reverse_deleted_wallet_transaction_in_ledger() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION track_withdrawal_in_ledger() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION enqueue_changed_wallet() FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION create_admin_financial_session(text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION create_employee_financial_session(text, text, text) TO anon, authenticated;
