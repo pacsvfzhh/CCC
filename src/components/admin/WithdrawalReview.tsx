@@ -248,7 +248,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         balance_before: wallet.frozen_balance,
         balance_after: newFrozenBalance,
         reference_id: withdrawal.id,
-        remarks: `Withdrawal approved: ${remark}`,
+        remarks: `提現已批准：${remark}`,
       });
     } else {
       // When rejecting, move money from frozen back to available.
@@ -269,17 +269,17 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
   const handleReview = async (withdrawalId: string, status: 'approved' | 'rejected') => {
     if (!auditRemark.trim()) {
-      setValidationError('Please enter audit remarks');
+      setValidationError('請輸入審核備註');
       return;
     }
 
     setConfirmDialog({
       isOpen: true,
-      title: status === 'approved' ? 'Approve Withdrawal' : 'Reject Withdrawal',
+      title: status === 'approved' ? '批准提現' : '拒絕提現',
       message: status === 'approved'
-        ? `Are you sure you want to approve this withdrawal? The amount will be deducted from the frozen balance.`
-        : `Are you sure you want to reject this withdrawal? The amount will be returned to the employee's available balance.`,
-      confirmText: status === 'approved' ? 'Approve' : 'Reject',
+        ? `確定要批准這筆提現嗎？金額將從凍結餘額中扣除。`
+        : `確定要拒絕這筆提現嗎？金額將退回員工的可用餘額。`,
+      confirmText: status === 'approved' ? '批准' : '拒絕',
       confirmColor: status === 'approved' ? 'green' : 'red',
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -296,7 +296,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
           void loadWithdrawalsRef.current?.();
         } catch (error) {
           console.error('Error reviewing withdrawal:', error);
-          setError('Failed to review withdrawal');
+          setError('審核提現失敗');
         }
       }
     });
@@ -316,9 +316,9 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const handleEditSave = async (withdrawal: WithdrawalWithEmployee) => {
     setConfirmDialog({
       isOpen: true,
-      title: 'Modify Withdrawal Record',
-      message: `Are you sure you want to change this withdrawal to "${editStatus}"? This will update the historical record.`,
-      confirmText: 'Save Changes',
+      title: '修改提現記錄',
+      message: `確定要將這筆提現修改為「${editStatus === 'approved' ? '已批准' : '已拒絕'}」嗎？這將更新歷史記錄。`,
+      confirmText: '儲存變更',
       confirmColor: editStatus === 'approved' ? 'green' : 'red',
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -373,7 +373,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
           void loadWithdrawalsRef.current?.();
         } catch (err) {
           console.error('Error updating withdrawal:', err);
-          setError('Failed to update withdrawal record');
+          setError('更新提現記錄失敗');
         } finally {
           setEditSaving(false);
         }
@@ -387,6 +387,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       approved: 'bg-green-500/10 border-green-500/50 text-green-400',
       rejected: 'bg-red-500/10 border-red-500/50 text-red-400',
       cancelled: 'bg-slate-500/10 border-slate-500/50 text-slate-400',
+      processed: 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400',
     };
 
     const icons = {
@@ -394,12 +395,21 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       approved: <CheckCircle className="w-3.5 h-3.5" />,
       rejected: <XCircle className="w-3.5 h-3.5" />,
       cancelled: <Ban className="w-3.5 h-3.5" />,
+      processed: <CheckCircle className="w-3.5 h-3.5" />,
+    };
+
+    const labels = {
+      pending: '待審核',
+      approved: '已批准',
+      rejected: '已拒絕',
+      cancelled: '已取消',
+      processed: '已處理',
     };
 
     return (
       <div className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold ${styles[status as keyof typeof styles]}`}>
         {icons[status as keyof typeof icons]}
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {labels[status as keyof typeof labels] || '未知狀態'}
       </div>
     );
   };
@@ -462,7 +472,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       ? group.admin.admin_id
         ? `${group.admin.username} (${group.admin.admin_id})`
         : group.admin.username
-      : 'Unassigned',
+      : '未分配',
     count: group.withdrawals.length,
   }));
 
@@ -537,7 +547,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const confirmBulkAction = async () => {
     if (!bulkAction) return;
     if (!bulkRemark.trim()) {
-      setBulkValidationError('Please enter audit remarks');
+      setBulkValidationError('請輸入審核備註');
       return;
     }
 
@@ -553,7 +563,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       void loadWithdrawalsRef.current?.();
     } catch (err) {
       console.error('Error processing bulk action:', err);
-      setError('Failed to process bulk action');
+      setError('批量處理失敗');
     } finally {
       setBulkProcessing(false);
     }
@@ -564,7 +574,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       <div className="flex h-full min-h-0 flex-col items-center justify-center overflow-hidden bg-slate-950/60">
         <div className="flex items-center gap-3 text-sm text-slate-400">
           <span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-400/25 border-t-blue-400" />
-          Loading withdrawals...
+          正在載入提現資料...
         </div>
       </div>
     );
@@ -596,7 +606,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 onClick={() => setConfirmDialog(null)}
                 className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-all"
               >
-                Cancel
+                取消
               </button>
               <button
                 onClick={confirmDialog.onConfirm}
@@ -623,9 +633,9 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
               </div>
               <div className="min-w-0">
                 <h3 className="text-base font-bold text-white">
-                  {bulkAction === 'approved' ? 'Approve' : 'Reject'} {selectedIds.size} withdrawal{selectedIds.size !== 1 ? 's' : ''}
+                  {bulkAction === 'approved' ? '批准' : '拒絕'} {selectedIds.size} 筆提現
                 </h3>
-                <p className="mt-0.5 text-xs text-slate-400">This remark will be applied to every selected request.</p>
+                <p className="mt-0.5 text-xs text-slate-400">這則備註將套用至所有選取的申請。</p>
               </div>
             </div>
             <textarea
@@ -635,7 +645,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 if (bulkValidationError) setBulkValidationError(null);
               }}
               rows={3}
-              placeholder="Enter audit remarks (required)"
+              placeholder="請輸入審核備註（必填）"
               className={`w-full resize-none rounded-lg border bg-slate-950/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 ${
                 bulkValidationError ? 'border-red-500 focus:ring-red-500' : 'border-slate-700 focus:ring-blue-500'
               }`}
@@ -652,7 +662,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 disabled={bulkProcessing}
                 className="flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-slate-700 disabled:opacity-50"
               >
-                Cancel
+                取消
               </button>
               <button
                 onClick={confirmBulkAction}
@@ -661,7 +671,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   bulkAction === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
-                {bulkProcessing ? 'Processing...' : bulkAction === 'approved' ? `Approve ${selectedIds.size}` : `Reject ${selectedIds.size}`}
+                {bulkProcessing ? '處理中...' : bulkAction === 'approved' ? `批准 ${selectedIds.size} 筆` : `拒絕 ${selectedIds.size} 筆`}
               </button>
             </div>
           </div>
@@ -677,11 +687,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 <ArrowUpDown className="h-3 w-3 text-cyan-300" />
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <h1 className="text-sm font-bold tracking-tight text-white sm:text-base">Withdrawal Review</h1>
+                <h1 className="text-sm font-bold tracking-tight text-white sm:text-base">提現審核</h1>
                 {overallStats.pending > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-orange-400/35 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-200">
                     <AlertCircle className="h-3 w-3 text-orange-300" />
-                    {overallStats.pending} pending
+                    {overallStats.pending} 筆待審核
                   </span>
                 )}
               </div>
@@ -703,7 +713,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                       {adminFilter === 'all' ? <Layers className="h-3 w-3" /> : <Users className="h-3 w-3" />}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-left">
-                      {adminFilter === 'all' ? 'All groups' : adminFilterOptions.find((opt) => opt.key === adminFilter)?.label || 'All groups'}
+                      {adminFilter === 'all' ? '全部分組' : adminFilterOptions.find((opt) => opt.key === adminFilter)?.label || '全部分組'}
                     </span>
                     <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200/80 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -724,7 +734,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                         >
                           <span className="flex items-center gap-2">
                             <Layers className="h-3.5 w-3.5" />
-                            All groups
+                            全部分組
                           </span>
                           <span className="flex items-center gap-1.5">
                             <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${adminFilter === 'all' ? 'bg-white/20' : 'bg-slate-700/70 text-slate-300'}`}>
@@ -768,23 +778,23 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
               <div className="flex overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-950/40 scrollbar-hide">
                 <div className="min-w-[112px] flex-[1.6] border-r border-yellow-600/40 bg-gradient-to-br from-yellow-500/30 via-amber-500/20 to-yellow-600/10 px-3.5 py-1.5">
-                  <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-yellow-200">Submitted Today</div>
+                  <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-yellow-200">今日提交</div>
                   <div className="mt-0.5 text-lg font-extrabold tabular-nums text-yellow-50">{todayCount}</div>
                 </div>
                 <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-orange-300/75">Pending</div>
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-orange-300/75">待審核</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-orange-200">{overallStats.pending}</div>
                 </div>
                 <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-blue-300/75">Requests</div>
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-blue-300/75">申請總數</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-white">{overallStats.total}</div>
                 </div>
                 <div className="min-w-[82px] flex-1 border-r border-slate-700/60 px-3.5 py-1.5">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">Approved</div>
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">已批准</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-emerald-200">{overallStats.approved}</div>
                 </div>
                 <div className="min-w-[82px] flex-1 px-3.5 py-1.5">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-red-300/75">Rejected</div>
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-red-300/75">已拒絕</div>
                   <div className="mt-0.5 text-base font-bold tabular-nums text-red-200">{overallStats.rejected}</div>
                 </div>
               </div>
@@ -800,11 +810,11 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 {([
                   { key: 'all', label: '全部', count: overallStats.total, activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-500/40', inactiveClass: 'border border-blue-500/45 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-blue-100' },
                   { key: 'today', label: '今日提交', count: todayCount, activeClass: 'bg-amber-500 text-white shadow-md shadow-amber-500/40', inactiveClass: 'border border-amber-500/45 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 hover:text-amber-100' },
-                  { key: 'pending', label: '待审核', count: overallStats.pending, activeClass: 'bg-orange-600 text-white shadow-md shadow-orange-500/40', inactiveClass: 'border border-orange-500/45 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20 hover:text-orange-100' },
+                  { key: 'pending', label: '待審核', count: overallStats.pending, activeClass: 'bg-orange-600 text-white shadow-md shadow-orange-500/40', inactiveClass: 'border border-orange-500/45 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20 hover:text-orange-100' },
                   { key: 'approved', label: '已批准', count: overallStats.approved, activeClass: 'bg-green-600 text-white shadow-md shadow-green-500/40', inactiveClass: 'border border-green-500/45 bg-green-500/10 text-green-200 hover:bg-green-500/20 hover:text-green-100' },
-                  { key: 'rejected', label: '已拒绝', count: overallStats.rejected, activeClass: 'bg-red-600 text-white shadow-md shadow-red-500/40', inactiveClass: 'border border-red-500/45 bg-red-500/10 text-red-200 hover:bg-red-500/20 hover:text-red-100' },
+                  { key: 'rejected', label: '已拒絕', count: overallStats.rejected, activeClass: 'bg-red-600 text-white shadow-md shadow-red-500/40', inactiveClass: 'border border-red-500/45 bg-red-500/10 text-red-200 hover:bg-red-500/20 hover:text-red-100' },
                   { key: 'cancelled', label: '已取消', count: overallStats.cancelled, activeClass: 'bg-slate-600 text-white shadow-md shadow-slate-500/40', inactiveClass: 'border border-slate-500/45 bg-slate-500/10 text-slate-200 hover:bg-slate-500/20 hover:text-slate-100' },
-                  { key: 'processed', label: '已处理', count: overallStats.processed, activeClass: 'bg-cyan-600 text-white shadow-md shadow-cyan-500/40', inactiveClass: 'border border-cyan-500/45 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 hover:text-cyan-100' },
+                  { key: 'processed', label: '已處理', count: overallStats.processed, activeClass: 'bg-cyan-600 text-white shadow-md shadow-cyan-500/40', inactiveClass: 'border border-cyan-500/45 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 hover:text-cyan-100' },
                 ] as const).map((item) => (
                   <button
                     key={item.key}
@@ -830,8 +840,8 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="搜尋員工姓名或 ID"
-                  aria-label="搜尋員工姓名或 ID"
+                  placeholder="搜尋員工姓名或員工編號"
+                  aria-label="搜尋員工姓名或員工編號"
                   className="w-full rounded-xl border border-white/70 bg-white py-1.5 pl-9 pr-3 text-xs font-medium text-slate-800 shadow-lg shadow-black/20 placeholder-slate-400 outline-none transition-all focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30 sm:w-60"
                 />
               </div>
@@ -892,7 +902,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         {selectedIds.size > 0 && (
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-blue-400/30 bg-blue-500/10 px-4 py-2.5 sm:px-5 lg:px-6">
             <div className="text-xs font-semibold text-blue-200">
-              {selectedIds.size} withdrawal{selectedIds.size !== 1 ? 's' : ''} selected
+              已選取 {selectedIds.size} 筆提現
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -900,20 +910,20 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-green-700"
               >
                 <CheckCircle className="h-3.5 w-3.5" />
-                Approve Selected
+                批准所選
               </button>
               <button
                 onClick={() => openBulkAction('rejected')}
                 className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-700"
               >
                 <XCircle className="h-3.5 w-3.5" />
-                Reject Selected
+                拒絕所選
               </button>
               <button
                 onClick={() => setSelectedIds(new Set())}
                 className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
               >
-                Clear
+                清除
               </button>
             </div>
           </div>
@@ -932,22 +942,22 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     checked={allPendingSelected}
                     onChange={toggleSelectAll}
                     disabled={pendingInView.length === 0}
-                    aria-label="Select all pending withdrawals in view"
+                    aria-label="選取目前檢視中的所有待審核提現"
                   />
                 </th>
-                <th className="px-3 py-2.5 font-semibold">Employee</th>
-                <th className="px-3 py-2.5 font-semibold">Amount</th>
-                <th className="px-3 py-2.5 font-semibold">Status</th>
-                <th className="px-3 py-2.5 font-semibold">Requested</th>
-                <th className="px-3 py-2.5 font-semibold">Audit</th>
-                <th className="px-3 py-2.5 text-right font-semibold">Actions</th>
+                <th className="px-3 py-2.5 font-semibold">員工</th>
+                <th className="px-3 py-2.5 font-semibold">金額</th>
+                <th className="px-3 py-2.5 font-semibold">狀態</th>
+                <th className="px-3 py-2.5 font-semibold">申請時間</th>
+                <th className="px-3 py-2.5 font-semibold">審核資訊</th>
+                <th className="px-3 py-2.5 text-right font-semibold">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/70">
               {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-14 text-center text-sm text-slate-400">
-                    No withdrawal requests match the current filters
+                    沒有符合目前篩選條件的提現申請
                   </td>
                 </tr>
               ) : (
@@ -966,7 +976,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                               className="h-3.5 w-3.5 accent-blue-500"
                               checked={selectedIds.has(withdrawal.id)}
                               onChange={() => toggleSelectOne(withdrawal.id)}
-                              aria-label={`Select withdrawal from ${withdrawal.employee?.username || 'employee'}`}
+                              aria-label={`選取 ${withdrawal.employee?.username || '員工'} 的提現申請` }
                             />
                           )}
                         </td>
@@ -975,7 +985,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           <div className="mt-0.5 text-xs text-slate-500">
                             {withdrawal.employee?.employee_id}
                             <span className="text-slate-700"> · </span>
-                            {withdrawal.admin ? withdrawal.admin.username : 'Unassigned'}
+                            {withdrawal.admin ? withdrawal.admin.username : '未分配'}
                           </div>
                         </td>
                         <td className="px-3 py-2.5 align-top font-bold tabular-nums text-emerald-300">
@@ -1025,7 +1035,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                                   : 'bg-blue-600 text-white hover:bg-blue-700'
                               }`}
                             >
-                              {isReviewing ? 'Close' : 'Review'}
+                              {isReviewing ? '關閉' : '審核'}
                             </button>
                           ) : (
                             <button
@@ -1037,7 +1047,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                               }`}
                             >
                               <Pencil className="h-3 w-3" />
-                              {isEditing ? 'Close' : 'Edit'}
+                              {isEditing ? '關閉' : '編輯'}
                             </button>
                           )}
                         </td>
@@ -1054,7 +1064,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                                     setAuditRemark(e.target.value);
                                     if (validationError) setValidationError(null);
                                   }}
-                                  placeholder="Enter audit remarks (required)"
+                                  placeholder="請輸入審核備註（必填）"
                                   className={`w-full resize-none rounded-lg border bg-slate-900/50 px-3 py-2 text-sm text-white placeholder-slate-500 backdrop-blur-sm focus:outline-none focus:ring-2 ${
                                     validationError ? 'border-red-500 focus:ring-red-500' : 'border-slate-700 focus:ring-blue-500'
                                   }`}
@@ -1073,14 +1083,14 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                                   className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-green-700"
                                 >
                                   <CheckCircle className="h-3.5 w-3.5" />
-                                  Approve
+                                  批准
                                 </button>
                                 <button
                                   onClick={() => handleReview(withdrawal.id, 'rejected')}
                                   className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-red-700"
                                 >
                                   <XCircle className="h-3.5 w-3.5" />
-                                  Reject
+                                  拒絕
                                 </button>
                               </div>
                             </div>
@@ -1100,7 +1110,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                                   }`}
                                 >
                                   <CheckCircle className="h-3.5 w-3.5" />
-                                  Approved
+                                  已批准
                                 </button>
                                 <button
                                   onClick={() => setEditStatus('rejected')}
@@ -1109,14 +1119,14 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                                   }`}
                                 >
                                   <XCircle className="h-3.5 w-3.5" />
-                                  Rejected
+                                  已拒絕
                                 </button>
                               </div>
                               <div className="flex-1">
                                 <textarea
                                   value={editRemark}
                                   onChange={(e) => setEditRemark(e.target.value)}
-                                  placeholder="Enter audit remarks"
+                                  placeholder="請輸入審核備註"
                                   className="w-full resize-none rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-white placeholder-slate-500 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   rows={2}
                                 />
@@ -1128,15 +1138,15 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                                   className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-50"
                                 >
                                   <Save className="h-3.5 w-3.5" />
-                                  {editSaving ? 'Saving...' : 'Save'}
+                                  {editSaving ? '儲存中...' : '儲存'}
                                 </button>
                                 <button
                                   onClick={cancelEditing}
                                   className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-700 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-slate-600"
                                 >
                                   <X className="h-3.5 w-3.5" />
-                                  Cancel
-                                </button>
+                                  取消
+              </button>
                               </div>
                             </div>
                           </td>
