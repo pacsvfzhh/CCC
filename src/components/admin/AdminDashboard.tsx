@@ -632,7 +632,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     const isSidebar = variant === 'sidebar';
 
     return (
-      <div className={`relative ${isSidebar ? 'w-full' : 'shrink-0'}`}>
+      <div className={`relative ${isSidebar ? 'z-40 w-full' : 'shrink-0'}`}>
         <button
           type="button"
           onClick={() => setAccountMenuOpen((open) => !open)}
@@ -740,7 +740,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           {/* Desktop: Vertical Left Sidebar */}
           <aside className="relative isolate hidden flex-shrink-0 overflow-y-auto border-r border-cyan-800/70 bg-[linear-gradient(180deg,#071225_0%,#092433_34%,#171b2e_68%,#292116_100%)] shadow-[6px_0_18px_rgba(2,6,23,0.72)] scrollbar-hide lg:flex lg:w-32 lg:flex-col xl:w-36">
             <div className="pointer-events-none absolute inset-y-0 right-0 w-[2px] bg-gradient-to-b from-blue-600/80 via-cyan-700/75 to-amber-700/75" aria-hidden="true" />
-            <div className="relative z-10 shrink-0 border-b border-cyan-800/55 bg-gradient-to-br from-blue-950/90 via-cyan-950/65 to-amber-950/45 px-1.5 py-2.5 shadow-[0_8px_18px_rgba(2,6,23,0.35)]">
+            <div className="relative z-30 shrink-0 border-b border-cyan-800/55 bg-gradient-to-br from-blue-950/90 via-cyan-950/65 to-amber-950/45 px-1.5 py-2.5 shadow-[0_8px_18px_rgba(2,6,23,0.35)]">
               <div className="grid min-w-0 grid-cols-[20px_minmax(0,1fr)] items-center gap-x-1.5 gap-y-1">
                 <div className="flex h-5 w-5 shrink-0 items-center justify-center justify-self-center rounded-md bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-md shadow-blue-950/40">
                   <Zap className="h-3 w-3 text-white" fill="currentColor" />
