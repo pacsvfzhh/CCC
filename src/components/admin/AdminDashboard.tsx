@@ -713,17 +713,17 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           <div className="w-full px-2 sm:px-2.5 lg:px-3 py-0 relative">
             <div className="flex min-h-[38px] items-center justify-between gap-2 py-1 leading-none">
               <div className="grid min-w-0 flex-1 grid-cols-[16px_minmax(0,1fr)] items-center gap-x-1.5 gap-y-0.5">
-                <div className="relative flex h-4 w-4 shrink-0 items-center justify-center rounded bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-md">
+                <div className="relative flex h-4 w-4 shrink-0 items-center justify-center justify-self-center rounded bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-md">
                   <Zap className="h-2.5 w-2.5 text-white" fill="currentColor" />
                 </div>
                 <h1 className="min-w-0 truncate text-[11px] font-bold leading-none bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent sm:text-xs">
                   {companyName}
                 </h1>
-                <Shield className="h-3.5 w-3.5 shrink-0 text-purple-400" />
+                <Shield className="h-3.5 w-3.5 shrink-0 justify-self-center text-purple-400" />
                 <span className="min-w-0 truncate text-[9px] font-semibold uppercase text-purple-200">
                   {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                 </span>
-                <span className="h-3 w-3 shrink-0 rounded-full border-2 border-green-200/70 bg-green-400 shadow-sm shadow-green-500/40" />
+                <span className="h-2 w-2 shrink-0 justify-self-center rounded-full border border-green-200/70 bg-green-400 shadow-sm shadow-green-500/40" />
                 <span className="min-w-0 truncate text-[11px] font-semibold tracking-wide text-cyan-100 drop-shadow-[0_0_5px_rgba(103,232,249,0.25)]">{admin.username}</span>
               </div>
               {renderAccountMenu('mobile')}
@@ -741,17 +741,17 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           <aside className="hidden lg:flex lg:flex-col lg:w-32 xl:w-36 flex-shrink-0 bg-slate-900/70 border-r-2 border-slate-600/80 shadow-[4px_0_16px_rgba(2,6,23,0.55)] overflow-y-auto scrollbar-hide">
             <div className="shrink-0 border-b border-slate-700/60 bg-slate-950/55 px-1.5 py-2.5">
               <div className="grid min-w-0 grid-cols-[20px_minmax(0,1fr)] items-center gap-x-1.5 gap-y-1">
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-md shadow-blue-950/40">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center justify-self-center rounded-md bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-md shadow-blue-950/40">
                   <Zap className="h-3 w-3 text-white" fill="currentColor" />
                 </div>
                 <h1 className="min-w-0 truncate text-[11px] font-bold leading-tight bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent" title={companyName}>
                   {companyName}
                 </h1>
-                <Shield className="h-4 w-4 shrink-0 text-purple-400" />
+                <Shield className="h-4 w-4 shrink-0 justify-self-center text-purple-400" />
                 <span className="min-w-0 truncate text-[9px] font-semibold uppercase tracking-wide text-purple-200">
                   {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                 </span>
-                <span className="h-3 w-3 shrink-0 rounded-full border-2 border-green-200/70 bg-green-400 shadow-sm shadow-green-500/40" />
+                <span className="h-2 w-2 shrink-0 justify-self-center rounded-full border border-green-200/70 bg-green-400 shadow-sm shadow-green-500/40" />
                 <span className="min-w-0 truncate text-[11px] font-semibold tracking-wide text-cyan-100 drop-shadow-[0_0_5px_rgba(103,232,249,0.25)]" title={admin.username}>
                   {admin.username}
                 </span>
