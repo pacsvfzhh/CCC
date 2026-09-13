@@ -2466,6 +2466,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     aria-selected={selectedAdminFilter === 'all'}
                     onClick={() => {
                       setSelectedAdminFilter('all');
+                      setExpandedGroups(new Set(employeeGroups.map(group => group.admin.id)));
                       setAdminFilterOpen(false);
                     }}
                     className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${selectedAdminFilter === 'all' ? 'bg-cyan-500/20 text-cyan-50' : 'text-slate-200 hover:bg-slate-800/90 hover:text-cyan-50'}`}
