@@ -389,6 +389,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       if (!origin || origin.pointerId !== event.pointerId) return;
 
       navigationDragActiveRef.current = true;
+      navigationDragSuppressClickUntilRef.current = Date.now() + 400;
       setNavigationDragState({
         tabId: origin.tabId,
         direction: origin.direction,
@@ -400,7 +401,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         width: origin.width,
         height: origin.height,
       });
-    }, 320);
+    }, 260);
   };
 
   const updateNavigationDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -408,12 +409,30 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     if (!origin || origin.pointerId !== event.pointerId) return;
 
     if (!navigationDragActiveRef.current) {
-      const distance = Math.hypot(event.clientX - origin.startX, event.clientY - origin.startY);
-      if (distance > 7 && navigationDragTimerRef.current) {
+      const directionalDistance = origin.direction === -1
+        ? origin.startY - event.clientY
+        : event.clientY - origin.startY;
+
+      if (directionalDistance <= 5) return;
+
+      if (navigationDragTimerRef.current) {
         clearTimeout(navigationDragTimerRef.current);
         navigationDragTimerRef.current = null;
       }
-      return;
+
+      navigationDragActiveRef.current = true;
+      navigationDragSuppressClickUntilRef.current = Date.now() + 400;
+      setNavigationDragState({
+        tabId: origin.tabId,
+        direction: origin.direction,
+        pointerId: origin.pointerId,
+        pointerX: event.clientX,
+        pointerY: event.clientY,
+        offsetX: origin.offsetX,
+        offsetY: origin.offsetY,
+        width: origin.width,
+        height: origin.height,
+      });
     }
 
     event.preventDefault();
@@ -1374,18 +1393,20 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     const definition = defaultTabs.find(tab => tab.id === item.id);
                     const originalLabel = definition?.label || item.id;
                     const hasCustomLabel = item.label.trim() !== originalLabel;
+                    const hasCustomPosition = defaultTabs.findIndex(tab => tab.id === item.id) !== index;
+                    const isModified = hasCustomLabel || hasCustomPosition;
                     const Icon = definition?.icon || Settings;
 
                     return (
                       <div
                         key={item.id}
                         data-navigation-item-id={item.id}
-                        className={`grid grid-cols-[26px_30px_minmax(0,1fr)] items-center gap-2 rounded-lg border bg-slate-800/85 p-2 shadow-sm transition-all hover:bg-slate-800 sm:grid-cols-[26px_30px_minmax(0,1fr)_132px] ${navigationDragState?.tabId === item.id ? 'border-cyan-400/80 bg-cyan-950/45 opacity-35' : 'border-slate-600/90 hover:border-cyan-700/80'}`}
+                        className={`group relative grid grid-cols-[26px_30px_minmax(0,1fr)] items-center gap-2 rounded-lg border p-2 shadow-sm transition-all duration-150 sm:grid-cols-[26px_30px_minmax(0,1fr)_132px] ${navigationDragState?.tabId === item.id ? 'scale-[0.99] border-cyan-300 bg-cyan-950/60 opacity-30' : isModified ? 'border-amber-600/75 bg-gradient-to-r from-amber-950/45 via-slate-800 to-slate-800 shadow-[inset_3px_0_0_rgba(245,158,11,0.7)] hover:-translate-y-px hover:border-cyan-400 hover:bg-cyan-950/35 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.24),0_6px_14px_rgba(2,6,23,0.48)] focus-within:border-blue-400 focus-within:bg-blue-950/50 focus-within:ring-1 focus-within:ring-blue-400/50' : 'border-slate-600/90 bg-slate-800/85 hover:-translate-y-px hover:border-cyan-400 hover:bg-cyan-950/35 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.24),0_6px_14px_rgba(2,6,23,0.48)] focus-within:border-blue-400 focus-within:bg-blue-950/50 focus-within:ring-1 focus-within:ring-blue-400/50'}`}
                       >
-                        <div className="flex h-7 w-[26px] items-center justify-center rounded-md border border-yellow-200/70 bg-yellow-400 text-[10px] font-black tabular-nums text-slate-950 shadow-sm shadow-yellow-950/30" title={`Position ${index + 1}`}>
+                        <div className="flex h-7 w-[26px] items-center justify-center rounded-md border border-yellow-200/70 bg-yellow-400 text-[10px] font-black tabular-nums text-slate-950 shadow-sm shadow-yellow-950/30 transition-transform group-hover:scale-105 group-focus-within:scale-105" title={`Position ${index + 1}`}>
                           {String(index + 1).padStart(2, '0')}
                         </div>
-                        <div className="flex h-7 w-[30px] items-center justify-center rounded-md border border-cyan-700/70 bg-cyan-950/65 text-cyan-200" title={originalLabel}>
+                        <div className="flex h-7 w-[30px] items-center justify-center rounded-md border border-cyan-700/70 bg-cyan-950/65 text-cyan-200 transition-colors group-hover:border-cyan-400 group-hover:bg-cyan-800/70 group-hover:text-white group-focus-within:border-blue-400 group-focus-within:bg-blue-800/70 group-focus-within:text-white" title={originalLabel}>
                           <Icon className="h-3.5 w-3.5" strokeWidth={2.3} />
                         </div>
                         <div className="min-w-0">
@@ -1399,7 +1420,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                               const label = event.target.value;
                               setNavigationDraft(current => current.map(entry => entry.id === item.id ? { ...entry, label } : entry));
                             }}
-                            className="h-8 w-full rounded-md border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-950 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25"
+                            className="h-8 w-full rounded-md border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-950 shadow-sm outline-none transition-all placeholder:text-slate-400 hover:border-cyan-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                             placeholder={originalLabel}
                             title={`Original name: ${originalLabel}`}
                           />
