@@ -20,7 +20,7 @@ interface AdminGroup {
   withdrawals: WithdrawalWithEmployee[];
 }
 
-type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'processed';
+type FilterStatus = 'all' | 'today' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'processed';
 type SortOption = 'submit_time_desc' | 'submit_time_asc' | 'audit_time_desc' | 'audit_time_asc';
 
 export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
@@ -450,6 +450,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     allRows.filter((w) => {
       const ownerKey = w.admin?.id || 'unassigned';
       if (adminFilter !== 'all' && ownerKey !== adminFilter) return false;
+      if (filterStatus === 'today' && new Date(w.created_at).toDateString() !== todayKey) return false;
       if (filterStatus === 'pending' && w.status !== 'pending') return false;
       if (filterStatus === 'approved' && w.status !== 'approved') return false;
       if (filterStatus === 'rejected' && w.status !== 'rejected') return false;
@@ -776,6 +777,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
               <div className="flex min-w-max items-center gap-1.5">
                 {([
                   { key: 'all', label: 'All', count: overallStats.total, activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-500/40' },
+                  { key: 'today', label: 'Today Submitted', count: todayCount, activeClass: 'bg-amber-500 text-white shadow-md shadow-amber-500/40' },
                   { key: 'pending', label: 'Pending', count: overallStats.pending, activeClass: 'bg-orange-600 text-white shadow-md shadow-orange-500/40' },
                   { key: 'approved', label: 'Approved', count: overallStats.approved, activeClass: 'bg-green-600 text-white shadow-md shadow-green-500/40' },
                   { key: 'rejected', label: 'Rejected', count: overallStats.rejected, activeClass: 'bg-red-600 text-white shadow-md shadow-red-500/40' },
