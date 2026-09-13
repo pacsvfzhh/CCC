@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Database, Lock, Eye, EyeOff, Bell, PackageSearch, MessageCircle, Search, History, UserCog, Activity, Clock, Headphones, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Save, X } from 'lucide-react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Admin } from '../../types';
 import { logout, updateStoredUsername } from '../../lib/auth';
@@ -105,6 +106,18 @@ interface NavigationPreferences {
   labels: Partial<Record<AdminTabId, string>>;
 }
 
+interface NavigationDragState {
+  tabId: AdminTabId;
+  direction: -1 | 1;
+  pointerId: number;
+  pointerX: number;
+  pointerY: number;
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  height: number;
+}
+
 const NAVIGATION_PREFERENCES_KEY = 'admin_navigation_preferences';
 
 function loadNavigationPreferences(adminId: string): NavigationPreferences {
@@ -169,6 +182,22 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       : { order: [], labels: {} }
   );
   const [navigationDraft, setNavigationDraft] = useState<Array<{ id: AdminTabId; label: string }>>([]);
+  const [navigationDragState, setNavigationDragState] = useState<NavigationDragState | null>(null);
+  const navigationListRef = useRef<HTMLDivElement>(null);
+  const navigationDragTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navigationDragOriginRef = useRef<{
+    tabId: AdminTabId;
+    direction: -1 | 1;
+    pointerId: number;
+    startX: number;
+    startY: number;
+    offsetX: number;
+    offsetY: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const navigationDragActiveRef = useRef(false);
+  const navigationDragSuppressClickUntilRef = useRef(0);
   const { companyName } = useCompanyName(admin.id);
 
   useEffect(() => {
@@ -180,6 +209,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setNavigationDraft([]);
     setShowNavigationSettings(false);
   }, [admin.id, admin.role]);
+
+  useEffect(() => () => {
+    if (navigationDragTimerRef.current) {
+      clearTimeout(navigationDragTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (!showNavigationSettings) return;
@@ -320,6 +355,137 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
       return next;
     });
+  };
+
+  const startNavigationDrag = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    tabId: AdminTabId,
+    direction: -1 | 1
+  ) => {
+    if (admin.role !== 'super_admin') return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    const card = event.currentTarget.closest<HTMLElement>('[data-navigation-item-id]');
+    if (!card) return;
+
+    const rect = card.getBoundingClientRect();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    navigationDragOriginRef.current = {
+      tabId,
+      direction,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+    navigationDragActiveRef.current = false;
+
+    if (navigationDragTimerRef.current) clearTimeout(navigationDragTimerRef.current);
+    navigationDragTimerRef.current = setTimeout(() => {
+      const origin = navigationDragOriginRef.current;
+      if (!origin || origin.pointerId !== event.pointerId) return;
+
+      navigationDragActiveRef.current = true;
+      setNavigationDragState({
+        tabId: origin.tabId,
+        direction: origin.direction,
+        pointerId: origin.pointerId,
+        pointerX: origin.startX,
+        pointerY: origin.startY,
+        offsetX: origin.offsetX,
+        offsetY: origin.offsetY,
+        width: origin.width,
+        height: origin.height,
+      });
+    }, 320);
+  };
+
+  const updateNavigationDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const origin = navigationDragOriginRef.current;
+    if (!origin || origin.pointerId !== event.pointerId) return;
+
+    if (!navigationDragActiveRef.current) {
+      const distance = Math.hypot(event.clientX - origin.startX, event.clientY - origin.startY);
+      if (distance > 7 && navigationDragTimerRef.current) {
+        clearTimeout(navigationDragTimerRef.current);
+        navigationDragTimerRef.current = null;
+      }
+      return;
+    }
+
+    event.preventDefault();
+    setNavigationDragState(current => current ? {
+      ...current,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+    } : current);
+
+    const list = navigationListRef.current;
+    if (!list) return;
+
+    const listRect = list.getBoundingClientRect();
+    if (event.clientY < listRect.top + 36) list.scrollBy({ top: -18 });
+    if (event.clientY > listRect.bottom - 36) list.scrollBy({ top: 18 });
+
+    const cards = Array.from(list.querySelectorAll<HTMLElement>('[data-navigation-item-id]'));
+    if (cards.length === 0) return;
+
+    let targetCard = cards[0];
+    let closestDistance = Number.POSITIVE_INFINITY;
+    cards.forEach(card => {
+      const rect = card.getBoundingClientRect();
+      const distance = Math.abs(event.clientY - (rect.top + rect.height / 2));
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        targetCard = card;
+      }
+    });
+
+    const targetId = targetCard.dataset.navigationItemId as AdminTabId | undefined;
+    if (!targetId || targetId === origin.tabId) return;
+
+    setNavigationDraft(current => {
+      const currentIndex = current.findIndex(item => item.id === origin.tabId);
+      const targetIndex = current.findIndex(item => item.id === targetId);
+      if (currentIndex < 0 || targetIndex < 0) return current;
+      if (origin.direction === -1 && targetIndex >= currentIndex) return current;
+      if (origin.direction === 1 && targetIndex <= currentIndex) return current;
+
+      const next = [...current];
+      const [movedItem] = next.splice(currentIndex, 1);
+      next.splice(targetIndex, 0, movedItem);
+      return next;
+    });
+  };
+
+  const endNavigationDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const origin = navigationDragOriginRef.current;
+    if (!origin || origin.pointerId !== event.pointerId) return;
+
+    if (navigationDragTimerRef.current) {
+      clearTimeout(navigationDragTimerRef.current);
+      navigationDragTimerRef.current = null;
+    }
+
+    if (navigationDragActiveRef.current) {
+      navigationDragSuppressClickUntilRef.current = Date.now() + 400;
+    }
+
+    navigationDragActiveRef.current = false;
+    navigationDragOriginRef.current = null;
+    setNavigationDragState(null);
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const handleNavigationMoveClick = (index: number, direction: -1 | 1) => {
+    if (Date.now() < navigationDragSuppressClickUntilRef.current) return;
+    moveNavigationItem(index, direction);
   };
 
   const restoreNavigationItemLabel = (tabId: AdminTabId) => {
@@ -1159,7 +1325,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               <button
                 type="button"
                 onClick={() => setShowNavigationSettings(false)}
-                className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-600/80 bg-rose-950/65 text-rose-200 shadow-sm shadow-slate-950/50 transition-colors hover:border-rose-400 hover:bg-rose-800/80 hover:text-white"
+                className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-500/70 bg-slate-950/30 text-slate-300 transition-colors hover:border-cyan-600 hover:bg-slate-700/70 hover:text-white"
                 aria-label="Close navigation settings"
               >
                 <X className="h-4 w-4" />
@@ -1202,7 +1368,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 </div>
               </aside>
 
-              <div className="min-h-0 overflow-y-auto overscroll-contain bg-[linear-gradient(180deg,#1b293b_0%,#233143_100%)] p-2.5 scrollbar-dark sm:p-3">
+              <div ref={navigationListRef} className="min-h-0 overflow-y-auto overscroll-contain bg-[linear-gradient(180deg,#1b293b_0%,#233143_100%)] p-2.5 scrollbar-dark sm:p-3">
                 <div className="space-y-1.5">
                   {navigationDraft.map((item, index) => {
                     const definition = defaultTabs.find(tab => tab.id === item.id);
@@ -1211,7 +1377,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     const Icon = definition?.icon || Settings;
 
                     return (
-                      <div key={item.id} className="grid grid-cols-[26px_30px_minmax(0,1fr)] items-center gap-2 rounded-lg border border-slate-600/90 bg-slate-800/85 p-2 shadow-sm transition-colors hover:border-cyan-700/80 hover:bg-slate-800 sm:grid-cols-[26px_30px_minmax(0,1fr)_132px]">
+                      <div
+                        key={item.id}
+                        data-navigation-item-id={item.id}
+                        className={`grid grid-cols-[26px_30px_minmax(0,1fr)] items-center gap-2 rounded-lg border bg-slate-800/85 p-2 shadow-sm transition-all hover:bg-slate-800 sm:grid-cols-[26px_30px_minmax(0,1fr)_132px] ${navigationDragState?.tabId === item.id ? 'border-cyan-400/80 bg-cyan-950/45 opacity-35' : 'border-slate-600/90 hover:border-cyan-700/80'}`}
+                      >
                         <div className="flex h-7 w-[26px] items-center justify-center rounded-md border border-yellow-200/70 bg-yellow-400 text-[10px] font-black tabular-nums text-slate-950 shadow-sm shadow-yellow-950/30" title={`Position ${index + 1}`}>
                           {String(index + 1).padStart(2, '0')}
                         </div>
@@ -1247,21 +1417,29 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                           </button>
                           <button
                             type="button"
-                            onClick={() => moveNavigationItem(index, -1)}
+                            onClick={() => handleNavigationMoveClick(index, -1)}
+                            onPointerDown={(event) => startNavigationDrag(event, item.id, -1)}
+                            onPointerMove={updateNavigationDrag}
+                            onPointerUp={endNavigationDrag}
+                            onPointerCancel={endNavigationDrag}
                             disabled={index === 0}
-                            className="flex h-8 w-[29px] items-center justify-center rounded-md border border-blue-400/80 bg-gradient-to-b from-blue-600 to-blue-800 text-white shadow-sm shadow-slate-950/60 transition-colors hover:border-blue-200 hover:from-blue-500 hover:to-blue-700 disabled:cursor-not-allowed disabled:border-slate-700 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 disabled:shadow-none"
-                            aria-label={`Move ${item.label || originalLabel} up`}
-                            title="Move up"
+                            className="flex h-8 w-[29px] touch-none select-none items-center justify-center rounded-md border border-blue-400/80 bg-gradient-to-b from-blue-600 to-blue-800 text-white shadow-sm shadow-slate-950/60 transition-colors hover:border-blue-200 hover:from-blue-500 hover:to-blue-700 disabled:cursor-not-allowed disabled:border-slate-700 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 disabled:shadow-none"
+                            aria-label={`Move ${item.label || originalLabel} up. Hold and drag upward to reorder.`}
+                            title="Click to move up · Hold and drag upward"
                           >
                             <ChevronUp className="h-3.5 w-3.5" strokeWidth={2.6} />
                           </button>
                           <button
                             type="button"
-                            onClick={() => moveNavigationItem(index, 1)}
+                            onClick={() => handleNavigationMoveClick(index, 1)}
+                            onPointerDown={(event) => startNavigationDrag(event, item.id, 1)}
+                            onPointerMove={updateNavigationDrag}
+                            onPointerUp={endNavigationDrag}
+                            onPointerCancel={endNavigationDrag}
                             disabled={index === navigationDraft.length - 1}
-                            className="flex h-8 w-[29px] items-center justify-center rounded-md border border-cyan-400/80 bg-gradient-to-b from-cyan-600 to-cyan-800 text-white shadow-sm shadow-slate-950/60 transition-colors hover:border-cyan-200 hover:from-cyan-500 hover:to-cyan-700 disabled:cursor-not-allowed disabled:border-slate-700 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 disabled:shadow-none"
-                            aria-label={`Move ${item.label || originalLabel} down`}
-                            title="Move down"
+                            className="flex h-8 w-[29px] touch-none select-none items-center justify-center rounded-md border border-cyan-400/80 bg-gradient-to-b from-cyan-600 to-cyan-800 text-white shadow-sm shadow-slate-950/60 transition-colors hover:border-cyan-200 hover:from-cyan-500 hover:to-cyan-700 disabled:cursor-not-allowed disabled:border-slate-700 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 disabled:shadow-none"
+                            aria-label={`Move ${item.label || originalLabel} down. Hold and drag downward to reorder.`}
+                            title="Click to move down · Hold and drag downward"
                           >
                             <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.6} />
                           </button>
@@ -1277,7 +1455,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               <button
                 type="button"
                 onClick={() => setShowNavigationSettings(false)}
-                className="h-9 rounded-lg border border-rose-700/80 bg-rose-950/60 px-4 text-xs font-bold text-rose-200 shadow-sm shadow-slate-950/40 transition-colors hover:border-rose-500 hover:bg-rose-800/70 hover:text-white"
+                className="h-9 rounded-lg border border-slate-600 bg-slate-800 px-4 text-xs font-semibold text-slate-200 shadow-sm transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white"
               >
                 Cancel
               </button>
@@ -1291,6 +1469,39 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </button>
             </div>
           </div>
+
+          {navigationDragState && (() => {
+            const draggedItem = navigationDraft.find(item => item.id === navigationDragState.tabId);
+            const definition = defaultTabs.find(tab => tab.id === navigationDragState.tabId);
+            const Icon = definition?.icon || Settings;
+            const label = draggedItem?.label.trim() || definition?.label || navigationDragState.tabId;
+
+            return (
+              <div
+                className="pointer-events-none fixed z-[10000] flex items-center gap-2 rounded-lg border-2 border-cyan-300 bg-cyan-950/95 p-2 text-white opacity-95 shadow-[0_0_10px_rgba(34,211,238,0.95),0_0_28px_rgba(6,182,212,0.75)]"
+                style={{
+                  left: navigationDragState.pointerX - navigationDragState.offsetX,
+                  top: navigationDragState.pointerY - navigationDragState.offsetY,
+                  width: navigationDragState.width,
+                  height: navigationDragState.height,
+                }}
+                aria-hidden="true"
+              >
+                <div className="flex h-7 w-[26px] shrink-0 items-center justify-center rounded-md bg-yellow-400 text-[10px] font-black text-slate-950">
+                  {String(navigationDraft.findIndex(item => item.id === navigationDragState.tabId) + 1).padStart(2, '0')}
+                </div>
+                <div className="flex h-7 w-[30px] shrink-0 items-center justify-center rounded-md border border-cyan-300/70 bg-cyan-800 text-cyan-50">
+                  <Icon className="h-3.5 w-3.5" />
+                </div>
+                <span className="min-w-0 flex-1 truncate text-xs font-bold">{label}</span>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-cyan-500 text-white">
+                  {navigationDragState.direction === -1
+                    ? <ChevronUp className="h-4 w-4" strokeWidth={2.7} />
+                    : <ChevronDown className="h-4 w-4" strokeWidth={2.7} />}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
