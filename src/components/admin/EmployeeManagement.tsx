@@ -2246,7 +2246,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <span>{employee.created_at ? new Date(employee.created_at).toLocaleDateString('en-CA') : '-'}</span>
         <button
           onClick={() => {
-            const d = employee.created_at ? new Date(employee.created_at).toISOString().slice(0, 16) : '';
+            const d = employee.created_at ? formatWithdrawalDate(employee.created_at) : '';
             setEditingCreatedAt({ id: employee.id, username: employee.username, employeeId: employee.employee_id, currentDate: d });
             setNewCreatedAt(d);
           }}
@@ -3264,22 +3264,22 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <label htmlFor="employee-registration-date" className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">Registration date and time</label>
-                  <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-200">Local time</span>
+                  <label htmlFor="employee-registration-date" className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">Registration date</label>
+                  <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-200">Date only</span>
                 </div>
                 <div className="relative">
                   <CalendarDays className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-300" />
                   <input
                     id="employee-registration-date"
-                    type="datetime-local"
+                    type="date"
                     value={newCreatedAt}
                     onChange={e => setNewCreatedAt(e.target.value)}
                     className="w-full rounded-xl border border-cyan-300/30 bg-slate-950/75 px-4 py-3 pl-10 text-sm font-semibold tracking-wide text-white shadow-inner shadow-black/20 outline-none transition-all [color-scheme:dark] focus:border-cyan-300/75 focus:ring-4 focus:ring-cyan-400/10"
                   />
                 </div>
                 <p className="mt-2 flex items-center gap-1.5 text-[11px] leading-5 text-slate-500">
-                  <Clock className="h-3.5 w-3.5 shrink-0 text-cyan-300/70" />
-                  This value controls the registration date shown in the employee list.
+                  <CalendarDays className="h-3.5 w-3.5 shrink-0 text-cyan-300/70" />
+                  Select the calendar date shown in the employee list.
                 </p>
               </div>
 
@@ -3298,7 +3298,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   if (!newCreatedAt) return;
                   setSavingCreatedAt(true);
                   try {
-                    const isoDate = new Date(newCreatedAt).toISOString();
+                    const isoDate = new Date(`${newCreatedAt}T12:00:00`).toISOString();
                     const { error } = await supabase.rpc('admin_update_employee_account', {
                       p_admin_session_token: getAdminFinancialSessionToken(),
                       p_user_id: editingCreatedAt.id,
