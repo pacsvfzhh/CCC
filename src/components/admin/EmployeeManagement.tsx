@@ -3102,8 +3102,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300/80">Employee note</p>
-                  <h3 className="text-lg font-bold text-white">Edit Remarks</h3>
-                  <p className="truncate text-xs text-slate-400">{editingRemarksOnly.username}</p>
+                  <h3 title={editingRemarksOnly.username} className="truncate text-lg font-bold text-white">{editingRemarksOnly.username}</h3>
+                  <p className="truncate text-xs text-slate-400">Employee ID: {editingRemarksOnly.employee_id}</p>
                 </div>
               </div>
               <button type="button" onClick={() => setEditingRemarksOnly(null)} aria-label="Close edit remarks" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-white">
@@ -3279,8 +3279,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300/80">Employee labels</p>
-                  <h3 className="text-lg font-bold text-white">Manage Tags</h3>
-                  <p className="truncate text-xs text-slate-400">{editingTags.username}</p>
+                  <h3 title={editingTags.username} className="truncate text-lg font-bold text-white">{editingTags.username}</h3>
+                  <p className="truncate text-xs text-slate-400">Employee ID: {editingTags.employee_id}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
