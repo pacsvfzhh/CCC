@@ -85,12 +85,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     }
   }, [lockInfo]);
 
-  // Auto-dismiss error/warning after 10 seconds (only for non-lock messages)
   useEffect(() => {
-    if ((error || warning) && !lockInfo?.locked) {
+    if (error && !warning && !lockInfo?.locked) {
       const timer = setTimeout(() => {
         setError('');
-        setWarning('');
       }, 10000);
       return () => clearTimeout(timer);
     }
@@ -99,7 +97,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setWarning('');
 
     if (supabaseConfigurationError) {
       setError(supabaseConfigurationError);
@@ -117,6 +114,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           remainingSeconds: rateLimitCheck.remaining_seconds || 0,
           reason: rateLimitCheck.lock_reason || 'Account is locked'
         });
+        setWarning('');
         setError(`Account locked. Please wait ${formatLockDuration(rateLimitCheck.remaining_seconds || 0)}`);
         setLoading(false);
         return;
@@ -150,6 +148,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           remainingSeconds,
           reason: 'Account is temporarily locked.',
         });
+        setWarning('');
         setError(`Account locked. Please wait ${formatLockDuration(remainingSeconds)}`);
         return;
       }
@@ -172,12 +171,16 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           remainingSeconds,
           reason: attemptResult.lock_reason || 'Too many failed login attempts'
         });
+        setWarning('');
         setError(attemptResult.lock_reason || 'Account locked due to too many failed login attempts');
       } else {
         setLockInfo(null);
-        setError(err instanceof Error ? err.message : 'Invalid username or password');
         if (attemptResult.failed_attempts && attemptResult.failed_attempts >= 3) {
+          setError('');
           setWarning(`${attemptResult.failed_attempts} failed attempt${attemptResult.failed_attempts > 1 ? 's' : ''}. Account will be locked after 5 attempts`);
+        } else {
+          setWarning('');
+          setError(err instanceof Error ? err.message : 'Invalid username or password');
         }
       }
     } finally {
@@ -328,7 +331,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 </div>
               </div>
 
-              {warning && !error && (
+              {warning && (
                 <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 animate-[fadeIn_0.3s_ease-out]">
                   <div className="flex items-start gap-2.5">
                     <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
@@ -582,7 +585,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     />
                   </div>
 
-                  {warning && !error && (
+                  {warning && (
                     <div className="bg-amber-50 border border-amber-300 rounded-xl p-3.5 animate-[fadeIn_0.3s_ease-out]">
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
@@ -855,7 +858,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     />
                   </div>
 
-                  {warning && !error && (
+                  {warning && (
                     <div className="bg-amber-50 border border-amber-300 rounded-xl p-3.5 animate-[fadeIn_0.3s_ease-out]">
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
