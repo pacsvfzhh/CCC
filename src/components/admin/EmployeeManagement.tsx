@@ -2187,7 +2187,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       <td className="group/withdrawal relative w-[116px] overflow-visible py-0.5 px-1 whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>
         <div className="flex min-w-0 flex-col">
           <div className="flex min-w-0 items-center gap-0.5">
-            <span title={employee.username} className={`block max-w-full truncate text-xs font-medium ${!employee.is_active ? 'text-red-400' : employee.hasPendingWithdrawal ? 'text-orange-400' : 'text-white'}`}>{employee.username}</span>
+            <span title={employee.username} className={`block max-w-full truncate text-xs font-medium ${!employee.is_active ? 'text-red-400' : employee.workStatus === 'online' ? 'text-green-400' : employee.hasPendingWithdrawal ? 'text-orange-400' : 'text-white'}`}>{employee.username}</span>
           </div>
           {employee.hasPendingWithdrawal && (
             <div className="relative mt-0.5 flex min-w-0 items-center gap-1.5 whitespace-nowrap">
@@ -2244,7 +2244,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <Pencil className="w-2.5 h-2.5" />
         </button>
       </td>
-      <td className="w-[48px] py-0.5 px-1 relative group/ver">
+      <td className="w-[44px] py-0.5 px-1 relative group/ver">
         <button
           onClick={(e) => { e.stopPropagation(); toggleVerification(employee.id, employee.is_verified, employee.username); }}
           className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -2266,7 +2266,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           </div>
         )}
       </td>
-      <td className="w-[52px] py-0.5 px-1">
+      <td className="w-[48px] py-0.5 px-1">
         <button
           onClick={(e) => { e.stopPropagation(); toggleEmployeeStatus(employee.id, employee.is_active, employee.username); }}
           className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -2422,8 +2422,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <th className="w-[116px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">User</th>
         <th className="w-[100px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Emp ID</th>
         {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[72px]')}
-        <th className="h-[40px] w-[48px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Ver</th>
-        <th className="h-[40px] w-[52px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Status</th>
+        <th className="h-[40px] w-[44px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Ver</th>
+        <th className="h-[40px] w-[48px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Status</th>
         <th className="h-[40px] w-[66px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Remarks</th>
         <th className="h-[40px] w-[88px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Tags</th>
         {renderSortableHeader(adminId, 'totalOrders', 'Total', 'w-[41px]')}
