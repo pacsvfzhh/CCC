@@ -454,6 +454,19 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
           <div className="space-y-3">
             {visibleLocks.map((lock) => {
               const status = getLockStatus(lock);
+              const releaseTimeClass = lock.unlocked_at
+                ? 'text-emerald-300'
+                : status.label === '自動解除'
+                  ? 'text-sky-300'
+                  : 'text-rose-300';
+              const releaseTimeLabelClass = lock.unlocked_at
+                ? 'text-emerald-300/80'
+                : status.label === '自動解除'
+                  ? 'text-sky-300/80'
+                  : 'text-rose-300/80';
+              const releaseTimeValue = new Date(
+                lock.unlocked_at || lock.lock_until
+              ).toLocaleString();
 
               return (
                 <article
@@ -487,32 +500,43 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                         </div>
                       </div>
 
-                      <div className={`grid grid-cols-2 border-t border-orange-300/15 sm:grid-cols-4 xl:min-w-[500px] xl:border-l xl:border-t-0 xl:pl-5 ${showHistory ? 'gap-x-5 gap-y-2 pt-2.5 xl:pt-0' : 'gap-x-6 gap-y-3 pt-3 xl:pt-0'}`}>
+                      <div className={`grid grid-cols-2 border-t border-orange-300/15 xl:min-w-[500px] xl:border-l xl:border-t-0 xl:pl-5 ${showHistory ? 'gap-x-5 gap-y-2 pt-2.5 sm:grid-cols-3 xl:pt-0' : 'gap-x-6 gap-y-3 pt-3 sm:grid-cols-4 xl:pt-0'}`}>
                         <div>
                           <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">防護狀態</p>
                           <p className={`mt-1 text-sm font-bold ${status.textClass}`}>{status.label}</p>
                         </div>
-                        <div>
-                          <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">{showHistory ? '歷史狀態' : '剩餘時間'}</p>
-                          <p className={`mt-1 flex min-w-0 items-center gap-1.5 font-bold ${showHistory ? `text-xs ${status.textClass}` : 'text-base text-orange-300'}`}>
-                            <Clock className={`h-4 w-4 shrink-0 ${showHistory ? status.textClass : 'text-orange-300'}`} />
-                            <span className="truncate whitespace-nowrap">
-                              {showHistory
-                                ? lock.unlocked_at
-                                  ? new Date(lock.unlocked_at).toLocaleString()
-                                  : status.label === '自動解除' ? '系統自動解除' : getRemainingTime(lock.lock_until, countdownNow)
-                                : getRemainingTime(lock.lock_until, countdownNow)}
-                            </span>
-                          </p>
-                        </div>
+                        {showHistory ? (
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-bold tracking-[0.12em] text-rose-300/80">鎖定時間</p>
+                            <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-xs font-semibold text-rose-300">
+                              <Clock className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate whitespace-nowrap">{new Date(lock.created_at).toLocaleString()}</span>
+                            </p>
+                            <p className={`mt-2 text-[10px] font-bold tracking-[0.12em] ${releaseTimeLabelClass}`}>解除時間</p>
+                            <p className={`mt-1 flex min-w-0 items-center gap-1.5 truncate text-xs font-semibold ${releaseTimeClass}`}>
+                              <Unlock className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate whitespace-nowrap">{releaseTimeValue}</span>
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">剩餘時間</p>
+                            <p className="mt-1 flex items-center gap-1.5 text-base font-bold text-orange-300">
+                              <Clock className="h-4 w-4 text-orange-300" />
+                              {getRemainingTime(lock.lock_until, countdownNow)}
+                            </p>
+                          </div>
+                        )}
                         <div>
                           <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">失敗嘗試</p>
                           <p className="mt-1 text-sm font-bold text-rose-300">{lock.failed_attempts} 次</p>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">鎖定時間</p>
-                          <p className="mt-1 truncate text-xs font-semibold text-orange-200/85">{new Date(lock.created_at).toLocaleString()}</p>
-                        </div>
+                        {!showHistory && (
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">鎖定時間</p>
+                            <p className="mt-1 truncate text-xs font-semibold text-orange-200/85">{new Date(lock.created_at).toLocaleString()}</p>
+                          </div>
+                        )}
                       </div>
 
                       <div className={`flex flex-wrap items-center justify-between border-t border-white/[0.08] xl:w-[150px] xl:shrink-0 xl:flex-col xl:items-stretch xl:border-t-0 xl:pl-1 ${showHistory ? 'gap-2 pt-2.5 xl:pt-0' : 'gap-3 pt-3 xl:pt-0'}`}>
