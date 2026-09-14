@@ -220,7 +220,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
             <button
               type="button"
               onClick={() => loadLocks(false)}
-              className="flex h-9 items-center gap-2 border-l border-orange-300/20 pl-3 text-xs font-semibold text-slate-400 transition-colors hover:text-orange-200"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-orange-300/35 bg-orange-500/15 px-3 text-xs font-semibold text-orange-100 shadow-[0_0_18px_rgba(245,158,11,0.08)] transition-all hover:border-orange-200/80 hover:bg-orange-500/30 hover:text-white hover:shadow-[0_0_22px_rgba(245,158,11,0.18)] active:scale-[0.98]"
               title="刷新锁定记录"
             >
               <RefreshCw className={`h-4 w-4 text-orange-300 ${refreshing ? 'animate-spin' : ''}`} />
