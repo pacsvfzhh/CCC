@@ -2244,7 +2244,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <Pencil className="w-2.5 h-2.5" />
         </button>
       </td>
-      <td className="w-[44px] py-0.5 pl-1 pr-0.5 align-middle relative group/ver">
+      <td className="w-[44px] py-0.5 pl-1 pr-0 align-middle relative group/ver">
         <button
           onClick={(e) => { e.stopPropagation(); toggleVerification(employee.id, employee.is_verified, employee.username); }}
           className={`inline-flex h-5 items-center justify-center gap-0.5 px-1.5 py-0.5 align-middle leading-none rounded text-[10px] font-medium ${
@@ -2266,7 +2266,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           </div>
         )}
       </td>
-      <td className="w-[48px] py-0.5 pl-0.5 pr-1 align-middle">
+      <td className="w-[48px] py-0.5 pl-0 pr-1 align-middle">
         <button
           onClick={(e) => { e.stopPropagation(); toggleEmployeeStatus(employee.id, employee.is_active, employee.username); }}
           className={`inline-flex h-5 items-center justify-center px-1.5 py-0.5 align-middle leading-none rounded text-[10px] font-medium ${
@@ -2422,8 +2422,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <th className="w-[116px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">User</th>
         <th className="w-[100px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Emp ID</th>
         {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[72px]')}
-        <th className="h-[40px] w-[44px] pl-1 pr-0.5 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Ver</th>
-        <th className="h-[40px] w-[48px] pl-0.5 pr-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Status</th>
+        <th className="h-[40px] w-[44px] pl-1 pr-0 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Ver</th>
+        <th className="h-[40px] w-[48px] pl-0 pr-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Status</th>
         <th className="h-[40px] w-[66px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Remarks</th>
         <th className="h-[40px] w-[88px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Tags</th>
         {renderSortableHeader(adminId, 'totalOrders', 'Total', 'w-[41px]')}
