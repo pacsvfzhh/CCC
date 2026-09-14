@@ -1239,26 +1239,33 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                       {selectedDate === 'all' ? '日期选择' : selectedDate.split('-').join('/')}
                     </span>
                   </span>
-                  {selectedDate === 'all' && (
-                    <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200/80 transition-transform ${dateMenuOpen ? 'rotate-180' : ''}`} />
-                  )}
+                  <ChevronDown
+                    aria-hidden="true"
+                    className={`h-3.5 w-3.5 shrink-0 text-cyan-200/80 transition-[opacity,transform] ${
+                      selectedDate === 'all' ? 'opacity-100' : 'pointer-events-none opacity-0'
+                    } ${dateMenuOpen ? 'rotate-180' : ''}`}
+                  />
                 </button>
 
-                {selectedDate !== 'all' && (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setSelectedDate('all');
-                      setDateMenuOpen(false);
-                    }}
-                    aria-label="取消日期筛选"
-                    title="取消日期筛选"
-                    className="absolute right-2 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-red-300/70 bg-red-600 text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300/70 hover:border-red-200 hover:bg-red-500"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  disabled={selectedDate === 'all'}
+                  tabIndex={selectedDate === 'all' ? -1 : 0}
+                  aria-hidden={selectedDate === 'all'}
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedDate('all');
+                    setDateMenuOpen(false);
+                  }}
+                  aria-label="取消日期筛选"
+                  title="取消日期筛选"
+                  className={`absolute right-2 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-red-300/70 bg-red-600 text-white transition-[opacity,background-color,border-color] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300/70 hover:border-red-200 hover:bg-red-500 ${
+                    selectedDate === 'all' ? 'pointer-events-none opacity-0' : 'opacity-100'
+                  }`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
 
                 {dateMenuOpen && (
                   <div className="absolute left-0 z-40 mt-2 w-full overflow-hidden rounded-xl border border-cyan-300/30 bg-gradient-to-b from-slate-800 via-blue-950 to-cyan-950 shadow-md shadow-black/25">
@@ -1396,8 +1403,8 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         )}
 
         {/* Data table */}
-        <div className="min-h-0 flex-1 overflow-auto bg-slate-950/30 dark-panel-scroll">
-          <table className={`w-full ${showAdminColumn ? 'min-w-[1032px]' : 'min-w-[920px]'} border-collapse text-left text-sm`}>
+        <div className="min-h-0 flex-1 overflow-x-auto overflow-y-scroll bg-slate-950/30 dark-panel-scroll" style={{ scrollbarGutter: 'stable' }}>
+          <table className={`w-full ${showAdminColumn ? 'min-w-[1032px]' : 'min-w-[920px]'} border-separate border-spacing-0 text-left text-sm`}>
             <thead className="sticky top-0 z-20 isolate border-b-2 border-blue-300/40 bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)]">
               <tr className="h-[40px] text-xs uppercase tracking-wider text-white">
                 <th className="h-[40px] w-10 px-3 py-1 text-center text-xs font-semibold text-white">
