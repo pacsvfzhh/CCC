@@ -2613,10 +2613,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const [calendarYear, calendarMonthNumber] = registrationCalendarMonth.split('-').map(Number);
   const calendarMonthDate = new Date(calendarYear, calendarMonthNumber - 1, 1);
-  const calendarDaysInMonth = new Date(calendarYear, calendarMonthNumber, 0).getDate();
   const calendarLeadingDays = calendarMonthDate.getDay();
   const calendarCells = Array.from(
-    { length: calendarLeadingDays + calendarDaysInMonth },
+    { length: 42 },
     (_, index) => index < calendarLeadingDays ? null : index - calendarLeadingDays + 1,
   );
   const todayDateKey = formatWithdrawalDate(new Date().toISOString());
@@ -3315,7 +3314,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   </button>
 
                   {registrationCalendarOpen && (
-                    <div className="absolute left-0 right-0 top-full z-[100] mt-2 overflow-hidden rounded-2xl border border-cyan-300/30 bg-gradient-to-b from-slate-800 via-blue-950 to-slate-950 shadow-[0_18px_50px_rgba(2,6,23,0.72)] ring-1 ring-inset ring-white/10 xl:left-full xl:right-auto xl:top-0 xl:mt-0 xl:ml-3 xl:w-[310px]">
+                    <div className="absolute left-0 right-0 top-full z-[100] mt-2 h-[410px] overflow-hidden rounded-2xl border border-cyan-300/30 bg-gradient-to-b from-slate-800 via-blue-950 to-slate-950 shadow-[0_18px_50px_rgba(2,6,23,0.72)] ring-1 ring-inset ring-white/10 xl:left-full xl:right-auto xl:top-0 xl:mt-0 xl:ml-3 xl:w-[310px]">
                       <div className="h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
                       <div className="flex items-center justify-between border-b border-cyan-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-3.5 py-3">
                         <button
