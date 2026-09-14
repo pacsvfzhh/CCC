@@ -855,12 +855,12 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   }}
                   aria-expanded={dateMenuOpen}
                   aria-haspopup="listbox"
-                  className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-1.5 text-left text-xs font-semibold shadow-lg transition-all ${
+                  className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-1.5 text-left text-xs font-semibold transition-all ${
                     dateMenuOpen
-                      ? 'border-cyan-300/80 bg-gradient-to-r from-blue-700/90 via-cyan-700/75 to-slate-800 text-white shadow-cyan-950/60 ring-1 ring-inset ring-cyan-100/25'
+                      ? 'border-cyan-300/80 bg-gradient-to-r from-blue-700/90 via-cyan-700/75 to-slate-800 text-white'
                       : selectedDate !== 'all'
-                        ? 'border-cyan-400/60 bg-gradient-to-r from-blue-950/95 via-cyan-950/90 to-slate-900 text-cyan-50 shadow-cyan-950/40 ring-1 ring-inset ring-cyan-300/10 hover:border-cyan-300/80'
-                        : 'border-slate-600/80 bg-slate-800/95 text-slate-100 shadow-black/25 hover:border-cyan-400/60 hover:bg-slate-700/95'
+                        ? 'border-cyan-400/60 bg-gradient-to-r from-blue-950/95 via-cyan-950/90 to-slate-900 text-cyan-50 hover:border-cyan-300/80'
+                        : 'border-slate-600/80 bg-slate-800/95 text-slate-100 hover:border-cyan-400/60 hover:bg-slate-700/95'
                   }`}
                 >
                   <span className="flex min-w-0 items-center gap-2">
@@ -875,7 +875,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 </button>
 
                 {dateMenuOpen && (
-                  <div className="absolute left-0 z-40 mt-2 w-full overflow-hidden rounded-xl border border-cyan-300/45 bg-gradient-to-b from-slate-800 via-blue-950 to-cyan-950 shadow-2xl shadow-cyan-950/80 ring-1 ring-cyan-200/15">
+                  <div className="absolute left-0 z-40 mt-2 w-full overflow-hidden rounded-xl border border-cyan-300/45 bg-gradient-to-b from-slate-800 via-blue-950 to-cyan-950 shadow-xl shadow-black/50">
                     <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-amber-400" />
                     <div className="flex items-center justify-between border-b border-slate-700/70 bg-gradient-to-r from-blue-950/80 via-cyan-950/45 to-slate-900/60 px-2.5 py-2">
                       <span className="text-[10px] font-semibold text-slate-300">日期数量</span>
@@ -897,15 +897,15 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                             }}
                             className={`flex w-full items-center justify-between gap-1.5 rounded-md px-2 py-1 text-left transition-all ${
                               isSelected
-                                ? 'bg-gradient-to-r from-cyan-600/85 via-blue-600/75 to-slate-800 text-white shadow-md shadow-cyan-950/30'
-                                : 'border border-transparent text-slate-200 hover:border-cyan-300/60 hover:bg-gradient-to-r hover:from-blue-600/75 hover:via-cyan-600/55 hover:to-blue-950 hover:text-white hover:shadow-md hover:shadow-cyan-950/50 hover:ring-1 hover:ring-cyan-200/20'
+                                ? 'bg-gradient-to-r from-cyan-600/85 via-blue-600/75 to-slate-800 text-white'
+                                : 'border border-transparent text-slate-200 hover:border-cyan-300/60 hover:bg-gradient-to-r hover:from-blue-600/75 hover:via-cyan-600/55 hover:to-blue-950 hover:text-white'
                             }`}
                           >
                             <span className="whitespace-nowrap text-[10px] font-bold tabular-nums tracking-wide">{year}/{month}/{day}</span>
                             <span className={`inline-flex h-4 min-w-5 shrink-0 items-center justify-center rounded-full border px-1.5 text-[9px] font-black tabular-nums shadow-sm ${
                               isSelected
-                                ? 'border-white/35 bg-white text-blue-800 shadow-white/15'
-                                : 'border-cyan-300/45 bg-cyan-400 text-slate-950 shadow-cyan-500/25'
+                                ? 'border-white/35 bg-white text-blue-800'
+                                : 'border-cyan-300/45 bg-cyan-400 text-slate-950'
                             }`}>{option.count}</span>
                           </button>
                         );
