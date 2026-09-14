@@ -2,13 +2,20 @@ import { supabase } from './supabase';
 import { collectLoginDeviceInfo } from './deviceInfo';
 
 export async function getUserIP(): Promise<string> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 2000);
+
   try {
-    const response = await fetch('https://api.ipify.org?format=json');
+    const response = await fetch('https://api.ipify.org?format=json', {
+      signal: controller.signal,
+    });
     const data = await response.json();
     return data.ip || 'Unknown';
   } catch (error) {
     console.error('Error getting IP address:', error);
     return 'Unknown';
+  } finally {
+    window.clearTimeout(timeout);
   }
 }
 

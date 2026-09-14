@@ -4,6 +4,7 @@ import { AccountLockedError, login, storeAuth } from '../lib/auth';
 import { useCompanyName } from '../lib/useCompanyName';
 import { useResponsive } from '../lib/useResponsive';
 import { checkLoginRateLimit, recordLoginAttempt, formatLockDuration } from '../lib/rateLimitService';
+import { getUserIP } from '../lib/loginHistoryService';
 import { formatSupabaseError, isSupabaseAbortError, supabase, supabaseConfigurationError } from '../lib/supabase';
 import { useLanguage } from '../lib/i18n/context';
 import { LANGUAGES } from '../lib/i18n/types';
@@ -155,11 +156,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
       console.error('[Login] Login error:', formatSupabaseError(err));
 
+      const attemptIp = await getUserIP();
       const attemptResult = await recordLoginAttempt(
         username,
         'username',
         false,
-        undefined,
+        attemptIp,
         navigator.userAgent
       );
 
