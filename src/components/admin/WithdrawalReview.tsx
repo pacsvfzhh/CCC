@@ -768,10 +768,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   rows={4}
                   autoFocus
                   placeholder="請清楚輸入批准或拒絕原因..."
-                  className={`w-full resize-none rounded-xl border bg-slate-950/65 px-3.5 py-3 text-sm leading-6 text-white placeholder-slate-600 outline-none transition-all focus:ring-2 ${
+                  className={`w-full resize-none rounded-xl border bg-white px-3.5 py-3 text-sm leading-6 text-slate-900 placeholder-slate-400 outline-none transition-all focus:ring-2 ${
                     validationError
-                      ? 'border-red-400/70 focus:border-red-400 focus:ring-red-500/20'
-                      : 'border-cyan-300/20 focus:border-cyan-300/60 focus:ring-cyan-400/15'
+                      ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-cyan-300/40 focus:border-cyan-500 focus:ring-cyan-500/20'
                   }`}
                 />
                 {validationError && (
@@ -821,19 +821,19 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="withdrawal-edit-title"
-            className="dark-panel-scroll max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-violet-400/35 bg-gradient-to-b from-slate-900 via-violet-950/80 to-slate-950 shadow-2xl shadow-violet-950/60 ring-1 ring-inset ring-white/10"
+            className="dark-panel-scroll max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-amber-400/35 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 shadow-2xl shadow-black/60 ring-1 ring-inset ring-white/10"
           >
-            <div className="relative border-b border-violet-300/20 bg-gradient-to-r from-violet-700/35 via-fuchsia-700/15 to-amber-700/15 px-5 py-4">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 via-fuchsia-400 to-amber-400" />
+            <div className="relative border-b border-amber-300/20 bg-gradient-to-r from-slate-800 via-amber-700/20 to-slate-900 px-5 py-4">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-slate-500 via-amber-400 to-yellow-300" />
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-violet-300/35 bg-violet-400/15 text-violet-100 ring-1 ring-inset ring-white/10">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-300/35 bg-amber-400/15 text-amber-100 ring-1 ring-inset ring-white/10">
                     <Pencil className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-300">Historical correction</div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">Historical correction</div>
                     <h2 id="withdrawal-edit-title" className="mt-0.5 text-lg font-bold text-white">編輯提現記錄</h2>
-                    <p className="mt-0.5 text-xs text-violet-100/60">修改結果將同步修正員工錢包</p>
+                    <p className="mt-0.5 text-xs text-amber-100/65">修改結果將同步修正員工錢包</p>
                   </div>
                 </div>
                 <button
@@ -841,7 +841,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   onClick={cancelEditing}
                   disabled={editSaving}
                   aria-label="關閉編輯面板"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-violet-300/20 bg-slate-950/35 text-slate-400 transition-colors hover:border-violet-300/45 hover:text-white disabled:opacity-50"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-300/20 bg-slate-950/35 text-slate-400 transition-colors hover:border-amber-300/45 hover:text-white disabled:opacity-50"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -849,13 +849,13 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             </div>
 
             <div className="space-y-4 p-5">
-              <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-violet-300/15 bg-slate-950/45 sm:grid-cols-3">
-                <div className="border-b border-violet-300/10 px-4 py-3 sm:border-b-0 sm:border-r">
+              <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-amber-300/15 bg-slate-950/45 sm:grid-cols-3">
+                <div className="border-b border-amber-300/10 px-4 py-3 sm:border-b-0 sm:border-r">
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">員工</div>
                   <div className="mt-1 truncate text-sm font-bold text-white">{editingWithdrawal.employee?.username || '未知員工'}</div>
-                  <div className="mt-0.5 truncate text-[11px] text-violet-200/65">{editingWithdrawal.employee?.employee_id || '—'}</div>
+                  <div className="mt-0.5 truncate text-[11px] text-amber-200/65">{editingWithdrawal.employee?.employee_id || '—'}</div>
                 </div>
-                <div className="border-b border-violet-300/10 px-4 py-3 sm:border-b-0 sm:border-r">
+                <div className="border-b border-amber-300/10 px-4 py-3 sm:border-b-0 sm:border-r">
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">提現金額</div>
                   <div className="mt-1 text-xl font-black tabular-nums text-amber-200">${editingWithdrawal.amount.toFixed(2)}</div>
                 </div>
@@ -866,7 +866,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
               </div>
 
               <div>
-                <div className="mb-2 text-xs font-bold text-violet-100">修改後狀態</div>
+                <div className="mb-2 text-xs font-bold text-amber-100">修改後狀態</div>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -896,14 +896,14 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
               </div>
 
               <div>
-                <label htmlFor="withdrawal-edit-remark" className="mb-2 block text-xs font-bold text-violet-100">審核備註</label>
+                <label htmlFor="withdrawal-edit-remark" className="mb-2 block text-xs font-bold text-amber-100">審核備註</label>
                 <textarea
                   id="withdrawal-edit-remark"
                   value={editRemark}
                   onChange={(event) => setEditRemark(event.target.value)}
                   rows={3}
                   placeholder="輸入此次修改的備註..."
-                  className="w-full resize-none rounded-xl border border-violet-300/20 bg-slate-950/65 px-3.5 py-3 text-sm leading-6 text-white placeholder-slate-600 outline-none transition-all focus:border-violet-300/60 focus:ring-2 focus:ring-violet-400/15"
+                  className="w-full resize-none rounded-xl border border-amber-300/40 bg-white px-3.5 py-3 text-sm leading-6 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
                 />
               </div>
 
@@ -913,7 +913,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
               </div>
             </div>
 
-            <div className="flex gap-2 border-t border-violet-300/15 bg-slate-950/40 px-5 py-4 sm:justify-end">
+            <div className="flex gap-2 border-t border-amber-300/15 bg-slate-950/40 px-5 py-4 sm:justify-end">
               <button
                 type="button"
                 onClick={cancelEditing}
@@ -926,7 +926,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 type="button"
                 onClick={() => handleEditSave(editingWithdrawal)}
                 disabled={editSaving}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-violet-300/35 bg-violet-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50 sm:flex-none"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-amber-300/35 bg-amber-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-500 disabled:opacity-50 sm:flex-none"
               >
                 <Save className="h-4 w-4" />
                 {editSaving ? '儲存中...' : '儲存修改'}
@@ -1497,7 +1497,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                             <button
                               type="button"
                               onClick={() => startEditing(withdrawal)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-violet-300/20 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-200 transition-colors hover:border-violet-300/40 hover:bg-violet-500/20 hover:text-white"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300/35 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 transition-colors hover:border-amber-300/60 hover:bg-amber-500/20 hover:text-white"
                             >
                               <Pencil className="h-3 w-3" />
                               編輯
