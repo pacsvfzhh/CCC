@@ -1933,54 +1933,50 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     return createPortal(
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm" onClick={() => setLoginIPEmployee(null)}>
         <div className="flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-[26px] border border-white/10 bg-[#0b1724] shadow-[0_24px_90px_rgba(2,12,27,0.65)]" onClick={(e) => e.stopPropagation()}>
-          <div className="relative shrink-0 overflow-hidden border-b border-white/10 px-5 py-5 sm:px-6">
+          <div className="relative shrink-0 overflow-hidden border-b border-white/10 px-5 py-3.5 pr-14 sm:px-6 sm:pr-14">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_34%),linear-gradient(115deg,rgba(15,23,42,0.96),rgba(10,31,46,0.88))]" />
-            <div className="relative flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex min-w-0 items-start gap-3.5">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 shadow-[0_0_28px_rgba(34,211,238,0.12)]">
-                  <Globe className="h-5 w-5 text-cyan-300" />
+            <div className="relative flex flex-wrap items-center gap-3">
+              <div className="flex min-w-[240px] flex-1 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 shadow-[0_0_24px_rgba(34,211,238,0.12)]">
+                  <Globe className="h-4 w-4 text-cyan-300" />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] leading-5 text-cyan-300/90">Security activity</p>
-                    <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">Audit log</span>
+                  <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.18em] text-cyan-300/90">Security activity</p>
+                  <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                    <h3 className="truncate text-lg font-bold leading-6 tracking-tight text-white">{loginIPEmployee.username}</h3>
+                    {loginIPEmployee.employeeId && <span className="font-mono text-[11px] font-semibold text-slate-400">ID: {loginIPEmployee.employeeId}</span>}
                   </div>
-                  <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <h3 className="truncate text-xl font-bold tracking-tight text-white">{loginIPEmployee.username}</h3>
-                    {loginIPEmployee.employeeId && <span className="font-mono text-xs font-semibold text-slate-400">ID: {loginIPEmployee.employeeId}</span>}
-                  </div>
-                  <p className="mt-1 text-xs text-slate-400">Review recent sign-ins, sign-outs, IP addresses, and browser evidence.</p>
                 </div>
               </div>
-              <div className="flex flex-wrap items-stretch gap-2.5 xl:pr-12">
-                <div className="min-w-[130px] rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.07] px-3.5 py-2.5">
-                  <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-300/80">
+              <div className="flex shrink-0 items-stretch gap-2">
+                <div className="min-w-[118px] rounded-xl border border-emerald-300/15 bg-emerald-300/[0.07] px-3 py-2">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase leading-4 tracking-[0.12em] text-emerald-300/80">
                     <ShieldCheck className="h-3.5 w-3.5" />
                     Total logins
                   </div>
-                  <p className="mt-1 text-2xl font-bold leading-none text-emerald-200">{loginIPLoading ? '—' : loginCount}</p>
+                  <p className="mt-0.5 text-xl font-bold leading-6 text-emerald-200">{loginIPLoading ? '—' : loginCount}</p>
                 </div>
-                <div className="min-w-[260px] max-w-full rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.07] px-3.5 py-2.5">
-                  <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-cyan-300/80">
+                <div className="w-[278px] max-w-[calc(100vw-2rem)] rounded-xl border border-cyan-300/15 bg-cyan-300/[0.07] px-3 py-2">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase leading-4 tracking-[0.12em] text-cyan-300/80">
                     <Clock3 className="h-3.5 w-3.5" />
                     Last login
                   </div>
                   {latestLogin ? (
-                    <div className="mt-1.5 flex flex-wrap items-end gap-x-3 gap-y-1">
-                      <div>
-                        <p className="text-sm font-semibold leading-none text-cyan-100">{formatDateTime(latestLogin.created_at)}</p>
-                        <p className="mt-1 flex items-center gap-1 text-[10px] font-mono text-slate-400">
-                          <MapPin className="h-3 w-3 text-slate-500" />
+                    <div className="mt-0.5 flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold leading-5 text-cyan-100">{formatDateTime(latestLogin.created_at)}</p>
+                        <p className="flex items-center gap-1 truncate text-[10px] font-mono leading-4 text-slate-400">
+                          <MapPin className="h-3 w-3 shrink-0 text-slate-500" />
                           {latestLogin.ip_address || 'Unknown IP'}
                         </p>
                       </div>
-                      <div className="min-w-[92px] border-l border-cyan-300/15 pl-3">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">System</p>
+                      <div className="min-w-[78px] border-l border-cyan-300/15 pl-3">
+                        <p className="text-[8px] font-bold uppercase leading-3 tracking-wider text-slate-500">System</p>
                         <LoginDeviceSummary systemOnly compact deviceInfo={latestLogin.device_info} userAgent={latestLogin.user_agent} />
                       </div>
                     </div>
                   ) : (
-                    <p className="mt-1.5 text-xs text-slate-500">{loginIPLoading ? 'Loading latest login' : 'No login activity'}</p>
+                    <p className="mt-0.5 text-[10px] leading-5 text-slate-500">{loginIPLoading ? 'Loading' : 'No login activity'}</p>
                   )}
                 </div>
               </div>
@@ -1988,7 +1984,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 type="button"
                 onClick={() => setLoginIPEmployee(null)}
                 aria-label="Close login IP history"
-                className="absolute right-0 top-0 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white"
+                className="absolute right-0 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white"
               >
                 <X className="h-4 w-4" />
               </button>
