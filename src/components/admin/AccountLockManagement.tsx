@@ -512,7 +512,9 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                               <Clock className="h-3.5 w-3.5 shrink-0" />
                               <span className="truncate whitespace-nowrap">{new Date(lock.created_at).toLocaleString()}</span>
                             </p>
-                            <p className={`mt-2 text-[10px] font-bold tracking-[0.12em] ${releaseTimeLabelClass}`}>解除時間</p>
+                            <p className={`mt-2 text-[10px] font-bold tracking-[0.12em] ${releaseTimeLabelClass}`}>
+                              {lock.unlocked_at ? '管理員手動解除時間' : status.label === '自動解除' ? '系統自動解除時間' : '預計解除時間'}
+                            </p>
                             <p className={`mt-1 flex min-w-0 items-center gap-1.5 truncate text-xs font-semibold ${releaseTimeClass}`}>
                               <Unlock className="h-3.5 w-3.5 shrink-0" />
                               <span className="truncate whitespace-nowrap">{releaseTimeValue}</span>
