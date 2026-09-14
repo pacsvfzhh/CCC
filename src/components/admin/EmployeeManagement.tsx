@@ -2613,10 +2613,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const [calendarYear, calendarMonthNumber] = registrationCalendarMonth.split('-').map(Number);
   const calendarMonthDate = new Date(calendarYear, calendarMonthNumber - 1, 1);
+  const calendarDaysInMonth = new Date(calendarYear, calendarMonthNumber, 0).getDate();
   const calendarLeadingDays = calendarMonthDate.getDay();
   const calendarCells = Array.from(
     { length: 42 },
-    (_, index) => index < calendarLeadingDays ? null : index - calendarLeadingDays + 1,
+    (_, index) => {
+      const day = index - calendarLeadingDays + 1;
+      return day < 1 || day > calendarDaysInMonth ? null : day;
+    },
   );
   const todayDateKey = formatWithdrawalDate(new Date().toISOString());
   const calendarMonthLabel = registrationCalendarMonth;
