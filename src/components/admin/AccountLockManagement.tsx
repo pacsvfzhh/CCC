@@ -285,7 +285,10 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
     return remaining > 0 && remaining <= 30 * 60 * 1000;
   }).length;
   const visibleLocks = showHistory ? historyLocks : locks;
-  const resolvedHistoryCount = historyLocks.filter(lock => Boolean(lock.unlocked_at)).length;
+  const manuallyResolvedHistoryCount = historyLocks.filter(lock => Boolean(lock.unlocked_at)).length;
+  const automaticallyResolvedHistoryCount = historyLocks.filter(
+    lock => !lock.unlocked_at && new Date(lock.lock_until).getTime() <= Date.now()
+  ).length;
   const getLockStatus = (lock: AccountLock) => {
     if (!showHistory || (!lock.unlocked_at && new Date(lock.lock_until).getTime() > Date.now())) {
       return {
@@ -420,8 +423,13 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
               </div>
               <span className="hidden h-4 w-px bg-violet-200/25 sm:block" />
               <div className="flex items-baseline gap-2">
-                <span className="text-[10px] font-bold tracking-wide text-violet-100/80">已解除</span>
-                <span className="text-sm font-bold leading-none text-violet-50">{resolvedHistoryCount}</span>
+                <span className="text-[10px] font-bold tracking-wide text-emerald-200/85">管理員解除</span>
+                <span className="text-sm font-bold leading-none text-emerald-200">{manuallyResolvedHistoryCount}</span>
+              </div>
+              <span className="hidden h-4 w-px bg-violet-200/25 sm:block" />
+              <div className="flex items-baseline gap-2">
+                <span className="text-[10px] font-bold tracking-wide text-sky-200/85">系統自動解除</span>
+                <span className="text-sm font-bold leading-none text-sky-200">{automaticallyResolvedHistoryCount}</span>
               </div>
             </>
           ) : (
