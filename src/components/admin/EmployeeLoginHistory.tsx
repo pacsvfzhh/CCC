@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, History, Eye, Users, Clock, MapPin, Monitor, X, ChevronDown, ChevronRight, Pin, PinOff, RefreshCw } from 'lucide-react';
+import { Search, History, Eye, Users, Clock, MapPin, X, ChevronDown, ChevronRight, Pin, PinOff, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { Admin } from '../../types';
+import LoginDeviceSummary from './LoginDeviceSummary';
 
 interface EmployeeLoginHistoryProps {
   admin: Admin;
@@ -25,10 +26,11 @@ interface EmployeeSummary {
 interface LoginHistoryRecord {
   id: string;
   action_type: 'login' | 'logout';
-  ip_address: string;
+  ip_address: string | null;
   user_agent: string | null;
   session_id: string | null;
   created_at: string;
+  device_info: unknown | null;
 }
 
 interface AdminGroup {
@@ -367,7 +369,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     try {
       setHistoryLoading(true);
 
-      const { data, error } = await supabase.rpc('get_employee_login_history', {
+      const { data, error } = await supabase.rpc('get_employee_login_history_with_device_info', {
         p_admin_id: admin.id,
         p_user_id: userId,
         p_limit: 10000,
@@ -482,14 +484,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        {record.user_agent ? (
-                          <div className="flex items-start gap-2 text-xs text-slate-400">
-                            <Monitor className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-                            <span className="break-words">{record.user_agent}</span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-500">Not recorded</span>
-                        )}
+                        <LoginDeviceSummary
+                          deviceInfo={record.device_info}
+                          userAgent={record.user_agent}
+                        />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-start gap-2 text-xs text-slate-400">

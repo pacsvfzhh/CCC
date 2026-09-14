@@ -6,6 +6,7 @@ import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/s
 import { Employee, Admin } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
 import EmployeeDetailModal from './EmployeeDetailModal';
+import LoginDeviceSummary from './LoginDeviceSummary';
 
 interface OrderRealtimeData {
   user_id: string;
@@ -89,9 +90,10 @@ interface EmployeeGroup {
 interface LoginIPRecord {
   id: string;
   action_type: 'login' | 'logout';
-  ip_address: string;
+  ip_address: string | null;
   user_agent: string | null;
   created_at: string;
+  device_info: unknown | null;
 }
 
 interface EmployeeManagementProps {
@@ -1896,7 +1898,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     setLoginIPRecords([]);
     setLoginIPLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_employee_login_history', {
+      const { data, error } = await supabase.rpc('get_employee_login_history_with_device_info', {
         p_admin_id: admin.id,
         p_user_id: employee.id,
         p_limit: 50,
@@ -1951,32 +1953,42 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             ) : loginIPRecords.length === 0 ? (
               <div className="text-center py-12 text-slate-500 text-sm">No login records found</div>
             ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-700">
-                    <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">Time</th>
-                    <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">Type</th>
-                    <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">IP Address</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loginIPRecords.map((record) => (
-                    <tr key={record.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                      <td className="px-3 py-2 text-xs text-slate-300 whitespace-nowrap">{formatDateTime(record.created_at)}</td>
-                      <td className="px-3 py-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                          record.action_type === 'login'
-                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-slate-500/15 text-slate-400 border border-slate-500/30'
-                        }`}>
-                          {record.action_type === 'login' ? 'Login' : 'Logout'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-xs text-slate-200 font-mono">{record.ip_address || '-'}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-700">
+                      <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">Time</th>
+                      <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">Type</th>
+                      <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">IP Address</th>
+                      <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">Device</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {loginIPRecords.map((record) => (
+                      <tr key={record.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                        <td className="px-3 py-2 text-xs text-slate-300 whitespace-nowrap">{formatDateTime(record.created_at)}</td>
+                        <td className="px-3 py-2">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                            record.action_type === 'login'
+                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-slate-500/15 text-slate-400 border border-slate-500/30'
+                          }`}>
+                            {record.action_type === 'login' ? 'Login' : 'Logout'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-xs text-slate-200 font-mono">{record.ip_address || '-'}</td>
+                        <td className="px-3 py-2">
+                          <LoginDeviceSummary
+                            compact
+                            deviceInfo={record.device_info}
+                            userAgent={record.user_agent}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>

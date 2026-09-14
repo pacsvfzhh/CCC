@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { collectLoginDeviceInfo } from './deviceInfo';
 
 export async function getUserIP(): Promise<string> {
   try {
@@ -18,16 +19,20 @@ export async function logEmployeeLogin(
   sessionId?: string
 ): Promise<void> {
   try {
-    const ipAddress = await getUserIP();
-    const userAgent = navigator.userAgent;
+    const [ipAddress, deviceInfo] = await Promise.all([
+      getUserIP(),
+      collectLoginDeviceInfo(),
+    ]);
+    const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent;
 
-    const { error } = await supabase.rpc('log_employee_login', {
+    const { error } = await supabase.rpc('log_employee_login_with_device_info', {
       p_user_id: userId,
       p_username: username,
       p_employee_id: employeeId,
       p_ip_address: ipAddress,
       p_user_agent: userAgent,
-      p_session_id: sessionId || null
+      p_session_id: sessionId || null,
+      p_device_info: deviceInfo,
     });
 
     if (error) {
@@ -45,16 +50,20 @@ export async function logEmployeeLogout(
   sessionId?: string
 ): Promise<void> {
   try {
-    const ipAddress = await getUserIP();
-    const userAgent = navigator.userAgent;
+    const [ipAddress, deviceInfo] = await Promise.all([
+      getUserIP(),
+      collectLoginDeviceInfo(),
+    ]);
+    const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent;
 
-    const { error } = await supabase.rpc('log_employee_logout', {
+    const { error } = await supabase.rpc('log_employee_logout_with_device_info', {
       p_user_id: userId,
       p_username: username,
       p_employee_id: employeeId,
       p_ip_address: ipAddress,
       p_user_agent: userAgent,
-      p_session_id: sessionId || null
+      p_session_id: sessionId || null,
+      p_device_info: deviceInfo,
     });
 
     if (error) {

@@ -846,6 +846,7 @@ export interface Database {
           ip_address: string | null;
           user_agent: string | null;
           session_id: string | null;
+          device_info: unknown | null;
           created_at: string;
         };
         Insert: {
@@ -857,6 +858,7 @@ export interface Database {
           ip_address?: string | null;
           user_agent?: string | null;
           session_id?: string | null;
+          device_info?: unknown | null;
           created_at?: string;
         };
         Update: {
@@ -868,6 +870,7 @@ export interface Database {
           ip_address?: string | null;
           user_agent?: string | null;
           session_id?: string | null;
+          device_info?: unknown | null;
           created_at?: string;
         };
         Relationships: [];
@@ -2194,6 +2197,23 @@ export interface Database {
           user_agent: string;
         }>;
       };
+      get_employee_login_history_with_device_info: {
+        Args: {
+          p_admin_id: string;
+          p_limit?: number;
+          p_offset?: number;
+          p_user_id: string;
+        };
+        Returns: Array<{
+          action_type: string;
+          created_at: string;
+          device_info: unknown | null;
+          id: string;
+          ip_address: string | null;
+          session_id: string | null;
+          user_agent: string | null;
+        }>;
+      };
       get_admin_employees: {
         Args: { p_admin_id: string };
         Returns: Array<{
@@ -2306,6 +2326,30 @@ export interface Database {
       };
       log_employee_logout: {
         Args: {
+          p_employee_id: string;
+          p_ip_address: string;
+          p_session_id?: string | null;
+          p_user_agent?: string;
+          p_user_id: string;
+          p_username: string;
+        };
+        Returns: string;
+      };
+      log_employee_login_with_device_info: {
+        Args: {
+          p_device_info?: unknown | null;
+          p_employee_id: string;
+          p_ip_address: string;
+          p_session_id?: string | null;
+          p_user_agent?: string;
+          p_user_id: string;
+          p_username: string;
+        };
+        Returns: string;
+      };
+      log_employee_logout_with_device_info: {
+        Args: {
+          p_device_info?: unknown | null;
           p_employee_id: string;
           p_ip_address: string;
           p_session_id?: string | null;
