@@ -483,63 +483,72 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
               <Shield className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">{showHistory ? '歷史鎖定記錄' : '已鎖定帳戶'}</h1>
-                {admin.role === 'super_admin' && (
-                  <div ref={groupMenuRef} className="relative shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setGroupMenuOpen(open => !open)}
-                      disabled={adminGroupsLoading}
-                      aria-expanded={groupMenuOpen}
-                      aria-haspopup="listbox"
-                      className="inline-flex h-8 max-w-[220px] items-center gap-2 rounded-lg border border-cyan-300/35 bg-cyan-400/[0.08] px-2.5 text-[11px] font-bold text-cyan-100 transition-colors hover:border-cyan-200/65 hover:bg-cyan-400/[0.16] disabled:cursor-wait disabled:opacity-70"
-                    >
-                      <Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
-                      <span className="truncate">{adminGroupsLoading ? '載入分組...' : selectedGroupLabel}</span>
-                      <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-300 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
-                    </button>
-                    {groupMenuOpen && !adminGroupsLoading && (
-                      <div className="absolute left-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-950/95 p-1.5 shadow-[0_18px_45px_rgba(2,6,23,0.6)] backdrop-blur-xl">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedAdminId('all');
-                            setGroupMenuOpen(false);
-                          }}
-                          className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${selectedAdminId === 'all' ? 'bg-cyan-400/15 text-cyan-100' : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'}`}
-                          role="option"
-                          aria-selected={selectedAdminId === 'all'}
-                        >
-                          <span className="flex min-w-0 items-center gap-2"><Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />總分組</span>
-                          {selectedAdminId === 'all' && <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />}
-                        </button>
-                        {adminGroups.map(group => (
-                          <button
-                            key={group.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedAdminId(group.id);
-                              setGroupMenuOpen(false);
-                            }}
-                            className={`mt-0.5 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${selectedAdminId === group.id ? 'bg-cyan-400/15 text-cyan-100' : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'}`}
-                            role="option"
-                            aria-selected={selectedAdminId === group.id}
-                          >
-                            <span className="flex min-w-0 items-center gap-2"><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[9px] font-black ${group.role === 'super_admin' ? 'bg-amber-400/15 text-amber-200' : 'bg-cyan-400/15 text-cyan-200'}`}>{group.username.slice(0, 1).toUpperCase()}</span><span className="min-w-0 truncate">{group.username}</span></span>
-                            {selectedAdminId === group.id && <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">{showHistory ? '歷史鎖定記錄' : '已鎖定帳戶'}</h1>
               <p className="mt-0.5 text-xs text-slate-400">{showHistory ? '檢視歷史帳戶防護鎖定記錄。' : '檢視目前的帳戶防護鎖定記錄。'}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2.5">
-            <label className="group flex h-10 w-[180px] items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-950/45 px-3 text-slate-300 transition-colors focus-within:border-cyan-300/60 focus-within:bg-slate-950/70 focus-within:ring-2 focus-within:ring-cyan-300/10 sm:w-[220px]">
+            {admin.role === 'super_admin' && (
+              <div ref={groupMenuRef} className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setGroupMenuOpen(open => !open)}
+                  disabled={adminGroupsLoading}
+                  aria-expanded={groupMenuOpen}
+                  aria-haspopup="listbox"
+                  className="group inline-flex h-10 max-w-[190px] items-center gap-2 rounded-xl border border-violet-300/35 bg-[linear-gradient(135deg,rgba(139,92,246,0.2),rgba(8,47,73,0.34))] px-2.5 text-left shadow-[0_6px_18px_rgba(2,6,23,0.24)] transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-px hover:border-violet-200/70 hover:bg-violet-500/25 hover:shadow-[0_8px_22px_rgba(2,6,23,0.34)] disabled:cursor-wait disabled:opacity-70"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-violet-200/25 bg-violet-300/15 text-violet-200 transition-colors group-hover:border-violet-100/45 group-hover:bg-violet-300/25">
+                    <Users className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="min-w-0 leading-tight">
+                    <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-violet-200/70">管理員分組</span>
+                    <span className="block max-w-[112px] truncate text-[11px] font-bold text-violet-50">{adminGroupsLoading ? '載入中...' : selectedGroupLabel}</span>
+                  </span>
+                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-violet-200/80 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {groupMenuOpen && !adminGroupsLoading && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-[278px] overflow-hidden rounded-2xl border border-violet-200/25 bg-[linear-gradient(160deg,rgba(15,23,42,0.98),rgba(20,28,55,0.98))] p-2 shadow-[0_22px_55px_rgba(2,6,23,0.68)] backdrop-blur-xl">
+                    <div className="mb-1.5 border-b border-white/[0.08] px-2 pb-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-violet-200/70">切換管理員分組</p>
+                      <p className="mt-1 text-[11px] text-slate-500">同步篩選目前與歷史鎖定</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAdminId('all');
+                        setGroupMenuOpen(false);
+                      }}
+                      className={`group flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left transition-[background-color,border-color,transform] duration-150 ${selectedAdminId === 'all' ? 'border-cyan-200/45 bg-cyan-300/15 text-cyan-50' : 'border-transparent text-slate-300 hover:-translate-y-px hover:border-cyan-300/25 hover:bg-cyan-300/[0.08] hover:text-white'}`}
+                      role="option"
+                      aria-selected={selectedAdminId === 'all'}
+                    >
+                      <span className="flex min-w-0 items-center gap-2.5"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-200/25 bg-cyan-300/15 text-cyan-200"><Users className="h-3.5 w-3.5" /></span><span><span className="block text-xs font-bold">總分組</span><span className="mt-0.5 block text-[10px] text-slate-500">查看全部管理員</span></span></span>
+                      {selectedAdminId === 'all' && <span className="h-2 w-2 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(165,243,252,0.7)]" />}
+                    </button>
+                    <div className="mt-1.5 space-y-1">
+                      {adminGroups.map(group => (
+                        <button
+                          key={group.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedAdminId(group.id);
+                            setGroupMenuOpen(false);
+                          }}
+                          className={`group flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition-[background-color,border-color,transform] duration-150 ${selectedAdminId === group.id ? 'border-violet-200/45 bg-violet-300/15 text-violet-50' : 'border-transparent text-slate-300 hover:-translate-y-px hover:border-violet-300/25 hover:bg-violet-300/[0.08] hover:text-white'}`}
+                          role="option"
+                          aria-selected={selectedAdminId === group.id}
+                        >
+                          <span className="flex min-w-0 items-center gap-2.5"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black ${group.role === 'super_admin' ? 'border-amber-200/30 bg-amber-300/15 text-amber-100' : 'border-violet-200/25 bg-violet-300/15 text-violet-200'}`}>{group.username.slice(0, 1).toUpperCase()}</span><span className="min-w-0"><span className="block truncate text-xs font-bold">{group.username}</span><span className="mt-0.5 block text-[10px] text-slate-500">{group.role === 'super_admin' ? 'Super Admin' : 'Secondary Admin'}</span></span></span>
+                          {selectedAdminId === group.id && <span className="h-2 w-2 rounded-full bg-violet-200 shadow-[0_0_10px_rgba(221,214,254,0.65)]" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <label className="group flex h-10 w-[180px] items-center gap-2 rounded-xl border border-cyan-300/25 bg-[linear-gradient(135deg,rgba(8,47,73,0.46),rgba(15,23,42,0.82))] px-3 text-slate-300 shadow-[0_6px_18px_rgba(2,6,23,0.2)] transition-[background-color,border-color,box-shadow] duration-150 focus-within:border-cyan-200/75 focus-within:bg-cyan-950/35 focus-within:shadow-[0_8px_24px_rgba(8,47,73,0.3)] sm:w-[220px]">
               <Search className="h-4 w-4 shrink-0 text-cyan-300/75 transition-colors group-focus-within:text-cyan-200" />
               <input
                 type="search"
