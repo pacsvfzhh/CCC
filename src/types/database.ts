@@ -40,6 +40,39 @@ export interface Database {
         };
         Relationships: [];
       };
+      login_attempts: {
+        Row: {
+          id: string;
+          identifier: string;
+          identifier_type: string;
+          attempt_time: string;
+          success: boolean;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          identifier: string;
+          identifier_type: string;
+          attempt_time?: string;
+          success?: boolean;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          identifier?: string;
+          identifier_type?: string;
+          attempt_time?: string;
+          success?: boolean;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
       system_configs: {
         Row: {
           id: string;
@@ -2073,6 +2106,7 @@ export interface Database {
           user_id: string | null;
           username: string | null;
           employee_id: string | null;
+          lock_ip: string | null;
         }>;
       };
       get_active_work_session: {

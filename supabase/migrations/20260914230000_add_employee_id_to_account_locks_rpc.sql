@@ -14,6 +14,7 @@ RETURNS TABLE (
   user_id uuid,
   username text,
   employee_id text,
+  lock_ip text,
   admin_username text
 )
 LANGUAGE plpgsql
@@ -43,9 +44,20 @@ BEGIN
       al.user_id,
       u.username,
       u.employee_id,
+      latest_attempt.ip_address,
       a.username AS admin_username
     FROM public.account_locks al
     LEFT JOIN public.users u ON al.user_id = u.id
+    LEFT JOIN LATERAL (
+      SELECT la.ip_address
+      FROM public.login_attempts la
+      WHERE la.identifier = al.identifier
+        AND la.identifier_type = al.identifier_type
+        AND la.success = false
+        AND la.attempt_time <= al.created_at
+      ORDER BY la.attempt_time DESC
+      LIMIT 1
+    ) latest_attempt ON true
     LEFT JOIN public.admins a ON u.admin_id = a.id
     WHERE al.unlocked_at IS NULL
       AND al.lock_until > now()
@@ -65,9 +77,20 @@ BEGIN
       al.user_id,
       u.username,
       u.employee_id,
+      latest_attempt.ip_address,
       a.username AS admin_username
     FROM public.account_locks al
     LEFT JOIN public.users u ON al.user_id = u.id
+    LEFT JOIN LATERAL (
+      SELECT la.ip_address
+      FROM public.login_attempts la
+      WHERE la.identifier = al.identifier
+        AND la.identifier_type = al.identifier_type
+        AND la.success = false
+        AND la.attempt_time <= al.created_at
+      ORDER BY la.attempt_time DESC
+      LIMIT 1
+    ) latest_attempt ON true
     LEFT JOIN public.admins a ON u.admin_id = a.id
     WHERE al.unlocked_at IS NULL
       AND al.lock_until > now()
@@ -82,4 +105,4 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.get_account_locks_for_admin(uuid) TO anon, authenticated;
 
-COMMENT ON FUNCTION public.get_account_locks_for_admin IS 'Returns active account lock records with the employee ID for username locks.';
+COMMENT ON FUNCTION public.get_account_locks_for_admin IS 'Returns active account lock records with the employee ID and latest failed login IP for username locks.';

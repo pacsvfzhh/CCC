@@ -17,6 +17,7 @@ interface AccountLock {
   user_id: string | null;
   username: string | null;
   employee_id: string | null;
+  lock_ip: string | null;
   admin_username: string | null;
 }
 
@@ -31,6 +32,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
   const [unlocking, setUnlocking] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [nextExpiry, setNextExpiry] = useState<number | null>(null);
+  const [countdownNow, setCountdownNow] = useState(() => Date.now());
 
   const loadLocks = useCallback(async (isInitial = false) => {
     try {
@@ -76,9 +78,34 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
         });
       }
 
+      const missingLockIpIdentifiers = [...new Set(
+        accountLocks
+          .filter(lock => !lock.lock_ip)
+          .map(lock => lock.identifier)
+      )];
+      const lockIpsByIdentifier = new Map<string, string>();
+
+      if (missingLockIpIdentifiers.length > 0) {
+        const { data: attemptRows } = await supabase
+          .from('login_attempts')
+          .select('identifier, ip_address')
+          .in('identifier', missingLockIpIdentifiers)
+          .eq('identifier_type', 'username')
+          .eq('success', false)
+          .not('ip_address', 'is', null)
+          .order('attempt_time', { ascending: false });
+
+        attemptRows?.forEach(attempt => {
+          if (attempt.ip_address && !lockIpsByIdentifier.has(attempt.identifier)) {
+            lockIpsByIdentifier.set(attempt.identifier, attempt.ip_address);
+          }
+        });
+      }
+
       const locksWithEmployeeIds = accountLocks.map(lock => ({
         ...lock,
-        employee_id: lock.employee_id ?? employeeIdsByUserId.get(lock.user_id ?? '') ?? null
+        employee_id: lock.employee_id ?? employeeIdsByUserId.get(lock.user_id ?? '') ?? null,
+        lock_ip: lock.lock_ip ?? lockIpsByIdentifier.get(lock.identifier) ?? null
       }));
       setLocks(locksWithEmployeeIds);
       setMessage(null);
@@ -108,6 +135,14 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
       }
     }
   }, [admin.id]);
+
+  useEffect(() => {
+    const countdownInterval = window.setInterval(() => {
+      setCountdownNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(countdownInterval);
+  }, []);
 
   useEffect(() => {
     void loadLocks(true);
@@ -194,15 +229,23 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
 
   const formatRemainingTime = (seconds: number) => {
     if (seconds < 60) return `${seconds} 秒`;
-    if (seconds < 3600) return `${Math.ceil(seconds / 60)} 分鐘`;
-    if (seconds < 86400) return `${Math.ceil(seconds / 3600)} 小時`;
-    return `${Math.ceil(seconds / 86400)} 天`;
+
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes < 60) return `${minutes} 分鐘 ${remainingSeconds} 秒`;
+
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (hours < 24) return `${hours} 小時 ${remainingMinutes} 分 ${remainingSeconds} 秒`;
+
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    return `${days} 天 ${remainingHours} 小時 ${remainingMinutes} 分 ${remainingSeconds} 秒`;
   };
 
-  const getRemainingTime = (lockUntil: string) => {
-    const now = new Date().getTime();
+  const getRemainingTime = (lockUntil: string, currentTime: number) => {
     const until = new Date(lockUntil).getTime();
-    const seconds = Math.max(0, Math.floor((until - now) / 1000));
+    const seconds = Math.max(0, Math.floor((until - currentTime) / 1000));
     return formatRemainingTime(seconds);
   };
 
@@ -328,9 +371,10 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                             鎖定中
                           </span>
                         </div>
-                        <p className="mt-1.5 text-xs font-semibold text-orange-300">
-                          員工 ID：<span className="font-mono text-orange-200">{lock.employee_id || '未記錄'}</span>
-                        </p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold">
+                          <span className="text-orange-300">員工 ID：<span className="font-mono text-orange-200">{lock.employee_id || '未記錄'}</span></span>
+                          <span className="text-orange-300">登入 IP：<span className="font-mono text-orange-200">{lock.lock_ip || '未記錄'}</span></span>
+                        </div>
                         <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-slate-400">
                           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-300/80" />
                           <span className="line-clamp-2">{lock.lock_reason || '系統偵測到異常登入活動，已啟用暫時防護。'}</span>
@@ -347,7 +391,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                         <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">剩餘時間</p>
                         <p className="mt-1 flex items-center gap-1.5 text-base font-bold text-orange-300">
                           <Clock className="h-4 w-4 text-orange-300" />
-                          {getRemainingTime(lock.lock_until)}
+                          {getRemainingTime(lock.lock_until, countdownNow)}
                         </p>
                       </div>
                       <div>
