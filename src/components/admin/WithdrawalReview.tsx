@@ -936,17 +936,6 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 )}
               </div>
 
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="搜尋員工姓名或員工編號"
-                  aria-label="搜尋員工姓名或員工編號"
-                  className="w-full rounded-xl border border-white/70 bg-white py-1.5 pl-9 pr-3 text-xs font-medium text-slate-800 shadow-lg shadow-black/20 placeholder-slate-400 outline-none transition-all focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30 sm:w-60"
-                />
-              </div>
-
               <div className="relative" ref={sortMenuRef}>
                 <button
                   type="button"
@@ -994,6 +983,17 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜尋員工姓名或員工編號"
+                  aria-label="搜尋員工姓名或員工編號"
+                  className="w-full rounded-xl border border-white/70 bg-white py-1.5 pl-9 pr-3 text-xs font-medium text-slate-800 shadow-lg shadow-black/20 placeholder-slate-400 outline-none transition-all focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30 sm:w-60"
+                />
               </div>
             </div>
           </div>
