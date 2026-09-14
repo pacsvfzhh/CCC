@@ -65,6 +65,28 @@ const cleanModel = (value: string | undefined | null) => {
   return model.length <= 80 ? model : model.slice(0, 80);
 };
 
+const parseWindowsVersion = (userAgentVersion: string | null, platformVersion: string | null) => {
+  const hintedParts = platformVersion?.split('.').map(Number);
+  const hintedMajor = hintedParts?.[0];
+  const hintedMinor = hintedParts?.[1];
+
+  if (hintedMajor === 13) return '11';
+  if (hintedMajor === 10) return '10';
+  if (hintedMajor === 6 && hintedMinor === 3) return '8.1';
+  if (hintedMajor === 6 && hintedMinor === 2) return '8';
+  if (hintedMajor === 6 && hintedMinor === 1) return '7';
+
+  switch (userAgentVersion) {
+    case '6.3': return '8.1';
+    case '6.2': return '8';
+    case '6.1': return '7';
+    case '6.0': return 'Vista';
+    case '5.2':
+    case '5.1': return 'XP';
+    default: return null;
+  }
+};
+
 const parseOs = (userAgent: string, hints: DeviceParseHints) => {
   const androidVersion = firstMatch(userAgent, /Android[\s/]+([\d.]+)/i) || (
     hints.platform?.toLowerCase() === 'android' ? normalizeVersion(hints.platformVersion) : null
@@ -86,9 +108,13 @@ const parseOs = (userAgent: string, hints: DeviceParseHints) => {
     return { family: 'chromeos' as const, version: chromeOsVersion || normalizeVersion(hints.platformVersion) };
   }
 
-  const windowsVersion = firstMatch(userAgent, /Windows NT\s([\d.]+)/i);
-  if (windowsVersion || hints.platform?.toLowerCase().startsWith('win')) {
-    return { family: 'windows' as const, version: windowsVersion || normalizeVersion(hints.platformVersion) };
+  const windowsUserAgentVersion = firstMatch(userAgent, /Windows NT\s([\d.]+)/i);
+  const isWindows = Boolean(windowsUserAgentVersion) || hints.platform?.toLowerCase().startsWith('win');
+  if (isWindows) {
+    return {
+      family: 'windows' as const,
+      version: parseWindowsVersion(windowsUserAgentVersion, normalizeVersion(hints.platformVersion)),
+    };
   }
 
   const macVersion = firstMatch(userAgent, /Mac OS X\s*([\d_.]+)/i);
@@ -218,9 +244,15 @@ export function resolveLoginDeviceInfo(value: unknown, userAgent: string | null 
   if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
 
   const stored = value as Record<string, unknown>;
+  const storedOsFamily = isKnownValue(stored.os_family, OS_FAMILIES) ? stored.os_family : fallback.os_family;
+  const storedOsVersion = typeof stored.os_version === 'string' ? stored.os_version : null;
+  const osVersion = storedOsFamily === 'windows' && storedOsVersion === '10.0'
+    ? fallback.os_version
+    : storedOsVersion || fallback.os_version;
+
   return {
-    os_family: isKnownValue(stored.os_family, OS_FAMILIES) ? stored.os_family : fallback.os_family,
-    os_version: typeof stored.os_version === 'string' ? stored.os_version : fallback.os_version,
+    os_family: storedOsFamily,
+    os_version: osVersion,
     device_type: isKnownValue(stored.device_type, DEVICE_TYPES) ? stored.device_type : fallback.device_type,
     device_model: typeof stored.device_model === 'string' ? stored.device_model : fallback.device_model,
     browser_family: isKnownValue(stored.browser_family, BROWSER_FAMILIES) ? stored.browser_family : fallback.browser_family,
