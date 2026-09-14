@@ -829,15 +829,18 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 ] as const).map((item) => (
                   <button
                     key={item.key}
-                    onClick={() => setFilterStatus(item.key)}
+                    onClick={() => {
+                      setFilterStatus(item.key);
+                      if (item.key === 'all') setSelectedDate('all');
+                    }}
                     className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
-                      filterStatus === item.key
+                      filterStatus === item.key && (item.key !== 'all' || selectedDate === 'all')
                         ? item.activeClass
                         : item.inactiveClass
                     }`}
                   >
                     {item.label}
-                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${filterStatus === item.key ? 'bg-white/20' : 'bg-slate-700/70 text-slate-300'}`}>
+                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${filterStatus === item.key && (item.key !== 'all' || selectedDate === 'all') ? 'bg-white/20' : 'bg-slate-700/70 text-slate-300'}`}>
                       {item.count}
                     </span>
                   </button>
