@@ -2229,7 +2229,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           )}
         </div>
       </td>
-      <td title={employee.employee_id} className="w-[112px] max-w-[112px] overflow-hidden text-ellipsis py-0.5 px-2 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
+      <td title={employee.employee_id} className="w-[112px] max-w-[112px] overflow-hidden text-ellipsis py-0.5 px-1 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
       <td className="w-[62px] py-0.5 px-1 text-[10px] text-emerald-400 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
         <span>{employee.created_at ? new Date(employee.created_at).toLocaleDateString('en-CA') : '-'}</span>
         <button
@@ -2243,28 +2243,6 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         >
           <Pencil className="w-2.5 h-2.5" />
         </button>
-      </td>
-      <td className="w-[88px] py-0.5 px-1 relative group/tags" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-0.5 max-w-[88px] min-w-0 overflow-hidden whitespace-nowrap">
-          {(employee.tags || []).length > 0 && (
-            <span className="min-w-0 flex-1 px-1.5 py-0 bg-amber-500/20 text-amber-400 text-[10px] font-medium rounded-full border border-amber-500/30 truncate">
-              {(employee.tags || [])[0]}
-            </span>
-          )}
-          {(employee.tags || []).length > 1 && <span className="flex-shrink-0 text-[10px] text-slate-500">+{(employee.tags || []).length - 1}</span>}
-          <button onClick={() => setEditingTags(employee)} className="ml-1 flex-shrink-0 px-1 py-0 bg-slate-700 hover:bg-slate-600 text-slate-400 text-[10px] rounded-full transition-colors">
-            <Tag className="w-2.5 h-2.5 inline" />+
-          </button>
-        </div>
-        {(employee.tags || []).length > 0 && (
-          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 hidden group-hover/tags:block rounded-lg border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-amber-950">
-            <div className="flex gap-1">
-              {(employee.tags || []).map((tag, idx) => (
-                <span key={idx} className="rounded-full border border-amber-700 bg-amber-900 px-1.5 py-px text-[10px] font-medium text-amber-100">{tag}</span>
-              ))}
-            </div>
-          </div>
-        )}
       </td>
       <td className="w-[40px] py-0.5 px-1 relative group/ver">
         <button
@@ -2297,6 +2275,28 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         >
           {employee.is_active ? 'Active' : 'Off'}
         </button>
+      </td>
+      <td className="w-[88px] py-0.5 px-1 relative group/tags" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-0.5 max-w-[88px] min-w-0 overflow-hidden whitespace-nowrap">
+          {(employee.tags || []).length > 0 && (
+            <span className="min-w-0 flex-1 px-1.5 py-0 bg-amber-500/20 text-amber-400 text-[10px] font-medium rounded-full border border-amber-500/30 truncate">
+              {(employee.tags || [])[0]}
+            </span>
+          )}
+          {(employee.tags || []).length > 1 && <span className="flex-shrink-0 text-[10px] text-slate-500">+{(employee.tags || []).length - 1}</span>}
+          <button onClick={() => setEditingTags(employee)} className="ml-1 flex-shrink-0 px-1 py-0 bg-slate-700 hover:bg-slate-600 text-slate-400 text-[10px] rounded-full transition-colors">
+            <Tag className="w-2.5 h-2.5 inline" />+
+          </button>
+        </div>
+        {(employee.tags || []).length > 0 && (
+          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 hidden group-hover/tags:block rounded-lg border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-amber-950">
+            <div className="flex gap-1">
+              {(employee.tags || []).map((tag, idx) => (
+                <span key={idx} className="rounded-full border border-amber-700 bg-amber-900 px-1.5 py-px text-[10px] font-medium text-amber-100">{tag}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </td>
       <td className="w-[66px] py-0.5 px-1 relative group/remarks" onClick={(e) => e.stopPropagation()}>
         <div className="flex min-w-0 items-center gap-0.5 max-w-[66px]">
@@ -2420,11 +2420,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       <tr className="h-[40px]">
         <th className="w-[54px] px-1.5 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
         <th className="w-[128px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">User</th>
-        <th className="w-[112px] px-2 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Emp ID</th>
+        <th className="w-[112px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Emp ID</th>
         {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[62px]')}
-        <th className="h-[40px] w-[88px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Tags</th>
         <th className="h-[40px] w-[40px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Ver</th>
         <th className="h-[40px] w-[44px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Status</th>
+        <th className="h-[40px] w-[88px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Tags</th>
         <th className="h-[40px] w-[66px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Remarks</th>
         {renderSortableHeader(adminId, 'totalOrders', 'Total', 'w-[41px]')}
         {renderSortableHeader(adminId, 'todayOrders', 'Today', 'w-[41px]')}
