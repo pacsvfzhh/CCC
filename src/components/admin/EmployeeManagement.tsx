@@ -2668,7 +2668,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </button>
             )}
           </div>
-          <div ref={adminFilterRef} className="relative h-full min-w-[135px] flex-[1_1_0%] border-r border-cyan-300/20 bg-gradient-to-r from-blue-950/75 via-slate-900/80 to-cyan-950/55">
+          <div ref={adminFilterRef} className="relative h-full w-[252px] min-w-[252px] max-w-[252px] shrink-0 border-r border-cyan-300/20 bg-gradient-to-r from-blue-950/75 via-slate-900/80 to-cyan-950/55">
             <button
               type="button"
               onClick={() => setAdminFilterOpen((open) => !open)}
