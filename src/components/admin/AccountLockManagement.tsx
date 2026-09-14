@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Shield, Unlock, AlertTriangle, Clock, User, RefreshCw, History } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { unlockAccount } from '../../lib/rateLimitService';
@@ -38,8 +38,16 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   const [historyLocks, setHistoryLocks] = useState<AccountLock[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const initialLoadStartedRef = useRef(false);
+  const locksLoadingRef = useRef(false);
+  const historyLoadedRef = useRef(false);
+  const historyLoadingRef = useRef(false);
+  const historyRpcUnavailableRef = useRef(false);
 
   const loadLocks = useCallback(async (isInitial = false) => {
+    if (locksLoadingRef.current) return;
+    locksLoadingRef.current = true;
+
     try {
       if (isInitial) {
         setLoading(true);
@@ -128,6 +136,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         });
       }
     } finally {
+      locksLoadingRef.current = false;
       if (isInitial) {
         setLoading(false);
       } else {
@@ -136,27 +145,52 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
     }
   }, [admin.id, onActiveLockCountChange]);
 
-  const loadHistory = useCallback(async () => {
-    try {
-      setHistoryLoading(true);
+  const loadHistory = useCallback(async (options: { force?: boolean; silent?: boolean } = {}) => {
+    const { force = false, silent = false } = options;
+    if (historyLoadingRef.current || (historyLoadedRef.current && !force)) return;
+
+    historyLoadingRef.current = true;
+    setHistoryLoading(true);
+    if (!silent) {
       setMessage(null);
+    }
 
-      const { data, error } = await supabase.rpc('get_account_lock_history_for_admin', {
-        p_admin_id: admin.id,
-        p_limit: 200
-      });
+    try {
+      let historyData: AccountLock[] | null = null;
+      if (!historyRpcUnavailableRef.current) {
+        const { data, error } = await supabase.rpc('get_account_lock_history_for_admin', {
+          p_admin_id: admin.id,
+          p_limit: 200
+        });
 
-      if (error) {
-        console.error('Failed to load lock history:', error);
-        setMessage({ type: 'error', text: '載入歷史鎖定記錄失敗，請稍後再試。' });
-        return;
+        if (!error) {
+          historyData = data || [];
+        } else {
+          if (error.code === 'PGRST202') {
+            historyRpcUnavailableRef.current = true;
+          }
+          console.warn('Lock history RPC unavailable; falling back to active lock records:', error);
+        }
       }
 
-      setHistoryLocks((data || []).filter(lock => lock.identifier_type === 'username'));
+      if (!historyData) {
+        const fallback = await supabase.rpc('get_account_locks_for_admin', {
+          p_admin_id: admin.id
+        });
+
+        if (fallback.error) throw fallback.error;
+        historyData = fallback.data || [];
+      }
+
+      setHistoryLocks(historyData.filter(lock => lock.identifier_type === 'username'));
+      historyLoadedRef.current = true;
     } catch (error) {
       console.error('Failed to load lock history:', error);
-      setMessage({ type: 'error', text: '載入歷史鎖定記錄失敗，請稍後再試。' });
+      if (!silent) {
+        setMessage({ type: 'error', text: '載入歷史鎖定記錄失敗，請稍後再試。' });
+      }
     } finally {
+      historyLoadingRef.current = false;
       setHistoryLoading(false);
     }
   }, [admin.id]);
@@ -175,8 +209,21 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   useEffect(() => {
     if (!isActive) return;
 
-    if (!showHistory) {
-      void loadLocks(true);
+    const refreshVisibleData = () => {
+      if (document.visibilityState !== 'visible') return;
+      void loadLocks(false);
+      if (historyLoadedRef.current) {
+        void loadHistory({ force: true, silent: true });
+      }
+    };
+
+    if (!initialLoadStartedRef.current) {
+      initialLoadStartedRef.current = true;
+      void loadLocks(true).then(() => {
+        void loadHistory({ silent: true });
+      });
+    } else {
+      refreshVisibleData();
     }
 
     const subscription = supabase
@@ -185,22 +232,12 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         event: '*',
         schema: 'public',
         table: 'account_locks'
-      }, () => {
-        if (document.visibilityState !== 'visible') return;
-        if (showHistory) {
-          void loadHistory();
-        } else {
-          void loadLocks(false);
-        }
-      })
+      }, refreshVisibleData)
       .subscribe();
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') return;
-      if (showHistory) {
-        void loadHistory();
-      } else {
-        void loadLocks(false);
+      if (document.visibilityState === 'visible') {
+        refreshVisibleData();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -209,10 +246,10 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isActive, showHistory, loadHistory, loadLocks]);
+  }, [isActive, loadHistory, loadLocks]);
 
   useEffect(() => {
-    if (!isActive || showHistory || !nextExpiry) return;
+    if (!isActive || !nextExpiry) return;
 
     const refreshDelay = Math.max(1000, nextExpiry - Date.now() + 1000);
     const timeout = window.setTimeout(() => {
@@ -222,7 +259,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
     }, refreshDelay);
 
     return () => window.clearTimeout(timeout);
-  }, [isActive, showHistory, nextExpiry, loadLocks]);
+  }, [isActive, nextExpiry, loadLocks]);
 
   const handleUnlock = async (lock: AccountLock) => {
     if (!admin?.id) {
@@ -278,6 +315,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
     return remaining > 0 && remaining <= 30 * 60 * 1000;
   }).length;
   const visibleLocks = showHistory ? historyLocks : locks;
+  const isInitialHistoryLoading = showHistory && historyLoading && !historyLoadedRef.current;
   const manuallyResolvedHistoryCount = historyLocks.filter(lock => Boolean(lock.unlocked_by)).length;
   const automaticallyResolvedHistoryCount = historyLocks.filter(
     lock => !lock.unlocked_by && new Date(lock.lock_until).getTime() <= Date.now()
@@ -333,6 +371,12 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
     void loadHistory();
   };
 
+  const handleShowCurrentLocks = () => {
+    setShowHistory(false);
+  };
+
+  const isRefreshing = refreshing || historyLoading;
+
   if (loading) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center text-slate-400">
@@ -361,15 +405,9 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
             </div>
           </div>
           <div className="flex items-center gap-2.5">
-            {(refreshing || historyLoading) && (
-              <span className="flex items-center gap-1.5 text-xs text-slate-400">
-                <RefreshCw className="h-3.5 w-3.5 animate-spin text-orange-300" />
-                更新中
-              </span>
-            )}
             <button
               type="button"
-              onClick={() => setShowHistory(false)}
+              onClick={handleShowCurrentLocks}
               className={`inline-flex h-10 min-w-[108px] items-center justify-center gap-2 rounded-xl border px-3 text-xs font-bold transition-colors active:scale-[0.97] ${!showHistory
                 ? 'border-orange-200 bg-orange-500 text-white'
                 : 'border-orange-400/40 bg-orange-500/[0.12] text-orange-200 hover:border-orange-300/70 hover:bg-orange-500/20 hover:text-orange-100'
@@ -397,12 +435,14 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
             </button>
             <button
               type="button"
-              onClick={() => showHistory ? void loadHistory() : void loadLocks(false)}
-              className="inline-flex h-10 min-w-[76px] items-center justify-center gap-2 rounded-xl border border-blue-200/80 bg-blue-600 px-3 text-xs font-bold text-white transition-colors active:scale-[0.97] hover:border-blue-100 hover:bg-blue-500"
+              onClick={() => showHistory ? void loadHistory({ force: true }) : void loadLocks(false)}
+              disabled={isRefreshing}
+              aria-busy={isRefreshing}
+              className="inline-flex h-10 min-w-[94px] items-center justify-center gap-2 rounded-xl border border-blue-200/80 bg-blue-600 px-3 text-xs font-bold text-white transition-[background-color,border-color,transform] duration-150 active:scale-[0.97] hover:border-blue-100 hover:bg-blue-500 disabled:cursor-wait disabled:border-blue-200/55 disabled:bg-blue-500/75 disabled:text-blue-50"
               title={showHistory ? '刷新歷史記錄' : '刷新鎖定記錄'}
             >
-              <RefreshCw className={`h-4 w-4 text-blue-50 ${(refreshing || historyLoading) ? 'animate-spin' : ''}`} />
-              刷新
+              <RefreshCw className={`h-4 w-4 text-blue-50 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? '刷新中...' : '刷新'}</span>
             </button>
           </div>
         </div>
@@ -460,11 +500,18 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
       )}
 
       {visibleLocks.length === 0 ? (
-        <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center text-slate-400">
+        isInitialHistoryLoading ? (
+          <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center text-slate-400">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-300/25 border-t-violet-300" />
+            <p className="mt-4 text-sm font-semibold text-slate-200">正在載入歷史鎖定記錄...</p>
+          </div>
+        ) : (
+          <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center text-slate-400">
           <Shield className="h-12 w-12 text-emerald-300/45" />
           <p className="mt-4 text-base font-semibold text-slate-200">{showHistory ? '目前沒有歷史鎖定記錄' : '目前沒有被鎖定的帳戶'}</p>
           <p className="mt-1 text-xs text-slate-500">{showHistory ? '員工帳戶的過往防護鎖定會顯示在這裡。' : '系統偵測到異常登入行為時，會自動顯示防護記錄。'}</p>
-        </div>
+          </div>
+        )
       ) : (
         <div className="relative min-h-0 flex-1 overflow-y-auto dark-panel-scroll px-4 pb-6 pt-4 sm:px-6 lg:px-8">
           <div className="mb-3 flex items-end justify-between gap-3">
