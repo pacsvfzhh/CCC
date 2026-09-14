@@ -36,7 +36,6 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
   const [historyLocks, setHistoryLocks] = useState<AccountLock[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   const loadLocks = useCallback(async (isInitial = false) => {
@@ -158,7 +157,6 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
       }
 
       setHistoryLocks((data || []).filter(lock => lock.identifier_type === 'username'));
-      setHistoryLoaded(true);
     } catch (error) {
       console.error('Failed to load lock history:', error);
       setMessage({ type: 'error', text: '載入歷史鎖定記錄失敗，請稍後再試。' });
@@ -178,9 +176,11 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
   }, [isActive, showHistory]);
 
   useEffect(() => {
-    if (!isActive || showHistory) return;
+    if (!isActive) return;
 
-    void loadLocks(true);
+    if (!showHistory) {
+      void loadLocks(true);
+    }
 
     const subscription = supabase
       .channel('account_locks_changes')
@@ -189,14 +189,20 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
         schema: 'public',
         table: 'account_locks'
       }, () => {
-        if (document.visibilityState === 'visible') {
+        if (document.visibilityState !== 'visible') return;
+        if (showHistory) {
+          void loadHistory();
+        } else {
           void loadLocks(false);
         }
       })
       .subscribe();
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState !== 'visible') return;
+      if (showHistory) {
+        void loadHistory();
+      } else {
         void loadLocks(false);
       }
     };
@@ -206,7 +212,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isActive, showHistory, loadLocks]);
+  }, [isActive, showHistory, loadHistory, loadLocks]);
 
   useEffect(() => {
     if (!isActive || showHistory || !nextExpiry) return;
@@ -323,9 +329,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
 
   const handleShowHistory = () => {
     setShowHistory(true);
-    if (!historyLoaded) {
-      void loadHistory();
-    }
+    void loadHistory();
   };
 
   if (loading) {
