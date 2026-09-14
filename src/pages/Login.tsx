@@ -25,6 +25,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [lockInfo, setLockInfo] = useState<{
     locked: boolean;
     remainingSeconds: number;
+    lockUntil?: string;
     reason: string;
   } | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -66,24 +67,31 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   };
 
   useEffect(() => {
-    if (lockInfo && lockInfo.locked && lockInfo.remainingSeconds > 0) {
-      const timer = setInterval(() => {
-        setLockInfo(prev => {
-          if (!prev || prev.remainingSeconds <= 1) {
-            setError('');
-            setWarning('');
-            return null;
-          }
-          return {
-            ...prev,
-            remainingSeconds: prev.remainingSeconds - 1
-          };
-        });
-      }, 1000);
+    if (!lockInfo?.locked) return;
 
-      return () => clearInterval(timer);
-    }
-  }, [lockInfo]);
+    const updateCountdown = () => {
+      setLockInfo(prev => {
+        if (!prev?.locked) return prev;
+
+        const remainingSeconds = prev.lockUntil
+          ? Math.max(0, Math.ceil((new Date(prev.lockUntil).getTime() - Date.now()) / 1000))
+          : Math.max(0, prev.remainingSeconds - 1);
+
+        if (remainingSeconds <= 0) {
+          setError('');
+          setWarning('');
+          return null;
+        }
+
+        if (remainingSeconds === prev.remainingSeconds) return prev;
+        return { ...prev, remainingSeconds };
+      });
+    };
+
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [lockInfo?.locked, lockInfo?.lockUntil]);
 
   useEffect(() => {
     if (error && !warning && !lockInfo?.locked) {
@@ -112,6 +120,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         setLockInfo({
           locked: true,
           remainingSeconds: rateLimitCheck.remaining_seconds || 0,
+          lockUntil: rateLimitCheck.lock_until,
           reason: rateLimitCheck.lock_reason || 'Account is locked'
         });
         setWarning('');
@@ -146,6 +155,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         setLockInfo({
           locked: true,
           remainingSeconds,
+          lockUntil: err.lockedUntil,
           reason: 'Account is temporarily locked.',
         });
         setWarning('');
@@ -165,10 +175,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       );
 
       if (attemptResult.locked) {
-        const remainingSeconds = Math.floor((new Date(attemptResult.lock_until!).getTime() - Date.now()) / 1000);
+        const remainingSeconds = Math.max(0, Math.ceil((new Date(attemptResult.lock_until!).getTime() - Date.now()) / 1000));
         setLockInfo({
           locked: true,
           remainingSeconds,
+          lockUntil: attemptResult.lock_until,
           reason: attemptResult.lock_reason || 'Too many failed login attempts'
         });
         setWarning('');

@@ -168,14 +168,14 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
   }, [admin.id]);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || showHistory) return;
 
     const countdownInterval = window.setInterval(() => {
       setCountdownNow(Date.now());
     }, 1000);
 
     return () => window.clearInterval(countdownInterval);
-  }, [isActive]);
+  }, [isActive, showHistory]);
 
   useEffect(() => {
     if (!isActive || showHistory) return;
@@ -265,7 +265,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
 
   const getRemainingTime = (lockUntil: string, currentTime: number) => {
     const until = new Date(lockUntil).getTime();
-    const seconds = Math.max(0, Math.floor((until - currentTime) / 1000));
+    const seconds = Math.max(0, Math.ceil((until - currentTime) / 1000));
     return formatRemainingTime(seconds);
   };
 
@@ -275,9 +275,9 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
     return remaining > 0 && remaining <= 30 * 60 * 1000;
   }).length;
   const visibleLocks = showHistory ? historyLocks : locks;
-  const manuallyResolvedHistoryCount = historyLocks.filter(lock => Boolean(lock.unlocked_at)).length;
+  const manuallyResolvedHistoryCount = historyLocks.filter(lock => Boolean(lock.unlocked_by)).length;
   const automaticallyResolvedHistoryCount = historyLocks.filter(
-    lock => !lock.unlocked_at && new Date(lock.lock_until).getTime() <= Date.now()
+    lock => !lock.unlocked_by && new Date(lock.lock_until).getTime() <= Date.now()
   ).length;
   const getLockStatus = (lock: AccountLock) => {
     if (!showHistory || (!lock.unlocked_at && new Date(lock.lock_until).getTime() > Date.now())) {
@@ -294,7 +294,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
       };
     }
 
-    if (lock.unlocked_at) {
+    if (lock.unlocked_by) {
       return {
         label: '已解除',
         badgeClass: 'border-emerald-300/30 bg-emerald-400/[0.1] text-emerald-200',
@@ -479,18 +479,18 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
           <div className="space-y-3">
             {visibleLocks.map((lock) => {
               const status = getLockStatus(lock);
-              const releaseTimeClass = lock.unlocked_at
+              const releaseTimeClass = lock.unlocked_by
                 ? 'text-emerald-300'
                 : status.label === '自動解除'
                   ? 'text-sky-300'
                   : 'text-rose-300';
-              const releaseTimeLabelClass = lock.unlocked_at
+              const releaseTimeLabelClass = lock.unlocked_by
                 ? 'text-emerald-300/80'
                 : status.label === '自動解除'
                   ? 'text-sky-300/80'
                   : 'text-rose-300/80';
               const releaseTimeValue = new Date(
-                lock.unlocked_at || lock.lock_until
+                lock.unlocked_by ? lock.unlocked_at || lock.lock_until : lock.lock_until
               ).toLocaleString();
 
               return (
@@ -538,7 +538,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
                               <span className="truncate whitespace-nowrap">{new Date(lock.created_at).toLocaleString()}</span>
                             </p>
                             <p className={`mt-2 text-[10px] font-bold tracking-[0.12em] ${releaseTimeLabelClass}`}>
-                              {lock.unlocked_at ? '管理員手動解除時間' : status.label === '自動解除' ? '系統自動解除時間' : '預計解除時間'}
+                              {lock.unlocked_by ? '管理員手動解除時間' : status.label === '自動解除' ? '系統自動解除時間' : '預計解除時間'}
                             </p>
                             <p className={`mt-1 flex min-w-0 items-center gap-1.5 truncate text-xs font-semibold ${releaseTimeClass}`}>
                               <Unlock className="h-3.5 w-3.5 shrink-0" />
@@ -568,8 +568,8 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
 
                       <div className={`flex flex-wrap items-center justify-between border-t border-white/[0.08] xl:w-[150px] xl:shrink-0 xl:flex-col xl:items-stretch xl:border-t-0 xl:pl-1 ${showHistory ? 'gap-2 pt-2.5 xl:pt-0' : 'gap-3 pt-3 xl:pt-0'}`}>
                         {showHistory ? (
-                          lock.admin_username ? (
-                            <p className="truncate text-xs font-medium text-emerald-300/80">手動解除：<span className="text-sm font-semibold text-emerald-200">{lock.admin_username}</span></p>
+                          lock.unlocked_by ? (
+                            <p className="truncate text-xs font-medium text-emerald-300/80">手動解除：<span className="text-sm font-semibold text-emerald-200">{lock.admin_username || '管理員'}</span></p>
                           ) : (
                             <p className="truncate text-xs font-medium text-sky-300/80">系統自動解除</p>
                           )
