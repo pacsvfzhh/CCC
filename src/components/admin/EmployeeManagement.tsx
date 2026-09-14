@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
+import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { Employee, Admin } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
@@ -113,7 +113,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [showPassword, setShowPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [pinConfirmEmployee, setPinConfirmEmployee] = useState<{id: string; username: string; currentPinned: boolean} | null>(null);
-  const [editingCreatedAt, setEditingCreatedAt] = useState<{id: string; username: string; currentDate: string} | null>(null);
+  const [editingCreatedAt, setEditingCreatedAt] = useState<{id: string; username: string; employeeId: string; currentDate: string} | null>(null);
   const [newCreatedAt, setNewCreatedAt] = useState('');
   const [savingCreatedAt, setSavingCreatedAt] = useState(false);
   const [viewingEmployee, setViewingEmployee] = useState<EmployeeWithAdmin | null>(null);
@@ -2247,7 +2247,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <button
           onClick={() => {
             const d = employee.created_at ? new Date(employee.created_at).toISOString().slice(0, 16) : '';
-            setEditingCreatedAt({ id: employee.id, username: employee.username, currentDate: d });
+            setEditingCreatedAt({ id: employee.id, username: employee.username, employeeId: employee.employee_id, currentDate: d });
             setNewCreatedAt(d);
           }}
           className="ml-0 inline-flex align-middle p-0.5 rounded text-slate-500 hover:text-blue-400 transition-colors"
@@ -3227,19 +3227,72 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       )}
 
       {editingCreatedAt && createPortal(
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" onClick={() => setEditingCreatedAt(null)}>
-          <div className="bg-slate-900 border border-blue-500/20 rounded-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-white mb-1">Edit Registration Date</h3>
-            <p className="text-slate-400 text-sm mb-4">{editingCreatedAt.username}</p>
-            <input
-              type="datetime-local"
-              value={newCreatedAt}
-              onChange={e => setNewCreatedAt(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
-            />
-            <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setEditingCreatedAt(null)} className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors text-sm">Cancel</button>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEditingCreatedAt(null)}>
+          <div className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-cyan-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
+            <div className="relative border-b border-cyan-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-5 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/35 bg-cyan-400/15 text-cyan-100 shadow-lg shadow-cyan-950/35 ring-1 ring-inset ring-white/10">
+                    <CalendarDays className="h-6 w-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">Registration control</p>
+                    <h3 className="mt-1 text-xl font-bold tracking-tight text-white">Edit Registration Date</h3>
+                    <p className="mt-1 text-xs text-cyan-100/60">Update the employee account timestamp securely.</p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setEditingCreatedAt(null)} aria-label="Close edit registration date" className="rounded-xl border border-cyan-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/10 hover:text-white">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="relative space-y-5 p-5">
+              <div className="rounded-2xl border border-cyan-300/15 bg-slate-950/45 px-4 py-3.5 shadow-inner shadow-black/20">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-blue-300/25 bg-blue-500/10 text-blue-200">
+                    <Users className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Employee account</p>
+                    <p title={editingCreatedAt.username} className="mt-1 truncate text-base font-bold text-white">{editingCreatedAt.username}</p>
+                    <p className="mt-0.5 truncate text-xs font-medium tracking-wide text-cyan-200/70">Employee ID: {editingCreatedAt.employeeId}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <label htmlFor="employee-registration-date" className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">Registration date and time</label>
+                  <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-200">Local time</span>
+                </div>
+                <div className="relative">
+                  <CalendarDays className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-300" />
+                  <input
+                    id="employee-registration-date"
+                    type="datetime-local"
+                    value={newCreatedAt}
+                    onChange={e => setNewCreatedAt(e.target.value)}
+                    className="w-full rounded-xl border border-cyan-300/30 bg-slate-950/75 px-4 py-3 pl-10 text-sm font-semibold tracking-wide text-white shadow-inner shadow-black/20 outline-none transition-all [color-scheme:dark] focus:border-cyan-300/75 focus:ring-4 focus:ring-cyan-400/10"
+                  />
+                </div>
+                <p className="mt-2 flex items-center gap-1.5 text-[11px] leading-5 text-slate-500">
+                  <Clock className="h-3.5 w-3.5 shrink-0 text-cyan-300/70" />
+                  This value controls the registration date shown in the employee list.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-2.5 rounded-xl border border-blue-300/15 bg-blue-500/5 px-3.5 py-3 text-xs leading-5 text-slate-400">
+                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
+                <span>The change will be saved securely and reflected in the employee details page.</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 border-t border-cyan-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setEditingCreatedAt(null)} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">Cancel</button>
               <button
+                type="button"
                 disabled={savingCreatedAt}
                 onClick={async () => {
                   if (!newCreatedAt) return;
@@ -3264,8 +3317,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     setSavingCreatedAt(false);
                   }
                 }}
-                className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-500 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >{savingCreatedAt ? 'Saving...' : 'Save'}</button>
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-300/35 bg-cyan-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-cyan-950/35 transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <CheckCircle className="h-4 w-4" />
+                {savingCreatedAt ? 'Saving...' : 'Save date'}
+              </button>
             </div>
           </div>
         </div>,
