@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
+import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { Employee, Admin } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
@@ -61,6 +61,21 @@ const formatWithdrawalDate = (value: string) => {
   return `${year}-${month}-${day}`;
 };
 
+const getCalendarMonthKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+};
+
+const formatCalendarDateLabel = (value: string) => {
+  if (!value) return 'Select a date';
+  return new Date(`${value}T12:00:00`).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
 interface EmployeeGroup {
   admin: {
     id: string;
@@ -115,7 +130,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [pinConfirmEmployee, setPinConfirmEmployee] = useState<{id: string; username: string; currentPinned: boolean} | null>(null);
   const [editingCreatedAt, setEditingCreatedAt] = useState<{id: string; username: string; employeeId: string; currentDate: string} | null>(null);
   const [newCreatedAt, setNewCreatedAt] = useState('');
+  const [registrationCalendarOpen, setRegistrationCalendarOpen] = useState(false);
+  const [registrationCalendarMonth, setRegistrationCalendarMonth] = useState(() => getCalendarMonthKey(new Date()));
   const [savingCreatedAt, setSavingCreatedAt] = useState(false);
+
+  const closeRegistrationDateEditor = () => {
+    setEditingCreatedAt(null);
+    setRegistrationCalendarOpen(false);
+  };
   const [viewingEmployee, setViewingEmployee] = useState<EmployeeWithAdmin | null>(null);
   const [selectedTagsByGroup, setSelectedTagsByGroup] = useState<Map<string, string[]>>(new Map());
   const [editingTags, setEditingTags] = useState<EmployeeWithAdmin | null>(null);
@@ -2249,6 +2271,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             const d = employee.created_at ? formatWithdrawalDate(employee.created_at) : '';
             setEditingCreatedAt({ id: employee.id, username: employee.username, employeeId: employee.employee_id, currentDate: d });
             setNewCreatedAt(d);
+            setRegistrationCalendarMonth(d ? d.slice(0, 7) : getCalendarMonthKey(new Date()));
+            setRegistrationCalendarOpen(false);
           }}
           className="ml-0 inline-flex align-middle p-0.5 rounded text-slate-500 hover:text-blue-400 transition-colors"
           title="Edit registration date"
@@ -2593,6 +2617,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             confirmButton: 'border-rose-300/50 bg-rose-600 shadow-rose-950/40 hover:bg-rose-500',
           }
     : null;
+
+  const [calendarYear, calendarMonthNumber] = registrationCalendarMonth.split('-').map(Number);
+  const calendarMonthDate = new Date(calendarYear, calendarMonthNumber - 1, 1);
+  const calendarDaysInMonth = new Date(calendarYear, calendarMonthNumber, 0).getDate();
+  const calendarLeadingDays = calendarMonthDate.getDay();
+  const calendarCells = Array.from(
+    { length: calendarLeadingDays + calendarDaysInMonth },
+    (_, index) => index < calendarLeadingDays ? null : index - calendarLeadingDays + 1,
+  );
+  const todayDateKey = formatWithdrawalDate(new Date().toISOString());
+  const calendarMonthLabel = calendarMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -3227,7 +3262,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       )}
 
       {editingCreatedAt && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEditingCreatedAt(null)}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={closeRegistrationDateEditor}>
           <div className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-cyan-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
             <div className="relative border-b border-cyan-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-5 py-5">
@@ -3242,7 +3277,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     <p className="mt-1 text-xs text-cyan-100/60">Update the employee account timestamp securely.</p>
                   </div>
                 </div>
-                <button type="button" onClick={() => setEditingCreatedAt(null)} aria-label="Close edit registration date" className="rounded-xl border border-cyan-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/10 hover:text-white">
+                <button type="button" onClick={closeRegistrationDateEditor} aria-label="Close edit registration date" className="rounded-xl border border-cyan-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/10 hover:text-white">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -3268,14 +3303,114 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-200">Date only</span>
                 </div>
                 <div className="relative">
-                  <CalendarDays className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-300" />
-                  <input
+                  <button
                     id="employee-registration-date"
-                    type="date"
-                    value={newCreatedAt}
-                    onChange={e => setNewCreatedAt(e.target.value)}
-                    className="w-full rounded-xl border border-cyan-300/30 bg-slate-950/75 px-4 py-3 pl-10 text-sm font-semibold tracking-wide text-white shadow-inner shadow-black/20 outline-none transition-all [color-scheme:dark] focus:border-cyan-300/75 focus:ring-4 focus:ring-cyan-400/10"
-                  />
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-expanded={registrationCalendarOpen}
+                    onClick={() => setRegistrationCalendarOpen(open => !open)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-cyan-300/30 bg-slate-950/75 px-4 py-3 text-left shadow-inner shadow-black/20 outline-none transition-colors hover:border-cyan-300/60 focus:border-cyan-300/75 focus:ring-4 focus:ring-cyan-400/10"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-400/10 text-cyan-300">
+                      <CalendarDays className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Selected date</span>
+                      <span className="mt-0.5 block truncate text-sm font-semibold tracking-wide text-white">{formatCalendarDateLabel(newCreatedAt)}</span>
+                    </span>
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-cyan-200/80 transition-transform ${registrationCalendarOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {registrationCalendarOpen && (
+                    <div className="absolute left-0 right-0 z-30 mt-2 overflow-hidden rounded-2xl border border-cyan-300/30 bg-gradient-to-b from-slate-800 via-blue-950 to-slate-950 shadow-[0_18px_50px_rgba(2,6,23,0.72)] ring-1 ring-inset ring-white/10">
+                      <div className="h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
+                      <div className="flex items-center justify-between border-b border-cyan-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-3.5 py-3">
+                        <button
+                          type="button"
+                          aria-label="Previous month"
+                          onClick={() => {
+                            const previousMonth = new Date(calendarYear, calendarMonthNumber - 2, 1);
+                            setRegistrationCalendarMonth(getCalendarMonthKey(previousMonth));
+                          }}
+                          className="rounded-lg border border-cyan-300/15 bg-slate-950/30 p-1.5 text-cyan-200 transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/10 hover:text-white"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <div className="text-center">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Calendar</p>
+                          <p className="mt-0.5 text-sm font-bold text-white">{calendarMonthLabel}</p>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label="Next month"
+                          onClick={() => {
+                            const nextMonth = new Date(calendarYear, calendarMonthNumber, 1);
+                            setRegistrationCalendarMonth(getCalendarMonthKey(nextMonth));
+                          }}
+                          className="rounded-lg border border-cyan-300/15 bg-slate-950/30 p-1.5 text-cyan-200 transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/10 hover:text-white"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="p-3.5">
+                        <div className="mb-2 grid grid-cols-7 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <span key={day}>{day}</span>)}
+                        </div>
+                        <div className="grid grid-cols-7 gap-1">
+                          {calendarCells.map((day, index) => {
+                            if (!day) return <span key={`empty-${index}`} className="h-9" />;
+                            const dateKey = `${registrationCalendarMonth}-${String(day).padStart(2, '0')}`;
+                            const isSelected = newCreatedAt === dateKey;
+                            const isToday = todayDateKey === dateKey;
+                            return (
+                              <button
+                                key={dateKey}
+                                type="button"
+                                aria-label={`Select ${formatCalendarDateLabel(dateKey)}`}
+                                aria-pressed={isSelected}
+                                onClick={() => {
+                                  setNewCreatedAt(dateKey);
+                                  setRegistrationCalendarOpen(false);
+                                }}
+                                className={`relative h-9 rounded-lg text-xs font-semibold transition-colors ${
+                                  isSelected
+                                    ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-950/40'
+                                    : isToday
+                                      ? 'border border-amber-300/50 bg-amber-400/10 text-amber-200 hover:bg-amber-400/20'
+                                      : 'text-slate-200 hover:bg-cyan-400/15 hover:text-white'
+                                }`}
+                              >
+                                {day}
+                                {isToday && !isSelected && <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-amber-300" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-3 flex items-center justify-between border-t border-cyan-300/15 pt-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const now = new Date();
+                              setNewCreatedAt(formatWithdrawalDate(now.toISOString()));
+                              setRegistrationCalendarMonth(getCalendarMonthKey(now));
+                              setRegistrationCalendarOpen(false);
+                            }}
+                            className="rounded-lg border border-amber-300/25 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-200 transition-colors hover:border-amber-300/50 hover:bg-amber-400/20"
+                          >
+                            Today
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRegistrationCalendarOpen(false)}
+                            className="text-xs font-semibold text-cyan-200 transition-colors hover:text-white"
+                          >
+                            Done
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <p className="mt-2 flex items-center gap-1.5 text-[11px] leading-5 text-slate-500">
                   <CalendarDays className="h-3.5 w-3.5 shrink-0 text-cyan-300/70" />
@@ -3290,7 +3425,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             </div>
 
             <div className="flex flex-col-reverse gap-2 border-t border-cyan-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setEditingCreatedAt(null)} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">Cancel</button>
+              <button type="button" onClick={closeRegistrationDateEditor} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">Cancel</button>
               <button
                 type="button"
                 disabled={savingCreatedAt}
@@ -3309,7 +3444,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         ...g,
                         employees: g.employees.map(emp => emp.id === editingCreatedAt.id ? { ...emp, created_at: isoDate } : emp)
                       })));
-                      setEditingCreatedAt(null);
+                      closeRegistrationDateEditor();
                     } else {
                       setNotification({ show: true, type: 'error', title: 'Error', message: 'Failed to update registration date' });
                     }
