@@ -1399,8 +1399,8 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         <div className="min-h-0 flex-1 overflow-auto bg-slate-950/30 dark-panel-scroll">
           <table className={`w-full ${showAdminColumn ? 'min-w-[1032px]' : 'min-w-[920px]'} border-collapse text-left text-sm`}>
             <thead className="sticky top-0 z-20 isolate border-b-2 border-blue-300/40 bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)]">
-              <tr className="h-[40px] text-[10px] uppercase tracking-wider text-white">
-                <th className="h-[40px] w-10 px-3 py-1 text-center text-[10px] font-semibold text-white">
+              <tr className="h-[40px] text-xs uppercase tracking-wider text-white">
+                <th className="h-[40px] w-10 px-3 py-1 text-center text-xs font-semibold text-white">
                   <input
                     ref={selectAllRef}
                     type="checkbox"
@@ -1411,12 +1411,12 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     aria-label="選取目前檢視中的所有待審核提現"
                   />
                 </th>
-                {showAdminColumn && <th className="h-[40px] w-[112px] px-1.5 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-white">所屬管理員</th>}
-                <th className="h-[40px] px-3 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-white">員工</th>
-                <th className="h-[40px] px-3 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-white">金額</th>
-                <th className="h-[40px] px-3 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-white">狀態</th>
-                <th className="h-[40px] w-[42%] min-w-[440px] px-3 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-white">審核資訊</th>
-                <th className="h-[40px] px-3 py-1 text-right text-[10px] font-semibold uppercase tracking-wider text-white">操作</th>
+                {showAdminColumn && <th className="h-[40px] w-[112px] px-1.5 py-1 text-left text-xs font-semibold uppercase tracking-wider text-white">所屬管理員</th>}
+                <th className="h-[40px] px-3 py-1 text-left text-xs font-semibold uppercase tracking-wider text-white">員工</th>
+                <th className="h-[40px] px-3 py-1 text-left text-xs font-semibold uppercase tracking-wider text-white">金額</th>
+                <th className="h-[40px] px-3 py-1 text-left text-xs font-semibold uppercase tracking-wider text-white">狀態</th>
+                <th className="h-[40px] w-[42%] min-w-[440px] px-3 py-1 text-left text-xs font-semibold uppercase tracking-wider text-white">審核資訊</th>
+                <th className="h-[40px] px-3 py-1 text-right text-xs font-semibold uppercase tracking-wider text-white">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/70">
