@@ -233,6 +233,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [lockedAccountsCount, setLockedAccountsCount] = useState(0);
   const [nextLockedAccountExpiry, setNextLockedAccountExpiry] = useState<number | null>(null);
   const pendingCountsRequestRef = useRef(0);
+  const lockedCountsRequestRef = useRef(0);
   const lockedCountSyncRef = useRef(0);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -663,25 +664,58 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setShowNavigationSettings(false);
   };
 
-  const loadPendingCounts = useCallback(async () => {
-    const requestId = ++pendingCountsRequestRef.current;
+  const loadLockedAccountsCount = useCallback(async () => {
+    const requestId = ++lockedCountsRequestRef.current;
     const lockedCountSyncId = lockedCountSyncRef.current;
+
     try {
-      // Emergency admin only needs locked accounts count
       if (admin.role === 'emergency_admin') {
-        const { count: lockedCount, error: lockedError } = await supabase
+        const { data, error } = await supabase
           .from('account_locks')
-          .select('*', { count: 'exact', head: true })
+          .select('lock_until')
           .is('unlocked_at', null)
+          .eq('identifier_type', 'username')
           .gt('lock_until', new Date().toISOString());
 
-        if (lockedError) throw lockedError;
+        if (error) throw error;
+        if (requestId !== lockedCountsRequestRef.current) return;
+
+        const lockExpiryTimes = (data || [])
+          .map(lock => new Date(lock.lock_until).getTime())
+          .filter(expiry => Number.isFinite(expiry));
         if (lockedCountSyncId === lockedCountSyncRef.current) {
-          setLockedAccountsCount(lockedCount || 0);
+          setLockedAccountsCount(data?.length || 0);
+          setNextLockedAccountExpiry(lockExpiryTimes.length > 0 ? Math.min(...lockExpiryTimes) : null);
         }
         return;
       }
 
+      const { data: locksData, error: lockedError } = await supabase.rpc('get_account_locks_for_admin', {
+        p_admin_id: admin.id
+      });
+
+      if (lockedError) throw lockedError;
+      if (requestId !== lockedCountsRequestRef.current) return;
+
+      const employeeLocks = (locksData || []).filter(lock => lock.identifier_type === 'username');
+      const lockedCount = employeeLocks.length;
+      const lockExpiryTimes = employeeLocks
+        .map(lock => new Date(lock.lock_until).getTime())
+        .filter(expiry => Number.isFinite(expiry));
+      console.log('[Account Locks] Active locks count:', lockedCount, 'for admin:', admin.id);
+      if (lockedCountSyncId === lockedCountSyncRef.current) {
+        setLockedAccountsCount(lockedCount);
+        setNextLockedAccountExpiry(lockExpiryTimes.length > 0 ? Math.min(...lockExpiryTimes) : null);
+      }
+    } catch (error) {
+      console.warn('Locked accounts count is temporarily unavailable:', formatRequestError(error));
+    }
+  }, [admin.id, admin.role]);
+
+  const loadPendingCounts = useCallback(async () => {
+    const requestId = ++pendingCountsRequestRef.current;
+    void loadLockedAccountsCount();
+    try {
       // For secondary admins, fetch their employee IDs once for scoping
       let scopedEmployeeIds: string[] | null = null;
       if (admin.role === 'secondary_admin') {
@@ -808,34 +842,15 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       setUnreadCustomerServiceCount(unreadCount);
       setUnreadCccServiceCount(unreadCccCount);
 
-      // Load locked accounts count using the RPC function
-      // This respects admin scope (super_admin sees all, secondary_admin sees only their employees)
-      const { data: locksData, error: lockedError } = await supabase.rpc('get_account_locks_for_admin', {
-        p_admin_id: admin.id
-      });
-
-      if (lockedError) {
-        console.error('Error loading locked accounts count:', lockedError);
-        throw lockedError;
-      }
-      const lockedCount = locksData?.length || 0;
-      const lockExpiryTimes = (locksData || [])
-        .map(lock => new Date(lock.lock_until).getTime())
-        .filter(expiry => Number.isFinite(expiry));
-      if (requestId !== pendingCountsRequestRef.current) return;
-      console.log('[Account Locks] Active locks count:', lockedCount, 'for admin:', admin.id);
-      if (lockedCountSyncId === lockedCountSyncRef.current) {
-        setLockedAccountsCount(lockedCount);
-      }
-      setNextLockedAccountExpiry(lockExpiryTimes.length > 0 ? Math.min(...lockExpiryTimes) : null);
     } catch (error) {
       console.warn('Pending counts are temporarily unavailable:', formatRequestError(error));
     }
-  }, [admin.id, admin.role]);
+  }, [admin.id, admin.role, loadLockedAccountsCount]);
 
-  const handleActiveLockCountChange = useCallback((count: number) => {
+  const handleActiveLockCountChange = useCallback((count: number, nextExpiry: number | null) => {
     lockedCountSyncRef.current += 1;
     setLockedAccountsCount(count);
+    setNextLockedAccountExpiry(nextExpiry);
   }, []);
 
   const handleCustomerServiceUnreadChange = useCallback((delta: number) => {
@@ -1440,10 +1455,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             {loadedTabs.has('accountlocks') && (
               <div className={activeTab === 'accountlocks' ? 'flex min-h-0 flex-1 flex-col overflow-hidden animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <AccountLockManagement
-                      admin={admin}
-                      isActive={activeTab === 'accountlocks'}
-                      onActiveLockCountChange={handleActiveLockCountChange}
-                    />
+                  admin={admin}
+                  isActive={activeTab === 'accountlocks'}
+                  onActiveLockCountChange={handleActiveLockCountChange}
+                />
               </div>
             )}
 

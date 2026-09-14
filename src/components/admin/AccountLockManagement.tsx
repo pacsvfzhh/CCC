@@ -24,7 +24,7 @@ interface AccountLock {
 interface AccountLockManagementProps {
   admin: Admin;
   isActive: boolean;
-  onActiveLockCountChange: (count: number) => void;
+  onActiveLockCountChange: (count: number, nextExpiry: number | null) => void;
 }
 
 export default function AccountLockManagement({ admin, isActive, onActiveLockCountChange }: AccountLockManagementProps) {
@@ -112,19 +112,13 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         employee_id: lock.employee_id ?? employeeIdsByUserId.get(lock.user_id ?? '') ?? null,
         lock_ip: lock.lock_ip ?? lockIpsByIdentifier.get(lock.identifier) ?? null
       }));
+      const nextLockExpiry = accountLocks.length > 0
+        ? Math.min(...accountLocks.map((lock: AccountLock) => new Date(lock.lock_until).getTime()))
+        : null;
       setLocks(locksWithEmployeeIds);
-      onActiveLockCountChange(locksWithEmployeeIds.length);
+      setNextExpiry(nextLockExpiry);
+      onActiveLockCountChange(locksWithEmployeeIds.length, nextLockExpiry);
       setMessage(null);
-
-      // Calculate next expiry time
-      if (accountLocks.length > 0) {
-        const nextLockExpiry = Math.min(
-          ...accountLocks.map((lock: AccountLock) => new Date(lock.lock_until).getTime())
-        );
-        setNextExpiry(nextLockExpiry);
-      } else {
-        setNextExpiry(null);
-      }
     } catch (error: unknown) {
       console.error('Failed to load locks:', error);
       if (isInitial) {
