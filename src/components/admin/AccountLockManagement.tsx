@@ -292,6 +292,9 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
         label: showHistory ? '目前鎖定' : '鎖定中',
         badgeClass: 'border-rose-300/30 bg-rose-500/[0.12] text-rose-200',
         textClass: 'text-rose-300',
+        metaLabelClass: 'text-rose-300/80',
+        metaValueClass: 'text-rose-200',
+        accountBadgeClass: 'border-rose-300/30 bg-rose-500/[0.12] text-rose-200',
         cardClass: 'border-rose-300/25 bg-rose-950/20 hover:border-rose-300/50 hover:bg-rose-950/35',
         accentClass: 'border-rose-400/80',
         iconClass: 'border-rose-300/30 bg-rose-400/[0.1] text-rose-300 group-hover:border-rose-200/60 group-hover:bg-rose-400/20'
@@ -303,6 +306,9 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
         label: '已解除',
         badgeClass: 'border-emerald-300/30 bg-emerald-400/[0.1] text-emerald-200',
         textClass: 'text-emerald-300',
+        metaLabelClass: 'text-emerald-300/80',
+        metaValueClass: 'text-emerald-200',
+        accountBadgeClass: 'border-emerald-300/30 bg-emerald-400/[0.1] text-emerald-200',
         cardClass: 'border-emerald-300/25 bg-emerald-950/20 hover:border-emerald-300/50 hover:bg-emerald-950/35',
         accentClass: 'border-emerald-400/80',
         iconClass: 'border-emerald-300/30 bg-emerald-400/[0.1] text-emerald-300 group-hover:border-emerald-200/60 group-hover:bg-emerald-400/20'
@@ -313,6 +319,9 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
       label: '自動解除',
       badgeClass: 'border-sky-300/30 bg-sky-400/[0.08] text-sky-200',
       textClass: 'text-sky-300',
+      metaLabelClass: 'text-sky-300/80',
+      metaValueClass: 'text-sky-200',
+      accountBadgeClass: 'border-sky-300/30 bg-sky-400/[0.08] text-sky-200',
       cardClass: 'border-sky-300/20 bg-sky-950/15 hover:border-sky-300/45 hover:bg-sky-950/25',
       accentClass: 'border-sky-400/70',
       iconClass: 'border-sky-300/25 bg-sky-400/[0.08] text-sky-300 group-hover:border-sky-200/55 group-hover:bg-sky-400/15'
@@ -482,19 +491,19 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="max-w-full truncate font-mono text-base font-semibold text-slate-100">{lock.username || lock.identifier}</span>
-                            <span className="rounded-full border border-orange-300/25 bg-orange-400/[0.08] px-2 py-0.5 text-[9px] font-bold tracking-wide text-orange-200/80">
+                            <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold tracking-wide ${status.accountBadgeClass}`}>
                               使用者帳戶
                             </span>
                             <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold tracking-wide ${status.badgeClass}`}>
                               {status.label}
                             </span>
                           </div>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold">
-                            <span className="text-orange-300">員工 ID：<span className="font-mono text-orange-200">{lock.employee_id || '未記錄'}</span></span>
-                            <span className="text-orange-300">登入 IP：<span className="font-mono text-orange-200">{lock.lock_ip || '未記錄'}</span></span>
+                          <div className={`mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold ${status.metaLabelClass}`}>
+                            <span>員工 ID：<span className={`font-mono ${status.metaValueClass}`}>{lock.employee_id || '未記錄'}</span></span>
+                            <span>登入 IP：<span className={`font-mono ${status.metaValueClass}`}>{lock.lock_ip || '未記錄'}</span></span>
                           </div>
                           <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-slate-400">
-                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-300/80" />
+                            <AlertTriangle className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${status.metaLabelClass}`} />
                             <span className="line-clamp-2">{lock.lock_reason || '系統偵測到異常登入活動，已啟用暫時防護。'}</span>
                           </p>
                         </div>
@@ -502,7 +511,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
 
                       <div className={`grid grid-cols-2 border-t border-orange-300/15 xl:min-w-[500px] xl:border-l xl:border-t-0 xl:pl-5 ${showHistory ? 'gap-x-5 gap-y-2 pt-2.5 sm:grid-cols-3 xl:pt-0' : 'gap-x-6 gap-y-3 pt-3 sm:grid-cols-4 xl:pt-0'}`}>
                         <div>
-                          <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">防護狀態</p>
+                          <p className={`text-[10px] font-bold tracking-[0.12em] ${status.metaLabelClass}`}>防護狀態</p>
                           <p className={`mt-1 text-sm font-bold ${status.textClass}`}>{status.label}</p>
                         </div>
                         {showHistory ? (
@@ -522,21 +531,21 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                           </div>
                         ) : (
                           <div>
-                            <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">剩餘時間</p>
-                            <p className="mt-1 flex items-center gap-1.5 text-base font-bold text-orange-300">
-                              <Clock className="h-4 w-4 text-orange-300" />
+                            <p className={`text-[10px] font-bold tracking-[0.12em] ${status.metaLabelClass}`}>剩餘時間</p>
+                            <p className={`mt-1 flex items-center gap-1.5 text-base font-bold ${status.textClass}`}>
+                              <Clock className={`h-4 w-4 ${status.textClass}`} />
                               {getRemainingTime(lock.lock_until, countdownNow)}
                             </p>
                           </div>
                         )}
                         <div>
-                          <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">失敗嘗試</p>
+                          <p className="text-[10px] font-bold tracking-[0.12em] text-rose-300/80">失敗嘗試</p>
                           <p className="mt-1 text-sm font-bold text-rose-300">{lock.failed_attempts} 次</p>
                         </div>
                         {!showHistory && (
                           <div className="min-w-0">
-                            <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">鎖定時間</p>
-                            <p className="mt-1 truncate text-xs font-semibold text-orange-200/85">{new Date(lock.created_at).toLocaleString()}</p>
+                            <p className={`text-[10px] font-bold tracking-[0.12em] ${status.metaLabelClass}`}>鎖定時間</p>
+                            <p className={`mt-1 truncate text-xs font-semibold ${status.textClass}`}>{new Date(lock.created_at).toLocaleString()}</p>
                           </div>
                         )}
                       </div>
