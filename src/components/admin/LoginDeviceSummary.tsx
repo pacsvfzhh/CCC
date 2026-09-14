@@ -5,6 +5,7 @@ interface LoginDeviceSummaryProps {
   deviceInfo?: unknown;
   userAgent?: string | null;
   compact?: boolean;
+  systemOnly?: boolean;
 }
 
 const osLabels = {
@@ -31,28 +32,30 @@ const browserLabels = {
 
 const formatValue = (label: string, version: string | null) => version ? `${label} ${version}` : label;
 
-export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = false }: LoginDeviceSummaryProps) {
+export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = false, systemOnly = false }: LoginDeviceSummaryProps) {
   const info = resolveLoginDeviceInfo(deviceInfo, userAgent);
   const details = [
     osLabels[info.os_family],
-    formatValue(browserLabels[info.browser_family], info.browser_version),
+    ...(!systemOnly ? [formatValue(browserLabels[info.browser_family], info.browser_version)] : []),
   ];
 
   return (
-    <div className={compact ? 'min-w-[190px] max-w-[280px]' : 'min-w-[240px]'}>
+    <div className={systemOnly ? 'min-w-0 max-w-[190px]' : compact ? 'min-w-[190px] max-w-[280px]' : 'min-w-[240px]'}>
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="inline-flex items-center gap-1 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-200">
           <Globe2 className="h-3 w-3" />
           {osLabels[info.os_family]}
         </span>
-        <span className="inline-flex items-center rounded-md border border-violet-400/25 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200">
-          {formatValue(browserLabels[info.browser_family], info.browser_version)}
-        </span>
+        {!systemOnly && (
+          <span className="inline-flex items-center rounded-md border border-violet-400/25 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200">
+            {formatValue(browserLabels[info.browser_family], info.browser_version)}
+          </span>
+        )}
       </div>
       {!compact && (
         <div className="mt-1 text-[10px] text-slate-500">{details.join(' · ')}</div>
       )}
-      {userAgent && (
+      {userAgent && !systemOnly && (
         <details className="group mt-2 max-w-full">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[10px] font-semibold text-slate-500 transition-colors hover:text-cyan-300">
             <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
