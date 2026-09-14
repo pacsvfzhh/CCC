@@ -882,26 +882,6 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                       <span className="rounded-full border border-cyan-300/35 bg-cyan-400/15 px-2 py-0.5 text-[10px] font-extrabold tabular-nums text-cyan-100">{dateOptions.length}</span>
                     </div>
                     <div className="max-h-72 overflow-y-auto p-1.5 dark-panel-scroll" role="listbox" aria-label="选择提现提交日期">
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={selectedDate === 'all'}
-                        onClick={() => {
-                          setSelectedDate('all');
-                          setDateMenuOpen(false);
-                        }}
-                        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold transition-all ${
-                          selectedDate === 'all'
-                            ? 'bg-gradient-to-r from-blue-600/90 to-cyan-600/75 text-white shadow-md shadow-cyan-950/30'
-                            : 'text-slate-200 hover:bg-slate-800/90 hover:text-white'
-                        }`}
-                      >
-                        <span>全部日期</span>
-                        {selectedDate === 'all' && <Check className="h-3.5 w-3.5 text-cyan-100" />}
-                      </button>
-
-                      {dateOptions.length > 0 && <div className="mx-2 my-1 h-px bg-cyan-300/10" />}
-
                       {dateOptions.map((option) => {
                         const isSelected = selectedDate === option.key;
                         const [year, month, day] = option.key.split('-');
@@ -912,17 +892,17 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                             role="option"
                             aria-selected={isSelected}
                             onClick={() => {
-                              setSelectedDate(option.key);
+                              setSelectedDate(isSelected ? 'all' : option.key);
                               setDateMenuOpen(false);
                             }}
-                            className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left transition-all ${
+                            className={`flex w-full items-center justify-between gap-1.5 rounded-md px-2 py-1 text-left transition-all ${
                               isSelected
                                 ? 'bg-gradient-to-r from-cyan-600/85 via-blue-600/75 to-slate-800 text-white shadow-md shadow-cyan-950/30'
                                 : 'text-slate-200 hover:bg-slate-800/90 hover:text-white'
                             }`}
                           >
-                            <span className="whitespace-nowrap text-xs font-bold tabular-nums tracking-wide">{year}/{month}/{day}</span>
-                            <span className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full border px-2 py-1 text-[11px] font-black tabular-nums shadow-sm ${
+                            <span className="whitespace-nowrap text-[10px] font-bold tabular-nums tracking-wide">{year}/{month}/{day}</span>
+                            <span className={`inline-flex h-4 min-w-5 shrink-0 items-center justify-center rounded-full border px-1.5 text-[9px] font-black tabular-nums shadow-sm ${
                               isSelected
                                 ? 'border-white/35 bg-white text-blue-800 shadow-white/15'
                                 : 'border-cyan-300/45 bg-cyan-400 text-slate-950 shadow-cyan-500/25'
