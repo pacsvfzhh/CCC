@@ -287,34 +287,35 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
   const visibleLocks = showHistory ? historyLocks : locks;
   const resolvedHistoryCount = historyLocks.filter(lock => Boolean(lock.unlocked_at)).length;
   const getLockStatus = (lock: AccountLock) => {
-    if (!showHistory) {
+    if (!showHistory || (!lock.unlocked_at && new Date(lock.lock_until).getTime() > Date.now())) {
       return {
-        label: '鎖定中',
+        label: showHistory ? '目前鎖定' : '鎖定中',
         badgeClass: 'border-rose-300/30 bg-rose-500/[0.12] text-rose-200',
-        textClass: 'text-rose-300'
+        textClass: 'text-rose-300',
+        cardClass: 'border-rose-300/25 bg-rose-950/20 hover:border-rose-300/50 hover:bg-rose-950/35',
+        accentClass: 'border-rose-400/80',
+        iconClass: 'border-rose-300/30 bg-rose-400/[0.1] text-rose-300 group-hover:border-rose-200/60 group-hover:bg-rose-400/20'
       };
     }
 
     if (lock.unlocked_at) {
       return {
         label: '已解除',
-        badgeClass: 'border-emerald-300/25 bg-emerald-400/[0.1] text-emerald-200',
-        textClass: 'text-emerald-300'
-      };
-    }
-
-    if (new Date(lock.lock_until).getTime() > Date.now()) {
-      return {
-        label: '目前鎖定',
-        badgeClass: 'border-rose-300/30 bg-rose-500/[0.12] text-rose-200',
-        textClass: 'text-rose-300'
+        badgeClass: 'border-emerald-300/30 bg-emerald-400/[0.1] text-emerald-200',
+        textClass: 'text-emerald-300',
+        cardClass: 'border-emerald-300/25 bg-emerald-950/20 hover:border-emerald-300/50 hover:bg-emerald-950/35',
+        accentClass: 'border-emerald-400/80',
+        iconClass: 'border-emerald-300/30 bg-emerald-400/[0.1] text-emerald-300 group-hover:border-emerald-200/60 group-hover:bg-emerald-400/20'
       };
     }
 
     return {
-      label: '已到期',
-      badgeClass: 'border-slate-400/25 bg-slate-500/[0.1] text-slate-300',
-      textClass: 'text-slate-300'
+      label: '自動解除',
+      badgeClass: 'border-sky-300/30 bg-sky-400/[0.08] text-sky-200',
+      textClass: 'text-sky-300',
+      cardClass: 'border-sky-300/20 bg-sky-950/15 hover:border-sky-300/45 hover:bg-sky-950/25',
+      accentClass: 'border-sky-400/70',
+      iconClass: 'border-sky-300/25 bg-sky-400/[0.08] text-sky-300 group-hover:border-sky-200/55 group-hover:bg-sky-400/15'
     };
   };
 
@@ -457,12 +458,12 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
               return (
                 <article
                   key={lock.id}
-                  className="group overflow-hidden rounded-2xl border border-orange-300/15 bg-slate-900/65 shadow-[0_10px_28px_rgba(2,6,23,0.24)] transition-colors duration-150 hover:border-orange-300/40 hover:bg-orange-950/25"
+                  className={`group overflow-hidden border shadow-[0_10px_28px_rgba(2,6,23,0.24)] transition-colors duration-150 ${showHistory ? 'rounded-xl' : 'rounded-2xl'} ${status.cardClass}`}
                 >
-                  <div className="border-l-2 border-orange-400/75 px-4 py-4 sm:px-5">
-                    <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+                  <div className={`border-l-2 px-4 sm:px-5 ${showHistory ? 'py-3' : 'py-4'} ${status.accentClass}`}>
+                    <div className={`flex flex-col xl:flex-row xl:items-center ${showHistory ? 'gap-3' : 'gap-4'}`}>
                       <div className="flex min-w-0 flex-1 items-start gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-orange-300/25 bg-orange-400/[0.1] text-orange-300 transition-colors group-hover:border-orange-200/50 group-hover:bg-orange-400/20">
+                        <div className={`flex shrink-0 items-center justify-center transition-colors ${showHistory ? 'h-10 w-10 rounded-lg' : 'h-11 w-11 rounded-xl'} ${status.iconClass}`}>
                           <User className="h-4 w-4" />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -486,20 +487,22 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-orange-300/15 pt-3 sm:grid-cols-4 xl:min-w-[500px] xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
+                      <div className={`grid grid-cols-2 border-t border-orange-300/15 sm:grid-cols-4 xl:min-w-[500px] xl:border-l xl:border-t-0 xl:pl-5 ${showHistory ? 'gap-x-5 gap-y-2 pt-2.5 xl:pt-0' : 'gap-x-6 gap-y-3 pt-3 xl:pt-0'}`}>
                         <div>
                           <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">防護狀態</p>
                           <p className={`mt-1 text-sm font-bold ${status.textClass}`}>{status.label}</p>
                         </div>
                         <div>
                           <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">{showHistory ? '歷史狀態' : '剩餘時間'}</p>
-                          <p className="mt-1 flex items-center gap-1.5 text-base font-bold text-orange-300">
-                            <Clock className="h-4 w-4 text-orange-300" />
-                            {showHistory
-                              ? lock.unlocked_at
-                                ? new Date(lock.unlocked_at).toLocaleString()
-                                : status.label === '已到期' ? '鎖定已到期' : getRemainingTime(lock.lock_until, countdownNow)
-                              : getRemainingTime(lock.lock_until, countdownNow)}
+                          <p className={`mt-1 flex min-w-0 items-center gap-1.5 font-bold ${showHistory ? `text-xs ${status.textClass}` : 'text-base text-orange-300'}`}>
+                            <Clock className={`h-4 w-4 shrink-0 ${showHistory ? status.textClass : 'text-orange-300'}`} />
+                            <span className="truncate whitespace-nowrap">
+                              {showHistory
+                                ? lock.unlocked_at
+                                  ? new Date(lock.unlocked_at).toLocaleString()
+                                  : status.label === '自動解除' ? '系統自動解除' : getRemainingTime(lock.lock_until, countdownNow)
+                                : getRemainingTime(lock.lock_until, countdownNow)}
+                            </span>
                           </p>
                         </div>
                         <div>
@@ -512,12 +515,12 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] pt-3 xl:w-[150px] xl:shrink-0 xl:flex-col xl:items-stretch xl:border-t-0 xl:pl-1 xl:pt-0">
+                      <div className={`flex flex-wrap items-center justify-between border-t border-white/[0.08] xl:w-[150px] xl:shrink-0 xl:flex-col xl:items-stretch xl:border-t-0 xl:pl-1 ${showHistory ? 'gap-2 pt-2.5 xl:pt-0' : 'gap-3 pt-3 xl:pt-0'}`}>
                         {showHistory ? (
                           lock.admin_username ? (
-                            <p className="truncate text-xs font-medium text-slate-400">解除管理員：<span className="text-sm font-semibold text-cyan-200">{lock.admin_username}</span></p>
+                            <p className="truncate text-xs font-medium text-emerald-300/80">手動解除：<span className="text-sm font-semibold text-emerald-200">{lock.admin_username}</span></p>
                           ) : (
-                            <p className="truncate text-xs font-medium text-slate-500">系統自動到期</p>
+                            <p className="truncate text-xs font-medium text-sky-300/80">系統自動解除</p>
                           )
                         ) : (
                           <>
