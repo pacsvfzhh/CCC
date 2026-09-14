@@ -2668,13 +2668,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </button>
             )}
           </div>
-          <div ref={adminFilterRef} className="relative h-full min-w-[135px] flex-[1_1_0%] border-r border-cyan-300/20">
+          <div ref={adminFilterRef} className="relative h-full min-w-[135px] flex-[1_1_0%] border-r border-cyan-300/20 bg-gradient-to-r from-blue-950/75 via-slate-900/80 to-cyan-950/55">
             <button
               type="button"
               onClick={() => setAdminFilterOpen((open) => !open)}
               aria-haspopup="listbox"
               aria-expanded={adminFilterOpen}
-              className={`group m-1 flex h-7 w-[calc(100%-0.5rem)] items-center gap-2 rounded-xl border px-2.5 text-xs font-semibold transition-all ${adminFilterOpen ? 'border-cyan-200/65 bg-gradient-to-r from-blue-700/95 via-cyan-700/80 to-blue-900/95 text-white shadow-[0_5px_16px_rgba(8,145,178,0.28)] ring-1 ring-inset ring-cyan-100/20' : 'border-cyan-300/25 bg-gradient-to-r from-blue-950/95 via-slate-900/95 to-cyan-950/75 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_3px_10px_rgba(2,6,23,0.28)] hover:border-cyan-300/55 hover:from-blue-900/95 hover:to-cyan-900/70'}`}
+              className={`group flex h-full w-full items-center gap-2 px-3 text-xs font-semibold transition-colors ${adminFilterOpen ? 'bg-gradient-to-r from-blue-700/70 via-cyan-700/55 to-blue-900/70 text-white shadow-inner shadow-cyan-950/30' : 'text-slate-100 hover:bg-cyan-500/10 hover:text-white'}`}
             >
               <Users className={`h-4 w-4 shrink-0 transition-colors ${adminFilterOpen ? 'text-cyan-100' : 'text-cyan-300'}`} />
               <span className="min-w-0 flex-1 truncate text-left font-semibold">{selectedGroupLabel}</span>
