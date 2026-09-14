@@ -875,7 +875,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 </button>
 
                 {dateMenuOpen && (
-                  <div className="absolute left-0 z-40 mt-2 w-full overflow-hidden rounded-xl border border-cyan-400/30 bg-slate-900/95 shadow-2xl shadow-cyan-950/60 ring-1 ring-white/10 backdrop-blur-xl">
+                  <div className="absolute left-0 z-40 mt-2 w-full overflow-hidden rounded-xl border border-cyan-300/45 bg-gradient-to-b from-slate-800 via-blue-950 to-cyan-950 shadow-2xl shadow-cyan-950/80 ring-1 ring-cyan-200/15">
                     <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-amber-400" />
                     <div className="flex items-center justify-between border-b border-slate-700/70 bg-gradient-to-r from-blue-950/80 via-cyan-950/45 to-slate-900/60 px-2.5 py-2">
                       <span className="text-[10px] font-semibold text-slate-300">日期数量</span>
