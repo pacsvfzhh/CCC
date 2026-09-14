@@ -1965,8 +1965,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     <div className="mt-0.5 flex items-center gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-semibold leading-5 text-cyan-100">{formatDateTime(latestLogin.created_at)}</p>
-                        <p className="flex items-center gap-1 truncate text-[10px] font-mono leading-4 text-slate-400">
-                          <MapPin className="h-3 w-3 shrink-0 text-slate-500" />
+                        <p className="flex items-center gap-1 truncate text-[10px] font-mono leading-4 text-amber-200">
+                          <MapPin className="h-3 w-3 shrink-0 text-amber-400" />
                           {latestLogin.ip_address || 'Unknown IP'}
                         </p>
                       </div>
@@ -1980,15 +1980,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   )}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setLoginIPEmployee(null)}
-                aria-label="Close login IP history"
-                className="absolute right-0 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white"
-              >
-                <X className="h-4 w-4" />
-              </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setLoginIPEmployee(null)}
+              aria-label="Close login IP history"
+              className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
           <div className="login-history-modal-scroll min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#0d1b2a_0%,#0a1521_100%)] p-4 sm:p-6">
             {loginIPLoading ? (
