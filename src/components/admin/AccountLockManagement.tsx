@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Shield, Unlock, AlertTriangle, Clock, User, RefreshCw, History } from 'lucide-react';
+import { Shield, Unlock, AlertTriangle, Clock, User, RefreshCw, History, Search, Users, ChevronDown, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { unlockAccount } from '../../lib/rateLimitService';
 import { Admin } from '../../types';
@@ -27,6 +27,12 @@ interface AccountLockManagementProps {
   onActiveLockCountChange: (count: number, nextExpiry: number | null) => void;
 }
 
+interface AdminGroupOption {
+  id: string;
+  username: string;
+  role: Admin['role'];
+}
+
 export default function AccountLockManagement({ admin, isActive, onActiveLockCountChange }: AccountLockManagementProps) {
   const [locks, setLocks] = useState<AccountLock[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,11 +44,18 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   const [historyLocks, setHistoryLocks] = useState<AccountLock[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAdminId, setSelectedAdminId] = useState('all');
+  const [adminGroups, setAdminGroups] = useState<AdminGroupOption[]>([]);
+  const [adminGroupsLoading, setAdminGroupsLoading] = useState(false);
+  const [groupMenuOpen, setGroupMenuOpen] = useState(false);
   const initialLoadStartedRef = useRef(false);
   const locksLoadingRef = useRef(false);
   const historyLoadedRef = useRef(false);
   const historyLoadingRef = useRef(false);
   const historyRpcUnavailableRef = useRef(false);
+  const adminGroupsLoadedRef = useRef(false);
+  const groupMenuRef = useRef<HTMLDivElement>(null);
 
   const loadLocks = useCallback(async (isInitial = false) => {
     if (locksLoadingRef.current) return;
@@ -196,6 +209,58 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   }, [admin.id]);
 
   useEffect(() => {
+    if (!isActive || admin.role !== 'super_admin' || adminGroupsLoadedRef.current) return;
+
+    let cancelled = false;
+    const loadAdminGroups = async () => {
+      setAdminGroupsLoading(true);
+      const { data, error } = await supabase
+        .from('admins')
+        .select('id, username, role')
+        .in('role', ['super_admin', 'secondary_admin', 'emergency_admin'])
+        .order('username', { ascending: true });
+
+      if (cancelled) return;
+
+      const rows: AdminGroupOption[] = error
+        ? [{ id: admin.id, username: admin.username, role: admin.role }]
+        : (data || []).map(row => ({
+            id: row.id,
+            username: row.username,
+            role: (row.role || 'secondary_admin') as Admin['role']
+          }));
+
+      if (error) {
+        console.warn('Failed to load administrator groups:', error);
+      }
+
+      const uniqueGroups = new Map(rows.map(row => [row.id, row]));
+      uniqueGroups.set(admin.id, { id: admin.id, username: admin.username, role: admin.role });
+      setAdminGroups(Array.from(uniqueGroups.values()).sort((a, b) => a.username.localeCompare(b.username)));
+      adminGroupsLoadedRef.current = true;
+      setAdminGroupsLoading(false);
+    };
+
+    void loadAdminGroups();
+    return () => {
+      cancelled = true;
+    };
+  }, [admin.id, admin.role, admin.username, isActive]);
+
+  useEffect(() => {
+    if (!groupMenuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (groupMenuRef.current && !groupMenuRef.current.contains(event.target as Node)) {
+        setGroupMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [groupMenuOpen]);
+
+  useEffect(() => {
     if (!isActive) return;
 
     setCountdownNow(Date.now());
@@ -309,15 +374,30 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
     return formatRemainingTime(seconds);
   };
 
-  const usernameLocks = locks.length;
-  const expiringSoon = locks.filter(lock => {
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
+  const selectedAdmin = adminGroups.find(group => group.id === selectedAdminId);
+  const filterLocks = (items: AccountLock[]) => items.filter(lock => {
+    const matchesAdmin = selectedAdminId === 'all'
+      || lock.admin_username?.toLocaleLowerCase() === selectedAdmin?.username.toLocaleLowerCase();
+    if (!matchesAdmin) return false;
+    if (!normalizedSearchQuery) return true;
+
+    return [lock.username, lock.employee_id, lock.identifier]
+      .filter(Boolean)
+      .some(value => value!.toLocaleLowerCase().includes(normalizedSearchQuery));
+  });
+  const filteredLocks = filterLocks(locks);
+  const filteredHistoryLocks = filterLocks(historyLocks);
+  const visibleLocks = showHistory ? filteredHistoryLocks : filteredLocks;
+  const hasActiveFilters = Boolean(normalizedSearchQuery) || selectedAdminId !== 'all';
+  const isInitialHistoryLoading = showHistory && historyLoading && !historyLoadedRef.current;
+  const usernameLocks = filteredLocks.length;
+  const expiringSoon = filteredLocks.filter(lock => {
     const remaining = new Date(lock.lock_until).getTime() - Date.now();
     return remaining > 0 && remaining <= 30 * 60 * 1000;
   }).length;
-  const visibleLocks = showHistory ? historyLocks : locks;
-  const isInitialHistoryLoading = showHistory && historyLoading && !historyLoadedRef.current;
-  const manuallyResolvedHistoryCount = historyLocks.filter(lock => Boolean(lock.unlocked_by)).length;
-  const automaticallyResolvedHistoryCount = historyLocks.filter(
+  const manuallyResolvedHistoryCount = filteredHistoryLocks.filter(lock => Boolean(lock.unlocked_by)).length;
+  const automaticallyResolvedHistoryCount = filteredHistoryLocks.filter(
     lock => !lock.unlocked_by && new Date(lock.lock_until).getTime() <= Date.now()
   ).length;
   const getLockStatus = (lock: AccountLock, currentTime: number) => {
@@ -375,6 +455,9 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
     setShowHistory(false);
   };
 
+  const selectedGroupLabel = selectedAdminId === 'all'
+    ? '總分組'
+    : selectedAdmin?.username || '管理員分組';
   const isRefreshing = refreshing || historyLoading;
 
   if (loading) {
@@ -400,7 +483,58 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
               <Shield className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">{showHistory ? '歷史鎖定記錄' : '已鎖定帳戶'}</h1>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">{showHistory ? '歷史鎖定記錄' : '已鎖定帳戶'}</h1>
+                {admin.role === 'super_admin' && (
+                  <div ref={groupMenuRef} className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setGroupMenuOpen(open => !open)}
+                      disabled={adminGroupsLoading}
+                      aria-expanded={groupMenuOpen}
+                      aria-haspopup="listbox"
+                      className="inline-flex h-8 max-w-[220px] items-center gap-2 rounded-lg border border-cyan-300/35 bg-cyan-400/[0.08] px-2.5 text-[11px] font-bold text-cyan-100 transition-colors hover:border-cyan-200/65 hover:bg-cyan-400/[0.16] disabled:cursor-wait disabled:opacity-70"
+                    >
+                      <Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                      <span className="truncate">{adminGroupsLoading ? '載入分組...' : selectedGroupLabel}</span>
+                      <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-300 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {groupMenuOpen && !adminGroupsLoading && (
+                      <div className="absolute left-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-950/95 p-1.5 shadow-[0_18px_45px_rgba(2,6,23,0.6)] backdrop-blur-xl">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedAdminId('all');
+                            setGroupMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${selectedAdminId === 'all' ? 'bg-cyan-400/15 text-cyan-100' : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'}`}
+                          role="option"
+                          aria-selected={selectedAdminId === 'all'}
+                        >
+                          <span className="flex min-w-0 items-center gap-2"><Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />總分組</span>
+                          {selectedAdminId === 'all' && <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />}
+                        </button>
+                        {adminGroups.map(group => (
+                          <button
+                            key={group.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedAdminId(group.id);
+                              setGroupMenuOpen(false);
+                            }}
+                            className={`mt-0.5 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${selectedAdminId === group.id ? 'bg-cyan-400/15 text-cyan-100' : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'}`}
+                            role="option"
+                            aria-selected={selectedAdminId === group.id}
+                          >
+                            <span className="flex min-w-0 items-center gap-2"><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[9px] font-black ${group.role === 'super_admin' ? 'bg-amber-400/15 text-amber-200' : 'bg-cyan-400/15 text-cyan-200'}`}>{group.username.slice(0, 1).toUpperCase()}</span><span className="min-w-0 truncate">{group.username}</span></span>
+                            {selectedAdminId === group.id && <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <p className="mt-0.5 text-xs text-slate-400">{showHistory ? '檢視歷史帳戶防護鎖定記錄。' : '檢視目前的帳戶防護鎖定記錄。'}</p>
             </div>
           </div>
@@ -445,6 +579,33 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
               <span>{isRefreshing ? '刷新中...' : '刷新'}</span>
             </button>
           </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2.5 lg:flex-row lg:items-center">
+          <label className="group flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-slate-700/80 bg-slate-950/45 px-3.5 text-slate-300 transition-colors focus-within:border-cyan-300/60 focus-within:bg-slate-950/70 focus-within:ring-2 focus-within:ring-cyan-300/10">
+            <Search className="h-4 w-4 shrink-0 text-cyan-300/75 transition-colors group-focus-within:text-cyan-200" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={event => setSearchQuery(event.target.value)}
+              placeholder="搜尋員工帳戶或員工 ID..."
+              aria-label="搜尋員工帳戶或員工 ID"
+              className="min-w-0 flex-1 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="rounded-md p-1 text-slate-500 transition-colors hover:bg-white/[0.08] hover:text-slate-200"
+                aria-label="清除搜尋"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </label>
+          <span className={`inline-flex h-10 shrink-0 items-center rounded-xl border px-3 text-xs font-semibold ${showHistory ? 'border-violet-300/20 bg-violet-400/[0.08] text-violet-200/80' : 'border-orange-300/20 bg-orange-400/[0.08] text-orange-200/80'}`}>
+            {normalizedSearchQuery || selectedAdminId !== 'all' ? `已篩選 ${visibleLocks.length} 筆` : '搜尋與分組篩選同步套用'}
+          </span>
         </div>
 
         <div className={`mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border px-3 py-2.5 sm:px-4 ${showHistory ? 'border-violet-300/25 bg-violet-500/[0.08] shadow-[0_8px_24px_rgba(139,92,246,0.08)]' : 'border-orange-300/25 bg-orange-500/[0.08] shadow-[0_8px_24px_rgba(245,158,11,0.08)]'}`}>
@@ -508,7 +669,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         ) : (
           <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center text-slate-400">
           <Shield className="h-12 w-12 text-emerald-300/45" />
-          <p className="mt-4 text-base font-semibold text-slate-200">{showHistory ? '目前沒有歷史鎖定記錄' : '目前沒有被鎖定的帳戶'}</p>
+          <p className="mt-4 text-base font-semibold text-slate-200">{hasActiveFilters ? '沒有符合篩選條件的記錄' : showHistory ? '目前沒有歷史鎖定記錄' : '目前沒有被鎖定的帳戶'}</p>
           <p className="mt-1 text-xs text-slate-500">{showHistory ? '員工帳戶的過往防護鎖定會顯示在這裡。' : '系統偵測到異常登入行為時，會自動顯示防護記錄。'}</p>
           </div>
         )
