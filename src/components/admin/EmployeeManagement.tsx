@@ -2668,35 +2668,34 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </button>
             )}
           </div>
-          <div ref={adminFilterRef} className="relative h-full min-w-[135px] flex-[1_1_0%] border-r border-cyan-300/25 bg-gradient-to-b from-blue-950/25 to-slate-950/20">
+          <div ref={adminFilterRef} className="relative h-full min-w-[135px] flex-[1_1_0%] border-r border-cyan-300/20">
             <button
               type="button"
               onClick={() => setAdminFilterOpen((open) => !open)}
               aria-haspopup="listbox"
               aria-expanded={adminFilterOpen}
-              className={`group m-1 flex h-7 w-[calc(100%-0.5rem)] items-center gap-2 rounded-lg border px-2.5 text-xs font-semibold transition-all ${adminFilterOpen ? 'border-cyan-200/60 bg-gradient-to-r from-blue-700/90 via-cyan-700/70 to-blue-900/80 text-white shadow-lg shadow-cyan-950/40 ring-1 ring-inset ring-cyan-100/20' : 'border-cyan-300/20 bg-gradient-to-r from-blue-950/80 via-slate-900/80 to-cyan-950/50 text-slate-100 shadow-inner shadow-black/20 hover:border-cyan-300/45 hover:from-blue-900/80 hover:to-cyan-900/55'}`}
+              className={`group m-1 flex h-7 w-[calc(100%-0.5rem)] items-center gap-2 rounded-xl border px-2.5 text-xs font-semibold transition-all ${adminFilterOpen ? 'border-cyan-200/65 bg-gradient-to-r from-blue-700/95 via-cyan-700/80 to-blue-900/95 text-white shadow-[0_5px_16px_rgba(8,145,178,0.28)] ring-1 ring-inset ring-cyan-100/20' : 'border-cyan-300/25 bg-gradient-to-r from-blue-950/95 via-slate-900/95 to-cyan-950/75 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_3px_10px_rgba(2,6,23,0.28)] hover:border-cyan-300/55 hover:from-blue-900/95 hover:to-cyan-900/70'}`}
             >
-              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${adminFilterOpen ? 'border-cyan-200/35 bg-cyan-300/15 text-cyan-100' : 'border-cyan-300/20 bg-cyan-400/10 text-cyan-300'}`}>
-                <Users className="h-3.5 w-3.5" />
-              </span>
+              <Users className={`h-4 w-4 shrink-0 transition-colors ${adminFilterOpen ? 'text-cyan-100' : 'text-cyan-300'}`} />
               <span className="min-w-0 flex-1 truncate text-left font-semibold">{selectedGroupLabel}</span>
               <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200/80 transition-transform duration-200 ${adminFilterOpen ? 'rotate-180 text-cyan-100' : ''}`} />
             </button>
             {adminFilterOpen && (
-              <div className="isolate absolute left-0 top-[calc(100%+0.35rem)] z-[60] w-[280px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-cyan-200/40 bg-gradient-to-b from-slate-800 via-blue-950 to-slate-950 p-1.5 shadow-[0_18px_45px_rgba(2,6,23,0.72)] ring-1 ring-inset ring-white/10" style={{ backgroundColor: '#0f172a' }}>
-                <div className="mb-1.5 flex items-center justify-between rounded-xl border border-cyan-300/15 bg-gradient-to-r from-blue-950/75 via-cyan-950/30 to-slate-900/75 px-3 py-2.5">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-400/10 text-cyan-200">
-                      <Users className="h-4 w-4" />
-                    </span>
+              <div className="isolate absolute left-0 top-[calc(100%+0.3rem)] z-[60] w-[252px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-cyan-200/45 bg-gradient-to-b from-slate-800 via-blue-950 to-slate-950 p-1 shadow-[0_16px_36px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10" style={{ backgroundColor: '#0f172a' }}>
+                <div className="mb-1 flex items-center justify-between rounded-lg border border-cyan-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/30 to-slate-900/80 px-2.5 py-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Users className="h-4 w-4 shrink-0 text-cyan-200" />
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300">Employee groups</p>
-                      <p className="mt-0.5 truncate text-[11px] text-slate-400">Switch the visible group</p>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-cyan-300">Employee groups</p>
+                      <p className="mt-0.5 truncate text-[10px] text-slate-400">Switch the visible group</p>
                     </div>
                   </div>
-                  <span className="shrink-0 rounded-lg border border-cyan-300/25 bg-cyan-400/10 px-2 py-1 text-xs font-bold tabular-nums text-cyan-100">{employeeGroups.length}</span>
+                  <span className="inline-flex h-6 min-w-[38px] shrink-0 items-center justify-center gap-1 rounded-md border border-cyan-200/35 bg-gradient-to-b from-cyan-300/20 to-blue-500/15 px-2 text-[11px] font-extrabold tabular-nums text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_2px_6px_rgba(8,145,178,0.2)]">
+                    <span className="text-[8px] font-bold uppercase tracking-wide text-cyan-200/70">total</span>
+                    {employeeGroups.length}
+                  </span>
                 </div>
-                <div role="listbox" aria-label="Filter employee group" className="max-h-[calc(100vh-9rem)] min-h-[120px] overflow-y-auto overscroll-contain scrollbar-dark">
+                <div role="listbox" aria-label="Filter employee group" className="max-h-[calc(100vh-9rem)] min-h-[112px] overflow-y-auto overscroll-contain scrollbar-dark">
                   <button
                     type="button"
                     role="option"
@@ -2706,11 +2705,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       setExpandedGroups(new Set(employeeGroups.map(group => group.admin.id)));
                       setAdminFilterOpen(false);
                     }}
-                    className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all ${selectedAdminFilter === 'all' ? 'border-cyan-300/35 bg-gradient-to-r from-cyan-500/20 via-blue-500/15 to-transparent text-cyan-50 shadow-sm shadow-cyan-950/30' : 'border-transparent text-slate-200 hover:border-cyan-300/20 hover:bg-slate-800/80 hover:text-white'}`}
+                    className={`group flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-all ${selectedAdminFilter === 'all' ? 'border-cyan-300/40 bg-gradient-to-r from-cyan-500/20 via-blue-500/15 to-transparent text-cyan-50 shadow-sm shadow-cyan-950/30' : 'border-transparent text-slate-200 hover:border-cyan-300/20 hover:bg-slate-800/80 hover:text-white'}`}
                   >
-                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[10px] font-black ${selectedAdminFilter === 'all' ? 'border-cyan-200/35 bg-cyan-300/15 text-cyan-100' : 'border-slate-600/70 bg-slate-800/80 text-slate-400'}`}>ALL</span>
-                    <span className="min-w-0 flex-1 truncate font-semibold">All groups</span>
-                    <span className={`inline-flex min-w-[42px] items-center justify-center rounded-lg border px-2 py-1 text-xs font-bold leading-none tabular-nums ${selectedAdminFilter === 'all' ? 'border-cyan-200/50 bg-cyan-300/20 text-cyan-50' : 'border-slate-600/80 bg-slate-800 text-cyan-100'}`}>{totalEmployeeCount}</span>
+                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[9px] font-black ${selectedAdminFilter === 'all' ? 'border-cyan-200/35 bg-cyan-300/15 text-cyan-100' : 'border-slate-600/70 bg-slate-800/80 text-slate-400'}`}>ALL</span>
+                    <span className="min-w-0 flex-1 truncate text-xs font-semibold">All groups</span>
+                    <span className={`inline-flex h-6 min-w-[42px] shrink-0 items-center justify-center rounded-md border px-2 text-xs font-extrabold leading-none tabular-nums shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ${selectedAdminFilter === 'all' ? 'border-cyan-200/55 bg-gradient-to-b from-cyan-300/25 to-blue-500/15 text-cyan-50' : 'border-slate-600/80 bg-slate-800/90 text-cyan-100'}`}>{totalEmployeeCount}</span>
                   </button>
                   <div className="my-1.5 h-px bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent" />
                   {employeeGroups.map((group) => {
@@ -2726,11 +2725,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           setExpandedGroups(new Set([group.admin.id]));
                           setAdminFilterOpen(false);
                         }}
-                        className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all ${isSelected ? 'border-cyan-300/35 bg-gradient-to-r from-cyan-500/20 via-blue-500/15 to-transparent text-cyan-50 shadow-sm shadow-cyan-950/30' : 'border-transparent text-slate-200 hover:border-cyan-300/20 hover:bg-slate-800/80 hover:text-white'}`}
+                        className={`group flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-all ${isSelected ? 'border-cyan-300/40 bg-gradient-to-r from-cyan-500/20 via-blue-500/15 to-transparent text-cyan-50 shadow-sm shadow-cyan-950/30' : 'border-transparent text-slate-200 hover:border-cyan-300/20 hover:bg-slate-800/80 hover:text-white'}`}
                       >
-                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[10px] font-black uppercase ${isSelected ? 'border-cyan-200/35 bg-cyan-300/15 text-cyan-100' : 'border-slate-600/70 bg-slate-800/80 text-slate-400'}`}>{group.admin.username.slice(0, 1)}</span>
-                        <span className="min-w-0 flex-1 truncate font-medium" title={group.admin.username}>{group.admin.username}</span>
-                        <span className={`inline-flex min-w-[42px] items-center justify-center rounded-lg border px-2 py-1 text-xs font-bold leading-none tabular-nums ${isSelected ? 'border-cyan-200/50 bg-cyan-300/20 text-cyan-50' : 'border-slate-600/80 bg-slate-800 text-cyan-100'}`}>{group.employees.length}</span>
+                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[9px] font-black uppercase ${isSelected ? 'border-cyan-200/35 bg-cyan-300/15 text-cyan-100' : 'border-slate-600/70 bg-slate-800/80 text-slate-400'}`}>{group.admin.username.slice(0, 1)}</span>
+                        <span className="min-w-0 flex-1 truncate text-xs font-medium" title={group.admin.username}>{group.admin.username}</span>
+                        <span className={`inline-flex h-6 min-w-[42px] shrink-0 items-center justify-center rounded-md border px-2 text-xs font-extrabold leading-none tabular-nums shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ${isSelected ? 'border-cyan-200/55 bg-gradient-to-b from-cyan-300/25 to-blue-500/15 text-cyan-50' : 'border-slate-600/80 bg-slate-800/90 text-cyan-100'}`}>{group.employees.length}</span>
                       </button>
                     );
                   })}
