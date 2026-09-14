@@ -2184,7 +2184,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <Pin className={`w-3 h-3 ${employee.is_pinned ? 'fill-current' : ''}`} />
         </button>
       </td>
-      <td className="group/withdrawal relative w-[128px] overflow-visible py-0.5 px-1 whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>
+      <td className="group/withdrawal relative w-[116px] overflow-visible py-0.5 px-1 whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>
         <div className="flex min-w-0 flex-col">
           <div className="flex min-w-0 items-center gap-0.5">
             <span title={employee.username} className={`block max-w-full truncate text-xs font-medium ${!employee.is_active ? 'text-red-400' : employee.hasPendingWithdrawal ? 'text-orange-400' : 'text-white'}`}>{employee.username}</span>
@@ -2229,8 +2229,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           )}
         </div>
       </td>
-      <td title={employee.employee_id} className="w-[112px] max-w-[112px] overflow-hidden text-ellipsis py-0.5 px-1 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
-      <td className="w-[62px] py-0.5 px-1 text-[10px] text-emerald-400 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+      <td title={employee.employee_id} className="w-[100px] max-w-[100px] overflow-hidden text-ellipsis py-0.5 px-1 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
+      <td className="w-[72px] py-0.5 px-1 text-[10px] text-emerald-400 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
         <span>{employee.created_at ? new Date(employee.created_at).toLocaleDateString('en-CA') : '-'}</span>
         <button
           onClick={() => {
@@ -2244,7 +2244,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <Pencil className="w-2.5 h-2.5" />
         </button>
       </td>
-      <td className="w-[40px] py-0.5 px-1 relative group/ver">
+      <td className="w-[48px] py-0.5 px-1 relative group/ver">
         <button
           onClick={(e) => { e.stopPropagation(); toggleVerification(employee.id, employee.is_verified, employee.username); }}
           className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -2266,7 +2266,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           </div>
         )}
       </td>
-      <td className="w-[44px] py-0.5 px-1">
+      <td className="w-[52px] py-0.5 px-1">
         <button
           onClick={(e) => { e.stopPropagation(); toggleEmployeeStatus(employee.id, employee.is_active, employee.username); }}
           className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -2275,6 +2275,19 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         >
           {employee.is_active ? 'Active' : 'Off'}
         </button>
+      </td>
+      <td className="w-[66px] py-0.5 px-1 relative group/remarks" onClick={(e) => e.stopPropagation()}>
+        <div className="flex min-w-0 items-center gap-0.5 max-w-[66px]">
+          <span className="text-xs text-blue-400 truncate flex-1">{employee.remarks || '-'}</span>
+          <button onClick={() => setEditingRemarksOnly(employee)} className="opacity-0 group-hover/remarks:opacity-100 transition-opacity flex-shrink-0">
+            <Pencil className="w-2.5 h-2.5 text-slate-500 hover:text-blue-400" />
+          </button>
+        </div>
+        {employee.remarks && employee.remarks.length > 8 && (
+          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 hidden group-hover/remarks:block rounded-lg border border-blue-300 bg-blue-100 px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-blue-950">
+            {employee.remarks}
+          </div>
+        )}
       </td>
       <td className="w-[88px] py-0.5 px-1 relative group/tags" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-0.5 max-w-[88px] min-w-0 overflow-hidden whitespace-nowrap">
@@ -2295,19 +2308,6 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 <span key={idx} className="rounded-full border border-amber-700 bg-amber-900 px-1.5 py-px text-[10px] font-medium text-amber-100">{tag}</span>
               ))}
             </div>
-          </div>
-        )}
-      </td>
-      <td className="w-[66px] py-0.5 px-1 relative group/remarks" onClick={(e) => e.stopPropagation()}>
-        <div className="flex min-w-0 items-center gap-0.5 max-w-[66px]">
-          <span className="text-xs text-blue-400 truncate flex-1">{employee.remarks || '-'}</span>
-          <button onClick={() => setEditingRemarksOnly(employee)} className="opacity-0 group-hover/remarks:opacity-100 transition-opacity flex-shrink-0">
-            <Pencil className="w-2.5 h-2.5 text-slate-500 hover:text-blue-400" />
-          </button>
-        </div>
-        {employee.remarks && employee.remarks.length > 8 && (
-          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 hidden group-hover/remarks:block rounded-lg border border-blue-300 bg-blue-100 px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-blue-950">
-            {employee.remarks}
           </div>
         )}
       </td>
@@ -2419,13 +2419,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
       <tr className="h-[40px]">
         <th className="w-[54px] px-1.5 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
-        <th className="w-[128px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">User</th>
-        <th className="w-[112px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Emp ID</th>
-        {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[62px]')}
-        <th className="h-[40px] w-[40px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Ver</th>
-        <th className="h-[40px] w-[44px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Status</th>
-        <th className="h-[40px] w-[88px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Tags</th>
+        <th className="w-[116px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">User</th>
+        <th className="w-[100px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Emp ID</th>
+        {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[72px]')}
+        <th className="h-[40px] w-[48px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Ver</th>
+        <th className="h-[40px] w-[52px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Status</th>
         <th className="h-[40px] w-[66px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Remarks</th>
+        <th className="h-[40px] w-[88px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Tags</th>
         {renderSortableHeader(adminId, 'totalOrders', 'Total', 'w-[41px]')}
         {renderSortableHeader(adminId, 'todayOrders', 'Today', 'w-[41px]')}
         {renderSortableHeader(adminId, 'todayCompletedOrders', 'Success', 'w-[45px]')}
