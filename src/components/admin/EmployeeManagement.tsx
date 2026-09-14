@@ -2244,10 +2244,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <Pencil className="w-2.5 h-2.5" />
         </button>
       </td>
-      <td className="w-[44px] py-0.5 pl-1 pr-0.5 relative group/ver">
+      <td className="w-[44px] py-0.5 pl-1 pr-0.5 align-middle relative group/ver">
         <button
           onClick={(e) => { e.stopPropagation(); toggleVerification(employee.id, employee.is_verified, employee.username); }}
-          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+          className={`inline-flex h-5 items-center justify-center gap-0.5 px-1.5 py-0.5 align-middle leading-none rounded text-[10px] font-medium ${
             employee.is_verified ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
           }`}
         >
@@ -2266,10 +2266,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           </div>
         )}
       </td>
-      <td className="w-[48px] py-0.5 pl-0.5 pr-1">
+      <td className="w-[48px] py-0.5 pl-0.5 pr-1 align-middle">
         <button
           onClick={(e) => { e.stopPropagation(); toggleEmployeeStatus(employee.id, employee.is_active, employee.username); }}
-          className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+          className={`inline-flex h-5 items-center justify-center px-1.5 py-0.5 align-middle leading-none rounded text-[10px] font-medium ${
             employee.is_active ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
           }`}
         >
