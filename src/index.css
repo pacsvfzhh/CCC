@@ -51,6 +51,34 @@
   scrollbar-color: #3b82f6 transparent;
 }
 
+.login-history-modal-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 211, 238, 0.65) rgba(8, 47, 73, 0.72);
+}
+
+.login-history-modal-scroll::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.login-history-modal-scroll::-webkit-scrollbar-track {
+  background: rgba(8, 47, 73, 0.72);
+  border-left: 1px solid rgba(34, 211, 238, 0.08);
+  border-radius: 999px;
+}
+
+.login-history-modal-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(8, 47, 73, 0.72);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(103, 232, 249, 0.85), rgba(6, 182, 212, 0.7) 52%, rgba(37, 99, 235, 0.72));
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.25);
+}
+
+.login-history-modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(165, 243, 252, 0.95), rgba(34, 211, 238, 0.85) 52%, rgba(59, 130, 246, 0.9));
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.45);
+}
+
 /* High-visibility scrollbar for the super-admin employee workspace */
 .employee-super-admin-scrollbar {
   scrollbar-width: auto;
