@@ -538,7 +538,28 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
               <p className="mt-0.5 text-xs text-slate-400">{showHistory ? '檢視歷史帳戶防護鎖定記錄。' : '檢視目前的帳戶防護鎖定記錄。'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center justify-end gap-2.5">
+            <label className="group flex h-10 w-[180px] items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-950/45 px-3 text-slate-300 transition-colors focus-within:border-cyan-300/60 focus-within:bg-slate-950/70 focus-within:ring-2 focus-within:ring-cyan-300/10 sm:w-[220px]">
+              <Search className="h-4 w-4 shrink-0 text-cyan-300/75 transition-colors group-focus-within:text-cyan-200" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={event => setSearchQuery(event.target.value)}
+                placeholder="搜尋帳戶或 ID"
+                aria-label="搜尋員工帳戶或員工 ID"
+                className="min-w-0 flex-1 bg-transparent text-xs text-slate-100 outline-none placeholder:text-slate-500"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="rounded-md p-1 text-slate-500 transition-colors hover:bg-white/[0.08] hover:text-slate-200"
+                  aria-label="清除搜尋"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </label>
             <button
               type="button"
               onClick={handleShowCurrentLocks}
@@ -579,33 +600,6 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
               <span>{isRefreshing ? '刷新中...' : '刷新'}</span>
             </button>
           </div>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-2.5 lg:flex-row lg:items-center">
-          <label className="group flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-slate-700/80 bg-slate-950/45 px-3.5 text-slate-300 transition-colors focus-within:border-cyan-300/60 focus-within:bg-slate-950/70 focus-within:ring-2 focus-within:ring-cyan-300/10">
-            <Search className="h-4 w-4 shrink-0 text-cyan-300/75 transition-colors group-focus-within:text-cyan-200" />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={event => setSearchQuery(event.target.value)}
-              placeholder="搜尋員工帳戶或員工 ID..."
-              aria-label="搜尋員工帳戶或員工 ID"
-              className="min-w-0 flex-1 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="rounded-md p-1 text-slate-500 transition-colors hover:bg-white/[0.08] hover:text-slate-200"
-                aria-label="清除搜尋"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </label>
-          <span className={`inline-flex h-10 shrink-0 items-center rounded-xl border px-3 text-xs font-semibold ${showHistory ? 'border-violet-300/20 bg-violet-400/[0.08] text-violet-200/80' : 'border-orange-300/20 bg-orange-400/[0.08] text-orange-200/80'}`}>
-            {normalizedSearchQuery || selectedAdminId !== 'all' ? `已篩選 ${visibleLocks.length} 筆` : '搜尋與分組篩選同步套用'}
-          </span>
         </div>
 
         <div className={`mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border px-3 py-2.5 sm:px-4 ${showHistory ? 'border-violet-300/25 bg-violet-500/[0.08] shadow-[0_8px_24px_rgba(139,92,246,0.08)]' : 'border-orange-300/25 bg-orange-500/[0.08] shadow-[0_8px_24px_rgba(245,158,11,0.08)]'}`}>
