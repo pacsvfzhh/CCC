@@ -19,6 +19,7 @@ interface AccountLock {
   employee_id: string | null;
   lock_ip: string | null;
   admin_username: string | null;
+  owner_admin_id?: string | null;
 }
 
 interface AccountLockManagementProps {
@@ -92,15 +93,17 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
           .filter((userId): userId is string => Boolean(userId))
       )];
       const employeeIdsByUserId = new Map<string, string>();
+      const ownerAdminIdsByUserId = new Map<string, string>();
 
-      if (userIds.length > 0 && accountLocks.some(lock => !lock.employee_id)) {
+      if (userIds.length > 0) {
         const { data: employeeRows } = await supabase
           .from('users')
-          .select('id, employee_id')
+          .select('id, employee_id, created_by')
           .in('id', userIds);
 
         employeeRows?.forEach(employee => {
           employeeIdsByUserId.set(employee.id, employee.employee_id);
+          ownerAdminIdsByUserId.set(employee.id, employee.created_by);
         });
       }
 
@@ -131,6 +134,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
       const locksWithEmployeeIds = accountLocks.map(lock => ({
         ...lock,
         employee_id: lock.employee_id ?? employeeIdsByUserId.get(lock.user_id ?? '') ?? null,
+        owner_admin_id: ownerAdminIdsByUserId.get(lock.user_id ?? '') ?? null,
         lock_ip: lock.lock_ip ?? lockIpsByIdentifier.get(lock.identifier) ?? null
       }));
       const nextLockExpiry = accountLocks.length > 0
@@ -195,7 +199,32 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         historyData = fallback.data || [];
       }
 
-      setHistoryLocks(historyData.filter(lock => lock.identifier_type === 'username'));
+      const historyUserIds = [...new Set(
+        historyData
+          .map(lock => lock.user_id)
+          .filter((userId): userId is string => Boolean(userId))
+      )];
+      const ownerAdminIdsByUserId = new Map<string, string>();
+
+      if (historyUserIds.length > 0) {
+        const { data: historyEmployeeRows } = await supabase
+          .from('users')
+          .select('id, created_by')
+          .in('id', historyUserIds);
+
+        historyEmployeeRows?.forEach(employee => {
+          ownerAdminIdsByUserId.set(employee.id, employee.created_by);
+        });
+      }
+
+      setHistoryLocks(
+        historyData
+          .filter(lock => lock.identifier_type === 'username')
+          .map(lock => ({
+            ...lock,
+            owner_admin_id: ownerAdminIdsByUserId.get(lock.user_id ?? '') ?? null
+          }))
+      );
       historyLoadedRef.current = true;
     } catch (error) {
       console.error('Failed to load lock history:', error);
@@ -378,7 +407,8 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   const selectedAdmin = adminGroups.find(group => group.id === selectedAdminId);
   const filterLocks = (items: AccountLock[]) => items.filter(lock => {
     const matchesAdmin = selectedAdminId === 'all'
-      || lock.admin_username?.toLocaleLowerCase() === selectedAdmin?.username.toLocaleLowerCase();
+      || lock.owner_admin_id === selectedAdminId
+      || (!lock.owner_admin_id && lock.admin_username?.toLocaleLowerCase() === selectedAdmin?.username.toLocaleLowerCase());
     if (!matchesAdmin) return false;
     if (!normalizedSearchQuery) return true;
 
