@@ -185,6 +185,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const pendingReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextAutoRefreshAtRef = useRef(Date.now() + AUTO_REFRESH_INTERVAL_MS);
+  const withdrawalDateRefreshAttemptedRef = useRef(false);
   const guardedLoadEmployeesRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
 
   const resetAutoRefreshTimer = useCallback((delayMs = AUTO_REFRESH_INTERVAL_MS) => {
@@ -454,6 +455,18 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       clearInterval(timeUpdateInterval);
     };
   }, [resetAutoRefreshTimer]);
+
+  useEffect(() => {
+    if (loading || employeeGroups.length === 0 || withdrawalDateRefreshAttemptedRef.current) return;
+
+    const hasPendingWithdrawalWithoutDate = employeeGroups.some(group =>
+      group.employees.some(employee => employee.hasPendingWithdrawal && !employee.pendingWithdrawalDate)
+    );
+
+    if (!hasPendingWithdrawalWithoutDate) return;
+    withdrawalDateRefreshAttemptedRef.current = true;
+    void guardedLoadEmployeesRef.current?.(true);
+  }, [employeeGroups, loading]);
 
   const formatTime = useCallback((minutes: number): string => {
     const hours = Math.floor(minutes / 60);
