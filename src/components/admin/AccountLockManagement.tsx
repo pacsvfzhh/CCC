@@ -351,14 +351,14 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden text-slate-100">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_88%_0%,rgba(245,158,11,0.1),transparent_62%),radial-gradient(ellipse_55%_65%_at_10%_100%,rgba(14,116,144,0.08),transparent_68%)]" />
-      <div className="relative shrink-0 border-b border-orange-400/15 px-4 py-4 sm:px-6 lg:px-8">
+      <div className={`relative shrink-0 border-b px-4 py-4 sm:px-6 lg:px-8 ${showHistory ? 'border-violet-400/20' : 'border-orange-400/15'}`}>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-orange-300/25 bg-orange-400/10 text-orange-300 shadow-[0_0_24px_rgba(245,158,11,0.12)]">
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${showHistory ? 'border border-violet-300/30 bg-violet-400/10 text-violet-300 shadow-[0_0_24px_rgba(139,92,246,0.14)]' : 'border border-orange-300/25 bg-orange-400/10 text-orange-300 shadow-[0_0_24px_rgba(245,158,11,0.12)]'}`}>
               <Shield className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-300/80">存取防護</p>
+              <p className={`text-[10px] font-bold uppercase tracking-[0.2em] ${showHistory ? 'text-violet-300/80' : 'text-orange-300/80'}`}>存取防護</p>
               <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">{showHistory ? '歷史鎖定記錄' : '已鎖定帳戶'}</h1>
               <p className="mt-0.5 text-xs text-slate-400">{showHistory ? '檢視歷史帳戶防護鎖定記錄。' : '檢視目前的帳戶防護鎖定記錄。'}</p>
             </div>
@@ -408,18 +408,18 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-orange-300/25 bg-orange-500/[0.08] px-3 py-2.5 shadow-[0_8px_24px_rgba(245,158,11,0.08)] sm:px-4">
+        <div className={`mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border px-3 py-2.5 sm:px-4 ${showHistory ? 'border-violet-300/25 bg-violet-500/[0.08] shadow-[0_8px_24px_rgba(139,92,246,0.08)]' : 'border-orange-300/25 bg-orange-500/[0.08] shadow-[0_8px_24px_rgba(245,158,11,0.08)]'}`}>
           {showHistory ? (
             <>
               <div className="flex items-baseline gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.85)]" />
-                <span className="text-[10px] font-bold tracking-wide text-orange-100/85">歷史鎖定</span>
-                <span className="text-lg font-bold leading-none text-orange-50">{historyLocks.length}</span>
+                <span className="h-2 w-2 rounded-full bg-violet-300 shadow-[0_0_9px_rgba(196,181,253,0.9)]" />
+                <span className="text-[10px] font-bold tracking-wide text-violet-100/90">歷史鎖定</span>
+                <span className="text-lg font-bold leading-none text-violet-50">{historyLocks.length}</span>
               </div>
-              <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
+              <span className="hidden h-4 w-px bg-violet-200/25 sm:block" />
               <div className="flex items-baseline gap-2">
-                <span className="text-[10px] font-bold tracking-wide text-orange-100/75">已解除</span>
-                <span className="text-sm font-bold leading-none text-orange-50">{resolvedHistoryCount}</span>
+                <span className="text-[10px] font-bold tracking-wide text-violet-100/80">已解除</span>
+                <span className="text-sm font-bold leading-none text-violet-50">{resolvedHistoryCount}</span>
               </div>
             </>
           ) : (
@@ -465,11 +465,15 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
         <div className="relative min-h-0 flex-1 overflow-y-auto dark-panel-scroll px-4 pb-6 pt-4 sm:px-6 lg:px-8">
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-300/80">{showHistory ? '歷史清單' : '防護清單'}</p>
+              <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${showHistory ? 'text-violet-300/85' : 'text-orange-300/80'}`}>{showHistory ? '歷史清單' : '防護清單'}</p>
               <p className="mt-1 text-xs text-slate-500">{showHistory ? '查看員工帳戶過往的鎖定與解除記錄' : '目前仍生效的帳戶鎖定記錄'}</p>
             </div>
-            <span className="rounded-full border border-orange-300/20 bg-orange-400/[0.08] px-2.5 py-1 text-[10px] font-semibold text-orange-200/80">
-              {visibleLocks.length} 筆記錄
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold ${showHistory
+              ? 'border-violet-300/35 bg-violet-500/[0.12] text-violet-200 shadow-[0_0_18px_rgba(139,92,246,0.14)]'
+              : 'border-orange-300/20 bg-orange-400/[0.08] text-orange-200/80'
+            }`}>
+              {showHistory && <History className="h-3.5 w-3.5 text-violet-300" />}
+              <span className={showHistory ? 'text-sm font-bold text-violet-100' : undefined}>{visibleLocks.length} 筆記錄</span>
             </span>
           </div>
           <div className="space-y-3">
