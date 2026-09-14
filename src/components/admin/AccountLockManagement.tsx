@@ -23,9 +23,10 @@ interface AccountLock {
 
 interface AccountLockManagementProps {
   admin: Admin;
+  isActive: boolean;
 }
 
-export default function AccountLockManagement({ admin }: AccountLockManagementProps) {
+export default function AccountLockManagement({ admin, isActive }: AccountLockManagementProps) {
   const [locks, setLocks] = useState<AccountLock[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -167,69 +168,58 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
   }, [admin.id]);
 
   useEffect(() => {
+    if (!isActive) return;
+
     const countdownInterval = window.setInterval(() => {
       setCountdownNow(Date.now());
     }, 1000);
 
     return () => window.clearInterval(countdownInterval);
-  }, []);
+  }, [isActive]);
 
   useEffect(() => {
+    if (!isActive || showHistory) return;
+
     void loadLocks(true);
 
-    // Subscribe to account_locks changes with immediate reload
     const subscription = supabase
       .channel('account_locks_changes')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'account_locks'
-      }, (payload) => {
-        console.log('Account locks changed:', payload);
-        void loadLocks(false);
+      }, () => {
+        if (document.visibilityState === 'visible') {
+          void loadLocks(false);
+        }
       })
       .subscribe();
 
-    // Add page visibility detection - refresh when user returns to the page
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('Page became visible, refreshing account locks...');
         void loadLocks(false);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Auto-refresh every 10 seconds to remove expired locks
-    const autoRefreshInterval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        void loadLocks(false);
-      }
-    }, 10000);
-
     return () => {
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearInterval(autoRefreshInterval);
     };
-  }, [loadLocks]);
+  }, [isActive, showHistory, loadLocks]);
 
-  // Smart refresh based on next expiry time
   useEffect(() => {
-    if (!nextExpiry) return;
+    if (!isActive || showHistory || !nextExpiry) return;
 
-    const now = Date.now();
-    const timeUntilExpiry = nextExpiry - now;
-
-    // If lock expires in less than 30 seconds, set a timer to refresh right after expiry
-    if (timeUntilExpiry > 0 && timeUntilExpiry <= 30000) {
-      const timeout = setTimeout(() => {
-        console.log('Lock expired, refreshing...');
+    const refreshDelay = Math.max(1000, nextExpiry - Date.now() + 1000);
+    const timeout = window.setTimeout(() => {
+      if (document.visibilityState === 'visible') {
         void loadLocks(false);
-      }, timeUntilExpiry + 1000); // Add 1 second buffer
+      }
+    }, refreshDelay);
 
-      return () => clearTimeout(timeout);
-    }
-  }, [nextExpiry, loadLocks]);
+    return () => window.clearTimeout(timeout);
+  }, [isActive, showHistory, nextExpiry, loadLocks]);
 
   const handleUnlock = async (lock: AccountLock) => {
     if (!admin?.id) {

@@ -865,8 +865,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       void loadPendingCounts();
     }, 600);
     const pendingCountsFallbackTimer = window.setInterval(() => {
-      void loadPendingCounts();
-    }, 15000);
+      if (document.visibilityState === 'visible') {
+        void loadPendingCounts();
+      }
+    }, 60000);
 
     // 启动自动清理服务
     autoCleanupService.start(admin.id);
@@ -1401,7 +1403,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
             {loadedTabs.has('accountlocks') && (
               <div className={activeTab === 'accountlocks' ? 'flex min-h-0 flex-1 flex-col overflow-hidden animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
-                <AccountLockManagement admin={admin} />
+                <AccountLockManagement admin={admin} isActive={activeTab === 'accountlocks'} />
               </div>
             )}
 
