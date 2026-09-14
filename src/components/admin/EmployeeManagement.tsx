@@ -133,6 +133,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     title: string;
     message: string;
     employeeUsername: string;
+    employeeId: string;
     variant: 'verification' | 'status';
     nextStatus: boolean;
     onConfirm: () => void;
@@ -861,13 +862,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     }
   };
 
-  const toggleEmployeeStatus = useCallback(async (employeeId: string, currentStatus: boolean, employeeUsername: string) => {
+  const toggleEmployeeStatus = useCallback(async (employeeId: string, currentStatus: boolean, employeeUsername: string, employeeDisplayId: string) => {
     const newStatus = !currentStatus;
     setConfirmDialog({
       show: true,
       title: `${newStatus ? 'Activate' : 'Deactivate'} Employee`,
       message: `Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} this employee account?`,
       employeeUsername,
+      employeeId: employeeDisplayId,
       variant: 'status',
       nextStatus: newStatus,
       onConfirm: async () => {
@@ -896,13 +898,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     });
   }, []);
 
-  const toggleVerification = useCallback(async (employeeId: string, currentStatus: boolean, employeeUsername: string) => {
+  const toggleVerification = useCallback(async (employeeId: string, currentStatus: boolean, employeeUsername: string, employeeDisplayId: string) => {
     const newStatus = !currentStatus;
     setConfirmDialog({
       show: true,
       title: `${newStatus ? 'Verify' : 'Unverify'} Employee`,
       message: `Are you sure you want to ${newStatus ? 'verify' : 'unverify'} this employee account?`,
       employeeUsername,
+      employeeId: employeeDisplayId,
       variant: 'verification',
       nextStatus: newStatus,
       onConfirm: async () => {
@@ -2255,7 +2258,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       </td>
       <td className="w-[44px] py-0.5 pl-1 pr-0 align-middle relative group/ver">
         <button
-          onClick={(e) => { e.stopPropagation(); toggleVerification(employee.id, employee.is_verified, employee.username); }}
+          onClick={(e) => { e.stopPropagation(); toggleVerification(employee.id, employee.is_verified, employee.username, employee.employee_id); }}
           className={`inline-flex h-5 items-center justify-center gap-0.5 px-1.5 py-0.5 align-middle leading-none rounded text-[10px] font-medium ${
             employee.is_verified ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
           }`}
@@ -2277,7 +2280,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       </td>
       <td className="w-[48px] py-0.5 pl-0 pr-1 align-middle">
         <button
-          onClick={(e) => { e.stopPropagation(); toggleEmployeeStatus(employee.id, employee.is_active, employee.username); }}
+          onClick={(e) => { e.stopPropagation(); toggleEmployeeStatus(employee.id, employee.is_active, employee.username, employee.employee_id); }}
           className={`inline-flex h-5 items-center justify-center px-1.5 py-0.5 align-middle leading-none rounded text-[10px] font-medium ${
             employee.is_active ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
           }`}
@@ -3591,7 +3594,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${confirmDialogStyle.eyebrow}`}>Employee account</p>
-                    <p title={confirmDialog.employeeUsername} className={`mt-1 truncate text-xl font-black tracking-tight ${confirmDialogStyle.icon}`}>{confirmDialog.employeeUsername}</p>
+                    <div className="mt-1 flex min-w-0 items-baseline gap-2">
+                      <p title={confirmDialog.employeeUsername} className={`min-w-0 truncate text-xl font-black tracking-tight ${confirmDialogStyle.icon}`}>{confirmDialog.employeeUsername}</p>
+                      <span className={`shrink-0 text-xs font-bold tracking-wide ${confirmDialogStyle.subtext}`}>ID {confirmDialog.employeeId || '—'}</span>
+                    </div>
                   </div>
                   <span className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${confirmDialogStyle.badge}`}>
                     {confirmDialog.variant === 'verification' ? 'Ver' : 'Status'}
