@@ -328,10 +328,9 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
     };
   };
 
-  const handleHistoryToggle = () => {
-    const nextShowHistory = !showHistory;
-    setShowHistory(nextShowHistory);
-    if (nextShowHistory && !historyLoaded) {
+  const handleShowHistory = () => {
+    setShowHistory(true);
+    if (!historyLoaded) {
       void loadHistory();
     }
   };
@@ -373,25 +372,38 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
             )}
             <button
               type="button"
-              onClick={handleHistoryToggle}
-              className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-all active:scale-[0.98] ${showHistory
-                ? 'border-violet-200/80 bg-violet-500/30 text-white shadow-[0_0_22px_rgba(139,92,246,0.2)]'
-                : 'border-cyan-300/35 bg-cyan-500/10 text-cyan-100 hover:border-cyan-200/80 hover:bg-cyan-500/25 hover:text-white'
+              onClick={() => setShowHistory(false)}
+              className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-all active:scale-[0.98] ${!showHistory
+                ? 'border-orange-200/80 bg-orange-500/35 text-white shadow-[0_0_22px_rgba(245,158,11,0.18)]'
+                : 'border-orange-300/35 bg-orange-500/10 text-orange-100 hover:border-orange-200/80 hover:bg-orange-500/25 hover:text-white'
               }`}
-              title={showHistory ? '查看目前鎖定記錄' : '查看歷史鎖定記錄'}
+              title="查看目前鎖定記錄"
+              aria-pressed={!showHistory}
+            >
+              <Shield className="h-4 w-4 text-orange-300" />
+              目前鎖定
+            </button>
+            <button
+              type="button"
+              onClick={handleShowHistory}
+              className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-all active:scale-[0.98] ${showHistory
+                ? 'border-violet-200/80 bg-violet-500/35 text-white shadow-[0_0_22px_rgba(139,92,246,0.2)]'
+                : 'border-violet-300/35 bg-violet-500/10 text-violet-100 hover:border-violet-200/80 hover:bg-violet-500/25 hover:text-white'
+              }`}
+              title="查看歷史鎖定記錄"
               aria-pressed={showHistory}
             >
-              <History className={`h-4 w-4 ${showHistory ? 'text-violet-200' : 'text-cyan-300'} ${historyLoading ? 'animate-pulse' : ''}`} />
-              {showHistory ? '目前鎖定' : '歷史鎖定'}
+              <History className={`h-4 w-4 text-violet-300 ${historyLoading ? 'animate-pulse' : ''}`} />
+              歷史鎖定
             </button>
             <button
               type="button"
               onClick={() => showHistory ? void loadHistory() : void loadLocks(false)}
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-orange-300/35 bg-orange-500/15 px-3 text-xs font-semibold text-orange-100 shadow-[0_0_18px_rgba(245,158,11,0.08)] transition-all hover:border-orange-200/80 hover:bg-orange-500/30 hover:text-white hover:shadow-[0_0_22px_rgba(245,158,11,0.18)] active:scale-[0.98]"
-              title={showHistory ? '重新整理歷史記錄' : '重新整理鎖定記錄'}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-blue-300/40 bg-blue-500/20 px-3 text-xs font-semibold text-blue-100 shadow-[0_0_18px_rgba(59,130,246,0.1)] transition-all hover:border-blue-200/80 hover:bg-blue-500/35 hover:text-white hover:shadow-[0_0_22px_rgba(59,130,246,0.2)] active:scale-[0.98]"
+              title={showHistory ? '刷新歷史記錄' : '刷新鎖定記錄'}
             >
-              <RefreshCw className={`h-4 w-4 text-orange-300 ${(refreshing || historyLoading) ? 'animate-spin' : ''}`} />
-              重新整理
+              <RefreshCw className={`h-4 w-4 text-blue-300 ${(refreshing || historyLoading) ? 'animate-spin' : ''}`} />
+              刷新
             </button>
           </div>
         </div>
