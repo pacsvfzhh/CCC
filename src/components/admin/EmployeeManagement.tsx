@@ -2297,7 +2297,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             </span>
           )}
           {(employee.tags || []).length > 1 && <span className="flex-shrink-0 text-[10px] text-slate-500">+{(employee.tags || []).length - 1}</span>}
-          <button onClick={() => setEditingTags(employee)} className="ml-1 flex-shrink-0 rounded-full bg-slate-700 px-1 py-0 text-[10px] text-slate-400 transition-colors hover:bg-slate-600 hover:text-yellow-300">
+          <button onClick={() => setEditingTags(employee)} className="ml-1 flex-shrink-0 rounded-full border border-transparent bg-slate-700 px-1 py-0 text-[10px] text-slate-400 transition-all hover:border-yellow-300/90 hover:bg-slate-600 hover:text-yellow-300 hover:shadow-[0_0_8px_rgba(250,204,21,0.35)]">
             <Tag className="inline h-2.5 w-2.5 text-current" />+
           </button>
         </div>
