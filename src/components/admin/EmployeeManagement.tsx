@@ -1944,7 +1944,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.18em] text-cyan-300/90">Security activity</p>
                   <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
                     <h3 className="truncate text-lg font-bold leading-6 tracking-tight text-white">{loginIPEmployee.username}</h3>
-                    {loginIPEmployee.employeeId && <span className="font-mono text-[11px] font-semibold text-slate-400">ID: {loginIPEmployee.employeeId}</span>}
+                    {loginIPEmployee.employeeId && <span className="font-mono text-xs font-semibold tracking-wide text-cyan-300/90">ID: {loginIPEmployee.employeeId}</span>}
                   </div>
                 </div>
               </div>
