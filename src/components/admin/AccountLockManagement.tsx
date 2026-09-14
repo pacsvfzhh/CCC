@@ -54,13 +54,16 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
         return;
       }
 
-      setLocks(data || []);
+      const accountLocks = (data || []).filter(
+        (lock: AccountLock) => lock.identifier_type === 'username'
+      );
+      setLocks(accountLocks);
       setMessage(null);
 
       // Calculate next expiry time
-      if (data && data.length > 0) {
+      if (accountLocks.length > 0) {
         const nextLockExpiry = Math.min(
-          ...data.map((lock: AccountLock) => new Date(lock.lock_until).getTime())
+          ...accountLocks.map((lock: AccountLock) => new Date(lock.lock_until).getTime())
         );
         setNextExpiry(nextLockExpiry);
       } else {
@@ -150,7 +153,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
       setUnlocking(lock.id);
       setMessage(null);
 
-      const result = await unlockAccount(lock.identifier, lock.identifier_type as 'ip' | 'username', admin.id);
+      const result = await unlockAccount(lock.identifier, 'username', admin.id);
 
       if (result.success) {
         setMessage({ type: 'success', text: `已成功解除鎖定：${lock.identifier}` });
@@ -180,8 +183,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
     return formatRemainingTime(seconds);
   };
 
-  const usernameLocks = locks.filter(lock => lock.identifier_type === 'username').length;
-  const ipLocks = locks.filter(lock => lock.identifier_type === 'ip').length;
+  const usernameLocks = locks.length;
   const expiringSoon = locks.filter(lock => {
     const remaining = new Date(lock.lock_until).getTime() - Date.now();
     return remaining > 0 && remaining <= 30 * 60 * 1000;
@@ -212,7 +214,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-300/80">存取防護</p>
               <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">已鎖定帳戶</h1>
-              <p className="mt-0.5 text-xs text-slate-400">檢視目前的帳戶與 IP 防護鎖定記錄。</p>
+              <p className="mt-0.5 text-xs text-slate-400">檢視目前的帳戶防護鎖定記錄。</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -247,11 +249,6 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
           </div>
           <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
           <div className="flex items-baseline gap-2">
-            <span className="text-[10px] font-bold tracking-wide text-orange-100/75">IP 鎖定</span>
-            <span className="text-sm font-bold leading-none text-orange-50">{ipLocks}</span>
-          </div>
-          <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
-          <div className="flex items-baseline gap-2">
             <span className="text-[10px] font-bold tracking-wide text-orange-100/75">即將到期</span>
             <span className="text-sm font-bold leading-none text-orange-50">{expiringSoon}</span>
           </div>
@@ -280,7 +277,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-300/80">防護清單</p>
-              <p className="mt-1 text-xs text-slate-500">目前仍生效的帳戶與 IP 鎖定記錄</p>
+              <p className="mt-1 text-xs text-slate-500">目前仍生效的帳戶鎖定記錄</p>
             </div>
             <span className="rounded-full border border-orange-300/20 bg-orange-400/[0.08] px-2.5 py-1 text-[10px] font-semibold text-orange-200/80">
               {locks.length} 筆記錄
@@ -296,13 +293,13 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
                     <div className="flex min-w-0 flex-1 items-start gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-orange-300/25 bg-orange-400/[0.1] text-orange-300 transition-colors group-hover:border-orange-200/50 group-hover:bg-orange-400/20">
-                        {lock.identifier_type === 'username' ? <User className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
+                        <User className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="max-w-full truncate font-mono text-sm font-semibold text-slate-100">{lock.identifier}</span>
                           <span className="rounded-full border border-orange-300/25 bg-orange-400/[0.08] px-2 py-0.5 text-[9px] font-bold tracking-wide text-orange-200/80">
-                            {lock.identifier_type === 'username' ? '使用者名稱鎖定' : 'IP 鎖定'}
+                            使用者名稱鎖定
                           </span>
                           <span className="rounded-full border border-emerald-300/20 bg-emerald-400/[0.08] px-2 py-0.5 text-[9px] font-bold tracking-wide text-emerald-200/80">
                             生效中
