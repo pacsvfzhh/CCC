@@ -3282,8 +3282,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       {editingCreatedAt && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={closeRegistrationDateEditor}>
           <div className="relative w-full max-w-lg overflow-visible rounded-[1.75rem] border border-cyan-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="absolute inset-x-0 top-0 h-1 rounded-t-[1.75rem] bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
             <div className="relative overflow-hidden rounded-t-[1.75rem] border-b border-cyan-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-5 py-5">
+              <div className="absolute inset-x-0 top-0 h-1 rounded-t-[1.75rem] bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/35 bg-cyan-400/15 text-cyan-100 shadow-lg shadow-cyan-950/35 ring-1 ring-inset ring-white/10">
