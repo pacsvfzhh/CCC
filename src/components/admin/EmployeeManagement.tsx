@@ -132,6 +132,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     show: boolean;
     title: string;
     message: string;
+    employeeUsername: string;
     variant: 'verification' | 'status';
     nextStatus: boolean;
     onConfirm: () => void;
@@ -865,7 +866,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     setConfirmDialog({
       show: true,
       title: `${newStatus ? 'Activate' : 'Deactivate'} Employee`,
-      message: `Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} employee "${employeeUsername}"?`,
+      message: `Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} this employee account?`,
+      employeeUsername,
       variant: 'status',
       nextStatus: newStatus,
       onConfirm: async () => {
@@ -899,7 +901,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     setConfirmDialog({
       show: true,
       title: `${newStatus ? 'Verify' : 'Unverify'} Employee`,
-      message: `Are you sure you want to ${newStatus ? 'verify' : 'unverify'} employee "${employeeUsername}"?`,
+      message: `Are you sure you want to ${newStatus ? 'verify' : 'unverify'} this employee account?`,
+      employeeUsername,
       variant: 'verification',
       nextStatus: newStatus,
       onConfirm: async () => {
@@ -3584,11 +3587,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </button>
             </div>
             <div className="space-y-4 p-5">
-              <div className={`flex items-start gap-3 rounded-2xl border px-4 py-4 ${confirmDialogStyle.message}`}>
-                <span className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${confirmDialogStyle.badge}`}>
-                  {confirmDialog.variant === 'verification' ? 'Ver' : 'Status'}
-                </span>
-                <p className="min-w-0 text-sm leading-6 text-slate-200">{confirmDialog.message}</p>
+              <div className={`rounded-2xl border px-4 py-4 ${confirmDialogStyle.message}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${confirmDialogStyle.eyebrow}`}>Employee account</p>
+                    <p title={confirmDialog.employeeUsername} className={`mt-1 truncate text-xl font-black tracking-tight ${confirmDialogStyle.icon}`}>{confirmDialog.employeeUsername}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${confirmDialogStyle.badge}`}>
+                    {confirmDialog.variant === 'verification' ? 'Ver' : 'Status'}
+                  </span>
+                </div>
+                <p className="mt-3 border-t border-white/10 pt-3 text-sm leading-6 text-slate-200">{confirmDialog.message}</p>
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
