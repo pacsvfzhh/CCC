@@ -24,9 +24,10 @@ interface AccountLock {
 interface AccountLockManagementProps {
   admin: Admin;
   isActive: boolean;
+  onActiveLockCountChange: (count: number) => void;
 }
 
-export default function AccountLockManagement({ admin, isActive }: AccountLockManagementProps) {
+export default function AccountLockManagement({ admin, isActive, onActiveLockCountChange }: AccountLockManagementProps) {
   const [locks, setLocks] = useState<AccountLock[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -112,6 +113,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
         lock_ip: lock.lock_ip ?? lockIpsByIdentifier.get(lock.identifier) ?? null
       }));
       setLocks(locksWithEmployeeIds);
+      onActiveLockCountChange(locksWithEmployeeIds.length);
       setMessage(null);
 
       // Calculate next expiry time
@@ -138,7 +140,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
         setRefreshing(false);
       }
     }
-  }, [admin.id]);
+  }, [admin.id, onActiveLockCountChange]);
 
   const loadHistory = useCallback(async () => {
     try {

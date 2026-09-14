@@ -231,7 +231,9 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [unreadCustomerServiceCount, setUnreadCustomerServiceCount] = useState(0);
   const [unreadCccServiceCount, setUnreadCccServiceCount] = useState(0);
   const [lockedAccountsCount, setLockedAccountsCount] = useState(0);
+  const [nextLockedAccountExpiry, setNextLockedAccountExpiry] = useState<number | null>(null);
   const pendingCountsRequestRef = useRef(0);
+  const lockedCountSyncRef = useRef(0);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -663,6 +665,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
   const loadPendingCounts = useCallback(async () => {
     const requestId = ++pendingCountsRequestRef.current;
+    const lockedCountSyncId = lockedCountSyncRef.current;
     try {
       // Emergency admin only needs locked accounts count
       if (admin.role === 'emergency_admin') {
@@ -673,7 +676,9 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           .gt('lock_until', new Date().toISOString());
 
         if (lockedError) throw lockedError;
-        setLockedAccountsCount(lockedCount || 0);
+        if (lockedCountSyncId === lockedCountSyncRef.current) {
+          setLockedAccountsCount(lockedCount || 0);
+        }
         return;
       }
 
@@ -814,13 +819,24 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         throw lockedError;
       }
       const lockedCount = locksData?.length || 0;
+      const lockExpiryTimes = (locksData || [])
+        .map(lock => new Date(lock.lock_until).getTime())
+        .filter(expiry => Number.isFinite(expiry));
       if (requestId !== pendingCountsRequestRef.current) return;
       console.log('[Account Locks] Active locks count:', lockedCount, 'for admin:', admin.id);
-      setLockedAccountsCount(lockedCount);
+      if (lockedCountSyncId === lockedCountSyncRef.current) {
+        setLockedAccountsCount(lockedCount);
+      }
+      setNextLockedAccountExpiry(lockExpiryTimes.length > 0 ? Math.min(...lockExpiryTimes) : null);
     } catch (error) {
       console.warn('Pending counts are temporarily unavailable:', formatRequestError(error));
     }
   }, [admin.id, admin.role]);
+
+  const handleActiveLockCountChange = useCallback((count: number) => {
+    lockedCountSyncRef.current += 1;
+    setLockedAccountsCount(count);
+  }, []);
 
   const handleCustomerServiceUnreadChange = useCallback((delta: number) => {
     setUnreadCustomerServiceCount(prev => Math.max(0, prev + delta));
@@ -861,6 +877,19 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, [handleTabChange]);
 
   useEffect(() => {
+    if (!nextLockedAccountExpiry) return;
+
+    const refreshDelay = Math.max(1000, nextLockedAccountExpiry - Date.now() + 250);
+    const timeout = window.setTimeout(() => {
+      if (document.visibilityState === 'visible') {
+        void loadPendingCounts();
+      }
+    }, refreshDelay);
+
+    return () => window.clearTimeout(timeout);
+  }, [nextLockedAccountExpiry, loadPendingCounts]);
+
+  useEffect(() => {
     const pendingCountsTimer = window.setTimeout(() => {
       void loadPendingCounts();
     }, 600);
@@ -869,6 +898,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         void loadPendingCounts();
       }
     }, 60000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void loadPendingCounts();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // 启动自动清理服务
     autoCleanupService.start(admin.id);
@@ -926,6 +961,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     return () => {
       window.clearTimeout(pendingCountsTimer);
       window.clearInterval(pendingCountsFallbackTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       supabase.removeChannel(withdrawalChannel);
       supabase.removeChannel(verificationChannel);
       supabase.removeChannel(customerServiceChannel);
@@ -1403,7 +1439,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
             {loadedTabs.has('accountlocks') && (
               <div className={activeTab === 'accountlocks' ? 'flex min-h-0 flex-1 flex-col overflow-hidden animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
-                <AccountLockManagement admin={admin} isActive={activeTab === 'accountlocks'} />
+                <AccountLockManagement
+                      admin={admin}
+                      isActive={activeTab === 'accountlocks'}
+                      onActiveLockCountChange={handleActiveLockCountChange}
+                    />
               </div>
             )}
 
