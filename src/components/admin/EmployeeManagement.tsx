@@ -69,6 +69,13 @@ const getCalendarMonthKey = (date: Date) => {
 
 const formatCalendarDateLabel = (value: string) => value || '请选择日期';
 
+const isValidCalendarDate = (value: string) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+};
+
 interface EmployeeGroup {
   admin: {
     id: string;
@@ -123,6 +130,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [pinConfirmEmployee, setPinConfirmEmployee] = useState<{id: string; username: string; currentPinned: boolean} | null>(null);
   const [editingCreatedAt, setEditingCreatedAt] = useState<{id: string; username: string; employeeId: string; currentDate: string} | null>(null);
   const [newCreatedAt, setNewCreatedAt] = useState('');
+  const [registrationDateInputError, setRegistrationDateInputError] = useState<string | null>(null);
   const [registrationCalendarOpen, setRegistrationCalendarOpen] = useState(false);
   const [registrationCalendarMonth, setRegistrationCalendarMonth] = useState(() => getCalendarMonthKey(new Date()));
   const [savingCreatedAt, setSavingCreatedAt] = useState(false);
@@ -130,6 +138,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const closeRegistrationDateEditor = () => {
     setEditingCreatedAt(null);
     setRegistrationCalendarOpen(false);
+    setRegistrationDateInputError(null);
   };
   const [viewingEmployee, setViewingEmployee] = useState<EmployeeWithAdmin | null>(null);
   const [selectedTagsByGroup, setSelectedTagsByGroup] = useState<Map<string, string[]>>(new Map());
@@ -2264,6 +2273,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             const d = employee.created_at ? formatWithdrawalDate(employee.created_at) : '';
             setEditingCreatedAt({ id: employee.id, username: employee.username, employeeId: employee.employee_id, currentDate: d });
             setNewCreatedAt(d);
+            setRegistrationDateInputError(null);
             setRegistrationCalendarMonth(d ? d.slice(0, 7) : getCalendarMonthKey(new Date()));
             setRegistrationCalendarOpen(false);
           }}
@@ -3299,22 +3309,38 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-200">Date only</span>
                 </div>
                 <div className="relative">
-                  <button
+                  <input
                     id="employee-registration-date"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="YYYY-MM-DD"
+                    value={newCreatedAt}
+                    onChange={event => {
+                      const value = event.target.value;
+                      setNewCreatedAt(value);
+                      if (registrationDateInputError) setRegistrationDateInputError(null);
+                      if (isValidCalendarDate(value)) setRegistrationCalendarMonth(value.slice(0, 7));
+                    }}
+                    onBlur={() => {
+                      if (!newCreatedAt || !isValidCalendarDate(newCreatedAt)) {
+                        setRegistrationDateInputError('请输入有效日期，格式为 YYYY-MM-DD');
+                      }
+                    }}
+                    className={`w-full rounded-xl border bg-slate-950/75 px-4 py-3 pr-14 text-sm font-semibold tracking-wide text-white shadow-inner shadow-black/20 outline-none transition-colors placeholder:text-slate-600 focus:ring-4 ${registrationDateInputError ? 'border-rose-400/70 focus:border-rose-300 focus:ring-rose-400/10' : 'border-cyan-300/30 focus:border-cyan-300/75 focus:ring-cyan-400/10'}`}
+                  />
+                  <button
                     type="button"
+                    aria-label="打开日期选择器"
                     aria-haspopup="dialog"
                     aria-expanded={registrationCalendarOpen}
-                    onClick={() => setRegistrationCalendarOpen(open => !open)}
-                    className="flex w-full items-center gap-3 rounded-xl border border-cyan-300/30 bg-slate-950/75 px-4 py-3 text-left shadow-inner shadow-black/20 outline-none transition-colors hover:border-cyan-300/60 focus:border-cyan-300/75 focus:ring-4 focus:ring-cyan-400/10"
+                    onClick={() => {
+                      if (isValidCalendarDate(newCreatedAt)) setRegistrationCalendarMonth(newCreatedAt.slice(0, 7));
+                      setRegistrationCalendarOpen(open => !open);
+                    }}
+                    className={`absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg border transition-colors ${registrationCalendarOpen ? 'border-cyan-300/60 bg-cyan-400/15 text-cyan-100' : 'border-cyan-300/20 bg-cyan-400/5 text-cyan-300 hover:border-cyan-300/50 hover:bg-cyan-400/15 hover:text-white'}`}
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-400/10 text-cyan-300">
-                      <CalendarDays className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">选择日期</span>
-                      <span className="mt-0.5 block truncate text-sm font-semibold tracking-wide text-white">{formatCalendarDateLabel(newCreatedAt)}</span>
-                    </span>
-                    <ChevronDown className={`h-4 w-4 shrink-0 text-cyan-200/80 transition-transform ${registrationCalendarOpen ? 'rotate-180' : ''}`} />
+                    <CalendarDays className="h-4 w-4" />
                   </button>
 
                   {registrationCalendarOpen && (
@@ -3367,6 +3393,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                                 aria-pressed={isSelected}
                                 onClick={() => {
                                   setNewCreatedAt(dateKey);
+                                  setRegistrationDateInputError(null);
                                   setRegistrationCalendarOpen(false);
                                 }}
                                 className={`relative h-9 rounded-lg text-xs font-semibold transition-colors ${
@@ -3389,6 +3416,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                             onClick={() => {
                               const now = new Date();
                               setNewCreatedAt(formatWithdrawalDate(now.toISOString()));
+                              setRegistrationDateInputError(null);
                               setRegistrationCalendarMonth(getCalendarMonthKey(now));
                               setRegistrationCalendarOpen(false);
                             }}
@@ -3408,9 +3436,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     </div>
                   )}
                 </div>
-                <p className="mt-2 flex items-center gap-1.5 text-[11px] leading-5 text-slate-500">
-                  <CalendarDays className="h-3.5 w-3.5 shrink-0 text-cyan-300/70" />
-                  选择员工列表中显示的日期。
+                <p className={`mt-2 flex items-center gap-1.5 text-[11px] leading-5 ${registrationDateInputError ? 'text-rose-300' : 'text-slate-500'}`}>
+                  <CalendarDays className={`h-3.5 w-3.5 shrink-0 ${registrationDateInputError ? 'text-rose-300' : 'text-cyan-300/70'}`} />
+                  {registrationDateInputError || '可直接输入 YYYY-MM-DD，或点击右侧日历图标选择日期。'}
                 </p>
               </div>
 
@@ -3426,7 +3454,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 type="button"
                 disabled={savingCreatedAt}
                 onClick={async () => {
-                  if (!newCreatedAt) return;
+                  if (!isValidCalendarDate(newCreatedAt)) {
+                    setRegistrationDateInputError('请输入有效日期，格式为 YYYY-MM-DD');
+                    return;
+                  }
                   setSavingCreatedAt(true);
                   try {
                     const isoDate = new Date(`${newCreatedAt}T12:00:00`).toISOString();
