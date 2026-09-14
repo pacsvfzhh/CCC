@@ -234,38 +234,26 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-2 border-t border-orange-300/20 pt-3 sm:grid-cols-4">
-          <div className="rounded-xl border border-orange-300/40 bg-gradient-to-br from-orange-500/20 to-orange-950/45 px-3 py-2.5 shadow-[0_8px_24px_rgba(245,158,11,0.1)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-bold tracking-wide text-orange-100/80">目前鎖定</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.85)]" />
-            </div>
-            <p className="mt-1 text-xl font-bold leading-none text-orange-50">{locks.length}</p>
-            <p className="mt-1 text-[10px] text-orange-200/55">現行防護記錄</p>
+        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-orange-300/25 bg-orange-500/[0.08] px-3 py-2.5 shadow-[0_8px_24px_rgba(245,158,11,0.08)] sm:px-4">
+          <div className="flex items-baseline gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.85)]" />
+            <span className="text-[10px] font-bold tracking-wide text-orange-100/85">目前鎖定</span>
+            <span className="text-lg font-bold leading-none text-orange-50">{locks.length}</span>
           </div>
-          <div className="rounded-xl border border-orange-300/20 bg-orange-500/[0.08] px-3 py-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-bold tracking-wide text-orange-200/75">使用者名稱鎖定</span>
-              <User className="h-3.5 w-3.5 text-orange-300/75" />
-            </div>
-            <p className="mt-1 text-xl font-bold leading-none text-orange-100">{usernameLocks}</p>
-            <p className="mt-1 text-[10px] text-orange-200/50">帳戶防護</p>
+          <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
+          <div className="flex items-baseline gap-2">
+            <span className="text-[10px] font-bold tracking-wide text-orange-100/75">使用者名稱鎖定</span>
+            <span className="text-sm font-bold leading-none text-orange-50">{usernameLocks}</span>
           </div>
-          <div className="rounded-xl border border-orange-300/20 bg-orange-500/[0.08] px-3 py-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-bold tracking-wide text-orange-200/75">IP 鎖定</span>
-              <Shield className="h-3.5 w-3.5 text-orange-300/75" />
-            </div>
-            <p className="mt-1 text-xl font-bold leading-none text-orange-100">{ipLocks}</p>
-            <p className="mt-1 text-[10px] text-orange-200/50">來源防護</p>
+          <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
+          <div className="flex items-baseline gap-2">
+            <span className="text-[10px] font-bold tracking-wide text-orange-100/75">IP 鎖定</span>
+            <span className="text-sm font-bold leading-none text-orange-50">{ipLocks}</span>
           </div>
-          <div className="rounded-xl border border-orange-300/20 bg-orange-500/[0.08] px-3 py-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-bold tracking-wide text-orange-200/75">即將到期</span>
-              <Clock className="h-3.5 w-3.5 text-orange-300/75" />
-            </div>
-            <p className="mt-1 text-xl font-bold leading-none text-orange-100">{expiringSoon}</p>
-            <p className="mt-1 text-[10px] text-orange-200/50">30 分鐘內</p>
+          <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
+          <div className="flex items-baseline gap-2">
+            <span className="text-[10px] font-bold tracking-wide text-orange-100/75">即將到期</span>
+            <span className="text-sm font-bold leading-none text-orange-50">{expiringSoon}</span>
           </div>
         </div>
       </div>
