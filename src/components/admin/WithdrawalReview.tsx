@@ -1223,7 +1223,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   }}
                   aria-expanded={dateMenuOpen}
                   aria-haspopup="listbox"
-                  className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-1.5 text-left text-xs font-semibold transition-all ${selectedDate !== 'all' ? 'pr-9' : ''} ${
+                  className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-1.5 text-left text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50 ${selectedDate !== 'all' ? 'pr-9' : ''} ${
                     dateMenuOpen
                       ? 'border-cyan-300/80 bg-gradient-to-r from-blue-700/90 via-cyan-700/75 to-slate-800 text-white'
                       : selectedDate !== 'all'
@@ -1254,7 +1254,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     }}
                     aria-label="取消日期筛选"
                     title="取消日期筛选"
-                    className="absolute right-2 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-red-300/70 bg-red-600 text-white transition-colors hover:border-red-200 hover:bg-red-500"
+                    className="absolute right-2 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-red-300/70 bg-red-600 text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300/70 hover:border-red-200 hover:bg-red-500"
                   >
                     <X className="h-3 w-3" />
                   </button>
