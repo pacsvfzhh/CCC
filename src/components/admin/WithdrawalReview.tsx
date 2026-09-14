@@ -1184,13 +1184,13 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             <div className="min-w-0 overflow-x-auto pb-0 scrollbar-hide">
               <div className="flex min-w-max items-center gap-1.5">
                 {([
-                  { key: 'all', label: '全部', count: scopedStats.total, activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-500/40', inactiveClass: 'border border-blue-500/45 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-blue-100' },
-                  { key: 'today', label: '今日提交', count: todayCount, activeClass: 'bg-amber-500 text-white shadow-md shadow-amber-500/40', inactiveClass: 'border border-amber-500/45 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 hover:text-amber-100' },
-                  { key: 'pending', label: '待審核', count: scopedStats.pending, activeClass: 'bg-orange-600 text-white shadow-md shadow-orange-500/40', inactiveClass: 'border border-orange-500/45 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20 hover:text-orange-100' },
-                  { key: 'approved', label: '已批准', count: scopedStats.approved, activeClass: 'bg-green-600 text-white shadow-md shadow-green-500/40', inactiveClass: 'border border-green-500/45 bg-green-500/10 text-green-200 hover:bg-green-500/20 hover:text-green-100' },
-                  { key: 'rejected', label: '已拒絕', count: scopedStats.rejected, activeClass: 'bg-red-600 text-white shadow-md shadow-red-500/40', inactiveClass: 'border border-red-500/45 bg-red-500/10 text-red-200 hover:bg-red-500/20 hover:text-red-100' },
-                  { key: 'cancelled', label: '已取消', count: scopedStats.cancelled, activeClass: 'bg-slate-600 text-white shadow-md shadow-slate-500/40', inactiveClass: 'border border-slate-500/45 bg-slate-500/10 text-slate-200 hover:bg-slate-500/20 hover:text-slate-100' },
-                  { key: 'processed', label: '已處理', count: scopedStats.processed, activeClass: 'bg-cyan-600 text-white shadow-md shadow-cyan-500/40', inactiveClass: 'border border-cyan-500/45 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 hover:text-cyan-100' },
+                  { key: 'all', label: '全部', count: scopedStats.total, activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-500/40', inactiveClass: 'border border-blue-500/45 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-blue-100', badgeClass: 'border-blue-300/45 bg-blue-500/20 text-blue-100' },
+                  { key: 'today', label: '今日提交', count: todayCount, activeClass: 'bg-amber-500 text-white shadow-md shadow-amber-500/40', inactiveClass: 'border border-amber-500/45 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 hover:text-amber-100', badgeClass: 'border-amber-300/45 bg-amber-500/20 text-amber-100' },
+                  { key: 'pending', label: '待審核', count: scopedStats.pending, activeClass: 'bg-orange-600 text-white shadow-md shadow-orange-500/40', inactiveClass: 'border border-orange-500/45 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20 hover:text-orange-100', badgeClass: 'border-orange-300/45 bg-orange-500/20 text-orange-100' },
+                  { key: 'approved', label: '已批准', count: scopedStats.approved, activeClass: 'bg-green-600 text-white shadow-md shadow-green-500/40', inactiveClass: 'border border-green-500/45 bg-green-500/10 text-green-200 hover:bg-green-500/20 hover:text-green-100', badgeClass: 'border-green-300/45 bg-green-500/20 text-green-100' },
+                  { key: 'rejected', label: '已拒絕', count: scopedStats.rejected, activeClass: 'bg-red-600 text-white shadow-md shadow-red-500/40', inactiveClass: 'border border-red-500/45 bg-red-500/10 text-red-200 hover:bg-red-500/20 hover:text-red-100', badgeClass: 'border-red-300/45 bg-red-500/20 text-red-100' },
+                  { key: 'cancelled', label: '已取消', count: scopedStats.cancelled, activeClass: 'bg-slate-600 text-white shadow-md shadow-slate-500/40', inactiveClass: 'border border-slate-500/45 bg-slate-500/10 text-slate-200 hover:bg-slate-500/20 hover:text-slate-100', badgeClass: 'border-slate-400/50 bg-slate-500/25 text-slate-100' },
+                  { key: 'processed', label: '已處理', count: scopedStats.processed, activeClass: 'bg-cyan-600 text-white shadow-md shadow-cyan-500/40', inactiveClass: 'border border-cyan-500/45 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 hover:text-cyan-100', badgeClass: 'border-cyan-300/45 bg-cyan-500/20 text-cyan-100' },
                 ] as const).map((item) => (
                   <button
                     key={item.key}
@@ -1205,7 +1205,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     }`}
                   >
                     {item.label}
-                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${filterStatus === item.key && (item.key !== 'all' || selectedDate === 'all') ? 'bg-white/20' : 'bg-slate-700/70 text-slate-300'}`}>
+                    <span className={`inline-flex h-5 min-w-[22px] items-center justify-center rounded-full border px-1.5 text-[10px] font-extrabold leading-none tabular-nums shadow-sm ${filterStatus === item.key && (item.key !== 'all' || selectedDate === 'all') ? 'border-white/80 bg-white text-slate-900 shadow-black/20' : item.badgeClass}`}>
                       {item.count}
                     </span>
                   </button>
