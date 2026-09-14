@@ -1400,7 +1400,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             )}
 
             {loadedTabs.has('accountlocks') && (
-              <div className={activeTab === 'accountlocks' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'accountlocks' ? 'flex min-h-0 flex-1 flex-col overflow-hidden animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <AccountLockManagement admin={admin} />
               </div>
             )}
