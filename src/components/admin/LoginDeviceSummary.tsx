@@ -47,7 +47,7 @@ export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = fa
       : Monitor;
   const deviceLabel = info.device_model || deviceLabels[info.device_type];
   const details = [
-    formatValue(osLabels[info.os_family], info.os_version),
+    osLabels[info.os_family],
     deviceLabel,
     formatValue(browserLabels[info.browser_family], info.browser_version),
   ];
@@ -57,7 +57,7 @@ export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = fa
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="inline-flex items-center gap-1 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-200">
           <Globe2 className="h-3 w-3" />
-          {formatValue(osLabels[info.os_family], info.os_version)}
+          {osLabels[info.os_family]}
         </span>
         <span className="inline-flex items-center gap-1 rounded-md border border-slate-500/35 bg-slate-800/70 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200">
           <DeviceIcon className="h-3 w-3" />

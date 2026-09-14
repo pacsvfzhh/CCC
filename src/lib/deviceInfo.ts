@@ -22,7 +22,6 @@ interface UserAgentDataLike {
     mobile?: boolean;
     model?: string;
     platform?: string;
-    platformVersion?: string;
   }>;
 }
 
@@ -31,7 +30,6 @@ interface DeviceParseHints {
   mobile?: boolean;
   model?: string;
   platform?: string;
-  platformVersion?: string;
   navigatorPlatform?: string;
   maxTouchPoints?: number;
   screenWidth?: number;
@@ -42,12 +40,6 @@ const OS_FAMILIES: DeviceOsFamily[] = ['android', 'ios', 'windows', 'macos', 'li
 const DEVICE_TYPES: DeviceType[] = ['phone', 'tablet', 'desktop', 'unknown'];
 const BROWSER_FAMILIES: BrowserFamily[] = ['chrome', 'safari', 'edge', 'firefox', 'webview', 'opera', 'samsung', 'other', 'unknown'];
 const INFO_SOURCES: DeviceInfoSource[] = ['client_hints', 'user_agent', 'fallback'];
-
-const normalizeVersion = (value: string | undefined | null) => {
-  if (!value) return null;
-  const normalized = value.replace(/_/g, '.').trim();
-  return normalized || null;
-};
 
 const firstMatch = (userAgent: string, pattern: RegExp) => userAgent.match(pattern)?.[1] || null;
 
@@ -65,69 +57,19 @@ const cleanModel = (value: string | undefined | null) => {
   return model.length <= 80 ? model : model.slice(0, 80);
 };
 
-const parseWindowsVersion = (userAgentVersion: string | null, platformVersion: string | null) => {
-  const hintedParts = platformVersion?.split('.').map(Number);
-  const hintedMajor = hintedParts?.[0];
-  const hintedMinor = hintedParts?.[1];
-
-  if (hintedMajor === 13) return '11';
-  if (hintedMajor === 10) return '10';
-  if (hintedMajor === 6 && hintedMinor === 3) return '8.1';
-  if (hintedMajor === 6 && hintedMinor === 2) return '8';
-  if (hintedMajor === 6 && hintedMinor === 1) return '7';
-
-  switch (userAgentVersion) {
-    case '6.3': return '8.1';
-    case '6.2': return '8';
-    case '6.1': return '7';
-    case '6.0': return 'Vista';
-    case '5.2':
-    case '5.1': return 'XP';
-    default: return null;
-  }
-};
-
-const parseOs = (userAgent: string, hints: DeviceParseHints) => {
-  const androidVersion = firstMatch(userAgent, /Android[\s/]+([\d.]+)/i) || (
-    hints.platform?.toLowerCase() === 'android' ? normalizeVersion(hints.platformVersion) : null
-  );
-  if (androidVersion || /Android/i.test(userAgent) || hints.platform?.toLowerCase() === 'android') {
-    return { family: 'android' as const, version: androidVersion };
-  }
-
-  const iosVersion = firstMatch(userAgent, /(?:iPhone OS|CPU OS)\s*([\d_]+)/i);
+const parseOs = (userAgent: string, hints: DeviceParseHints): DeviceOsFamily => {
+  const platform = hints.platform?.toLowerCase();
   const isDesktopModeIpad = hints.navigatorPlatform === 'MacIntel'
     && (hints.maxTouchPoints || 0) > 1
     && (hints.screenWidth === undefined || hints.screenWidth <= 1366);
-  if (iosVersion || /iPhone|iPad|iPod/i.test(userAgent) || isDesktopModeIpad) {
-    return { family: 'ios' as const, version: normalizeVersion(iosVersion || hints.platformVersion) };
-  }
 
-  const chromeOsVersion = firstMatch(userAgent, /CrOS [^\s;)]+\s([\d.]+)/i);
-  if (chromeOsVersion || hints.platform?.toLowerCase() === 'chrome os' || /CrOS/i.test(userAgent)) {
-    return { family: 'chromeos' as const, version: chromeOsVersion || normalizeVersion(hints.platformVersion) };
-  }
-
-  const windowsUserAgentVersion = firstMatch(userAgent, /Windows NT\s([\d.]+)/i);
-  const isWindows = Boolean(windowsUserAgentVersion) || hints.platform?.toLowerCase().startsWith('win');
-  if (isWindows) {
-    return {
-      family: 'windows' as const,
-      version: parseWindowsVersion(windowsUserAgentVersion, normalizeVersion(hints.platformVersion)),
-    };
-  }
-
-  const macVersion = firstMatch(userAgent, /Mac OS X\s*([\d_.]+)/i);
-  if (macVersion || hints.platform?.toLowerCase().startsWith('mac')) {
-    return { family: 'macos' as const, version: normalizeVersion(macVersion || hints.platformVersion) };
-  }
-
-  const isLinux = /Linux/i.test(userAgent);
-  if (isLinux || hints.platform?.toLowerCase().includes('linux')) {
-    return { family: 'linux' as const, version: null };
-  }
-
-  return { family: 'unknown' as const, version: null };
+  if (/Android/i.test(userAgent) || platform === 'android') return 'android';
+  if (/iPhone|iPad|iPod/i.test(userAgent) || isDesktopModeIpad) return 'ios';
+  if (/CrOS/i.test(userAgent) || platform === 'chrome os') return 'chromeos';
+  if (/Windows NT/i.test(userAgent) || platform?.startsWith('win')) return 'windows';
+  if (/Mac OS X/i.test(userAgent) || platform?.startsWith('mac')) return 'macos';
+  if (/Linux/i.test(userAgent) || platform?.includes('linux')) return 'linux';
+  return 'unknown';
 };
 
 const parseBrowser = (userAgent: string, hints: DeviceParseHints) => {
@@ -195,9 +137,9 @@ export function parseLoginDeviceInfo(
   const model = cleanModel(hints.model) || parseAndroidModel(normalizedUserAgent);
 
   return {
-    os_family: os.family,
-    os_version: os.version,
-    device_type: parseDeviceType(normalizedUserAgent, os.family, hints),
+    os_family: os,
+    os_version: null,
+    device_type: parseDeviceType(normalizedUserAgent, os, hints),
     device_model: model,
     browser_family: browser.family,
     browser_version: browser.version,
@@ -217,8 +159,6 @@ export async function collectLoginDeviceInfo(): Promise<LoginDeviceInfo> {
       highEntropyValues = await userAgentData.getHighEntropyValues([
         'model',
         'platform',
-        'platformVersion',
-        'fullVersionList',
       ]);
     } catch {
       highEntropyValues = undefined;
@@ -231,7 +171,6 @@ export async function collectLoginDeviceInfo(): Promise<LoginDeviceInfo> {
     mobile: highEntropyValues?.mobile ?? userAgentData?.mobile,
     model: highEntropyValues?.model,
     platform: highEntropyValues?.platform || userAgentData?.platform,
-    platformVersion: highEntropyValues?.platformVersion,
     navigatorPlatform: navigator.platform,
     maxTouchPoints: navigator.maxTouchPoints,
     screenWidth: typeof window !== 'undefined' ? window.screen.width : undefined,
@@ -245,14 +184,9 @@ export function resolveLoginDeviceInfo(value: unknown, userAgent: string | null 
 
   const stored = value as Record<string, unknown>;
   const storedOsFamily = isKnownValue(stored.os_family, OS_FAMILIES) ? stored.os_family : fallback.os_family;
-  const storedOsVersion = typeof stored.os_version === 'string' ? stored.os_version : null;
-  const osVersion = storedOsFamily === 'windows' && storedOsVersion === '10.0'
-    ? fallback.os_version
-    : storedOsVersion || fallback.os_version;
-
   return {
     os_family: storedOsFamily,
-    os_version: osVersion,
+    os_version: null,
     device_type: isKnownValue(stored.device_type, DEVICE_TYPES) ? stored.device_type : fallback.device_type,
     device_model: typeof stored.device_model === 'string' ? stored.device_model : fallback.device_model,
     browser_family: isKnownValue(stored.browser_family, BROWSER_FAMILIES) ? stored.browser_family : fallback.browser_family,
