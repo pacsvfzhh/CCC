@@ -2020,7 +2020,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   </thead>
                   <tbody>
                     {loginIPRecords.map((record) => (
-                      <tr key={record.id} className="group border-b border-white/[0.07] transition-all duration-200 last:border-b-0 hover:bg-cyan-300/[0.085] hover:shadow-[inset_3px_0_0_rgba(34,211,238,0.85),inset_0_1px_0_rgba(165,243,252,0.08),inset_0_-1px_0_rgba(34,211,238,0.08)]">
+                      <tr key={record.id} className="group border-b border-white/[0.07] transition-colors duration-150 ease-out last:border-b-0 hover:bg-cyan-300/[0.07]">
                         <td className="whitespace-nowrap px-4 py-3.5 text-xs text-slate-300">
                           <span className="flex items-center gap-2">
                             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.05] text-slate-500 transition-colors group-hover:bg-cyan-300/10 group-hover:text-cyan-300">
