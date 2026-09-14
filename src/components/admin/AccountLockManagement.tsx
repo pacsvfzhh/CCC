@@ -166,14 +166,15 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
   }, [admin.id]);
 
   useEffect(() => {
-    if (!isActive || showHistory) return;
+    if (!isActive) return;
 
+    setCountdownNow(Date.now());
     const countdownInterval = window.setInterval(() => {
       setCountdownNow(Date.now());
     }, 1000);
 
     return () => window.clearInterval(countdownInterval);
-  }, [isActive, showHistory]);
+  }, [isActive]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -285,8 +286,12 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
   const automaticallyResolvedHistoryCount = historyLocks.filter(
     lock => !lock.unlocked_by && new Date(lock.lock_until).getTime() <= Date.now()
   ).length;
-  const getLockStatus = (lock: AccountLock) => {
-    if (!showHistory || (!lock.unlocked_at && new Date(lock.lock_until).getTime() > Date.now())) {
+  const getLockStatus = (lock: AccountLock, currentTime: number) => {
+    const isCurrentlyLocked = !lock.unlocked_at
+      && !lock.unlocked_by
+      && new Date(lock.lock_until).getTime() > currentTime;
+
+    if (!showHistory || isCurrentlyLocked) {
       return {
         label: showHistory ? '目前鎖定' : '鎖定中',
         badgeClass: 'border-rose-300/30 bg-rose-500/[0.12] text-rose-200',
@@ -482,7 +487,11 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
           </div>
           <div className="space-y-3">
             {visibleLocks.map((lock) => {
-              const status = getLockStatus(lock);
+              const isPendingHistoryLock = showHistory
+                && !lock.unlocked_at
+                && !lock.unlocked_by
+                && new Date(lock.lock_until).getTime() > countdownNow;
+              const status = getLockStatus(lock, countdownNow);
               const releaseTimeClass = lock.unlocked_by
                 ? 'text-emerald-300'
                 : status.label === '自動解除'
@@ -572,7 +581,15 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
 
                       <div className={`flex flex-wrap items-center justify-between border-t border-white/[0.08] xl:w-[150px] xl:shrink-0 xl:flex-col xl:items-stretch xl:border-t-0 xl:pl-1 ${showHistory ? 'gap-2 pt-2.5 xl:pt-0' : 'gap-3 pt-3 xl:pt-0'}`}>
                         {showHistory ? (
-                          lock.unlocked_by ? (
+                          isPendingHistoryLock ? (
+                            <div>
+                              <p className="truncate text-xs font-bold text-rose-300">等待解除中</p>
+                              <p className="mt-1 flex items-center gap-1.5 text-base font-bold text-rose-300">
+                                <Clock className="h-4 w-4 shrink-0" />
+                                {getRemainingTime(lock.lock_until, countdownNow)}
+                              </p>
+                            </div>
+                          ) : lock.unlocked_by ? (
                             <p className="truncate text-xs font-medium text-emerald-300/80">手動解除：<span className="text-sm font-semibold text-emerald-200">{lock.admin_username || '管理員'}</span></p>
                           ) : (
                             <p className="truncate text-xs font-medium text-sky-300/80">系統自動解除</p>
