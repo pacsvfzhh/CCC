@@ -2279,8 +2279,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       <td className="w-[66px] py-0.5 px-1 relative group/remarks" onClick={(e) => e.stopPropagation()}>
         <div className="flex min-w-0 items-center gap-0.5 max-w-[66px]">
           <span className="text-xs text-blue-400 truncate flex-1">{employee.remarks || '-'}</span>
-          <button onClick={() => setEditingRemarksOnly(employee)} className="opacity-0 group-hover/remarks:opacity-100 transition-opacity flex-shrink-0">
-            <Pencil className="w-2.5 h-2.5 text-slate-500 hover:text-blue-400" />
+          <button onClick={() => setEditingRemarksOnly(employee)} className="flex-shrink-0 rounded p-0.5 text-blue-400 opacity-0 transition-all hover:bg-blue-500/15 hover:text-cyan-300 group-hover/remarks:opacity-100">
+            <Pencil className="h-2.5 w-2.5 text-blue-400 transition-colors group-hover/remarks:text-cyan-300" />
           </button>
         </div>
         {employee.remarks && employee.remarks.length > 8 && (
@@ -2297,8 +2297,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             </span>
           )}
           {(employee.tags || []).length > 1 && <span className="flex-shrink-0 text-[10px] text-slate-500">+{(employee.tags || []).length - 1}</span>}
-          <button onClick={() => setEditingTags(employee)} className="ml-1 flex-shrink-0 px-1 py-0 bg-slate-700 hover:bg-slate-600 text-slate-400 text-[10px] rounded-full transition-colors">
-            <Tag className="w-2.5 h-2.5 inline" />+
+          <button onClick={() => setEditingTags(employee)} className="ml-1 flex-shrink-0 rounded-full border border-amber-400/35 bg-amber-500/10 px-1 py-0 text-[10px] text-amber-300 transition-colors hover:border-yellow-300/70 hover:bg-yellow-500/20 hover:text-yellow-200">
+            <Tag className="inline h-2.5 w-2.5 text-amber-400 transition-colors group-hover/tags:text-yellow-300" />+
           </button>
         </div>
         {(employee.tags || []).length > 0 && (
