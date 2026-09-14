@@ -37,6 +37,7 @@ interface EmployeeWithAdmin extends Employee {
   accountBalance: number;
   hasPendingWithdrawal: boolean;
   pendingWithdrawalAmount: number;
+  pendingWithdrawalDate: string | null;
 }
 
 type SortField = 'totalOrders' | 'todayOrders' | 'todayCompletedOrders' | 'failedOrders' | 'walletBalance' | 'accountBalance' | 'todayCommission' | 'totalWorkMinutes' | 'todayWorkMinutes' | 'created_at';
@@ -44,6 +45,14 @@ type SummaryFilter = 'today_working' | 'new_today' | 'currently_working';
 
 const AUTO_REFRESH_INTERVAL_MS = 180000;
 const AUTO_REFRESH_RETRY_MS = 15000;
+
+const formatWithdrawalDate = (value: string) => {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 interface EmployeeGroup {
   admin: {
@@ -584,7 +593,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           ? supabase.rpc('get_batch_work_time', { p_user_ids: userIds })
           : Promise.resolve({ data: [], error: null }),
         userIds.length > 0
-          ? supabase.from('withdrawals').select('user_id, amount').in('user_id', userIds).eq('status', 'pending')
+          ? supabase.from('withdrawals').select('user_id, amount, created_at').in('user_id', userIds).eq('status', 'pending')
           : Promise.resolve({ data: [], error: null }),
       ]);
 
@@ -659,10 +668,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
       const pendingWithdrawalSet = new Set<string>();
       const pendingWithdrawalAmountMap = new Map<string, number>();
+      const pendingWithdrawalDateMap = new Map<string, string>();
       if (pendingWithdrawalsResult.data) {
         pendingWithdrawalsResult.data.forEach((row) => {
           pendingWithdrawalSet.add(row.user_id);
           pendingWithdrawalAmountMap.set(row.user_id, (pendingWithdrawalAmountMap.get(row.user_id) || 0) + Number(row.amount || 0));
+          const existingDate = pendingWithdrawalDateMap.get(row.user_id);
+          if (!existingDate || new Date(row.created_at).getTime() > new Date(existingDate).getTime()) {
+            pendingWithdrawalDateMap.set(row.user_id, row.created_at);
+          }
         });
       }
 
@@ -709,6 +723,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           accountBalance: walletAvailableMap.get(emp.id) || 0,
           hasPendingWithdrawal: pendingWithdrawalSet.has(emp.id),
           pendingWithdrawalAmount: pendingWithdrawalAmountMap.get(emp.id) || 0,
+          pendingWithdrawalDate: pendingWithdrawalDateMap.get(emp.id) || null,
         });
       });
 
@@ -2145,18 +2160,24 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <Pin className={`w-3 h-3 ${employee.is_pinned ? 'fill-current' : ''}`} />
         </button>
       </td>
-      <td className="w-[88px] py-0.5 px-1.5 whitespace-nowrap cursor-pointer overflow-hidden" onClick={() => setViewingEmployee(employee)}>
+      <td className="w-[152px] py-0.5 px-2 whitespace-nowrap cursor-pointer overflow-hidden" onClick={() => setViewingEmployee(employee)}>
         <div className="flex min-w-0 flex-col">
           <div className="flex min-w-0 items-center gap-0.5">
             <span title={employee.username} className={`block max-w-full truncate text-xs font-medium ${!employee.is_active ? 'text-red-400' : employee.hasPendingWithdrawal ? 'text-orange-400' : 'text-white'}`}>{employee.username}</span>
-
           </div>
           {employee.hasPendingWithdrawal && (
-            <span className="text-[10px] text-orange-400">${employee.pendingWithdrawalAmount.toFixed(2)}</span>
+            <div className="mt-0.5 flex min-w-0 items-center gap-1.5 whitespace-nowrap">
+              <span className="shrink-0 text-[10px] font-semibold tabular-nums text-orange-400">${employee.pendingWithdrawalAmount.toFixed(2)}</span>
+              {employee.pendingWithdrawalDate && (
+                <span className="shrink-0 border-l border-orange-400/30 pl-1.5 text-[9px] font-medium tabular-nums text-orange-200/75">
+                  {formatWithdrawalDate(employee.pendingWithdrawalDate)}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </td>
-      <td title={employee.employee_id} className="w-[98px] max-w-[98px] overflow-hidden text-ellipsis py-0.5 px-1.5 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
+      <td title={employee.employee_id} className="w-[112px] max-w-[112px] overflow-hidden text-ellipsis py-0.5 px-2 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
       <td className="w-[62px] py-0.5 px-1 text-[10px] text-emerald-400 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
         <span>{employee.created_at ? new Date(employee.created_at).toLocaleDateString('en-CA') : '-'}</span>
         <button
@@ -2346,8 +2367,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
       <tr className="h-[40px]">
         <th className="w-[54px] px-1.5 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
-        <th className="w-[88px] px-1.5 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">User</th>
-        <th className="w-[98px] px-1.5 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Emp ID</th>
+        <th className="w-[152px] px-2 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">User</th>
+        <th className="w-[112px] px-2 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Emp ID</th>
         {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[62px]')}
         <th className="h-[40px] w-[68px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Tags</th>
         <th className="h-[40px] w-[40px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Ver</th>
