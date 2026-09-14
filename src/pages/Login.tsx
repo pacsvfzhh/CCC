@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Shield, Lock, Globe, Package, ClipboardCheck, ArrowRight, AlertTriangle, ShieldAlert, Clock } from 'lucide-react';
-import { login, storeAuth } from '../lib/auth';
+import { AccountLockedError, login, storeAuth } from '../lib/auth';
 import { useCompanyName } from '../lib/useCompanyName';
 import { useResponsive } from '../lib/useResponsive';
 import { checkLoginRateLimit, recordLoginAttempt, formatLockDuration } from '../lib/rateLimitService';
@@ -139,6 +139,19 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       onLoginSuccess();
     } catch (err) {
       if (isSupabaseAbortError(err)) return;
+
+      if (err instanceof AccountLockedError) {
+        const remainingSeconds = err.lockedUntil
+          ? Math.max(0, Math.ceil((new Date(err.lockedUntil).getTime() - Date.now()) / 1000))
+          : 15 * 60;
+        setLockInfo({
+          locked: true,
+          remainingSeconds,
+          reason: 'Account is temporarily locked.',
+        });
+        setError(`Account locked. Please wait ${formatLockDuration(remainingSeconds)}`);
+        return;
+      }
 
       console.error('[Login] Login error:', formatSupabaseError(err));
 

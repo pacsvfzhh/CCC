@@ -30,10 +30,21 @@ export type StoredAuth =
 type FinancialLoginResult<T> = {
   success?: boolean;
   error?: string;
+  locked_until?: string;
   session_token?: string;
   session_marker?: string;
   user?: T;
 };
+
+export class AccountLockedError extends Error {
+  readonly lockedUntil?: string;
+
+  constructor(lockedUntil?: string) {
+    super('Account is temporarily locked.');
+    this.name = 'AccountLockedError';
+    this.lockedUntil = lockedUntil;
+  }
+}
 
 export async function login(credentials: LoginCredentials): Promise<StoredAuth> {
   const [adminAccount, employeeAccount] = await Promise.all([
@@ -65,6 +76,9 @@ export async function login(credentials: LoginCredentials): Promise<StoredAuth> 
 
     const result = data as FinancialLoginResult<Admin>;
     if (!result.success || !result.session_token || !result.user) {
+      if (result.error === 'Account is temporarily locked.') {
+        throw new AccountLockedError(result.locked_until);
+      }
       throw new Error(result.error || 'Invalid credentials');
     }
 
@@ -90,6 +104,9 @@ export async function login(credentials: LoginCredentials): Promise<StoredAuth> 
 
     const result = data as FinancialLoginResult<Employee>;
     if (!result.success || !result.session_token || !result.session_marker || !result.user) {
+      if (result.error === 'Account is temporarily locked.') {
+        throw new AccountLockedError(result.locked_until);
+      }
       throw new Error(result.error || 'Invalid credentials');
     }
 
