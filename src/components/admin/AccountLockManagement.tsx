@@ -16,6 +16,7 @@ interface AccountLock {
   unlocked_by: string | null;
   user_id: string | null;
   username: string | null;
+  employee_id: string | null;
   admin_username: string | null;
 }
 
@@ -57,7 +58,29 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
       const accountLocks = (data || []).filter(
         (lock: AccountLock) => lock.identifier_type === 'username'
       );
-      setLocks(accountLocks);
+      const userIds = [...new Set(
+        accountLocks
+          .map(lock => lock.user_id)
+          .filter((userId): userId is string => Boolean(userId))
+      )];
+      const employeeIdsByUserId = new Map<string, string>();
+
+      if (userIds.length > 0 && accountLocks.some(lock => !lock.employee_id)) {
+        const { data: employeeRows } = await supabase
+          .from('users')
+          .select('id, employee_id')
+          .in('id', userIds);
+
+        employeeRows?.forEach(employee => {
+          employeeIdsByUserId.set(employee.id, employee.employee_id);
+        });
+      }
+
+      const locksWithEmployeeIds = accountLocks.map(lock => ({
+        ...lock,
+        employee_id: lock.employee_id ?? employeeIdsByUserId.get(lock.user_id ?? '') ?? null
+      }));
+      setLocks(locksWithEmployeeIds);
       setMessage(null);
 
       // Calculate next expiry time
@@ -292,52 +315,54 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                 <div className="border-l-2 border-orange-400/75 px-4 py-4 sm:px-5">
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
                     <div className="flex min-w-0 flex-1 items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-orange-300/25 bg-orange-400/[0.1] text-orange-300 transition-colors group-hover:border-orange-200/50 group-hover:bg-orange-400/20">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-orange-300/25 bg-orange-400/[0.1] text-orange-300 transition-colors group-hover:border-orange-200/50 group-hover:bg-orange-400/20">
                         <User className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="max-w-full truncate font-mono text-sm font-semibold text-slate-100">{lock.identifier}</span>
+                          <span className="max-w-full truncate font-mono text-base font-semibold text-slate-100">{lock.username || lock.identifier}</span>
                           <span className="rounded-full border border-orange-300/25 bg-orange-400/[0.08] px-2 py-0.5 text-[9px] font-bold tracking-wide text-orange-200/80">
-                            使用者名稱鎖定
+                            使用者帳戶
                           </span>
-                          <span className="rounded-full border border-emerald-300/20 bg-emerald-400/[0.08] px-2 py-0.5 text-[9px] font-bold tracking-wide text-emerald-200/80">
-                            生效中
+                          <span className="rounded-full border border-rose-300/30 bg-rose-500/[0.12] px-2 py-0.5 text-[9px] font-bold tracking-wide text-rose-200">
+                            鎖定中
                           </span>
                         </div>
+                        <p className="mt-1.5 text-xs font-semibold text-orange-300">
+                          員工 ID：<span className="font-mono text-orange-200">{lock.employee_id || '未記錄'}</span>
+                        </p>
                         <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-slate-400">
                           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-300/80" />
                           <span className="line-clamp-2">{lock.lock_reason || '系統偵測到異常登入活動，已啟用暫時防護。'}</span>
                         </p>
-                        {lock.username && <p className="mt-2 truncate text-[11px] text-slate-500">關聯帳戶：<span className="text-slate-300">{lock.username}</span></p>}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-white/[0.08] pt-3 sm:grid-cols-4 xl:min-w-[470px] xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-orange-300/15 pt-3 sm:grid-cols-4 xl:min-w-[500px] xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
                       <div>
-                        <p className="text-[9px] font-bold tracking-[0.12em] text-slate-600">防護狀態</p>
-                        <p className="mt-1 text-xs font-semibold text-orange-200">目前鎖定</p>
+                        <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">防護狀態</p>
+                        <p className="mt-1 text-sm font-bold text-rose-300">鎖定中</p>
                       </div>
                       <div>
-                        <p className="text-[9px] font-bold tracking-[0.12em] text-slate-600">剩餘時間</p>
-                        <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-orange-200">
-                          <Clock className="h-3.5 w-3.5 text-orange-300/80" />
+                        <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">剩餘時間</p>
+                        <p className="mt-1 flex items-center gap-1.5 text-base font-bold text-orange-300">
+                          <Clock className="h-4 w-4 text-orange-300" />
                           {getRemainingTime(lock.lock_until)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[9px] font-bold tracking-[0.12em] text-slate-600">失敗嘗試</p>
-                        <p className="mt-1 text-xs font-semibold text-rose-300">{lock.failed_attempts} 次</p>
+                        <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">失敗嘗試</p>
+                        <p className="mt-1 text-sm font-bold text-rose-300">{lock.failed_attempts} 次</p>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[9px] font-bold tracking-[0.12em] text-slate-600">鎖定時間</p>
-                        <p className="mt-1 truncate text-[10px] text-slate-400">{new Date(lock.created_at).toLocaleString()}</p>
+                        <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">鎖定時間</p>
+                        <p className="mt-1 truncate text-xs font-semibold text-orange-200/85">{new Date(lock.created_at).toLocaleString()}</p>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] pt-3 xl:w-[150px] xl:shrink-0 xl:flex-col xl:items-stretch xl:border-t-0 xl:pl-1 xl:pt-0">
                       {lock.admin_username && admin.role === 'super_admin' && (
-                        <p className="truncate text-[10px] text-slate-600">操作管理員：<span className="text-cyan-300/70">{lock.admin_username}</span></p>
+                        <p className="truncate text-xs font-medium text-slate-400">鎖定所屬管理員：<span className="text-sm font-semibold text-cyan-200">{lock.admin_username}</span></p>
                       )}
                       <button
                         type="button"

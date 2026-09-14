@@ -2072,6 +2072,7 @@ export interface Database {
           unlocked_by: string | null;
           user_id: string | null;
           username: string | null;
+          employee_id: string | null;
         }>;
       };
       get_active_work_session: {
