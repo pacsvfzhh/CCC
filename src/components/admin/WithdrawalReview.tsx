@@ -855,7 +855,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   }}
                   aria-expanded={dateMenuOpen}
                   aria-haspopup="listbox"
-                  className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-1.5 text-left text-xs font-semibold transition-all ${
+                  className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-1.5 text-left text-xs font-semibold transition-all ${selectedDate !== 'all' ? 'pr-9' : ''} ${
                     dateMenuOpen
                       ? 'border-cyan-300/80 bg-gradient-to-r from-blue-700/90 via-cyan-700/75 to-slate-800 text-white'
                       : selectedDate !== 'all'
@@ -871,8 +871,26 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                       {selectedDate === 'all' ? '日期选择' : selectedDate.split('-').join('/')}
                     </span>
                   </span>
-                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200/80 transition-transform ${dateMenuOpen ? 'rotate-180' : ''}`} />
+                  {selectedDate === 'all' && (
+                    <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200/80 transition-transform ${dateMenuOpen ? 'rotate-180' : ''}`} />
+                  )}
                 </button>
+
+                {selectedDate !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setSelectedDate('all');
+                      setDateMenuOpen(false);
+                    }}
+                    aria-label="取消日期筛选"
+                    title="取消日期筛选"
+                    className="absolute right-2 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-red-300/70 bg-red-600 text-white transition-colors hover:border-red-200 hover:bg-red-500"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
 
                 {dateMenuOpen && (
                   <div className="absolute left-0 z-40 mt-2 w-full overflow-hidden rounded-xl border border-cyan-300/30 bg-gradient-to-b from-slate-800 via-blue-950 to-cyan-950 shadow-md shadow-black/25">
