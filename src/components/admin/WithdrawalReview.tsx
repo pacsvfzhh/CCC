@@ -846,7 +846,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative w-36 shrink-0" ref={dateMenuRef}>
+              <div className="relative w-44 shrink-0" ref={dateMenuRef}>
                 <button
                   type="button"
                   onClick={() => {
@@ -898,7 +898,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                             className={`flex w-full items-center justify-between gap-1.5 rounded-md px-2 py-1 text-left transition-all ${
                               isSelected
                                 ? 'bg-gradient-to-r from-cyan-600/85 via-blue-600/75 to-slate-800 text-white shadow-md shadow-cyan-950/30'
-                                : 'text-slate-200 hover:bg-slate-800/90 hover:text-white'
+                                : 'border border-transparent text-slate-200 hover:border-cyan-300/60 hover:bg-gradient-to-r hover:from-blue-600/75 hover:via-cyan-600/55 hover:to-blue-950 hover:text-white hover:shadow-md hover:shadow-cyan-950/50 hover:ring-1 hover:ring-cyan-200/20'
                             }`}
                           >
                             <span className="whitespace-nowrap text-[10px] font-bold tabular-nums tracking-wide">{year}/{month}/{day}</span>
