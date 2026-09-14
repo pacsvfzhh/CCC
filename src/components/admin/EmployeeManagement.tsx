@@ -210,6 +210,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const scrollLockRef = useRef(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const registrationCalendarRef = useRef<HTMLDivElement>(null);
   const employeeGroupsScrollRef = useRef<HTMLDivElement>(null);
   const employeeGroupsRef = useRef<EmployeeGroup[]>([]);
   employeeGroupsRef.current = employeeGroups;
@@ -291,6 +292,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [inactiveDaysDropdownOpen]);
+
+  useEffect(() => {
+    if (!registrationCalendarOpen) return;
+    const closeCalendarOnOutsideClick = (event: MouseEvent) => {
+      if (registrationCalendarRef.current && !registrationCalendarRef.current.contains(event.target as Node)) {
+        setRegistrationCalendarOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', closeCalendarOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeCalendarOnOutsideClick);
+  }, [registrationCalendarOpen]);
 
   useEffect(() => {
     const anyModalOpen = !!(showCreateSecondaryAdmin || adminFilterOpen || editingEmployee || showPasswordReset || deletingEmployee || editingTags || notification?.show || confirmDialog?.show || loginIPEmployee || walletEmployee);
@@ -3271,7 +3283,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={closeRegistrationDateEditor}>
           <div className="relative w-full max-w-lg overflow-visible rounded-[1.75rem] border border-cyan-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
-            <div className="relative border-b border-cyan-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-5 py-5">
+            <div className="relative overflow-hidden rounded-t-[1.75rem] border-b border-cyan-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-5 py-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/35 bg-cyan-400/15 text-cyan-100 shadow-lg shadow-cyan-950/35 ring-1 ring-inset ring-white/10">
@@ -3308,13 +3320,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <label htmlFor="employee-registration-date" className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">Registration date</label>
                   <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-200">Date only</span>
                 </div>
-                <div className="relative">
+                <div ref={registrationCalendarRef} className="relative">
                   <input
                     id="employee-registration-date"
-                    type="text"
-                    inputMode="numeric"
+                    type="date"
                     autoComplete="off"
-                    placeholder="YYYY-MM-DD"
                     value={newCreatedAt}
                     onChange={event => {
                       const value = event.target.value;
@@ -3327,7 +3337,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         setRegistrationDateInputError('请输入有效日期，格式为 YYYY-MM-DD');
                       }
                     }}
-                    className={`w-full rounded-xl border bg-slate-950/75 px-4 py-3 pr-14 text-sm font-semibold tracking-wide text-white shadow-inner shadow-black/20 outline-none transition-colors placeholder:text-slate-600 focus:ring-4 ${registrationDateInputError ? 'border-rose-400/70 focus:border-rose-300 focus:ring-rose-400/10' : 'border-cyan-300/30 focus:border-cyan-300/75 focus:ring-cyan-400/10'}`}
+                    className={`w-full rounded-xl border bg-slate-950/75 px-4 py-3 pr-14 text-sm font-semibold tracking-wide text-white shadow-inner shadow-black/20 outline-none transition-colors [color-scheme:dark] focus:ring-4 ${registrationDateInputError ? 'border-rose-400/70 focus:border-rose-300 focus:ring-rose-400/10' : 'border-cyan-300/30 focus:border-cyan-300/75 focus:ring-cyan-400/10'}`}
                   />
                   <button
                     type="button"
@@ -3438,7 +3448,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 </div>
                 <p className={`mt-2 flex items-center gap-1.5 text-[11px] leading-5 ${registrationDateInputError ? 'text-rose-300' : 'text-slate-500'}`}>
                   <CalendarDays className={`h-3.5 w-3.5 shrink-0 ${registrationDateInputError ? 'text-rose-300' : 'text-cyan-300/70'}`} />
-                  {registrationDateInputError || '可直接输入 YYYY-MM-DD，或点击右侧日历图标选择日期。'}
+                  {registrationDateInputError || '可分别调整年、月、日，或点击右侧日历图标选择日期。'}
                 </p>
               </div>
 
@@ -3448,7 +3458,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </div>
             </div>
 
-            <div className="flex flex-col-reverse gap-2 border-t border-cyan-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-2 overflow-hidden rounded-b-[1.75rem] border-t border-cyan-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end">
               <button type="button" onClick={closeRegistrationDateEditor} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">Cancel</button>
               <button
                 type="button"
