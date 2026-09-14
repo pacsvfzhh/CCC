@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
-import { CheckCircle, XCircle, Clock, Ban, AlertCircle, ArrowUpDown, Pencil, Save, X, Search, Users, Layers, ChevronDown, Check } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Ban, AlertCircle, ArrowUpDown, Pencil, Save, X, Search, Users, Layers, ChevronDown, Check, CalendarDays } from 'lucide-react';
 import { formatSupabaseError, supabase, supabaseConfigurationError } from '../../lib/supabase';
 import { Withdrawal, Employee, Admin } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
@@ -35,6 +35,21 @@ const sortOptions: Array<{ key: SortOption; label: string; description: string }
   { key: 'audit_time_asc', label: '最早審核', description: '按審核時間從舊到新' },
 ];
 
+const getWithdrawalDateKey = (value: string) => {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const formatWithdrawalDate = (value: string) => new Date(value).toLocaleDateString('zh-TW', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  weekday: 'short',
+});
+
 export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +58,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [adminFilter, setAdminFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDate, setSelectedDate] = useState<string>('all');
   const [sortOption, setSortOption] = useState<SortOption>('submit_time_desc');
   const [error, setError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -56,10 +72,12 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [bulkValidationError, setBulkValidationError] = useState<string | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
+  const [dateMenuOpen, setDateMenuOpen] = useState(false);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const loadWithdrawalsRef = useRef<(() => Promise<void>) | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
+  const dateMenuRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const financialOperationIdsRef = useRef(new Map<string, string>());
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -96,6 +114,19 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [sortMenuOpen]);
+
+  useEffect(() => {
+    if (!dateMenuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dateMenuRef.current && !dateMenuRef.current.contains(event.target as Node)) {
+        setDateMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [dateMenuOpen]);
 
   useEffect(() => {
     if (supabaseConfigurationError) {
@@ -441,23 +472,47 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
   const searchLower = searchQuery.trim().toLowerCase();
 
+  const dateEligibleRows = allRows.filter((w) => {
+    const ownerKey = w.admin?.id || 'unassigned';
+    if (adminFilter !== 'all' && ownerKey !== adminFilter) return false;
+    if (filterStatus === 'today' && new Date(w.created_at).toDateString() !== todayKey) return false;
+    if (filterStatus === 'pending' && w.status !== 'pending') return false;
+    if (filterStatus === 'approved' && w.status !== 'approved') return false;
+    if (filterStatus === 'rejected' && w.status !== 'rejected') return false;
+    if (filterStatus === 'cancelled' && w.status !== 'cancelled') return false;
+    if (filterStatus === 'processed' && w.status === 'pending') return false;
+    if (searchLower) {
+      const username = (w.employee?.username || '').toLowerCase();
+      const empId = (w.employee?.employee_id || '').toLowerCase();
+      if (!username.includes(searchLower) && !empId.includes(searchLower)) return false;
+    }
+    return true;
+  });
+
+  const dateOptions = Array.from(
+    dateEligibleRows.reduce((dates, withdrawal) => {
+      const key = getWithdrawalDateKey(withdrawal.created_at);
+      const existing = dates.get(key);
+      dates.set(key, {
+        key,
+        label: existing?.label || formatWithdrawalDate(withdrawal.created_at),
+        count: (existing?.count || 0) + 1,
+      });
+      return dates;
+    }, new Map<string, { key: string; label: string; count: number }>()).values()
+  ).sort((a, b) => b.key.localeCompare(a.key));
+
+  const selectedDateAvailable = selectedDate === 'all'
+    || dateOptions.some((option) => option.key === selectedDate);
+
+  useEffect(() => {
+    if (!selectedDateAvailable) setSelectedDate('all');
+  }, [selectedDateAvailable]);
+
   const filteredRows = sortWithdrawals(
-    allRows.filter((w) => {
-      const ownerKey = w.admin?.id || 'unassigned';
-      if (adminFilter !== 'all' && ownerKey !== adminFilter) return false;
-      if (filterStatus === 'today' && new Date(w.created_at).toDateString() !== todayKey) return false;
-      if (filterStatus === 'pending' && w.status !== 'pending') return false;
-      if (filterStatus === 'approved' && w.status !== 'approved') return false;
-      if (filterStatus === 'rejected' && w.status !== 'rejected') return false;
-      if (filterStatus === 'cancelled' && w.status !== 'cancelled') return false;
-      if (filterStatus === 'processed' && w.status === 'pending') return false;
-      if (searchLower) {
-        const username = (w.employee?.username || '').toLowerCase();
-        const empId = (w.employee?.employee_id || '').toLowerCase();
-        if (!username.includes(searchLower) && !empId.includes(searchLower)) return false;
-      }
-      return true;
-    })
+    selectedDate === 'all'
+      ? dateEligibleRows
+      : dateEligibleRows.filter((w) => getWithdrawalDateKey(w.created_at) === selectedDate)
   );
 
   const showAdminColumn = admin.role === 'super_admin' && adminFilter === 'all';
@@ -799,6 +854,117 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <div className="relative" ref={dateMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDateMenuOpen((open) => !open);
+                    setSortMenuOpen(false);
+                  }}
+                  aria-expanded={dateMenuOpen}
+                  aria-haspopup="listbox"
+                  className={`flex min-w-36 items-center justify-between gap-2 rounded-xl border px-3 py-1.5 text-left text-xs font-semibold shadow-lg transition-all ${
+                    dateMenuOpen
+                      ? 'border-cyan-300/80 bg-gradient-to-r from-blue-700/90 via-cyan-700/75 to-slate-800 text-white shadow-cyan-950/60 ring-1 ring-inset ring-cyan-100/25'
+                      : selectedDate !== 'all'
+                        ? 'border-cyan-400/60 bg-gradient-to-r from-blue-950/95 via-cyan-950/90 to-slate-900 text-cyan-50 shadow-cyan-950/40 ring-1 ring-inset ring-cyan-300/10 hover:border-cyan-300/80'
+                        : 'border-slate-600/80 bg-slate-800/95 text-slate-100 shadow-black/25 hover:border-cyan-400/60 hover:bg-slate-700/95'
+                  }`}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-blue-500/55 to-cyan-400/35 text-cyan-100 ring-1 ring-inset ring-cyan-200/15">
+                      <CalendarDays className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="truncate">
+                      {selectedDate === 'all' ? '全部日期' : selectedDate.split('-').join('/')}
+                    </span>
+                  </span>
+                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200/80 transition-transform ${dateMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {dateMenuOpen && (
+                  <div className="absolute left-0 z-40 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-cyan-400/30 bg-slate-900/95 shadow-2xl shadow-cyan-950/60 ring-1 ring-white/10 backdrop-blur-xl">
+                    <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-amber-400" />
+                    <div className="border-b border-slate-700/70 bg-gradient-to-r from-blue-950/80 via-cyan-950/45 to-slate-900/60 px-3.5 py-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-white">
+                        <CalendarDays className="h-4 w-4 text-cyan-300" />
+                        依提交日期篩選
+                      </div>
+                      <p className="mt-1 text-[10px] leading-relaxed text-slate-400">僅列出目前頁面結果中有提現記錄的日期</p>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto p-1.5 dark-panel-scroll" role="listbox" aria-label="選擇提現提交日期">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={selectedDate === 'all'}
+                        onClick={() => {
+                          setSelectedDate('all');
+                          setDateMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
+                          selectedDate === 'all'
+                            ? 'bg-gradient-to-r from-blue-600/90 to-cyan-600/75 text-white shadow-md shadow-cyan-950/30'
+                            : 'text-slate-200 hover:bg-slate-800/90 hover:text-white'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-inset ${selectedDate === 'all' ? 'bg-white/15 text-white ring-white/20' : 'bg-cyan-500/10 text-cyan-300 ring-cyan-400/20'}`}>
+                            <Layers className="h-4 w-4" />
+                          </span>
+                          <span>
+                            <span className="block text-xs font-bold">全部日期</span>
+                            <span className={`mt-0.5 block text-[10px] ${selectedDate === 'all' ? 'text-cyan-100/80' : 'text-slate-500'}`}>顯示目前全部記錄</span>
+                          </span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${selectedDate === 'all' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300'}`}>{dateEligibleRows.length}</span>
+                          {selectedDate === 'all' && <Check className="h-3.5 w-3.5 text-cyan-100" />}
+                        </span>
+                      </button>
+
+                      {dateOptions.length > 0 && <div className="mx-2 my-1 h-px bg-cyan-300/10" />}
+
+                      {dateOptions.map((option) => {
+                        const isSelected = selectedDate === option.key;
+                        const [, month, day] = option.key.split('-');
+                        return (
+                          <button
+                            key={option.key}
+                            type="button"
+                            role="option"
+                            aria-selected={isSelected}
+                            onClick={() => {
+                              setSelectedDate(option.key);
+                              setDateMenuOpen(false);
+                            }}
+                            className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-all ${
+                              isSelected
+                                ? 'bg-gradient-to-r from-cyan-600/85 via-blue-600/75 to-slate-800 text-white shadow-md shadow-cyan-950/30'
+                                : 'text-slate-200 hover:bg-slate-800/90 hover:text-white'
+                            }`}
+                          >
+                            <span className="flex min-w-0 items-center gap-2.5">
+                              <span className={`flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-lg border ${isSelected ? 'border-cyan-200/35 bg-white/15' : 'border-cyan-400/20 bg-cyan-500/10'}`}>
+                                <span className={`text-[9px] font-bold leading-none ${isSelected ? 'text-cyan-100' : 'text-cyan-400'}`}>{month}月</span>
+                                <span className="mt-0.5 text-sm font-extrabold leading-none text-white">{day}</span>
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block truncate text-xs font-semibold">{option.label}</span>
+                                <span className={`mt-0.5 block text-[10px] ${isSelected ? 'text-cyan-100/75' : 'text-slate-500'}`}>{option.key.split('-').join('/')}</span>
+                              </span>
+                            </span>
+                            <span className="flex shrink-0 items-center gap-2">
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300'}`}>{option.count}</span>
+                              {isSelected && <Check className="h-3.5 w-3.5 text-cyan-100" />}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                 <input
