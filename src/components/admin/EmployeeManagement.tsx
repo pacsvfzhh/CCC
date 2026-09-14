@@ -1933,7 +1933,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     return createPortal(
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm" onClick={() => setLoginIPEmployee(null)}>
         <div className="flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-[26px] border border-white/10 bg-[#0b1724] shadow-[0_24px_90px_rgba(2,12,27,0.65)]" onClick={(e) => e.stopPropagation()}>
-          <div className="relative overflow-hidden border-b border-white/10 px-5 py-5 sm:px-6">
+          <div className="relative shrink-0 overflow-hidden border-b border-white/10 px-5 py-5 sm:px-6">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_34%),linear-gradient(115deg,rgba(15,23,42,0.96),rgba(10,31,46,0.88))]" />
             <div className="relative flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex min-w-0 items-start gap-3.5">
@@ -1994,7 +1994,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               </button>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto bg-[linear-gradient(180deg,#0d1b2a_0%,#0a1521_100%)] p-4 sm:p-6">
+          <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#0d1b2a_0%,#0a1521_100%)] p-4 sm:p-6">
             {loginIPLoading ? (
               <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10">
