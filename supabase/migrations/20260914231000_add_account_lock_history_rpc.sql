@@ -19,7 +19,7 @@ RETURNS TABLE (
   admin_username text
 )
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public, pg_temp
 AS $$
 DECLARE
@@ -95,7 +95,7 @@ BEGIN
     ) latest_attempt ON true
     LEFT JOIN public.admins a ON al.unlocked_by = a.id
     WHERE al.identifier_type = 'username'
-      AND u.admin_id = p_admin_id
+      AND u.created_by = p_admin_id
     ORDER BY al.created_at DESC
     LIMIT v_limit;
   END IF;

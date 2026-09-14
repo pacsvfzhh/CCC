@@ -350,7 +350,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-300/80">存取防護</p>
-              <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">已鎖定帳戶</h1>
+              <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">{showHistory ? '歷史鎖定記錄' : '已鎖定帳戶'}</h1>
               <p className="mt-0.5 text-xs text-slate-400">{showHistory ? '檢視歷史帳戶防護鎖定記錄。' : '檢視目前的帳戶防護鎖定記錄。'}</p>
             </div>
           </div>
@@ -364,14 +364,15 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
             <button
               type="button"
               onClick={handleHistoryToggle}
-              className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-semibold shadow-[0_0_18px_rgba(245,158,11,0.08)] transition-all active:scale-[0.98] ${showHistory
-                ? 'border-orange-200/80 bg-orange-500/35 text-white shadow-[0_0_22px_rgba(245,158,11,0.18)]'
-                : 'border-orange-300/35 bg-orange-500/10 text-orange-100 hover:border-orange-200/80 hover:bg-orange-500/25 hover:text-white'
+              className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-all active:scale-[0.98] ${showHistory
+                ? 'border-violet-200/80 bg-violet-500/30 text-white shadow-[0_0_22px_rgba(139,92,246,0.2)]'
+                : 'border-cyan-300/35 bg-cyan-500/10 text-cyan-100 hover:border-cyan-200/80 hover:bg-cyan-500/25 hover:text-white'
               }`}
               title={showHistory ? '查看目前鎖定記錄' : '查看歷史鎖定記錄'}
+              aria-pressed={showHistory}
             >
-              <History className={`h-4 w-4 text-orange-300 ${historyLoading ? 'animate-pulse' : ''}`} />
-              {showHistory ? '目前鎖定' : '歷史記錄'}
+              <History className={`h-4 w-4 ${showHistory ? 'text-violet-200' : 'text-cyan-300'} ${historyLoading ? 'animate-pulse' : ''}`} />
+              {showHistory ? '目前鎖定' : '歷史鎖定'}
             </button>
             <button
               type="button"

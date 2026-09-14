@@ -18,7 +18,7 @@ RETURNS TABLE (
   admin_username text
 )
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public, pg_temp
 AS $$
 DECLARE
@@ -58,7 +58,7 @@ BEGIN
       ORDER BY la.attempt_time DESC
       LIMIT 1
     ) latest_attempt ON true
-    LEFT JOIN public.admins a ON u.admin_id = a.id
+    LEFT JOIN public.admins a ON u.created_by = a.id
     WHERE al.unlocked_at IS NULL
       AND al.lock_until > now()
     ORDER BY al.created_at DESC;
@@ -91,18 +91,19 @@ BEGIN
       ORDER BY la.attempt_time DESC
       LIMIT 1
     ) latest_attempt ON true
-    LEFT JOIN public.admins a ON u.admin_id = a.id
+    LEFT JOIN public.admins a ON u.created_by = a.id
     WHERE al.unlocked_at IS NULL
       AND al.lock_until > now()
       AND (
         al.identifier_type = 'ip'
-        OR (al.identifier_type = 'username' AND u.admin_id = p_admin_id)
+        OR (al.identifier_type = 'username' AND u.created_by = p_admin_id)
       )
     ORDER BY al.created_at DESC;
   END IF;
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.get_account_locks_for_admin(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_account_locks_for_admin(uuid) TO anon, authenticated;
 
 COMMENT ON FUNCTION public.get_account_locks_for_admin IS 'Returns active account lock records with the employee ID and latest failed login IP for username locks.';
