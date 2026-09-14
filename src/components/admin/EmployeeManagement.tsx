@@ -2656,21 +2656,22 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
         <div className="relative z-40 flex h-9 w-full min-w-0 items-center overflow-visible rounded-none border border-cyan-200/45 bg-slate-950/95 shadow-lg shadow-cyan-950/25 shrink-0 sticky top-0 backdrop-blur-sm">
-          <div className="relative h-full min-w-[140px] flex-[1_1_0%] border-r border-cyan-300/25 bg-gradient-to-r from-cyan-500/15 via-cyan-500/10 to-blue-500/10">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-200 drop-shadow-[0_0_6px_rgba(103,232,249,0.35)] pointer-events-none" />
+          <div className="group relative h-full min-w-[140px] flex-[1_1_0%] overflow-hidden border-r border-cyan-300/25 bg-gradient-to-r from-slate-950/80 via-blue-950/65 to-cyan-950/45 transition-colors focus-within:from-blue-950/90 focus-within:via-cyan-950/55 focus-within:to-blue-950/70">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-300/80 drop-shadow-[0_0_6px_rgba(103,232,249,0.35)] transition-all duration-200 group-focus-within:scale-110 group-focus-within:text-cyan-100" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => handleSearchTermChange(e.target.value)}
               placeholder="Search employees..."
               autoComplete="off"
-              className="h-full w-full rounded-none bg-transparent pl-10 pr-9 text-sm font-medium text-slate-50 placeholder:text-cyan-100/65 outline-none transition-colors focus:bg-cyan-900/30"
+              className="h-full w-full rounded-none bg-transparent pl-10 pr-10 text-[13px] font-semibold tracking-wide text-slate-50 placeholder:text-slate-400/80 outline-none transition-colors focus:bg-white/[0.035]"
             />
             {searchTerm && (
-              <button type="button" onClick={() => handleSearchTermChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-cyan-200/70 transition-colors hover:bg-cyan-300/15 hover:text-cyan-50">
-                <X className="w-4 h-4" />
+              <button type="button" onClick={() => handleSearchTermChange('')} aria-label="Clear employee search" className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md border border-transparent text-cyan-200/70 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/15 hover:text-cyan-50">
+                <X className="h-3.5 w-3.5" />
               </button>
             )}
+            <span className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-gradient-to-r from-cyan-300 via-blue-400 to-transparent opacity-90 transition-transform duration-300 group-focus-within:scale-x-100" />
           </div>
           <div ref={adminFilterRef} className="relative h-full w-[252px] min-w-[252px] max-w-[252px] shrink-0 border-r border-cyan-300/20 bg-gradient-to-r from-blue-950/75 via-slate-900/80 to-cyan-950/55">
             <button
@@ -2902,21 +2903,22 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     <div className="mt-1 flex items-center justify-between gap-2 flex-wrap">
                       {renderStatusFilterButtons(flatAdminId)}
                       <div className="ml-auto flex h-8 items-center gap-2">
-                      <div className="relative h-8">
-                        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cyan-300 pointer-events-none" />
+                      <div className="group relative h-8 w-[168px] overflow-hidden rounded-xl border border-cyan-300/30 bg-gradient-to-r from-slate-950/80 via-blue-950/60 to-cyan-950/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_3px_10px_rgba(2,6,23,0.28)] transition-all focus-within:border-cyan-200/70 focus-within:from-blue-950/90 focus-within:via-cyan-950/55 focus-within:to-blue-950/65 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_14px_rgba(34,211,238,0.16)]">
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-300/80 transition-all duration-200 group-focus-within:scale-110 group-focus-within:text-cyan-100" />
                         <input
                           type="text"
                           value={searchTerm}
                           onChange={(e) => handleSearchTermChange(e.target.value)}
                           placeholder="Search employees..."
                           autoComplete="off"
-                          className="h-8 w-[168px] rounded-lg border border-cyan-400/40 bg-cyan-950/30 pl-8 pr-7 text-xs text-cyan-50 placeholder:text-cyan-100/60 shadow-sm shadow-slate-950/30 outline-none transition-colors focus:border-cyan-300/80 focus:bg-cyan-900/40 focus:ring-2 focus:ring-cyan-400/20"
+                          className="h-full w-full bg-transparent pl-8 pr-8 text-[11px] font-semibold tracking-wide text-cyan-50 placeholder:text-slate-400/80 outline-none transition-colors focus:bg-white/[0.035]"
                         />
                         {searchTerm && (
-                          <button onClick={() => handleSearchTermChange('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-cyan-200/70 hover:text-cyan-50 transition-colors">
-                            <X className="w-3.5 h-3.5" />
+                          <button type="button" onClick={() => handleSearchTermChange('')} aria-label="Clear employee search" className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md border border-transparent text-cyan-200/70 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/15 hover:text-cyan-50">
+                            <X className="h-3 w-3" />
                           </button>
                         )}
+                        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 bg-gradient-to-r from-cyan-300 via-blue-400 to-transparent transition-transform duration-300 group-focus-within:scale-x-100" />
                       </div>
                       <div className="flex h-8 items-center overflow-hidden rounded-lg border border-cyan-300/45 bg-cyan-950/35 shadow-sm shadow-cyan-950/30">
                         <div className="flex h-full w-[82px] items-center justify-center gap-1.5 border-r border-cyan-300/30 bg-cyan-500/15 px-2">
