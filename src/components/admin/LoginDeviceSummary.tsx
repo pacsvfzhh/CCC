@@ -1,4 +1,4 @@
-import { ChevronDown, Globe2, Monitor, Smartphone, Tablet } from 'lucide-react';
+import { ChevronDown, Globe2 } from 'lucide-react';
 import { resolveLoginDeviceInfo } from '../../lib/deviceInfo';
 
 interface LoginDeviceSummaryProps {
@@ -17,13 +17,6 @@ const osLabels = {
   unknown: 'Unknown OS',
 } as const;
 
-const deviceLabels = {
-  phone: 'Phone',
-  tablet: 'Tablet',
-  desktop: 'Desktop',
-  unknown: 'Unknown device',
-} as const;
-
 const browserLabels = {
   chrome: 'Chrome',
   safari: 'Safari',
@@ -40,15 +33,8 @@ const formatValue = (label: string, version: string | null) => version ? `${labe
 
 export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = false }: LoginDeviceSummaryProps) {
   const info = resolveLoginDeviceInfo(deviceInfo, userAgent);
-  const DeviceIcon = info.device_type === 'phone'
-    ? Smartphone
-    : info.device_type === 'tablet'
-      ? Tablet
-      : Monitor;
-  const deviceLabel = deviceLabels[info.device_type];
   const details = [
     osLabels[info.os_family],
-    deviceLabel,
     formatValue(browserLabels[info.browser_family], info.browser_version),
   ];
 
@@ -58,10 +44,6 @@ export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = fa
         <span className="inline-flex items-center gap-1 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-200">
           <Globe2 className="h-3 w-3" />
           {osLabels[info.os_family]}
-        </span>
-        <span className="inline-flex items-center gap-1 rounded-md border border-slate-500/35 bg-slate-800/70 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200">
-          <DeviceIcon className="h-3 w-3" />
-          {deviceLabel}
         </span>
         <span className="inline-flex items-center rounded-md border border-violet-400/25 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200">
           {formatValue(browserLabels[info.browser_family], info.browser_version)}
