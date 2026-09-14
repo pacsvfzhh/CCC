@@ -1205,7 +1205,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     }`}
                   >
                     <span className="px-2.5 py-1.5">{item.label}</span>
-                    <span className={`inline-flex min-w-[32px] items-center justify-center border-l px-2.5 py-1.5 text-xs font-extrabold leading-none tabular-nums ${filterStatus === item.key && (item.key !== 'all' || selectedDate === 'all') ? item.activeBadgeClass : `border-white/15 ${item.badgeClass}`}`}>
+                    <span className={`inline-flex min-w-[28px] items-center justify-center border-l px-1.5 py-1.5 text-xs font-extrabold leading-none tabular-nums ${filterStatus === item.key && (item.key !== 'all' || selectedDate === 'all') ? item.activeBadgeClass : `border-white/15 ${item.badgeClass}`}`}>
                       {item.count}
                     </span>
                   </button>
