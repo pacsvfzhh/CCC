@@ -67,14 +67,7 @@ const getCalendarMonthKey = (date: Date) => {
   return `${year}-${month}`;
 };
 
-const formatCalendarDateLabel = (value: string) => {
-  if (!value) return 'Select a date';
-  return new Date(`${value}T12:00:00`).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
+const formatCalendarDateLabel = (value: string) => value || '请选择日期';
 
 interface EmployeeGroup {
   admin: {
@@ -2627,7 +2620,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     (_, index) => index < calendarLeadingDays ? null : index - calendarLeadingDays + 1,
   );
   const todayDateKey = formatWithdrawalDate(new Date().toISOString());
-  const calendarMonthLabel = calendarMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const calendarMonthLabel = registrationCalendarMonth;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -3263,7 +3256,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
       {editingCreatedAt && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={closeRegistrationDateEditor}>
-          <div className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-cyan-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div className="relative w-full max-w-lg overflow-visible rounded-[1.75rem] border border-cyan-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
             <div className="relative border-b border-cyan-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-5 py-5">
               <div className="flex items-start justify-between gap-4">
@@ -3315,14 +3308,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       <CalendarDays className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Selected date</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">选择日期</span>
                       <span className="mt-0.5 block truncate text-sm font-semibold tracking-wide text-white">{formatCalendarDateLabel(newCreatedAt)}</span>
                     </span>
                     <ChevronDown className={`h-4 w-4 shrink-0 text-cyan-200/80 transition-transform ${registrationCalendarOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {registrationCalendarOpen && (
-                    <div className="absolute left-0 right-0 z-30 mt-2 overflow-hidden rounded-2xl border border-cyan-300/30 bg-gradient-to-b from-slate-800 via-blue-950 to-slate-950 shadow-[0_18px_50px_rgba(2,6,23,0.72)] ring-1 ring-inset ring-white/10">
+                    <div className="absolute left-0 right-0 top-full z-[100] mt-2 overflow-hidden rounded-2xl border border-cyan-300/30 bg-gradient-to-b from-slate-800 via-blue-950 to-slate-950 shadow-[0_18px_50px_rgba(2,6,23,0.72)] ring-1 ring-inset ring-white/10 xl:left-full xl:right-auto xl:top-0 xl:mt-0 xl:ml-3 xl:w-[310px]">
                       <div className="h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
                       <div className="flex items-center justify-between border-b border-cyan-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-3.5 py-3">
                         <button
@@ -3337,7 +3330,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           <ChevronLeft className="h-4 w-4" />
                         </button>
                         <div className="text-center">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Calendar</p>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">日期选择</p>
                           <p className="mt-0.5 text-sm font-bold text-white">{calendarMonthLabel}</p>
                         </div>
                         <button
@@ -3355,7 +3348,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
                       <div className="p-3.5">
                         <div className="mb-2 grid grid-cols-7 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <span key={day}>{day}</span>)}
+                          {['日', '一', '二', '三', '四', '五', '六'].map(day => <span key={day}>{day}</span>)}
                         </div>
                         <div className="grid grid-cols-7 gap-1">
                           {calendarCells.map((day, index) => {
@@ -3398,14 +3391,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                             }}
                             className="rounded-lg border border-amber-300/25 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-200 transition-colors hover:border-amber-300/50 hover:bg-amber-400/20"
                           >
-                            Today
+                            今天
                           </button>
                           <button
                             type="button"
                             onClick={() => setRegistrationCalendarOpen(false)}
                             className="text-xs font-semibold text-cyan-200 transition-colors hover:text-white"
                           >
-                            Done
+                            完成
                           </button>
                         </div>
                       </div>
@@ -3414,7 +3407,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 </div>
                 <p className="mt-2 flex items-center gap-1.5 text-[11px] leading-5 text-slate-500">
                   <CalendarDays className="h-3.5 w-3.5 shrink-0 text-cyan-300/70" />
-                  Select the calendar date shown in the employee list.
+                  选择员工列表中显示的日期。
                 </p>
               </div>
 
