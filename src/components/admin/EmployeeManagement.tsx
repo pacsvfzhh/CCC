@@ -13,6 +13,12 @@ interface OrderRealtimeData {
   commission_amount?: number | string | null;
 }
 
+interface PendingWithdrawalRecord {
+  id: string;
+  amount: number;
+  created_at: string;
+}
+
 interface EmployeeWithAdmin extends Employee {
   admin?: {
     id: string;
@@ -38,6 +44,7 @@ interface EmployeeWithAdmin extends Employee {
   hasPendingWithdrawal: boolean;
   pendingWithdrawalAmount: number;
   pendingWithdrawalDate: string | null;
+  pendingWithdrawals?: PendingWithdrawalRecord[];
 }
 
 type SortField = 'totalOrders' | 'todayOrders' | 'todayCompletedOrders' | 'failedOrders' | 'walletBalance' | 'accountBalance' | 'todayCommission' | 'totalWorkMinutes' | 'todayWorkMinutes' | 'created_at';
@@ -339,7 +346,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     const withdrawalsSubscription = supabase
       .channel('employee_mgmt_withdrawals')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => {
-        debouncedStatsReload();
+        scheduleRealtimeReload(300);
       })
       .subscribe();
 
@@ -460,7 +467,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     if (loading || employeeGroups.length === 0 || withdrawalDateRefreshAttemptedRef.current) return;
 
     const hasPendingWithdrawalWithoutDate = employeeGroups.some(group =>
-      group.employees.some(employee => employee.hasPendingWithdrawal && !employee.pendingWithdrawalDate)
+      group.employees.some(employee => employee.hasPendingWithdrawal && (!employee.pendingWithdrawalDate || !employee.pendingWithdrawals?.length))
     );
 
     if (!hasPendingWithdrawalWithoutDate) return;
@@ -606,7 +613,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           ? supabase.rpc('get_batch_work_time', { p_user_ids: userIds })
           : Promise.resolve({ data: [], error: null }),
         userIds.length > 0
-          ? supabase.from('withdrawals').select('user_id, amount, created_at').in('user_id', userIds).eq('status', 'pending')
+          ? supabase.from('withdrawals').select('id, user_id, amount, created_at').in('user_id', userIds).eq('status', 'pending')
           : Promise.resolve({ data: [], error: null }),
       ]);
 
@@ -679,19 +686,21 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         });
       }
 
-      const pendingWithdrawalSet = new Set<string>();
-      const pendingWithdrawalAmountMap = new Map<string, number>();
-      const pendingWithdrawalDateMap = new Map<string, string>();
+      const pendingWithdrawalMap = new Map<string, PendingWithdrawalRecord[]>();
       if (pendingWithdrawalsResult.data) {
         pendingWithdrawalsResult.data.forEach((row) => {
-          pendingWithdrawalSet.add(row.user_id);
-          pendingWithdrawalAmountMap.set(row.user_id, (pendingWithdrawalAmountMap.get(row.user_id) || 0) + Number(row.amount || 0));
-          const existingDate = pendingWithdrawalDateMap.get(row.user_id);
-          if (!existingDate || new Date(row.created_at).getTime() > new Date(existingDate).getTime()) {
-            pendingWithdrawalDateMap.set(row.user_id, row.created_at);
-          }
+          const records = pendingWithdrawalMap.get(row.user_id) || [];
+          records.push({
+            id: row.id,
+            amount: Number(row.amount || 0),
+            created_at: row.created_at,
+          });
+          pendingWithdrawalMap.set(row.user_id, records);
         });
       }
+      pendingWithdrawalMap.forEach((records) => {
+        records.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      });
 
       const adminMap = new Map(admins.map((a) => [a.id, a]));
 
@@ -720,6 +729,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
         const wt = workTimeMap.get(emp.id);
 
+        const pendingWithdrawals = pendingWithdrawalMap.get(emp.id) || [];
         groups.get(emp.created_by)!.employees.push({
           ...emp,
           admin: adminInfo,
@@ -734,9 +744,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           workStatus,
           totalOrders: totalOrdersMap.get(emp.id) || 0,
           accountBalance: walletAvailableMap.get(emp.id) || 0,
-          hasPendingWithdrawal: pendingWithdrawalSet.has(emp.id),
-          pendingWithdrawalAmount: pendingWithdrawalAmountMap.get(emp.id) || 0,
-          pendingWithdrawalDate: pendingWithdrawalDateMap.get(emp.id) || null,
+          hasPendingWithdrawal: pendingWithdrawals.length > 0,
+          pendingWithdrawalAmount: pendingWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0),
+          pendingWithdrawalDate: pendingWithdrawals[0]?.created_at || null,
+          pendingWithdrawals,
         });
       });
 
@@ -2173,18 +2184,46 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <Pin className={`w-3 h-3 ${employee.is_pinned ? 'fill-current' : ''}`} />
         </button>
       </td>
-      <td className="w-[152px] py-0.5 px-2 whitespace-nowrap cursor-pointer overflow-hidden" onClick={() => setViewingEmployee(employee)}>
+      <td className="group/withdrawal relative w-[152px] overflow-visible py-0.5 px-2 whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>
         <div className="flex min-w-0 flex-col">
           <div className="flex min-w-0 items-center gap-0.5">
             <span title={employee.username} className={`block max-w-full truncate text-xs font-medium ${!employee.is_active ? 'text-red-400' : employee.hasPendingWithdrawal ? 'text-orange-400' : 'text-white'}`}>{employee.username}</span>
           </div>
           {employee.hasPendingWithdrawal && (
-            <div className="mt-0.5 flex min-w-0 items-center gap-1.5 whitespace-nowrap">
-              <span className="shrink-0 text-[10px] font-semibold tabular-nums text-orange-400">${employee.pendingWithdrawalAmount.toFixed(2)}</span>
-              {employee.pendingWithdrawalDate && (
-                <span className="shrink-0 border-l border-orange-400/30 pl-1.5 text-[9px] font-medium tabular-nums text-orange-200/75">
-                  {formatWithdrawalDate(employee.pendingWithdrawalDate)}
-                </span>
+            <div className="relative mt-0.5 flex min-w-0 items-center gap-1.5 whitespace-nowrap">
+              {employee.pendingWithdrawals && employee.pendingWithdrawals.length > 1 ? (
+                <>
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded border border-orange-300/35 bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-bold text-orange-200 transition-colors group-hover/withdrawal:border-orange-200/60 group-hover/withdrawal:bg-orange-500/25">
+                    多笔提现
+                    <span className="rounded-full bg-orange-300/20 px-1 text-[9px] tabular-nums text-orange-100">{employee.pendingWithdrawals.length}</span>
+                  </span>
+                  <div className="pointer-events-none invisible absolute left-full top-1/2 z-50 ml-2 w-56 -translate-y-1/2 rounded-xl border border-orange-300/35 bg-slate-950/98 p-2.5 text-left opacity-0 shadow-2xl shadow-black/60 ring-1 ring-orange-300/10 transition-all duration-150 group-hover/withdrawal:pointer-events-auto group-hover/withdrawal:visible group-hover/withdrawal:opacity-100">
+                    <div className="mb-2 flex items-center justify-between gap-2 border-b border-orange-300/20 pb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-200">待提现明细</span>
+                      <span className="rounded-full border border-orange-300/30 bg-orange-500/15 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-orange-100">{employee.pendingWithdrawals.length} 笔</span>
+                    </div>
+                    <div className="max-h-44 overflow-y-auto dark-panel-scroll">
+                      {employee.pendingWithdrawals?.map((withdrawal, withdrawalIndex) => (
+                        <div key={withdrawal.id} className={`flex items-center justify-between gap-3 py-1.5 ${withdrawalIndex < employee.pendingWithdrawals!.length - 1 ? 'border-b border-slate-800' : ''}`}>
+                          <span className="text-[10px] font-medium text-slate-400">第 {withdrawalIndex + 1} 笔</span>
+                          <span className="text-right">
+                            <span className="block text-[11px] font-bold tabular-nums text-orange-200">${withdrawal.amount.toFixed(2)}</span>
+                            <span className="block text-[9px] font-medium tabular-nums text-slate-400">{formatWithdrawalDate(withdrawal.created_at)}</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="shrink-0 text-[10px] font-semibold tabular-nums text-orange-400">${employee.pendingWithdrawalAmount.toFixed(2)}</span>
+                  {employee.pendingWithdrawalDate && (
+                    <span className="shrink-0 border-l border-orange-400/30 pl-1.5 text-[9px] font-medium tabular-nums text-orange-200/75">
+                      {formatWithdrawalDate(employee.pendingWithdrawalDate)}
+                    </span>
+                  )}
+                </>
               )}
             </div>
           )}
