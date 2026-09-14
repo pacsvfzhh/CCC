@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Fragment, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
@@ -1463,6 +1463,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const flatAdminId = admin.id;
 
+  useLayoutEffect(() => {
+    employeeGroupsScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+  }, [selectedAdminFilter]);
+
   const navigateGroupPanel = (direction: -1 | 1) => {
     if (admin.role !== 'super_admin' || selectedAdminFilter !== 'all') return;
 
@@ -2817,7 +2821,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         </div>
       )}
 
-      <div ref={employeeGroupsScrollRef} className={`${admin.role === 'super_admin' ? 'employee-super-admin-scrollbar overflow-y-auto' : 'dark-panel-scroll overflow-hidden'} flex min-h-0 flex-1 flex-col overscroll-contain`}>
+      <div
+        ref={employeeGroupsScrollRef}
+        className={`${admin.role === 'super_admin' ? 'employee-super-admin-scrollbar overflow-y-auto' : 'dark-panel-scroll overflow-hidden'} flex min-h-0 flex-1 flex-col overscroll-contain`}
+        style={{ scrollbarGutter: 'stable' }}
+      >
         {/* Content */}
         {loading ? (
         <div className="text-center py-8 text-slate-400">Loading employees...</div>
@@ -2994,7 +3002,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <div className="text-center py-8 text-slate-400">No employees found</div>
       ) : (
         // ===== SUPER ADMIN: grouped view =====
-        <div className={selectedAdminFilter === 'all' ? 'space-y-0' : 'flex min-h-0 flex-1 flex-col'}>
+        <div
+          key={selectedAdminFilter}
+          className={`${selectedAdminFilter === 'all' ? 'space-y-0' : 'flex min-h-0 flex-1 flex-col'} animate-[fadeInUp_220ms_cubic-bezier(0.22,1,0.36,1)]`}
+          style={{ animationFillMode: 'both', willChange: 'opacity, transform' }}
+        >
           {filteredGroups.map((group, groupIndex) => {
             const isSuperGroup = group.admin.role === 'super_admin';
             return (
