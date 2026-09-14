@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Shield, Unlock, AlertTriangle, Clock, User, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { unlockAccount, formatLockDuration } from '../../lib/rateLimitService';
+import { unlockAccount } from '../../lib/rateLimitService';
 import { Admin } from '../../types';
 
 interface AccountLock {
@@ -45,11 +45,10 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
 
       if (error) {
         console.error('Failed to load locks:', error);
-        const errorMessage = error.message || 'Unknown error';
         if (isInitial) {
           setMessage({
             type: 'error',
-            text: `Failed to load lock records: ${errorMessage}`
+            text: '載入鎖定記錄失敗，請稍後再試。'
           });
         }
         return;
@@ -69,11 +68,10 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
       }
     } catch (error: unknown) {
       console.error('Failed to load locks:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
       if (isInitial) {
         setMessage({
           type: 'error',
-          text: `Failed to load lock records: ${errorMessage}`
+          text: '載入鎖定記錄失敗，請稍後再試。'
         });
       }
     } finally {
@@ -144,7 +142,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
 
   const handleUnlock = async (lock: AccountLock) => {
     if (!admin?.id) {
-      setMessage({ type: 'error', text: 'Unable to get admin ID' });
+      setMessage({ type: 'error', text: '無法取得管理員識別資訊。' });
       return;
     }
 
@@ -155,24 +153,31 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
       const result = await unlockAccount(lock.identifier, lock.identifier_type as 'ip' | 'username', admin.id);
 
       if (result.success) {
-        setMessage({ type: 'success', text: `Successfully unlocked ${lock.identifier}` });
+        setMessage({ type: 'success', text: `已成功解除鎖定：${lock.identifier}` });
         await loadLocks(false);
       } else {
-        setMessage({ type: 'error', text: result.message });
+        setMessage({ type: 'error', text: '解除鎖定失敗，請稍後再試。' });
       }
     } catch (error) {
       console.error('Unlock failed:', error);
-      setMessage({ type: 'error', text: 'Failed to unlock account' });
+      setMessage({ type: 'error', text: '解除鎖定失敗，請稍後再試。' });
     } finally {
       setUnlocking(null);
     }
+  };
+
+  const formatRemainingTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds} 秒`;
+    if (seconds < 3600) return `${Math.ceil(seconds / 60)} 分鐘`;
+    if (seconds < 86400) return `${Math.ceil(seconds / 3600)} 小時`;
+    return `${Math.ceil(seconds / 86400)} 天`;
   };
 
   const getRemainingTime = (lockUntil: string) => {
     const now = new Date().getTime();
     const until = new Date(lockUntil).getTime();
     const seconds = Math.max(0, Math.floor((until - now) / 1000));
-    return formatLockDuration(seconds);
+    return formatRemainingTime(seconds);
   };
 
   const usernameLocks = locks.filter(lock => lock.identifier_type === 'username').length;
@@ -189,7 +194,7 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-orange-400/20 bg-orange-500/10">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-300/25 border-t-orange-300" />
           </div>
-          <span className="text-sm">正在加载锁定记录...</span>
+          <span className="text-sm">正在載入鎖定記錄...</span>
         </div>
       </div>
     );
@@ -205,26 +210,26 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
               <Shield className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-300/80">Access protection</p>
-              <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">Locked accounts</h1>
-              <p className="mt-0.5 text-xs text-slate-400">Review active account and IP protection locks.</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-300/80">存取防護</p>
+              <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">已鎖定帳戶</h1>
+              <p className="mt-0.5 text-xs text-slate-400">檢視目前的帳戶與 IP 防護鎖定記錄。</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {refreshing && (
               <span className="flex items-center gap-1.5 text-xs text-slate-400">
                 <RefreshCw className="h-3.5 w-3.5 animate-spin text-orange-300" />
-                Updating
+                更新中
               </span>
             )}
             <button
               type="button"
               onClick={() => loadLocks(false)}
               className="inline-flex h-9 items-center gap-2 rounded-lg border border-orange-300/35 bg-orange-500/15 px-3 text-xs font-semibold text-orange-100 shadow-[0_0_18px_rgba(245,158,11,0.08)] transition-all hover:border-orange-200/80 hover:bg-orange-500/30 hover:text-white hover:shadow-[0_0_22px_rgba(245,158,11,0.18)] active:scale-[0.98]"
-              title="刷新锁定记录"
+              title="重新整理鎖定記錄"
             >
               <RefreshCw className={`h-4 w-4 text-orange-300 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              重新整理
             </button>
           </div>
         </div>
@@ -232,22 +237,22 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
         <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/[0.07] pt-3">
           <div className="flex items-baseline gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.8)]" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Active locks</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">目前鎖定</span>
             <span className="text-lg font-bold leading-none text-orange-200">{locks.length}</span>
           </div>
           <span className="hidden h-4 w-px bg-white/10 sm:block" />
           <div className="flex items-baseline gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Username locks</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">使用者名稱鎖定</span>
             <span className="text-sm font-bold text-slate-200">{usernameLocks}</span>
           </div>
           <span className="hidden h-4 w-px bg-white/10 sm:block" />
           <div className="flex items-baseline gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">IP locks</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">IP 鎖定</span>
             <span className="text-sm font-bold text-slate-200">{ipLocks}</span>
           </div>
           <span className="hidden h-4 w-px bg-white/10 sm:block" />
           <div className="flex items-baseline gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Expiring soon</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">即將到期</span>
             <span className={`text-sm font-bold ${expiringSoon > 0 ? 'text-amber-300' : 'text-slate-300'}`}>{expiringSoon}</span>
           </div>
         </div>
@@ -267,16 +272,16 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
       {locks.length === 0 ? (
         <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center text-slate-400">
           <Shield className="h-12 w-12 text-emerald-300/45" />
-          <p className="mt-4 text-base font-semibold text-slate-200">当前没有被锁定的账户</p>
-          <p className="mt-1 text-xs text-slate-500">系统会在检测到异常登录行为时自动显示保护记录。</p>
+          <p className="mt-4 text-base font-semibold text-slate-200">目前沒有被鎖定的帳戶</p>
+          <p className="mt-1 text-xs text-slate-500">系統偵測到異常登入行為時，會自動顯示防護記錄。</p>
         </div>
       ) : (
         <div className="relative min-h-0 flex-1 overflow-y-auto dark-panel-scroll px-4 sm:px-6 lg:px-8">
           <div className="hidden border-b border-white/10 py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 md:grid md:grid-cols-[minmax(250px,1.2fr)_minmax(210px,1fr)_minmax(230px,1fr)_auto] md:gap-5">
-            <span>Identifier</span>
-            <span>Lock reason</span>
-            <span>Timing & attempts</span>
-            <span className="text-right">Action</span>
+            <span>識別資訊</span>
+            <span>鎖定原因</span>
+            <span>時間與嘗試次數</span>
+            <span className="text-right">操作</span>
           </div>
           <div className="divide-y divide-white/[0.07]">
             {locks.map((lock) => (
@@ -292,33 +297,33 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate font-mono text-sm font-semibold text-slate-100">{lock.identifier}</span>
                       <span className="rounded-full border border-slate-500/25 bg-slate-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                        {lock.identifier_type === 'username' ? 'Username' : 'IP'}
+                        {lock.identifier_type === 'username' ? '使用者名稱' : 'IP'}
                       </span>
                     </div>
-                    {lock.username && <p className="mt-1 truncate text-xs text-slate-500">Account: {lock.username}</p>}
+                    {lock.username && <p className="mt-1 truncate text-xs text-slate-500">帳戶：{lock.username}</p>}
                   </div>
                 </div>
 
                 <div className="min-w-0 md:pl-1">
-                  <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-600 md:hidden">Lock reason</p>
+                  <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-600 md:hidden">鎖定原因</p>
                   <div className="flex items-start gap-2 text-sm text-slate-300">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300/80" />
-                    <span className="line-clamp-2">{lock.lock_reason || 'Suspicious activity threshold'}</span>
+                    <span className="line-clamp-2">{lock.lock_reason || '已達異常活動限制'}</span>
                   </div>
                 </div>
 
                 <div className="min-w-0 text-xs text-slate-500 md:pl-1">
-                  <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-600 md:hidden">Timing & attempts</p>
+                  <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-600 md:hidden">時間與嘗試次數</p>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                     <span className="flex items-center gap-1.5 text-orange-200/80">
                       <Clock className="h-3.5 w-3.5 text-orange-300/80" />
-                      {getRemainingTime(lock.lock_until)} left
+                      剩餘 {getRemainingTime(lock.lock_until)}
                     </span>
-                    <span>Failed: <strong className="font-semibold text-rose-300">{lock.failed_attempts}</strong></span>
+                    <span>失敗次數：<strong className="font-semibold text-rose-300">{lock.failed_attempts}</strong></span>
                   </div>
-                  <p className="mt-1 truncate text-[10px] text-slate-600">Locked {new Date(lock.created_at).toLocaleString()}</p>
+                  <p className="mt-1 truncate text-[10px] text-slate-600">鎖定時間：{new Date(lock.created_at).toLocaleString()}</p>
                   {lock.admin_username && admin.role === 'super_admin' && (
-                    <p className="mt-0.5 truncate text-[10px] text-slate-600">By <span className="text-cyan-300/70">{lock.admin_username}</span></p>
+                    <p className="mt-0.5 truncate text-[10px] text-slate-600">操作管理員：<span className="text-cyan-300/70">{lock.admin_username}</span></p>
                   )}
                 </div>
 
@@ -332,12 +337,12 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
                     {unlocking === lock.id ? (
                       <>
                         <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-500 border-t-amber-200" />
-                        <span>解锁中...</span>
+                        <span>解除鎖定中...</span>
                       </>
                     ) : (
                       <>
                         <Unlock className="h-3.5 w-3.5" />
-                        <span>解锁</span>
+                        <span>解除鎖定</span>
                       </>
                     )}
                   </button>
