@@ -459,6 +459,26 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
     ? '總分組'
     : selectedAdmin?.username || '管理員分組';
   const isRefreshing = refreshing || historyLoading;
+  const groupButtonToneClass = showHistory
+    ? 'border-violet-300/35 bg-[linear-gradient(135deg,rgba(139,92,246,0.2),rgba(8,47,73,0.34))] hover:border-violet-200/70 hover:bg-violet-500/25 hover:shadow-[0_8px_22px_rgba(2,6,23,0.34)]'
+    : 'border-orange-300/35 bg-[linear-gradient(135deg,rgba(245,158,11,0.2),rgba(8,47,73,0.34))] hover:border-orange-200/70 hover:bg-orange-500/25 hover:shadow-[0_8px_22px_rgba(2,6,23,0.34)]';
+  const groupIconToneClass = showHistory
+    ? 'border-violet-200/25 bg-violet-300/15 text-violet-200 group-hover:border-violet-100/45 group-hover:bg-violet-300/25'
+    : 'border-orange-200/25 bg-orange-300/15 text-orange-100 group-hover:border-orange-100/45 group-hover:bg-orange-300/25';
+  const groupLabelToneClass = showHistory ? 'text-violet-200/70' : 'text-orange-100/75';
+  const groupValueToneClass = showHistory ? 'text-violet-50' : 'text-orange-50';
+  const groupChevronToneClass = showHistory ? 'text-violet-200/80' : 'text-orange-100/80';
+  const groupMenuBorderClass = showHistory ? 'border-violet-200/25' : 'border-orange-200/25';
+  const groupMenuTitleClass = showHistory ? 'text-violet-200/70' : 'text-orange-100/75';
+  const groupMenuSelectedClass = showHistory
+    ? 'border-violet-200/45 bg-violet-300/15 text-violet-50'
+    : 'border-orange-200/45 bg-orange-300/15 text-orange-50';
+  const groupMenuHoverClass = showHistory
+    ? 'hover:border-violet-300/25 hover:bg-violet-300/[0.08]'
+    : 'hover:border-orange-300/25 hover:bg-orange-300/[0.08]';
+  const groupMenuSelectedDotClass = showHistory
+    ? 'bg-violet-200 shadow-[0_0_10px_rgba(221,214,254,0.65)]'
+    : 'bg-orange-200 shadow-[0_0_10px_rgba(253,186,116,0.65)]';
 
   if (loading) {
     return (
@@ -496,21 +516,21 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
                   disabled={adminGroupsLoading}
                   aria-expanded={groupMenuOpen}
                   aria-haspopup="listbox"
-                  className="group inline-flex h-10 max-w-[190px] items-center gap-2 rounded-xl border border-violet-300/35 bg-[linear-gradient(135deg,rgba(139,92,246,0.2),rgba(8,47,73,0.34))] px-2.5 text-left shadow-[0_6px_18px_rgba(2,6,23,0.24)] transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-px hover:border-violet-200/70 hover:bg-violet-500/25 hover:shadow-[0_8px_22px_rgba(2,6,23,0.34)] disabled:cursor-wait disabled:opacity-70"
+                  className={`group inline-flex h-10 max-w-[190px] items-center gap-2 rounded-xl border px-2.5 text-left shadow-[0_6px_18px_rgba(2,6,23,0.24)] transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-px disabled:cursor-wait disabled:opacity-70 ${groupButtonToneClass}`}
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-violet-200/25 bg-violet-300/15 text-violet-200 transition-colors group-hover:border-violet-100/45 group-hover:bg-violet-300/25">
+                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-colors ${groupIconToneClass}`}>
                     <Users className="h-3.5 w-3.5" />
                   </span>
                   <span className="min-w-0 leading-tight">
-                    <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-violet-200/70">管理員分組</span>
-                    <span className="block max-w-[112px] truncate text-[11px] font-bold text-violet-50">{adminGroupsLoading ? '載入中...' : selectedGroupLabel}</span>
+                    <span className={`block text-[9px] font-semibold uppercase tracking-[0.12em] ${groupLabelToneClass}`}>管理員分組</span>
+                    <span className={`block max-w-[112px] truncate text-[11px] font-bold ${groupValueToneClass}`}>{adminGroupsLoading ? '載入中...' : selectedGroupLabel}</span>
                   </span>
-                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-violet-200/80 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${groupChevronToneClass} ${groupMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {groupMenuOpen && !adminGroupsLoading && (
-                  <div className="absolute right-0 top-full z-50 mt-2 w-[278px] overflow-hidden rounded-2xl border border-violet-200/25 bg-[linear-gradient(160deg,rgba(15,23,42,0.98),rgba(20,28,55,0.98))] p-2 shadow-[0_22px_55px_rgba(2,6,23,0.68)] backdrop-blur-xl">
+                  <div className={`absolute right-0 top-full z-50 mt-2 w-[278px] overflow-hidden rounded-2xl border ${groupMenuBorderClass} bg-[linear-gradient(160deg,rgba(15,23,42,0.98),rgba(20,28,55,0.98))] p-2 shadow-[0_22px_55px_rgba(2,6,23,0.68)] backdrop-blur-xl`}>
                     <div className="mb-1.5 border-b border-white/[0.08] px-2 pb-2">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-violet-200/70">切換管理員分組</p>
+                      <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${groupMenuTitleClass}`}>切換管理員分組</p>
                       <p className="mt-1 text-[11px] text-slate-500">同步篩選目前與歷史鎖定</p>
                     </div>
                     <button
@@ -519,12 +539,12 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
                         setSelectedAdminId('all');
                         setGroupMenuOpen(false);
                       }}
-                      className={`group flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left transition-[background-color,border-color,transform] duration-150 ${selectedAdminId === 'all' ? 'border-cyan-200/45 bg-cyan-300/15 text-cyan-50' : 'border-transparent text-slate-300 hover:-translate-y-px hover:border-cyan-300/25 hover:bg-cyan-300/[0.08] hover:text-white'}`}
+                      className={`group flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left transition-[background-color,border-color,transform] duration-150 ${selectedAdminId === 'all' ? groupMenuSelectedClass : `border-transparent text-slate-300 hover:-translate-y-px ${groupMenuHoverClass} hover:text-white`}`}
                       role="option"
                       aria-selected={selectedAdminId === 'all'}
                     >
-                      <span className="flex min-w-0 items-center gap-2.5"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-200/25 bg-cyan-300/15 text-cyan-200"><Users className="h-3.5 w-3.5" /></span><span><span className="block text-xs font-bold">總分組</span><span className="mt-0.5 block text-[10px] text-slate-500">查看全部管理員</span></span></span>
-                      {selectedAdminId === 'all' && <span className="h-2 w-2 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(165,243,252,0.7)]" />}
+                      <span className="flex min-w-0 items-center gap-2.5"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${showHistory ? 'border-violet-200/25 bg-violet-300/15 text-violet-200' : 'border-orange-200/25 bg-orange-300/15 text-orange-100'}`}><Users className="h-3.5 w-3.5" /></span><span><span className="block text-xs font-bold">總分組</span><span className="mt-0.5 block text-[10px] text-slate-500">查看全部管理員</span></span></span>
+                      {selectedAdminId === 'all' && <span className={`h-2 w-2 rounded-full ${groupMenuSelectedDotClass}`} />}
                     </button>
                     <div className="mt-1.5 space-y-1">
                       {adminGroups.map(group => (
@@ -535,12 +555,12 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
                             setSelectedAdminId(group.id);
                             setGroupMenuOpen(false);
                           }}
-                          className={`group flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition-[background-color,border-color,transform] duration-150 ${selectedAdminId === group.id ? 'border-violet-200/45 bg-violet-300/15 text-violet-50' : 'border-transparent text-slate-300 hover:-translate-y-px hover:border-violet-300/25 hover:bg-violet-300/[0.08] hover:text-white'}`}
+                          className={`group flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition-[background-color,border-color,transform] duration-150 ${selectedAdminId === group.id ? groupMenuSelectedClass : `border-transparent text-slate-300 hover:-translate-y-px ${groupMenuHoverClass} hover:text-white`}`}
                           role="option"
                           aria-selected={selectedAdminId === group.id}
                         >
                           <span className="flex min-w-0 items-center gap-2.5"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black ${group.role === 'super_admin' ? 'border-amber-200/30 bg-amber-300/15 text-amber-100' : 'border-violet-200/25 bg-violet-300/15 text-violet-200'}`}>{group.username.slice(0, 1).toUpperCase()}</span><span className="min-w-0"><span className="block truncate text-xs font-bold">{group.username}</span><span className="mt-0.5 block text-[10px] text-slate-500">{group.role === 'super_admin' ? 'Super Admin' : 'Secondary Admin'}</span></span></span>
-                          {selectedAdminId === group.id && <span className="h-2 w-2 rounded-full bg-violet-200 shadow-[0_0_10px_rgba(221,214,254,0.65)]" />}
+                          {selectedAdminId === group.id && <span className={`h-2 w-2 rounded-full ${groupMenuSelectedDotClass}`} />}
                         </button>
                       ))}
                     </div>
@@ -617,7 +637,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
               <div className="flex items-baseline gap-2">
                 <span className="h-2 w-2 rounded-full bg-violet-300 shadow-[0_0_9px_rgba(196,181,253,0.9)]" />
                 <span className="text-[10px] font-bold tracking-wide text-violet-100/90">歷史鎖定</span>
-                <span className="text-lg font-bold leading-none text-violet-50">{historyLocks.length}</span>
+                <span className="text-lg font-bold leading-none text-violet-50">{filteredHistoryLocks.length}</span>
               </div>
               <span className="hidden h-4 w-px bg-violet-200/25 sm:block" />
               <div className="flex items-baseline gap-2">
@@ -635,7 +655,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
               <div className="flex items-baseline gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.85)]" />
                 <span className="text-[10px] font-bold tracking-wide text-orange-100/85">目前鎖定</span>
-                <span className="text-lg font-bold leading-none text-orange-50">{locks.length}</span>
+                <span className="text-lg font-bold leading-none text-orange-50">{filteredLocks.length}</span>
               </div>
               <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
               <div className="flex items-baseline gap-2">
