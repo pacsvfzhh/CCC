@@ -2184,7 +2184,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <Pin className={`w-3 h-3 ${employee.is_pinned ? 'fill-current' : ''}`} />
         </button>
       </td>
-      <td className="group/withdrawal relative w-[152px] overflow-visible py-0.5 px-2 whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>
+      <td className="group/withdrawal relative w-[136px] overflow-visible py-0.5 px-1.5 whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>
         <div className="flex min-w-0 flex-col">
           <div className="flex min-w-0 items-center gap-0.5">
             <span title={employee.username} className={`block max-w-full truncate text-xs font-medium ${!employee.is_active ? 'text-red-400' : employee.hasPendingWithdrawal ? 'text-orange-400' : 'text-white'}`}>{employee.username}</span>
@@ -2419,7 +2419,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
       <tr className="h-[40px]">
         <th className="w-[54px] px-1.5 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
-        <th className="w-[152px] px-2 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">User</th>
+        <th className="w-[136px] px-1.5 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">User</th>
         <th className="w-[112px] px-2 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Emp ID</th>
         {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[62px]')}
         <th className="h-[40px] w-[68px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Tags</th>
