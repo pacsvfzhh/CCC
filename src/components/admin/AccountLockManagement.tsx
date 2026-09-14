@@ -360,7 +360,6 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
               <Shield className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className={`text-[10px] font-bold uppercase tracking-[0.2em] ${showHistory ? 'text-violet-300/80' : 'text-orange-300/80'}`}>存取防護</p>
               <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">{showHistory ? '歷史鎖定記錄' : '已鎖定帳戶'}</h1>
               <p className="mt-0.5 text-xs text-slate-400">{showHistory ? '檢視歷史帳戶防護鎖定記錄。' : '檢視目前的帳戶防護鎖定記錄。'}</p>
             </div>
@@ -477,12 +476,12 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
               <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${showHistory ? 'text-violet-300/85' : 'text-orange-300/80'}`}>{showHistory ? '歷史清單' : '防護清單'}</p>
               <p className="mt-1 text-xs text-slate-500">{showHistory ? '查看員工帳戶過往的鎖定與解除記錄' : '目前仍生效的帳戶鎖定記錄'}</p>
             </div>
-            <span className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold ${showHistory
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 ${showHistory
               ? 'border-violet-300/35 bg-violet-500/[0.12] text-violet-200 shadow-[0_0_18px_rgba(139,92,246,0.14)]'
-              : 'border-orange-300/20 bg-orange-400/[0.08] text-orange-200/80'
+              : 'border-orange-300/25 bg-orange-400/[0.1] text-orange-200/90'
             }`}>
-              {showHistory && <History className="h-3.5 w-3.5 text-violet-300" />}
-              <span className={showHistory ? 'text-sm font-bold text-violet-100' : undefined}>{visibleLocks.length} 筆記錄</span>
+              <History className={`h-3.5 w-3.5 ${showHistory ? 'text-violet-300' : 'text-orange-300'}`} />
+              <span className="text-sm font-bold">{visibleLocks.length} 筆記錄</span>
             </span>
           </div>
           <div className="space-y-3">
@@ -603,11 +602,12 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
                               type="button"
                               onClick={() => handleUnlock(lock)}
                               disabled={unlocking === lock.id}
-                              className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-orange-300/45 bg-gradient-to-r from-orange-500/25 to-amber-500/15 px-3 text-xs font-semibold text-orange-100 shadow-[0_6px_18px_rgba(245,158,11,0.1)] transition-colors hover:border-orange-200/80 hover:bg-orange-500/40 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800/60 disabled:text-slate-500 disabled:shadow-none"
+                              aria-busy={unlocking === lock.id}
+                              className="inline-flex h-10 min-w-[132px] items-center justify-center gap-2 rounded-xl border border-orange-300/65 bg-orange-500/[0.16] px-4 text-xs font-bold text-orange-100 shadow-[0_6px_16px_rgba(2,6,23,0.22)] transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:border-orange-100 hover:bg-orange-500/35 hover:text-white hover:shadow-[0_8px_18px_rgba(2,6,23,0.3)] active:translate-y-0 active:scale-[0.96] active:bg-orange-500/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:translate-y-0 disabled:cursor-wait disabled:border-orange-200/40 disabled:bg-orange-500/30 disabled:text-orange-100 disabled:shadow-none"
                             >
                               {unlocking === lock.id ? (
                                 <>
-                                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-500 border-t-orange-200" />
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-orange-200/45 border-t-orange-50" />
                                   <span>解除鎖定中...</span>
                                 </>
                               ) : (
