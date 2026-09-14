@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Shield, Unlock, AlertTriangle, Clock, User, RefreshCw } from 'lucide-react';
+import { Shield, Unlock, AlertTriangle, Clock, User, RefreshCw, History } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { unlockAccount } from '../../lib/rateLimitService';
 import { Admin } from '../../types';
@@ -33,6 +33,10 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [nextExpiry, setNextExpiry] = useState<number | null>(null);
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
+  const [historyLocks, setHistoryLocks] = useState<AccountLock[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const loadLocks = useCallback(async (isInitial = false) => {
     try {
@@ -133,6 +137,32 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
       } else {
         setRefreshing(false);
       }
+    }
+  }, [admin.id]);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      setHistoryLoading(true);
+      setMessage(null);
+
+      const { data, error } = await supabase.rpc('get_account_lock_history_for_admin', {
+        p_admin_id: admin.id,
+        p_limit: 200
+      });
+
+      if (error) {
+        console.error('Failed to load lock history:', error);
+        setMessage({ type: 'error', text: '載入歷史鎖定記錄失敗，請稍後再試。' });
+        return;
+      }
+
+      setHistoryLocks((data || []).filter(lock => lock.identifier_type === 'username'));
+      setHistoryLoaded(true);
+    } catch (error) {
+      console.error('Failed to load lock history:', error);
+      setMessage({ type: 'error', text: '載入歷史鎖定記錄失敗，請稍後再試。' });
+    } finally {
+      setHistoryLoading(false);
     }
   }, [admin.id]);
 
@@ -254,6 +284,47 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
     const remaining = new Date(lock.lock_until).getTime() - Date.now();
     return remaining > 0 && remaining <= 30 * 60 * 1000;
   }).length;
+  const visibleLocks = showHistory ? historyLocks : locks;
+  const resolvedHistoryCount = historyLocks.filter(lock => Boolean(lock.unlocked_at)).length;
+  const getLockStatus = (lock: AccountLock) => {
+    if (!showHistory) {
+      return {
+        label: '鎖定中',
+        badgeClass: 'border-rose-300/30 bg-rose-500/[0.12] text-rose-200',
+        textClass: 'text-rose-300'
+      };
+    }
+
+    if (lock.unlocked_at) {
+      return {
+        label: '已解除',
+        badgeClass: 'border-emerald-300/25 bg-emerald-400/[0.1] text-emerald-200',
+        textClass: 'text-emerald-300'
+      };
+    }
+
+    if (new Date(lock.lock_until).getTime() > Date.now()) {
+      return {
+        label: '目前鎖定',
+        badgeClass: 'border-rose-300/30 bg-rose-500/[0.12] text-rose-200',
+        textClass: 'text-rose-300'
+      };
+    }
+
+    return {
+      label: '已到期',
+      badgeClass: 'border-slate-400/25 bg-slate-500/[0.1] text-slate-300',
+      textClass: 'text-slate-300'
+    };
+  };
+
+  const handleHistoryToggle = () => {
+    const nextShowHistory = !showHistory;
+    setShowHistory(nextShowHistory);
+    if (nextShowHistory && !historyLoaded) {
+      void loadHistory();
+    }
+  };
 
   if (loading) {
     return (
@@ -280,11 +351,11 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-300/80">存取防護</p>
               <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">已鎖定帳戶</h1>
-              <p className="mt-0.5 text-xs text-slate-400">檢視目前的帳戶防護鎖定記錄。</p>
+              <p className="mt-0.5 text-xs text-slate-400">{showHistory ? '檢視歷史帳戶防護鎖定記錄。' : '檢視目前的帳戶防護鎖定記錄。'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {refreshing && (
+          <div className="flex items-center gap-2.5">
+            {(refreshing || historyLoading) && (
               <span className="flex items-center gap-1.5 text-xs text-slate-400">
                 <RefreshCw className="h-3.5 w-3.5 animate-spin text-orange-300" />
                 更新中
@@ -292,32 +363,61 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
             )}
             <button
               type="button"
-              onClick={() => loadLocks(false)}
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-orange-300/35 bg-orange-500/15 px-3 text-xs font-semibold text-orange-100 shadow-[0_0_18px_rgba(245,158,11,0.08)] transition-all hover:border-orange-200/80 hover:bg-orange-500/30 hover:text-white hover:shadow-[0_0_22px_rgba(245,158,11,0.18)] active:scale-[0.98]"
-              title="重新整理鎖定記錄"
+              onClick={handleHistoryToggle}
+              className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-semibold shadow-[0_0_18px_rgba(245,158,11,0.08)] transition-all active:scale-[0.98] ${showHistory
+                ? 'border-orange-200/80 bg-orange-500/35 text-white shadow-[0_0_22px_rgba(245,158,11,0.18)]'
+                : 'border-orange-300/35 bg-orange-500/10 text-orange-100 hover:border-orange-200/80 hover:bg-orange-500/25 hover:text-white'
+              }`}
+              title={showHistory ? '查看目前鎖定記錄' : '查看歷史鎖定記錄'}
             >
-              <RefreshCw className={`h-4 w-4 text-orange-300 ${refreshing ? 'animate-spin' : ''}`} />
+              <History className={`h-4 w-4 text-orange-300 ${historyLoading ? 'animate-pulse' : ''}`} />
+              {showHistory ? '目前鎖定' : '歷史記錄'}
+            </button>
+            <button
+              type="button"
+              onClick={() => showHistory ? void loadHistory() : void loadLocks(false)}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-orange-300/35 bg-orange-500/15 px-3 text-xs font-semibold text-orange-100 shadow-[0_0_18px_rgba(245,158,11,0.08)] transition-all hover:border-orange-200/80 hover:bg-orange-500/30 hover:text-white hover:shadow-[0_0_22px_rgba(245,158,11,0.18)] active:scale-[0.98]"
+              title={showHistory ? '重新整理歷史記錄' : '重新整理鎖定記錄'}
+            >
+              <RefreshCw className={`h-4 w-4 text-orange-300 ${(refreshing || historyLoading) ? 'animate-spin' : ''}`} />
               重新整理
             </button>
           </div>
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-orange-300/25 bg-orange-500/[0.08] px-3 py-2.5 shadow-[0_8px_24px_rgba(245,158,11,0.08)] sm:px-4">
-          <div className="flex items-baseline gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.85)]" />
-            <span className="text-[10px] font-bold tracking-wide text-orange-100/85">目前鎖定</span>
-            <span className="text-lg font-bold leading-none text-orange-50">{locks.length}</span>
-          </div>
-          <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
-          <div className="flex items-baseline gap-2">
-            <span className="text-[10px] font-bold tracking-wide text-orange-100/75">使用者名稱鎖定</span>
-            <span className="text-sm font-bold leading-none text-orange-50">{usernameLocks}</span>
-          </div>
-          <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
-          <div className="flex items-baseline gap-2">
-            <span className="text-[10px] font-bold tracking-wide text-orange-100/75">即將到期</span>
-            <span className="text-sm font-bold leading-none text-orange-50">{expiringSoon}</span>
-          </div>
+          {showHistory ? (
+            <>
+              <div className="flex items-baseline gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.85)]" />
+                <span className="text-[10px] font-bold tracking-wide text-orange-100/85">歷史鎖定</span>
+                <span className="text-lg font-bold leading-none text-orange-50">{historyLocks.length}</span>
+              </div>
+              <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
+              <div className="flex items-baseline gap-2">
+                <span className="text-[10px] font-bold tracking-wide text-orange-100/75">已解除</span>
+                <span className="text-sm font-bold leading-none text-orange-50">{resolvedHistoryCount}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-baseline gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.85)]" />
+                <span className="text-[10px] font-bold tracking-wide text-orange-100/85">目前鎖定</span>
+                <span className="text-lg font-bold leading-none text-orange-50">{locks.length}</span>
+              </div>
+              <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
+              <div className="flex items-baseline gap-2">
+                <span className="text-[10px] font-bold tracking-wide text-orange-100/75">使用者名稱鎖定</span>
+                <span className="text-sm font-bold leading-none text-orange-50">{usernameLocks}</span>
+              </div>
+              <span className="hidden h-4 w-px bg-orange-200/25 sm:block" />
+              <div className="flex items-baseline gap-2">
+                <span className="text-[10px] font-bold tracking-wide text-orange-100/75">即將到期</span>
+                <span className="text-sm font-bold leading-none text-orange-50">{expiringSoon}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -332,105 +432,123 @@ export default function AccountLockManagement({ admin }: AccountLockManagementPr
         </div>
       )}
 
-      {locks.length === 0 ? (
+      {visibleLocks.length === 0 ? (
         <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center text-slate-400">
           <Shield className="h-12 w-12 text-emerald-300/45" />
-          <p className="mt-4 text-base font-semibold text-slate-200">目前沒有被鎖定的帳戶</p>
-          <p className="mt-1 text-xs text-slate-500">系統偵測到異常登入行為時，會自動顯示防護記錄。</p>
+          <p className="mt-4 text-base font-semibold text-slate-200">{showHistory ? '目前沒有歷史鎖定記錄' : '目前沒有被鎖定的帳戶'}</p>
+          <p className="mt-1 text-xs text-slate-500">{showHistory ? '員工帳戶的過往防護鎖定會顯示在這裡。' : '系統偵測到異常登入行為時，會自動顯示防護記錄。'}</p>
         </div>
       ) : (
         <div className="relative min-h-0 flex-1 overflow-y-auto dark-panel-scroll px-4 pb-6 pt-4 sm:px-6 lg:px-8">
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-300/80">防護清單</p>
-              <p className="mt-1 text-xs text-slate-500">目前仍生效的帳戶鎖定記錄</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-300/80">{showHistory ? '歷史清單' : '防護清單'}</p>
+              <p className="mt-1 text-xs text-slate-500">{showHistory ? '查看員工帳戶過往的鎖定與解除記錄' : '目前仍生效的帳戶鎖定記錄'}</p>
             </div>
             <span className="rounded-full border border-orange-300/20 bg-orange-400/[0.08] px-2.5 py-1 text-[10px] font-semibold text-orange-200/80">
-              {locks.length} 筆記錄
+              {visibleLocks.length} 筆記錄
             </span>
           </div>
           <div className="space-y-3">
-            {locks.map((lock) => (
-              <article
-                key={lock.id}
-                className="group overflow-hidden rounded-2xl border border-orange-300/15 bg-slate-900/65 shadow-[0_10px_28px_rgba(2,6,23,0.24)] transition-colors duration-150 hover:border-orange-300/40 hover:bg-orange-950/25"
-              >
-                <div className="border-l-2 border-orange-400/75 px-4 py-4 sm:px-5">
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-                    <div className="flex min-w-0 flex-1 items-start gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-orange-300/25 bg-orange-400/[0.1] text-orange-300 transition-colors group-hover:border-orange-200/50 group-hover:bg-orange-400/20">
-                        <User className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="max-w-full truncate font-mono text-base font-semibold text-slate-100">{lock.username || lock.identifier}</span>
-                          <span className="rounded-full border border-orange-300/25 bg-orange-400/[0.08] px-2 py-0.5 text-[9px] font-bold tracking-wide text-orange-200/80">
-                            使用者帳戶
-                          </span>
-                          <span className="rounded-full border border-rose-300/30 bg-rose-500/[0.12] px-2 py-0.5 text-[9px] font-bold tracking-wide text-rose-200">
-                            鎖定中
-                          </span>
-                        </div>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold">
-                          <span className="text-orange-300">員工 ID：<span className="font-mono text-orange-200">{lock.employee_id || '未記錄'}</span></span>
-                          <span className="text-orange-300">登入 IP：<span className="font-mono text-orange-200">{lock.lock_ip || '未記錄'}</span></span>
-                        </div>
-                        <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-slate-400">
-                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-300/80" />
-                          <span className="line-clamp-2">{lock.lock_reason || '系統偵測到異常登入活動，已啟用暫時防護。'}</span>
-                        </p>
-                      </div>
-                    </div>
+            {visibleLocks.map((lock) => {
+              const status = getLockStatus(lock);
 
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-orange-300/15 pt-3 sm:grid-cols-4 xl:min-w-[500px] xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
-                      <div>
-                        <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">防護狀態</p>
-                        <p className="mt-1 text-sm font-bold text-rose-300">鎖定中</p>
+              return (
+                <article
+                  key={lock.id}
+                  className="group overflow-hidden rounded-2xl border border-orange-300/15 bg-slate-900/65 shadow-[0_10px_28px_rgba(2,6,23,0.24)] transition-colors duration-150 hover:border-orange-300/40 hover:bg-orange-950/25"
+                >
+                  <div className="border-l-2 border-orange-400/75 px-4 py-4 sm:px-5">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-orange-300/25 bg-orange-400/[0.1] text-orange-300 transition-colors group-hover:border-orange-200/50 group-hover:bg-orange-400/20">
+                          <User className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="max-w-full truncate font-mono text-base font-semibold text-slate-100">{lock.username || lock.identifier}</span>
+                            <span className="rounded-full border border-orange-300/25 bg-orange-400/[0.08] px-2 py-0.5 text-[9px] font-bold tracking-wide text-orange-200/80">
+                              使用者帳戶
+                            </span>
+                            <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold tracking-wide ${status.badgeClass}`}>
+                              {status.label}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold">
+                            <span className="text-orange-300">員工 ID：<span className="font-mono text-orange-200">{lock.employee_id || '未記錄'}</span></span>
+                            <span className="text-orange-300">登入 IP：<span className="font-mono text-orange-200">{lock.lock_ip || '未記錄'}</span></span>
+                          </div>
+                          <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-slate-400">
+                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-300/80" />
+                            <span className="line-clamp-2">{lock.lock_reason || '系統偵測到異常登入活動，已啟用暫時防護。'}</span>
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">剩餘時間</p>
-                        <p className="mt-1 flex items-center gap-1.5 text-base font-bold text-orange-300">
-                          <Clock className="h-4 w-4 text-orange-300" />
-                          {getRemainingTime(lock.lock_until, countdownNow)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">失敗嘗試</p>
-                        <p className="mt-1 text-sm font-bold text-rose-300">{lock.failed_attempts} 次</p>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">鎖定時間</p>
-                        <p className="mt-1 truncate text-xs font-semibold text-orange-200/85">{new Date(lock.created_at).toLocaleString()}</p>
-                      </div>
-                    </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] pt-3 xl:w-[150px] xl:shrink-0 xl:flex-col xl:items-stretch xl:border-t-0 xl:pl-1 xl:pt-0">
-                      {lock.admin_username && admin.role === 'super_admin' && (
-                        <p className="truncate text-xs font-medium text-slate-400">鎖定所屬管理員：<span className="text-sm font-semibold text-cyan-200">{lock.admin_username}</span></p>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleUnlock(lock)}
-                        disabled={unlocking === lock.id}
-                        className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-orange-300/45 bg-gradient-to-r from-orange-500/25 to-amber-500/15 px-3 text-xs font-semibold text-orange-100 shadow-[0_6px_18px_rgba(245,158,11,0.1)] transition-colors hover:border-orange-200/80 hover:bg-orange-500/40 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800/60 disabled:text-slate-500 disabled:shadow-none"
-                      >
-                        {unlocking === lock.id ? (
-                          <>
-                            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-500 border-t-orange-200" />
-                            <span>解除鎖定中...</span>
-                          </>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-orange-300/15 pt-3 sm:grid-cols-4 xl:min-w-[500px] xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
+                        <div>
+                          <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">防護狀態</p>
+                          <p className={`mt-1 text-sm font-bold ${status.textClass}`}>{status.label}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">{showHistory ? '歷史狀態' : '剩餘時間'}</p>
+                          <p className="mt-1 flex items-center gap-1.5 text-base font-bold text-orange-300">
+                            <Clock className="h-4 w-4 text-orange-300" />
+                            {showHistory
+                              ? lock.unlocked_at
+                                ? new Date(lock.unlocked_at).toLocaleString()
+                                : status.label === '已到期' ? '鎖定已到期' : getRemainingTime(lock.lock_until, countdownNow)
+                              : getRemainingTime(lock.lock_until, countdownNow)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">失敗嘗試</p>
+                          <p className="mt-1 text-sm font-bold text-rose-300">{lock.failed_attempts} 次</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold tracking-[0.12em] text-orange-300/75">鎖定時間</p>
+                          <p className="mt-1 truncate text-xs font-semibold text-orange-200/85">{new Date(lock.created_at).toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] pt-3 xl:w-[150px] xl:shrink-0 xl:flex-col xl:items-stretch xl:border-t-0 xl:pl-1 xl:pt-0">
+                        {showHistory ? (
+                          lock.admin_username ? (
+                            <p className="truncate text-xs font-medium text-slate-400">解除管理員：<span className="text-sm font-semibold text-cyan-200">{lock.admin_username}</span></p>
+                          ) : (
+                            <p className="truncate text-xs font-medium text-slate-500">系統自動到期</p>
+                          )
                         ) : (
                           <>
-                            <Unlock className="h-3.5 w-3.5" />
-                            <span>解除鎖定</span>
+                            {lock.admin_username && admin.role === 'super_admin' && (
+                              <p className="truncate text-xs font-medium text-slate-400">鎖定所屬管理員：<span className="text-sm font-semibold text-cyan-200">{lock.admin_username}</span></p>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleUnlock(lock)}
+                              disabled={unlocking === lock.id}
+                              className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-orange-300/45 bg-gradient-to-r from-orange-500/25 to-amber-500/15 px-3 text-xs font-semibold text-orange-100 shadow-[0_6px_18px_rgba(245,158,11,0.1)] transition-colors hover:border-orange-200/80 hover:bg-orange-500/40 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800/60 disabled:text-slate-500 disabled:shadow-none"
+                            >
+                              {unlocking === lock.id ? (
+                                <>
+                                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-500 border-t-orange-200" />
+                                  <span>解除鎖定中...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Unlock className="h-3.5 w-3.5" />
+                                  <span>解除鎖定</span>
+                                </>
+                              )}
+                            </button>
                           </>
                         )}
-                      </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </div>
       )}

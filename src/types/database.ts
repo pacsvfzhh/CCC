@@ -2109,6 +2109,25 @@ export interface Database {
           lock_ip: string | null;
         }>;
       };
+      get_account_lock_history_for_admin: {
+        Args: { p_admin_id: string; p_limit?: number };
+        Returns: Array<{
+          admin_username: string | null;
+          created_at: string;
+          failed_attempts: number;
+          id: string;
+          identifier: string;
+          identifier_type: string;
+          lock_reason: string | null;
+          lock_until: string;
+          unlocked_at: string | null;
+          unlocked_by: string | null;
+          user_id: string | null;
+          username: string | null;
+          employee_id: string | null;
+          lock_ip: string | null;
+        }>;
+      };
       get_active_work_session: {
         Args: { p_user_id: string };
         Returns: Array<{
