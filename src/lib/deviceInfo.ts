@@ -53,7 +53,7 @@ const cleanModel = (value: string | undefined | null) => {
     .replace(/\s+Build\/[^;)]+/i, '')
     .replace(/^Build\/.*$/i, '')
     .trim();
-  if (!model || /^(?:wv|mobile|tablet|phone|en[-_]\w+|[a-z]{2}[-_]\w{2})$/i.test(model)) return null;
+  if (!model || /^(?:k|wv|mobile|tablet|phone|en[-_]\w+|[a-z]{2}[-_]\w{2})$/i.test(model)) return null;
   return model.length <= 80 ? model : model.slice(0, 80);
 };
 
@@ -188,7 +188,9 @@ export function resolveLoginDeviceInfo(value: unknown, userAgent: string | null 
     os_family: storedOsFamily,
     os_version: null,
     device_type: isKnownValue(stored.device_type, DEVICE_TYPES) ? stored.device_type : fallback.device_type,
-    device_model: typeof stored.device_model === 'string' ? stored.device_model : fallback.device_model,
+    device_model: typeof stored.device_model === 'string'
+      ? cleanModel(stored.device_model) || fallback.device_model
+      : fallback.device_model,
     browser_family: isKnownValue(stored.browser_family, BROWSER_FAMILIES) ? stored.browser_family : fallback.browser_family,
     browser_version: typeof stored.browser_version === 'string' ? stored.browser_version : fallback.browser_version,
     source: isKnownValue(stored.source, INFO_SOURCES) ? stored.source : fallback.source,
