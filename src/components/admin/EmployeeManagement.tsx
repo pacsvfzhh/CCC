@@ -3004,8 +3004,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         // ===== SUPER ADMIN: grouped view =====
         <div
           key={selectedAdminFilter}
-          className={`${selectedAdminFilter === 'all' ? 'space-y-0' : 'flex min-h-0 flex-1 flex-col'} animate-[fadeInUp_220ms_cubic-bezier(0.22,1,0.36,1)]`}
-          style={{ animationFillMode: 'both', willChange: 'opacity, transform' }}
+          className={`${selectedAdminFilter === 'all' ? 'space-y-0' : 'flex min-h-0 flex-1 flex-col'} animate-[fadeIn_160ms_ease-out]`}
+          style={{ animationFillMode: 'both' }}
         >
           {filteredGroups.map((group, groupIndex) => {
             const isSuperGroup = group.admin.role === 'super_admin';
@@ -3013,7 +3013,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               <Fragment key={group.admin.id}>
               <div
                 data-admin-group-id={group.admin.id}
-                className={`rounded-none overflow-hidden transition-all duration-300 ${
+                className={`rounded-none overflow-hidden transition-colors duration-200 ${
                   isSuperGroup
                     ? `bg-gradient-to-br from-yellow-500/5 via-slate-800/40 to-slate-800/40 border-2 border-yellow-500/30 shadow-lg shadow-yellow-500/10 ${selectedAdminFilter !== 'all' && expandedGroups.has(group.admin.id) ? 'flex min-h-0 flex-1 flex-col' : ''}`
                     : `bg-gradient-to-br from-blue-500/5 via-slate-800/40 to-slate-800/40 border-2 border-blue-500/30 shadow-lg shadow-blue-500/10 ${selectedAdminFilter !== 'all' && expandedGroups.has(group.admin.id) ? 'flex min-h-0 flex-1 flex-col' : ''}`
