@@ -1985,7 +1985,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               type="button"
               onClick={() => setLoginIPEmployee(null)}
               aria-label="Close login IP history"
-              className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white"
+              className="absolute right-5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-rose-300/35 bg-rose-500/15 text-rose-200 transition-all hover:border-rose-200/80 hover:bg-rose-500/40 hover:text-white"
             >
               <X className="h-4 w-4" />
             </button>
