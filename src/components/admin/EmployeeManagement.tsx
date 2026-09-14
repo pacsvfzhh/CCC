@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet } from 'lucide-react';
+import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet, Activity, MapPin, Clock3, ShieldCheck } from 'lucide-react';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { Employee, Admin } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
@@ -1925,69 +1925,148 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       const s = String(d.getSeconds()).padStart(2, '0');
       return `${Y}-${M}-${D} ${h}:${m}:${s}`;
     };
+    const loginCount = loginIPRecords.filter(record => record.action_type === 'login').length;
+    const logoutCount = loginIPRecords.filter(record => record.action_type === 'logout').length;
+    const latestActivity = loginIPRecords[0]?.created_at;
+
     return createPortal(
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4" onClick={() => setLoginIPEmployee(null)}>
-        <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-sky-500/20 flex items-center justify-center">
-                <Globe className="w-5 h-5 text-sky-400" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 leading-none">Login IP History</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <h3 className="text-lg font-bold text-sky-300 tracking-wide">{loginIPEmployee.username}</h3>
-                  {loginIPEmployee.employeeId && <span className="text-sm text-white font-mono font-semibold">ID: {loginIPEmployee.employeeId}</span>}
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm" onClick={() => setLoginIPEmployee(null)}>
+        <div className="flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-[26px] border border-white/10 bg-[#0b1724] shadow-[0_24px_90px_rgba(2,12,27,0.65)]" onClick={(e) => e.stopPropagation()}>
+          <div className="relative overflow-hidden border-b border-white/10 px-5 py-5 sm:px-6">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_34%),linear-gradient(115deg,rgba(15,23,42,0.96),rgba(10,31,46,0.88))]" />
+            <div className="relative flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3.5">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 shadow-[0_0_28px_rgba(34,211,238,0.12)]">
+                  <Globe className="h-5 w-5 text-cyan-300" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/75">Security activity</p>
+                    <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">Audit log</span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h3 className="truncate text-xl font-bold tracking-tight text-white">{loginIPEmployee.username}</h3>
+                    {loginIPEmployee.employeeId && <span className="font-mono text-xs font-semibold text-slate-400">ID: {loginIPEmployee.employeeId}</span>}
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">Review recent sign-ins, sign-outs, IP addresses, and browser evidence.</p>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setLoginIPEmployee(null)}
+                aria-label="Close login IP history"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <button onClick={() => setLoginIPEmployee(null)} className="p-1.5 rounded-lg hover:bg-slate-700/60 text-slate-400 hover:text-white transition-colors">
-              <X className="w-5 h-5" />
-            </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto bg-[linear-gradient(180deg,#0d1b2a_0%,#0a1521_100%)] p-4 sm:p-6">
+            <div className="mb-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.04] p-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Total events</span>
+                  <Activity className="h-4 w-4 text-cyan-300" />
+                </div>
+                <p className="mt-2 text-2xl font-bold tracking-tight text-white">{loginIPRecords.length}</p>
+              </div>
+              <div className="rounded-2xl border border-emerald-300/10 bg-emerald-300/[0.04] p-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Sign-ins</span>
+                  <ShieldCheck className="h-4 w-4 text-emerald-300" />
+                </div>
+                <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-300">{loginCount}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-300/10 bg-white/[0.03] p-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Sign-outs</span>
+                  <X className="h-4 w-4 text-slate-400" />
+                </div>
+                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-200">{logoutCount}</p>
+              </div>
+              <div className="col-span-2 rounded-2xl border border-violet-300/10 bg-violet-300/[0.04] p-3.5 xl:col-span-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Latest activity</span>
+                  <Clock3 className="h-4 w-4 text-violet-300" />
+                </div>
+                <p className="mt-2 truncate text-sm font-semibold text-violet-100">{latestActivity ? formatDateTime(latestActivity) : 'No activity yet'}</p>
+              </div>
+            </div>
+
             {loginIPLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 text-sky-400 animate-spin" />
+              <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10">
+                  <Loader2 className="h-6 w-6 animate-spin text-cyan-300" />
+                </div>
+                <p className="mt-3 text-sm font-semibold text-slate-300">Loading security activity</p>
+                <p className="mt-1 text-xs text-slate-500">Fetching the latest login records</p>
               </div>
             ) : loginIPRecords.length === 0 ? (
-              <div className="text-center py-12 text-slate-500 text-sm">No login records found</div>
+              <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.03] text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-500/20 bg-slate-500/10">
+                  <Globe className="h-6 w-6 text-slate-500" />
+                </div>
+                <p className="mt-3 text-sm font-semibold text-slate-300">No login records found</p>
+                <p className="mt-1 max-w-xs text-xs text-slate-500">New sign-in and sign-out activity will appear here.</p>
+              </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-700">
-                      <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">Time</th>
-                      <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">Type</th>
-                      <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">IP Address</th>
-                      <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">Device</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loginIPRecords.map((record) => (
-                      <tr key={record.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                        <td className="px-3 py-2 text-xs text-slate-300 whitespace-nowrap">{formatDateTime(record.created_at)}</td>
-                        <td className="px-3 py-2">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                            record.action_type === 'login'
-                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-slate-500/15 text-slate-400 border border-slate-500/30'
-                          }`}>
-                            {record.action_type === 'login' ? 'Login' : 'Logout'}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-xs text-slate-200 font-mono">{record.ip_address || '-'}</td>
-                        <td className="px-3 py-2">
-                          <LoginDeviceSummary
-                            compact
-                            deviceInfo={record.device_info}
-                            userAgent={record.user_agent}
-                          />
-                        </td>
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-inner shadow-black/10">
+                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Activity timeline</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">IP and browser evidence for this employee</p>
+                  </div>
+                  <span className="rounded-full border border-cyan-300/15 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-bold text-cyan-200">{loginIPRecords.length} records</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-[720px] w-full">
+                    <thead className="bg-white/[0.025]">
+                      <tr className="border-b border-white/10">
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Time</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Type</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">IP address</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">System & browser</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {loginIPRecords.map((record) => (
+                        <tr key={record.id} className="group border-b border-white/[0.07] transition-colors last:border-b-0 hover:bg-cyan-300/[0.035]">
+                          <td className="whitespace-nowrap px-4 py-3.5 text-xs text-slate-300">
+                            <span className="flex items-center gap-2">
+                              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.05] text-slate-500 transition-colors group-hover:bg-cyan-300/10 group-hover:text-cyan-300">
+                                <Clock3 className="h-3.5 w-3.5" />
+                              </span>
+                              {formatDateTime(record.created_at)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                              record.action_type === 'login'
+                                ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-300'
+                                : 'border-slate-300/15 bg-slate-300/[0.06] text-slate-400'
+                            }`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${record.action_type === 'login' ? 'bg-emerald-300' : 'bg-slate-500'}`} />
+                              {record.action_type === 'login' ? 'Login' : 'Logout'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-mono text-slate-200">
+                            <span className="flex items-center gap-1.5">
+                              <MapPin className="h-3.5 w-3.5 text-slate-500" />
+                              {record.ip_address || 'Unknown IP'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <LoginDeviceSummary
+                              compact
+                              deviceInfo={record.device_info}
+                              userAgent={record.user_agent}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

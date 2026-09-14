@@ -53,14 +53,24 @@ export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = fa
         <div className="mt-1 text-[10px] text-slate-500">{details.join(' · ')}</div>
       )}
       {userAgent && (
-        <details className="group mt-1.5 max-w-full">
-          <summary className="flex cursor-pointer list-none items-center gap-1 text-[10px] font-medium text-slate-500 transition-colors hover:text-slate-300">
+        <details className="group mt-2 max-w-full">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[10px] font-semibold text-slate-500 transition-colors hover:text-cyan-300">
             <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
-            User-Agent
+            <span>User-Agent</span>
+            <span className="font-normal text-slate-600">· raw audit evidence</span>
           </summary>
-          <p className="mt-1 max-w-[420px] break-words rounded-md border border-slate-700/70 bg-slate-950/70 p-1.5 font-mono text-[9px] leading-relaxed text-slate-500">
-            {userAgent}
-          </p>
+          <div className="mt-2 w-full max-w-[420px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.14)]">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2">
+              <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Browser signature
+              </span>
+              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[9px] font-semibold text-slate-500">Read only</span>
+            </div>
+            <p className="max-h-28 overflow-y-auto break-words bg-white p-3 font-mono text-[10px] leading-relaxed text-slate-600">
+              {userAgent}
+            </p>
+          </div>
         </details>
       )}
     </div>
