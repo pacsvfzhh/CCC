@@ -35,6 +35,118 @@ const sortOptions: Array<{ key: SortOption; label: string; description: string }
   { key: 'audit_time_asc', label: '最早審核', description: '按審核時間從舊到新' },
 ];
 
+type WithdrawalStatusTheme = {
+  editButton: string;
+  panel: string;
+  header: string;
+  topLine: string;
+  iconShell: string;
+  icon: string;
+  eyebrow: string;
+  subtext: string;
+  divider: string;
+  amount: string;
+  label: string;
+  textarea: string;
+  notice: string;
+  noticeIcon: string;
+  footer: string;
+  saveButton: string;
+};
+
+const withdrawalStatusThemes: Record<Withdrawal['status'], WithdrawalStatusTheme> = {
+  pending: {
+    editButton: 'border-orange-300/40 bg-orange-500/10 text-orange-200 hover:border-orange-300/70 hover:bg-orange-500/20 hover:text-white',
+    panel: 'border-orange-400/35 bg-gradient-to-b from-slate-900 via-orange-950/20 to-slate-950 shadow-orange-950/45',
+    header: 'border-orange-300/20 bg-gradient-to-r from-orange-950/75 via-slate-900 to-slate-900',
+    topLine: 'from-orange-500 via-amber-300 to-orange-500',
+    iconShell: 'border-orange-300/35 bg-orange-400/15 text-orange-100',
+    icon: 'text-orange-300',
+    eyebrow: 'text-orange-300',
+    subtext: 'text-orange-100/65',
+    divider: 'border-orange-300/15',
+    amount: 'text-orange-200',
+    label: 'text-orange-100',
+    textarea: 'border-orange-300/40 focus:border-orange-500 focus:ring-orange-500/20',
+    notice: 'border-orange-400/20 bg-orange-500/10 text-orange-100/80',
+    noticeIcon: 'text-orange-300',
+    footer: 'border-orange-300/15',
+    saveButton: 'border-orange-300/35 bg-orange-600 shadow-orange-950/30 hover:bg-orange-500',
+  },
+  approved: {
+    editButton: 'border-emerald-300/40 bg-emerald-500/10 text-emerald-200 hover:border-emerald-300/70 hover:bg-emerald-500/20 hover:text-white',
+    panel: 'border-emerald-400/35 bg-gradient-to-b from-slate-900 via-emerald-950/20 to-slate-950 shadow-emerald-950/45',
+    header: 'border-emerald-300/20 bg-gradient-to-r from-emerald-950/75 via-slate-900 to-slate-900',
+    topLine: 'from-emerald-500 via-green-300 to-emerald-500',
+    iconShell: 'border-emerald-300/35 bg-emerald-400/15 text-emerald-100',
+    icon: 'text-emerald-300',
+    eyebrow: 'text-emerald-300',
+    subtext: 'text-emerald-100/65',
+    divider: 'border-emerald-300/15',
+    amount: 'text-emerald-200',
+    label: 'text-emerald-100',
+    textarea: 'border-emerald-300/40 focus:border-emerald-500 focus:ring-emerald-500/20',
+    notice: 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100/80',
+    noticeIcon: 'text-emerald-300',
+    footer: 'border-emerald-300/15',
+    saveButton: 'border-emerald-300/35 bg-emerald-600 shadow-emerald-950/30 hover:bg-emerald-500',
+  },
+  rejected: {
+    editButton: 'border-red-300/40 bg-red-500/10 text-red-200 hover:border-red-300/70 hover:bg-red-500/20 hover:text-white',
+    panel: 'border-red-400/35 bg-gradient-to-b from-slate-900 via-red-950/20 to-slate-950 shadow-red-950/45',
+    header: 'border-red-300/20 bg-gradient-to-r from-red-950/75 via-slate-900 to-slate-900',
+    topLine: 'from-red-500 via-rose-300 to-red-500',
+    iconShell: 'border-red-300/35 bg-red-400/15 text-red-100',
+    icon: 'text-red-300',
+    eyebrow: 'text-red-300',
+    subtext: 'text-red-100/65',
+    divider: 'border-red-300/15',
+    amount: 'text-red-200',
+    label: 'text-red-100',
+    textarea: 'border-red-300/40 focus:border-red-500 focus:ring-red-500/20',
+    notice: 'border-red-400/20 bg-red-500/10 text-red-100/80',
+    noticeIcon: 'text-red-300',
+    footer: 'border-red-300/15',
+    saveButton: 'border-red-300/35 bg-red-600 shadow-red-950/30 hover:bg-red-500',
+  },
+  cancelled: {
+    editButton: 'border-slate-500/70 bg-slate-700/40 text-slate-300 hover:border-slate-400 hover:bg-slate-700/70 hover:text-white',
+    panel: 'border-slate-500/55 bg-gradient-to-b from-slate-900 via-slate-800/80 to-slate-950 shadow-slate-950/55',
+    header: 'border-slate-500/25 bg-gradient-to-r from-slate-800 via-slate-900 to-slate-950',
+    topLine: 'from-slate-500 via-slate-300 to-slate-600',
+    iconShell: 'border-slate-500/55 bg-slate-700/45 text-slate-200',
+    icon: 'text-slate-300',
+    eyebrow: 'text-slate-300',
+    subtext: 'text-slate-300/65',
+    divider: 'border-slate-500/25',
+    amount: 'text-slate-300',
+    label: 'text-slate-200',
+    textarea: 'border-slate-400/45 focus:border-slate-400 focus:ring-slate-400/20',
+    notice: 'border-slate-500/30 bg-slate-700/35 text-slate-300',
+    noticeIcon: 'text-slate-300',
+    footer: 'border-slate-500/25',
+    saveButton: 'border-slate-400/50 bg-slate-600 shadow-slate-950/40 hover:bg-slate-500',
+  },
+  processed: {
+    editButton: 'border-cyan-300/40 bg-cyan-500/10 text-cyan-200 hover:border-cyan-300/70 hover:bg-cyan-500/20 hover:text-white',
+    panel: 'border-cyan-400/35 bg-gradient-to-b from-slate-900 via-cyan-950/20 to-slate-950 shadow-cyan-950/45',
+    header: 'border-cyan-300/20 bg-gradient-to-r from-cyan-950/75 via-slate-900 to-slate-900',
+    topLine: 'from-cyan-500 via-sky-300 to-cyan-500',
+    iconShell: 'border-cyan-300/35 bg-cyan-400/15 text-cyan-100',
+    icon: 'text-cyan-300',
+    eyebrow: 'text-cyan-300',
+    subtext: 'text-cyan-100/65',
+    divider: 'border-cyan-300/15',
+    amount: 'text-cyan-200',
+    label: 'text-cyan-100',
+    textarea: 'border-cyan-300/40 focus:border-cyan-500 focus:ring-cyan-500/20',
+    notice: 'border-cyan-400/20 bg-cyan-500/10 text-cyan-100/80',
+    noticeIcon: 'text-cyan-300',
+    footer: 'border-cyan-300/15',
+    saveButton: 'border-cyan-300/35 bg-cyan-600 shadow-cyan-950/30 hover:bg-cyan-500',
+  },
+};
+
 const getWithdrawalDateKey = (value: string) => {
   const date = new Date(value);
   const year = date.getFullYear();
@@ -57,6 +169,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [error, setError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
+  const [editingStatusTheme, setEditingStatusTheme] = useState<Withdrawal['status'] | null>(null);
   const [editStatus, setEditStatus] = useState<'approved' | 'rejected'>('approved');
   const [editRemark, setEditRemark] = useState('');
   const [editSaving, setEditSaving] = useState(false);
@@ -319,6 +432,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
   const startEditing = (withdrawal: WithdrawalWithEmployee) => {
     setEditing(withdrawal.id);
+    setEditingStatusTheme(withdrawal.status);
     setEditStatus(withdrawal.status === 'rejected' ? 'rejected' : 'approved');
     setEditRemark(formatFinancialCorrectionRemark(withdrawal.audit_remark) || '');
   };
@@ -326,6 +440,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const cancelEditing = () => {
     if (editSaving) return;
     setEditing(null);
+    setEditingStatusTheme(null);
     setEditRemark('');
   };
 
@@ -364,6 +479,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
           financialOperationIdsRef.current.delete(operationKey);
           setEditing(null);
+          setEditingStatusTheme(null);
           setEditRemark('');
           void loadWithdrawalsRef.current?.();
         } catch (err) {
@@ -605,6 +721,8 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
     );
   }
 
+  const editingTheme = withdrawalStatusThemes[editingStatusTheme || editingWithdrawal?.status || 'approved'];
+
   return (
     <>
       {/* Confirmation Dialog */}
@@ -821,19 +939,19 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="withdrawal-edit-title"
-            className="dark-panel-scroll max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-amber-400/35 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 shadow-2xl shadow-black/60 ring-1 ring-inset ring-white/10"
+            className={`dark-panel-scroll max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl border shadow-2xl ring-1 ring-inset ring-white/10 ${editingTheme.panel}`}
           >
-            <div className="relative border-b border-amber-300/20 bg-gradient-to-r from-slate-800 via-amber-700/20 to-slate-900 px-5 py-4">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-slate-500 via-amber-400 to-yellow-300" />
+            <div className={`relative border-b px-5 py-4 ${editingTheme.header}`}>
+              <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${editingTheme.topLine}`} />
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-300/35 bg-amber-400/15 text-amber-100 ring-1 ring-inset ring-white/10">
-                    <Pencil className="h-5 w-5" />
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ring-1 ring-inset ring-white/10 ${editingTheme.iconShell}`}>
+                    <Pencil className={`h-5 w-5 ${editingTheme.icon}`} />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">Historical correction</div>
+                    <div className={`text-[10px] font-bold uppercase tracking-[0.18em] ${editingTheme.eyebrow}`}>Historical correction</div>
                     <h2 id="withdrawal-edit-title" className="mt-0.5 text-lg font-bold text-white">編輯提現記錄</h2>
-                    <p className="mt-0.5 text-xs text-amber-100/65">修改結果將同步修正員工錢包</p>
+                    <p className={`mt-0.5 text-xs ${editingTheme.subtext}`}>修改結果將同步修正員工錢包</p>
                   </div>
                 </div>
                 <button
@@ -841,7 +959,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   onClick={cancelEditing}
                   disabled={editSaving}
                   aria-label="關閉編輯面板"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-300/20 bg-slate-950/35 text-slate-400 transition-colors hover:border-amber-300/45 hover:text-white disabled:opacity-50"
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-slate-950/35 text-slate-400 transition-colors hover:text-white disabled:opacity-50 ${editingTheme.divider}`}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -849,24 +967,24 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             </div>
 
             <div className="space-y-4 p-5">
-              <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-amber-300/15 bg-slate-950/45 sm:grid-cols-3">
-                <div className="border-b border-amber-300/10 px-4 py-3 sm:border-b-0 sm:border-r">
+              <div className={`grid grid-cols-1 overflow-hidden rounded-xl border bg-slate-950/45 sm:grid-cols-3 ${editingTheme.divider}`}>
+                <div className={`border-b px-4 py-3 sm:border-b-0 sm:border-r ${editingTheme.divider}`}>
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">員工</div>
                   <div className="mt-1 truncate text-sm font-bold text-white">{editingWithdrawal.employee?.username || '未知員工'}</div>
-                  <div className="mt-0.5 truncate text-[11px] text-amber-200/65">{editingWithdrawal.employee?.employee_id || '—'}</div>
+                  <div className={`mt-0.5 truncate text-[11px] ${editingTheme.subtext}`}>{editingWithdrawal.employee?.employee_id || '—'}</div>
                 </div>
-                <div className="border-b border-amber-300/10 px-4 py-3 sm:border-b-0 sm:border-r">
+                <div className={`border-b px-4 py-3 sm:border-b-0 sm:border-r ${editingTheme.divider}`}>
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">提現金額</div>
-                  <div className="mt-1 text-xl font-black tabular-nums text-amber-200">${editingWithdrawal.amount.toFixed(2)}</div>
+                  <div className={`mt-1 text-xl font-black tabular-nums ${editingTheme.amount}`}>${editingWithdrawal.amount.toFixed(2)}</div>
                 </div>
                 <div className="px-4 py-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">目前狀態</div>
+                  <div className={`text-[10px] font-semibold uppercase tracking-wider ${editingTheme.label}`}>目前狀態</div>
                   <div className="mt-1.5">{getStatusBadge(editingWithdrawal.status)}</div>
                 </div>
               </div>
 
               <div>
-                <div className="mb-2 text-xs font-bold text-amber-100">修改後狀態</div>
+                <div className={`mb-2 text-xs font-bold ${editingTheme.label}`}>修改後狀態</div>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -896,24 +1014,24 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
               </div>
 
               <div>
-                <label htmlFor="withdrawal-edit-remark" className="mb-2 block text-xs font-bold text-amber-100">審核備註</label>
+                <label htmlFor="withdrawal-edit-remark" className={`mb-2 block text-xs font-bold ${editingTheme.label}`}>審核備註</label>
                 <textarea
                   id="withdrawal-edit-remark"
                   value={editRemark}
                   onChange={(event) => setEditRemark(event.target.value)}
                   rows={3}
                   placeholder="輸入此次修改的備註..."
-                  className="w-full resize-none rounded-xl border border-amber-300/40 bg-white px-3.5 py-3 text-sm leading-6 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  className={`w-full resize-none rounded-xl border bg-white px-3.5 py-3 text-sm leading-6 text-slate-900 placeholder-slate-400 outline-none transition-all ${editingTheme.textarea}`}
                 />
               </div>
 
-              <div className="flex items-start gap-2.5 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3.5 py-3 text-xs leading-5 text-amber-100/80">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+              <div className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-xs leading-5 ${editingTheme.notice}`}>
+                <AlertCircle className={`mt-0.5 h-4 w-4 shrink-0 ${editingTheme.noticeIcon}`} />
                 <span>這是歷史記錄修正。系統會同步校正錢包；如有待審核提現，將自動取消並留下完整記錄。</span>
               </div>
             </div>
 
-            <div className="flex gap-2 border-t border-amber-300/15 bg-slate-950/40 px-5 py-4 sm:justify-end">
+            <div className={`flex gap-2 border-t bg-slate-950/40 px-5 py-4 sm:justify-end ${editingTheme.footer}`}>
               <button
                 type="button"
                 onClick={cancelEditing}
@@ -926,7 +1044,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                 type="button"
                 onClick={() => handleEditSave(editingWithdrawal)}
                 disabled={editSaving}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-amber-300/35 bg-amber-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-500 disabled:opacity-50 sm:flex-none"
+                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-50 sm:flex-none ${editingTheme.saveButton}`}
               >
                 <Save className="h-4 w-4" />
                 {editSaving ? '儲存中...' : '儲存修改'}
@@ -1280,9 +1398,9 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         {/* Data table */}
         <div className="min-h-0 flex-1 overflow-auto bg-slate-950/30 dark-panel-scroll">
           <table className={`w-full ${showAdminColumn ? 'min-w-[1032px]' : 'min-w-[920px]'} border-collapse text-left text-sm`}>
-            <thead className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur">
-              <tr className="text-[10px] uppercase tracking-wider text-slate-400">
-                <th className="w-10 px-3 py-2.5">
+            <thead className="sticky top-0 z-20 isolate border-b-2 border-blue-300/40 bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)]">
+              <tr className="h-[40px] text-[10px] uppercase tracking-wider text-white">
+                <th className="h-[40px] w-10 px-3 py-1 text-center text-[10px] font-semibold text-white">
                   <input
                     ref={selectAllRef}
                     type="checkbox"
@@ -1293,12 +1411,12 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                     aria-label="選取目前檢視中的所有待審核提現"
                   />
                 </th>
-                {showAdminColumn && <th className="w-[112px] px-1.5 py-2.5 font-semibold">所屬管理員</th>}
-                <th className="px-3 py-2.5 font-semibold">員工</th>
-                <th className="px-3 py-2.5 font-semibold">金額</th>
-                <th className="px-3 py-2.5 font-semibold">狀態</th>
-                <th className="w-[42%] min-w-[440px] px-3 py-2.5 font-semibold">審核資訊</th>
-                <th className="px-3 py-2.5 text-right font-semibold">操作</th>
+                {showAdminColumn && <th className="h-[40px] w-[112px] px-1.5 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-white">所屬管理員</th>}
+                <th className="h-[40px] px-3 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-white">員工</th>
+                <th className="h-[40px] px-3 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-white">金額</th>
+                <th className="h-[40px] px-3 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-white">狀態</th>
+                <th className="h-[40px] w-[42%] min-w-[440px] px-3 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-white">審核資訊</th>
+                <th className="h-[40px] px-3 py-1 text-right text-[10px] font-semibold uppercase tracking-wider text-white">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/70">
@@ -1497,7 +1615,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                             <button
                               type="button"
                               onClick={() => startEditing(withdrawal)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300/35 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 transition-colors hover:border-amber-300/60 hover:bg-amber-500/20 hover:text-white"
+                              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${withdrawalStatusThemes[withdrawal.status].editButton}`}
                             >
                               <Pencil className="h-3 w-3" />
                               編輯
