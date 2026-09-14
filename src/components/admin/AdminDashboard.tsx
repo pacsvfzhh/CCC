@@ -867,10 +867,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setActiveTab(tabId);
     setLoadedTabs(prev => new Set([...prev, tabId]));
     if (tabId === 'accountlocks') {
-      console.log('[Account Locks] Tab switched, refreshing counts...');
-      loadPendingCounts();
+      console.log('[Account Locks] Tab switched, refreshing count...');
+      void loadLockedAccountsCount();
     }
-  }, [loadPendingCounts]);
+  }, [loadLockedAccountsCount]);
 
   const handleEmployeeQuickAction = useCallback((action: 'message' | 'customerservice' | 'cccservice', employee: { id: string; username: string }) => {
     if (action === 'message') {
@@ -892,17 +892,17 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, [handleTabChange]);
 
   useEffect(() => {
-    if (!nextLockedAccountExpiry) return;
+    if (activeTab === 'accountlocks' || !nextLockedAccountExpiry) return;
 
     const refreshDelay = Math.max(1000, nextLockedAccountExpiry - Date.now() + 250);
     const timeout = window.setTimeout(() => {
       if (document.visibilityState === 'visible') {
-        void loadPendingCounts();
+        void loadLockedAccountsCount();
       }
     }, refreshDelay);
 
     return () => window.clearTimeout(timeout);
-  }, [nextLockedAccountExpiry, loadPendingCounts]);
+  }, [activeTab, nextLockedAccountExpiry, loadLockedAccountsCount]);
 
   useEffect(() => {
     const pendingCountsTimer = window.setTimeout(() => {
@@ -968,7 +968,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         { event: '*', schema: 'public', table: 'account_locks' },
         (payload) => {
           console.log('[Account Locks] Real-time event triggered:', payload.eventType, payload);
-          loadPendingCounts();
+          void loadLockedAccountsCount();
         }
       )
       .subscribe();
@@ -986,7 +986,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       autoCleanupService.stop();
       console.log('[Admin Dashboard] Auto cleanup service stopped');
     };
-  }, [loadPendingCounts, admin.id]);
+  }, [loadPendingCounts, loadLockedAccountsCount, admin.id]);
 
   const handleChangePassword = async () => {
     setPasswordError(null);
