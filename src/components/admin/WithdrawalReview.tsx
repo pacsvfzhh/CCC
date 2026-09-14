@@ -43,13 +43,6 @@ const getWithdrawalDateKey = (value: string) => {
   return `${year}-${month}-${day}`;
 };
 
-const formatWithdrawalDate = (value: string) => new Date(value).toLocaleDateString('zh-TW', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-  weekday: 'short',
-});
-
 export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -495,11 +488,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       const existing = dates.get(key);
       dates.set(key, {
         key,
-        label: existing?.label || formatWithdrawalDate(withdrawal.created_at),
         count: (existing?.count || 0) + 1,
       });
       return dates;
-    }, new Map<string, { key: string; label: string; count: number }>()).values()
+    }, new Map<string, { key: string; count: number }>()).values()
   ).sort((a, b) => b.key.localeCompare(a.key));
 
   const selectedDateAvailable = selectedDate === 'all'
@@ -854,7 +846,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative" ref={dateMenuRef}>
+              <div className="relative w-36 shrink-0" ref={dateMenuRef}>
                 <button
                   type="button"
                   onClick={() => {
@@ -863,7 +855,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                   }}
                   aria-expanded={dateMenuOpen}
                   aria-haspopup="listbox"
-                  className={`flex min-w-36 items-center justify-between gap-2 rounded-xl border px-3 py-1.5 text-left text-xs font-semibold shadow-lg transition-all ${
+                  className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-1.5 text-left text-xs font-semibold shadow-lg transition-all ${
                     dateMenuOpen
                       ? 'border-cyan-300/80 bg-gradient-to-r from-blue-700/90 via-cyan-700/75 to-slate-800 text-white shadow-cyan-950/60 ring-1 ring-inset ring-cyan-100/25'
                       : selectedDate !== 'all'
@@ -876,23 +868,20 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                       <CalendarDays className="h-3.5 w-3.5" />
                     </span>
                     <span className="truncate">
-                      {selectedDate === 'all' ? '全部日期' : selectedDate.split('-').join('/')}
+                      {selectedDate === 'all' ? '日期选择' : selectedDate.split('-').join('/')}
                     </span>
                   </span>
                   <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200/80 transition-transform ${dateMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {dateMenuOpen && (
-                  <div className="absolute left-0 z-40 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-cyan-400/30 bg-slate-900/95 shadow-2xl shadow-cyan-950/60 ring-1 ring-white/10 backdrop-blur-xl">
+                  <div className="absolute left-0 z-40 mt-2 w-full overflow-hidden rounded-xl border border-cyan-400/30 bg-slate-900/95 shadow-2xl shadow-cyan-950/60 ring-1 ring-white/10 backdrop-blur-xl">
                     <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-amber-400" />
-                    <div className="border-b border-slate-700/70 bg-gradient-to-r from-blue-950/80 via-cyan-950/45 to-slate-900/60 px-3.5 py-3">
-                      <div className="flex items-center gap-2 text-xs font-bold text-white">
-                        <CalendarDays className="h-4 w-4 text-cyan-300" />
-                        依提交日期篩選
-                      </div>
-                      <p className="mt-1 text-[10px] leading-relaxed text-slate-400">僅列出目前頁面結果中有提現記錄的日期</p>
+                    <div className="flex items-center justify-between border-b border-slate-700/70 bg-gradient-to-r from-blue-950/80 via-cyan-950/45 to-slate-900/60 px-2.5 py-2">
+                      <span className="text-[10px] font-semibold text-slate-300">日期数量</span>
+                      <span className="rounded-full border border-cyan-300/35 bg-cyan-400/15 px-2 py-0.5 text-[10px] font-extrabold tabular-nums text-cyan-100">{dateOptions.length}</span>
                     </div>
-                    <div className="max-h-72 overflow-y-auto p-1.5 dark-panel-scroll" role="listbox" aria-label="選擇提現提交日期">
+                    <div className="max-h-72 overflow-y-auto p-1.5 dark-panel-scroll" role="listbox" aria-label="选择提现提交日期">
                       <button
                         type="button"
                         role="option"
@@ -901,32 +890,21 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                           setSelectedDate('all');
                           setDateMenuOpen(false);
                         }}
-                        className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
+                        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold transition-all ${
                           selectedDate === 'all'
                             ? 'bg-gradient-to-r from-blue-600/90 to-cyan-600/75 text-white shadow-md shadow-cyan-950/30'
                             : 'text-slate-200 hover:bg-slate-800/90 hover:text-white'
                         }`}
                       >
-                        <span className="flex items-center gap-2.5">
-                          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-inset ${selectedDate === 'all' ? 'bg-white/15 text-white ring-white/20' : 'bg-cyan-500/10 text-cyan-300 ring-cyan-400/20'}`}>
-                            <Layers className="h-4 w-4" />
-                          </span>
-                          <span>
-                            <span className="block text-xs font-bold">全部日期</span>
-                            <span className={`mt-0.5 block text-[10px] ${selectedDate === 'all' ? 'text-cyan-100/80' : 'text-slate-500'}`}>顯示目前全部記錄</span>
-                          </span>
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${selectedDate === 'all' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300'}`}>{dateEligibleRows.length}</span>
-                          {selectedDate === 'all' && <Check className="h-3.5 w-3.5 text-cyan-100" />}
-                        </span>
+                        <span>全部日期</span>
+                        {selectedDate === 'all' && <Check className="h-3.5 w-3.5 text-cyan-100" />}
                       </button>
 
                       {dateOptions.length > 0 && <div className="mx-2 my-1 h-px bg-cyan-300/10" />}
 
                       {dateOptions.map((option) => {
                         const isSelected = selectedDate === option.key;
-                        const [, month, day] = option.key.split('-');
+                        const [year, month, day] = option.key.split('-');
                         return (
                           <button
                             key={option.key}
@@ -937,26 +915,18 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
                               setSelectedDate(option.key);
                               setDateMenuOpen(false);
                             }}
-                            className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-all ${
+                            className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left transition-all ${
                               isSelected
                                 ? 'bg-gradient-to-r from-cyan-600/85 via-blue-600/75 to-slate-800 text-white shadow-md shadow-cyan-950/30'
                                 : 'text-slate-200 hover:bg-slate-800/90 hover:text-white'
                             }`}
                           >
-                            <span className="flex min-w-0 items-center gap-2.5">
-                              <span className={`flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-lg border ${isSelected ? 'border-cyan-200/35 bg-white/15' : 'border-cyan-400/20 bg-cyan-500/10'}`}>
-                                <span className={`text-[9px] font-bold leading-none ${isSelected ? 'text-cyan-100' : 'text-cyan-400'}`}>{month}月</span>
-                                <span className="mt-0.5 text-sm font-extrabold leading-none text-white">{day}</span>
-                              </span>
-                              <span className="min-w-0">
-                                <span className="block truncate text-xs font-semibold">{option.label}</span>
-                                <span className={`mt-0.5 block text-[10px] ${isSelected ? 'text-cyan-100/75' : 'text-slate-500'}`}>{option.key.split('-').join('/')}</span>
-                              </span>
-                            </span>
-                            <span className="flex shrink-0 items-center gap-2">
-                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300'}`}>{option.count}</span>
-                              {isSelected && <Check className="h-3.5 w-3.5 text-cyan-100" />}
-                            </span>
+                            <span className="whitespace-nowrap text-xs font-bold tabular-nums tracking-wide">{year}/{month}/{day}</span>
+                            <span className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full border px-2 py-1 text-[11px] font-black tabular-nums shadow-sm ${
+                              isSelected
+                                ? 'border-white/35 bg-white text-blue-800 shadow-white/15'
+                                : 'border-cyan-300/45 bg-cyan-400 text-slate-950 shadow-cyan-500/25'
+                            }`}>{option.count}</span>
                           </button>
                         );
                       })}
