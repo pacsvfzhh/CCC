@@ -132,6 +132,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     show: boolean;
     title: string;
     message: string;
+    variant: 'verification' | 'status';
+    nextStatus: boolean;
     onConfirm: () => void;
   } | null>(null);
   const [notification, setNotification] = useState<{
@@ -864,6 +866,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       show: true,
       title: `${newStatus ? 'Activate' : 'Deactivate'} Employee`,
       message: `Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} employee "${employeeUsername}"?`,
+      variant: 'status',
+      nextStatus: newStatus,
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
@@ -896,6 +900,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       show: true,
       title: `${newStatus ? 'Verify' : 'Unverify'} Employee`,
       message: `Are you sure you want to ${newStatus ? 'verify' : 'unverify'} employee "${employeeUsername}"?`,
+      variant: 'verification',
+      nextStatus: newStatus,
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
@@ -2536,6 +2542,52 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       ? `${selectedGroup.admin.username} (${selectedGroup.employees.length})`
       : 'Select group';
 
+  const confirmDialogStyle = confirmDialog
+    ? confirmDialog.variant === 'verification'
+      ? confirmDialog.nextStatus
+        ? {
+            panel: 'border-emerald-300/30 bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/30 shadow-emerald-950/40',
+            header: 'border-emerald-300/15 bg-gradient-to-r from-emerald-950/85 via-slate-900 to-slate-900',
+            eyebrow: 'text-emerald-300/80',
+            iconShell: 'border-emerald-300/35 bg-emerald-500/15 text-emerald-200 shadow-emerald-950/40',
+            icon: 'text-emerald-300',
+            message: 'border-emerald-300/15 bg-emerald-500/5',
+            badge: 'border-emerald-300/25 bg-emerald-500/10 text-emerald-200',
+            confirmButton: 'border-emerald-300/50 bg-emerald-600 shadow-emerald-950/40 hover:bg-emerald-500',
+          }
+        : {
+            panel: 'border-amber-300/30 bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/25 shadow-amber-950/40',
+            header: 'border-amber-300/15 bg-gradient-to-r from-amber-950/85 via-slate-900 to-slate-900',
+            eyebrow: 'text-amber-300/80',
+            iconShell: 'border-amber-300/35 bg-amber-500/15 text-amber-200 shadow-amber-950/40',
+            icon: 'text-amber-300',
+            message: 'border-amber-300/15 bg-amber-500/5',
+            badge: 'border-amber-300/25 bg-amber-500/10 text-amber-200',
+            confirmButton: 'border-amber-300/50 bg-amber-600 shadow-amber-950/40 hover:bg-amber-500',
+          }
+      : confirmDialog.nextStatus
+        ? {
+            panel: 'border-cyan-300/30 bg-gradient-to-b from-slate-900 via-slate-900 to-cyan-950/30 shadow-cyan-950/40',
+            header: 'border-cyan-300/15 bg-gradient-to-r from-cyan-950/85 via-slate-900 to-slate-900',
+            eyebrow: 'text-cyan-300/80',
+            iconShell: 'border-cyan-300/35 bg-cyan-500/15 text-cyan-200 shadow-cyan-950/40',
+            icon: 'text-cyan-300',
+            message: 'border-cyan-300/15 bg-cyan-500/5',
+            badge: 'border-cyan-300/25 bg-cyan-500/10 text-cyan-200',
+            confirmButton: 'border-cyan-300/50 bg-cyan-600 shadow-cyan-950/40 hover:bg-cyan-500',
+          }
+        : {
+            panel: 'border-rose-300/30 bg-gradient-to-b from-slate-900 via-slate-900 to-rose-950/30 shadow-rose-950/40',
+            header: 'border-rose-300/15 bg-gradient-to-r from-rose-950/85 via-slate-900 to-slate-900',
+            eyebrow: 'text-rose-300/80',
+            iconShell: 'border-rose-300/35 bg-rose-500/15 text-rose-200 shadow-rose-950/40',
+            icon: 'text-rose-300',
+            message: 'border-rose-300/15 bg-rose-500/5',
+            badge: 'border-rose-300/25 bg-rose-500/10 text-rose-200',
+            confirmButton: 'border-rose-300/50 bg-rose-600 shadow-rose-950/40 hover:bg-rose-500',
+          }
+    : null;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
@@ -3505,26 +3557,51 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         document.body
       )}
 
-      {confirmDialog?.show && createPortal(
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
-          <div className="bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 rounded-3xl border border-slate-700/50 shadow-2xl max-w-md w-full overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-            <div className="relative p-8 text-center border-b border-slate-700/50">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/30 mb-4 shadow-lg shadow-blue-500/20">
-                {confirmDialog.title.includes('Verify') || confirmDialog.title.includes('Unverify') ? (
-                  <CheckCircle className={`w-8 h-8 ${confirmDialog.title.includes('Verify') && !confirmDialog.title.includes('Unverify') ? 'text-green-400' : 'text-amber-400'}`} />
-                ) : (
-                  <XCircle className={`w-8 h-8 ${confirmDialog.title.includes('Activate') ? 'text-green-400' : 'text-red-400'}`} />
-                )}
+      {confirmDialog?.show && confirmDialogStyle && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border shadow-2xl ${confirmDialogStyle.panel}`} role="dialog" aria-modal="true" aria-labelledby="employee-status-dialog-title">
+            <div className={`relative flex items-start justify-between gap-4 border-b px-5 py-4 ${confirmDialogStyle.header}`}>
+              <div className="flex min-w-0 items-center gap-3">
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border shadow-lg ${confirmDialogStyle.iconShell}`}>
+                  {confirmDialog.variant === 'verification' ? (
+                    <CheckCircle className={`h-5 w-5 ${confirmDialogStyle.icon}`} />
+                  ) : confirmDialog.nextStatus ? (
+                    <CheckCircle className={`h-5 w-5 ${confirmDialogStyle.icon}`} />
+                  ) : (
+                    <XCircle className={`h-5 w-5 ${confirmDialogStyle.icon}`} />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${confirmDialogStyle.eyebrow}`}>
+                    {confirmDialog.variant === 'verification' ? 'Verification control' : 'Work status control'}
+                  </p>
+                  <h3 id="employee-status-dialog-title" className="mt-1 truncate text-xl font-bold tracking-tight text-white">{confirmDialog.title}</h3>
+                  <p className="mt-1 text-xs text-slate-400">Review this account change before applying it.</p>
+                </div>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">{confirmDialog.title}</h3>
+              <button type="button" onClick={() => setConfirmDialog(null)} aria-label="Close confirmation panel" className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <div className="relative p-8">
-              <p className="text-slate-300 text-base leading-relaxed text-center">{confirmDialog.message}</p>
+            <div className="space-y-4 p-5">
+              <div className={`flex items-start gap-3 rounded-2xl border px-4 py-4 ${confirmDialogStyle.message}`}>
+                <span className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${confirmDialogStyle.badge}`}>
+                  {confirmDialog.variant === 'verification' ? 'Ver' : 'Status'}
+                </span>
+                <p className="min-w-0 text-sm leading-6 text-slate-200">{confirmDialog.message}</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
+                The change will be saved securely and reflected in the employee list.
+              </div>
             </div>
-            <div className="relative p-6 bg-slate-900/50 flex gap-3">
-              <button onClick={() => setConfirmDialog(null)} className="flex-1 px-6 py-3 bg-slate-700/50 hover:bg-slate-600 text-slate-200 rounded-xl font-semibold transition-all border border-slate-600/50">Cancel</button>
-              <button onClick={confirmDialog.onConfirm} className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/40 border border-blue-500/50">Confirm</button>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-700/70 bg-slate-950/35 px-5 py-4">
+              <button type="button" onClick={() => setConfirmDialog(null)} className="rounded-xl border border-slate-600 bg-slate-800 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">Cancel</button>
+              <button type="button" onClick={confirmDialog.onConfirm} className={`rounded-xl border px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all ${confirmDialogStyle.confirmButton}`}>
+                {confirmDialog.nextStatus
+                  ? confirmDialog.variant === 'verification' ? 'Verify employee' : 'Activate employee'
+                  : confirmDialog.variant === 'verification' ? 'Unverify employee' : 'Deactivate employee'}
+              </button>
             </div>
           </div>
         </div>,
