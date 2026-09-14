@@ -3594,9 +3594,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${confirmDialogStyle.eyebrow}`}>Employee account</p>
-                    <div className="mt-1 flex min-w-0 items-baseline gap-2">
+                    <div className="mt-1 flex min-w-0 items-baseline gap-3">
                       <p title={confirmDialog.employeeUsername} className={`min-w-0 truncate text-xl font-black tracking-tight ${confirmDialogStyle.icon}`}>{confirmDialog.employeeUsername}</p>
-                      <span className={`shrink-0 text-xs font-bold tracking-wide ${confirmDialogStyle.subtext}`}>ID {confirmDialog.employeeId || '—'}</span>
+                      <span className="shrink-0 text-sm font-extrabold tracking-wide text-slate-100 drop-shadow-sm">ID {confirmDialog.employeeId || '—'}</span>
                     </div>
                   </div>
                   <span className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${confirmDialogStyle.badge}`}>
