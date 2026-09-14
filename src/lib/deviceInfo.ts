@@ -7,7 +7,6 @@ export interface LoginDeviceInfo {
   os_family: DeviceOsFamily;
   os_version: string | null;
   device_type: DeviceType;
-  device_model: string | null;
   browser_family: BrowserFamily;
   browser_version: string | null;
   source: DeviceInfoSource;
@@ -20,7 +19,6 @@ interface UserAgentDataLike {
   getHighEntropyValues?: (hints: string[]) => Promise<{
     brands?: Array<{ brand: string; version: string }>;
     mobile?: boolean;
-    model?: string;
     platform?: string;
   }>;
 }
@@ -28,7 +26,6 @@ interface UserAgentDataLike {
 interface DeviceParseHints {
   brands?: Array<{ brand: string; version: string }>;
   mobile?: boolean;
-  model?: string;
   platform?: string;
   navigatorPlatform?: string;
   maxTouchPoints?: number;
@@ -46,16 +43,6 @@ const firstMatch = (userAgent: string, pattern: RegExp) => userAgent.match(patte
 const isKnownValue = <T extends string>(value: unknown, values: readonly T[]): value is T => (
   typeof value === 'string' && values.includes(value as T)
 );
-
-const cleanModel = (value: string | undefined | null) => {
-  if (!value) return null;
-  const model = value
-    .replace(/\s+Build\/[^;)]+/i, '')
-    .replace(/^Build\/.*$/i, '')
-    .trim();
-  if (!model || /^(?:k|wv|mobile|tablet|phone|en[-_]\w+|[a-z]{2}[-_]\w{2})$/i.test(model)) return null;
-  return model.length <= 80 ? model : model.slice(0, 80);
-};
 
 const parseOs = (userAgent: string, hints: DeviceParseHints): DeviceOsFamily => {
   const platform = hints.platform?.toLowerCase();
@@ -122,11 +109,6 @@ const parseDeviceType = (userAgent: string, osFamily: DeviceOsFamily, hints: Dev
   return 'unknown';
 };
 
-const parseAndroidModel = (userAgent: string) => {
-  const androidModel = userAgent.match(/Android[^;)]*;\s*([^;)]+?)(?:\s+Build\/[^;)]+)?(?:;|\))/i)?.[1];
-  return cleanModel(androidModel);
-};
-
 export function parseLoginDeviceInfo(
   userAgent: string | null | undefined,
   hints: DeviceParseHints = {},
@@ -134,13 +116,11 @@ export function parseLoginDeviceInfo(
   const normalizedUserAgent = typeof userAgent === 'string' ? userAgent : '';
   const os = parseOs(normalizedUserAgent, hints);
   const browser = parseBrowser(normalizedUserAgent, hints);
-  const model = cleanModel(hints.model) || parseAndroidModel(normalizedUserAgent);
 
   return {
     os_family: os,
     os_version: null,
     device_type: parseDeviceType(normalizedUserAgent, os, hints),
-    device_model: model,
     browser_family: browser.family,
     browser_version: browser.version,
     source: hints.fromClientHints ? 'client_hints' : normalizedUserAgent ? 'user_agent' : 'fallback',
@@ -157,7 +137,6 @@ export async function collectLoginDeviceInfo(): Promise<LoginDeviceInfo> {
   if (userAgentData?.getHighEntropyValues) {
     try {
       highEntropyValues = await userAgentData.getHighEntropyValues([
-        'model',
         'platform',
       ]);
     } catch {
@@ -169,7 +148,6 @@ export async function collectLoginDeviceInfo(): Promise<LoginDeviceInfo> {
   return parseLoginDeviceInfo(navigator.userAgent, {
     brands: highEntropyValues?.brands || userAgentData?.brands,
     mobile: highEntropyValues?.mobile ?? userAgentData?.mobile,
-    model: highEntropyValues?.model,
     platform: highEntropyValues?.platform || userAgentData?.platform,
     navigatorPlatform: navigator.platform,
     maxTouchPoints: navigator.maxTouchPoints,
@@ -188,9 +166,6 @@ export function resolveLoginDeviceInfo(value: unknown, userAgent: string | null 
     os_family: storedOsFamily,
     os_version: null,
     device_type: isKnownValue(stored.device_type, DEVICE_TYPES) ? stored.device_type : fallback.device_type,
-    device_model: typeof stored.device_model === 'string'
-      ? cleanModel(stored.device_model) || fallback.device_model
-      : fallback.device_model,
     browser_family: isKnownValue(stored.browser_family, BROWSER_FAMILIES) ? stored.browser_family : fallback.browser_family,
     browser_version: typeof stored.browser_version === 'string' ? stored.browser_version : fallback.browser_version,
     source: isKnownValue(stored.source, INFO_SOURCES) ? stored.source : fallback.source,

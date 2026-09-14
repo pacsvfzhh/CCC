@@ -45,7 +45,7 @@ export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = fa
     : info.device_type === 'tablet'
       ? Tablet
       : Monitor;
-  const deviceLabel = info.device_model || deviceLabels[info.device_type];
+  const deviceLabel = deviceLabels[info.device_type];
   const details = [
     osLabels[info.os_family],
     deviceLabel,
