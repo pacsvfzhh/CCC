@@ -413,6 +413,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         <table className="w-full border-collapse text-xs">
           <thead className="bg-cyan-950">
             <tr className="border-b border-cyan-500/45">
+              <th className="sticky top-0 z-20 w-10 bg-cyan-950 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">#</th>
               <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Username</th>
               {showAdminGroup && (
                 <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Admin Group</th>
@@ -428,8 +429,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700/50">
-            {rows.map(({ employee, adminUsername }) => (
+            {rows.map(({ employee, adminUsername }, index) => (
               <tr key={employee.user_id} className="transition-colors hover:bg-slate-800/30">
+                <td className="px-2 py-1 text-center text-[11px] font-semibold text-slate-500">{index + 1}</td>
                 <td className="px-2 py-1 text-xs font-semibold text-cyan-100">{employee.username}</td>
                 {showAdminGroup && (
                   <td className="px-2 py-1 text-xs font-semibold text-blue-200">{adminUsername || '--'}</td>
@@ -494,7 +496,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 <td className="px-2 py-1">
                   <button
                     onClick={() => handleViewHistory(employee)}
-                    className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 text-[10px] font-semibold text-blue-300 transition-all hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-200"
+                    className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md bg-blue-500/10 px-1.5 text-[10px] font-semibold text-blue-300 transition-colors hover:bg-cyan-400/10 hover:text-cyan-200"
                   >
                     <Eye className="h-3 w-3" />
                     View History
@@ -830,6 +832,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             <table className="w-full border-collapse text-xs">
                               <thead className="bg-cyan-950">
                                 <tr className="border-b border-cyan-500/45">
+                                  <th className="sticky top-0 z-20 w-10 bg-cyan-950 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">#</th>
                                   <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Username</th>
                                   <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Employee ID</th>
                                   <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login IP</th>
@@ -842,8 +845,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-700/50">
-                                {group.employees.map((employee) => (
+                                {group.employees.map((employee, index) => (
                                   <tr key={employee.user_id} className="hover:bg-slate-800/30 transition-colors">
+                                    <td className="px-2 py-1 text-center text-[11px] font-semibold text-slate-500">{index + 1}</td>
                                     <td className="px-2 py-1 text-xs font-semibold text-cyan-100">{employee.username}</td>
                                     <td className="px-2 py-1 text-xs text-slate-300">{employee.employee_id}</td>
                                     <td className="px-2 py-1">
@@ -909,7 +913,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                     <td className="px-2 py-1">
                                       <button
                                         onClick={() => handleViewHistory(employee)}
-                                        className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 text-[10px] font-semibold text-blue-300 transition-all hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-200"
+                                        className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md bg-blue-500/10 px-1.5 text-[10px] font-semibold text-blue-300 transition-colors hover:bg-cyan-400/10 hover:text-cyan-200"
                                       >
                                         <Eye className="h-3 w-3" />
                                         View History
