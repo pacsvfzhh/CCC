@@ -620,14 +620,15 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             </div>
           ) : (
             <div className="min-w-full">
-              <table className="min-w-[900px] w-full border-separate border-spacing-0">
+              <table className="min-w-[1180px] w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-10 bg-slate-900">
                   <tr className="border-b border-cyan-500/35">
                     <th className="w-12 border-b border-cyan-500/30 px-2 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">#</th>
                     <th className="w-28 border-b border-cyan-500/30 px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">Action</th>
                     <th className="w-40 border-b border-cyan-500/30 px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">IP Address</th>
-                    <th className="w-[320px] border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">Device Info</th>
-                    <th className="w-44 border-b border-cyan-500/30 px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">Time</th>
+                    <th className="w-[180px] border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">Device Info</th>
+                    <th className="w-[460px] border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">User-Agent</th>
+                    <th className="w-44 border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">Time</th>
                   </tr>
                 </thead>
                 <tbody className="bg-slate-950">
@@ -670,9 +671,18 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           deviceInfo={record.device_info}
                           userAgent={record.user_agent}
                           compact
-                          inlineUserAgent={Boolean(record.user_agent)}
-                          auditTone={record.action_type}
+                          plain
+                          hideUserAgent
                         />
+                      </td>
+                      <td className="w-[460px] max-w-[460px] px-3 py-1.5 align-top">
+                        <p
+                          className={`max-h-[2.7em] max-w-[440px] overflow-hidden break-all font-mono text-[9px] leading-[1.35] ${record.action_type === 'login' ? 'text-emerald-200/75' : 'text-orange-200/75'}`}
+                          title={record.user_agent || 'User-Agent not recorded'}
+                        >
+                          <span className="mr-1 font-sans font-bold uppercase tracking-[0.12em] opacity-70">UA</span>
+                          {record.user_agent || 'Not recorded'}
+                        </p>
                       </td>
                       <td className="px-3 py-1.5">
                         <div className={`flex items-start gap-1.5 text-[10px] ${record.action_type === 'login' ? 'text-emerald-200/80' : 'text-orange-200/80'}`}>
