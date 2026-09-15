@@ -1,4 +1,4 @@
-import { Apple, ChevronDown, Globe2, HelpCircle, Monitor, Smartphone, Tablet } from 'lucide-react';
+import { ChevronDown, Globe2 } from 'lucide-react';
 import { resolveLoginDeviceInfo } from '../../lib/deviceInfo';
 
 interface LoginDeviceSummaryProps {
@@ -30,6 +30,16 @@ const browserLabels = {
   unknown: 'Unknown browser',
 } as const;
 
+const osStyles = {
+  android: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200',
+  ios: 'border-cyan-400/30 bg-cyan-500/10 text-cyan-200',
+  windows: 'border-blue-400/30 bg-blue-500/10 text-blue-200',
+  macos: 'border-violet-400/30 bg-violet-500/10 text-violet-200',
+  linux: 'border-amber-400/30 bg-amber-500/10 text-amber-200',
+  chromeos: 'border-rose-400/30 bg-rose-500/10 text-rose-200',
+  unknown: 'border-slate-500/30 bg-slate-500/10 text-slate-300',
+} as const;
+
 const formatValue = (label: string, version: string | null) => version ? `${label} ${version}` : label;
 
 export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = false, systemOnly = false }: LoginDeviceSummaryProps) {
@@ -38,22 +48,14 @@ export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = fa
     osLabels[info.os_family],
     ...(!systemOnly ? [formatValue(browserLabels[info.browser_family], info.browser_version)] : []),
   ];
-  const SystemIcon = info.os_family === 'ios' || info.os_family === 'macos'
-    ? Apple
-    : info.os_family === 'android'
-      ? info.device_type === 'tablet' ? Tablet : Smartphone
-      : info.os_family === 'unknown'
-        ? HelpCircle
-        : Monitor;
-
   if (systemOnly) {
     return (
       <span
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-cyan-400/25 bg-cyan-500/10 text-cyan-200"
+        className={`inline-flex items-center whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${osStyles[info.os_family]}`}
         title={osLabels[info.os_family]}
         aria-label={osLabels[info.os_family]}
       >
-        <SystemIcon className="h-3.5 w-3.5" aria-hidden="true" />
+        {osLabels[info.os_family]}
       </span>
     );
   }

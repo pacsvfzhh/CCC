@@ -700,7 +700,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                               <tbody className="divide-y divide-slate-700/50">
                                 {group.employees.map((employee) => (
                                   <tr key={employee.user_id} className="hover:bg-slate-800/30 transition-colors">
-                                    <td className="px-2 py-1 text-sm font-semibold text-cyan-100">{employee.username}</td>
+                                    <td className="px-2 py-1 text-xs font-semibold text-cyan-100">{employee.username}</td>
                                     <td className="px-2 py-1 text-xs text-slate-300">{employee.employee_id}</td>
                                     <td className="px-2 py-1">
                                       {employee.latest_login_ip ? (
@@ -765,9 +765,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                     <td className="px-2 py-1">
                                       <button
                                         onClick={() => handleViewHistory(employee)}
-                                        className="flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-[11px] font-semibold text-blue-300 transition-all hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-200"
+                                        className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 text-[10px] font-semibold text-blue-300 transition-all hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-200"
                                       >
-                                        <Eye className="h-3.5 w-3.5" />
+                                        <Eye className="h-3 w-3" />
                                         View History
                                       </button>
                                     </td>
