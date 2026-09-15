@@ -97,13 +97,13 @@ export default function LoginDeviceSummary({
         <div className="mt-1 text-[10px] text-slate-500">{details.join(' · ')}</div>
       )}
       {inlineUserAgent && userAgent && !systemOnly ? (
-        <span
-          className={`min-w-0 truncate font-mono text-[9px] ${auditTextClass}`}
+        <p
+          className={`min-w-0 max-w-[420px] max-h-[2.6em] overflow-hidden break-all font-mono text-[9px] leading-[1.3em] ${auditTextClass}`}
           title={userAgent}
         >
           <span className="mr-1 font-sans font-bold uppercase tracking-[0.12em] opacity-70">UA</span>
           {userAgent}
-        </span>
+        </p>
       ) : userAgent && !systemOnly ? (
         <details className="group mt-2 max-w-full">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[10px] font-semibold text-slate-500 transition-colors hover:text-cyan-300">

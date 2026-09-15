@@ -632,9 +632,20 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 </thead>
                 <tbody className="bg-slate-950">
                   {detailedHistory.map((record, index) => (
-                    <tr key={record.id} className="border-b border-slate-800/80 bg-slate-950 hover:bg-slate-900/80">
+                    <tr
+                      key={record.id}
+                      className={`border-b border-slate-800/80 border-l-2 transition-colors ${
+                        record.action_type === 'login'
+                          ? 'border-l-emerald-400/80 bg-emerald-950/20 hover:bg-emerald-950/35'
+                          : 'border-l-orange-400/80 bg-orange-950/20 hover:bg-orange-950/35'
+                      }`}
+                    >
                       <td className="px-2 py-1.5 text-center">
-                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-800 text-[10px] font-semibold text-slate-400">
+                        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold ${
+                          record.action_type === 'login'
+                            ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-inset ring-emerald-400/40'
+                            : 'bg-orange-500/20 text-orange-200 ring-1 ring-inset ring-orange-400/40'
+                        }`}>
                           {index + 1}
                         </span>
                       </td>
@@ -649,19 +660,29 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         </span>
                       </td>
                       <td className="px-2 py-1.5">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                          <MapPin className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+                        <div className={`flex max-w-[190px] items-center gap-1.5 rounded-lg border px-2 py-1 font-mono text-[11px] font-bold ${
+                          record.action_type === 'login'
+                            ? 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100'
+                            : 'border-orange-400/35 bg-orange-500/10 text-orange-100'
+                        }`}>
+                          <MapPin className={`h-3.5 w-3.5 shrink-0 ${record.action_type === 'login' ? 'text-emerald-300' : 'text-orange-300'}`} />
                           <span className="break-all">{record.ip_address || 'Unknown'}</span>
                         </div>
                       </td>
                       <td className="px-2 py-1.5">
-                        <LoginDeviceSummary
-                          deviceInfo={record.device_info}
-                          userAgent={record.user_agent}
-                          compact
-                          inlineUserAgent={Boolean(record.user_agent)}
-                          auditTone={record.action_type}
-                        />
+                        <div className={`rounded-lg border px-2 py-1 ${
+                          record.action_type === 'login'
+                            ? 'border-emerald-400/25 bg-emerald-500/[0.06]'
+                            : 'border-orange-400/25 bg-orange-500/[0.06]'
+                        }`}>
+                          <LoginDeviceSummary
+                            deviceInfo={record.device_info}
+                            userAgent={record.user_agent}
+                            compact
+                            inlineUserAgent={Boolean(record.user_agent)}
+                            auditTone={record.action_type}
+                          />
+                        </div>
                       </td>
                       <td className="px-2 py-1.5">
                         <div className={`flex items-start gap-1.5 text-[10px] ${record.action_type === 'login' ? 'text-emerald-200/80' : 'text-orange-200/80'}`}>
