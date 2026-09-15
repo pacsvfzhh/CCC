@@ -698,11 +698,11 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
               onClick={() => showHistory ? void loadHistory({ force: true }) : void loadLocks(false)}
               disabled={isRefreshing}
               aria-busy={isRefreshing}
-              className="inline-flex h-10 min-w-[94px] items-center justify-center gap-2 rounded-xl border border-blue-200/80 bg-blue-600 px-3 text-xs font-bold text-white transition-[background-color,border-color,transform] duration-150 active:scale-[0.97] hover:border-blue-100 hover:bg-blue-500 disabled:cursor-wait disabled:border-blue-200/55 disabled:bg-blue-500/75 disabled:text-blue-50"
+              className="inline-flex h-10 w-[116px] min-w-[116px] shrink-0 items-center justify-center gap-2 rounded-xl border border-blue-200/80 bg-blue-600 px-3 text-xs font-bold text-white transition-[background-color,border-color,transform] duration-150 active:scale-[0.97] hover:border-blue-100 hover:bg-blue-500 disabled:cursor-wait disabled:border-blue-200/55 disabled:bg-blue-500/75 disabled:text-blue-50"
               title={showHistory ? '刷新歷史記錄' : '刷新鎖定記錄'}
             >
-              <RefreshCw className={`h-4 w-4 text-blue-50 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>{isRefreshing ? '刷新中...' : '刷新'}</span>
+              <RefreshCw className={`h-4 w-4 shrink-0 text-blue-50 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="inline-flex w-[60px] justify-center whitespace-nowrap">{isRefreshing ? '刷新中...' : '刷新'}</span>
             </button>
           </div>
         </div>
