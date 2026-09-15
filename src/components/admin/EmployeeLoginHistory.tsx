@@ -696,8 +696,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             }}
                             className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left transition-[background-color,color,box-shadow] ${
                               isSelected
-                                ? 'bg-cyan-400/15 text-cyan-100 ring-1 ring-inset ring-cyan-300/25'
-                                : 'text-slate-300 hover:bg-cyan-400/20 hover:text-white hover:ring-1 hover:ring-inset hover:ring-cyan-300/35 hover:shadow-[0_0_14px_rgba(34,211,238,0.12)]'
+                                ? 'bg-gradient-to-r from-cyan-300/25 to-blue-400/10 text-white ring-1 ring-inset ring-cyan-200/60 shadow-[inset_3px_0_0_rgba(103,232,249,0.9),0_0_12px_rgba(34,211,238,0.16)]'
+                                : 'text-slate-300 hover:bg-slate-800/90 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35 hover:shadow-[0_0_10px_rgba(34,211,238,0.1)]'
                             }`}
                           >
                             <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${
