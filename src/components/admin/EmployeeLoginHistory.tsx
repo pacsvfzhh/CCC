@@ -46,8 +46,34 @@ interface EmployeeTableRow {
   adminUsername?: string;
 }
 
+const getEmployeeIpValues = (employee: EmployeeSummary) => (
+  Array.from(new Set(
+    [employee.latest_login_ip, employee.latest_logout_ip]
+      .filter((ip): ip is string => Boolean(ip))
+      .map((ip) => ip.trim())
+      .filter(Boolean)
+  ))
+);
+
+const getSharedIpEmployees = (employees: EmployeeSummary[]) => {
+  const ipOwners = new Map<string, Set<string>>();
+
+  employees.forEach((employee) => {
+    getEmployeeIpValues(employee).forEach((ip) => {
+      const owners = ipOwners.get(ip) || new Set<string>();
+      owners.add(employee.user_id);
+      ipOwners.set(ip, owners);
+    });
+  });
+
+  return employees.filter((employee) => (
+    getEmployeeIpValues(employee).some((ip) => (ipOwners.get(ip)?.size || 0) > 1)
+  ));
+};
+
 export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [sharedIpFilter, setSharedIpFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
@@ -395,6 +421,12 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     if (a.role !== 'super_admin' && b.role === 'super_admin') return 1;
     return a.username.localeCompare(b.username);
   });
+  const sharedIpRows: EmployeeTableRow[] = adminGroups.flatMap((group) => (
+    getSharedIpEmployees(group.employees).map((employee) => ({ employee, adminUsername: group.admin_username }))
+  ));
+  const getDisplayedGroupEmployees = (group: AdminGroup) => (
+    sharedIpFilter === group.admin_id ? getSharedIpEmployees(group.employees) : group.employees
+  );
 
   const renderEmployeeTable = (rows: EmployeeTableRow[], showAdminGroup = false) => {
     if (rows.length === 0) {
@@ -661,6 +693,26 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             )}
             <div className="flex min-w-0 flex-1 justify-end gap-1.5 sm:items-center">
             {admin.role === 'super_admin' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm('');
+                  setSharedIpFilter((current) => current === 'all' ? null : 'all');
+                  setIsAdminMenuOpen(false);
+                }}
+                className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold transition-[background-color,border-color,box-shadow,color] ${
+                  sharedIpFilter === 'all'
+                    ? 'border border-cyan-200/70 bg-cyan-300/20 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
+                    : 'border border-cyan-300/30 bg-slate-900/70 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-400/15 hover:text-white'
+                }`}
+                title="Show employees sharing an IP across all admin groups"
+              >
+                <MapPin className="h-3 w-3" />
+                <span>Shared IP</span>
+                <span className="rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{sharedIpRows.length}</span>
+              </button>
+            )}
+            {admin.role === 'super_admin' && (
               <div ref={adminMenuRef} className="relative shrink-0">
                 <button
                   type="button"
@@ -698,6 +750,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             aria-selected={isSelected}
                             onClick={() => {
                               setSearchTerm('');
+                              setSharedIpFilter(null);
                               setSelectedAdminId(adminOption.id);
                               setIsAdminMenuOpen(false);
                             }}
@@ -730,7 +783,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setSharedIpFilter(null);
+                }}
                 placeholder="Search by username, employee ID, or IP address..."
                 className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs font-medium text-slate-900 shadow-[0_6px_18px_rgba(2,6,23,0.14)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
               />
@@ -745,7 +801,20 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           </div>
         ) : (
           <>
-            {isSearching ? (
+            {sharedIpFilter === 'all' ? (
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950/35">
+                <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">Shared IP employees</p>
+                    <p className="mt-0.5 text-xs text-slate-300">All admin groups</p>
+                  </div>
+                  <span className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-200">
+                    {sharedIpRows.length} employees
+                  </span>
+                </div>
+                {renderEmployeeTable(sharedIpRows, true)}
+              </div>
+            ) : isSearching ? (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950/35">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
@@ -779,7 +848,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     }`}
                   >
                     {/* Group Header */}
-                    <div className={`sticky top-0 z-40 isolate flex items-center justify-between px-4 py-3 border-b ${
+                    <div className={`sticky top-0 z-40 isolate relative flex items-center justify-between px-4 py-3 pr-36 border-b ${
                       group.admin_role === 'super_admin'
                         ? 'bg-gradient-to-r from-yellow-950 via-slate-900 to-slate-950 border-yellow-500/30'
                         : 'bg-gradient-to-r from-blue-950 via-slate-900 to-slate-950 border-blue-500/30'
@@ -808,21 +877,39 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         </div>
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                           group.admin_role === 'super_admin'
-                            ? group.employees.length > 0
+                            ? getDisplayedGroupEmployees(group).length > 0
                               ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-400/30'
                               : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
-                            : group.employees.length > 0
+                            : getDisplayedGroupEmployees(group).length > 0
                             ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
                         }`}>
-                          {group.employees.length} employee{group.employees.length !== 1 ? 's' : ''}
+                          {getDisplayedGroupEmployees(group).length} employee{getDisplayedGroupEmployees(group).length !== 1 ? 's' : ''}
                         </span>
                       </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setSharedIpFilter((current) => current === group.admin_id ? null : group.admin_id);
+                      }}
+                      disabled={getSharedIpEmployees(group.employees).length === 0}
+                      className={`absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold transition-[background-color,border-color,box-shadow,color] ${
+                        sharedIpFilter === group.admin_id
+                          ? 'border border-cyan-200/70 bg-cyan-300/20 text-white shadow-[0_0_12px_rgba(34,211,238,0.2)]'
+                          : 'border border-cyan-300/25 bg-slate-950/35 text-cyan-200 hover:border-cyan-200/60 hover:bg-cyan-400/15 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-transparent disabled:text-slate-600 disabled:shadow-none'
+                      }`}
+                      title="Show employees in this group sharing an IP"
+                    >
+                      <MapPin className="h-3 w-3" />
+                      <span>Shared IP</span>
+                      <span className="rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{getSharedIpEmployees(group.employees).length}</span>
+                    </button>
                     </div>
 
                     {/* Group Content */}
                     <>
-                        {group.employees.length === 0 ? (
+                        {getDisplayedGroupEmployees(group).length === 0 ? (
                           <div className="text-center py-8">
                             <Users className="w-10 h-10 text-slate-600 mx-auto mb-2" />
                             <p className="text-slate-300 text-sm">No employees under this admin</p>
@@ -845,7 +932,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-700/50">
-                                {group.employees.map((employee, index) => (
+                                {getDisplayedGroupEmployees(group).map((employee, index) => (
                                   <tr key={employee.user_id} className="hover:bg-slate-800/30 transition-colors">
                                     <td className="px-2 py-1 text-center text-[11px] font-semibold text-slate-500">{index + 1}</td>
                                     <td className="px-2 py-1 text-xs font-semibold text-cyan-100">{employee.username}</td>
