@@ -588,10 +588,14 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-lg border border-cyan-300/20 bg-slate-900/75 px-2 py-1 text-[10px] text-slate-400">
-              <span>Total Logins</span>
-              <span className="font-bold text-cyan-300">{(selectedEmployee.total_logins || 0).toLocaleString()}</span>
-              <span>{(selectedEmployee.total_logins || 0) === 1 ? 'time' : 'times'}</span>
+            <div className="flex min-w-[154px] items-center justify-between gap-3 rounded-xl border border-cyan-300/50 bg-gradient-to-br from-cyan-500/20 via-slate-900 to-blue-950/85 px-3 py-1.5 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-cyan-200/80">Total Logins</p>
+                <div className="mt-0.5 flex items-baseline gap-1">
+                  <span className="text-xl font-black leading-none text-cyan-100">{(selectedEmployee.total_logins || 0).toLocaleString()}</span>
+                  <span className="text-[10px] font-semibold text-cyan-300/80">{(selectedEmployee.total_logins || 0) === 1 ? 'time' : 'times'}</span>
+                </div>
+              </div>
             </div>
             <button
               type="button"
@@ -655,11 +659,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           deviceInfo={record.device_info}
                           userAgent={record.user_agent}
                           compact
+                          inlineUserAgent={Boolean(record.user_agent)}
+                          auditTone={record.action_type}
                         />
                       </td>
                       <td className="px-2 py-1.5">
-                        <div className="flex items-start gap-1.5 text-[10px] text-slate-400">
-                          <Clock className="mt-0.5 h-3 w-3 shrink-0" />
+                        <div className={`flex items-start gap-1.5 text-[10px] ${record.action_type === 'login' ? 'text-emerald-200/80' : 'text-orange-200/80'}`}>
+                          <Clock className={`mt-0.5 h-3 w-3 shrink-0 ${record.action_type === 'login' ? 'text-emerald-300' : 'text-orange-300'}`} />
                           <span className="break-words">{formatDateTime(record.created_at)}</span>
                         </div>
                       </td>
