@@ -673,7 +673,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">Search results</p>
-                    <p className="mt-0.5 text-xs text-slate-300">All admin groups</p>
+                    <p className="mt-0.5 text-xs text-slate-300">
+                      {admin.role === 'super_admin' ? 'All admin groups' : 'Your employees only'}
+                    </p>
                   </div>
                   <span className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-200">
                     {searchRows.length} employees
