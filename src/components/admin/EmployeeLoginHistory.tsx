@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, History, Eye, Users, Clock, MapPin, X, RefreshCw, ChevronDown, Check } from 'lucide-react';
+import { Search, History, Eye, Users, Clock, MapPin, X, RefreshCw, ChevronDown, Check, LogIn, LogOut } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Admin } from '../../types';
 import LoginDeviceSummary from './LoginDeviceSummary';
@@ -89,6 +89,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeSummary | null>(null);
   const [detailedHistory, setDetailedHistory] = useState<LoginHistoryRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyActionFilter, setHistoryActionFilter] = useState<'login' | 'logout' | null>(null);
   const [admins, setAdmins] = useState<{ id: string; username: string; role?: string }[]>([]);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   const adminMenuRef = useRef<HTMLDivElement | null>(null);
@@ -406,6 +407,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   }, [admin.id]);
 
   const handleViewHistory = (employee: EmployeeSummary) => {
+    setHistoryActionFilter(null);
+    setDetailedHistory([]);
     setSelectedEmployee(employee);
     loadDetailedHistory(employee.user_id);
   };
@@ -413,6 +416,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   const handleCloseHistory = () => {
     setSelectedEmployee(null);
     setDetailedHistory([]);
+    setHistoryActionFilter(null);
   };
 
   const formatDateTime = (dateString: string | null) => {
@@ -458,6 +462,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   const secondaryGroup = admin.role !== 'super_admin' ? adminGroups.find((group) => group.admin_id === admin.id) : null;
   const secondarySharedIpGroups = secondaryGroup ? getSharedIpGroups(secondaryGroup.employees) : [];
   const selectedSecondarySharedIpGroup = secondaryGroup ? getSelectedGroupSharedIp(secondaryGroup) : null;
+  const loginRecordCount = detailedHistory.filter((record) => record.action_type === 'login').length;
+  const logoutRecordCount = detailedHistory.filter((record) => record.action_type === 'logout').length;
+  const displayedHistory = historyActionFilter
+    ? detailedHistory.filter((record) => record.action_type === historyActionFilter)
+    : detailedHistory;
 
   const renderEmployeeTable = (rows: EmployeeTableRow[], showAdminGroup = false, sharedIpMode = false) => {
     if (rows.length === 0) {
@@ -587,7 +596,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <p className="truncate text-[10px] text-slate-400 sm:text-xs">Employee ID: {selectedEmployee.employee_id}</p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <div className="flex min-w-[154px] items-center justify-between gap-3 rounded-xl border border-cyan-300/50 bg-gradient-to-br from-cyan-500/20 via-slate-900 to-blue-950/85 px-3 py-1.5 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-cyan-200/80">Total Logins</p>
@@ -597,6 +606,28 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 </div>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setHistoryActionFilter((current) => current === 'login' ? null : 'login')}
+              className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border px-2 text-[10px] font-bold outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${historyActionFilter === 'login' ? 'border-emerald-300 bg-emerald-500 text-slate-950 shadow-[0_0_16px_rgba(52,211,153,0.3)]' : 'border-emerald-400/40 bg-emerald-950/50 text-emerald-200 hover:border-emerald-300/70 hover:bg-emerald-900/70'}`}
+              aria-pressed={historyActionFilter === 'login'}
+              title="Filter login records"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              <span>Login</span>
+              <span className="min-w-[1.15rem] text-center">{loginRecordCount}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setHistoryActionFilter((current) => current === 'logout' ? null : 'logout')}
+              className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border px-2 text-[10px] font-bold outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-orange-300/70 ${historyActionFilter === 'logout' ? 'border-orange-300 bg-orange-400 text-slate-950 shadow-[0_0_16px_rgba(251,146,60,0.3)]' : 'border-orange-400/40 bg-orange-950/50 text-orange-200 hover:border-orange-300/70 hover:bg-orange-900/70'}`}
+              aria-pressed={historyActionFilter === 'logout'}
+              title="Filter logout records"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span>Logout</span>
+              <span className="min-w-[1.15rem] text-center">{logoutRecordCount}</span>
+            </button>
             <button
               type="button"
               onClick={handleCloseHistory}
@@ -613,10 +644,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             <div className="flex items-center justify-center py-10">
               <div className="h-7 w-7 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent"></div>
             </div>
-          ) : detailedHistory.length === 0 ? (
+          ) : displayedHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <History className="mb-2 h-10 w-10 text-slate-600" />
-              <p className="text-slate-400">No login history found</p>
+              <p className="text-slate-400">{historyActionFilter ? `No ${historyActionFilter} records found` : 'No login history found'}</p>
             </div>
           ) : (
             <div className="min-w-full">
@@ -632,7 +663,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   </tr>
                 </thead>
                 <tbody className="bg-slate-950">
-                  {detailedHistory.map((record, index) => (
+                  {displayedHistory.map((record, index) => (
                     <tr
                       key={record.id}
                       className={`border-b border-slate-800/80 border-l-2 transition-[background-color,filter,box-shadow] duration-150 ${
