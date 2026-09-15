@@ -643,36 +643,36 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 text-slate-100">
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-0 flex flex-col gap-3 border-b border-cyan-900/60 pb-3 sm:pb-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-0 flex flex-col gap-2 border-b border-cyan-900/60 pb-2 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/80">Admin activity</p>
-              <h2 className="mt-0.5 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-[26px]">Login History</h2>
-              <p className="mt-1 text-xs leading-relaxed text-slate-300">Review employee sign-ins, sign-outs, IP addresses, and browser evidence.</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/80">Admin activity</p>
+              <h2 className="mt-0 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-xl font-bold tracking-tight text-transparent sm:text-2xl">Login History</h2>
+              <p className="mt-0.5 max-w-[360px] truncate text-[11px] leading-tight text-slate-300">Review employee sign-ins, sign-outs, IP addresses, and browser evidence.</p>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <div className="min-w-[118px] rounded-xl border border-cyan-300/25 bg-gradient-to-br from-cyan-400/10 to-blue-500/[0.04] px-2 py-1 shadow-[0_8px_20px_rgba(2,6,23,0.16)]">
+            <div className="flex shrink-0 items-center gap-1.5">
+              <div className="min-w-[96px] rounded-lg border border-cyan-300/25 bg-gradient-to-br from-cyan-400/10 to-blue-500/[0.04] px-2 py-1 shadow-[0_6px_16px_rgba(2,6,23,0.14)]">
                 <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 shrink-0 text-cyan-300" />
+                  <Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
                   <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200/80">Total Employees</p>
-                    <p className="mt-0.5 text-lg font-bold leading-none text-cyan-100">{totalEmployees}</p>
+                    <p className="text-[8px] font-bold uppercase tracking-[0.08em] text-cyan-200/80">Total Employees</p>
+                    <p className="mt-0.5 text-base font-bold leading-none text-cyan-100">{totalEmployees}</p>
                   </div>
                 </div>
               </div>
-              <div className="min-w-[112px] rounded-xl border border-blue-300/25 bg-gradient-to-br from-blue-500/10 to-cyan-500/[0.04] px-2 py-1 shadow-[0_8px_20px_rgba(2,6,23,0.16)]">
+              <div className="min-w-[90px] rounded-lg border border-blue-300/25 bg-gradient-to-br from-blue-500/10 to-cyan-500/[0.04] px-2 py-1 shadow-[0_6px_16px_rgba(2,6,23,0.14)]">
                 <div className="flex items-center gap-2">
-                  <History className="h-4 w-4 shrink-0 text-blue-300" />
+                  <History className="h-3.5 w-3.5 shrink-0 text-blue-300" />
                   <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-blue-200/80">Admin Groups</p>
-                    <p className="mt-0.5 text-lg font-bold leading-none text-blue-100">{adminGroups.length}</p>
+                    <p className="text-[8px] font-bold uppercase tracking-[0.08em] text-blue-200/80">Admin Groups</p>
+                    <p className="mt-0.5 text-base font-bold leading-none text-blue-100">{adminGroups.length}</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center xl:max-w-[900px]">
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:flex-row sm:items-center xl:max-w-[620px]">
             {admin.role === 'super_admin' && (
               <select
                 value={isSearching ? 'all' : selectedAdminId || ''}
@@ -683,7 +683,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     setSelectedAdminId(nextAdminId);
                   }
                 }}
-                className="h-11 shrink-0 rounded-xl border border-cyan-400/30 bg-slate-900 px-3 text-sm font-semibold text-cyan-100 outline-none transition-colors hover:border-cyan-300/60 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-400/15 sm:w-[210px]"
+                className="h-9 shrink-0 rounded-lg border border-cyan-400/30 bg-slate-900 px-2.5 text-xs font-semibold text-cyan-100 outline-none transition-colors hover:border-cyan-300/60 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-400/15 sm:w-[170px]"
                 aria-label="Select admin group"
               >
                 <option value="all">All Admin Groups</option>
@@ -695,13 +695,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               </select>
             )}
             <div className="relative min-w-0 flex-1">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-700" />
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by username, employee ID, or IP address..."
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-medium text-slate-900 shadow-[0_8px_24px_rgba(2,6,23,0.16)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
+                className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs font-medium text-slate-900 shadow-[0_6px_18px_rgba(2,6,23,0.14)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
               />
             </div>
             <button
@@ -710,10 +710,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 void loadEmployeeSummaryRef.current?.();
               }}
               disabled={loading}
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-bold text-white shadow-[0_8px_22px_rgba(8,145,178,0.22)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_12px_28px_rgba(8,145,178,0.3)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:min-w-[112px]"
+              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-[0_6px_18px_rgba(8,145,178,0.2)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_10px_22px_rgba(8,145,178,0.26)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:min-w-[88px]"
               title="Refresh data"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span className="font-medium">Refresh</span>
             </button>
           </div>
