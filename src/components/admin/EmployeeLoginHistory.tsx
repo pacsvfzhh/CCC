@@ -390,6 +390,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     group.employees.map((employee) => ({ employee, adminUsername: group.admin_username }))
   ));
   const selectedAdmin = admins.find((adminOption) => adminOption.id === selectedAdminId);
+  const sortedAdminOptions = [...admins].sort((a, b) => {
+    if (a.role === 'super_admin' && b.role !== 'super_admin') return -1;
+    if (a.role !== 'super_admin' && b.role === 'super_admin') return 1;
+    return a.username.localeCompare(b.username);
+  });
 
   const renderEmployeeTable = (rows: EmployeeTableRow[], showAdminGroup = false) => {
     if (rows.length === 0) {
@@ -680,7 +685,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                       <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{admins.length}</span>
                     </div>
                     <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
-                      {admins.map((adminOption) => {
+                      {sortedAdminOptions.map((adminOption) => {
                         const group = adminGroups.find((groupOption) => groupOption.admin_id === adminOption.id);
                         const isSelected = !isSearching && selectedAdminId === adminOption.id;
                         return (
