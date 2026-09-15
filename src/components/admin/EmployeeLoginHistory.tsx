@@ -727,12 +727,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   onClick={() => {
                     setSearchTerm('');
                     setIsAdminMenuOpen(false);
-                    if (selectedAllSharedIpGroup) {
-                      setSharedIpSelection(null);
-                      setOpenSharedIpMenu(null);
-                    } else {
-                      setOpenSharedIpMenu((current) => current === 'all' ? null : 'all');
-                    }
+                    setOpenSharedIpMenu((current) => current === 'all' ? null : 'all');
                   }}
                   disabled={allSharedIpGroups.length === 0}
                   className={`inline-flex h-9 w-[230px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold transition-[background-color,border-color,box-shadow,color] ${
@@ -755,7 +750,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           setSharedIpSelection(null);
                           setOpenSharedIpMenu(null);
                         }}
-                        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-cyan-100 transition-colors hover:bg-cyan-100/20 hover:text-white"
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-400/35 transition-colors hover:bg-red-500/35 hover:text-red-100"
                         aria-label="Clear shared IP filter"
                       >
                         <X className="h-3 w-3" />
@@ -980,13 +975,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         onClick={() => {
                           setSearchTerm('');
                           setIsAdminMenuOpen(false);
-                          const selectedGroupSharedIp = getSelectedGroupSharedIp(group);
-                          if (selectedGroupSharedIp) {
-                            setSharedIpSelection(null);
-                            setOpenSharedIpMenu(null);
-                          } else {
-                            setOpenSharedIpMenu((current) => current === group.admin_id ? null : group.admin_id);
-                          }
+                          setOpenSharedIpMenu((current) => current === group.admin_id ? null : group.admin_id);
                         }}
                         disabled={getSharedIpGroups(group.employees).length === 0}
                         className={`inline-flex h-7 w-[230px] items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold transition-[background-color,border-color,box-shadow,color] ${
@@ -994,7 +983,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             ? 'border border-cyan-200/70 bg-cyan-300/20 text-white shadow-[0_0_12px_rgba(34,211,238,0.2)]'
                             : 'border border-cyan-300/25 bg-slate-950/35 text-cyan-200 hover:border-cyan-200/60 hover:bg-cyan-400/15 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-transparent disabled:text-slate-600 disabled:shadow-none'
                         }`}
-                        title={getSelectedGroupSharedIp(group) ? 'Clear shared IP filter' : 'Choose a shared login IP in this group'}
+                        title={getSelectedGroupSharedIp(group) ? 'Open shared login IP choices' : 'Choose a shared login IP in this group'}
                       >
                         <MapPin className="h-3 w-3 shrink-0" />
                         {getSelectedGroupSharedIp(group) ? (
@@ -1009,7 +998,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                 setSharedIpSelection(null);
                                 setOpenSharedIpMenu(null);
                               }}
-                              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-cyan-100 transition-colors hover:bg-cyan-100/20 hover:text-white"
+                              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-400/35 transition-colors hover:bg-red-500/35 hover:text-red-100"
                               aria-label="Clear shared IP filter"
                             >
                               <X className="h-3 w-3" />
