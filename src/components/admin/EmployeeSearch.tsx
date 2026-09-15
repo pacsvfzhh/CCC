@@ -209,7 +209,7 @@ export default function EmployeeSearch() {
       <section className="relative shrink-0 border-b border-cyan-900/60 pb-4 sm:pb-5">
         <div className="relative flex flex-col gap-4 xl:flex-row xl:items-end">
           <div className="min-w-0 xl:w-[260px] xl:shrink-0">
-            <h2 className="mt-0 bg-gradient-to-r from-cyan-100 via-white to-blue-200 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-[28px]">搜尋員工資料</h2>
+            <h2 className="mt-0 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-[28px]">搜尋員工資料</h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">可透過使用者名稱、員工編號或已驗證的聯絡資料尋找帳戶。</p>
           </div>
 
@@ -284,7 +284,7 @@ export default function EmployeeSearch() {
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/90 px-4 py-3 sm:px-5">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300/75">搜尋結果</p>
-              <h3 className="mt-1 truncate text-base font-semibold text-white">員工帳戶</h3>
+              <h3 className="mt-1 truncate text-base font-semibold text-cyan-100">員工帳戶</h3>
             </div>
             <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-bold text-cyan-100">
               <User className="h-3.5 w-3.5 text-cyan-300" />
@@ -297,7 +297,7 @@ export default function EmployeeSearch() {
               <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
                 <Search className="h-7 w-7" />
               </span>
-              <p className="mt-4 text-base font-semibold text-slate-200">找不到員工</p>
+              <p className="mt-4 text-base font-semibold text-cyan-100">找不到員工</p>
               <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-300">請嘗試其他使用者名稱、員工編號或已驗證的聯絡資料。</p>
             </div>
           ) : (
@@ -341,7 +341,7 @@ export default function EmployeeSearch() {
                       </div>
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                          <h4 className="truncate text-sm font-bold text-slate-100 sm:text-base">{employee.username}</h4>
+                          <h4 className="truncate text-sm font-bold text-cyan-100 sm:text-base">{employee.username}</h4>
                           <span className="rounded-md border border-slate-700 bg-slate-900/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">員工編號 {employee.employee_id}</span>
                           {employee.is_verified && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300"><CheckCircle className="h-3.5 w-3.5" />已驗證</span>
@@ -422,7 +422,7 @@ export default function EmployeeSearch() {
         <section className="flex min-h-0 flex-1 items-center justify-center overflow-hidden px-6 py-12 text-center">
           <div className="max-w-md">
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 shadow-[0_0_28px_rgba(34,211,238,0.08)]"><Search className="h-7 w-7" /></span>
-            <p className="mt-4 text-base font-semibold text-slate-200">搜尋員工記錄</p>
+            <p className="mt-4 text-base font-semibold text-cyan-100">搜尋員工記錄</p>
             <p className="mt-1.5 text-xs leading-relaxed text-slate-300">使用上方搜尋欄，即可查看帳戶、驗證、錢包與所屬管理員資料。</p>
           </div>
         </section>
