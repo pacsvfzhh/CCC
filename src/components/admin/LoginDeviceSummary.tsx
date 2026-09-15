@@ -102,7 +102,7 @@ export default function LoginDeviceSummary({
           ? 'min-w-[190px] max-w-[280px]'
           : 'min-w-[240px]'}>
       <div className={usePlainDeviceText
-        ? 'flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] font-semibold'
+        ? 'flex min-w-0 flex-col items-start gap-0.5 text-[10px] font-normal'
         : 'flex shrink-0 flex-wrap items-center gap-1.5'}>
         <span className={usePlainDeviceText
           ? `inline-flex items-center gap-1 ${osTextStyles[info.os_family]}`
@@ -110,7 +110,7 @@ export default function LoginDeviceSummary({
           <SystemIcon className="h-3 w-3" aria-hidden="true" />
           {osLabels[info.os_family]}
         </span>
-        <span className="text-slate-600">·</span>
+        {!usePlainDeviceText && <span className="text-slate-600">·</span>}
         <span className={usePlainDeviceText
           ? 'text-violet-200'
           : 'inline-flex items-center rounded-md border border-violet-400/25 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200'}>
