@@ -68,7 +68,7 @@ export default function LoginDeviceSummary({
 }: LoginDeviceSummaryProps) {
   const info = resolveLoginDeviceInfo(deviceInfo, userAgent);
   const auditTextClass = auditTone === 'logout' ? 'text-orange-200/75' : 'text-emerald-200/75';
-  const browserToneClass = auditTone === 'logout' ? 'text-orange-100' : 'text-emerald-100';
+  const browserToneClass = auditTone === 'logout' ? 'text-orange-200/80' : 'text-emerald-200/80';
   const usePlainDeviceText = inlineUserAgent || plain;
   const details = [
     osLabels[info.os_family],
