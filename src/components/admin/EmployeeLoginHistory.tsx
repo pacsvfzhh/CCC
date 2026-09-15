@@ -620,14 +620,14 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             </div>
           ) : (
             <div className="min-w-full">
-              <table className="min-w-[1180px] w-full border-separate border-spacing-0">
+              <table className="min-w-[1060px] w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-10 bg-slate-900">
                   <tr className="border-b border-cyan-500/35">
                     <th className="w-12 border-b border-cyan-500/30 px-2 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">#</th>
                     <th className="w-28 border-b border-cyan-500/30 px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">Action</th>
                     <th className="w-40 border-b border-cyan-500/30 px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">IP Address</th>
                     <th className="w-[180px] border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">Device Info</th>
-                    <th className="w-[460px] border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">User-Agent</th>
+                    <th className="w-[340px] border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">User-Agent</th>
                     <th className="w-44 border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">Time</th>
                   </tr>
                 </thead>
@@ -675,9 +675,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           hideUserAgent
                         />
                       </td>
-                      <td className="w-[460px] max-w-[460px] px-3 py-1.5 align-top">
+                      <td className="w-[340px] max-w-[340px] px-3 py-1.5 align-top">
                         <p
-                          className={`max-h-[2.7em] max-w-[440px] overflow-hidden break-all font-mono text-[9px] leading-[1.35] ${record.action_type === 'login' ? 'text-emerald-200/75' : 'text-orange-200/75'}`}
+                          className={`max-h-[2.7em] max-w-[320px] overflow-hidden break-all font-mono text-[9px] leading-[1.35] ${record.action_type === 'login' ? 'text-emerald-200/75' : 'text-orange-200/75'}`}
                           title={record.user_agent || 'User-Agent not recorded'}
                         >
                           <span className="mr-1 font-sans font-bold uppercase tracking-[0.12em] opacity-70">UA</span>
