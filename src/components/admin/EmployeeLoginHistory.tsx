@@ -593,10 +593,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     }`}
                   >
                     {/* Group Header */}
-                    <div className={`sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b ${
+                    <div className={`sticky top-0 z-40 isolate flex items-center justify-between px-4 py-3 border-b ${
                       group.admin_role === 'super_admin'
-                        ? 'bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 border-yellow-500/20'
-                        : 'bg-gradient-to-r from-blue-500/10 to-blue-500/5 border-blue-500/20'
+                        ? 'bg-gradient-to-r from-yellow-950 via-slate-900 to-slate-950 border-yellow-500/30'
+                        : 'bg-gradient-to-r from-blue-950 via-slate-900 to-slate-950 border-blue-500/30'
                     }`}>
                       <div className="flex items-center gap-3">
                         <button
