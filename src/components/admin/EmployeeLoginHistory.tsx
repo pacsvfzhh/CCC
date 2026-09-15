@@ -597,36 +597,39 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <div className="flex min-w-[154px] items-center justify-between gap-3 rounded-xl border border-cyan-300/50 bg-gradient-to-br from-cyan-500/20 via-slate-900 to-blue-950/85 px-3 py-1.5 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-cyan-200/80">Total Logins</p>
-                <div className="mt-0.5 flex items-baseline gap-1">
-                  <span className="text-xl font-black leading-none text-cyan-100">{(selectedEmployee.total_logins || 0).toLocaleString()}</span>
-                  <span className="text-[10px] font-semibold text-cyan-300/80">{(selectedEmployee.total_logins || 0) === 1 ? 'time' : 'times'}</span>
-                </div>
-              </div>
-            </div>
             <button
               type="button"
               onClick={() => setHistoryActionFilter((current) => current === 'login' ? null : 'login')}
-              className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border px-2 text-[10px] font-bold outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${historyActionFilter === 'login' ? 'border-emerald-300 bg-emerald-500 text-slate-950 shadow-[0_0_16px_rgba(52,211,153,0.3)]' : 'border-emerald-400/40 bg-emerald-950/50 text-emerald-200 hover:border-emerald-300/70 hover:bg-emerald-900/70'}`}
+              className={`group inline-flex h-10 min-w-[104px] shrink-0 items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-emerald-300/80 sm:min-w-[118px] sm:px-3 ${historyActionFilter === 'login' ? 'border-emerald-200 bg-gradient-to-br from-emerald-300 to-emerald-500 text-slate-950 shadow-[0_0_20px_rgba(52,211,153,0.38)]' : 'border-emerald-400/60 bg-gradient-to-br from-emerald-950/90 to-slate-900 text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.12)] hover:border-emerald-200/80 hover:from-emerald-900/90 hover:to-emerald-950/80'}`}
               aria-pressed={historyActionFilter === 'login'}
               title="Filter login records"
             >
-              <LogIn className="h-3.5 w-3.5" />
-              <span>Login</span>
-              <span className="min-w-[1.15rem] text-center">{loginRecordCount}</span>
+              <span className="flex items-center gap-1.5">
+                <span className={`flex h-6 w-6 items-center justify-center rounded-lg ${historyActionFilter === 'login' ? 'bg-slate-950/15' : 'bg-emerald-400/15'}`}>
+                  <LogIn className="h-4 w-4" />
+                </span>
+                <span className="text-left text-[11px] font-black uppercase tracking-[0.08em]">Login</span>
+              </span>
+              <span className={`flex min-w-[2rem] items-center justify-center rounded-lg px-1.5 py-1 text-sm font-black leading-none ${historyActionFilter === 'login' ? 'bg-slate-950/15' : 'bg-emerald-400/15'}`}>
+                {loginRecordCount}
+              </span>
             </button>
             <button
               type="button"
               onClick={() => setHistoryActionFilter((current) => current === 'logout' ? null : 'logout')}
-              className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border px-2 text-[10px] font-bold outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-orange-300/70 ${historyActionFilter === 'logout' ? 'border-orange-300 bg-orange-400 text-slate-950 shadow-[0_0_16px_rgba(251,146,60,0.3)]' : 'border-orange-400/40 bg-orange-950/50 text-orange-200 hover:border-orange-300/70 hover:bg-orange-900/70'}`}
+              className={`group inline-flex h-10 min-w-[104px] shrink-0 items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-orange-300/80 sm:min-w-[118px] sm:px-3 ${historyActionFilter === 'logout' ? 'border-orange-200 bg-gradient-to-br from-orange-300 to-orange-500 text-slate-950 shadow-[0_0_20px_rgba(251,146,60,0.38)]' : 'border-orange-400/60 bg-gradient-to-br from-orange-950/90 to-slate-900 text-orange-100 shadow-[0_0_12px_rgba(249,115,22,0.12)] hover:border-orange-200/80 hover:from-orange-900/90 hover:to-orange-950/80'}`}
               aria-pressed={historyActionFilter === 'logout'}
               title="Filter logout records"
             >
-              <LogOut className="h-3.5 w-3.5" />
-              <span>Logout</span>
-              <span className="min-w-[1.15rem] text-center">{logoutRecordCount}</span>
+              <span className="flex items-center gap-1.5">
+                <span className={`flex h-6 w-6 items-center justify-center rounded-lg ${historyActionFilter === 'logout' ? 'bg-slate-950/15' : 'bg-orange-400/15'}`}>
+                  <LogOut className="h-4 w-4" />
+                </span>
+                <span className="text-left text-[11px] font-black uppercase tracking-[0.08em]">Logout</span>
+              </span>
+              <span className={`flex min-w-[2rem] items-center justify-center rounded-lg px-1.5 py-1 text-sm font-black leading-none ${historyActionFilter === 'logout' ? 'bg-slate-950/15' : 'bg-orange-400/15'}`}>
+                {logoutRecordCount}
+              </span>
             </button>
             <button
               type="button"
