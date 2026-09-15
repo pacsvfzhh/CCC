@@ -600,7 +600,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             <button
               type="button"
               onClick={handleCloseHistory}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-slate-900/80 text-slate-400 outline-none transition-colors hover:border-cyan-300/50 hover:bg-cyan-900/60 hover:text-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-300/50"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-300 bg-red-600 text-white shadow-[0_0_16px_rgba(239,68,68,0.28)] outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px hover:border-red-200 hover:bg-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.45)] active:translate-y-0 focus-visible:ring-2 focus-visible:ring-red-300/70"
               aria-label="Close login history"
             >
               <X className="h-4 w-4" />
@@ -608,7 +608,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto bg-slate-950 px-2 py-2 login-history-modal-scroll sm:px-3 sm:py-2">
+        <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto bg-slate-950 p-0 login-history-modal-scroll">
           {historyLoading ? (
             <div className="flex items-center justify-center py-10">
               <div className="h-7 w-7 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent"></div>
