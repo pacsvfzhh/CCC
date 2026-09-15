@@ -198,21 +198,41 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
           .map(lock => lock.user_id)
           .filter((userId): userId is string => Boolean(userId))
       )];
+      const historyUsernames = [...new Set(
+        historyData
+          .map(lock => lock.username || lock.identifier)
+          .filter((username): username is string => Boolean(username))
+      )];
       const ownerAdminIdsByUserId = new Map<string, string>();
-      const ownerAdminUsernames = new Map<string, string>();
+      const ownerAdminIdsByUsername = new Map<string, string>();
+      const ownerAdminUsernames = new Map(
+        adminGroups.map(group => [group.id, group.username])
+      );
 
-      if (historyUserIds.length > 0) {
-        const { data: historyEmployeeRows } = await supabase
-          .from('users')
-          .select('id, created_by')
-          .in('id', historyUserIds);
+      const employeeQueries = await Promise.all([
+        historyUserIds.length > 0
+          ? supabase.from('users').select('id, username, created_by').in('id', historyUserIds)
+          : Promise.resolve({ data: [], error: null }),
+        historyUsernames.length > 0
+          ? supabase.from('users').select('id, username, created_by').in('username', historyUsernames)
+          : Promise.resolve({ data: [], error: null })
+      ]);
 
-        historyEmployeeRows?.forEach(employee => {
-          ownerAdminIdsByUserId.set(employee.id, employee.created_by);
+      employeeQueries.forEach(({ data: employeeRows }) => {
+        employeeRows?.forEach(employee => {
+          if (employee.id && employee.created_by) {
+            ownerAdminIdsByUserId.set(employee.id, employee.created_by);
+          }
+          if (employee.username && employee.created_by) {
+            ownerAdminIdsByUsername.set(employee.username, employee.created_by);
+          }
         });
-      }
+      });
 
-      const ownerAdminIds = [...new Set(ownerAdminIdsByUserId.values())];
+      const ownerAdminIds = [...new Set([
+        ...ownerAdminIdsByUserId.values(),
+        ...ownerAdminIdsByUsername.values()
+      ])];
       if (ownerAdminIds.length > 0) {
         const { data: ownerAdminRows } = await supabase
           .from('admins')
@@ -229,10 +249,13 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
         historyData
           .filter(lock => lock.identifier_type === 'username')
           .map(lock => {
-            const ownerAdminId = ownerAdminIdsByUserId.get(lock.user_id ?? '') ?? null;
+            const ownerAdminId = (lock.user_id
+              ? ownerAdminIdsByUserId.get(lock.user_id)
+              : undefined)
+              || ownerAdminIdsByUsername.get(lock.username || lock.identifier);
             return {
               ...lock,
-              owner_admin_id: ownerAdminId,
+              owner_admin_id: ownerAdminId ?? null,
               owner_admin_username: ownerAdminId
                 ? ownerAdminUsernames.get(ownerAdminId) ?? null
                 : null
@@ -254,7 +277,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
         void loadHistory({ force: true, silent: true });
       }
     }
-  }, [admin.id, admin.username]);
+  }, [admin.id, admin.username, adminGroups]);
 
   useEffect(() => {
     isActiveRef.current = isActive;
@@ -498,8 +521,8 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
     [countdownNow, filteredHistoryLocks]
   );
   const getLockStatus = (lock: AccountLock, currentTime: number) => {
-    const isCurrentlyLocked = !lock.unlocked_at
-      && !lock.unlocked_by
+    const hasBeenResolved = Boolean(lock.unlocked_at || lock.unlocked_by);
+    const isCurrentlyLocked = !hasBeenResolved
       && new Date(lock.lock_until).getTime() > currentTime;
 
     if (!showHistory || isCurrentlyLocked) {
@@ -817,11 +840,8 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
           </div>
           <div className="space-y-3">
             {visibleLocks.map((lock) => {
-              const isPendingHistoryLock = showHistory
-                && !lock.unlocked_at
-                && !lock.unlocked_by
-                && new Date(lock.lock_until).getTime() > countdownNow;
               const status = getLockStatus(lock, countdownNow);
+              const isPendingHistoryLock = showHistory && status.label === '目前鎖定';
               const releaseTimeClass = lock.unlocked_by
                 ? 'text-emerald-300'
                 : status.label === '自動解除'
@@ -874,7 +894,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
                           <p className={`mt-1 text-sm font-bold ${status.textClass}`}>{status.label}</p>
                           {showHistory && (
                             <p className="mt-2 text-[10px] font-bold tracking-[0.08em] text-cyan-200/80">
-                              所屬管理員分組：<span className="text-xs font-semibold text-cyan-100">{lock.owner_admin_username || '未記錄'}</span>
+                              所屬管理員：<span className="text-xs font-semibold text-cyan-100">{lock.owner_admin_username || adminGroups.find(group => group.id === lock.owner_admin_id)?.username || (admin.role === 'secondary_admin' ? admin.username : '未記錄')}</span>
                             </p>
                           )}
                         </div>
