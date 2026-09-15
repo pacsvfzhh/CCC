@@ -510,7 +510,6 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   const groupIconToneClass = showHistory
     ? 'text-violet-200 group-hover:text-violet-100'
     : 'text-orange-100 group-hover:text-orange-50';
-  const groupLabelToneClass = showHistory ? 'text-violet-200/70' : 'text-orange-100/75';
   const groupValueToneClass = showHistory ? 'text-violet-50' : 'text-orange-50';
   const groupChevronToneClass = showHistory ? 'text-violet-200/80' : 'text-orange-100/80';
   const groupMenuBorderClass = showHistory ? 'border-violet-200/25' : 'border-orange-200/25';
@@ -615,7 +614,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
           </div>
         </div>
 
-        <div className={`mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border px-3 py-2.5 sm:px-4 ${showHistory ? 'border-violet-300/25 bg-violet-500/[0.08] shadow-[0_8px_24px_rgba(139,92,246,0.08)]' : 'border-orange-300/25 bg-orange-500/[0.08] shadow-[0_8px_24px_rgba(245,158,11,0.08)]'}`}>
+        <div className={`mt-5 flex flex-wrap items-center gap-x-5 gap-y-1 rounded-xl border px-3 py-1.5 sm:px-4 ${showHistory ? 'border-violet-300/25 bg-violet-500/[0.08] shadow-[0_8px_24px_rgba(139,92,246,0.08)]' : 'border-orange-300/25 bg-orange-500/[0.08] shadow-[0_8px_24px_rgba(245,158,11,0.08)]'}`}>
           {showHistory ? (
             <>
               <div className="flex items-baseline gap-2">
@@ -661,14 +660,13 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
                 disabled={adminGroupsLoading}
                 aria-expanded={groupMenuOpen}
                 aria-haspopup="listbox"
-                className={`group inline-flex h-9 w-[220px] items-center gap-2 rounded-lg px-1.5 text-left transition-colors duration-150 disabled:cursor-wait disabled:opacity-70 sm:w-[248px] ${groupButtonToneClass}`}
+                className={`group inline-flex h-8 w-[220px] items-center gap-2 rounded-lg px-1.5 text-left transition-colors duration-150 disabled:cursor-wait disabled:opacity-70 sm:w-[248px] ${groupButtonToneClass}`}
               >
                 <span className={`flex h-6 w-6 shrink-0 items-center justify-center transition-colors ${groupIconToneClass}`}>
                   <Users className="h-3.5 w-3.5" />
                 </span>
-                <span className="min-w-0 flex-1 leading-tight">
-                  <span className={`block text-[9px] font-semibold uppercase tracking-[0.12em] ${groupLabelToneClass}`}>管理員分組</span>
-                  <span className={`block truncate text-[11px] font-bold ${groupValueToneClass}`}>{adminGroupsLoading ? '載入中...' : selectedGroupLabel}</span>
+                <span className={`min-w-0 flex-1 truncate text-sm font-bold tracking-tight ${groupValueToneClass}`}>
+                  {adminGroupsLoading ? '載入中...' : selectedGroupLabel}
                 </span>
                 <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${groupChevronToneClass} ${groupMenuOpen ? 'rotate-180' : ''}`} />
               </button>
