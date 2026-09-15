@@ -231,10 +231,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [unreadCustomerServiceCount, setUnreadCustomerServiceCount] = useState(0);
   const [unreadCccServiceCount, setUnreadCccServiceCount] = useState(0);
   const [lockedAccountsCount, setLockedAccountsCount] = useState(0);
-  const [nextLockedAccountExpiry, setNextLockedAccountExpiry] = useState<number | null>(null);
   const pendingCountsRequestRef = useRef(0);
-  const lockedCountsRequestRef = useRef(0);
-  const lockedCountSyncRef = useRef(0);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -664,36 +661,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setShowNavigationSettings(false);
   };
 
-  const loadLockedAccountsCount = useCallback(async () => {
-    const requestId = ++lockedCountsRequestRef.current;
-    const lockedCountSyncId = lockedCountSyncRef.current;
-
-    try {
-      const { data: locksData, error: lockedError } = await supabase.rpc('get_account_locks_for_admin', {
-        p_admin_id: getAdminFinancialSessionToken()
-      });
-
-      if (lockedError) throw lockedError;
-      if (requestId !== lockedCountsRequestRef.current) return;
-
-      const employeeLocks = (locksData || []).filter(lock => lock.identifier_type === 'username');
-      const lockedCount = employeeLocks.length;
-      const lockExpiryTimes = employeeLocks
-        .map(lock => new Date(lock.lock_until).getTime())
-        .filter(expiry => Number.isFinite(expiry));
-      console.log('[Account Locks] Active locks count:', lockedCount, 'for admin:', admin.id);
-      if (lockedCountSyncId === lockedCountSyncRef.current) {
-        setLockedAccountsCount(lockedCount);
-        setNextLockedAccountExpiry(lockExpiryTimes.length > 0 ? Math.min(...lockExpiryTimes) : null);
-      }
-    } catch (error) {
-      console.warn('Locked accounts count is temporarily unavailable:', formatRequestError(error));
-    }
-  }, [admin.id]);
-
   const loadPendingCounts = useCallback(async () => {
     const requestId = ++pendingCountsRequestRef.current;
-    void loadLockedAccountsCount();
     try {
       // For secondary admins, fetch their employee IDs once for scoping
       let scopedEmployeeIds: string[] | null = null;
@@ -824,13 +793,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     } catch (error) {
       console.warn('Pending counts are temporarily unavailable:', formatRequestError(error));
     }
-  }, [admin.id, admin.role, loadLockedAccountsCount]);
-
-  const handleActiveLockCountChange = useCallback((count: number, nextExpiry: number | null) => {
-    lockedCountSyncRef.current += 1;
-    setLockedAccountsCount(count);
-    setNextLockedAccountExpiry(nextExpiry);
-  }, []);
+  }, [admin.id, admin.role]);
 
   const handleCustomerServiceUnreadChange = useCallback((delta: number) => {
     setUnreadCustomerServiceCount(prev => Math.max(0, prev + delta));
@@ -840,16 +803,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setUnreadCccServiceCount(prev => Math.max(0, prev + delta));
   }, []);
 
-  // Handle tab change with refresh for account locks
   const handleTabChange = useCallback((tabId: typeof activeTab) => {
     preloadServiceTab(tabId);
     setActiveTab(tabId);
     setLoadedTabs(prev => new Set([...prev, tabId]));
     if (tabId === 'accountlocks') {
-      console.log('[Account Locks] Tab switched, refreshing count...');
-      void loadLockedAccountsCount();
+      setLockedAccountsCount(0);
     }
-  }, [loadLockedAccountsCount]);
+  }, []);
 
   const handleEmployeeQuickAction = useCallback((action: 'message' | 'customerservice' | 'cccservice', employee: { id: string; username: string }) => {
     if (action === 'message') {
@@ -871,21 +832,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, [handleTabChange]);
 
   useEffect(() => {
-    if (activeTab === 'accountlocks' || !nextLockedAccountExpiry) return;
-
-    const refreshDelay = Math.max(1000, nextLockedAccountExpiry - Date.now() + 250);
-    const timeout = window.setTimeout(() => {
-      if (document.visibilityState === 'visible') {
-        void loadLockedAccountsCount();
-      }
-    }, refreshDelay);
-
-    return () => window.clearTimeout(timeout);
-  }, [activeTab, nextLockedAccountExpiry, loadLockedAccountsCount]);
-
-  useEffect(() => {
-    void loadLockedAccountsCount();
-
     const pendingCountsTimer = window.setTimeout(() => {
       void loadPendingCounts();
     }, 600);
@@ -894,11 +840,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         void loadPendingCounts();
       }
     }, 60000);
-    const lockedCountsFallbackTimer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        void loadLockedAccountsCount();
-      }
-    }, 30000);
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         void loadPendingCounts();
@@ -953,22 +894,23 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'account_lock_events' },
         (payload) => {
-          console.log('[Account Locks] Real-time event triggered:', payload.eventType, payload);
-          void loadLockedAccountsCount();
+          const signal = payload.new && typeof payload.new === 'object'
+            ? payload.new as { event_type?: unknown }
+            : null;
+          if (signal?.event_type !== 'INSERT') return;
+
+          setLockedAccountsCount(count => count + 1);
         }
       )
       .subscribe((status, error) => {
-        if (status === 'SUBSCRIBED') {
-          void loadLockedAccountsCount();
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('Account lock realtime is unavailable; periodic refresh remains active.', error);
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('Account lock notifications are temporarily unavailable.', error);
         }
       });
 
     return () => {
       window.clearTimeout(pendingCountsTimer);
       window.clearInterval(pendingCountsFallbackTimer);
-      window.clearInterval(lockedCountsFallbackTimer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       supabase.removeChannel(withdrawalChannel);
       supabase.removeChannel(verificationChannel);
@@ -979,7 +921,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       autoCleanupService.stop();
       console.log('[Admin Dashboard] Auto cleanup service stopped');
     };
-  }, [loadPendingCounts, loadLockedAccountsCount, admin.id]);
+  }, [loadPendingCounts, admin.id]);
 
   const handleChangePassword = async () => {
     setPasswordError(null);
@@ -1450,7 +1392,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 <AccountLockManagement
                   admin={admin}
                   isActive={activeTab === 'accountlocks'}
-                  onActiveLockCountChange={handleActiveLockCountChange}
                 />
               </div>
             )}

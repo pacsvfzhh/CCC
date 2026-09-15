@@ -26,7 +26,6 @@ interface AccountLock {
 interface AccountLockManagementProps {
   admin: Admin;
   isActive: boolean;
-  onActiveLockCountChange: (count: number, nextExpiry: number | null) => void;
 }
 
 interface AdminGroupOption {
@@ -35,7 +34,7 @@ interface AdminGroupOption {
   role: Admin['role'];
 }
 
-export default function AccountLockManagement({ admin, isActive, onActiveLockCountChange }: AccountLockManagementProps) {
+export default function AccountLockManagement({ admin, isActive }: AccountLockManagementProps) {
   const [locks, setLocks] = useState<AccountLock[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -128,7 +127,6 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         : null;
       setLocks(locksWithEmployeeIds);
       setNextExpiry(nextLockExpiry);
-      onActiveLockCountChange(locksWithEmployeeIds.length, nextLockExpiry);
       setMessage(null);
     } catch (error: unknown) {
       console.error('Failed to load locks:', error);
@@ -151,7 +149,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         void loadLocks(false);
       }
     }
-  }, [onActiveLockCountChange]);
+  }, []);
 
   const loadHistory = useCallback(async (options: { force?: boolean; silent?: boolean } = {}) => {
     const { force = false, silent = false } = options;
