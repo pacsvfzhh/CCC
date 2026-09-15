@@ -574,7 +574,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   };
 
   const modalContent = selectedEmployee ? (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-[2px] p-4">
       <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-400/30 bg-slate-950 shadow-2xl">
         <div className="flex shrink-0 items-center justify-between border-b border-cyan-400/25 bg-gradient-to-r from-blue-950 via-slate-950 to-cyan-950 px-4 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-2.5">
