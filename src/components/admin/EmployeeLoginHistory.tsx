@@ -673,13 +673,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   <div
                     role="listbox"
                     aria-label="Admin groups"
-                    className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[250px] overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-950/98 shadow-[0_16px_36px_rgba(2,6,23,0.55)] backdrop-blur-xl"
+                    className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[190px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950/98 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl"
                   >
-                    <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950/80 to-blue-950/70 px-3 py-2">
+                    <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950/80 to-blue-950/70 px-2.5 py-1.5">
                       <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Admin groups</span>
                       <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{admins.length}</span>
                     </div>
-                    <div className="max-h-64 overflow-y-auto p-1.5 custom-scrollbar">
+                    <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
                       {admins.map((adminOption) => {
                         const group = adminGroups.find((groupOption) => groupOption.admin_id === adminOption.id);
                         const isSelected = !isSearching && selectedAdminId === adminOption.id;
@@ -694,19 +694,19 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                               setSelectedAdminId(adminOption.id);
                               setIsAdminMenuOpen(false);
                             }}
-                            className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                            className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left transition-[background-color,color,box-shadow] ${
                               isSelected
                                 ? 'bg-cyan-400/15 text-cyan-100 ring-1 ring-inset ring-cyan-300/25'
-                                : 'text-slate-300 hover:bg-slate-800/80 hover:text-cyan-100'
+                                : 'text-slate-300 hover:bg-cyan-400/20 hover:text-white hover:ring-1 hover:ring-inset hover:ring-cyan-300/35 hover:shadow-[0_0_14px_rgba(34,211,238,0.12)]'
                             }`}
                           >
-                            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
+                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${
                               adminOption.role === 'super_admin' ? 'bg-yellow-400/15 text-yellow-300' : 'bg-blue-400/15 text-blue-300'
                             }`}>
-                              <Users className="h-3.5 w-3.5" />
+                              <Users className="h-3 w-3" />
                             </span>
                             <span className="min-w-0 flex-1 truncate text-xs font-semibold">{adminOption.username}</span>
-                            <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900/80 px-2 py-0.5 text-[10px] font-bold text-slate-300">
+                            <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900/80 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">
                               {group?.employees.length || 0}
                             </span>
                             {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-cyan-300" />}
