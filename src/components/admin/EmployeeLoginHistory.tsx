@@ -643,8 +643,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 text-slate-100">
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-0 flex shrink-0 flex-col justify-between gap-2 border-b border-cyan-900/60 px-4 py-2.5 xl:h-[109px]">
-          <div className="flex min-w-0 items-start gap-3">
+        <div className="mb-0 flex shrink-0 flex-col justify-start gap-2 border-b border-cyan-900/60 px-4 py-2.5 xl:h-[109px]">
+          <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/80">Admin activity</p>
               <h2 className="mt-0 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-xl font-bold tracking-tight text-transparent sm:text-2xl">Login History</h2>
@@ -670,6 +670,18 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 </div>
               </div>
             </div>
+            <button
+              onClick={() => {
+                void loadAdminsRef.current?.();
+                void loadEmployeeSummaryRef.current?.();
+              }}
+              disabled={loading}
+              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-[0_6px_18px_rgba(8,145,178,0.2)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_10px_22px_rgba(8,145,178,0.26)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:min-w-[88px] xl:min-w-[88px]"
+              title="Refresh data"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span className="font-medium">Refresh</span>
+            </button>
           </div>
 
           <div className="flex w-full min-w-0 justify-end gap-1.5 sm:items-center">
@@ -704,18 +716,6 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs font-medium text-slate-900 shadow-[0_6px_18px_rgba(2,6,23,0.14)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
               />
             </div>
-            <button
-              onClick={() => {
-                void loadAdminsRef.current?.();
-                void loadEmployeeSummaryRef.current?.();
-              }}
-              disabled={loading}
-              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-[0_6px_18px_rgba(8,145,178,0.2)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_10px_22px_rgba(8,145,178,0.26)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:min-w-[88px]"
-              title="Refresh data"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="font-medium">Refresh</span>
-            </button>
           </div>
         </div>
 
