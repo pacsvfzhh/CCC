@@ -364,6 +364,9 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
     const refreshVisibleData = () => {
       if (document.visibilityState !== 'visible') return;
       void loadLocks(false);
+      if (showHistory) {
+        void loadHistory({ force: true, silent: true });
+      }
     };
 
     if (!initialLoadStartedRef.current) {
@@ -402,7 +405,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
       window.clearInterval(fallbackRefreshInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isActive, loadHistory, loadLocks]);
+  }, [isActive, loadHistory, loadLocks, showHistory]);
 
   useEffect(() => {
     if (!isActive || !nextExpiry) return;
@@ -568,7 +571,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
 
   const handleShowHistory = () => {
     setShowHistory(true);
-    void loadHistory();
+    void loadHistory({ force: true });
   };
 
   const handleShowCurrentLocks = () => {
