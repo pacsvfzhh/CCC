@@ -263,9 +263,18 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         console.warn('Failed to load administrator groups:', error);
       }
 
-      const uniqueGroups = new Map(rows.map(row => [row.id, row]));
+      const uniqueGroups = new Map(
+        rows
+          .filter(row => row.role !== 'emergency_admin')
+          .map(row => [row.id, row])
+      );
       uniqueGroups.set(admin.id, { id: admin.id, username: admin.username, role: admin.role });
-      setAdminGroups(Array.from(uniqueGroups.values()).sort((a, b) => a.username.localeCompare(b.username)));
+      setAdminGroups(
+        Array.from(uniqueGroups.values()).sort((a, b) => {
+          const roleOrder = (group: AdminGroupOption) => group.role === 'super_admin' ? 0 : 1;
+          return roleOrder(a) - roleOrder(b) || a.username.localeCompare(b.username);
+        })
+      );
       adminGroupsLoadedRef.current = true;
       setAdminGroupsLoading(false);
     };
@@ -499,7 +508,6 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   const groupValueToneClass = showHistory ? 'text-violet-50' : 'text-orange-50';
   const groupChevronToneClass = showHistory ? 'text-violet-200/80' : 'text-orange-100/80';
   const groupMenuBorderClass = showHistory ? 'border-violet-200/25' : 'border-orange-200/25';
-  const groupMenuTitleClass = showHistory ? 'text-violet-200/70' : 'text-orange-100/75';
   const groupMenuSelectedClass = showHistory
     ? 'border-violet-200/45 bg-violet-300/15 text-violet-50'
     : 'border-orange-200/45 bg-orange-300/15 text-orange-50';
@@ -538,66 +546,6 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2.5">
-            {admin.role === 'super_admin' && (
-              <div ref={groupMenuRef} className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setGroupMenuOpen(open => !open)}
-                  disabled={adminGroupsLoading}
-                  aria-expanded={groupMenuOpen}
-                  aria-haspopup="listbox"
-                  className={`group inline-flex h-10 max-w-[190px] items-center gap-2 rounded-xl border px-2.5 text-left shadow-[0_6px_18px_rgba(2,6,23,0.24)] transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-px disabled:cursor-wait disabled:opacity-70 ${groupButtonToneClass}`}
-                >
-                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-colors ${groupIconToneClass}`}>
-                    <Users className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="min-w-0 leading-tight">
-                    <span className={`block text-[9px] font-semibold uppercase tracking-[0.12em] ${groupLabelToneClass}`}>管理員分組</span>
-                    <span className={`block max-w-[112px] truncate text-[11px] font-bold ${groupValueToneClass}`}>{adminGroupsLoading ? '載入中...' : selectedGroupLabel}</span>
-                  </span>
-                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${groupChevronToneClass} ${groupMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {groupMenuOpen && !adminGroupsLoading && (
-                  <div className={`absolute right-0 top-full z-50 mt-2 w-[278px] overflow-hidden rounded-2xl border ${groupMenuBorderClass} bg-[linear-gradient(160deg,rgba(15,23,42,0.98),rgba(20,28,55,0.98))] p-2 shadow-[0_22px_55px_rgba(2,6,23,0.68)] backdrop-blur-xl`}>
-                    <div className="mb-1.5 border-b border-white/[0.08] px-2 pb-2">
-                      <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${groupMenuTitleClass}`}>切換管理員分組</p>
-                      <p className="mt-1 text-[11px] text-slate-500">同步篩選目前與歷史鎖定</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedAdminId('all');
-                        setGroupMenuOpen(false);
-                      }}
-                      className={`group flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left transition-[background-color,border-color,transform] duration-150 ${selectedAdminId === 'all' ? groupMenuSelectedClass : `border-transparent text-slate-300 hover:-translate-y-px ${groupMenuHoverClass} hover:text-white`}`}
-                      role="option"
-                      aria-selected={selectedAdminId === 'all'}
-                    >
-                      <span className="flex min-w-0 items-center gap-2.5"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${showHistory ? 'border-violet-200/25 bg-violet-300/15 text-violet-200' : 'border-orange-200/25 bg-orange-300/15 text-orange-100'}`}><Users className="h-3.5 w-3.5" /></span><span><span className="block text-xs font-bold">總分組</span><span className="mt-0.5 block text-[10px] text-slate-500">查看全部管理員</span></span></span>
-                      {selectedAdminId === 'all' && <span className={`h-2 w-2 rounded-full ${groupMenuSelectedDotClass}`} />}
-                    </button>
-                    <div className="mt-1.5 space-y-1">
-                      {adminGroups.map(group => (
-                        <button
-                          key={group.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedAdminId(group.id);
-                            setGroupMenuOpen(false);
-                          }}
-                          className={`group flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition-[background-color,border-color,transform] duration-150 ${selectedAdminId === group.id ? groupMenuSelectedClass : `border-transparent text-slate-300 hover:-translate-y-px ${groupMenuHoverClass} hover:text-white`}`}
-                          role="option"
-                          aria-selected={selectedAdminId === group.id}
-                        >
-                          <span className="flex min-w-0 items-center gap-2.5"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black ${group.role === 'super_admin' ? 'border-amber-200/30 bg-amber-300/15 text-amber-100' : 'border-violet-200/25 bg-violet-300/15 text-violet-200'}`}>{group.username.slice(0, 1).toUpperCase()}</span><span className="min-w-0"><span className="block truncate text-xs font-bold">{group.username}</span><span className="mt-0.5 block text-[10px] text-slate-500">{group.role === 'super_admin' ? 'Super Admin' : 'Secondary Admin'}</span></span></span>
-                          {selectedAdminId === group.id && <span className={`h-2 w-2 rounded-full ${groupMenuSelectedDotClass}`} />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
             <label className="group flex h-10 w-[180px] items-center gap-2 rounded-xl border border-cyan-300/25 bg-[linear-gradient(135deg,rgba(8,47,73,0.46),rgba(15,23,42,0.82))] px-3 text-slate-300 shadow-[0_6px_18px_rgba(2,6,23,0.2)] transition-[background-color,border-color,box-shadow] duration-150 focus-within:border-cyan-200/75 focus-within:bg-cyan-950/35 focus-within:shadow-[0_8px_24px_rgba(8,47,73,0.3)] sm:w-[220px]">
               <Search className="h-4 w-4 shrink-0 text-cyan-300/75 transition-colors group-focus-within:text-cyan-200" />
               <input
@@ -698,6 +646,62 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
                 <span className="text-sm font-bold leading-none text-orange-50">{expiringSoon}</span>
               </div>
             </>
+          )}
+          {admin.role === 'super_admin' && (
+            <div ref={groupMenuRef} className="relative ml-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => setGroupMenuOpen(open => !open)}
+                disabled={adminGroupsLoading}
+                aria-expanded={groupMenuOpen}
+                aria-haspopup="listbox"
+                className={`group inline-flex h-10 w-[220px] items-center gap-2 rounded-xl border px-3 text-left shadow-[0_6px_18px_rgba(2,6,23,0.2)] transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-px disabled:cursor-wait disabled:opacity-70 sm:w-[248px] ${groupButtonToneClass}`}
+              >
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-colors ${groupIconToneClass}`}>
+                  <Users className="h-3.5 w-3.5" />
+                </span>
+                <span className="min-w-0 flex-1 leading-tight">
+                  <span className={`block text-[9px] font-semibold uppercase tracking-[0.12em] ${groupLabelToneClass}`}>管理員分組</span>
+                  <span className={`block truncate text-[11px] font-bold ${groupValueToneClass}`}>{adminGroupsLoading ? '載入中...' : selectedGroupLabel}</span>
+                </span>
+                <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${groupChevronToneClass} ${groupMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {groupMenuOpen && !adminGroupsLoading && (
+                <div className={`absolute right-0 top-full z-50 mt-2 w-full overflow-hidden rounded-xl border ${groupMenuBorderClass} bg-[linear-gradient(160deg,rgba(15,23,42,0.98),rgba(20,28,55,0.98))] p-1.5 shadow-[0_18px_42px_rgba(2,6,23,0.62)] backdrop-blur-xl`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAdminId('all');
+                      setGroupMenuOpen(false);
+                    }}
+                    className={`group flex w-full items-center justify-between rounded-lg border px-2.5 py-1.5 text-left transition-[background-color,border-color] duration-150 ${selectedAdminId === 'all' ? groupMenuSelectedClass : `border-transparent text-slate-300 ${groupMenuHoverClass} hover:text-white`}`}
+                    role="option"
+                    aria-selected={selectedAdminId === 'all'}
+                  >
+                    <span className="flex min-w-0 items-center gap-2"><span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${showHistory ? 'border-violet-200/25 bg-violet-300/15 text-violet-200' : 'border-orange-200/25 bg-orange-300/15 text-orange-100'}`}><Users className="h-3 w-3" /></span><span className="truncate text-[11px] font-bold">總分組</span></span>
+                    {selectedAdminId === 'all' && <span className={`h-1.5 w-1.5 rounded-full ${groupMenuSelectedDotClass}`} />}
+                  </button>
+                  <div className="mt-1 space-y-0.5">
+                    {adminGroups.map(group => (
+                      <button
+                        key={group.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAdminId(group.id);
+                          setGroupMenuOpen(false);
+                        }}
+                        className={`group flex w-full items-center justify-between rounded-lg border px-2.5 py-1.5 text-left transition-[background-color,border-color] duration-150 ${selectedAdminId === group.id ? groupMenuSelectedClass : `border-transparent text-slate-300 ${groupMenuHoverClass} hover:text-white`}`}
+                        role="option"
+                        aria-selected={selectedAdminId === group.id}
+                      >
+                        <span className="flex min-w-0 items-center gap-2"><span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[9px] font-black ${group.role === 'super_admin' ? 'border-amber-200/30 bg-amber-300/15 text-amber-100' : 'border-violet-200/25 bg-violet-300/15 text-violet-200'}`}>{group.username.slice(0, 1).toUpperCase()}</span><span className="truncate text-[11px] font-bold">{group.username}</span></span>
+                        {selectedAdminId === group.id && <span className={`h-1.5 w-1.5 rounded-full ${groupMenuSelectedDotClass}`} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
