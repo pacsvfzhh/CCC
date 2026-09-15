@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, History, Eye, Users, Clock, MapPin, X, ChevronDown, ChevronRight, Pin, PinOff, RefreshCw } from 'lucide-react';
+import { Search, History, Eye, Users, Clock, MapPin, X, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { Admin } from '../../types';
 import LoginDeviceSummary from './LoginDeviceSummary';
 
@@ -40,8 +39,6 @@ interface AdminGroup {
   admin_username: string;
   admin_role: string;
   employees: EmployeeSummary[];
-  isCollapsed: boolean;
-  isPinned: boolean;
 }
 
 interface EmployeeTableRow {
@@ -57,7 +54,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeSummary | null>(null);
   const [detailedHistory, setDetailedHistory] = useState<LoginHistoryRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [admins, setAdmins] = useState<{ id: string; username: string; role?: string; is_pinned?: boolean }[]>([]);
+  const [admins, setAdmins] = useState<{ id: string; username: string; role?: string }[]>([]);
   const loadAdminsRef = useRef<(() => Promise<void>) | null>(null);
   const loadEmployeeSummaryRef = useRef<((silentRefresh?: boolean) => Promise<void>) | null>(null);
   const adminCount = admins.length;
@@ -222,7 +219,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
       if (admin.role === 'super_admin') {
         const { data, error } = await supabase
           .from('admins')
-          .select('id, username, role, is_pinned')
+          .select('id, username, role')
           .eq('is_active', true)
           .neq('role', 'emergency_admin')
           .order('username');
@@ -262,7 +259,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         if (adminList.length === 0) {
           const { data: adminsData, error: adminsError } = await supabase
             .from('admins')
-            .select('id, username, role, is_pinned')
+            .select('id, username, role')
             .eq('is_active', true)
             .neq('role', 'emergency_admin')
             .order('username');
@@ -282,17 +279,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             admin_username: adm.username,
             admin_role: adm.role || 'secondary_admin',
             employees: adminEmployees,
-            isCollapsed: false,
-            isPinned: adm.is_pinned || false
           };
         });
 
-        // Sort: super_admin first, then by pinned status, then by username
+        // Sort: super_admin first, then by username
         const sorted = grouped.sort((a, b) => {
           if (a.admin_role === 'super_admin' && b.admin_role !== 'super_admin') return -1;
           if (a.admin_role !== 'super_admin' && b.admin_role === 'super_admin') return 1;
-          if (a.isPinned && !b.isPinned) return -1;
-          if (!a.isPinned && b.isPinned) return 1;
           return a.admin_username.localeCompare(b.admin_username);
         });
 
@@ -311,8 +304,6 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             admin_username: admin.username,
             admin_role: admin.role,
             employees: employees,
-            isCollapsed: false,
-            isPinned: false
           }
         ]);
         setSelectedAdminId(admin.id);
@@ -327,57 +318,6 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   };
   loadAdminsRef.current = loadAdmins;
   loadEmployeeSummaryRef.current = loadEmployeeSummary;
-
-  const toggleGroupCollapse = (adminId: string) => {
-    setAdminGroups(prev =>
-      prev.map(group =>
-        group.admin_id === adminId
-          ? { ...group, isCollapsed: !group.isCollapsed }
-          : group
-      )
-    );
-  };
-
-  const toggleGroupPin = async (adminId: string) => {
-    try {
-      // Find the current pin status
-      const group = adminGroups.find(g => g.admin_id === adminId);
-      if (!group) return;
-
-      const newPinnedStatus = !group.isPinned;
-
-      const { error } = await supabase.rpc('admin_update_admin_account', {
-        p_admin_session_token: getAdminFinancialSessionToken(),
-        p_target_admin_id: adminId,
-        p_updates: { is_pinned: newPinnedStatus },
-      });
-
-      if (error) {
-        console.error('Error updating pin status:', error);
-        return;
-      }
-
-      // Update local state
-      setAdminGroups(prev => {
-        const updated = prev.map(g =>
-          g.admin_id === adminId
-            ? { ...g, isPinned: newPinnedStatus }
-            : g
-        );
-
-        // Sort: super_admin first, then pinned groups, then by username
-        return updated.sort((a, b) => {
-          if (a.admin_role === 'super_admin' && b.admin_role !== 'super_admin') return -1;
-          if (a.admin_role !== 'super_admin' && b.admin_role === 'super_admin') return 1;
-          if (a.isPinned && !b.isPinned) return -1;
-          if (!a.isPinned && b.isPinned) return 1;
-          return a.admin_username.localeCompare(b.admin_username);
-        });
-      });
-    } catch (error) {
-      console.error('Error toggling pin status:', error);
-    }
-  };
 
   const loadDetailedHistory = useCallback(async (userId: string) => {
     try {
@@ -708,7 +648,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 ))}
               </select>
             )}
-            <div className="relative w-full min-w-0 sm:max-w-[360px]">
+            <div className="relative w-full min-w-0 sm:max-w-[180px]">
               <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
               <input
                 type="text"
@@ -766,25 +706,6 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         : 'bg-gradient-to-r from-blue-950 via-slate-900 to-slate-950 border-blue-500/30'
                     }`}>
                       <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => toggleGroupCollapse(group.admin_id)}
-                          className={`p-1 rounded transition-colors ${
-                            group.admin_role === 'super_admin'
-                              ? 'hover:bg-yellow-500/20'
-                              : 'hover:bg-blue-500/20'
-                          }`}
-                          title={group.isCollapsed ? 'Expand' : 'Collapse'}
-                        >
-                          {group.isCollapsed ? (
-                            <ChevronRight className={`w-5 h-5 ${
-                              group.admin_role === 'super_admin' ? 'text-yellow-400' : 'text-blue-400'
-                            }`} />
-                          ) : (
-                            <ChevronDown className={`w-5 h-5 ${
-                              group.admin_role === 'super_admin' ? 'text-yellow-400' : 'text-blue-400'
-                            }`} />
-                          )}
-                        </button>
                         <div className={`p-2 rounded-lg ${
                           group.admin_role === 'super_admin'
                             ? 'bg-yellow-500/20'
@@ -817,32 +738,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         }`}>
                           {group.employees.length} employee{group.employees.length !== 1 ? 's' : ''}
                         </span>
-                        {group.isPinned && (
-                          <Pin className="w-4 h-4 text-amber-400 fill-amber-400" />
-                        )}
                       </div>
-                      <button
-                        onClick={() => toggleGroupPin(group.admin_id)}
-                        className={`p-2 rounded-lg transition-all ${
-                          group.isPinned
-                            ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
-                            : group.admin_role === 'super_admin'
-                            ? 'hover:bg-yellow-500/20 text-yellow-400'
-                            : 'hover:bg-blue-500/20 text-blue-400'
-                        }`}
-                        title={group.isPinned ? 'Unpin group' : 'Pin group to top'}
-                      >
-                        {group.isPinned ? (
-                          <PinOff className="w-4 h-4" />
-                        ) : (
-                          <Pin className="w-4 h-4" />
-                        )}
-                      </button>
                     </div>
 
                     {/* Group Content */}
-                    {!group.isCollapsed && (
-                      <>
+                    <>
                         {group.employees.length === 0 ? (
                           <div className="text-center py-8">
                             <Users className="w-10 h-10 text-slate-600 mx-auto mb-2" />
@@ -945,7 +845,6 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           </div>
                         )}
                       </>
-                    )}
                   </div>
                 ))}
               </div>
