@@ -17,6 +17,7 @@ interface EmployeeSummary {
   created_by: string;
   latest_login_ip: string | null;
   latest_login_time: string | null;
+  latest_login_device_info: unknown | null;
   latest_logout_ip: string | null;
   latest_logout_time: string | null;
   total_logins: number;
@@ -398,16 +399,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   };
 
   const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return 'Never';
+    if (!dateString) return '--';
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    const pad = (value: number) => String(value).padStart(2, '0');
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
   };
 
   const totalEmployees = adminGroups.reduce((sum, group) => sum + group.employees.length, 0);
@@ -689,84 +685,91 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             <p className="text-slate-300 text-sm">No employees under this admin</p>
                           </div>
                         ) : (
-                          <div className="p-4">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="border-b border-slate-700">
-                                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Username</th>
-                                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Employee ID</th>
-                                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Latest Login IP</th>
-                                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Latest Login Time</th>
-                                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Latest Logout IP</th>
-                                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Latest Logout Time</th>
-                                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Logins</th>
-                                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                          <div className="p-2 sm:p-3">
+                            <table className="w-full text-xs">
+                              <thead className="bg-cyan-950/45">
+                                <tr className="border-b border-cyan-500/45">
+                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Username</th>
+                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Employee ID</th>
+                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login IP</th>
+                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login Time</th>
+                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Login System</th>
+                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout IP</th>
+                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout Time</th>
+                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Total Logins</th>
+                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Actions</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-700/50">
                                 {group.employees.map((employee) => (
                                   <tr key={employee.user_id} className="hover:bg-slate-800/30 transition-colors">
-                                    <td className="px-4 py-3 text-sm text-white font-medium">{employee.username}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-300">{employee.employee_id}</td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-3 py-2 text-sm font-semibold text-cyan-100">{employee.username}</td>
+                                    <td className="px-3 py-2 text-xs text-slate-300">{employee.employee_id}</td>
+                                    <td className="px-3 py-2">
                                       {employee.latest_login_ip ? (
-                                        <div className="flex items-center gap-2 text-sm text-slate-300">
-                                          <MapPin className="w-4 h-4 text-green-400" />
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-300">
+                                          <MapPin className="h-3.5 w-3.5 text-green-400" />
                                           {employee.latest_login_ip}
                                         </div>
                                       ) : (
-                                        <span className="text-sm text-slate-500">No data</span>
+                                        <span className="text-xs text-slate-300">--</span>
                                       )}
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-3 py-2">
                                       {employee.latest_login_time ? (
-                                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                                          <Clock className="w-3 h-3" />
+                                        <div className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-slate-300">
+                                          <Clock className="h-3 w-3 shrink-0 text-cyan-300/80" />
                                           {formatDateTime(employee.latest_login_time)}
                                         </div>
                                       ) : (
-                                        <span className="text-xs text-slate-500">Never</span>
+                                        <span className="text-[11px] text-slate-300">--</span>
                                       )}
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-3 py-2">
+                                      <LoginDeviceSummary
+                                        deviceInfo={employee.latest_login_device_info}
+                                        systemOnly
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2">
                                       {employee.latest_logout_ip ? (
-                                        <div className="flex items-center gap-2 text-sm text-slate-300">
-                                          <MapPin className="w-4 h-4 text-orange-400" />
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-300">
+                                          <MapPin className="h-3.5 w-3.5 text-orange-400" />
                                           {employee.latest_logout_ip}
                                         </div>
                                       ) : (
-                                        <span className="text-sm text-slate-500">No data</span>
+                                        <span className="text-xs text-slate-300">--</span>
                                       )}
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-3 py-2">
                                       {employee.latest_logout_time ? (
-                                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                                          <Clock className="w-3 h-3" />
+                                        <div className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-slate-300">
+                                          <Clock className="h-3 w-3 shrink-0 text-orange-300/80" />
                                           {formatDateTime(employee.latest_logout_time)}
                                         </div>
                                       ) : (
-                                        <span className="text-xs text-slate-500">Never</span>
+                                        <span className="text-[11px] text-slate-300">--</span>
                                       )}
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-3 py-2">
                                       <div className="flex items-center gap-2">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-blue-500/10 rounded-lg">
-                                          <History className="w-4 h-4 text-blue-400" />
+                                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10">
+                                          <History className="h-3.5 w-3.5 text-blue-400" />
                                         </div>
-                                        <span className="text-sm font-semibold text-white">
+                                        <span className="text-sm font-semibold text-cyan-100">
                                           {(employee.total_logins || 0).toLocaleString()}
                                         </span>
-                                        <span className="text-xs text-slate-400">
+                                        <span className="text-[11px] text-slate-300">
                                           {(employee.total_logins || 0) === 1 ? 'time' : 'times'}
                                         </span>
                                       </div>
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-3 py-2">
                                       <button
                                         onClick={() => handleViewHistory(employee)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 text-sm font-medium transition-all"
+                                        className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-xs font-semibold text-blue-300 transition-all hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-200"
                                       >
-                                        <Eye className="w-4 h-4" />
+                                        <Eye className="h-3.5 w-3.5" />
                                         View History
                                       </button>
                                     </td>
