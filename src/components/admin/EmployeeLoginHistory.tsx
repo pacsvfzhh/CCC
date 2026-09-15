@@ -496,9 +496,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 <td className="px-2 py-1">
                   <button
                     onClick={() => handleViewHistory(employee)}
-                    className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md bg-blue-500/10 px-1.5 text-[10px] font-semibold text-blue-300 transition-colors hover:bg-cyan-400/10 hover:text-cyan-200"
+                    className="inline-flex h-5 items-center gap-0.5 whitespace-nowrap px-1 text-[9px] font-medium text-blue-300 transition-colors hover:text-cyan-200"
                   >
-                    <Eye className="h-3 w-3" />
+                    <Eye className="h-2.5 w-2.5" />
                     View History
                   </button>
                 </td>
@@ -913,9 +913,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                     <td className="px-2 py-1">
                                       <button
                                         onClick={() => handleViewHistory(employee)}
-                                        className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md bg-blue-500/10 px-1.5 text-[10px] font-semibold text-blue-300 transition-colors hover:bg-cyan-400/10 hover:text-cyan-200"
+                                        className="inline-flex h-5 items-center gap-0.5 whitespace-nowrap px-1 text-[9px] font-medium text-blue-300 transition-colors hover:text-cyan-200"
                                       >
-                                        <Eye className="h-3 w-3" />
+                                        <Eye className="h-2.5 w-2.5" />
                                         View History
                                       </button>
                                     </td>
