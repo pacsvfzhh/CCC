@@ -152,6 +152,16 @@
   background-color: #020617;
 }
 
+.login-history-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: #020617;
+}
+
+.login-history-table tbody tr + tr > td {
+  border-top: 1px solid rgba(51, 65, 85, 0.5);
+}
+
 /* High-visibility scrollbar for the super-admin employee workspace */
 .employee-super-admin-scrollbar {
   scrollbar-width: auto;

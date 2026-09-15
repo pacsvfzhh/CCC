@@ -473,7 +473,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
 
     return (
       <div className="min-h-0 flex-1 overflow-y-scroll overflow-x-auto bg-slate-950 login-history-list-scrollbar">
-        <table className="w-full border-collapse bg-slate-950 text-xs">
+        <table className="login-history-table w-full text-xs">
           <thead className="bg-cyan-950">
             <tr className="border-b border-cyan-500/45">
               <th className="sticky top-0 z-20 w-10 bg-cyan-950 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">#</th>
@@ -491,9 +491,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700/50">
+          <tbody className="bg-slate-950">
             {rows.map(({ employee, adminUsername }, index) => (
-              <tr key={employee.user_id} className="transition-colors hover:bg-slate-800/30">
+              <tr key={employee.user_id} className="bg-slate-950 hover:bg-slate-800/30">
                 <td className="px-2 py-1 text-center text-[11px] font-semibold text-slate-500">{index + 1}</td>
                 <td className="px-2 py-1 text-xs font-semibold text-cyan-100">{employee.username}</td>
                 {showAdminGroup && (
@@ -620,7 +620,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider w-44">Time</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-700/50">
+                <tbody className="bg-slate-950">
                   {detailedHistory.map((record, index) => (
                     <tr key={record.id} className="hover:bg-slate-800/50 transition-colors group">
                       <td className="px-3 py-3 text-center">
@@ -986,6 +986,25 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 </div>
                 {renderEmployeeTable(sharedIpRows, true, true)}
               </div>
+            ) : sharedIpSelection?.scope === 'group' && admin.role !== 'super_admin' ? (
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950 isolate">
+                <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">Shared IP employees</p>
+                    <p className="mt-0.5 text-xs text-slate-300">Your employees only</p>
+                  </div>
+                  <span className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-200">
+                    {selectedSecondarySharedIpGroup?.employees.length || 0} employees
+                  </span>
+                </div>
+                {renderEmployeeTable(
+                  secondaryGroup
+                    ? getEmployeesForSharedIp(secondaryGroup.employees, sharedIpSelection.ip).map((employee) => ({ employee }))
+                    : [],
+                  false,
+                  true,
+                )}
+              </div>
             ) : isSearching ? (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950 isolate">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
@@ -1143,7 +1162,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           </div>
                         ) : (
                           <div className="min-h-0 flex-1 overflow-y-scroll overflow-x-auto bg-slate-950 login-history-list-scrollbar pb-1 sm:pb-1.5">
-                            <table className="w-full border-collapse bg-slate-950 text-xs">
+                            <table className="login-history-table w-full text-xs">
                               <thead className="bg-cyan-950">
                                 <tr className="border-b border-cyan-500/45">
                                   <th className="sticky top-0 z-20 w-10 bg-cyan-950 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">#</th>
@@ -1158,9 +1177,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                   <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Actions</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-700/50">
+                              <tbody className="bg-slate-950">
                                 {getDisplayedGroupEmployees(group).map((employee, index) => (
-                                  <tr key={employee.user_id} className="hover:bg-slate-800/30 transition-colors">
+                                  <tr key={employee.user_id} className="bg-slate-950 hover:bg-slate-800/30">
                                     <td className="px-2 py-1 text-center text-[11px] font-semibold text-slate-500">{index + 1}</td>
                                     <td className="px-2 py-1 text-xs font-semibold text-cyan-100">{employee.username}</td>
                                     <td className="px-2 py-1 text-xs text-slate-300">{employee.employee_id}</td>
