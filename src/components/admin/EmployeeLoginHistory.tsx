@@ -588,13 +588,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {!historyLoading && detailedHistory.length > 0 && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-cyan-300/20 bg-slate-900/75 px-2 py-1 text-[10px] text-slate-400">
-                <span>Total</span>
-                <span className="font-bold text-cyan-300">{detailedHistory.length}</span>
-                <span>records</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1.5 rounded-lg border border-cyan-300/20 bg-slate-900/75 px-2 py-1 text-[10px] text-slate-400">
+              <span>Total Logins</span>
+              <span className="font-bold text-cyan-300">{(selectedEmployee.total_logins || 0).toLocaleString()}</span>
+              <span>{(selectedEmployee.total_logins || 0) === 1 ? 'time' : 'times'}</span>
+            </div>
             <button
               type="button"
               onClick={handleCloseHistory}
