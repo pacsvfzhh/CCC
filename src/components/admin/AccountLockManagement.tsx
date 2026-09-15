@@ -896,8 +896,8 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
                           <p className={`text-[10px] font-bold tracking-[0.12em] ${status.metaLabelClass}`}>防護狀態</p>
                           <p className={`mt-1 text-sm font-bold ${status.textClass}`}>{status.label}</p>
                           {showHistory && (
-                            <p className="mt-2 text-[10px] font-bold tracking-[0.08em] text-cyan-200/80">
-                              所屬管理員：<span className="text-xs font-semibold text-cyan-100">{lock.owner_admin_username || adminGroups.find(group => group.id === lock.owner_admin_id)?.username || (admin.role === 'secondary_admin' ? admin.username : '未記錄')}</span>
+                            <p className={`mt-2 text-[10px] font-bold tracking-[0.08em] ${status.metaLabelClass}`}>
+                              所屬管理員：<span className={`text-xs font-semibold ${status.metaValueClass}`}>{lock.owner_admin_username || adminGroups.find(group => group.id === lock.owner_admin_id)?.username || (admin.role === 'secondary_admin' ? admin.username : '未記錄')}</span>
                             </p>
                           )}
                         </div>
