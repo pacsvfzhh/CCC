@@ -231,7 +231,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [unreadCustomerServiceCount, setUnreadCustomerServiceCount] = useState(0);
   const [unreadCccServiceCount, setUnreadCccServiceCount] = useState(0);
   const [lockedAccountsCount, setLockedAccountsCount] = useState(0);
-  const [lockedBadgeDismissed, setLockedBadgeDismissed] = useState(admin.role === 'emergency_admin');
   const [nextLockedAccountExpiry, setNextLockedAccountExpiry] = useState<number | null>(null);
   const pendingCountsRequestRef = useRef(0);
   const lockedCountsRequestRef = useRef(0);
@@ -833,9 +832,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     preloadServiceTab(tabId);
     setActiveTab(tabId);
     setLoadedTabs(prev => new Set([...prev, tabId]));
-    if (tabId === 'accountlocks') {
-      setLockedBadgeDismissed(true);
-    }
   }, []);
 
   const handleEmployeeQuickAction = useCallback((action: 'message' | 'customerservice' | 'cccservice', employee: { id: string; username: string }) => {
@@ -939,9 +935,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           const signal = payload.new && typeof payload.new === 'object'
             ? payload.new as { event_type?: unknown }
             : null;
-          if (signal?.event_type !== 'INSERT') return;
+          if (!signal?.event_type) return;
 
-          setLockedBadgeDismissed(false);
           void loadLockedAccountsCount();
         }
       )
@@ -1201,8 +1196,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const pendingCount = tab.id === 'withdrawals' ? pendingWithdrawalsCount : tab.id === 'verifications' ? pendingVerificationsCount : tab.id === 'customerservice' ? unreadCustomerServiceCount : tab.id === 'cccservice' ? unreadCccServiceCount : tab.id === 'accountlocks' ? lockedAccountsCount : 0;
-                const showBadge = pendingCount > 0
-                  && (tab.id !== 'accountlocks' || !lockedBadgeDismissed);
+                const showBadge = pendingCount > 0;
 
                 return (
                   <button
@@ -1281,8 +1275,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const pendingCount = tab.id === 'withdrawals' ? pendingWithdrawalsCount : tab.id === 'verifications' ? pendingVerificationsCount : tab.id === 'customerservice' ? unreadCustomerServiceCount : tab.id === 'cccservice' ? unreadCccServiceCount : tab.id === 'accountlocks' ? lockedAccountsCount : 0;
-                const showBadge = pendingCount > 0
-                  && (tab.id !== 'accountlocks' || !lockedBadgeDismissed);
+                const showBadge = pendingCount > 0;
 
                 return (
                   <button
