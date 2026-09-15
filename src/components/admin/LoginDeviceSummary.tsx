@@ -31,10 +31,10 @@ const browserLabels = {
 } as const;
 
 const osStyles = {
-  android: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200',
-  ios: 'border-cyan-400/30 bg-cyan-500/10 text-cyan-200',
+  android: 'border-yellow-400/30 bg-yellow-500/10 text-yellow-200',
+  ios: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200',
   windows: 'border-blue-400/30 bg-blue-500/10 text-blue-200',
-  macos: 'border-violet-400/30 bg-violet-500/10 text-violet-200',
+  macos: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200',
   linux: 'border-amber-400/30 bg-amber-500/10 text-amber-200',
   chromeos: 'border-rose-400/30 bg-rose-500/10 text-rose-200',
   unknown: 'border-slate-500/30 bg-slate-500/10 text-slate-300',
