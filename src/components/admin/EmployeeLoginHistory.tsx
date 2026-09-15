@@ -44,10 +44,16 @@ interface AdminGroup {
   isPinned: boolean;
 }
 
+interface EmployeeTableRow {
+  employee: EmployeeSummary;
+  adminUsername?: string;
+}
+
 export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
+  const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeSummary | null>(null);
   const [detailedHistory, setDetailedHistory] = useState<LoginHistoryRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -292,6 +298,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
 
         console.log('Admin groups created:', sorted.length);
         setAdminGroups(sorted);
+        setSelectedAdminId((current) => (
+          current && sorted.some((group) => group.admin_id === current)
+            ? current
+            : sorted[0]?.admin_id || null
+        ));
       } else {
         // For secondary admins, show their employees only
         setAdminGroups([
@@ -304,6 +315,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             isPinned: false
           }
         ]);
+        setSelectedAdminId(admin.id);
       }
     } catch (error) {
       console.error('Error loading employee summary:', error);
@@ -408,6 +420,122 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   };
 
   const totalEmployees = adminGroups.reduce((sum, group) => sum + group.employees.length, 0);
+  const isSearching = searchTerm.trim().length > 0;
+  const searchRows: EmployeeTableRow[] = adminGroups.flatMap((group) => (
+    group.employees.map((employee) => ({ employee, adminUsername: group.admin_username }))
+  ));
+
+  const renderEmployeeTable = (rows: EmployeeTableRow[], showAdminGroup = false) => {
+    if (rows.length === 0) {
+      return (
+        <div className="flex min-h-0 flex-1 items-center justify-center py-8">
+          <div className="text-center">
+            <Users className="mx-auto mb-2 h-10 w-10 text-slate-600" />
+            <p className="text-sm text-slate-300">No employees found</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+        <table className="w-full border-collapse text-xs">
+          <thead className="bg-cyan-950">
+            <tr className="border-b border-cyan-500/45">
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Username</th>
+              {showAdminGroup && (
+                <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Admin Group</th>
+              )}
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Employee ID</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login IP</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login Time</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Login System</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout IP</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout Time</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Total Logins</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-700/50">
+            {rows.map(({ employee, adminUsername }) => (
+              <tr key={employee.user_id} className="transition-colors hover:bg-slate-800/30">
+                <td className="px-2 py-1 text-xs font-semibold text-cyan-100">{employee.username}</td>
+                {showAdminGroup && (
+                  <td className="px-2 py-1 text-xs font-semibold text-blue-200">{adminUsername || '--'}</td>
+                )}
+                <td className="px-2 py-1 text-xs text-slate-300">{employee.employee_id}</td>
+                <td className="px-2 py-1">
+                  {employee.latest_login_ip ? (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-300">
+                      <MapPin className="h-3.5 w-3.5 text-green-400" />
+                      {employee.latest_login_ip}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-300">--</span>
+                  )}
+                </td>
+                <td className="px-2 py-1">
+                  {employee.latest_login_time ? (
+                    <div className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-slate-300">
+                      <Clock className="h-3 w-3 shrink-0 text-cyan-300/80" />
+                      {formatDateTime(employee.latest_login_time)}
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-slate-300">--</span>
+                  )}
+                </td>
+                <td className="px-2 py-1">
+                  <LoginDeviceSummary
+                    deviceInfo={employee.latest_login_device_info}
+                    userAgent={employee.latest_login_user_agent}
+                    systemOnly
+                  />
+                </td>
+                <td className="px-2 py-1">
+                  {employee.latest_logout_ip ? (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-300">
+                      <MapPin className="h-3.5 w-3.5 text-orange-400" />
+                      {employee.latest_logout_ip}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-300">--</span>
+                  )}
+                </td>
+                <td className="px-2 py-1">
+                  {employee.latest_logout_time ? (
+                    <div className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-slate-300">
+                      <Clock className="h-3 w-3 shrink-0 text-orange-300/80" />
+                      {formatDateTime(employee.latest_logout_time)}
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-slate-300">--</span>
+                  )}
+                </td>
+                <td className="px-2 py-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10">
+                      <History className="h-3.5 w-3.5 text-blue-400" />
+                    </div>
+                    <span className="text-sm font-semibold text-cyan-100">{(employee.total_logins || 0).toLocaleString()}</span>
+                    <span className="text-[11px] text-slate-300">{(employee.total_logins || 0) === 1 ? 'time' : 'times'}</span>
+                  </div>
+                </td>
+                <td className="px-2 py-1">
+                  <button
+                    onClick={() => handleViewHistory(employee)}
+                    className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 text-[10px] font-semibold text-blue-300 transition-all hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-200"
+                  >
+                    <Eye className="h-3 w-3" />
+                    View History
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   const modalContent = selectedEmployee ? (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
@@ -544,7 +672,28 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center xl:max-w-[720px]">
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center xl:max-w-[900px]">
+            {admin.role === 'super_admin' && (
+              <select
+                value={isSearching ? 'all' : selectedAdminId || ''}
+                onChange={(event) => {
+                  const nextAdminId = event.target.value;
+                  setSearchTerm('');
+                  if (nextAdminId !== 'all') {
+                    setSelectedAdminId(nextAdminId);
+                  }
+                }}
+                className="h-11 shrink-0 rounded-xl border border-cyan-400/30 bg-slate-900 px-3 text-sm font-semibold text-cyan-100 outline-none transition-colors hover:border-cyan-300/60 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-400/15 sm:w-[210px]"
+                aria-label="Select admin group"
+              >
+                <option value="all">All Admin Groups</option>
+                {admins.map((adminOption) => (
+                  <option key={adminOption.id} value={adminOption.id}>
+                    {adminOption.username}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="relative min-w-0 flex-1">
               <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-700" />
               <input
@@ -576,17 +725,32 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           </div>
         ) : (
           <>
-            {adminGroups.length === 0 ? (
-              <div className="text-center py-12">
-                <History className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-300">No admin groups found</p>
+            {isSearching ? (
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950/35">
+                <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">Search results</p>
+                    <p className="mt-0.5 text-xs text-slate-300">All admin groups</p>
+                  </div>
+                  <span className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-200">
+                    {searchRows.length} employees
+                  </span>
+                </div>
+                {renderEmployeeTable(searchRows, true)}
+              </div>
+            ) : adminGroups.length === 0 ? (
+              <div className="flex min-h-0 flex-1 items-center justify-center py-12">
+                <div className="text-center">
+                  <History className="mx-auto mb-3 h-12 w-12 text-slate-600" />
+                  <p className="text-slate-300">No admin groups found</p>
+                </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                {adminGroups.map((group) => (
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                {adminGroups.filter((group) => group.admin_id === selectedAdminId).map((group) => (
                   <div
                     key={group.admin_id}
-                    className={`max-h-[600px] overflow-y-auto overflow-x-auto custom-scrollbar border-b border-slate-800/70 border-l-2 ${
+                    className={`flex min-h-0 flex-1 flex-col overflow-hidden border-b border-slate-800/70 border-l-2 ${
                       group.admin_role === 'super_admin'
                         ? 'border-l-yellow-400/80 bg-gradient-to-br from-yellow-500/[0.08] via-slate-900/20 to-transparent'
                         : 'border-l-cyan-400/80 bg-gradient-to-br from-blue-500/[0.08] via-slate-900/20 to-transparent'
@@ -682,19 +846,19 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             <p className="text-slate-300 text-sm">No employees under this admin</p>
                           </div>
                         ) : (
-                          <div className="pb-1 sm:pb-1.5">
+                          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-1.5">
                             <table className="w-full border-collapse text-xs">
                               <thead className="bg-cyan-950">
                                 <tr className="border-b border-cyan-500/45">
-                                  <th className="sticky top-[60px] z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Username</th>
-                                  <th className="sticky top-[60px] z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Employee ID</th>
-                                  <th className="sticky top-[60px] z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login IP</th>
-                                  <th className="sticky top-[60px] z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login Time</th>
-                                  <th className="sticky top-[60px] z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Login System</th>
-                                  <th className="sticky top-[60px] z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout IP</th>
-                                  <th className="sticky top-[60px] z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout Time</th>
-                                  <th className="sticky top-[60px] z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Total Logins</th>
-                                  <th className="sticky top-[60px] z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Actions</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Username</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Employee ID</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login IP</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login Time</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Login System</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout IP</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout Time</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Total Logins</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Actions</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-700/50">
