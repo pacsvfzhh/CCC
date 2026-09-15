@@ -897,11 +897,11 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
                               onClick={() => handleUnlock(lock)}
                               disabled={unlocking === lock.id}
                               aria-busy={unlocking === lock.id}
-                              className="group inline-flex h-10 min-w-[132px] items-center justify-center gap-2 rounded-xl border border-emerald-300/75 bg-emerald-500/[0.18] px-4 text-xs font-bold text-emerald-100 shadow-[0_6px_16px_rgba(2,6,23,0.24)] transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:border-emerald-100 hover:bg-emerald-500/40 hover:text-white hover:shadow-[0_8px_20px_rgba(16,185,129,0.2)] active:translate-y-0 active:scale-[0.96] active:bg-emerald-500/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/90 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:translate-y-0 disabled:cursor-wait disabled:border-emerald-200/40 disabled:bg-emerald-500/30 disabled:text-emerald-100 disabled:shadow-none"
+                              className="group inline-flex h-10 min-w-[132px] items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-600 px-4 text-xs font-bold text-white shadow-[0_6px_16px_rgba(5,150,105,0.28)] transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:border-emerald-100 hover:bg-emerald-500 hover:shadow-[0_8px_20px_rgba(16,185,129,0.35)] active:translate-y-0 active:scale-95 active:border-emerald-100 active:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:translate-y-0 disabled:cursor-wait disabled:border-emerald-200 disabled:bg-emerald-700 disabled:text-white disabled:shadow-none"
                             >
                               {unlocking === lock.id ? (
                                 <>
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-200/45 border-t-emerald-50" />
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
                                   <span>解除鎖定中...</span>
                                 </>
                               ) : (
