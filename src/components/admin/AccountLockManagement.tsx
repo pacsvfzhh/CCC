@@ -58,9 +58,15 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   const historyRpcUnavailableRef = useRef(false);
   const adminGroupsLoadedRef = useRef(false);
   const groupMenuRef = useRef<HTMLDivElement>(null);
+  const isActiveRef = useRef(isActive);
+  const locksRefreshQueuedRef = useRef(false);
+  const historyRefreshQueuedRef = useRef(false);
 
   const loadLocks = useCallback(async (isInitial = false) => {
-    if (locksLoadingRef.current) return;
+    if (locksLoadingRef.current) {
+      locksRefreshQueuedRef.current = true;
+      return;
+    }
     locksLoadingRef.current = true;
 
     try {
@@ -138,8 +144,11 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         owner_admin_id: ownerAdminIdsByUserId.get(lock.user_id ?? '') ?? null,
         lock_ip: lock.lock_ip ?? lockIpsByIdentifier.get(lock.identifier) ?? null
       }));
-      const nextLockExpiry = accountLocks.length > 0
-        ? Math.min(...accountLocks.map((lock: AccountLock) => new Date(lock.lock_until).getTime()))
+      const lockExpiryTimes = accountLocks
+        .map(lock => new Date(lock.lock_until).getTime())
+        .filter(expiry => Number.isFinite(expiry));
+      const nextLockExpiry = lockExpiryTimes.length > 0
+        ? Math.min(...lockExpiryTimes)
         : null;
       setLocks(locksWithEmployeeIds);
       setNextExpiry(nextLockExpiry);
@@ -154,18 +163,27 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         });
       }
     } finally {
+      const shouldRefreshAgain = locksRefreshQueuedRef.current;
+      locksRefreshQueuedRef.current = false;
       locksLoadingRef.current = false;
       if (isInitial) {
         setLoading(false);
       } else {
         setRefreshing(false);
       }
+      if (shouldRefreshAgain && isActiveRef.current) {
+        void loadLocks(false);
+      }
     }
   }, [admin.id, onActiveLockCountChange]);
 
   const loadHistory = useCallback(async (options: { force?: boolean; silent?: boolean } = {}) => {
     const { force = false, silent = false } = options;
-    if (historyLoadingRef.current || (historyLoadedRef.current && !force)) return;
+    if (historyLoadingRef.current) {
+      historyRefreshQueuedRef.current = true;
+      return;
+    }
+    if (historyLoadedRef.current && !force) return;
 
     historyLoadingRef.current = true;
     setHistoryLoading(true);
@@ -233,10 +251,22 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         setMessage({ type: 'error', text: '載入歷史鎖定記錄失敗，請稍後再試。' });
       }
     } finally {
+      const shouldRefreshAgain = historyRefreshQueuedRef.current;
+      historyRefreshQueuedRef.current = false;
       historyLoadingRef.current = false;
       setHistoryLoading(false);
+      if (shouldRefreshAgain && isActiveRef.current) {
+        void loadHistory({ force: true, silent: true });
+      }
     }
   }, [admin.id]);
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+    return () => {
+      isActiveRef.current = false;
+    };
+  }, [isActive]);
 
   useEffect(() => {
     if (!isActive || admin.role !== 'super_admin' || adminGroupsLoadedRef.current) return;
@@ -337,7 +367,15 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         schema: 'public',
         table: 'account_locks'
       }, refreshVisibleData)
-      .subscribe();
+      .subscribe((status, error) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('Account lock realtime is unavailable; low-frequency refresh remains active.', error);
+        }
+      });
+
+    const fallbackRefreshInterval = window.setInterval(() => {
+      refreshVisibleData();
+    }, 60_000);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -348,6 +386,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
 
     return () => {
       subscription.unsubscribe();
+      window.clearInterval(fallbackRefreshInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [isActive, loadHistory, loadLocks]);
