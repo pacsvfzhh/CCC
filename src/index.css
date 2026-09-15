@@ -52,8 +52,13 @@
 }
 
 .login-history-modal-scroll {
+  background-color: #020617;
+  color-scheme: dark;
+  isolation: isolate;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: rgba(34, 211, 238, 0.65) rgba(8, 47, 73, 0.72);
+  scrollbar-color: #0891b2 #0f172a;
 }
 
 .login-history-modal-scroll::-webkit-scrollbar {
@@ -62,21 +67,26 @@
 }
 
 .login-history-modal-scroll::-webkit-scrollbar-track {
-  background: rgba(8, 47, 73, 0.72);
-  border-left: 1px solid rgba(34, 211, 238, 0.08);
+  background: #0f172a;
+  border: 1px solid #164e63;
   border-radius: 999px;
 }
 
 .login-history-modal-scroll::-webkit-scrollbar-thumb {
-  border: 2px solid rgba(8, 47, 73, 0.72);
+  min-height: 42px;
+  border: 2px solid #0f172a;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(103, 232, 249, 0.85), rgba(6, 182, 212, 0.7) 52%, rgba(37, 99, 235, 0.72));
-  box-shadow: 0 0 8px rgba(34, 211, 238, 0.25);
+  background: linear-gradient(180deg, #22d3ee 0%, #0891b2 52%, #2563eb 100%);
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.35);
 }
 
 .login-history-modal-scroll::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(165, 243, 252, 0.95), rgba(34, 211, 238, 0.85) 52%, rgba(59, 130, 246, 0.9));
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.45);
+  background: linear-gradient(180deg, #67e8f9 0%, #06b6d4 52%, #3b82f6 100%);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.65);
+}
+
+.login-history-modal-scroll::-webkit-scrollbar-corner {
+  background: #0f172a;
 }
 
 .login-history-menu-scrollbar {
