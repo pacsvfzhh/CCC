@@ -320,16 +320,11 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
     const refreshVisibleData = () => {
       if (document.visibilityState !== 'visible') return;
       void loadLocks(false);
-      if (historyLoadedRef.current) {
-        void loadHistory({ force: true, silent: true });
-      }
     };
 
     if (!initialLoadStartedRef.current) {
       initialLoadStartedRef.current = true;
-      void loadLocks(true).then(() => {
-        void loadHistory({ silent: true });
-      });
+      void loadLocks(true);
     } else {
       refreshVisibleData();
     }
@@ -386,8 +381,16 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
       const result = await unlockAccount(lock.identifier, 'username');
 
       if (result.success) {
+        const remainingLocks = locks.filter(item => (
+          item.identifier !== lock.identifier || item.identifier_type !== lock.identifier_type
+        ));
+        const remainingExpiryTimes = remainingLocks
+          .map(item => new Date(item.lock_until).getTime())
+          .filter(expiry => Number.isFinite(expiry));
+
+        setLocks(remainingLocks);
+        setNextExpiry(remainingExpiryTimes.length > 0 ? Math.min(...remainingExpiryTimes) : null);
         setMessage({ type: 'success', text: `已成功解除鎖定：${lock.identifier}` });
-        await loadLocks(false);
       } else {
         setMessage({ type: 'error', text: '解除鎖定失敗，請稍後再試。' });
       }
