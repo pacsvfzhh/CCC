@@ -583,7 +583,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   };
 
   const modalContent = selectedEmployee ? (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-[2px] p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-[3px] p-4">
       <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-400/30 bg-slate-950 shadow-2xl">
         <div className="flex shrink-0 items-center justify-between border-b border-cyan-400/25 bg-gradient-to-r from-blue-950 via-slate-950 to-cyan-950 px-4 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-2.5">
@@ -597,6 +597,23 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => setHistoryActionFilter(null)}
+              className={`group inline-flex h-10 min-w-[104px] shrink-0 items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-cyan-300/80 sm:min-w-[118px] sm:px-3 ${historyActionFilter === null ? 'border-cyan-200 bg-gradient-to-br from-cyan-300 to-blue-500 text-slate-950 shadow-[0_0_20px_rgba(34,211,238,0.38)]' : 'border-cyan-400/60 bg-gradient-to-br from-cyan-950/90 to-slate-900 text-cyan-100 shadow-[0_0_12px_rgba(6,182,212,0.12)] hover:border-cyan-200/80 hover:from-cyan-900/90 hover:to-blue-950/80'}`}
+              aria-pressed={historyActionFilter === null}
+              title="Show all records"
+            >
+              <span className="flex items-center gap-1.5">
+                <span className={`flex h-6 w-6 items-center justify-center rounded-lg ${historyActionFilter === null ? 'bg-slate-950/15' : 'bg-cyan-400/15'}`}>
+                  <History className="h-4 w-4" />
+                </span>
+                <span className="text-left text-[11px] font-black uppercase tracking-[0.08em]">All</span>
+              </span>
+              <span className={`flex min-w-[2rem] items-center justify-center rounded-lg px-1.5 py-1 text-sm font-black leading-none ${historyActionFilter === null ? 'bg-slate-950/15' : 'bg-cyan-400/15'}`}>
+                {detailedHistory.length}
+              </span>
+            </button>
             <button
               type="button"
               onClick={() => setHistoryActionFilter((current) => current === 'login' ? null : 'login')}
