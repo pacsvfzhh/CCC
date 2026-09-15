@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useTransition } from 'react';
 import { Shield, Unlock, AlertTriangle, Clock, User, RefreshCw, History, Search, Users, ChevronDown, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { unlockAccount } from '../../lib/rateLimitService';
@@ -50,6 +50,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   const [adminGroups, setAdminGroups] = useState<AdminGroupOption[]>([]);
   const [adminGroupsLoading, setAdminGroupsLoading] = useState(false);
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
+  const [isGroupTransitionPending, startGroupTransition] = useTransition();
   const initialLoadStartedRef = useRef(false);
   const locksLoadingRef = useRef(false);
   const historyLoadedRef = useRef(false);
@@ -413,8 +414,11 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   };
 
   const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
-  const selectedAdmin = adminGroups.find(group => group.id === selectedAdminId);
-  const filterLocks = (items: AccountLock[]) => items.filter(lock => {
+  const selectedAdmin = useMemo(
+    () => adminGroups.find(group => group.id === selectedAdminId),
+    [adminGroups, selectedAdminId]
+  );
+  const filterLocks = useCallback((items: AccountLock[]) => items.filter(lock => {
     const matchesAdmin = selectedAdminId === 'all'
       || lock.owner_admin_id === selectedAdminId
       || (!lock.owner_admin_id && lock.admin_username?.toLocaleLowerCase() === selectedAdmin?.username.toLocaleLowerCase());
@@ -424,21 +428,30 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
     return [lock.username, lock.employee_id, lock.identifier]
       .filter(Boolean)
       .some(value => value!.toLocaleLowerCase().includes(normalizedSearchQuery));
-  });
-  const filteredLocks = filterLocks(locks);
-  const filteredHistoryLocks = filterLocks(historyLocks);
-  const visibleLocks = showHistory ? filteredHistoryLocks : filteredLocks;
+  }), [normalizedSearchQuery, selectedAdmin, selectedAdminId]);
+  const filteredLocks = useMemo(() => filterLocks(locks), [filterLocks, locks]);
+  const filteredHistoryLocks = useMemo(() => filterLocks(historyLocks), [filterLocks, historyLocks]);
+  const visibleLocks = useMemo(
+    () => showHistory ? filteredHistoryLocks : filteredLocks,
+    [filteredHistoryLocks, filteredLocks, showHistory]
+  );
   const hasActiveFilters = Boolean(normalizedSearchQuery) || selectedAdminId !== 'all';
   const isInitialHistoryLoading = showHistory && historyLoading && !historyLoadedRef.current;
   const usernameLocks = filteredLocks.length;
-  const expiringSoon = filteredLocks.filter(lock => {
-    const remaining = new Date(lock.lock_until).getTime() - Date.now();
+  const expiringSoon = useMemo(() => filteredLocks.filter(lock => {
+    const remaining = new Date(lock.lock_until).getTime() - countdownNow;
     return remaining > 0 && remaining <= 30 * 60 * 1000;
-  }).length;
-  const manuallyResolvedHistoryCount = filteredHistoryLocks.filter(lock => Boolean(lock.unlocked_by)).length;
-  const automaticallyResolvedHistoryCount = filteredHistoryLocks.filter(
-    lock => !lock.unlocked_by && new Date(lock.lock_until).getTime() <= Date.now()
-  ).length;
+  }).length, [countdownNow, filteredLocks]);
+  const manuallyResolvedHistoryCount = useMemo(
+    () => filteredHistoryLocks.filter(lock => Boolean(lock.unlocked_by)).length,
+    [filteredHistoryLocks]
+  );
+  const automaticallyResolvedHistoryCount = useMemo(
+    () => filteredHistoryLocks.filter(
+      lock => !lock.unlocked_by && new Date(lock.lock_until).getTime() <= countdownNow
+    ).length,
+    [countdownNow, filteredHistoryLocks]
+  );
   const getLockStatus = (lock: AccountLock, currentTime: number) => {
     const isCurrentlyLocked = !lock.unlocked_at
       && !lock.unlocked_by
@@ -494,15 +507,24 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
     setShowHistory(false);
   };
 
+  const handleSelectAdminGroup = (groupId: string) => {
+    setGroupMenuOpen(false);
+    startGroupTransition(() => {
+      setSelectedAdminId(groupId);
+    });
+  };
+
   const selectedGroupLabel = selectedAdminId === 'all'
     ? '總分組'
     : selectedAdmin?.username || '管理員分組';
-  const visibleAdminGroups = adminGroups
-    .filter(group => group.role !== 'emergency_admin')
-    .sort((a, b) => {
-      const roleOrder = (group: AdminGroupOption) => group.role === 'super_admin' ? 0 : 1;
-      return roleOrder(a) - roleOrder(b) || a.username.localeCompare(b.username);
-    });
+  const visibleAdminGroups = useMemo(() => (
+    adminGroups
+      .filter(group => group.role !== 'emergency_admin')
+      .sort((a, b) => {
+        const roleOrder = (group: AdminGroupOption) => group.role === 'super_admin' ? 0 : 1;
+        return roleOrder(a) - roleOrder(b) || a.username.localeCompare(b.username);
+      })
+  ), [adminGroups]);
   const isRefreshing = refreshing || historyLoading;
   const groupButtonToneClass = showHistory
     ? 'text-violet-100 hover:bg-violet-300/[0.08] hover:text-violet-50'
@@ -660,6 +682,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
                 disabled={adminGroupsLoading}
                 aria-expanded={groupMenuOpen}
                 aria-haspopup="listbox"
+                aria-busy={isGroupTransitionPending}
                 className={`group inline-flex h-8 w-[220px] items-center gap-2 rounded-lg px-1.5 text-left transition-colors duration-150 disabled:cursor-wait disabled:opacity-70 sm:w-[248px] ${groupButtonToneClass}`}
               >
                 <span className={`flex h-6 w-6 shrink-0 items-center justify-center transition-colors ${groupIconToneClass}`}>
@@ -671,12 +694,11 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
                 <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${groupChevronToneClass} ${groupMenuOpen ? 'rotate-180' : ''}`} />
               </button>
               {groupMenuOpen && !adminGroupsLoading && (
-                <div className={`absolute right-0 top-full z-50 mt-2 w-full overflow-hidden rounded-xl border ${groupMenuBorderClass} bg-[linear-gradient(160deg,rgba(15,23,42,0.98),rgba(20,28,55,0.98))] p-1.5 shadow-[0_18px_42px_rgba(2,6,23,0.62)] backdrop-blur-xl`}>
+                <div className={`absolute right-0 top-full z-50 mt-2 w-full animate-[fadeInScale_140ms_ease-out] overflow-hidden rounded-xl border ${groupMenuBorderClass} bg-[linear-gradient(160deg,rgba(15,23,42,0.98),rgba(20,28,55,0.98))] p-1.5 shadow-[0_18px_42px_rgba(2,6,23,0.62)] backdrop-blur-xl`}>
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedAdminId('all');
-                      setGroupMenuOpen(false);
+                      handleSelectAdminGroup('all');
                     }}
                     className={`group flex w-full items-center justify-between rounded-lg border px-2.5 py-1.5 text-left transition-[background-color,border-color] duration-150 ${selectedAdminId === 'all' ? groupMenuSelectedClass : `border-transparent text-slate-300 ${groupMenuHoverClass} hover:text-white`}`}
                     role="option"
@@ -691,8 +713,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
                         key={group.id}
                         type="button"
                         onClick={() => {
-                          setSelectedAdminId(group.id);
-                          setGroupMenuOpen(false);
+                          handleSelectAdminGroup(group.id);
                         }}
                         className={`group flex w-full items-center justify-between rounded-lg border px-2.5 py-1.5 text-left transition-[background-color,border-color] duration-150 ${selectedAdminId === group.id ? groupMenuSelectedClass : `border-transparent text-slate-300 ${groupMenuHoverClass} hover:text-white`}`}
                         role="option"
@@ -735,7 +756,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
           </div>
         )
       ) : (
-        <div className="relative min-h-0 flex-1 overflow-y-auto dark-panel-scroll px-4 pb-6 pt-4 sm:px-6 lg:px-8">
+        <div className={`relative min-h-0 flex-1 overflow-y-auto dark-panel-scroll px-4 pb-6 pt-4 transition-opacity duration-150 sm:px-6 lg:px-8 ${isGroupTransitionPending ? 'opacity-80' : 'opacity-100'}`}>
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
               <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${showHistory ? 'text-violet-300/85' : 'text-orange-300/80'}`}>{showHistory ? '歷史清單' : '防護清單'}</p>
