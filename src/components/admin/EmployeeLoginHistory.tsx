@@ -643,7 +643,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 text-slate-100">
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-0 flex flex-col gap-2 border-b border-cyan-900/60 pb-2 xl:flex-row xl:items-center xl:justify-between">
+        <div className="mb-0 flex shrink-0 flex-col gap-3 border-b border-cyan-900/60 pb-3 sm:pb-4 xl:h-[109px] xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div className="min-w-0">
               <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/80">Admin activity</p>
