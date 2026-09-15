@@ -46,29 +46,22 @@ interface EmployeeTableRow {
   adminUsername?: string;
 }
 
-const getEmployeeIpValues = (employee: EmployeeSummary) => (
-  Array.from(new Set(
-    [employee.latest_login_ip, employee.latest_logout_ip]
-      .filter((ip): ip is string => Boolean(ip))
-      .map((ip) => ip.trim())
-      .filter(Boolean)
-  ))
-);
-
 const getSharedIpEmployees = (employees: EmployeeSummary[]) => {
   const ipOwners = new Map<string, Set<string>>();
 
   employees.forEach((employee) => {
-    getEmployeeIpValues(employee).forEach((ip) => {
-      const owners = ipOwners.get(ip) || new Set<string>();
-      owners.add(employee.user_id);
-      ipOwners.set(ip, owners);
-    });
+    const ip = employee.latest_login_ip?.trim();
+    if (!ip) return;
+
+    const owners = ipOwners.get(ip) || new Set<string>();
+    owners.add(employee.user_id);
+    ipOwners.set(ip, owners);
   });
 
-  return employees.filter((employee) => (
-    getEmployeeIpValues(employee).some((ip) => (ipOwners.get(ip)?.size || 0) > 1)
-  ));
+  return employees.filter((employee) => {
+    const ip = employee.latest_login_ip?.trim();
+    return Boolean(ip && (ipOwners.get(ip)?.size || 0) > 1);
+  });
 };
 
 export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProps) {
@@ -428,7 +421,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     sharedIpFilter === group.admin_id ? getSharedIpEmployees(group.employees) : group.employees
   );
 
-  const renderEmployeeTable = (rows: EmployeeTableRow[], showAdminGroup = false) => {
+  const renderEmployeeTable = (rows: EmployeeTableRow[], showAdminGroup = false, sharedIpMode = false) => {
     if (rows.length === 0) {
       return (
         <div className="flex min-h-0 flex-1 items-center justify-center py-8">
@@ -451,8 +444,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Admin Group</th>
               )}
               <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Employee ID</th>
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login IP</th>
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login Time</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">{sharedIpMode ? 'Shared Login IP' : 'Latest Login IP'}</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">{sharedIpMode ? 'Shared Login Time' : 'Latest Login Time'}</th>
               <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Login System</th>
               <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout IP</th>
               <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout Time</th>
@@ -812,7 +805,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     {sharedIpRows.length} employees
                   </span>
                 </div>
-                {renderEmployeeTable(sharedIpRows, true)}
+                {renderEmployeeTable(sharedIpRows, true, true)}
               </div>
             ) : isSearching ? (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950/35">
