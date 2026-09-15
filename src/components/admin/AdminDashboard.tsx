@@ -415,7 +415,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     { id: 'accountlocks', label: 'Locked', icon: Shield },
   ] : [
     { id: 'employees', label: 'Employees', icon: Users },
-    { id: 'employeesearch', label: 'Employee Search', icon: Search },
+    { id: 'employeesearch', label: '員工搜尋', icon: Search },
     { id: 'loginhistory', label: 'Login History', icon: Activity },
     { id: 'accountlocks', label: 'Locked', icon: Shield },
     { id: 'messages', label: 'Messages', icon: Bell },

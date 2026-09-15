@@ -58,10 +58,10 @@ export default function EmployeeSearch() {
     searchAbortController.current = new AbortController();
     setLoading(true);
     setHasSearched(true);
-    setProgress({ step: 0, totalSteps: 5, currentTask: 'Initializing search...', percentage: 0 });
+    setProgress({ step: 0, totalSteps: 5, currentTask: '正在初始化搜尋...', percentage: 0 });
 
     try {
-      setProgress({ step: 1, totalSteps: 5, currentTask: 'Searching users by username and ID...', percentage: 20 });
+      setProgress({ step: 1, totalSteps: 5, currentTask: '正在依使用者名稱與員工編號搜尋...', percentage: 20 });
       const { data: usersFromDirect, error: userError } = await supabase
         .from('users')
         .select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at')
@@ -72,7 +72,7 @@ export default function EmployeeSearch() {
         throw userError;
       }
 
-      setProgress({ step: 2, totalSteps: 5, currentTask: 'Searching verification records...', percentage: 40 });
+      setProgress({ step: 2, totalSteps: 5, currentTask: '正在搜尋驗證記錄...', percentage: 40 });
       const { data: verifications, error: verError } = await supabase
         .from('verification_requests')
         .select('*')
@@ -83,7 +83,7 @@ export default function EmployeeSearch() {
         throw verError;
       }
 
-      setProgress({ step: 3, totalSteps: 5, currentTask: 'Processing search results...', percentage: 60 });
+      setProgress({ step: 3, totalSteps: 5, currentTask: '正在處理搜尋結果...', percentage: 60 });
       const userIdsFromDirect = usersFromDirect?.map(u => u.id) || [];
       const userIdsFromVerifications = verifications?.map(v => v.user_id) || [];
       const allUserIds = [...new Set([...userIdsFromDirect, ...userIdsFromVerifications])];
@@ -95,12 +95,12 @@ export default function EmployeeSearch() {
       });
 
       if (allUserIds.length === 0) {
-        setProgress({ step: 5, totalSteps: 5, currentTask: 'Complete', percentage: 100 });
+        setProgress({ step: 5, totalSteps: 5, currentTask: '完成', percentage: 100 });
         setResults([]);
         return;
       }
 
-      setProgress({ step: 4, totalSteps: 5, currentTask: 'Fetching complete user data...', percentage: 80 });
+      setProgress({ step: 4, totalSteps: 5, currentTask: '正在取得完整員工資料...', percentage: 80 });
       const { data: allUsers, error: allUsersError } = await supabase
         .from('users')
         .select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at')
@@ -151,7 +151,7 @@ export default function EmployeeSearch() {
 
       const adminMap = new Map((adminData || []).map(admin => [admin.id, admin]));
 
-      setProgress({ step: 5, totalSteps: 5, currentTask: 'Finalizing results...', percentage: 90 });
+      setProgress({ step: 5, totalSteps: 5, currentTask: '正在完成結果整理...', percentage: 90 });
       const combined = (allUsers || []).map(user => {
         const verificationInfo = user.is_verified
           ? allVerifications?.find(v => v.user_id === user.id && v.status === 'approved')
@@ -171,7 +171,7 @@ export default function EmployeeSearch() {
       });
 
       console.log('Final results:', combined.length);
-      setProgress({ step: 5, totalSteps: 5, currentTask: 'Complete', percentage: 100 });
+      setProgress({ step: 5, totalSteps: 5, currentTask: '完成', percentage: 100 });
       setResults(combined);
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -213,16 +213,16 @@ export default function EmployeeSearch() {
               <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/10 text-cyan-200">
                 <Search className="h-3.5 w-3.5" />
               </span>
-              Employee Search
+              員工搜尋
             </div>
-            <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">Search the employee directory</h2>
-            <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-slate-400">Find an account by username, employee ID, or verified contact information.</p>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">搜尋員工資料</h2>
+            <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-slate-400">可透過使用者名稱、員工編號或已驗證的聯絡資料尋找帳戶。</p>
           </div>
 
           <div className="min-w-0 flex-1">
             <label className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              Search employee records
-              <span className="font-medium normal-case tracking-normal text-slate-500">Username · ID · name · email · phone · wallet</span>
+              搜尋員工記錄
+              <span className="font-medium normal-case tracking-normal text-slate-500">使用者名稱 · 員工編號 · 姓名 · 電子郵件 · 電話 · 錢包地址</span>
             </label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative min-w-0 flex-1">
@@ -232,8 +232,8 @@ export default function EmployeeSearch() {
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  placeholder="Enter an employee username, ID, or contact..."
-                  className="h-11 w-full rounded-xl border border-cyan-900/70 bg-slate-950/70 pl-10 pr-4 text-sm text-slate-100 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-slate-600 hover:border-cyan-700/80 focus:border-cyan-400/70 focus:bg-slate-950 focus:ring-2 focus:ring-cyan-400/15"
+                  placeholder="輸入員工使用者名稱、員工編號或聯絡資料..."
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 pl-10 pr-4 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-slate-400 hover:border-cyan-500 hover:bg-white focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-400/25"
                 />
               </div>
               {searchValue && (
@@ -241,10 +241,10 @@ export default function EmployeeSearch() {
                   type="button"
                   onClick={clearSearch}
                   className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-4 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white"
-                  title="Clear search"
+                  title="清除搜尋"
                 >
                   <X className="h-4 w-4" />
-                  Clear
+                  清除
                 </button>
               )}
               <button
@@ -256,12 +256,12 @@ export default function EmployeeSearch() {
                 {loading ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                    Searching
+                    搜尋中
                   </>
                 ) : (
                   <>
                     <Search className="h-4 w-4" />
-                    Search
+                    搜尋
                   </>
                 )}
               </button>
@@ -289,12 +289,12 @@ export default function EmployeeSearch() {
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/90 px-4 py-3 sm:px-5">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300/75">Search results</p>
-              <h3 className="mt-1 truncate text-base font-semibold text-white">Employee accounts</h3>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300/75">搜尋結果</p>
+              <h3 className="mt-1 truncate text-base font-semibold text-white">員工帳戶</h3>
             </div>
             <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-bold text-cyan-100">
               <User className="h-3.5 w-3.5 text-cyan-300" />
-              {results.length} {results.length === 1 ? 'employee' : 'employees'}
+              {results.length} 筆員工
             </span>
           </div>
 
@@ -303,8 +303,8 @@ export default function EmployeeSearch() {
               <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
                 <Search className="h-7 w-7" />
               </span>
-              <p className="mt-4 text-base font-semibold text-slate-200">No employees found</p>
-              <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">Try another username, employee ID, or verified contact value.</p>
+              <p className="mt-4 text-base font-semibold text-slate-200">找不到員工</p>
+              <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">請嘗試其他使用者名稱、員工編號或已驗證的聯絡資料。</p>
             </div>
           ) : (
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pt-3 dark-panel-scroll sm:pt-4">
@@ -319,11 +319,11 @@ export default function EmployeeSearch() {
                         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${employee.admin_info.role === 'super_admin' ? 'border-amber-300/30 bg-amber-300/10 text-amber-200' : 'border-cyan-300/30 bg-cyan-300/10 text-cyan-200'}`}>
                           <User className="h-3.5 w-3.5" />
                         </span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Managed by</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">所屬管理員</span>
                         <span className={`truncate text-sm font-bold ${employee.admin_info.role === 'super_admin' ? 'text-amber-100' : 'text-cyan-100'}`}>{employee.admin_info.username}</span>
                       </div>
                       <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] ${employee.admin_info.role === 'super_admin' ? 'border-amber-300/25 bg-amber-300/10 text-amber-200' : 'border-cyan-300/25 bg-cyan-300/10 text-cyan-200'}`}>
-                        {employee.admin_info.role === 'super_admin' ? 'Super Admin' : 'Secondary Admin'}
+                        {employee.admin_info.role === 'super_admin' ? '超級管理員' : '二級管理員'}
                       </span>
                     </div>
                   )}
@@ -348,17 +348,17 @@ export default function EmployeeSearch() {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                           <h4 className="truncate text-sm font-bold text-slate-100 sm:text-base">{employee.username}</h4>
-                          <span className="rounded-md border border-slate-700 bg-slate-900/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">ID {employee.employee_id}</span>
+                          <span className="rounded-md border border-slate-700 bg-slate-900/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">員工編號 {employee.employee_id}</span>
                           {employee.is_verified && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300"><CheckCircle className="h-3.5 w-3.5" />Verified</span>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300"><CheckCircle className="h-3.5 w-3.5" />已驗證</span>
                           )}
                           {!employee.is_active && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-300"><XCircle className="h-3.5 w-3.5" />Inactive</span>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-300"><XCircle className="h-3.5 w-3.5" />未啟用</span>
                           )}
                         </div>
                         <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
                           <Calendar className="h-3.5 w-3.5 text-slate-600" />
-                          Registered {formatDateUTC(employee.created_at)}
+                          註冊時間 {formatDateUTC(employee.created_at)}
                         </div>
                       </div>
                     </div>
@@ -371,30 +371,30 @@ export default function EmployeeSearch() {
                     <div className="border-t border-slate-800/90 bg-slate-900/45 px-4 py-4 sm:px-5">
                       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                         <div className="rounded-xl border border-slate-800 bg-slate-950/35 p-4">
-                          <h5 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-cyan-200"><User className="h-4 w-4 text-cyan-300" />Account information</h5>
+                          <h5 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-cyan-200"><User className="h-4 w-4 text-cyan-300" />帳戶資料</h5>
                           <div className="mt-3 space-y-2.5">
-                            <InfoRow label="Username" value={employee.username} />
-                            <InfoRow label="Employee ID" value={employee.employee_id} />
-                            <InfoRow label="Registration Date" value={formatDateUTC(employee.created_at)} />
-                            <InfoRow label="Status" value={<span className={`inline-flex items-center gap-1 font-semibold ${employee.is_active ? 'text-emerald-300' : 'text-rose-300'}`}>{employee.is_active ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}{employee.is_active ? 'Active' : 'Inactive'}</span>} />
-                            <InfoRow label="Identity Verification" value={<span className={`inline-flex items-center gap-1 font-semibold ${employee.is_verified ? 'text-emerald-300' : 'text-rose-300'}`}>{employee.is_verified ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}{employee.is_verified ? 'Verified' : 'Not Verified'}</span>} />
-                            <InfoRow label="Wallet Balance" value={`$${(employee.total_income || 0).toFixed(2)}`} />
-                            <InfoRow label="First Success Order" value={employee.first_success_order_date ? formatDateUTC(employee.first_success_order_date) : 'Not started working yet'} />
+                            <InfoRow label="使用者名稱" value={employee.username} />
+                            <InfoRow label="員工編號" value={employee.employee_id} />
+                            <InfoRow label="註冊日期" value={formatDateUTC(employee.created_at)} />
+                            <InfoRow label="狀態" value={<span className={`inline-flex items-center gap-1 font-semibold ${employee.is_active ? 'text-emerald-300' : 'text-rose-300'}`}>{employee.is_active ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}{employee.is_active ? '啟用' : '未啟用'}</span>} />
+                            <InfoRow label="身分驗證" value={<span className={`inline-flex items-center gap-1 font-semibold ${employee.is_verified ? 'text-emerald-300' : 'text-rose-300'}`}>{employee.is_verified ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}{employee.is_verified ? '已驗證' : '未驗證'}</span>} />
+                            <InfoRow label="錢包餘額" value={`$${(employee.total_income || 0).toFixed(2)}`} />
+                            <InfoRow label="首次成功訂單" value={employee.first_success_order_date ? formatDateUTC(employee.first_success_order_date) : '尚未開始工作'} />
                           </div>
                         </div>
 
                         <div className="rounded-xl border border-slate-800 bg-slate-950/35 p-4">
-                          <h5 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-cyan-200"><CheckCircle className="h-4 w-4 text-cyan-300" />Verification information</h5>
+                          <h5 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-cyan-200"><CheckCircle className="h-4 w-4 text-cyan-300" />驗證資料</h5>
                           {employee.verification_info ? (
                             <div className="mt-3 space-y-2.5">
-                              <InfoRow label="Full Legal Name" value={employee.verification_info.real_name || 'N/A'} />
-                              <InfoRow label="Email Address" value={employee.verification_info.email || 'N/A'} icon={<Mail className="h-3.5 w-3.5 text-slate-500" />} />
-                              <InfoRow label="Phone Number" value={employee.verification_info.phone || 'N/A'} icon={<Phone className="h-3.5 w-3.5 text-slate-500" />} />
-                              <InfoRow label="Wallet Address" value={employee.verification_info.wallet_address || 'N/A'} icon={<Wallet className="h-3.5 w-3.5 text-slate-500" />} breakAll />
-                              <InfoRow label="Verified Date" value={formatDateUTC(employee.verification_info.created_at)} icon={<Calendar className="h-3.5 w-3.5 text-slate-500" />} />
+                              <InfoRow label="法定姓名" value={employee.verification_info.real_name || '無資料'} />
+                              <InfoRow label="電子郵件" value={employee.verification_info.email || '無資料'} icon={<Mail className="h-3.5 w-3.5 text-slate-500" />} />
+                              <InfoRow label="電話號碼" value={employee.verification_info.phone || '無資料'} icon={<Phone className="h-3.5 w-3.5 text-slate-500" />} />
+                              <InfoRow label="錢包地址" value={employee.verification_info.wallet_address || '無資料'} icon={<Wallet className="h-3.5 w-3.5 text-slate-500" />} breakAll />
+                              <InfoRow label="驗證日期" value={formatDateUTC(employee.verification_info.created_at)} icon={<Calendar className="h-3.5 w-3.5 text-slate-500" />} />
                             </div>
                           ) : (
-                            <div className="mt-4 flex items-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.06] px-3 py-2.5 text-xs text-rose-300"><Clock className="h-4 w-4" />No verification information available</div>
+                            <div className="mt-4 flex items-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.06] px-3 py-2.5 text-xs text-rose-300"><Clock className="h-4 w-4" />沒有可用的驗證資料</div>
                           )}
                         </div>
 
@@ -402,7 +402,7 @@ export default function EmployeeSearch() {
                           <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/35 p-4 lg:col-span-2">
                             {employee.tags?.length > 0 && (
                               <div>
-                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Tags</label>
+                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">標籤</label>
                                 <div className="flex flex-wrap gap-2">
                                   {employee.tags.map((tag, index) => <span key={index} className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold text-cyan-200">{tag}</span>)}
                                 </div>
@@ -410,7 +410,7 @@ export default function EmployeeSearch() {
                             )}
                             {employee.remarks && (
                               <div>
-                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Remarks</label>
+                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">備註</label>
                                 <p className="rounded-lg border border-slate-800 bg-slate-900/70 p-3 text-xs leading-relaxed text-slate-300">{employee.remarks}</p>
                               </div>
                             )}
@@ -428,8 +428,8 @@ export default function EmployeeSearch() {
         <section className="flex min-h-0 flex-1 items-center justify-center overflow-hidden px-6 py-12 text-center">
           <div className="max-w-md">
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 shadow-[0_0_28px_rgba(34,211,238,0.08)]"><Search className="h-7 w-7" /></span>
-            <p className="mt-4 text-base font-semibold text-slate-200">Search employee records</p>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">Use the search bar above to bring account, verification, wallet, and administrator ownership details into view.</p>
+            <p className="mt-4 text-base font-semibold text-slate-200">搜尋員工記錄</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">使用上方搜尋欄，即可查看帳戶、驗證、錢包與所屬管理員資料。</p>
           </div>
         </section>
       )}
