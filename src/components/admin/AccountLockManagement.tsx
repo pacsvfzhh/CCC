@@ -21,6 +21,7 @@ interface AccountLock {
   lock_ip: string | null;
   admin_username: string | null;
   owner_admin_id?: string | null;
+  owner_admin_username?: string | null;
 }
 
 interface AccountLockManagementProps {
@@ -198,6 +199,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
           .filter((userId): userId is string => Boolean(userId))
       )];
       const ownerAdminIdsByUserId = new Map<string, string>();
+      const ownerAdminUsernames = new Map<string, string>();
 
       if (historyUserIds.length > 0) {
         const { data: historyEmployeeRows } = await supabase
@@ -210,13 +212,32 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
         });
       }
 
+      const ownerAdminIds = [...new Set(ownerAdminIdsByUserId.values())];
+      if (ownerAdminIds.length > 0) {
+        const { data: ownerAdminRows } = await supabase
+          .from('admins')
+          .select('id, username')
+          .in('id', ownerAdminIds);
+
+        ownerAdminRows?.forEach(owner => {
+          ownerAdminUsernames.set(owner.id, owner.username);
+        });
+      }
+      ownerAdminUsernames.set(admin.id, admin.username);
+
       setHistoryLocks(
         historyData
           .filter(lock => lock.identifier_type === 'username')
-          .map(lock => ({
-            ...lock,
-            owner_admin_id: ownerAdminIdsByUserId.get(lock.user_id ?? '') ?? null
-          }))
+          .map(lock => {
+            const ownerAdminId = ownerAdminIdsByUserId.get(lock.user_id ?? '') ?? null;
+            return {
+              ...lock,
+              owner_admin_id: ownerAdminId,
+              owner_admin_username: ownerAdminId
+                ? ownerAdminUsernames.get(ownerAdminId) ?? null
+                : null
+            };
+          })
       );
       historyLoadedRef.current = true;
     } catch (error) {
@@ -233,7 +254,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
         void loadHistory({ force: true, silent: true });
       }
     }
-  }, []);
+  }, [admin.id, admin.username]);
 
   useEffect(() => {
     isActiveRef.current = isActive;
@@ -390,6 +411,19 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
 
         setLocks(remainingLocks);
         setNextExpiry(remainingExpiryTimes.length > 0 ? Math.min(...remainingExpiryTimes) : null);
+        setHistoryLocks(current => current.map(historyLock => (
+          historyLock.identifier === lock.identifier
+            && historyLock.identifier_type === lock.identifier_type
+            && !historyLock.unlocked_at
+            && !historyLock.unlocked_by
+            ? {
+                ...historyLock,
+                unlocked_at: new Date().toISOString(),
+                unlocked_by: admin.id,
+                admin_username: admin.username,
+              }
+            : historyLock
+        )));
         setMessage({ type: 'success', text: `已成功解除鎖定：${lock.identifier}` });
       } else {
         setMessage({ type: 'error', text: '解除鎖定失敗，請稍後再試。' });
@@ -838,6 +872,11 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
                         <div>
                           <p className={`text-[10px] font-bold tracking-[0.12em] ${status.metaLabelClass}`}>防護狀態</p>
                           <p className={`mt-1 text-sm font-bold ${status.textClass}`}>{status.label}</p>
+                          {showHistory && (
+                            <p className="mt-2 text-[10px] font-bold tracking-[0.08em] text-cyan-200/80">
+                              所屬管理員分組：<span className="text-xs font-semibold text-cyan-100">{lock.owner_admin_username || '未記錄'}</span>
+                            </p>
+                          )}
                         </div>
                         {showHistory ? (
                           <div className="min-w-0">
