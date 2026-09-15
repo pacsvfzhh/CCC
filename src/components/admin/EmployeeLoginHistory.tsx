@@ -635,10 +635,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   {detailedHistory.map((record, index) => (
                     <tr
                       key={record.id}
-                      className={`border-b border-slate-800/80 border-l-2 transition-colors ${
+                      className={`border-b border-slate-800/80 border-l-2 transition-[background-color,filter,box-shadow] duration-150 ${
                         record.action_type === 'login'
-                          ? 'border-l-emerald-400/80 bg-emerald-950/20 hover:bg-emerald-950/35'
-                          : 'border-l-orange-400/80 bg-orange-950/20 hover:bg-orange-950/35'
+                          ? 'border-l-emerald-400/80 bg-emerald-950/20 hover:bg-emerald-900/55 hover:brightness-125 hover:shadow-[inset_0_0_0_1px_rgba(110,231,183,0.45)]'
+                          : 'border-l-orange-400/80 bg-orange-950/20 hover:bg-orange-900/55 hover:brightness-125 hover:shadow-[inset_0_0_0_1px_rgba(251,146,60,0.45)]'
                       }`}
                     >
                       <td className="px-3 py-1.5 text-center">

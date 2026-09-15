@@ -68,6 +68,7 @@ export default function LoginDeviceSummary({
 }: LoginDeviceSummaryProps) {
   const info = resolveLoginDeviceInfo(deviceInfo, userAgent);
   const auditTextClass = auditTone === 'logout' ? 'text-orange-200/75' : 'text-emerald-200/75';
+  const browserToneClass = auditTone === 'logout' ? 'text-orange-100' : 'text-emerald-100';
   const usePlainDeviceText = inlineUserAgent || plain;
   const details = [
     osLabels[info.os_family],
@@ -112,7 +113,7 @@ export default function LoginDeviceSummary({
         </span>
         {!usePlainDeviceText && <span className="text-slate-600">·</span>}
         <span className={usePlainDeviceText
-          ? 'text-violet-200'
+          ? browserToneClass
           : 'inline-flex items-center rounded-md border border-violet-400/25 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200'}>
           {formatValue(browserLabels[info.browser_family], info.browser_version)}
         </span>
