@@ -472,7 +472,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     }
 
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto bg-slate-950 login-history-list-scrollbar">
+      <div className="min-h-0 flex-1 overflow-y-scroll overflow-x-auto bg-slate-950 login-history-list-scrollbar">
         <table className="w-full border-collapse bg-slate-950 text-xs">
           <thead className="bg-cyan-950">
             <tr className="border-b border-cyan-500/45">
@@ -1142,7 +1142,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             <p className="text-slate-300 text-sm">No employees under this admin</p>
                           </div>
                         ) : (
-                          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto bg-slate-950 login-history-list-scrollbar pb-1 sm:pb-1.5">
+                          <div className="min-h-0 flex-1 overflow-y-scroll overflow-x-auto bg-slate-950 login-history-list-scrollbar pb-1 sm:pb-1.5">
                             <table className="w-full border-collapse bg-slate-950 text-xs">
                               <thead className="bg-cyan-950">
                                 <tr className="border-b border-cyan-500/45">
