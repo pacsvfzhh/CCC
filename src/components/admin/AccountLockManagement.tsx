@@ -497,13 +497,19 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   const selectedGroupLabel = selectedAdminId === 'all'
     ? '總分組'
     : selectedAdmin?.username || '管理員分組';
+  const visibleAdminGroups = adminGroups
+    .filter(group => group.role !== 'emergency_admin')
+    .sort((a, b) => {
+      const roleOrder = (group: AdminGroupOption) => group.role === 'super_admin' ? 0 : 1;
+      return roleOrder(a) - roleOrder(b) || a.username.localeCompare(b.username);
+    });
   const isRefreshing = refreshing || historyLoading;
   const groupButtonToneClass = showHistory
-    ? 'border-violet-300/35 bg-[linear-gradient(135deg,rgba(139,92,246,0.2),rgba(8,47,73,0.34))] hover:border-violet-200/70 hover:bg-violet-500/25 hover:shadow-[0_8px_22px_rgba(2,6,23,0.34)]'
-    : 'border-orange-300/35 bg-[linear-gradient(135deg,rgba(245,158,11,0.2),rgba(8,47,73,0.34))] hover:border-orange-200/70 hover:bg-orange-500/25 hover:shadow-[0_8px_22px_rgba(2,6,23,0.34)]';
+    ? 'text-violet-100 hover:bg-violet-300/[0.08] hover:text-violet-50'
+    : 'text-orange-100 hover:bg-orange-300/[0.08] hover:text-orange-50';
   const groupIconToneClass = showHistory
-    ? 'border-violet-200/25 bg-violet-300/15 text-violet-200 group-hover:border-violet-100/45 group-hover:bg-violet-300/25'
-    : 'border-orange-200/25 bg-orange-300/15 text-orange-100 group-hover:border-orange-100/45 group-hover:bg-orange-300/25';
+    ? 'text-violet-200 group-hover:text-violet-100'
+    : 'text-orange-100 group-hover:text-orange-50';
   const groupLabelToneClass = showHistory ? 'text-violet-200/70' : 'text-orange-100/75';
   const groupValueToneClass = showHistory ? 'text-violet-50' : 'text-orange-50';
   const groupChevronToneClass = showHistory ? 'text-violet-200/80' : 'text-orange-100/80';
@@ -648,16 +654,16 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
             </>
           )}
           {admin.role === 'super_admin' && (
-            <div ref={groupMenuRef} className="relative ml-auto shrink-0">
+            <div ref={groupMenuRef} className={`relative ml-auto shrink-0 border-l pl-4 ${showHistory ? 'border-violet-200/25' : 'border-orange-200/25'}`}>
               <button
                 type="button"
                 onClick={() => setGroupMenuOpen(open => !open)}
                 disabled={adminGroupsLoading}
                 aria-expanded={groupMenuOpen}
                 aria-haspopup="listbox"
-                className={`group inline-flex h-10 w-[220px] items-center gap-2 rounded-xl border px-3 text-left shadow-[0_6px_18px_rgba(2,6,23,0.2)] transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-px disabled:cursor-wait disabled:opacity-70 sm:w-[248px] ${groupButtonToneClass}`}
+                className={`group inline-flex h-9 w-[220px] items-center gap-2 rounded-lg px-1.5 text-left transition-colors duration-150 disabled:cursor-wait disabled:opacity-70 sm:w-[248px] ${groupButtonToneClass}`}
               >
-                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-colors ${groupIconToneClass}`}>
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center transition-colors ${groupIconToneClass}`}>
                   <Users className="h-3.5 w-3.5" />
                 </span>
                 <span className="min-w-0 flex-1 leading-tight">
@@ -682,7 +688,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
                     {selectedAdminId === 'all' && <span className={`h-1.5 w-1.5 rounded-full ${groupMenuSelectedDotClass}`} />}
                   </button>
                   <div className="mt-1 space-y-0.5">
-                    {adminGroups.map(group => (
+                    {visibleAdminGroups.map(group => (
                       <button
                         key={group.id}
                         type="button"
