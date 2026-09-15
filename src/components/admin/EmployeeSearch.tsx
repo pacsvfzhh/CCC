@@ -206,9 +206,8 @@ export default function EmployeeSearch() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 text-slate-100">
-      <section className="relative shrink-0 overflow-hidden rounded-2xl border border-cyan-800/60 bg-slate-900/80 shadow-[0_16px_40px_rgba(2,6,23,0.28)] backdrop-blur-xl">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(37,99,235,0.18),transparent_35%),radial-gradient(circle_at_92%_0%,rgba(8,145,178,0.14),transparent_32%)]" />
-        <div className="relative flex flex-col gap-4 p-4 sm:p-5 xl:flex-row xl:items-end">
+      <section className="relative shrink-0 border-b border-slate-800/80 pb-4 sm:pb-5">
+        <div className="relative flex flex-col gap-4 xl:flex-row xl:items-end">
           <div className="min-w-0 xl:w-[260px] xl:shrink-0">
             <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/80">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/10 text-cyan-200">
@@ -287,7 +286,7 @@ export default function EmployeeSearch() {
       </section>
 
       {hasSearched ? (
-        <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-800/90 bg-slate-900/65 shadow-[0_14px_32px_rgba(2,6,23,0.22)]">
+        <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/90 px-4 py-3 sm:px-5">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300/75">Search results</p>
@@ -308,7 +307,7 @@ export default function EmployeeSearch() {
               <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">Try another username, employee ID, or verified contact value.</p>
             </div>
           ) : (
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 dark-panel-scroll sm:p-4">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pt-3 dark-panel-scroll sm:pt-4">
               {results.map(employee => (
                 <article
                   key={employee.id}
@@ -426,7 +425,7 @@ export default function EmployeeSearch() {
           )}
         </section>
       ) : (
-        <section className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-800 bg-slate-900/35 px-6 py-12 text-center">
+        <section className="flex min-h-0 flex-1 items-center justify-center overflow-hidden px-6 py-12 text-center">
           <div className="max-w-md">
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 shadow-[0_0_28px_rgba(34,211,238,0.08)]"><Search className="h-7 w-7" /></span>
             <p className="mt-4 text-base font-semibold text-slate-200">Search employee records</p>
