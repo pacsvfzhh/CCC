@@ -472,7 +472,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     }
 
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto login-history-list-scrollbar">
         <table className="w-full border-collapse text-xs">
           <thead className="bg-cyan-950">
             <tr className="border-b border-cyan-500/45">
@@ -937,7 +937,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 )}
               </div>
             )}
-            <div className="relative w-full min-w-0 sm:max-w-[180px]">
+            <div className="relative w-full min-w-0 sm:max-w-[280px] xl:max-w-[320px]">
               <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
               <input
                 type="text"
@@ -947,8 +947,23 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   setSharedIpSelection(null);
                 }}
                 placeholder="Search by username, employee ID, or IP address..."
-                className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs font-medium text-slate-900 shadow-[0_6px_18px_rgba(2,6,23,0.14)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
+                className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-xs font-medium text-slate-900 shadow-[0_6px_18px_rgba(2,6,23,0.14)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSharedIpSelection(null);
+                    setOpenSharedIpMenu(null);
+                  }}
+                  className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-500"
+                  aria-label="Clear search"
+                  title="Clear search"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
             </div>
             </div>
           </div>
@@ -1130,7 +1145,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             <p className="text-slate-300 text-sm">No employees under this admin</p>
                           </div>
                         ) : (
-                          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-1.5">
+                          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto login-history-list-scrollbar pb-1 sm:pb-1.5">
                             <table className="w-full border-collapse text-xs">
                               <thead className="bg-cyan-950">
                                 <tr className="border-b border-cyan-500/45">
