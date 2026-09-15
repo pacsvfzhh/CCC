@@ -583,7 +583,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 text-slate-100">
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-0 flex shrink-0 flex-col justify-start gap-2 border-b border-cyan-900/60 px-4 py-2.5 xl:min-h-[109px]">
+        <div className="mb-0 flex shrink-0 flex-col justify-start gap-2 border-b border-cyan-400/25 bg-gradient-to-br from-cyan-950/90 via-slate-950 to-blue-950/85 px-4 py-2.5 shadow-[0_8px_24px_rgba(8,47,73,0.18)] xl:min-h-[109px]">
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="min-w-0 pt-1.5">
               <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/80">Admin activity</p>
