@@ -519,11 +519,31 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     <div className="flex min-h-0 flex-1 flex-col gap-4 text-slate-100">
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-3 flex flex-col gap-3 border-b border-cyan-900/60 pb-3 sm:pb-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="flex min-w-0 items-start justify-between gap-4 xl:flex-1">
+          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/80">Admin activity</p>
               <h2 className="mt-0.5 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-[26px]">Login History</h2>
               <p className="mt-1 text-xs leading-relaxed text-slate-300">Review employee sign-ins, sign-outs, IP addresses, and browser evidence.</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="min-w-[118px] rounded-xl border border-cyan-300/25 bg-gradient-to-br from-cyan-400/10 to-blue-500/[0.04] px-3 py-2 shadow-[0_8px_20px_rgba(2,6,23,0.16)]">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 shrink-0 text-cyan-300" />
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200/80">Total Employees</p>
+                    <p className="mt-0.5 text-lg font-bold leading-none text-cyan-100">{totalEmployees}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="min-w-[112px] rounded-xl border border-blue-300/25 bg-gradient-to-br from-blue-500/10 to-cyan-500/[0.04] px-3 py-2 shadow-[0_8px_20px_rgba(2,6,23,0.16)]">
+                <div className="flex items-center gap-2">
+                  <History className="h-4 w-4 shrink-0 text-blue-300" />
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-blue-200/80">Admin Groups</p>
+                    <p className="mt-0.5 text-lg font-bold leading-none text-blue-100">{adminGroups.length}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -559,13 +579,6 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           </div>
         ) : (
           <>
-            <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-cyan-100">
-              <Users className="h-4 w-4 text-cyan-300" />
-              <span>Total Employees: {totalEmployees}</span>
-              <span className="mx-1 text-cyan-700">•</span>
-              <span>Admin Groups: {adminGroups.length}</span>
-            </div>
-
             {adminGroups.length === 0 ? (
               <div className="text-center py-12">
                 <History className="w-12 h-12 text-slate-600 mx-auto mb-3" />
