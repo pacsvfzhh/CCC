@@ -216,13 +216,13 @@ export default function EmployeeSearch() {
               員工搜尋
             </div>
             <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">搜尋員工資料</h2>
-            <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-slate-400">可透過使用者名稱、員工編號或已驗證的聯絡資料尋找帳戶。</p>
+            <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-slate-300">可透過使用者名稱、員工編號或已驗證的聯絡資料尋找帳戶。</p>
           </div>
 
           <div className="min-w-0 flex-1">
-            <label className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+            <label className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">
               搜尋員工記錄
-              <span className="font-medium normal-case tracking-normal text-slate-500">使用者名稱 · 員工編號 · 姓名 · 電子郵件 · 電話 · 錢包地址</span>
+              <span className="font-medium normal-case tracking-normal text-slate-300">使用者名稱 · 員工編號 · 姓名 · 電子郵件 · 電話 · 錢包地址</span>
             </label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative min-w-0 flex-1">
@@ -233,7 +233,7 @@ export default function EmployeeSearch() {
                   onChange={(e) => setSearchValue(e.target.value)}
                   onKeyDown={handleKeyPress}
                   placeholder="輸入員工使用者名稱、員工編號或聯絡資料..."
-                  className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 pl-10 pr-4 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-slate-400 hover:border-cyan-500 hover:bg-white focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-400/25"
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 pl-10 pr-4 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-slate-500 hover:border-cyan-500 hover:bg-white focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-400/25"
                 />
               </div>
               {searchValue && (
@@ -304,7 +304,7 @@ export default function EmployeeSearch() {
                 <Search className="h-7 w-7" />
               </span>
               <p className="mt-4 text-base font-semibold text-slate-200">找不到員工</p>
-              <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">請嘗試其他使用者名稱、員工編號或已驗證的聯絡資料。</p>
+              <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-300">請嘗試其他使用者名稱、員工編號或已驗證的聯絡資料。</p>
             </div>
           ) : (
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pt-3 dark-panel-scroll sm:pt-4">
@@ -319,7 +319,7 @@ export default function EmployeeSearch() {
                         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${employee.admin_info.role === 'super_admin' ? 'border-amber-300/30 bg-amber-300/10 text-amber-200' : 'border-cyan-300/30 bg-cyan-300/10 text-cyan-200'}`}>
                           <User className="h-3.5 w-3.5" />
                         </span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">所屬管理員</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">所屬管理員</span>
                         <span className={`truncate text-sm font-bold ${employee.admin_info.role === 'super_admin' ? 'text-amber-100' : 'text-cyan-100'}`}>{employee.admin_info.username}</span>
                       </div>
                       <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] ${employee.admin_info.role === 'super_admin' ? 'border-amber-300/25 bg-amber-300/10 text-amber-200' : 'border-cyan-300/25 bg-cyan-300/10 text-cyan-200'}`}>
@@ -348,7 +348,7 @@ export default function EmployeeSearch() {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                           <h4 className="truncate text-sm font-bold text-slate-100 sm:text-base">{employee.username}</h4>
-                          <span className="rounded-md border border-slate-700 bg-slate-900/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">員工編號 {employee.employee_id}</span>
+                          <span className="rounded-md border border-slate-700 bg-slate-900/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">員工編號 {employee.employee_id}</span>
                           {employee.is_verified && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300"><CheckCircle className="h-3.5 w-3.5" />已驗證</span>
                           )}
@@ -356,13 +356,13 @@ export default function EmployeeSearch() {
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-300"><XCircle className="h-3.5 w-3.5" />未啟用</span>
                           )}
                         </div>
-                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
-                          <Calendar className="h-3.5 w-3.5 text-slate-600" />
+                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-300">
+                          <Calendar className="h-3.5 w-3.5 text-slate-400" />
                           註冊時間 {formatDateUTC(employee.created_at)}
                         </div>
                       </div>
                     </div>
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/70 text-slate-400 transition-colors group-hover:border-cyan-500/50 group-hover:text-cyan-200">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/70 text-slate-300 transition-colors group-hover:border-cyan-500/50 group-hover:text-cyan-200">
                       {expandedCard === employee.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </span>
                   </div>
@@ -388,10 +388,10 @@ export default function EmployeeSearch() {
                           {employee.verification_info ? (
                             <div className="mt-3 space-y-2.5">
                               <InfoRow label="法定姓名" value={employee.verification_info.real_name || '無資料'} />
-                              <InfoRow label="電子郵件" value={employee.verification_info.email || '無資料'} icon={<Mail className="h-3.5 w-3.5 text-slate-500" />} />
-                              <InfoRow label="電話號碼" value={employee.verification_info.phone || '無資料'} icon={<Phone className="h-3.5 w-3.5 text-slate-500" />} />
-                              <InfoRow label="錢包地址" value={employee.verification_info.wallet_address || '無資料'} icon={<Wallet className="h-3.5 w-3.5 text-slate-500" />} breakAll />
-                              <InfoRow label="驗證日期" value={formatDateUTC(employee.verification_info.created_at)} icon={<Calendar className="h-3.5 w-3.5 text-slate-500" />} />
+                              <InfoRow label="電子郵件" value={employee.verification_info.email || '無資料'} icon={<Mail className="h-3.5 w-3.5 text-slate-300" />} />
+                              <InfoRow label="電話號碼" value={employee.verification_info.phone || '無資料'} icon={<Phone className="h-3.5 w-3.5 text-slate-300" />} />
+                              <InfoRow label="錢包地址" value={employee.verification_info.wallet_address || '無資料'} icon={<Wallet className="h-3.5 w-3.5 text-slate-300" />} breakAll />
+                              <InfoRow label="驗證日期" value={formatDateUTC(employee.verification_info.created_at)} icon={<Calendar className="h-3.5 w-3.5 text-slate-300" />} />
                             </div>
                           ) : (
                             <div className="mt-4 flex items-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.06] px-3 py-2.5 text-xs text-rose-300"><Clock className="h-4 w-4" />沒有可用的驗證資料</div>
@@ -402,7 +402,7 @@ export default function EmployeeSearch() {
                           <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/35 p-4 lg:col-span-2">
                             {employee.tags?.length > 0 && (
                               <div>
-                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">標籤</label>
+                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-300">標籤</label>
                                 <div className="flex flex-wrap gap-2">
                                   {employee.tags.map((tag, index) => <span key={index} className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold text-cyan-200">{tag}</span>)}
                                 </div>
@@ -410,7 +410,7 @@ export default function EmployeeSearch() {
                             )}
                             {employee.remarks && (
                               <div>
-                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">備註</label>
+                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-300">備註</label>
                                 <p className="rounded-lg border border-slate-800 bg-slate-900/70 p-3 text-xs leading-relaxed text-slate-300">{employee.remarks}</p>
                               </div>
                             )}
@@ -429,7 +429,7 @@ export default function EmployeeSearch() {
           <div className="max-w-md">
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 shadow-[0_0_28px_rgba(34,211,238,0.08)]"><Search className="h-7 w-7" /></span>
             <p className="mt-4 text-base font-semibold text-slate-200">搜尋員工記錄</p>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">使用上方搜尋欄，即可查看帳戶、驗證、錢包與所屬管理員資料。</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-300">使用上方搜尋欄，即可查看帳戶、驗證、錢包與所屬管理員資料。</p>
           </div>
         </section>
       )}
@@ -452,7 +452,7 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start gap-3 border-b border-slate-800/70 pb-2 last:border-0 last:pb-0">
-      <span className="w-[112px] shrink-0 text-[11px] font-medium text-slate-500">{label}</span>
+      <span className="w-[112px] shrink-0 text-[11px] font-medium text-slate-300">{label}</span>
       <div className="flex min-w-0 flex-1 items-start gap-2">
         {icon}
         {typeof value === 'string' ? (
