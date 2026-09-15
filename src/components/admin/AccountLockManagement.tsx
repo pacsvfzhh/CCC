@@ -576,7 +576,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
             <label className="group flex h-10 w-[180px] items-center gap-2 rounded-xl border border-cyan-300/25 bg-[linear-gradient(135deg,rgba(8,47,73,0.46),rgba(15,23,42,0.82))] px-3 text-slate-300 shadow-[0_6px_18px_rgba(2,6,23,0.2)] transition-[background-color,border-color,box-shadow] duration-150 focus-within:border-cyan-200/75 focus-within:bg-cyan-950/35 focus-within:shadow-[0_8px_24px_rgba(8,47,73,0.3)] sm:w-[220px]">
               <Search className="h-4 w-4 shrink-0 text-cyan-300/75 transition-colors group-focus-within:text-cyan-200" />
               <input
-                type="search"
+                type="text"
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
                 placeholder="搜尋帳戶或 ID"
@@ -587,7 +587,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="rounded-md p-1 text-slate-500 transition-colors hover:bg-white/[0.08] hover:text-slate-200"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-300/45 bg-slate-800/85 text-slate-100 shadow-[0_2px_8px_rgba(2,6,23,0.35)] transition-[background-color,border-color,color,transform] duration-150 hover:scale-105 hover:border-rose-200/80 hover:bg-rose-500/80 hover:text-white active:scale-95"
                   aria-label="清除搜尋"
                 >
                   <X className="h-3.5 w-3.5" />
