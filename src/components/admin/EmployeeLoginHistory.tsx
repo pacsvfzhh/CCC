@@ -97,7 +97,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   const adminCount = admins.length;
 
   useEffect(() => {
-    if (!isAdminMenuOpen) return;
+    if (!isAdminMenuOpen && !openSharedIpMenu) return;
 
     const handlePointerDown = (event: PointerEvent) => {
       if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
@@ -121,7 +121,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isAdminMenuOpen]);
+  }, [isAdminMenuOpen, openSharedIpMenu]);
 
   useEffect(() => {
     const initialize = async () => {
