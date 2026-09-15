@@ -750,7 +750,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           setSharedIpSelection(null);
                           setOpenSharedIpMenu(null);
                         }}
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-400/35 transition-colors hover:bg-red-500/35 hover:text-red-100"
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-600 text-white ring-1 ring-inset ring-red-300 transition-colors hover:bg-red-500 hover:text-white"
                         aria-label="Clear shared IP filter"
                       >
                         <X className="h-3 w-3" />
@@ -998,7 +998,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                 setSharedIpSelection(null);
                                 setOpenSharedIpMenu(null);
                               }}
-                              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-400/35 transition-colors hover:bg-red-500/35 hover:text-red-100"
+                              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-600 text-white ring-1 ring-inset ring-red-300 transition-colors hover:bg-red-500 hover:text-white"
                               aria-label="Clear shared IP filter"
                             >
                               <X className="h-3 w-3" />
