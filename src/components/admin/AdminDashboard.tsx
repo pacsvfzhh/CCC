@@ -893,6 +893,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       if (document.visibilityState === 'visible') {
         void loadPendingCounts();
       }
+    }, 60000);
+    const lockedCountsFallbackTimer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void loadLockedAccountsCount();
+      }
     }, 30000);
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -963,6 +968,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     return () => {
       window.clearTimeout(pendingCountsTimer);
       window.clearInterval(pendingCountsFallbackTimer);
+      window.clearInterval(lockedCountsFallbackTimer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       supabase.removeChannel(withdrawalChannel);
       supabase.removeChannel(verificationChannel);
