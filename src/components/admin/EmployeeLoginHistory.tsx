@@ -673,6 +673,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           compact
                           plain
                           hideUserAgent
+                          auditTone={record.action_type}
                         />
                       </td>
                       <td className="w-[340px] max-w-[340px] px-3 py-1.5 align-top">
