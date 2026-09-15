@@ -643,31 +643,33 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 text-slate-100">
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-0 flex shrink-0 flex-col justify-start gap-2 border-b border-cyan-900/60 px-4 py-2.5 xl:h-[109px]">
+        <div className="mb-0 flex shrink-0 flex-col justify-start gap-2 border-b border-cyan-900/60 px-4 py-2.5 xl:min-h-[109px]">
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="min-w-0 pt-1.5">
               <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/80">Admin activity</p>
               <h2 className="mt-0 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-xl font-bold tracking-tight text-transparent sm:text-2xl">Login History</h2>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
-              <div className="min-w-[96px] rounded-lg border border-cyan-300/25 bg-gradient-to-br from-cyan-400/10 to-blue-500/[0.04] px-2 py-1 shadow-[0_6px_16px_rgba(2,6,23,0.14)]">
-                <div className="flex items-center gap-2">
-                  <Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
-                  <div>
-                    <p className="text-[8px] font-bold uppercase tracking-[0.08em] text-cyan-200/80">Total Employees</p>
-                    <p className="mt-0.5 text-base font-bold leading-none text-cyan-100">{totalEmployees}</p>
+              {admin.role === 'super_admin' && (
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <div className="min-w-[96px] rounded-lg border border-cyan-300/25 bg-gradient-to-br from-cyan-400/10 to-blue-500/[0.04] px-2 py-1 shadow-[0_6px_16px_rgba(2,6,23,0.14)]">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                      <div>
+                        <p className="text-[8px] font-bold uppercase tracking-[0.08em] text-cyan-200/80">Total Employees</p>
+                        <p className="mt-0.5 text-base font-bold leading-none text-cyan-100">{totalEmployees}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="min-w-[90px] rounded-lg border border-blue-300/25 bg-gradient-to-br from-blue-500/10 to-cyan-500/[0.04] px-2 py-1 shadow-[0_6px_16px_rgba(2,6,23,0.14)]">
+                    <div className="flex items-center gap-2">
+                      <History className="h-3.5 w-3.5 shrink-0 text-blue-300" />
+                      <div>
+                        <p className="text-[8px] font-bold uppercase tracking-[0.08em] text-blue-200/80">Admin Groups</p>
+                        <p className="mt-0.5 text-base font-bold leading-none text-blue-100">{adminGroups.length}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="min-w-[90px] rounded-lg border border-blue-300/25 bg-gradient-to-br from-blue-500/10 to-cyan-500/[0.04] px-2 py-1 shadow-[0_6px_16px_rgba(2,6,23,0.14)]">
-                <div className="flex items-center gap-2">
-                  <History className="h-3.5 w-3.5 shrink-0 text-blue-300" />
-                  <div>
-                    <p className="text-[8px] font-bold uppercase tracking-[0.08em] text-blue-200/80">Admin Groups</p>
-                    <p className="mt-0.5 text-base font-bold leading-none text-blue-100">{adminGroups.length}</p>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
             <button
               onClick={() => {
