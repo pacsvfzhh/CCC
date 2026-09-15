@@ -46,27 +46,43 @@ interface EmployeeTableRow {
   adminUsername?: string;
 }
 
-const getSharedIpEmployees = (employees: EmployeeSummary[]) => {
-  const ipOwners = new Map<string, Set<string>>();
+interface SharedIpGroup {
+  ip: string;
+  employees: EmployeeSummary[];
+}
+
+interface SharedIpSelection {
+  scope: 'all' | 'group';
+  groupId?: string;
+  ip: string;
+}
+
+const getSharedIpGroups = (employees: EmployeeSummary[]): SharedIpGroup[] => {
+  const employeesByIp = new Map<string, EmployeeSummary[]>();
 
   employees.forEach((employee) => {
     const ip = employee.latest_login_ip?.trim();
     if (!ip) return;
 
-    const owners = ipOwners.get(ip) || new Set<string>();
-    owners.add(employee.user_id);
-    ipOwners.set(ip, owners);
+    const group = employeesByIp.get(ip) || [];
+    group.push(employee);
+    employeesByIp.set(ip, group);
   });
 
-  return employees.filter((employee) => {
-    const ip = employee.latest_login_ip?.trim();
-    return Boolean(ip && (ipOwners.get(ip)?.size || 0) > 1);
-  });
+  return Array.from(employeesByIp.entries())
+    .filter(([, groupedEmployees]) => groupedEmployees.length > 1)
+    .map(([ip, groupedEmployees]) => ({ ip, employees: groupedEmployees }))
+    .sort((a, b) => b.employees.length - a.employees.length || a.ip.localeCompare(b.ip));
 };
+
+const getEmployeesForSharedIp = (employees: EmployeeSummary[], ip: string) => (
+  employees.filter((employee) => employee.latest_login_ip?.trim() === ip)
+);
 
 export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sharedIpFilter, setSharedIpFilter] = useState<string | null>(null);
+  const [sharedIpSelection, setSharedIpSelection] = useState<SharedIpSelection | null>(null);
+  const [openSharedIpMenu, setOpenSharedIpMenu] = useState<'all' | string | null>(null);
   const [loading, setLoading] = useState(true);
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
@@ -87,11 +103,15 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
       if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
         setIsAdminMenuOpen(false);
       }
+      if (!(event.target instanceof Element) || !event.target.closest('[data-shared-ip-menu]')) {
+        setOpenSharedIpMenu(null);
+      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsAdminMenuOpen(false);
+        setOpenSharedIpMenu(null);
       }
     };
 
@@ -414,12 +434,27 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     if (a.role !== 'super_admin' && b.role === 'super_admin') return 1;
     return a.username.localeCompare(b.username);
   });
-  const sharedIpRows: EmployeeTableRow[] = adminGroups.flatMap((group) => (
-    getSharedIpEmployees(group.employees).map((employee) => ({ employee, adminUsername: group.admin_username }))
-  ));
-  const getDisplayedGroupEmployees = (group: AdminGroup) => (
-    sharedIpFilter === group.admin_id ? getSharedIpEmployees(group.employees) : group.employees
-  );
+  const allEmployees = adminGroups.flatMap((group) => group.employees);
+  const allSharedIpGroups = getSharedIpGroups(allEmployees);
+  const selectedAllSharedIpGroup = sharedIpSelection?.scope === 'all'
+    ? allSharedIpGroups.find((group) => group.ip === sharedIpSelection.ip)
+    : null;
+  const sharedIpRows: EmployeeTableRow[] = selectedAllSharedIpGroup
+    ? adminGroups.flatMap((group) => (
+        getEmployeesForSharedIp(group.employees, selectedAllSharedIpGroup.ip)
+          .map((employee) => ({ employee, adminUsername: group.admin_username }))
+      ))
+    : [];
+  const getDisplayedGroupEmployees = (group: AdminGroup) => {
+    if (sharedIpSelection?.scope === 'group' && sharedIpSelection.groupId === group.admin_id) {
+      return getEmployeesForSharedIp(group.employees, sharedIpSelection.ip);
+    }
+    return group.employees;
+  };
+  const getSelectedGroupSharedIp = (group: AdminGroup) => {
+    if (sharedIpSelection?.scope !== 'group' || sharedIpSelection.groupId !== group.admin_id) return null;
+    return getSharedIpGroups(group.employees).find((option) => option.ip === sharedIpSelection.ip) || null;
+  };
 
   const renderEmployeeTable = (rows: EmployeeTableRow[], showAdminGroup = false, sharedIpMode = false) => {
     if (rows.length === 0) {
@@ -686,24 +721,83 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             )}
             <div className="flex min-w-0 flex-1 justify-end gap-1.5 sm:items-center">
             {admin.role === 'super_admin' && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchTerm('');
-                  setSharedIpFilter((current) => current === 'all' ? null : 'all');
-                  setIsAdminMenuOpen(false);
-                }}
-                className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold transition-[background-color,border-color,box-shadow,color] ${
-                  sharedIpFilter === 'all'
-                    ? 'border border-cyan-200/70 bg-cyan-300/20 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
-                    : 'border border-cyan-300/30 bg-slate-900/70 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-400/15 hover:text-white'
-                }`}
-                title="Show employees sharing an IP across all admin groups"
-              >
-                <MapPin className="h-3 w-3" />
-                <span>Shared IP</span>
-                <span className="rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{sharedIpRows.length}</span>
-              </button>
+              <div data-shared-ip-menu="all" className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setIsAdminMenuOpen(false);
+                    if (selectedAllSharedIpGroup) {
+                      setSharedIpSelection(null);
+                      setOpenSharedIpMenu(null);
+                    } else {
+                      setOpenSharedIpMenu((current) => current === 'all' ? null : 'all');
+                    }
+                  }}
+                  disabled={allSharedIpGroups.length === 0}
+                  className={`inline-flex h-9 w-[230px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold transition-[background-color,border-color,box-shadow,color] ${
+                    selectedAllSharedIpGroup
+                      ? 'border border-cyan-200/70 bg-cyan-300/20 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
+                      : 'border border-cyan-300/30 bg-slate-900/70 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-400/15 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900/50 disabled:text-slate-600 disabled:shadow-none'
+                  }`}
+                  title={selectedAllSharedIpGroup ? 'Clear shared IP filter' : 'Choose a shared login IP across all admin groups'}
+                >
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  {selectedAllSharedIpGroup ? (
+                    <>
+                      <span className="min-w-0 flex-1 truncate text-left">{selectedAllSharedIpGroup.ip}</span>
+                      <span className="shrink-0 rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{selectedAllSharedIpGroup.employees.length}</span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSharedIpSelection(null);
+                          setOpenSharedIpMenu(null);
+                        }}
+                        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-cyan-100 transition-colors hover:bg-cyan-100/20 hover:text-white"
+                        aria-label="Clear shared IP filter"
+                      >
+                        <X className="h-3 w-3" />
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="min-w-0 flex-1 truncate text-left">Shared Login IP</span>
+                      <span className="shrink-0 rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{allSharedIpGroups.length}</span>
+                      <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === 'all' ? 'rotate-180' : ''}`} />
+                    </>
+                  )}
+                </button>
+                {openSharedIpMenu === 'all' && (
+                  <div role="listbox" aria-label="Shared login IP options" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950/98 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+                    <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950/80 to-blue-950/70 px-2.5 py-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
+                      <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{allSharedIpGroups.length}</span>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
+                      {allSharedIpGroups.map((option) => (
+                        <button
+                          key={option.ip}
+                          type="button"
+                          role="option"
+                          aria-selected={selectedAllSharedIpGroup?.ip === option.ip}
+                          onClick={() => {
+                            setSearchTerm('');
+                            setSharedIpSelection({ scope: 'all', ip: option.ip });
+                            setOpenSharedIpMenu(null);
+                          }}
+                          className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-slate-300 transition-[background-color,color,box-shadow] hover:bg-slate-800/90 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35"
+                        >
+                          <MapPin className="h-3 w-3 shrink-0 text-cyan-300" />
+                          <span className="min-w-0 flex-1 truncate text-xs font-semibold">{option.ip}</span>
+                          <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900/80 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">{option.employees.length}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
             {admin.role === 'super_admin' && (
               <div ref={adminMenuRef} className="relative shrink-0">
@@ -743,7 +837,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             aria-selected={isSelected}
                             onClick={() => {
                               setSearchTerm('');
-                              setSharedIpFilter(null);
+                              setSharedIpSelection(null);
                               setSelectedAdminId(adminOption.id);
                               setIsAdminMenuOpen(false);
                             }}
@@ -778,7 +872,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
-                  setSharedIpFilter(null);
+                  setSharedIpSelection(null);
                 }}
                 placeholder="Search by username, employee ID, or IP address..."
                 className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs font-medium text-slate-900 shadow-[0_6px_18px_rgba(2,6,23,0.14)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
@@ -794,7 +888,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           </div>
         ) : (
           <>
-            {sharedIpFilter === 'all' ? (
+            {sharedIpSelection?.scope === 'all' ? (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950/35">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
@@ -841,7 +935,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     }`}
                   >
                     {/* Group Header */}
-                    <div className={`sticky top-0 z-40 isolate relative flex items-center justify-between px-4 py-3 pr-36 border-b ${
+                    <div className={`sticky top-0 z-40 isolate relative flex items-center justify-between px-4 py-3 pr-60 border-b ${
                       group.admin_role === 'super_admin'
                         ? 'bg-gradient-to-r from-yellow-950 via-slate-900 to-slate-950 border-yellow-500/30'
                         : 'bg-gradient-to-r from-blue-950 via-slate-900 to-slate-950 border-blue-500/30'
@@ -880,24 +974,84 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           {getDisplayedGroupEmployees(group).length} employee{getDisplayedGroupEmployees(group).length !== 1 ? 's' : ''}
                         </span>
                       </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchTerm('');
-                        setSharedIpFilter((current) => current === group.admin_id ? null : group.admin_id);
-                      }}
-                      disabled={getSharedIpEmployees(group.employees).length === 0}
-                      className={`absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold transition-[background-color,border-color,box-shadow,color] ${
-                        sharedIpFilter === group.admin_id
-                          ? 'border border-cyan-200/70 bg-cyan-300/20 text-white shadow-[0_0_12px_rgba(34,211,238,0.2)]'
-                          : 'border border-cyan-300/25 bg-slate-950/35 text-cyan-200 hover:border-cyan-200/60 hover:bg-cyan-400/15 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-transparent disabled:text-slate-600 disabled:shadow-none'
-                      }`}
-                      title="Show employees in this group sharing an IP"
-                    >
-                      <MapPin className="h-3 w-3" />
-                      <span>Shared IP</span>
-                      <span className="rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{getSharedIpEmployees(group.employees).length}</span>
-                    </button>
+                    <div data-shared-ip-menu={group.admin_id} className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchTerm('');
+                          setIsAdminMenuOpen(false);
+                          const selectedGroupSharedIp = getSelectedGroupSharedIp(group);
+                          if (selectedGroupSharedIp) {
+                            setSharedIpSelection(null);
+                            setOpenSharedIpMenu(null);
+                          } else {
+                            setOpenSharedIpMenu((current) => current === group.admin_id ? null : group.admin_id);
+                          }
+                        }}
+                        disabled={getSharedIpGroups(group.employees).length === 0}
+                        className={`inline-flex h-7 w-[230px] items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold transition-[background-color,border-color,box-shadow,color] ${
+                          getSelectedGroupSharedIp(group)
+                            ? 'border border-cyan-200/70 bg-cyan-300/20 text-white shadow-[0_0_12px_rgba(34,211,238,0.2)]'
+                            : 'border border-cyan-300/25 bg-slate-950/35 text-cyan-200 hover:border-cyan-200/60 hover:bg-cyan-400/15 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-transparent disabled:text-slate-600 disabled:shadow-none'
+                        }`}
+                        title={getSelectedGroupSharedIp(group) ? 'Clear shared IP filter' : 'Choose a shared login IP in this group'}
+                      >
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        {getSelectedGroupSharedIp(group) ? (
+                          <>
+                            <span className="min-w-0 flex-1 truncate text-left">{getSelectedGroupSharedIp(group)?.ip}</span>
+                            <span className="shrink-0 rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{getSelectedGroupSharedIp(group)?.employees.length}</span>
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setSharedIpSelection(null);
+                                setOpenSharedIpMenu(null);
+                              }}
+                              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-cyan-100 transition-colors hover:bg-cyan-100/20 hover:text-white"
+                              aria-label="Clear shared IP filter"
+                            >
+                              <X className="h-3 w-3" />
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="min-w-0 flex-1 truncate text-left">Shared Login IP</span>
+                            <span className="shrink-0 rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{getSharedIpGroups(group.employees).length}</span>
+                            <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === group.admin_id ? 'rotate-180' : ''}`} />
+                          </>
+                        )}
+                      </button>
+                      {openSharedIpMenu === group.admin_id && (
+                        <div role="listbox" aria-label={`${group.admin_username} shared login IP options`} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950/98 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+                          <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950/80 to-blue-950/70 px-2.5 py-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
+                            <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{getSharedIpGroups(group.employees).length}</span>
+                          </div>
+                          <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
+                            {getSharedIpGroups(group.employees).map((option) => (
+                              <button
+                                key={option.ip}
+                                type="button"
+                                role="option"
+                                aria-selected={getSelectedGroupSharedIp(group)?.ip === option.ip}
+                                onClick={() => {
+                                  setSearchTerm('');
+                                  setSharedIpSelection({ scope: 'group', groupId: group.admin_id, ip: option.ip });
+                                  setOpenSharedIpMenu(null);
+                                }}
+                                className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-slate-300 transition-[background-color,color,box-shadow] hover:bg-slate-800/90 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35"
+                              >
+                                <MapPin className="h-3 w-3 shrink-0 text-cyan-300" />
+                                <span className="min-w-0 flex-1 truncate text-xs font-semibold">{option.ip}</span>
+                                <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900/80 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">{option.employees.length}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     </div>
 
                     {/* Group Content */}
