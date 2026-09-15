@@ -516,17 +516,30 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   ) : null;
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
-        <div className="mb-6 flex gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 text-slate-100">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="mb-4 flex flex-col gap-4 border-b border-cyan-900/60 pb-4 sm:pb-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/80">Admin activity</p>
+              <h2 className="mt-1 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-[28px]">Login History</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-300">Review employee sign-ins, sign-outs, IP addresses, and browser evidence.</p>
+            </div>
+            <span className="hidden shrink-0 items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 sm:inline-flex">
+              <History className="h-3.5 w-3.5 text-cyan-300" />
+              Audit log
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-cyan-700" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by username, employee ID, or IP address..."
-              className="w-full pl-12 pr-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all"
+              className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-12 pr-4 text-sm font-medium text-slate-900 shadow-[0_8px_24px_rgba(2,6,23,0.16)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
             />
           </div>
           <button
@@ -535,12 +548,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               void loadEmployeeSummaryRef.current?.();
             }}
             disabled={loading}
-            className="px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-xl text-blue-400 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-5 text-sm font-bold text-white shadow-[0_8px_22px_rgba(8,145,178,0.22)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_12px_28px_rgba(8,145,178,0.3)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
             title="Refresh data"
           >
             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
             <span className="font-medium">Refresh</span>
           </button>
+          </div>
         </div>
 
         {loading ? (
@@ -549,27 +563,27 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           </div>
         ) : (
           <>
-            <div className="mb-4 flex items-center gap-2 text-sm text-slate-400">
-              <Users className="w-4 h-4" />
+            <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-cyan-100">
+              <Users className="h-4 w-4 text-cyan-300" />
               <span>Total Employees: {totalEmployees}</span>
-              <span className="mx-2">|</span>
+              <span className="mx-1 text-cyan-700">•</span>
               <span>Admin Groups: {adminGroups.length}</span>
             </div>
 
             {adminGroups.length === 0 ? (
               <div className="text-center py-12">
                 <History className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400">No admin groups found</p>
+                <p className="text-slate-300">No admin groups found</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {adminGroups.map((group) => (
                   <div
                     key={group.admin_id}
-                    className={`rounded-xl overflow-hidden border-2 ${
+                    className={`overflow-hidden border-b border-slate-800/70 border-l-2 ${
                       group.admin_role === 'super_admin'
-                        ? 'bg-gradient-to-br from-yellow-500/5 via-slate-800/40 to-slate-800/40 border-yellow-500/30 shadow-lg shadow-yellow-500/10'
-                        : 'bg-gradient-to-br from-blue-500/5 via-slate-800/40 to-slate-800/40 border-blue-500/30 shadow-lg shadow-blue-500/10'
+                        ? 'border-l-yellow-400/80 bg-gradient-to-br from-yellow-500/[0.08] via-slate-900/20 to-transparent'
+                        : 'border-l-cyan-400/80 bg-gradient-to-br from-blue-500/[0.08] via-slate-900/20 to-transparent'
                     }`}
                   >
                     {/* Group Header */}
@@ -609,7 +623,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         </div>
                         <div className="flex items-center gap-2">
                           <h3 className={`text-lg font-bold ${
-                            group.admin_role === 'super_admin' ? 'text-yellow-300' : 'text-white'
+                            group.admin_role === 'super_admin' ? 'text-yellow-300' : 'text-cyan-100'
                           }`}>
                             {group.admin_username}
                           </h3>
@@ -663,7 +677,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         {group.employees.length === 0 ? (
                           <div className="text-center py-8">
                             <Users className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-                            <p className="text-slate-500 text-sm">No employees under this admin</p>
+                            <p className="text-slate-300 text-sm">No employees under this admin</p>
                           </div>
                         ) : (
                           <div className="p-4">
