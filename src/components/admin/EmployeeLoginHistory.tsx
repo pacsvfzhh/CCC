@@ -472,8 +472,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     }
 
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto login-history-list-scrollbar">
-        <table className="w-full border-collapse text-xs">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto bg-slate-950 login-history-list-scrollbar">
+        <table className="w-full border-collapse bg-slate-950 text-xs">
           <thead className="bg-cyan-950">
             <tr className="border-b border-cyan-500/45">
               <th className="sticky top-0 z-20 w-10 bg-cyan-950 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">#</th>
@@ -677,8 +677,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   ) : null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 text-slate-100">
-      <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 bg-slate-950 text-slate-100">
+      <div className="flex min-h-0 flex-1 flex-col bg-slate-950">
         <div className="mb-0 flex shrink-0 flex-col justify-start gap-2 border-b border-cyan-400/25 bg-gradient-to-tr from-blue-950/85 via-slate-950 to-cyan-950/90 px-4 py-2.5 shadow-[0_8px_24px_rgba(8,47,73,0.18)] xl:min-h-[109px]">
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="min-w-0 pt-1.5">
@@ -733,7 +733,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     setOpenSharedIpMenu((current) => current === 'all' ? null : 'all');
                   }}
                   disabled={allSharedIpGroups.length === 0}
-                  className={`inline-flex h-9 w-[230px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold transition-[background-color,border-color,box-shadow,color] ${
+                  className={`inline-flex h-9 w-[230px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold outline-none transition-[background-color,border-color,box-shadow,color] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50 ${
                     selectedAllSharedIpGroup
                       ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
                       : 'border border-cyan-300/30 bg-slate-900 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
@@ -747,7 +747,6 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                       <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{selectedAllSharedIpGroup.employees.length}</span>
                       <span
                         role="button"
-                        tabIndex={0}
                         onClick={(event) => {
                           event.stopPropagation();
                           setSharedIpSelection(null);
@@ -873,7 +872,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     setOpenSharedIpMenu((current) => current === secondaryGroup.admin_id ? null : secondaryGroup.admin_id);
                   }}
                   disabled={secondarySharedIpGroups.length === 0}
-                  className={`inline-flex h-9 w-[230px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold transition-[background-color,border-color,box-shadow,color] ${
+                  className={`inline-flex h-9 w-[230px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold outline-none transition-[background-color,border-color,box-shadow,color] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50 ${
                     selectedSecondarySharedIpGroup
                       ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
                       : 'border border-cyan-300/30 bg-slate-900 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
@@ -887,7 +886,6 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                       <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{selectedSecondarySharedIpGroup.employees.length}</span>
                       <span
                         role="button"
-                        tabIndex={0}
                         onClick={(event) => {
                           event.stopPropagation();
                           setSharedIpSelection(null);
@@ -974,9 +972,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : (
-          <>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 isolate">
             {sharedIpSelection?.scope === 'all' ? (
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950 isolate">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">Shared IP employees</p>
@@ -989,7 +987,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 {renderEmployeeTable(sharedIpRows, true, true)}
               </div>
             ) : isSearching ? (
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950 isolate">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">Search results</p>
@@ -1071,7 +1069,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           setOpenSharedIpMenu((current) => current === group.admin_id ? null : group.admin_id);
                         }}
                         disabled={getSharedIpGroups(group.employees).length === 0}
-                        className={`inline-flex h-7 w-[230px] items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold transition-[background-color,border-color,box-shadow,color] ${
+                        className={`inline-flex h-7 w-[230px] items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold outline-none transition-[background-color,border-color,box-shadow,color] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50 ${
                           getSelectedGroupSharedIp(group)
                             ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_12px_rgba(34,211,238,0.2)]'
                             : 'border border-cyan-300/25 bg-slate-950 text-cyan-200 hover:border-cyan-200/60 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
@@ -1085,7 +1083,6 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{getSelectedGroupSharedIp(group)?.employees.length}</span>
                             <span
                               role="button"
-                              tabIndex={0}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 setSharedIpSelection(null);
@@ -1145,8 +1142,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             <p className="text-slate-300 text-sm">No employees under this admin</p>
                           </div>
                         ) : (
-                          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto login-history-list-scrollbar pb-1 sm:pb-1.5">
-                            <table className="w-full border-collapse text-xs">
+                          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto bg-slate-950 login-history-list-scrollbar pb-1 sm:pb-1.5">
+                            <table className="w-full border-collapse bg-slate-950 text-xs">
                               <thead className="bg-cyan-950">
                                 <tr className="border-b border-cyan-500/45">
                                   <th className="sticky top-0 z-20 w-10 bg-cyan-950 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">#</th>
@@ -1247,7 +1244,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 ))}
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
 

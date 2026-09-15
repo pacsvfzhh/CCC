@@ -111,6 +111,11 @@
 }
 
 .login-history-list-scrollbar {
+  background-color: #020617;
+  color-scheme: dark;
+  isolation: isolate;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: #0891b2 #0f172a;
 }
@@ -141,6 +146,10 @@
 
 .login-history-list-scrollbar::-webkit-scrollbar-corner {
   background: #0f172a;
+}
+
+.login-history-list-scrollbar > table {
+  background-color: #020617;
 }
 
 /* High-visibility scrollbar for the super-admin employee workspace */
