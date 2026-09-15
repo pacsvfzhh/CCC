@@ -1,4 +1,4 @@
-import { ChevronDown, Globe2 } from 'lucide-react';
+import { Apple, ChevronDown, HelpCircle, Monitor, Smartphone, Tablet } from 'lucide-react';
 import { resolveLoginDeviceInfo } from '../../lib/deviceInfo';
 
 interface LoginDeviceSummaryProps {
@@ -48,6 +48,14 @@ export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = fa
     osLabels[info.os_family],
     ...(!systemOnly ? [formatValue(browserLabels[info.browser_family], info.browser_version)] : []),
   ];
+  const SystemIcon = info.os_family === 'ios' || info.os_family === 'macos'
+    ? Apple
+    : info.os_family === 'android'
+      ? info.device_type === 'tablet' ? Tablet : Smartphone
+      : info.os_family === 'unknown'
+        ? HelpCircle
+        : Monitor;
+
   if (systemOnly) {
     return (
       <span
@@ -63,8 +71,8 @@ export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = fa
   return (
     <div className={compact ? 'min-w-[190px] max-w-[280px]' : 'min-w-[240px]'}>
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="inline-flex items-center gap-1 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-200">
-          <Globe2 className="h-3 w-3" />
+        <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${osStyles[info.os_family]}`}>
+          <SystemIcon className="h-3 w-3" aria-hidden="true" />
           {osLabels[info.os_family]}
         </span>
         <span className="inline-flex items-center rounded-md border border-violet-400/25 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200">
