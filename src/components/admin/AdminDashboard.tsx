@@ -884,6 +884,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, [activeTab, nextLockedAccountExpiry, loadLockedAccountsCount]);
 
   useEffect(() => {
+    void loadLockedAccountsCount();
+
     const pendingCountsTimer = window.setTimeout(() => {
       void loadPendingCounts();
     }, 600);
@@ -891,7 +893,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       if (document.visibilityState === 'visible') {
         void loadPendingCounts();
       }
-    }, 60000);
+    }, 30000);
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         void loadPendingCounts();
@@ -950,7 +952,13 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           void loadLockedAccountsCount();
         }
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        if (status === 'SUBSCRIBED') {
+          void loadLockedAccountsCount();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('Account lock realtime is unavailable; periodic refresh remains active.', error);
+        }
+      });
 
     return () => {
       window.clearTimeout(pendingCountsTimer);
