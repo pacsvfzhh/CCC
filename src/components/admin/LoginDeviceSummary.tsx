@@ -42,6 +42,16 @@ const osStyles = {
   unknown: 'border-slate-500/30 bg-slate-500/10 text-slate-300',
 } as const;
 
+const osTextStyles = {
+  android: 'text-yellow-200',
+  ios: 'text-emerald-200',
+  windows: 'text-blue-200',
+  macos: 'text-emerald-200',
+  linux: 'text-amber-200',
+  chromeos: 'text-rose-200',
+  unknown: 'text-slate-300',
+} as const;
+
 const formatValue = (label: string, version: string | null) => version ? `${label} ${version}` : label;
 
 export default function LoginDeviceSummary({
@@ -80,16 +90,23 @@ export default function LoginDeviceSummary({
 
   return (
     <div className={compact && inlineUserAgent
-      ? 'flex min-w-[360px] max-w-[640px] items-center gap-2'
+      ? 'flex min-w-0 max-w-[480px] items-start gap-4'
       : compact
         ? 'min-w-[190px] max-w-[280px]'
         : 'min-w-[240px]'}>
-      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-        <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${osStyles[info.os_family]}`}>
+      <div className={inlineUserAgent
+        ? 'flex shrink-0 items-center gap-1.5 text-[10px] font-semibold'
+        : 'flex shrink-0 flex-wrap items-center gap-1.5'}>
+        <span className={inlineUserAgent
+          ? `inline-flex items-center gap-1 ${osTextStyles[info.os_family]}`
+          : `inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${osStyles[info.os_family]}`}>
           <SystemIcon className="h-3 w-3" aria-hidden="true" />
           {osLabels[info.os_family]}
         </span>
-        <span className="inline-flex items-center rounded-md border border-violet-400/25 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200">
+        <span className="text-slate-600">·</span>
+        <span className={inlineUserAgent
+          ? 'text-violet-200'
+          : 'inline-flex items-center rounded-md border border-violet-400/25 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200'}>
           {formatValue(browserLabels[info.browser_family], info.browser_version)}
         </span>
       </div>
@@ -98,7 +115,7 @@ export default function LoginDeviceSummary({
       )}
       {inlineUserAgent && userAgent && !systemOnly ? (
         <p
-          className={`min-w-0 max-w-[420px] max-h-[2.6em] overflow-hidden break-all font-mono text-[9px] leading-[1.3em] ${auditTextClass}`}
+          className={`min-w-0 max-w-[240px] max-h-[2.6em] overflow-hidden break-all font-mono text-[9px] leading-[1.3em] ${auditTextClass}`}
           title={userAgent}
         >
           <span className="mr-1 font-sans font-bold uppercase tracking-[0.12em] opacity-70">UA</span>
