@@ -231,7 +231,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [unreadCustomerServiceCount, setUnreadCustomerServiceCount] = useState(0);
   const [unreadCccServiceCount, setUnreadCccServiceCount] = useState(0);
   const [lockedAccountsCount, setLockedAccountsCount] = useState(0);
+  const [lockedBadgeDismissed, setLockedBadgeDismissed] = useState(admin.role === 'emergency_admin');
+  const [nextLockedAccountExpiry, setNextLockedAccountExpiry] = useState<number | null>(null);
   const pendingCountsRequestRef = useRef(0);
+  const lockedCountsRequestRef = useRef(0);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -661,6 +664,29 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setShowNavigationSettings(false);
   };
 
+  const loadLockedAccountsCount = useCallback(async () => {
+    const requestId = ++lockedCountsRequestRef.current;
+
+    try {
+      const { data, error } = await supabase.rpc('get_account_locks_for_admin', {
+        p_admin_id: getAdminFinancialSessionToken()
+      });
+
+      if (error) throw error;
+      if (requestId !== lockedCountsRequestRef.current) return;
+
+      const employeeLocks = (data || []).filter(lock => lock.identifier_type === 'username');
+      const expiryTimes = employeeLocks
+        .map(lock => new Date(lock.lock_until).getTime())
+        .filter(expiry => Number.isFinite(expiry));
+
+      setLockedAccountsCount(employeeLocks.length);
+      setNextLockedAccountExpiry(expiryTimes.length > 0 ? Math.min(...expiryTimes) : null);
+    } catch (error) {
+      console.warn('Locked accounts notification is temporarily unavailable:', formatRequestError(error));
+    }
+  }, []);
+
   const loadPendingCounts = useCallback(async () => {
     const requestId = ++pendingCountsRequestRef.current;
     try {
@@ -808,7 +834,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setActiveTab(tabId);
     setLoadedTabs(prev => new Set([...prev, tabId]));
     if (tabId === 'accountlocks') {
-      setLockedAccountsCount(0);
+      setLockedBadgeDismissed(true);
     }
   }, []);
 
@@ -832,6 +858,21 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, [handleTabChange]);
 
   useEffect(() => {
+    if (!nextLockedAccountExpiry) return;
+
+    const refreshDelay = Math.max(1000, nextLockedAccountExpiry - Date.now() + 1000);
+    const timeout = window.setTimeout(() => {
+      if (document.visibilityState === 'visible') {
+        void loadLockedAccountsCount();
+      }
+    }, refreshDelay);
+
+    return () => window.clearTimeout(timeout);
+  }, [nextLockedAccountExpiry, loadLockedAccountsCount]);
+
+  useEffect(() => {
+    void loadLockedAccountsCount();
+
     const pendingCountsTimer = window.setTimeout(() => {
       void loadPendingCounts();
     }, 600);
@@ -843,6 +884,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         void loadPendingCounts();
+        void loadLockedAccountsCount();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -899,7 +941,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             : null;
           if (signal?.event_type !== 'INSERT') return;
 
-          setLockedAccountsCount(count => count + 1);
+          setLockedBadgeDismissed(false);
+          void loadLockedAccountsCount();
         }
       )
       .subscribe((status, error) => {
@@ -921,7 +964,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       autoCleanupService.stop();
       console.log('[Admin Dashboard] Auto cleanup service stopped');
     };
-  }, [loadPendingCounts, admin.id]);
+  }, [loadPendingCounts, loadLockedAccountsCount, admin.id]);
 
   const handleChangePassword = async () => {
     setPasswordError(null);
@@ -1158,7 +1201,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const pendingCount = tab.id === 'withdrawals' ? pendingWithdrawalsCount : tab.id === 'verifications' ? pendingVerificationsCount : tab.id === 'customerservice' ? unreadCustomerServiceCount : tab.id === 'cccservice' ? unreadCccServiceCount : tab.id === 'accountlocks' ? lockedAccountsCount : 0;
-                const showBadge = pendingCount > 0;
+                const showBadge = pendingCount > 0
+                  && (tab.id !== 'accountlocks' || !lockedBadgeDismissed);
 
                 return (
                   <button
@@ -1237,7 +1281,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const pendingCount = tab.id === 'withdrawals' ? pendingWithdrawalsCount : tab.id === 'verifications' ? pendingVerificationsCount : tab.id === 'customerservice' ? unreadCustomerServiceCount : tab.id === 'cccservice' ? unreadCccServiceCount : tab.id === 'accountlocks' ? lockedAccountsCount : 0;
-                const showBadge = pendingCount > 0;
+                const showBadge = pendingCount > 0
+                  && (tab.id !== 'accountlocks' || !lockedBadgeDismissed);
 
                 return (
                   <button
