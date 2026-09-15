@@ -518,42 +518,42 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 text-slate-100">
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-4 flex flex-col gap-4 border-b border-cyan-900/60 pb-4 sm:pb-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
+        <div className="mb-3 flex flex-col gap-3 border-b border-cyan-900/60 pb-3 sm:pb-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex min-w-0 items-start justify-between gap-4 xl:flex-1">
+            <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/80">Admin activity</p>
-              <h2 className="mt-1 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-[28px]">Login History</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-300">Review employee sign-ins, sign-outs, IP addresses, and browser evidence.</p>
+              <h2 className="mt-0.5 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-[26px]">Login History</h2>
+              <p className="mt-1 text-xs leading-relaxed text-slate-300">Review employee sign-ins, sign-outs, IP addresses, and browser evidence.</p>
             </div>
-            <span className="hidden shrink-0 items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 sm:inline-flex">
+            <span className="hidden shrink-0 items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 sm:inline-flex xl:mr-2">
               <History className="h-3.5 w-3.5 text-cyan-300" />
               Audit log
             </span>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-cyan-700" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by username, employee ID, or IP address..."
-              className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-12 pr-4 text-sm font-medium text-slate-900 shadow-[0_8px_24px_rgba(2,6,23,0.16)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
-            />
-          </div>
-          <button
-            onClick={() => {
-              void loadAdminsRef.current?.();
-              void loadEmployeeSummaryRef.current?.();
-            }}
-            disabled={loading}
-            className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-5 text-sm font-bold text-white shadow-[0_8px_22px_rgba(8,145,178,0.22)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_12px_28px_rgba(8,145,178,0.3)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-            title="Refresh data"
-          >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="font-medium">Refresh</span>
-          </button>
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center xl:max-w-[720px]">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-700" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by username, employee ID, or IP address..."
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-medium text-slate-900 shadow-[0_8px_24px_rgba(2,6,23,0.16)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
+              />
+            </div>
+            <button
+              onClick={() => {
+                void loadAdminsRef.current?.();
+                void loadEmployeeSummaryRef.current?.();
+              }}
+              disabled={loading}
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-bold text-white shadow-[0_8px_22px_rgba(8,145,178,0.22)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_12px_28px_rgba(8,145,178,0.3)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:min-w-[112px]"
+              title="Refresh data"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="font-medium">Refresh</span>
+            </button>
           </div>
         </div>
 
