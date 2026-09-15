@@ -206,41 +206,35 @@ export default function EmployeeSearch() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 text-slate-100">
-      <section className="relative shrink-0 border-b border-slate-800/80 pb-4 sm:pb-5">
+      <section className="relative shrink-0 border-b border-cyan-900/60 pb-4 sm:pb-5">
         <div className="relative flex flex-col gap-4 xl:flex-row xl:items-end">
           <div className="min-w-0 xl:w-[260px] xl:shrink-0">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/80">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/10 text-cyan-200">
-                <Search className="h-3.5 w-3.5" />
-              </span>
-              員工搜尋
-            </div>
-            <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">搜尋員工資料</h2>
-            <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-slate-300">可透過使用者名稱、員工編號或已驗證的聯絡資料尋找帳戶。</p>
+            <h2 className="mt-0 bg-gradient-to-r from-cyan-100 via-white to-blue-200 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-[28px]">搜尋員工資料</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">可透過使用者名稱、員工編號或已驗證的聯絡資料尋找帳戶。</p>
           </div>
 
           <div className="min-w-0 flex-1">
-            <label className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">
+            <label className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold tracking-[0.08em] text-cyan-100">
               搜尋員工記錄
-              <span className="font-medium normal-case tracking-normal text-slate-300">使用者名稱 · 員工編號 · 姓名 · 電子郵件 · 電話 · 錢包地址</span>
+              <span className="font-medium tracking-normal text-slate-300">使用者名稱 · 員工編號 · 姓名 · 電子郵件 · 電話 · 錢包地址</span>
             </label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative min-w-0 flex-1">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-300/70" />
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-700" />
                 <input
                   type="text"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   onKeyDown={handleKeyPress}
                   placeholder="輸入員工使用者名稱、員工編號或聯絡資料..."
-                  className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 pl-10 pr-4 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-slate-500 hover:border-cyan-500 hover:bg-white focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-400/25"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-medium text-slate-900 shadow-[0_8px_24px_rgba(2,6,23,0.16)] outline-none transition-[border-color,box-shadow,background-color,transform] placeholder:text-slate-500 hover:border-cyan-400 hover:shadow-[0_10px_28px_rgba(6,182,212,0.14)] focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-400/20 focus:shadow-[0_10px_30px_rgba(6,182,212,0.2)]"
                 />
               </div>
               {searchValue && (
                 <button
                   type="button"
                   onClick={clearSearch}
-                  className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-4 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white"
+                  className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-100 px-4 text-sm font-semibold text-slate-700 transition-[border-color,background-color,color,transform] hover:-translate-y-px hover:border-slate-400 hover:bg-white hover:text-slate-950"
                   title="清除搜尋"
                 >
                   <X className="h-4 w-4" />
@@ -251,7 +245,7 @@ export default function EmployeeSearch() {
                 type="button"
                 onClick={handleSearch}
                 disabled={loading || !searchValue.trim()}
-                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-blue-300/40 bg-gradient-to-r from-blue-600 to-cyan-600 px-5 text-sm font-bold text-white shadow-[0_8px_22px_rgba(8,145,178,0.2)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_10px_26px_rgba(8,145,178,0.3)] active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-45 disabled:shadow-none sm:min-w-[126px]"
+                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/60 bg-gradient-to-r from-blue-600 via-cyan-600 to-cyan-500 px-5 text-sm font-bold text-white shadow-[0_8px_22px_rgba(8,145,178,0.24)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_12px_30px_rgba(8,145,178,0.34)] active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-45 disabled:shadow-none sm:min-w-[126px]"
               >
                 {loading ? (
                   <>
