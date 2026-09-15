@@ -735,8 +735,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   disabled={allSharedIpGroups.length === 0}
                   className={`inline-flex h-9 w-[230px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold transition-[background-color,border-color,box-shadow,color] ${
                     selectedAllSharedIpGroup
-                      ? 'border border-cyan-200/70 bg-cyan-300/20 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
-                      : 'border border-cyan-300/30 bg-slate-900/70 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-400/15 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900/50 disabled:text-slate-600 disabled:shadow-none'
+                      ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
+                      : 'border border-cyan-300/30 bg-slate-900 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
                   }`}
                   title={selectedAllSharedIpGroup ? 'Clear shared IP filter' : 'Choose a shared login IP across all admin groups'}
                 >
@@ -744,7 +744,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   {selectedAllSharedIpGroup ? (
                     <>
                       <span className="min-w-0 flex-1 truncate text-left">{selectedAllSharedIpGroup.ip}</span>
-                      <span className="shrink-0 rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{selectedAllSharedIpGroup.employees.length}</span>
+                      <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{selectedAllSharedIpGroup.employees.length}</span>
                       <span
                         role="button"
                         tabIndex={0}
@@ -762,16 +762,16 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   ) : (
                     <>
                       <span className="min-w-0 flex-1 truncate text-left">Shared Login IP</span>
-                      <span className="shrink-0 rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{allSharedIpGroups.length}</span>
+                      <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{allSharedIpGroups.length}</span>
                       <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === 'all' ? 'rotate-180' : ''}`} />
                     </>
                   )}
                 </button>
                 {openSharedIpMenu === 'all' && (
-                  <div role="listbox" aria-label="Shared login IP options" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950/98 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
-                    <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950/80 to-blue-950/70 px-2.5 py-1.5">
+                  <div role="listbox" aria-label="Shared login IP options" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+                    <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
                       <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
-                      <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{allSharedIpGroups.length}</span>
+                      <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{allSharedIpGroups.length}</span>
                     </div>
                     <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
                       {allSharedIpGroups.map((option) => (
@@ -785,11 +785,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             setSharedIpSelection({ scope: 'all', ip: option.ip });
                             setOpenSharedIpMenu(null);
                           }}
-                          className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-slate-300 transition-[background-color,color,box-shadow] hover:bg-slate-800/90 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35"
+                          className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-slate-300 transition-[background-color,color,box-shadow] hover:bg-slate-800 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35"
                         >
                           <MapPin className="h-3 w-3 shrink-0 text-cyan-300" />
                           <span className="min-w-0 flex-1 truncate text-xs font-semibold">{option.ip}</span>
-                          <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900/80 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">{option.employees.length}</span>
+                          <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">{option.employees.length}</span>
                         </button>
                       ))}
                     </div>
@@ -802,7 +802,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 <button
                   type="button"
                   onClick={() => setIsAdminMenuOpen((open) => !open)}
-                  className="inline-flex h-9 w-[190px] items-center gap-2 rounded-lg border border-cyan-300/35 bg-gradient-to-r from-slate-900/95 to-cyan-950/80 px-2.5 text-left text-xs font-semibold text-cyan-100 shadow-[0_6px_18px_rgba(8,47,73,0.2)] outline-none transition-[border-color,box-shadow,background-color] hover:border-cyan-200/65 hover:from-slate-800 hover:to-cyan-950 focus:border-cyan-200 focus:ring-4 focus:ring-cyan-400/20"
+                  className="inline-flex h-9 w-[190px] items-center gap-2 rounded-lg border border-cyan-300/35 bg-gradient-to-r from-slate-900 to-cyan-950 px-2.5 text-left text-xs font-semibold text-cyan-100 shadow-[0_6px_18px_rgba(8,47,73,0.2)] outline-none transition-[border-color,box-shadow,background-color] hover:border-cyan-200/65 hover:from-slate-800 hover:to-cyan-950 focus:border-cyan-200 focus:ring-4 focus:ring-cyan-400/20"
                   aria-haspopup="listbox"
                   aria-expanded={isAdminMenuOpen}
                   aria-label="Select admin group"
@@ -817,11 +817,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   <div
                     role="listbox"
                     aria-label="Admin groups"
-                    className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[190px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950/98 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl"
+                    className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[190px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl"
                   >
-                    <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950/80 to-blue-950/70 px-2.5 py-1.5">
+                    <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
                       <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Admin groups</span>
-                      <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{admins.length}</span>
+                      <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{admins.length}</span>
                     </div>
                     <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
                       {sortedAdminOptions.map((adminOption) => {
@@ -841,8 +841,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             }}
                             className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left transition-[background-color,color,box-shadow] ${
                               isSelected
-                                ? 'bg-gradient-to-r from-cyan-300/25 to-blue-400/10 text-white ring-1 ring-inset ring-cyan-200/60 shadow-[inset_3px_0_0_rgba(103,232,249,0.9),0_0_12px_rgba(34,211,238,0.16)]'
-                                : 'text-slate-300 hover:bg-slate-800/90 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35 hover:shadow-[0_0_10px_rgba(34,211,238,0.1)]'
+                                ? 'bg-cyan-800 text-white ring-1 ring-inset ring-cyan-200/60 shadow-[inset_3px_0_0_rgba(103,232,249,0.9),0_0_12px_rgba(34,211,238,0.16)]'
+                                : 'text-slate-300 hover:bg-slate-800 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35 hover:shadow-[0_0_10px_rgba(34,211,238,0.1)]'
                             }`}
                           >
                             <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${
@@ -851,7 +851,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                               <Users className="h-3 w-3" />
                             </span>
                             <span className="min-w-0 flex-1 truncate text-xs font-semibold">{adminOption.username}</span>
-                            <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900/80 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">
+                            <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">
                               {group?.employees.length || 0}
                             </span>
                             {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-cyan-300" />}
@@ -875,8 +875,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   disabled={secondarySharedIpGroups.length === 0}
                   className={`inline-flex h-9 w-[230px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold transition-[background-color,border-color,box-shadow,color] ${
                     selectedSecondarySharedIpGroup
-                      ? 'border border-cyan-200/70 bg-cyan-300/20 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
-                      : 'border border-cyan-300/30 bg-slate-900/70 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-400/15 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900/50 disabled:text-slate-600 disabled:shadow-none'
+                      ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
+                      : 'border border-cyan-300/30 bg-slate-900 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
                   }`}
                   title={selectedSecondarySharedIpGroup ? 'Open shared login IP choices' : 'Choose a shared login IP'}
                 >
@@ -884,7 +884,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   {selectedSecondarySharedIpGroup ? (
                     <>
                       <span className="min-w-0 flex-1 truncate text-left">{selectedSecondarySharedIpGroup.ip}</span>
-                      <span className="shrink-0 rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{selectedSecondarySharedIpGroup.employees.length}</span>
+                      <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{selectedSecondarySharedIpGroup.employees.length}</span>
                       <span
                         role="button"
                         tabIndex={0}
@@ -902,16 +902,16 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   ) : (
                     <>
                       <span className="min-w-0 flex-1 truncate text-left">Shared Login IP</span>
-                      <span className="shrink-0 rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{secondarySharedIpGroups.length}</span>
+                      <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{secondarySharedIpGroups.length}</span>
                       <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === secondaryGroup.admin_id ? 'rotate-180' : ''}`} />
                     </>
                   )}
                 </button>
                 {openSharedIpMenu === secondaryGroup.admin_id && (
-                  <div role="listbox" aria-label="Shared login IP options" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950/98 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
-                    <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950/80 to-blue-950/70 px-2.5 py-1.5">
+                  <div role="listbox" aria-label="Shared login IP options" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+                    <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
                       <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
-                      <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{secondarySharedIpGroups.length}</span>
+                      <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{secondarySharedIpGroups.length}</span>
                     </div>
                     <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
                       {secondarySharedIpGroups.map((option) => (
@@ -925,11 +925,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             setSharedIpSelection({ scope: 'group', groupId: secondaryGroup.admin_id, ip: option.ip });
                             setOpenSharedIpMenu(null);
                           }}
-                          className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-slate-300 transition-[background-color,color,box-shadow] hover:bg-slate-800/90 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35"
+                          className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-slate-300 transition-[background-color,color,box-shadow] hover:bg-slate-800 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35"
                         >
                           <MapPin className="h-3 w-3 shrink-0 text-cyan-300" />
                           <span className="min-w-0 flex-1 truncate text-xs font-semibold">{option.ip}</span>
-                          <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900/80 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">{option.employees.length}</span>
+                          <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">{option.employees.length}</span>
                         </button>
                       ))}
                     </div>
@@ -961,7 +961,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         ) : (
           <>
             {sharedIpSelection?.scope === 'all' ? (
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950/35">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">Shared IP employees</p>
@@ -974,7 +974,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 {renderEmployeeTable(sharedIpRows, true, true)}
               </div>
             ) : isSearching ? (
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950/35">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">Search results</p>
@@ -1058,8 +1058,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         disabled={getSharedIpGroups(group.employees).length === 0}
                         className={`inline-flex h-7 w-[230px] items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold transition-[background-color,border-color,box-shadow,color] ${
                           getSelectedGroupSharedIp(group)
-                            ? 'border border-cyan-200/70 bg-cyan-300/20 text-white shadow-[0_0_12px_rgba(34,211,238,0.2)]'
-                            : 'border border-cyan-300/25 bg-slate-950/35 text-cyan-200 hover:border-cyan-200/60 hover:bg-cyan-400/15 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-transparent disabled:text-slate-600 disabled:shadow-none'
+                            ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_12px_rgba(34,211,238,0.2)]'
+                            : 'border border-cyan-300/25 bg-slate-950 text-cyan-200 hover:border-cyan-200/60 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
                         }`}
                         title={getSelectedGroupSharedIp(group) ? 'Open shared login IP choices' : 'Choose a shared login IP in this group'}
                       >
@@ -1067,7 +1067,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         {getSelectedGroupSharedIp(group) ? (
                           <>
                             <span className="min-w-0 flex-1 truncate text-left">{getSelectedGroupSharedIp(group)?.ip}</span>
-                            <span className="shrink-0 rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{getSelectedGroupSharedIp(group)?.employees.length}</span>
+                            <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{getSelectedGroupSharedIp(group)?.employees.length}</span>
                             <span
                               role="button"
                               tabIndex={0}
@@ -1085,16 +1085,16 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         ) : (
                           <>
                             <span className="min-w-0 flex-1 truncate text-left">Shared Login IP</span>
-                            <span className="shrink-0 rounded-full bg-slate-950/50 px-1.5 py-0.5 text-[9px]">{getSharedIpGroups(group.employees).length}</span>
+                            <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{getSharedIpGroups(group.employees).length}</span>
                             <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === group.admin_id ? 'rotate-180' : ''}`} />
                           </>
                         )}
                       </button>
                       {openSharedIpMenu === group.admin_id && (
-                        <div role="listbox" aria-label={`${group.admin_username} shared login IP options`} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950/98 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
-                          <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950/80 to-blue-950/70 px-2.5 py-1.5">
+                        <div role="listbox" aria-label={`${group.admin_username} shared login IP options`} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+                          <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
                             <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
-                            <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{getSharedIpGroups(group.employees).length}</span>
+                            <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{getSharedIpGroups(group.employees).length}</span>
                           </div>
                           <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
                             {getSharedIpGroups(group.employees).map((option) => (
@@ -1108,11 +1108,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                   setSharedIpSelection({ scope: 'group', groupId: group.admin_id, ip: option.ip });
                                   setOpenSharedIpMenu(null);
                                 }}
-                                className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-slate-300 transition-[background-color,color,box-shadow] hover:bg-slate-800/90 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35"
+                                className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-slate-300 transition-[background-color,color,box-shadow] hover:bg-slate-800 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35"
                               >
                                 <MapPin className="h-3 w-3 shrink-0 text-cyan-300" />
                                 <span className="min-w-0 flex-1 truncate text-xs font-semibold">{option.ip}</span>
-                                <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900/80 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">{option.employees.length}</span>
+                                <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">{option.employees.length}</span>
                               </button>
                             ))}
                           </div>
