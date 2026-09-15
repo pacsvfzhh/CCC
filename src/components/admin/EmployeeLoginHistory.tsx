@@ -773,7 +773,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                       <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
                       <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{allSharedIpGroups.length}</span>
                     </div>
-                    <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
+                    <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
                       {allSharedIpGroups.map((option) => (
                         <button
                           key={option.ip}
@@ -823,7 +823,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                       <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Admin groups</span>
                       <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{admins.length}</span>
                     </div>
-                    <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
+                    <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
                       {sortedAdminOptions.map((adminOption) => {
                         const group = adminGroups.find((groupOption) => groupOption.admin_id === adminOption.id);
                         const isSelected = !isSearching && selectedAdminId === adminOption.id;
@@ -913,7 +913,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                       <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
                       <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{secondarySharedIpGroups.length}</span>
                     </div>
-                    <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
+                    <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
                       {secondarySharedIpGroups.map((option) => (
                         <button
                           key={option.ip}
@@ -1096,7 +1096,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
                             <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{getSharedIpGroups(group.employees).length}</span>
                           </div>
-                          <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
+                          <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
                             {getSharedIpGroups(group.employees).map((option) => (
                               <button
                                 key={option.ip}

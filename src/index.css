@@ -79,6 +79,37 @@
   box-shadow: 0 0 12px rgba(34, 211, 238, 0.45);
 }
 
+.login-history-menu-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #22d3ee #0f172a;
+}
+
+.login-history-menu-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.login-history-menu-scrollbar::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-left: 1px solid #164e63;
+  border-radius: 999px;
+}
+
+.login-history-menu-scrollbar::-webkit-scrollbar-thumb {
+  border: 1px solid #0f172a;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #67e8f9 0%, #0891b2 52%, #2563eb 100%);
+  box-shadow: 0 0 6px rgba(34, 211, 238, 0.3);
+}
+
+.login-history-menu-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #cffafe 0%, #22d3ee 52%, #3b82f6 100%);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+}
+
+.login-history-menu-scrollbar::-webkit-scrollbar-corner {
+  background: #0f172a;
+}
+
 /* High-visibility scrollbar for the super-admin employee workspace */
 .employee-super-admin-scrollbar {
   scrollbar-width: auto;
