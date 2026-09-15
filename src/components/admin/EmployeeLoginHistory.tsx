@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, History, Eye, Users, Clock, MapPin, X, RefreshCw } from 'lucide-react';
+import { Search, History, Eye, Users, Clock, MapPin, X, RefreshCw, ChevronDown, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Admin } from '../../types';
 import LoginDeviceSummary from './LoginDeviceSummary';
@@ -55,9 +55,34 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   const [detailedHistory, setDetailedHistory] = useState<LoginHistoryRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [admins, setAdmins] = useState<{ id: string; username: string; role?: string }[]>([]);
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
+  const adminMenuRef = useRef<HTMLDivElement | null>(null);
   const loadAdminsRef = useRef<(() => Promise<void>) | null>(null);
   const loadEmployeeSummaryRef = useRef<((silentRefresh?: boolean) => Promise<void>) | null>(null);
   const adminCount = admins.length;
+
+  useEffect(() => {
+    if (!isAdminMenuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
+        setIsAdminMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsAdminMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isAdminMenuOpen]);
 
   useEffect(() => {
     const initialize = async () => {
@@ -364,6 +389,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   const searchRows: EmployeeTableRow[] = adminGroups.flatMap((group) => (
     group.employees.map((employee) => ({ employee, adminUsername: group.admin_username }))
   ));
+  const selectedAdmin = admins.find((adminOption) => adminOption.id === selectedAdminId);
 
   const renderEmployeeTable = (rows: EmployeeTableRow[], showAdminGroup = false) => {
     if (rows.length === 0) {
@@ -628,25 +654,69 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             )}
             <div className="flex min-w-0 flex-1 justify-end gap-1.5 sm:items-center">
             {admin.role === 'super_admin' && (
-              <select
-                value={isSearching ? 'all' : selectedAdminId || ''}
-                onChange={(event) => {
-                  const nextAdminId = event.target.value;
-                  setSearchTerm('');
-                  if (nextAdminId !== 'all') {
-                    setSelectedAdminId(nextAdminId);
-                  }
-                }}
-                className="h-9 w-[170px] shrink-0 rounded-lg border border-cyan-400/30 bg-slate-900 px-2.5 text-xs font-semibold text-cyan-100 outline-none transition-colors hover:border-cyan-300/60 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-400/15"
-                aria-label="Select admin group"
-              >
-                <option value="all">All Admin Groups</option>
-                {admins.map((adminOption) => (
-                  <option key={adminOption.id} value={adminOption.id}>
-                    {adminOption.username}
-                  </option>
-                ))}
-              </select>
+              <div ref={adminMenuRef} className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsAdminMenuOpen((open) => !open)}
+                  className="inline-flex h-9 w-[190px] items-center gap-2 rounded-lg border border-cyan-300/35 bg-gradient-to-r from-slate-900/95 to-cyan-950/80 px-2.5 text-left text-xs font-semibold text-cyan-100 shadow-[0_6px_18px_rgba(8,47,73,0.2)] outline-none transition-[border-color,box-shadow,background-color] hover:border-cyan-200/65 hover:from-slate-800 hover:to-cyan-950 focus:border-cyan-200 focus:ring-4 focus:ring-cyan-400/20"
+                  aria-haspopup="listbox"
+                  aria-expanded={isAdminMenuOpen}
+                  aria-label="Select admin group"
+                >
+                  <Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {isSearching ? 'All groups · Search' : selectedAdmin?.username || 'Select group'}
+                  </span>
+                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-300 transition-transform ${isAdminMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isAdminMenuOpen && (
+                  <div
+                    role="listbox"
+                    aria-label="Admin groups"
+                    className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[250px] overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-950/98 shadow-[0_16px_36px_rgba(2,6,23,0.55)] backdrop-blur-xl"
+                  >
+                    <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950/80 to-blue-950/70 px-3 py-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Admin groups</span>
+                      <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{admins.length}</span>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto p-1.5 custom-scrollbar">
+                      {admins.map((adminOption) => {
+                        const group = adminGroups.find((groupOption) => groupOption.admin_id === adminOption.id);
+                        const isSelected = !isSearching && selectedAdminId === adminOption.id;
+                        return (
+                          <button
+                            key={adminOption.id}
+                            type="button"
+                            role="option"
+                            aria-selected={isSelected}
+                            onClick={() => {
+                              setSearchTerm('');
+                              setSelectedAdminId(adminOption.id);
+                              setIsAdminMenuOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                              isSelected
+                                ? 'bg-cyan-400/15 text-cyan-100 ring-1 ring-inset ring-cyan-300/25'
+                                : 'text-slate-300 hover:bg-slate-800/80 hover:text-cyan-100'
+                            }`}
+                          >
+                            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
+                              adminOption.role === 'super_admin' ? 'bg-yellow-400/15 text-yellow-300' : 'bg-blue-400/15 text-blue-300'
+                            }`}>
+                              <Users className="h-3.5 w-3.5" />
+                            </span>
+                            <span className="min-w-0 flex-1 truncate text-xs font-semibold">{adminOption.username}</span>
+                            <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900/80 px-2 py-0.5 text-[10px] font-bold text-slate-300">
+                              {group?.employees.length || 0}
+                            </span>
+                            {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-cyan-300" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
             <div className="relative w-full min-w-0 sm:max-w-[180px]">
               <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
