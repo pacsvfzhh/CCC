@@ -574,28 +574,36 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   };
 
   const modalContent = selectedEmployee ? (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-2 backdrop-blur-[2px] sm:p-4">
-      <div className="flex h-[calc(100vh-1rem)] max-h-[96vh] w-full max-w-[1400px] flex-col overflow-hidden rounded-xl border border-cyan-400/30 bg-slate-950 shadow-[0_24px_80px_rgba(2,6,23,0.7)] sm:h-[calc(100vh-2rem)]">
-        <div className="flex shrink-0 items-center justify-between border-b border-cyan-400/25 bg-gradient-to-r from-blue-950 via-slate-950 to-cyan-950 px-3 py-2.5 sm:px-4 sm:py-3">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4">
+      <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-400/30 bg-slate-950 shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-cyan-400/25 bg-gradient-to-r from-blue-950 via-slate-950 to-cyan-950 px-4 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 shadow-[0_0_16px_rgba(34,211,238,0.2)]">
               <History className="h-4 w-4 text-white" />
             </div>
             <div className="min-w-0">
-              <h3 className="truncate text-base font-bold text-cyan-100 sm:text-lg">Login History</h3>
-              <p className="truncate text-[10px] text-slate-400 sm:text-xs">
-                {selectedEmployee.username} <span className="text-slate-600">·</span> {selectedEmployee.employee_id}
-              </p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/75">Login History</p>
+              <h3 className="truncate text-base font-bold text-cyan-100 sm:text-lg">{selectedEmployee.username}</h3>
+              <p className="truncate text-[10px] text-slate-400 sm:text-xs">Employee ID: {selectedEmployee.employee_id}</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleCloseHistory}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-slate-900/80 text-slate-400 outline-none transition-colors hover:border-cyan-300/50 hover:bg-cyan-900/60 hover:text-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-300/50"
-            aria-label="Close login history"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {!historyLoading && detailedHistory.length > 0 && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-cyan-300/20 bg-slate-900/75 px-2 py-1 text-[10px] text-slate-400">
+                <span>Total</span>
+                <span className="font-bold text-cyan-300">{detailedHistory.length}</span>
+                <span>records</span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleCloseHistory}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-slate-900/80 text-slate-400 outline-none transition-colors hover:border-cyan-300/50 hover:bg-cyan-900/60 hover:text-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-300/50"
+              aria-label="Close login history"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto bg-slate-950 px-2 py-2 login-history-modal-scroll sm:px-3 sm:py-2">
@@ -665,14 +673,6 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           )}
         </div>
 
-        {/* Fixed Footer with Total Records */}
-        {!historyLoading && detailedHistory.length > 0 && (
-          <div className="shrink-0 border-t border-cyan-400/20 bg-slate-950 px-3 py-1.5">
-            <div className="text-center text-[10px] text-slate-400">
-              Total <span className="text-cyan-400 font-semibold">{detailedHistory.length}</span> {detailedHistory.length === 1 ? 'record' : 'records'}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   ) : null;
