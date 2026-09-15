@@ -669,29 +669,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     const lockedCountSyncId = lockedCountSyncRef.current;
 
     try {
-      if (admin.role === 'emergency_admin') {
-        const { data, error } = await supabase
-          .from('account_locks')
-          .select('lock_until')
-          .is('unlocked_at', null)
-          .eq('identifier_type', 'username')
-          .gt('lock_until', new Date().toISOString());
-
-        if (error) throw error;
-        if (requestId !== lockedCountsRequestRef.current) return;
-
-        const lockExpiryTimes = (data || [])
-          .map(lock => new Date(lock.lock_until).getTime())
-          .filter(expiry => Number.isFinite(expiry));
-        if (lockedCountSyncId === lockedCountSyncRef.current) {
-          setLockedAccountsCount(data?.length || 0);
-          setNextLockedAccountExpiry(lockExpiryTimes.length > 0 ? Math.min(...lockExpiryTimes) : null);
-        }
-        return;
-      }
-
       const { data: locksData, error: lockedError } = await supabase.rpc('get_account_locks_for_admin', {
-        p_admin_id: admin.id
+        p_admin_id: getAdminFinancialSessionToken()
       });
 
       if (lockedError) throw lockedError;
@@ -710,7 +689,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     } catch (error) {
       console.warn('Locked accounts count is temporarily unavailable:', formatRequestError(error));
     }
-  }, [admin.id, admin.role]);
+  }, [admin.id]);
 
   const loadPendingCounts = useCallback(async () => {
     const requestId = ++pendingCountsRequestRef.current;
@@ -965,7 +944,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       .channel('admin-account-locks')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'account_locks' },
+        { event: '*', schema: 'public', table: 'account_lock_events' },
         (payload) => {
           console.log('[Account Locks] Real-time event triggered:', payload.eventType, payload);
           void loadLockedAccountsCount();

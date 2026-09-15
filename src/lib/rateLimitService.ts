@@ -1,4 +1,5 @@
 import { formatSupabaseError, isSupabaseAbortError, supabase } from './supabase';
+import { getAdminFinancialSessionToken } from './auth';
 
 export interface RateLimitCheckResult {
   allowed: boolean;
@@ -87,14 +88,13 @@ export async function recordLoginAttempt(
 
 export async function unlockAccount(
   identifier: string,
-  identifierType: 'ip' | 'username',
-  adminId: string
+  identifierType: 'ip' | 'username'
 ): Promise<{ success: boolean; message: string; unlocked_count?: number }> {
   try {
     const { data, error } = await supabase.rpc('unlock_account_with_permission_check', {
       p_identifier: identifier,
       p_identifier_type: identifierType,
-      p_admin_id: adminId
+      p_admin_id: getAdminFinancialSessionToken()
     });
 
     if (error) {

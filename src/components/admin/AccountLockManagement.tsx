@@ -3,6 +3,7 @@ import { Shield, Unlock, AlertTriangle, Clock, User, RefreshCw, History, Search,
 import { supabase } from '../../lib/supabase';
 import { unlockAccount } from '../../lib/rateLimitService';
 import { Admin } from '../../types';
+import { getAdminFinancialSessionToken } from '../../lib/auth';
 
 interface AccountLock {
   id: string;
@@ -77,7 +78,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
       }
 
       const { data, error } = await supabase.rpc('get_account_locks_for_admin', {
-        p_admin_id: admin.id
+        p_admin_id: getAdminFinancialSessionToken()
       });
 
       if (error) {
@@ -114,35 +115,10 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         });
       }
 
-      const missingLockIpIdentifiers = [...new Set(
-        accountLocks
-          .filter(lock => !lock.lock_ip)
-          .map(lock => lock.identifier)
-      )];
-      const lockIpsByIdentifier = new Map<string, string>();
-
-      if (missingLockIpIdentifiers.length > 0) {
-        const { data: attemptRows } = await supabase
-          .from('login_attempts')
-          .select('identifier, ip_address')
-          .in('identifier', missingLockIpIdentifiers)
-          .eq('identifier_type', 'username')
-          .eq('success', false)
-          .not('ip_address', 'is', null)
-          .order('attempt_time', { ascending: false });
-
-        attemptRows?.forEach(attempt => {
-          if (attempt.ip_address && !lockIpsByIdentifier.has(attempt.identifier)) {
-            lockIpsByIdentifier.set(attempt.identifier, attempt.ip_address);
-          }
-        });
-      }
-
       const locksWithEmployeeIds = accountLocks.map(lock => ({
         ...lock,
         employee_id: lock.employee_id ?? employeeIdsByUserId.get(lock.user_id ?? '') ?? null,
-        owner_admin_id: ownerAdminIdsByUserId.get(lock.user_id ?? '') ?? null,
-        lock_ip: lock.lock_ip ?? lockIpsByIdentifier.get(lock.identifier) ?? null
+        owner_admin_id: ownerAdminIdsByUserId.get(lock.user_id ?? '') ?? null
       }));
       const lockExpiryTimes = accountLocks
         .map(lock => new Date(lock.lock_until).getTime())
@@ -175,7 +151,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         void loadLocks(false);
       }
     }
-  }, [admin.id, onActiveLockCountChange]);
+  }, [onActiveLockCountChange]);
 
   const loadHistory = useCallback(async (options: { force?: boolean; silent?: boolean } = {}) => {
     const { force = false, silent = false } = options;
@@ -195,7 +171,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
       let historyData: AccountLock[] | null = null;
       if (!historyRpcUnavailableRef.current) {
         const { data, error } = await supabase.rpc('get_account_lock_history_for_admin', {
-          p_admin_id: admin.id,
+          p_admin_id: getAdminFinancialSessionToken(),
           p_limit: 200
         });
 
@@ -211,7 +187,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
 
       if (!historyData) {
         const fallback = await supabase.rpc('get_account_locks_for_admin', {
-          p_admin_id: admin.id
+          p_admin_id: getAdminFinancialSessionToken()
         });
 
         if (fallback.error) throw fallback.error;
@@ -259,7 +235,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
         void loadHistory({ force: true, silent: true });
       }
     }
-  }, [admin.id]);
+  }, []);
 
   useEffect(() => {
     isActiveRef.current = isActive;
@@ -365,7 +341,7 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'account_locks'
+        table: 'account_lock_events'
       }, refreshVisibleData)
       .subscribe((status, error) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -405,16 +381,11 @@ export default function AccountLockManagement({ admin, isActive, onActiveLockCou
   }, [isActive, nextExpiry, loadLocks]);
 
   const handleUnlock = async (lock: AccountLock) => {
-    if (!admin?.id) {
-      setMessage({ type: 'error', text: '無法取得管理員識別資訊。' });
-      return;
-    }
-
     try {
       setUnlocking(lock.id);
       setMessage(null);
 
-      const result = await unlockAccount(lock.identifier, 'username', admin.id);
+      const result = await unlockAccount(lock.identifier, 'username');
 
       if (result.success) {
         setMessage({ type: 'success', text: `已成功解除鎖定：${lock.identifier}` });
