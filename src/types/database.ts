@@ -2229,6 +2229,7 @@ export interface Database {
           latest_login_ip: string | null;
           latest_login_time: string | null;
           latest_login_device_info: unknown | null;
+          latest_login_user_agent: string | null;
           latest_logout_ip: string | null;
           latest_logout_time: string | null;
           total_logins: number;

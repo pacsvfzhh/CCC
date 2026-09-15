@@ -18,6 +18,7 @@ interface EmployeeSummary {
   latest_login_ip: string | null;
   latest_login_time: string | null;
   latest_login_device_info: unknown | null;
+  latest_login_user_agent: string | null;
   latest_logout_ip: string | null;
   latest_logout_time: string | null;
   total_logins: number;
@@ -522,7 +523,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <p className="mt-1 text-xs leading-relaxed text-slate-300">Review employee sign-ins, sign-outs, IP addresses, and browser evidence.</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <div className="min-w-[118px] rounded-xl border border-cyan-300/25 bg-gradient-to-br from-cyan-400/10 to-blue-500/[0.04] px-3 py-2 shadow-[0_8px_20px_rgba(2,6,23,0.16)]">
+              <div className="min-w-[118px] rounded-xl border border-cyan-300/25 bg-gradient-to-br from-cyan-400/10 to-blue-500/[0.04] px-2 py-1 shadow-[0_8px_20px_rgba(2,6,23,0.16)]">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 shrink-0 text-cyan-300" />
                   <div>
@@ -531,7 +532,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   </div>
                 </div>
               </div>
-              <div className="min-w-[112px] rounded-xl border border-blue-300/25 bg-gradient-to-br from-blue-500/10 to-cyan-500/[0.04] px-3 py-2 shadow-[0_8px_20px_rgba(2,6,23,0.16)]">
+              <div className="min-w-[112px] rounded-xl border border-blue-300/25 bg-gradient-to-br from-blue-500/10 to-cyan-500/[0.04] px-2 py-1 shadow-[0_8px_20px_rgba(2,6,23,0.16)]">
                 <div className="flex items-center gap-2">
                   <History className="h-4 w-4 shrink-0 text-blue-300" />
                   <div>
@@ -585,14 +586,14 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 {adminGroups.map((group) => (
                   <div
                     key={group.admin_id}
-                    className={`overflow-hidden border-b border-slate-800/70 border-l-2 ${
+                    className={`max-h-[600px] overflow-y-auto overflow-x-auto custom-scrollbar border-b border-slate-800/70 border-l-2 ${
                       group.admin_role === 'super_admin'
                         ? 'border-l-yellow-400/80 bg-gradient-to-br from-yellow-500/[0.08] via-slate-900/20 to-transparent'
                         : 'border-l-cyan-400/80 bg-gradient-to-br from-blue-500/[0.08] via-slate-900/20 to-transparent'
                     }`}
                   >
                     {/* Group Header */}
-                    <div className={`flex items-center justify-between px-4 py-3 border-b ${
+                    <div className={`sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b ${
                       group.admin_role === 'super_admin'
                         ? 'bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 border-yellow-500/20'
                         : 'bg-gradient-to-r from-blue-500/10 to-blue-500/5 border-blue-500/20'
@@ -674,38 +675,34 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
 
                     {/* Group Content */}
                     {!group.isCollapsed && (
-                      <div className={`max-h-[600px] overflow-y-auto overflow-x-auto custom-scrollbar ${
-                        group.admin_role === 'super_admin'
-                          ? 'scrollbar-thumb-amber-500/40 scrollbar-track-amber-950/30 hover:scrollbar-thumb-amber-400/60'
-                          : 'scrollbar-thumb-cyan-500/50 scrollbar-track-slate-900/50 hover:scrollbar-thumb-cyan-400/70'
-                      }`}>
+                      <>
                         {group.employees.length === 0 ? (
                           <div className="text-center py-8">
                             <Users className="w-10 h-10 text-slate-600 mx-auto mb-2" />
                             <p className="text-slate-300 text-sm">No employees under this admin</p>
                           </div>
                         ) : (
-                          <div className="p-2 sm:p-3">
+                          <div className="px-1 pb-1 sm:px-1.5 sm:pb-1.5">
                             <table className="w-full text-xs">
-                              <thead className="bg-cyan-950/45">
+                              <thead className="sticky top-[60px] z-20 bg-cyan-950/95">
                                 <tr className="border-b border-cyan-500/45">
-                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Username</th>
-                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Employee ID</th>
-                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login IP</th>
-                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login Time</th>
-                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Login System</th>
-                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout IP</th>
-                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout Time</th>
-                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Total Logins</th>
-                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Actions</th>
+                                  <th className="px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Username</th>
+                                  <th className="px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Employee ID</th>
+                                  <th className="px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login IP</th>
+                                  <th className="px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login Time</th>
+                                  <th className="px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Login System</th>
+                                  <th className="px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout IP</th>
+                                  <th className="px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout Time</th>
+                                  <th className="px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Total Logins</th>
+                                  <th className="px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Actions</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-700/50">
                                 {group.employees.map((employee) => (
                                   <tr key={employee.user_id} className="hover:bg-slate-800/30 transition-colors">
-                                    <td className="px-3 py-2 text-sm font-semibold text-cyan-100">{employee.username}</td>
-                                    <td className="px-3 py-2 text-xs text-slate-300">{employee.employee_id}</td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-2 py-1 text-sm font-semibold text-cyan-100">{employee.username}</td>
+                                    <td className="px-2 py-1 text-xs text-slate-300">{employee.employee_id}</td>
+                                    <td className="px-2 py-1">
                                       {employee.latest_login_ip ? (
                                         <div className="flex items-center gap-1.5 text-xs text-slate-300">
                                           <MapPin className="h-3.5 w-3.5 text-green-400" />
@@ -715,7 +712,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                         <span className="text-xs text-slate-300">--</span>
                                       )}
                                     </td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-2 py-1">
                                       {employee.latest_login_time ? (
                                         <div className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-slate-300">
                                           <Clock className="h-3 w-3 shrink-0 text-cyan-300/80" />
@@ -725,13 +722,14 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                         <span className="text-[11px] text-slate-300">--</span>
                                       )}
                                     </td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-2 py-1">
                                       <LoginDeviceSummary
                                         deviceInfo={employee.latest_login_device_info}
+                                        userAgent={employee.latest_login_user_agent}
                                         systemOnly
                                       />
                                     </td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-2 py-1">
                                       {employee.latest_logout_ip ? (
                                         <div className="flex items-center gap-1.5 text-xs text-slate-300">
                                           <MapPin className="h-3.5 w-3.5 text-orange-400" />
@@ -741,7 +739,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                         <span className="text-xs text-slate-300">--</span>
                                       )}
                                     </td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-2 py-1">
                                       {employee.latest_logout_time ? (
                                         <div className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-slate-300">
                                           <Clock className="h-3 w-3 shrink-0 text-orange-300/80" />
@@ -751,9 +749,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                         <span className="text-[11px] text-slate-300">--</span>
                                       )}
                                     </td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-2 py-1">
                                       <div className="flex items-center gap-2">
-                                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10">
+                                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10">
                                           <History className="h-3.5 w-3.5 text-blue-400" />
                                         </div>
                                         <span className="text-sm font-semibold text-cyan-100">
@@ -764,10 +762,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                         </span>
                                       </div>
                                     </td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-2 py-1">
                                       <button
                                         onClick={() => handleViewHistory(employee)}
-                                        className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-xs font-semibold text-blue-300 transition-all hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-200"
+                                        className="flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-[11px] font-semibold text-blue-300 transition-all hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-200"
                                       >
                                         <Eye className="h-3.5 w-3.5" />
                                         View History
@@ -779,7 +777,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             </table>
                           </div>
                         )}
-                      </div>
+                      </>
                     )}
                   </div>
                 ))}

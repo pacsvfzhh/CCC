@@ -1,4 +1,4 @@
-import { ChevronDown, Globe2 } from 'lucide-react';
+import { Apple, ChevronDown, Globe2, HelpCircle, Monitor, Smartphone, Tablet } from 'lucide-react';
 import { resolveLoginDeviceInfo } from '../../lib/deviceInfo';
 
 interface LoginDeviceSummaryProps {
@@ -38,19 +38,36 @@ export default function LoginDeviceSummary({ deviceInfo, userAgent, compact = fa
     osLabels[info.os_family],
     ...(!systemOnly ? [formatValue(browserLabels[info.browser_family], info.browser_version)] : []),
   ];
+  const SystemIcon = info.os_family === 'ios' || info.os_family === 'macos'
+    ? Apple
+    : info.os_family === 'android'
+      ? info.device_type === 'tablet' ? Tablet : Smartphone
+      : info.os_family === 'unknown'
+        ? HelpCircle
+        : Monitor;
+
+  if (systemOnly) {
+    return (
+      <span
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-cyan-400/25 bg-cyan-500/10 text-cyan-200"
+        title={osLabels[info.os_family]}
+        aria-label={osLabels[info.os_family]}
+      >
+        <SystemIcon className="h-3.5 w-3.5" aria-hidden="true" />
+      </span>
+    );
+  }
 
   return (
-    <div className={systemOnly ? 'min-w-0 max-w-[190px]' : compact ? 'min-w-[190px] max-w-[280px]' : 'min-w-[240px]'}>
+    <div className={compact ? 'min-w-[190px] max-w-[280px]' : 'min-w-[240px]'}>
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="inline-flex items-center gap-1 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-200">
           <Globe2 className="h-3 w-3" />
           {osLabels[info.os_family]}
         </span>
-        {!systemOnly && (
-          <span className="inline-flex items-center rounded-md border border-violet-400/25 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200">
-            {formatValue(browserLabels[info.browser_family], info.browser_version)}
-          </span>
-        )}
+        <span className="inline-flex items-center rounded-md border border-violet-400/25 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200">
+          {formatValue(browserLabels[info.browser_family], info.browser_version)}
+        </span>
       </div>
       {!compact && (
         <div className="mt-1 text-[10px] text-slate-500">{details.join(' · ')}</div>

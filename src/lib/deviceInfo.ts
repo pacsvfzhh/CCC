@@ -161,12 +161,20 @@ export function resolveLoginDeviceInfo(value: unknown, userAgent: string | null 
   if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
 
   const stored = value as Record<string, unknown>;
-  const storedOsFamily = isKnownValue(stored.os_family, OS_FAMILIES) ? stored.os_family : fallback.os_family;
+  const storedOsFamily = isKnownValue(stored.os_family, OS_FAMILIES) && stored.os_family !== 'unknown'
+    ? stored.os_family
+    : fallback.os_family;
+  const storedBrowserFamily = isKnownValue(stored.browser_family, BROWSER_FAMILIES) && stored.browser_family !== 'unknown'
+    ? stored.browser_family
+    : fallback.browser_family;
+
   return {
     os_family: storedOsFamily,
     os_version: null,
-    device_type: isKnownValue(stored.device_type, DEVICE_TYPES) ? stored.device_type : fallback.device_type,
-    browser_family: isKnownValue(stored.browser_family, BROWSER_FAMILIES) ? stored.browser_family : fallback.browser_family,
+    device_type: isKnownValue(stored.device_type, DEVICE_TYPES) && stored.device_type !== 'unknown'
+      ? stored.device_type
+      : fallback.device_type,
+    browser_family: storedBrowserFamily,
     browser_version: typeof stored.browser_version === 'string' ? stored.browser_version : fallback.browser_version,
     source: isKnownValue(stored.source, INFO_SOURCES) ? stored.source : fallback.source,
   };
