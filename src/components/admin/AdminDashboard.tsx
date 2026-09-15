@@ -1328,7 +1328,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('employeesearch') && (
-              <div className={activeTab === 'employeesearch' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'employeesearch' ? 'flex min-h-0 flex-1 flex-col px-2 py-1.5 sm:px-3 sm:py-2 lg:px-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
                 <EmployeeSearch />
               </div>
             )}
