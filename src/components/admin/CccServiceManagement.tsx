@@ -244,6 +244,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const [conversationHistory, setConversationHistory] = useState<ConversationHistory[]>([]);
   const [allConversationHistory, setAllConversationHistory] = useState<ConversationHistory[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const messagesRef = useRef<Message[]>([]);
+  messagesRef.current = messages;
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
@@ -1375,14 +1377,16 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   }, [isActive, selectedAdminId, loadAllConversationHistory]);
 
   const checkPendingRating = useCallback(async () => {
-    if (!selectedCustomer || !selectedEmployee) return;
+    const customerId = selectedCustomer?.id;
+    const employeeId = selectedEmployee?.id;
+    if (!customerId || !employeeId) return;
 
     try {
       const { data, error } = await supabase
         .from('customer_employee_conversations')
         .select('*')
-        .eq('customer_id', selectedCustomer.id)
-        .eq('employee_id', selectedEmployee.id)
+        .eq('customer_id', customerId)
+        .eq('employee_id', employeeId)
         .eq('message_type', 'rating_request')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -1391,7 +1395,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       if (error) throw error;
 
       if (data) {
-        const hasRating = messages.some(
+        const hasRating = messagesRef.current.some(
           m => m.message_type === 'rating_result' &&
           new Date(m.created_at) > new Date(data.created_at)
         );
@@ -1407,7 +1411,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     } catch (error) {
       console.error('Error checking pending rating:', formatSupabaseError(error));
     }
-  }, [messages, selectedCustomer, selectedEmployee]);
+  }, [selectedCustomer?.id, selectedEmployee?.id]);
 
   useEffect(() => {
     if (isActive && selectedCustomer?.id && selectedEmployee?.id) {

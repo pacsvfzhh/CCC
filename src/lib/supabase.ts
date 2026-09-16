@@ -209,14 +209,25 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
     } catch (error) {
       if (callerSignal?.aborted) throw createSupabaseAbortError();
 
-      const isTimeout = timedOut || isSupabaseTimeoutError(error);
-      if (!isTimeout && isSupabaseAbortError(error)) {
+      let requestError = error;
+      if (timedOut && canRetry) {
+        try {
+          return await fetchWithXhrFallback(input, init);
+        } catch (fallbackError) {
+          requestError = fallbackError;
+        }
+      }
+
+      if (callerSignal?.aborted) throw createSupabaseAbortError();
+
+      const isTimeout = timedOut || isSupabaseTimeoutError(requestError);
+      if (!isTimeout && isSupabaseAbortError(requestError)) {
         throw createSupabaseAbortError();
       }
 
       const shouldRetry = canRetry
         && attempt < MAX_NETWORK_RETRIES
-        && (isTimeout || isNetworkFetchError(error));
+        && (isTimeout || isNetworkFetchError(requestError));
 
       if (shouldRetry) {
         await waitForNetworkRetry(callerSignal);
@@ -229,12 +240,12 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
         throw timeoutError;
       }
 
-      if (isNetworkFetchError(error)) {
+      if (isNetworkFetchError(requestError)) {
         const connectionError = new Error('Unable to connect to Supabase. Check your network connection and project URL.');
         connectionError.name = 'SupabaseNetworkError';
         throw connectionError;
       }
-      throw error;
+      throw requestError;
     } finally {
       globalThis.clearTimeout(timeoutId);
       callerSignal?.removeEventListener('abort', forwardCallerAbort);
