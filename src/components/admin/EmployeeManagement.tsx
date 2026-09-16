@@ -2641,7 +2641,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           : isSuperAdmin ? 'hover:bg-yellow-500/15' : 'hover:bg-blue-500/15'
       }`}
     >
-      <td className="relative w-[34px] py-0.5 px-0.5 text-xs text-left whitespace-nowrap">
+      <td className="relative w-[34px] py-0.5 pl-1.5 pr-0 text-xs text-left whitespace-nowrap">
         <span
           aria-hidden="true"
           className={`pointer-events-none absolute inset-y-0 left-0 w-1 transition-opacity duration-75 ${
@@ -2663,7 +2663,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         </button>
       </td>
       <td className="w-[46px] py-0.5 px-0 text-center whitespace-nowrap">
-        {renderWorkStatusBadge(employee.workStatus)}
+        <span className="-ml-1 inline-flex">{renderWorkStatusBadge(employee.workStatus)}</span>
       </td>
       <td className="group/withdrawal relative w-[104px] overflow-visible py-0.5 px-1 whitespace-nowrap cursor-pointer sm:w-[116px]" onClick={() => setViewingEmployee(employee)}>
         <div className="flex min-w-0 flex-col">
@@ -2827,7 +2827,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       </td>
       {/* Work days */}
       <td className="w-[52px] py-0.5 px-1 text-center whitespace-nowrap">
-        <span className="font-normal tabular-nums text-cyan-300" title="每日明細中的獨立活動天數">{employee.workDays}</span>
+        <span className="text-[9px] font-normal tabular-nums text-cyan-300" title="每日明細中的獨立活動天數">{employee.workDays}</span>
       </td>
       <td className="w-[132px] py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-center gap-1">
@@ -2902,7 +2902,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const renderTableHeader = (adminId: string) => (
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
       <tr className="h-[40px]">
-        <th className="w-[34px] px-0.5 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
+        <th className="w-[34px] pl-1.5 pr-0 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
         <th className="h-[40px] w-[46px] px-0 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">工作狀態</th>
         <th className="w-[104px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider sm:w-[116px]">使用者</th>
         <th className="hidden w-[100px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider lg:table-cell">員工 ID</th>
