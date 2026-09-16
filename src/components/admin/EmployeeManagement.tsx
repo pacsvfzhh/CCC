@@ -68,7 +68,7 @@ const getCalendarMonthKey = (date: Date) => {
   return `${year}-${month}`;
 };
 
-const formatCalendarDateLabel = (value: string) => value || '请选择日期';
+const formatCalendarDateLabel = (value: string) => value || '請選擇日期';
 
 const isValidCalendarDate = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -838,9 +838,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     setCreating(true);
 
     try {
-      if (!formData.username.trim()) throw new Error('Username is required');
-      if (formData.password.length < 6) throw new Error('Password must be at least 6 characters');
-      if (!formData.employeeId.trim()) throw new Error('Employee ID is required');
+      if (!formData.username.trim()) throw new Error('使用者名稱為必填');
+      if (formData.password.length < 6) throw new Error('密碼至少需要 6 個字元');
+      if (!formData.employeeId.trim()) throw new Error('員工 ID 為必填');
 
       const createdBy = admin.role === 'secondary_admin'
         ? admin.id
@@ -856,7 +856,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       });
 
       if (error) throw new Error(formatSupabaseError(error));
-      if (!result?.success) throw new Error(result?.error || 'Failed to create employee');
+      if (!result?.success) throw new Error(result?.error || '建立員工失敗');
 
       setFormData({ username: '', password: '', employeeId: '', remarks: '' });
       setShowCreateForm(false);
@@ -864,7 +864,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setSelectedAdminForCreate(null);
       await guardedLoadEmployeesRef.current?.(false);
     } catch (error: unknown) {
-      setCreateError(formatSupabaseError(error) || 'Failed to create employee.');
+      setCreateError(formatSupabaseError(error) || '建立員工失敗。');
     } finally {
       setCreating(false);
     }
@@ -876,8 +876,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     setCreatingSecondaryAdmin(true);
 
     try {
-      if (!secondaryAdminForm.username.trim()) throw new Error('Username is required');
-      if (secondaryAdminForm.password.length < 6) throw new Error('Password must be at least 6 characters');
+      if (!secondaryAdminForm.username.trim()) throw new Error('使用者名稱為必填');
+      if (secondaryAdminForm.password.length < 6) throw new Error('密碼至少需要 6 個字元');
 
       const { data: result, error } = await supabase.rpc('admin_create_secondary_account', {
         p_admin_session_token: getAdminFinancialSessionToken(),
@@ -886,7 +886,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       });
 
       if (error) throw error;
-      if (!result?.success) throw new Error(result?.error || 'Failed to create admin');
+      if (!result?.success) throw new Error(result?.error || '建立管理員失敗');
 
       setSecondaryAdminForm({ username: '', password: '' });
       setShowSecondaryAdminPassword(false);
@@ -894,7 +894,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       await guardedLoadEmployeesRef.current?.(false);
     } catch (error) {
       console.error('Error creating secondary admin:', formatSupabaseError(error));
-      setCreateSecondaryAdminError(formatSupabaseError(error) || 'Failed to create secondary admin.');
+      setCreateSecondaryAdminError(formatSupabaseError(error) || '建立次要管理員失敗。');
     } finally {
       setCreatingSecondaryAdmin(false);
     }
@@ -904,8 +904,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     const newStatus = !currentStatus;
     setConfirmDialog({
       show: true,
-      title: `${newStatus ? 'Activate' : 'Deactivate'} Employee`,
-      message: `Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} this employee account?`,
+      title: `${newStatus ? '啟用' : '停用'}員工`,
+      message: `確定要${newStatus ? '啟用' : '停用'}此員工帳戶嗎？`,
       employeeUsername,
       employeeId: employeeDisplayId,
       variant: 'status',
@@ -940,8 +940,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     const newStatus = !currentStatus;
     setConfirmDialog({
       show: true,
-      title: `${newStatus ? 'Verify' : 'Unverify'} Employee`,
-      message: `Are you sure you want to ${newStatus ? 'verify' : 'unverify'} this employee account?`,
+      title: `${newStatus ? '驗證' : '取消驗證'}員工`,
+      message: `確定要${newStatus ? '驗證' : '取消驗證'}此員工帳戶嗎？`,
       employeeUsername,
       employeeId: employeeDisplayId,
       variant: 'verification',
@@ -975,7 +975,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
   const handleResetPassword = async (employeeId: string) => {
     if (!newPassword.trim()) {
-      setNotification({ show: true, type: 'warning', title: 'Invalid Input', message: 'Please enter a new password' });
+      setNotification({ show: true, type: 'warning', title: '輸入無效', message: '請輸入新密碼' });
       return;
     }
     try {
@@ -985,12 +985,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         p_new_password: newPassword,
       });
       if (error) throw error;
-      if (!data) throw new Error('No rows were updated.');
+      if (!data) throw new Error('沒有資料列被更新。');
       setShowPasswordReset(null);
       setNewPassword('');
-      setNotification({ show: true, type: 'success', title: 'Success', message: 'Password reset successfully' });
+      setNotification({ show: true, type: 'success', title: '成功', message: '密碼重設成功' });
     } catch (error: unknown) {
-      setNotification({ show: true, type: 'error', title: 'Error', message: formatSupabaseError(error) || 'Failed to reset password' });
+      setNotification({ show: true, type: 'error', title: '錯誤', message: formatSupabaseError(error) || '重設密碼失敗' });
     }
   };
 
@@ -1029,7 +1029,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setEditingEmployee(null);
     } catch (error) {
       console.error('Error updating employee:', formatSupabaseError(error));
-      setNotification({ show: true, type: 'error', title: 'Error', message: 'Failed to update employee' });
+      setNotification({ show: true, type: 'error', title: '錯誤', message: '更新員工資料失敗' });
       guardedLoadEmployeesRef.current?.(true);
     }
   };
@@ -1042,8 +1042,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_user_id: employee.id,
       });
-      if (error) throw new Error(formatSupabaseError(error) || 'Database error occurred');
-      if (!data) throw new Error('Unable to delete employee.');
+      if (error) throw new Error(formatSupabaseError(error) || '發生資料庫錯誤');
+      if (!data) throw new Error('無法刪除員工。');
       setEmployeeGroups(prev => prev.map(g => ({
         ...g,
         employees: g.employees.filter(emp => emp.id !== employee.id)
@@ -1051,7 +1051,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setDeletingEmployee(null);
       setDeleteError(null);
     } catch (error: unknown) {
-      setDeleteError(formatSupabaseError(error) || 'Failed to delete employee.');
+      setDeleteError(formatSupabaseError(error) || '刪除員工失敗。');
     } finally {
       setIsDeleting(false);
     }
@@ -1504,7 +1504,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/20 border border-green-500/50">
           <span className="w-1 h-1 rounded-full bg-green-400" />
-          <span className="text-xs font-medium text-green-400">On</span>
+          <span className="text-xs font-medium text-green-400">上線</span>
         </span>
       );
     }
@@ -1512,14 +1512,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/20 border border-red-500/50">
           <span className="w-1 h-1 rounded-full bg-red-400" />
-          <span className="text-xs font-medium text-red-400">Off</span>
+          <span className="text-xs font-medium text-red-400">離線</span>
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-500/20 border border-slate-500/50">
         <span className="w-1 h-1 rounded-full bg-slate-400" />
-        <span className="text-xs font-medium text-slate-400">New</span>
+        <span className="text-xs font-medium text-slate-400">新進</span>
       </span>
     );
   }, []);
@@ -1593,10 +1593,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const renderIdleDaysPortal = (adminId: string) => {
     if (inactiveDaysDropdownOpen !== adminId || !idleDaysDropdownPos) return null;
     const items = [
-      { key: '2-3' as InactiveDaysRange, label: '2 ~ 3 days', accent: 'bg-sky-400', badge: 'border-sky-400/35 bg-sky-500/10 text-sky-200' },
-      { key: '3-7' as InactiveDaysRange, label: '3 ~ 7 days', accent: 'bg-emerald-400', badge: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-200' },
-      { key: '7-15' as InactiveDaysRange, label: '7 ~ 15 days', accent: 'bg-amber-400', badge: 'border-amber-400/35 bg-amber-500/10 text-amber-200' },
-      { key: '15+' as InactiveDaysRange, label: '15+ days', accent: 'bg-rose-400', badge: 'border-rose-400/35 bg-rose-500/10 text-rose-200' },
+      { key: '2-3' as InactiveDaysRange, label: '2～3 天', accent: 'bg-sky-400', badge: 'border-sky-400/35 bg-sky-500/10 text-sky-200' },
+      { key: '3-7' as InactiveDaysRange, label: '3～7 天', accent: 'bg-emerald-400', badge: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-200' },
+      { key: '7-15' as InactiveDaysRange, label: '7～15 天', accent: 'bg-amber-400', badge: 'border-amber-400/35 bg-amber-500/10 text-amber-200' },
+      { key: '15+' as InactiveDaysRange, label: '15 天以上', accent: 'bg-rose-400', badge: 'border-rose-400/35 bg-rose-500/10 text-rose-200' },
     ];
     return createPortal(
       <div
@@ -1605,7 +1605,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         style={{ top: idleDaysDropdownPos.top, left: idleDaysDropdownPos.left }}
       >
         <div className="w-[148px] overflow-hidden rounded-xl border border-[#4d8b5c] bg-[#07150b] shadow-2xl shadow-black/70 ring-1 ring-inset ring-emerald-200/10">
-          <div role="menu" aria-label="Idle days filter" className="space-y-1 bg-[#07150b] p-1.5">
+          <div role="menu" aria-label="閒置天數篩選" className="space-y-1 bg-[#07150b] p-1.5">
             {items.map(({ key, label, accent, badge }, index) => {
               const isSelected = inactiveDaysFilterByGroup.get(adminId) === key;
               return (
@@ -1661,7 +1661,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-rose-400/45 bg-rose-950/75 px-2 text-[11px] font-semibold text-rose-200 transition-all hover:border-rose-300/75 hover:bg-rose-900/80 hover:text-rose-100 active:scale-[0.98] active:bg-rose-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50"
               >
                 <X className="h-3.5 w-3.5" />
-                Clear filter
+                清除篩選
               </button>
             </div>
           )}
@@ -1709,7 +1709,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               ? `bg-blue-500 ${on}`
               : `${dim} text-slate-400 hover:text-blue-300 hover:border-blue-500/40`
           }`}
-        >ALL</button>
+        >全部</button>
         <button
           onClick={() => handleActiveFilter(adminId, 'active')}
           className={`px-2 py-0.5 rounded text-[11px] transition-all flex items-center gap-1 ${
@@ -1719,7 +1719,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           }`}
         >
           <span className={`w-1 h-1 rounded-full ${currentActive === 'active' ? 'bg-white' : 'bg-emerald-600'}`} />
-          Active
+          啟用
         </button>
         <button
           onClick={() => handleActiveFilter(adminId, 'inactive')}
@@ -1730,7 +1730,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           }`}
         >
           <span className={`w-1 h-1 rounded-full ${currentActive === 'inactive' ? 'bg-white' : 'bg-red-600'}`} />
-          Off
+          停用
         </button>
 
         <div className="w-px h-4 bg-slate-600 shrink-0 mx-1" />
@@ -1750,7 +1750,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               ? `bg-blue-500 ${on}`
               : `${dim} text-slate-400 hover:text-blue-300 hover:border-blue-500/40`
           }`}
-        >ALL</button>
+        >全部</button>
         <button
           onClick={() => handleWorkStatusFilter(adminId, 'online')}
           className={`px-2 py-0.5 rounded text-[11px] transition-all flex items-center gap-1 ${
@@ -1760,7 +1760,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           }`}
         >
           <span className={`w-1 h-1 rounded-full ${currentWorkStatus.has('online') ? 'bg-white' : 'bg-green-600'}`} />
-          Online
+          上線
         </button>
         <button
           onClick={() => handleWorkStatusFilter(adminId, 'offline')}
@@ -1771,7 +1771,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           }`}
         >
           <span className={`w-1 h-1 rounded-full ${currentWorkStatus.has('offline') ? 'bg-white' : 'bg-red-600'}`} />
-          Offline
+          離線
         </button>
         <button
           onClick={() => handleWorkStatusFilter(adminId, 'never_started')}
@@ -1782,7 +1782,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           }`}
         >
           <span className={`w-1 h-1 rounded-full ${currentWorkStatus.has('never_started') ? 'bg-white' : 'bg-amber-600'}`} />
-          Never Started
+          從未開始
         </button>
 
         <div className="w-px h-4 bg-slate-600 shrink-0 mx-1" />
@@ -1806,7 +1806,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             }`}
           >
             <Wallet className="h-3.5 w-3.5" />
-            <span>Withdrawing</span>
+            <span>提現中</span>
             <span className={`min-w-[20px] rounded-full border px-1.5 py-0.5 text-center text-[10px] tabular-nums leading-none ${
               hasPendingFilter
                 ? 'border-white/30 bg-white/20 text-white'
@@ -1839,7 +1839,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     const r = inactiveDaysFilterByGroup.get(adminId);
                     return r === '2-3' ? '2-3d' : r === '3-7' ? '3-7d' : r === '7-15' ? '7-15d' : '15d+';
                   })()
-                : 'Idle Days'
+                : '閒置天數'
               }
             </span>
             <ChevronDown className={`h-3 w-3 transition-transform ${inactiveDaysDropdownOpen === adminId ? 'rotate-180' : ''}`} />
@@ -1857,8 +1857,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   setInactiveDaysDropdownOpen(null);
                   setIdleDaysDropdownPos(null);
                 }}
-                aria-label="Clear Idle Days filter"
-                title="Clear Idle Days filter"
+                aria-label="清除閒置天數篩選"
+                title="清除閒置天數篩選"
                 className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-300 bg-rose-600 text-white transition-colors hover:border-rose-200 hover:bg-rose-500"
               >
                 <X className="h-3.5 w-3.5" />
@@ -1870,7 +1870,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <button
           type="button"
           onClick={() => resetEmployeeListFilters(adminId)}
-          title="Reset Staff list filters"
+          title="重設員工清單篩選條件"
           className={`ml-8 inline-flex h-7 min-w-[78px] items-center justify-center gap-1.5 rounded-lg border border-blue-400/70 px-3 py-1 text-[11px] font-semibold text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70 ${
             resetFeedbackAdminId === adminId
               ? 'bg-emerald-600'
@@ -1880,12 +1880,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           {resetFeedbackAdminId === adminId ? (
             <>
               <CheckCircle className="h-3.5 w-3.5" />
-              <span>Done</span>
+              <span>完成</span>
             </>
           ) : (
             <>
               <RefreshCw className="h-3.5 w-3.5" />
-              <span>Reset</span>
+              <span>重設</span>
             </>
           )}
         </button>
@@ -1941,7 +1941,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <Globe className="h-4 w-4 text-cyan-300" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.18em] text-cyan-300/90">Security activity</p>
+                  <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.18em] text-cyan-300/90">安全活動</p>
                   <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
                     <h3 className="truncate text-lg font-bold leading-6 tracking-tight text-white">{loginIPEmployee.username}</h3>
                     {loginIPEmployee.employeeId && <span className="font-mono text-xs font-semibold tracking-wide text-cyan-300/90">ID: {loginIPEmployee.employeeId}</span>}
@@ -1952,14 +1952,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 <div className="min-w-[118px] rounded-xl border border-emerald-300/15 bg-emerald-300/[0.07] px-3 py-2">
                   <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase leading-4 tracking-[0.12em] text-emerald-300/80">
                     <ShieldCheck className="h-3.5 w-3.5" />
-                    Total logins
+                    登入總次數
                   </div>
                   <p className="mt-0.5 text-xl font-bold leading-6 text-emerald-200">{loginIPLoading ? '—' : loginCount}</p>
                 </div>
                 <div className="w-[278px] max-w-[calc(100vw-2rem)] rounded-xl border border-cyan-300/15 bg-cyan-300/[0.07] px-3 py-2">
                   <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase leading-4 tracking-[0.12em] text-cyan-300/80">
                     <Clock3 className="h-3.5 w-3.5" />
-                    Last login
+                    最近登入
                   </div>
                   {latestLogin ? (
                     <div className="mt-0.5 flex items-center gap-3">
@@ -1967,16 +1967,16 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         <p className="truncate text-xs font-semibold leading-5 text-cyan-100">{formatDateTime(latestLogin.created_at)}</p>
                         <p className="flex items-center gap-1 truncate text-[10px] font-mono leading-4 text-amber-200">
                           <MapPin className="h-3 w-3 shrink-0 text-amber-400" />
-                          {latestLogin.ip_address || 'Unknown IP'}
+                          {latestLogin.ip_address || '未知 IP'}
                         </p>
                       </div>
                       <div className="min-w-[78px] border-l border-cyan-300/15 pl-3">
-                        <p className="text-[8px] font-bold uppercase leading-3 tracking-wider text-slate-500">System</p>
+                        <p className="text-[8px] font-bold uppercase leading-3 tracking-wider text-slate-500">系統</p>
                         <LoginDeviceSummary systemOnly compact deviceInfo={latestLogin.device_info} userAgent={latestLogin.user_agent} />
                       </div>
                     </div>
                   ) : (
-                    <p className="mt-0.5 text-[10px] leading-5 text-slate-500">{loginIPLoading ? 'Loading' : 'No login activity'}</p>
+                    <p className="mt-0.5 text-[10px] leading-5 text-slate-500">{loginIPLoading ? '載入中' : '沒有登入活動'}</p>
                   )}
                 </div>
               </div>
@@ -1984,7 +1984,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             <button
               type="button"
               onClick={() => setLoginIPEmployee(null)}
-              aria-label="Close login IP history"
+              aria-label="關閉登入 IP 紀錄"
               className="absolute right-5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-rose-300/35 bg-rose-500/15 text-rose-200 transition-all hover:border-rose-200/80 hover:bg-rose-500/40 hover:text-white"
             >
               <X className="h-4 w-4" />
@@ -1996,26 +1996,26 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10">
                   <Loader2 className="h-6 w-6 animate-spin text-cyan-300" />
                 </div>
-                <p className="mt-3 text-sm font-semibold text-slate-300">Loading security activity</p>
-                <p className="mt-1 text-xs text-slate-500">Fetching the latest login records</p>
+                <p className="mt-3 text-sm font-semibold text-slate-300">正在載入安全活動</p>
+                <p className="mt-1 text-xs text-slate-500">正在取得最新登入紀錄</p>
               </div>
             ) : loginIPRecords.length === 0 ? (
               <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.03] text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-500/20 bg-slate-500/10">
                   <Globe className="h-6 w-6 text-slate-500" />
                 </div>
-                <p className="mt-3 text-sm font-semibold text-slate-300">No login records found</p>
-                <p className="mt-1 max-w-xs text-xs text-slate-500">New sign-in and sign-out activity will appear here.</p>
+                <p className="mt-3 text-sm font-semibold text-slate-300">找不到登入紀錄</p>
+                <p className="mt-1 max-w-xs text-xs text-slate-500">新的登入與登出活動會顯示在這裡。</p>
               </div>
             ) : (
               <div className="login-history-modal-scroll overflow-x-auto">
                 <table className="min-w-[720px] w-full">
                   <thead className="bg-white/[0.025]">
                     <tr className="border-y border-white/10">
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Time</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Type</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">IP address</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">System & browser</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">時間</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">類型</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">IP 位址</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">系統與瀏覽器</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2036,13 +2036,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                               : 'border-slate-300/15 bg-slate-300/[0.06] text-slate-400'
                           }`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${record.action_type === 'login' ? 'bg-emerald-300' : 'bg-slate-500'}`} />
-                            {record.action_type === 'login' ? 'Login' : 'Logout'}
+                            {record.action_type === 'login' ? '登入' : '登出'}
                           </span>
                         </td>
                         <td className="px-4 py-3.5 text-xs font-mono text-slate-200">
                           <span className="flex items-center gap-1.5">
                             <MapPin className="h-3.5 w-3.5 text-slate-500" />
-                            {record.ip_address || 'Unknown IP'}
+                            {record.ip_address || '未知 IP'}
                           </span>
                         </td>
                         <td className="px-4 py-3.5">
@@ -2096,11 +2096,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     if (!walletEmployee || !walletData) return;
     const amount = parseFloat(walletAdjustData.amount);
     if (isNaN(amount) || amount <= 0) {
-      setWalletNotification({ type: 'error', message: 'Please enter a valid amount' });
+      setWalletNotification({ type: 'error', message: '請輸入有效金額' });
       return;
     }
     if (!walletAdjustData.remarks.trim()) {
-      setWalletNotification({ type: 'error', message: 'Please enter remarks' });
+      setWalletNotification({ type: 'error', message: '請輸入備註' });
       return;
     }
     setWalletAdjusting(true);
@@ -2117,7 +2117,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       });
       if (adjustError) throw adjustError;
       if (!result?.success) {
-        setWalletNotification({ type: 'error', message: result?.error || 'Failed to adjust balance' });
+        setWalletNotification({ type: 'error', message: result?.error || '調整餘額失敗' });
         setWalletAdjusting(false);
         return;
       }
@@ -2133,10 +2133,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       });
       walletAdjustmentOperationIdRef.current = null;
       setWalletAdjustData({ amount: '', remarks: '' });
-      setWalletNotification({ type: 'success', message: 'Balance adjusted successfully' });
+      setWalletNotification({ type: 'success', message: '餘額調整成功' });
     } catch (err: unknown) {
       console.error('Error adjusting wallet:', formatSupabaseError(err));
-      setWalletNotification({ type: 'error', message: formatSupabaseError(err) || 'Failed to adjust balance' });
+      setWalletNotification({ type: 'error', message: formatSupabaseError(err) || '調整餘額失敗' });
     } finally {
       setWalletAdjusting(false);
     }
@@ -2153,7 +2153,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 <DollarSign className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <p className="text-xs text-slate-400 leading-none">Wallet Adjustment</p>
+                <p className="text-xs text-slate-400 leading-none">錢包調整</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <h3 className="text-lg font-bold text-amber-300 tracking-wide">{walletEmployee.username}</h3>
                   {walletEmployee.employeeId && <span className="text-sm text-white font-mono font-semibold">ID: {walletEmployee.employeeId}</span>}
@@ -2173,11 +2173,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50">
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Available</p>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">可用餘額</p>
                     <p className="text-lg font-bold text-green-400">${(walletData?.available ?? 0).toFixed(2)}</p>
                   </div>
                   <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50">
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Frozen</p>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">凍結餘額</p>
                     <p className="text-lg font-bold text-yellow-400">${(walletData?.frozen ?? 0).toFixed(2)}</p>
                   </div>
                 </div>
@@ -2203,7 +2203,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       walletAdjustmentOperationIdRef.current = null;
                       setWalletAdjustData(d => ({ ...d, remarks: e.target.value }));
                     }}
-                    placeholder="Remarks (required)"
+                    placeholder="備註（必填）"
                     rows={3}
                     className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 focus:outline-none placeholder-slate-400 resize-none"
                   />
@@ -2219,20 +2219,20 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     disabled={walletAdjusting}
                     className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
                   >
-                    {walletAdjusting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <span className="flex items-center justify-center gap-1"><span className="text-base font-bold leading-none">+</span> Add</span>}
+                    {walletAdjusting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <span className="flex items-center justify-center gap-1"><span className="text-base font-bold leading-none">+</span> 新增</span>}
                   </button>
                   <button
                     onClick={() => handleWalletAdjust('subtract')}
                     disabled={walletAdjusting}
                     className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
                   >
-                    {walletAdjusting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <span className="flex items-center justify-center gap-1"><span className="text-base font-bold leading-none">&minus;</span> Subtract</span>}
+                    {walletAdjusting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <span className="flex items-center justify-center gap-1"><span className="text-base font-bold leading-none">&minus;</span> 扣除</span>}
                   </button>
                   <button
                     onClick={() => setWalletEmployee(null)}
                     className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-medium transition-colors"
                   >
-                    Close
+                    關閉
                   </button>
                 </div>
               </>
@@ -2254,7 +2254,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             setOpenActionMenu(isOpen ? null : employee.id);
           }}
           className="p-1.5 hover:bg-slate-700 rounded transition-all text-slate-400 hover:text-white"
-          title="Actions"
+          title="操作"
         >
           <MoreVertical className="w-4 h-4" />
         </button>
@@ -2263,23 +2263,23 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setEditingEmployee(employee); }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-blue-300 bg-blue-500/15 hover:bg-blue-500/30 border border-blue-500/30 hover:border-blue-400/50 transition-all whitespace-nowrap"
-              title="Edit Details"
+              title="編輯詳情"
             >
-              <Edit className="w-3 h-3" /> Edit
+              <Edit className="w-3 h-3" /> 編輯
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setShowPasswordReset({ id: employee.id, username: employee.username }); }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-amber-300 bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/30 hover:border-amber-400/50 transition-all whitespace-nowrap"
-              title="Reset Password"
+              title="重設密碼"
             >
-              <Key className="w-3 h-3" /> Password
+              <Key className="w-3 h-3" /> 密碼
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setDeletingEmployee(employee); }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-red-300 bg-red-500/15 hover:bg-red-500/30 border border-red-500/30 hover:border-red-400/50 transition-all whitespace-nowrap"
-              title="Delete"
+              title="刪除"
             >
-              <Trash2 className="w-3 h-3" /> Delete
+              <Trash2 className="w-3 h-3" /> 刪除
             </button>
           </div>
         )}
@@ -2311,7 +2311,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <button
           onClick={(e) => { e.stopPropagation(); setPinConfirmEmployee({ id: employee.id, username: employee.username, currentPinned: employee.is_pinned }); }}
           className={`absolute right-2 top-1/2 inline-flex -translate-y-1/2 rounded p-0.5 transition-all ${employee.is_pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-amber-400'}`}
-          title={employee.is_pinned ? 'Unpin' : 'Pin to Top'}
+          title={employee.is_pinned ? '取消釘選' : '釘選至頂端'}
         >
           <Pin className={`w-3 h-3 ${employee.is_pinned ? 'fill-current' : ''}`} />
         </button>
@@ -2326,18 +2326,18 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               {employee.pendingWithdrawals && employee.pendingWithdrawals.length > 1 ? (
                 <>
                   <span className="inline-flex shrink-0 items-center gap-1 rounded border border-orange-300/35 bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-bold text-orange-200 transition-colors group-hover/withdrawal:border-orange-200/60 group-hover/withdrawal:bg-orange-500/25">
-                    多笔提现
+                    多筆提現
                     <span className="rounded-full bg-orange-300/20 px-1 text-[9px] tabular-nums text-orange-100">{employee.pendingWithdrawals.length}</span>
                   </span>
                   <div className="pointer-events-none invisible absolute left-full top-1/2 z-50 ml-2 w-56 -translate-y-1/2 rounded-xl border border-orange-300/35 bg-slate-950/98 p-2.5 text-left opacity-0 shadow-2xl shadow-black/60 ring-1 ring-orange-300/10 transition-all duration-150 group-hover/withdrawal:pointer-events-auto group-hover/withdrawal:visible group-hover/withdrawal:opacity-100">
                     <div className="mb-2 flex items-center justify-between gap-2 border-b border-orange-300/20 pb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-200">待提现明细</span>
-                      <span className="rounded-full border border-orange-300/30 bg-orange-500/15 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-orange-100">{employee.pendingWithdrawals.length} 笔</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-200">待提現明細</span>
+                      <span className="rounded-full border border-orange-300/30 bg-orange-500/15 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-orange-100">{employee.pendingWithdrawals.length} 筆</span>
                     </div>
                     <div className="max-h-44 overflow-y-auto dark-panel-scroll">
                       {employee.pendingWithdrawals?.map((withdrawal, withdrawalIndex) => (
                         <div key={withdrawal.id} className={`flex items-center justify-between gap-3 py-1.5 ${withdrawalIndex < employee.pendingWithdrawals!.length - 1 ? 'border-b border-slate-800' : ''}`}>
-                          <span className="text-[10px] font-medium text-slate-400">第 {withdrawalIndex + 1} 笔</span>
+                          <span className="text-[10px] font-medium text-slate-400">第 {withdrawalIndex + 1} 筆</span>
                           <span className="text-right">
                             <span className="block text-[11px] font-bold tabular-nums text-orange-200">${withdrawal.amount.toFixed(2)}</span>
                             <span className="block text-[9px] font-medium tabular-nums text-slate-400">{formatWithdrawalDate(withdrawal.created_at)}</span>
@@ -2374,7 +2374,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             setRegistrationCalendarOpen(false);
           }}
           className="ml-0 inline-flex align-middle p-0.5 rounded text-slate-500 hover:text-blue-400 transition-colors"
-          title="Edit registration date"
+          title="編輯註冊日期"
         >
           <Pencil className="w-2.5 h-2.5" />
         </button>
@@ -2387,17 +2387,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           }`}
         >
           {employee.is_verified ? <CheckCircle className="w-2.5 h-2.5" /> : <XCircle className="w-2.5 h-2.5" />}
-          {employee.is_verified ? 'Yes' : 'No'}
+          {employee.is_verified ? '是' : '否'}
         </button>
         {employee.verification && (
           <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 hidden group-hover/ver:block bg-slate-950 border border-sky-500/40 rounded-lg p-3 shadow-2xl shadow-black/60 ring-1 ring-sky-500/20 text-xs whitespace-nowrap">
-            <span className="text-slate-300"><span className="text-slate-500">Name:</span> {employee.verification.real_name}</span>
+            <span className="text-slate-300"><span className="text-slate-500">姓名：</span> {employee.verification.real_name}</span>
             <span className="text-slate-600 mx-1">|</span>
-            <span className="text-slate-300"><span className="text-slate-500">Phone:</span> {employee.verification.phone}</span>
+            <span className="text-slate-300"><span className="text-slate-500">電話：</span> {employee.verification.phone}</span>
             <span className="text-slate-600 mx-1">|</span>
-            <span className="text-slate-300"><span className="text-slate-500">Email:</span> {employee.verification.email}</span>
+            <span className="text-slate-300"><span className="text-slate-500">電子郵件：</span> {employee.verification.email}</span>
             <span className="text-slate-600 mx-1">|</span>
-            <span className="text-slate-300"><span className="text-slate-500">Wallet:</span> {employee.verification.wallet_address}</span>
+            <span className="text-slate-300"><span className="text-slate-500">錢包：</span> {employee.verification.wallet_address}</span>
           </div>
         )}
       </td>
@@ -2408,7 +2408,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             employee.is_active ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
           }`}
         >
-          {employee.is_active ? 'Active' : 'Off'}
+          {employee.is_active ? '啟用' : '停用'}
         </button>
       </td>
       <td className="w-[66px] py-0.5 px-1 relative group/remarks" onClick={(e) => e.stopPropagation()}>
@@ -2485,7 +2485,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <button
             onClick={() => onQuickAction?.('message', { id: employee.id, username: employee.username })}
             className="p-0.5 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/25 hover:text-blue-300 transition-all border border-blue-500/20 hover:border-blue-400/40"
-            title={`Send message to ${employee.username}`}
+            title={`傳送訊息給 ${employee.username}`}
           >
             <Bell className="w-3.5 h-3.5" />
           </button>
@@ -2496,8 +2496,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               onQuickAction?.('customerservice', { id: employee.id, username: employee.username });
             }}
             className="p-0.5 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/25 hover:text-rose-300 transition-all border border-rose-500/20 hover:border-rose-400/40"
-            title={`直接发送模拟客户消息给 ${employee.username}`}
-            aria-label={`直接发送模拟客户消息给 ${employee.username}`}
+            title={`直接傳送模擬客戶訊息給 ${employee.username}`}
+            aria-label={`直接傳送模擬客戶訊息給 ${employee.username}`}
           >
             <MessageCircle className="w-3.5 h-3.5" />
           </button>
@@ -2508,22 +2508,22 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               onQuickAction?.('cccservice', { id: employee.id, username: employee.username });
             }}
             className="p-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-300 transition-all border border-emerald-500/20 hover:border-emerald-400/40"
-            title={`直接发送经理消息给 ${employee.username}`}
-            aria-label={`直接发送经理消息给 ${employee.username}`}
+            title={`直接傳送經理訊息給 ${employee.username}`}
+            aria-label={`直接傳送經理訊息給 ${employee.username}`}
           >
             <Headphones className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => handleOpenWallet({ id: employee.id, username: employee.username, employeeId: employee.employee_id })}
             className="p-0.5 rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500/25 hover:text-amber-300 transition-all border border-amber-500/20 hover:border-amber-400/40"
-            title={`Adjust wallet for ${employee.username}`}
+            title={`調整 ${employee.username} 的錢包`}
           >
             <DollarSign className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => handleViewLoginIP({ id: employee.id, username: employee.username, employeeId: employee.employee_id })}
             className="p-0.5 rounded bg-sky-500/10 text-sky-400 hover:bg-sky-500/25 hover:text-sky-300 transition-all border border-sky-500/20 hover:border-sky-400/40"
-            title={`View login IP for ${employee.username}`}
+            title={`檢視 ${employee.username} 的登入 IP`}
           >
             <Globe className="w-3.5 h-3.5" />
           </button>
@@ -2554,24 +2554,24 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
       <tr className="h-[40px]">
         <th className="w-[54px] px-1.5 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
-        <th className="w-[116px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">User</th>
-        <th className="w-[100px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Emp ID</th>
-        {renderSortableHeader(adminId, 'created_at', 'Created', 'w-[72px]')}
-        <th className="h-[40px] w-[44px] pl-1 pr-0 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Ver</th>
-        <th className="h-[40px] w-[48px] pl-0 pr-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Status</th>
-        <th className="h-[40px] w-[66px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Remarks</th>
-        <th className="h-[40px] w-[88px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">Tags</th>
-        {renderSortableHeader(adminId, 'totalOrders', 'Total', 'w-[41px]')}
-        {renderSortableHeader(adminId, 'todayOrders', 'Today', 'w-[41px]')}
-        {renderSortableHeader(adminId, 'todayCompletedOrders', 'Success', 'w-[45px]')}
-        {renderSortableHeader(adminId, 'failedOrders', 'Failed', 'w-[43px]')}
-        {renderSortableHeader(adminId, 'walletBalance', 'Wallet', 'w-[59px]')}
-        {renderSortableHeader(adminId, 'accountBalance', 'Avail', 'w-[59px]')}
-        {renderSortableHeader(adminId, 'todayCommission', "Today $", 'w-[58px]')}
-        {renderSortableHeader(adminId, 'totalWorkMinutes', 'Total T', 'w-[54px]')}
-        {renderSortableHeader(adminId, 'todayWorkMinutes', 'Today T', 'w-[54px]')}
-        <th className="h-[40px] w-[50px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">Work</th>
-        <th className="h-[40px] w-[132px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">Actions</th>
+        <th className="w-[116px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">使用者</th>
+        <th className="w-[100px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">員工 ID</th>
+        {renderSortableHeader(adminId, 'created_at', '建立日期', 'w-[72px]')}
+        <th className="h-[40px] w-[44px] pl-1 pr-0 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">驗證</th>
+        <th className="h-[40px] w-[48px] pl-0 pr-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">狀態</th>
+        <th className="h-[40px] w-[66px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">備註</th>
+        <th className="h-[40px] w-[88px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">標籤</th>
+        {renderSortableHeader(adminId, 'totalOrders', '總數', 'w-[41px]')}
+        {renderSortableHeader(adminId, 'todayOrders', '今日', 'w-[41px]')}
+        {renderSortableHeader(adminId, 'todayCompletedOrders', '成功', 'w-[45px]')}
+        {renderSortableHeader(adminId, 'failedOrders', '失敗', 'w-[43px]')}
+        {renderSortableHeader(adminId, 'walletBalance', '錢包餘額', 'w-[59px]')}
+        {renderSortableHeader(adminId, 'accountBalance', '可用餘額', 'w-[59px]')}
+        {renderSortableHeader(adminId, 'todayCommission', '今日佣金', 'w-[58px]')}
+        {renderSortableHeader(adminId, 'totalWorkMinutes', '總工時', 'w-[54px]')}
+        {renderSortableHeader(adminId, 'todayWorkMinutes', '今日工時', 'w-[54px]')}
+        <th className="h-[40px] w-[50px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">工作狀態</th>
+        <th className="h-[40px] w-[132px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">操作</th>
       </tr>
     </thead>
   );
@@ -2592,15 +2592,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 <UserPlus className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${isSuperGroup ? 'text-yellow-300/80' : 'text-blue-300/80'}`}>Access provisioning</p>
-                <h3 className="text-lg font-bold tracking-tight text-white">New Employee Account</h3>
+                <p className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${isSuperGroup ? 'text-yellow-300/80' : 'text-blue-300/80'}`}>存取權限配置</p>
+                <h3 className="text-lg font-bold tracking-tight text-white">新增員工帳戶</h3>
                 <p className={`truncate text-xs ${isSuperGroup ? 'text-yellow-100/70' : 'text-blue-100/70'}`}>
-                  {groupAdmin ? <>Creating under: <strong className="font-semibold text-white">{groupAdmin.username}</strong></> : 'Create a new employee account'}
+                  {groupAdmin ? <>建立於： <strong className="font-semibold text-white">{groupAdmin.username}</strong></> : '建立新的員工帳戶'}
                 </p>
               </div>
             </div>
             <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-[0.12em] ${isSuperGroup ? 'border-yellow-300/35 bg-yellow-500/10 text-yellow-200' : 'border-blue-300/35 bg-blue-500/10 text-blue-200'}`}>
-              SECURE SETUP
+              安全設定
             </span>
           </div>
 
@@ -2614,46 +2614,46 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           <div className="p-5">
             <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
               <span className={`h-px flex-1 ${isSuperGroup ? 'bg-yellow-400/20' : 'bg-blue-400/20'}`} />
-              Account details
+              帳戶詳細資料
               <span className={`h-px flex-1 ${isSuperGroup ? 'bg-yellow-400/20' : 'bg-blue-400/20'}`} />
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>Username</label>
-                <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} disabled={creating} required placeholder="Enter username" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
+                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>使用者名稱</label>
+                <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} disabled={creating} required placeholder="輸入使用者名稱" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
               </div>
               <div>
-                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>Password</label>
+                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>密碼</label>
                 <div className="flex gap-2">
                   <div className="relative min-w-0 flex-1">
-                    <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} disabled={creating} required minLength={6} autoComplete="new-password" placeholder="Create a secure password" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
+                    <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} disabled={creating} required minLength={6} autoComplete="new-password" placeholder="建立安全密碼" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900">
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  <button type="button" onClick={generatePassword} disabled={creating} className={`inline-flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl border bg-white text-slate-600 shadow-sm transition-colors disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100 ${isSuperGroup ? 'border-yellow-300 hover:border-yellow-500 hover:bg-yellow-50 hover:text-yellow-700' : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700'}`} title="Generate strong password">
+                  <button type="button" onClick={generatePassword} disabled={creating} className={`inline-flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl border bg-white text-slate-600 shadow-sm transition-colors disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100 ${isSuperGroup ? 'border-yellow-300 hover:border-yellow-500 hover:bg-yellow-50 hover:text-yellow-700' : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700'}`} title="產生高強度密碼">
                     <RefreshCw className="h-4 w-4" />
                   </button>
                 </div>
-                <p className="mt-1.5 text-[11px] text-slate-500">Minimum 6 characters</p>
+                <p className="mt-1.5 text-[11px] text-slate-500">至少 6 個字元</p>
               </div>
               <div>
-                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>Employee ID</label>
-                <input type="text" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} disabled={creating} required placeholder="Enter employee ID" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
+                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>員工 ID</label>
+                <input type="text" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} disabled={creating} required placeholder="輸入員工 ID" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
               </div>
               <div>
-                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>Remarks <span className="font-normal normal-case tracking-normal text-slate-500">(optional)</span></label>
-                <input type="text" value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} disabled={creating} placeholder="Add an internal note" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
+                <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>備註 <span className="font-normal normal-case tracking-normal text-slate-500">（選填）</span></label>
+                <input type="text" value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} disabled={creating} placeholder="新增內部備註" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
               </div>
             </div>
 
             <div className="mt-5 flex items-center justify-end gap-2 border-t border-slate-700/70 pt-4">
               <button type="button" onClick={() => { setShowCreateForm(false); setCreateError(null); setFormData({ username: '', password: '', employeeId: '', remarks: '' }); setSelectedAdminForCreate(null); }} disabled={creating} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
                 <X className="h-4 w-4" />
-                Cancel
+                取消
               </button>
               <button type="submit" disabled={creating || !formData.username.trim() || !formData.password || !formData.employeeId.trim()} className={`inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isSuperGroup ? 'border-yellow-300/60 bg-yellow-600 hover:bg-yellow-500' : 'border-blue-300/60 bg-blue-600 hover:bg-blue-500'}`}>
-                {creating ? (<><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />Creating...</>) : (<><UserPlus className="h-4 w-4" />Create Employee</>)}
+                {creating ? (<><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />建立中……</>) : (<><UserPlus className="h-4 w-4" />建立員工</>)}
               </button>
             </div>
           </div>
@@ -2666,10 +2666,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const totalEmployeeCount = employeeGroups.reduce((sum, group) => sum + group.employees.length, 0);
   const selectedGroup = employeeGroups.find((group) => group.admin.id === selectedAdminFilter);
   const selectedGroupLabel = selectedAdminFilter === 'all'
-    ? `All groups (${totalEmployeeCount})`
+    ? `全部群組（${totalEmployeeCount}）`
     : selectedGroup
       ? `${selectedGroup.admin.username} (${selectedGroup.employees.length})`
-      : 'Select group';
+      : '選擇群組';
 
   const confirmDialogStyle = confirmDialog
     ? confirmDialog.variant === 'verification'
@@ -2742,12 +2742,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               type="text"
               value={searchTerm}
               onChange={(e) => handleSearchTermChange(e.target.value)}
-              placeholder="Search employees..."
+              placeholder="搜尋員工……"
               autoComplete="off"
               className="h-full w-full rounded-none bg-transparent pl-10 pr-10 text-[13px] font-semibold tracking-wide text-slate-50 placeholder:text-slate-400/80 outline-none transition-colors focus:bg-white/[0.035]"
             />
             {searchTerm && (
-              <button type="button" onClick={() => handleSearchTermChange('')} aria-label="Clear employee search" className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md border border-transparent text-cyan-200/70 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/15 hover:text-cyan-50">
+              <button type="button" onClick={() => handleSearchTermChange('')} aria-label="清除員工搜尋" className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md border border-transparent text-cyan-200/70 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/15 hover:text-cyan-50">
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
@@ -2771,16 +2771,16 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <div className="flex min-w-0 items-center gap-2">
                     <Users className="h-4 w-4 shrink-0 text-cyan-200" />
                     <div className="min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-cyan-300">Employee groups</p>
-                      <p className="mt-0.5 truncate text-[10px] text-slate-400">Switch the visible group</p>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-cyan-300">員工群組</p>
+                      <p className="mt-0.5 truncate text-[10px] text-slate-400">切換顯示群組</p>
                     </div>
                   </div>
                   <span className="inline-flex h-6 min-w-[38px] shrink-0 items-center justify-center gap-1 rounded-md border border-cyan-200/35 bg-gradient-to-b from-cyan-300/20 to-blue-500/15 px-2 text-[11px] font-extrabold tabular-nums text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_2px_6px_rgba(8,145,178,0.2)]">
-                    <span className="text-[8px] font-bold uppercase tracking-wide text-cyan-200/70">total</span>
+                    <span className="text-[8px] font-bold uppercase tracking-wide text-cyan-200/70">總數</span>
                     {employeeGroups.length}
                   </span>
                 </div>
-                <div role="listbox" aria-label="Filter employee group" className="max-h-[calc(100vh-9rem)] min-h-[112px] overflow-y-auto overscroll-contain scrollbar-dark">
+                <div role="listbox" aria-label="篩選員工群組" className="max-h-[calc(100vh-9rem)] min-h-[112px] overflow-y-auto overscroll-contain scrollbar-dark">
                   <button
                     type="button"
                     role="option"
@@ -2793,7 +2793,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     className={`group flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-all duration-150 ${selectedAdminFilter === 'all' ? 'border-emerald-300/55 bg-gradient-to-r from-emerald-500/25 via-green-500/20 to-transparent text-emerald-50 shadow-sm shadow-emerald-950/40' : 'border-transparent bg-slate-950/20 text-slate-300 hover:border-emerald-300/30 hover:bg-gradient-to-r hover:from-emerald-500/10 hover:via-green-500/10 hover:to-emerald-400/5 hover:text-slate-100 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_3px_9px_rgba(16,185,129,0.1)]'}`}
                   >
                     <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[9px] font-black ${selectedAdminFilter === 'all' ? 'border-emerald-200/45 bg-emerald-300/20 text-emerald-50' : 'border-slate-600/70 bg-slate-800/80 text-slate-400 group-hover:border-emerald-300/35 group-hover:bg-emerald-400/10 group-hover:text-emerald-200'}`}>ALL</span>
-                    <span className="min-w-0 flex-1 truncate text-xs font-semibold">All groups</span>
+                    <span className="min-w-0 flex-1 truncate text-xs font-semibold">全部群組</span>
                     <span className={`inline-flex h-6 min-w-[42px] shrink-0 items-center justify-center rounded-md border px-2 text-xs font-extrabold leading-none tabular-nums shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ${selectedAdminFilter === 'all' ? 'border-emerald-200/65 bg-gradient-to-b from-emerald-300/30 to-green-500/20 text-emerald-50' : 'border-slate-600/80 bg-slate-800/90 text-cyan-100 group-hover:border-emerald-300/35 group-hover:bg-gradient-to-b group-hover:from-emerald-300/10 group-hover:to-green-500/10 group-hover:text-emerald-100'}`}>{totalEmployeeCount}</span>
                   </button>
                   <div className="my-1.5 h-px bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent" />
@@ -2826,45 +2826,45 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             type="button"
             onClick={() => navigateGroupPanel(-1)}
             disabled={selectedAdminFilter !== 'all'}
-            aria-label="Show previous group"
+            aria-label="顯示上一個群組"
             className="flex h-full w-[92px] shrink-0 items-center justify-center gap-1 border-r border-cyan-300/30 bg-gradient-to-r from-sky-600/85 to-cyan-500/80 px-2 text-[10px] font-bold text-white shadow-sm shadow-cyan-950/30 transition-all hover:from-sky-500 hover:to-cyan-400 active:from-sky-700 active:to-cyan-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
-            title="Show previous group"
+            title="顯示上一個群組"
           >
             <ChevronUp className="h-3.5 w-3.5 shrink-0" />
-            <span className="whitespace-nowrap">Prev group</span>
+            <span className="whitespace-nowrap">上一個群組</span>
           </button>
           <button
             type="button"
             onClick={() => navigateGroupPanel(1)}
             disabled={selectedAdminFilter !== 'all'}
-            aria-label="Show next group"
+            aria-label="顯示下一個群組"
             className="flex h-full w-[92px] shrink-0 items-center justify-center gap-1 border-r border-orange-300/30 bg-gradient-to-r from-orange-600/85 to-amber-500/80 px-2 text-[10px] font-bold text-white shadow-sm shadow-orange-950/30 transition-all hover:from-orange-500 hover:to-amber-400 active:from-orange-700 active:to-amber-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
-            title="Show next group"
+            title="顯示下一個群組"
           >
             <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-            <span className="whitespace-nowrap">Next group</span>
+            <span className="whitespace-nowrap">下一個群組</span>
           </button>
           <button
             type="button"
             onClick={() => setAllGroupsExpanded(true)}
             disabled={selectedAdminFilter !== 'all'}
-            aria-label="Open all groups"
+            aria-label="展開全部群組"
             className="flex h-full w-[108px] shrink-0 items-center justify-center gap-1.5 border-r border-emerald-300/25 bg-gradient-to-r from-emerald-600/85 to-green-500/75 px-2 text-[11px] font-bold text-white shadow-sm shadow-emerald-950/30 transition-all hover:from-emerald-500 hover:to-green-400 active:from-emerald-700 active:to-green-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
-            title="Open all groups"
+            title="展開全部群組"
           >
             <ChevronsDown className="h-4 w-4 shrink-0" />
-            <span className="whitespace-nowrap">Open all</span>
+            <span className="whitespace-nowrap">全部展開</span>
           </button>
           <button
             type="button"
             onClick={() => setAllGroupsExpanded(false)}
             disabled={selectedAdminFilter !== 'all'}
-            aria-label="Close all groups"
+            aria-label="收合全部群組"
             className="flex h-full w-[108px] shrink-0 items-center justify-center gap-1.5 border-r border-rose-300/25 bg-gradient-to-r from-rose-600/85 to-red-500/75 px-2 text-[11px] font-bold text-white shadow-sm shadow-rose-950/30 transition-all hover:from-rose-500 hover:to-red-400 active:from-rose-700 active:to-red-600 disabled:cursor-not-allowed disabled:border-slate-700/60 disabled:bg-slate-800/80 disabled:bg-none disabled:text-slate-500"
-            title="Close all groups"
+            title="收合全部群組"
           >
             <ChevronsUp className="h-4 w-4 shrink-0" />
-            <span className="whitespace-nowrap">Close all</span>
+            <span className="whitespace-nowrap">全部收合</span>
           </button>
           <button
             type="button"
@@ -2874,10 +2874,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               setShowCreateSecondaryAdmin(true);
             }}
             className="flex h-full w-[220px] shrink-0 items-center justify-center gap-2 border-l border-cyan-300/20 bg-gradient-to-r from-blue-600/80 to-cyan-600/80 px-4 text-xs font-semibold text-white transition-all hover:from-blue-500 hover:to-cyan-500 active:from-blue-700 active:to-cyan-700"
-            title="Create a secondary administrator"
+            title="建立次要管理員"
           >
             <UserPlus className="h-4 w-4" />
-            New Secondary Admin
+            新增次要管理員
           </button>
           <div className="w-px h-5 bg-cyan-300/30 shrink-0" />
           <div className="flex h-full w-[100px] shrink-0 items-center justify-center gap-1.5 bg-cyan-500/15 px-3">
@@ -2888,10 +2888,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             type="button"
             onClick={() => { if (!loading && !isRefreshing) void guardedLoadEmployeesRef.current?.(employeeGroups.length > 0); }}
             disabled={loading || isRefreshing}
-            aria-label={(loading || isRefreshing) ? 'Refreshing staff data' : 'Refresh staff data now'}
+            aria-label={(loading || isRefreshing) ? '正在重新整理員工資料' : '立即重新整理員工資料'}
             aria-busy={loading || isRefreshing}
             className="group relative flex h-full w-20 min-w-20 shrink-0 items-center justify-center overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 px-4 text-white shadow-sm shadow-cyan-950/30 transition-all duration-300 hover:from-blue-400 hover:to-cyan-400 hover:shadow-md hover:shadow-cyan-500/25 active:from-blue-600 active:to-cyan-600 disabled:cursor-wait disabled:opacity-90"
-            title={(loading || isRefreshing) ? 'Refreshing staff data...' : 'Refresh now'}
+            title={(loading || isRefreshing) ? '正在重新整理員工資料……' : '立即重新整理'}
           >
             <span className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-opacity ${(loading || isRefreshing) ? 'animate-pulse opacity-100' : 'opacity-0 group-hover:opacity-60'}`} />
             <span className="relative flex h-8 w-8 items-center justify-center">
@@ -2909,20 +2909,20 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       >
         {/* Content */}
         {loading ? (
-        <div className="text-center py-8 text-slate-400">Loading employees...</div>
+        <div className="text-center py-8 text-slate-400">正在載入員工……</div>
       ) : admin.role === 'secondary_admin' ? (
         // ===== SECONDARY ADMIN: flat list =====
         <>
           {flatFilteredEmployees.length === 0 && employeeGroups.length > 0 && employeeGroups[0].employees.length === 0 ? (
             <div className="bg-gradient-to-br from-blue-500/5 via-slate-800/40 to-slate-800/40 border-2 border-blue-500/30 shadow-lg shadow-blue-500/10 rounded-xl overflow-hidden p-8 text-center">
               <Users className="w-16 h-16 mx-auto mb-4 text-blue-500/30" />
-              <p className="text-slate-400 font-medium mb-2">No employees found</p>
-              <p className="text-slate-500 text-sm mb-4">Create your first employee to get started</p>
+              <p className="text-slate-400 font-medium mb-2">找不到員工</p>
+              <p className="text-slate-500 text-sm mb-4">建立第一位員工以開始使用</p>
               <button
                 onClick={() => { setSelectedAdminForCreate(admin.id); setShowCreateForm(true); }}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105"
               >
-                <UserPlus className="w-5 h-5" /> Create Employee
+                <UserPlus className="w-5 h-5" /> 建立員工
               </button>
               {renderCreateForm(admin.id)}
             </div>
@@ -2938,12 +2938,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         <Users className="h-4 w-4 text-cyan-300" />
                         <div className="flex min-w-[82px] flex-col">
                           <span className="text-base font-bold leading-none tabular-nums text-white">{allEmps.length}</span>
-                          <span className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200/80">Total Employees</span>
+                          <span className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200/80">員工總數</span>
                         </div>
                         <span className="h-7 w-px bg-cyan-300/30" />
                         <div className="flex min-w-[92px] flex-col">
                           <span className="text-base font-bold leading-none tabular-nums text-cyan-100">{flatFilteredEmployees.length}</span>
-                          <span className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200">Filtered Employees</span>
+                          <span className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200">符合篩選的員工</span>
                         </div>
                       </div>
                     {allEmps.length > 0 && (
@@ -2952,7 +2952,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         {renderSummaryFilterButton(
                           flatAdminId,
                           'today_working',
-                          'Today Working',
+                          '今日已工作',
                           allEmps.filter(e => e.todayWorkMinutes > 0).length,
 
                         )}
@@ -2960,7 +2960,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         {renderSummaryFilterButton(
                           flatAdminId,
                           'new_today',
-                          'New Today',
+                          '今日新增',
                           allEmps.filter(e => {
                             if (!e.created_at) return false;
                             const today = new Date();
@@ -2973,7 +2973,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         {renderSummaryFilterButton(
                           flatAdminId,
                           'currently_working',
-                          'Now Working',
+                          '目前工作中',
                           allEmps.filter(e => e.workStatus === 'online').length,
 
                         )}
@@ -2989,12 +2989,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           type="text"
                           value={searchTerm}
                           onChange={(e) => handleSearchTermChange(e.target.value)}
-                          placeholder="Search employees..."
+                          placeholder="搜尋員工……"
                           autoComplete="off"
                           className="h-full w-full bg-transparent pl-8 pr-8 text-[11px] font-semibold tracking-wide text-cyan-50 placeholder:text-slate-400/80 outline-none transition-colors focus:bg-white/[0.035]"
                         />
                         {searchTerm && (
-                          <button type="button" onClick={() => handleSearchTermChange('')} aria-label="Clear employee search" className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md border border-transparent text-cyan-200/70 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/15 hover:text-cyan-50">
+                          <button type="button" onClick={() => handleSearchTermChange('')} aria-label="清除員工搜尋" className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md border border-transparent text-cyan-200/70 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/15 hover:text-cyan-50">
                             <X className="h-3 w-3" />
                           </button>
                         )}
@@ -3009,10 +3009,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           type="button"
                           onClick={() => { if (!loading && !isRefreshing) void guardedLoadEmployeesRef.current?.(employeeGroups.length > 0); }}
                           disabled={loading || isRefreshing}
-                          aria-label={(loading || isRefreshing) ? 'Refreshing staff data' : 'Refresh staff data now'}
+                          aria-label={(loading || isRefreshing) ? '正在重新整理員工資料' : '立即重新整理員工資料'}
                           aria-busy={loading || isRefreshing}
                           className="group relative flex h-full min-w-10 items-center justify-center overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 px-2.5 text-white shadow-sm shadow-cyan-950/30 transition-all duration-300 hover:from-blue-400 hover:to-cyan-400 hover:shadow-md hover:shadow-cyan-500/25 active:from-blue-600 active:to-cyan-600 disabled:cursor-wait disabled:opacity-90"
-                          title={(loading || isRefreshing) ? 'Refreshing staff data...' : 'Refresh now'}
+                          title={(loading || isRefreshing) ? '正在重新整理員工資料……' : '立即重新整理'}
                         >
                           <span className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-opacity ${(loading || isRefreshing) ? 'animate-pulse opacity-100' : 'opacity-0 group-hover:opacity-60'}`} />
                           <span className="relative flex h-7 w-7 items-center justify-center">
@@ -3035,7 +3035,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         <span className="flex h-5 w-5 items-center justify-center rounded-md bg-yellow-500/20 text-yellow-300">
                           <Tag className="h-3.5 w-3.5" />
                         </span>
-                        Tags:
+                        標籤：
                       </span>
                       {getGroupTags(flatAdminId).map(tag => {
                         const selectedTags = getSelectedTagsForGroup(flatAdminId);
@@ -3050,7 +3050,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         );
                       })}
                       {getSelectedTagsForGroup(flatAdminId).length > 0 && (
-                        <button onClick={() => setSelectedTagsForGroup(flatAdminId, [])} className="inline-flex h-6 shrink-0 items-center rounded-md border border-red-500/30 bg-red-600/15 px-2 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-600/30">Clear</button>
+                        <button onClick={() => setSelectedTagsForGroup(flatAdminId, [])} className="inline-flex h-6 shrink-0 items-center rounded-md border border-red-500/30 bg-red-600/15 px-2 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-600/30">清除</button>
                       )}
                     </div>
                   </div>
@@ -3060,7 +3060,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     onClick={() => { setSelectedAdminForCreate(admin.id); setShowCreateForm(true); }}
                     className="inline-flex h-7 items-center gap-1.5 rounded-md border border-blue-400/40 bg-blue-600/85 px-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-950/40 transition-all hover:border-blue-300/60 hover:bg-blue-500 active:bg-blue-700"
                   >
-                    <UserPlus className="h-3.5 w-3.5" /> Create Employee
+                    <UserPlus className="h-3.5 w-3.5" /> 建立員工
                   </button>
                 </div>
               </div>
@@ -3081,7 +3081,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           )}
         </>
       ) : filteredGroups.length === 0 ? (
-        <div className="text-center py-8 text-slate-400">No employees found</div>
+        <div className="text-center py-8 text-slate-400">找不到員工</div>
       ) : (
         // ===== SUPER ADMIN: grouped view =====
         <div
@@ -3114,7 +3114,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                             ? 'border-amber-400/70 bg-amber-600 text-amber-50 hover:bg-amber-500'
                             : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-amber-400/60 hover:bg-slate-600 hover:text-amber-100'
                         }`}
-                        title={group.admin.is_pinned ? 'Unpin admin group' : 'Pin admin group to top'}
+                        title={group.admin.is_pinned ? '取消釘選管理員群組' : '將管理員群組釘選至頂端'}
                       >
                         <Pin className={`h-4 w-4 ${group.admin.is_pinned ? 'fill-current rotate-12' : ''}`} />
                       </button>
@@ -3128,14 +3128,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         <span className="h-3.5 w-px bg-slate-600" />
                         <span className={`inline-flex items-center gap-1 text-[10px] font-bold tracking-wide ${isSuperGroup ? 'text-yellow-300' : 'text-cyan-300'}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${isSuperGroup ? 'bg-yellow-400' : 'bg-cyan-400'}`} />
-                          {isSuperGroup ? 'SUPER ADMIN' : 'SECONDARY ADMIN'}
+                          {isSuperGroup ? '超級管理員' : '次要管理員'}
                         </span>
                         {group.admin.is_pinned && (
                           <>
                             <span className="h-3.5 w-px bg-slate-600" />
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-wide text-amber-300">
                               <Pin className="h-3 w-3" />
-                              PINNED
+                              已釘選
                             </span>
                           </>
                         )}
@@ -3150,12 +3150,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                                 <Users className={`h-4 w-4 ${isSuperGroup ? 'text-yellow-300' : 'text-cyan-300'}`} />
                                 <div className="flex min-w-[82px] flex-col">
                                   <span className="text-base font-bold leading-none tabular-nums text-white">{allEmps.length}</span>
-                                  <span className={`mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] ${isSuperGroup ? 'text-yellow-200/80' : 'text-cyan-200/80'}`}>Total Employees</span>
+                                  <span className={`mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] ${isSuperGroup ? 'text-yellow-200/80' : 'text-cyan-200/80'}`}>員工總數</span>
                                 </div>
                                 <span className={`h-7 w-px ${isSuperGroup ? 'bg-yellow-300/30' : 'bg-cyan-300/30'}`} />
                                 <div className="flex min-w-[92px] flex-col">
                                   <span className={`text-base font-bold leading-none tabular-nums ${isSuperGroup ? 'text-yellow-100' : 'text-cyan-100'}`}>{group.employees.length}</span>
-                                  <span className={`mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] ${isSuperGroup ? 'text-yellow-200' : 'text-cyan-200'}`}>Filtered Employees</span>
+                                  <span className={`mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] ${isSuperGroup ? 'text-yellow-200' : 'text-cyan-200'}`}>符合篩選的員工</span>
                                 </div>
                               </div>
                               {allEmps.length > 0 && (
@@ -3164,7 +3164,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                                   {renderSummaryFilterButton(
                                     group.admin.id,
                                     'today_working',
-                                    'Today Working',
+                                    '今日已工作',
                                     allEmps.filter(e => e.todayWorkMinutes > 0).length,
           
                                   )}
@@ -3172,7 +3172,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                                   {renderSummaryFilterButton(
                                     group.admin.id,
                                     'new_today',
-                                    'New Today',
+                                    '今日新增',
                                     allEmps.filter(e => {
                                       if (!e.created_at) return false;
                                       const today = new Date();
@@ -3185,7 +3185,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                                   {renderSummaryFilterButton(
                                     group.admin.id,
                                     'currently_working',
-                                    'Now Working',
+                                    '目前工作中',
                                     allEmps.filter(e => e.workStatus === 'online').length,
 
                                   )}
@@ -3221,7 +3221,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                         onClick={() => { setSelectedAdminForCreate(group.admin.id); setShowCreateForm(true); setExpandedGroups(prev => new Set(prev).add(group.admin.id)); }}
                         className="ml-auto inline-flex h-7 shrink-0 -translate-y-0.5 items-center gap-1.5 rounded-lg border border-yellow-400/50 bg-yellow-600/80 px-2.5 py-1 text-[11px] font-semibold text-yellow-50 shadow-lg shadow-yellow-950/30 transition-all hover:border-yellow-300/70 hover:bg-yellow-500 active:bg-yellow-700"
                       >
-                        <UserPlus className="h-3.5 w-3.5" /> Add
+                        <UserPlus className="h-3.5 w-3.5" /> 新增
                       </button>
                     </div>
                     <div className={`flex min-h-8 flex-wrap items-center gap-2 border-b px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/20 bg-yellow-500/5' : 'border-blue-500/20 bg-blue-500/5'}`}>
@@ -3232,7 +3232,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                               <span className="flex h-5 w-5 items-center justify-center rounded-md bg-yellow-500/20 text-yellow-300">
                                 <Tag className="h-3.5 w-3.5" />
                               </span>
-                              Tags:
+                              標籤：
                             </span>
                             {getGroupTags(group.admin.id).map(tag => {
                               const selectedTags = getSelectedTagsForGroup(group.admin.id);
@@ -3247,7 +3247,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                               );
                             })}
                             {getSelectedTagsForGroup(group.admin.id).length > 0 && (
-                              <button onClick={() => setSelectedTagsForGroup(group.admin.id, [])} className="inline-flex h-6 shrink-0 items-center rounded-md border border-red-500/30 bg-red-600/15 px-2 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-600/30">Clear</button>
+                              <button onClick={() => setSelectedTagsForGroup(group.admin.id, [])} className="inline-flex h-6 shrink-0 items-center rounded-md border border-red-500/30 bg-red-600/15 px-2 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-600/30">清除</button>
                             )}
                           </div>
                         </div>
@@ -3263,7 +3263,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       </div>
                     ) : (
                       <div className={`py-8 text-center ${selectedAdminFilter !== 'all' ? `flex flex-1 flex-col items-center justify-center ${isSuperGroup ? 'bg-yellow-500/5' : 'bg-blue-500/5'}` : isSuperGroup ? 'bg-yellow-500/5' : 'bg-blue-500/5'}`}>
-                        <p className="text-slate-400 text-sm">No employees match the current filter</p>
+                        <p className="text-slate-400 text-sm">沒有員工符合目前的篩選條件</p>
                       </div>
                     )}
                   </>
@@ -3287,23 +3287,23 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       {editingEmployee && createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-white mb-4">Edit Employee</h3>
+            <h3 className="text-xl font-bold text-white mb-4">編輯員工</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Username</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">使用者名稱</label>
                 <input type="text" value={editingEmployee.username} onChange={(e) => setEditingEmployee({ ...editingEmployee, username: e.target.value })} className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Employee ID</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">員工 ID</label>
                 <input type="text" value={editingEmployee.employee_id} onChange={(e) => setEditingEmployee({ ...editingEmployee, employee_id: e.target.value })} className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Remarks</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">備註</label>
                 <input type="text" value={editingEmployee.remarks || ''} onChange={(e) => setEditingEmployee({ ...editingEmployee, remarks: e.target.value })} className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setEditingEmployee(null)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all">Cancel</button>
-                <button onClick={() => handleUpdateEmployee(editingEmployee.id, { username: editingEmployee.username, employee_id: editingEmployee.employee_id, remarks: editingEmployee.remarks })} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all">Save Changes</button>
+                <button onClick={() => setEditingEmployee(null)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all">取消</button>
+                <button onClick={() => handleUpdateEmployee(editingEmployee.id, { username: editingEmployee.username, employee_id: editingEmployee.employee_id, remarks: editingEmployee.remarks })} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all">儲存變更</button>
               </div>
             </div>
           </div>
@@ -3320,35 +3320,35 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <Pencil className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300/80">Employee note</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300/80">員工備註</p>
                   <h3 title={editingRemarksOnly.username} className="truncate text-lg font-bold text-white">{editingRemarksOnly.username}</h3>
-                  <p className="truncate text-xs text-slate-400">Employee ID: {editingRemarksOnly.employee_id}</p>
+                  <p className="truncate text-xs text-slate-400">員工 ID：{editingRemarksOnly.employee_id}</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setEditingRemarksOnly(null)} aria-label="Close edit remarks" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-white">
+              <button type="button" onClick={() => setEditingRemarksOnly(null)} aria-label="關閉編輯備註" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="space-y-4 p-5">
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">Remarks</label>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">備註</label>
                 <textarea
                   value={editingRemarksOnly.remarks || ''}
                   onChange={(e) => setEditingRemarksOnly({ ...editingRemarksOnly, remarks: e.target.value })}
                   rows={5}
-                  placeholder="Enter an internal note for this employee..."
+                  placeholder="輸入此員工的內部備註……"
                   className="min-h-[132px] w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-6 text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
                 />
               </div>
               <div className="flex items-start gap-2.5 rounded-xl border border-blue-400/20 bg-blue-500/5 px-3.5 py-3 text-xs text-slate-400">
                 <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-300" />
-                <span>This note is visible to administrators in the employee list.</span>
+                <span>此備註會顯示給員工清單中的管理員。</span>
               </div>
               <div className="flex justify-end gap-2 border-t border-slate-700/70 pt-4">
-                <button type="button" onClick={() => setEditingRemarksOnly(null)} className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">Cancel</button>
+                <button type="button" onClick={() => setEditingRemarksOnly(null)} className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">取消</button>
                 <button type="button" onClick={() => { handleUpdateEmployee(editingRemarksOnly.id, { remarks: editingRemarksOnly.remarks }); setEditingRemarksOnly(null); }} className="inline-flex items-center gap-2 rounded-lg border border-blue-400/50 bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-950/40 transition-all hover:bg-blue-500 active:bg-blue-700">
                   <CheckCircle className="h-4 w-4" />
-                  Save Remarks
+                  儲存備註
                 </button>
               </div>
             </div>
@@ -3360,26 +3360,26 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       {showPasswordReset && createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-white mb-1">Reset Password</h3>
-            <p className="text-sm text-slate-400 mb-4">Username: <span className="text-white font-medium">{showPasswordReset.username}</span></p>
+            <h3 className="text-xl font-bold text-white mb-1">重設密碼</h3>
+            <p className="text-sm text-slate-400 mb-4">使用者名稱：<span className="text-white font-medium">{showPasswordReset.username}</span></p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">New Password</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">新密碼</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <input type={showResetPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" autoComplete="new-password" className="w-full px-4 py-2 pr-10 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type={showResetPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="輸入新密碼" autoComplete="new-password" className="w-full px-4 py-2 pr-10 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
                       {showResetPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
-                  <button type="button" onClick={generateResetPassword} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all" title="Generate strong password">
+                  <button type="button" onClick={generateResetPassword} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all" title="產生高強度密碼">
                     <RefreshCw className="w-5 h-5" />
                   </button>
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => { setShowPasswordReset(null); setNewPassword(''); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all">Cancel</button>
-                <button onClick={() => handleResetPassword(showPasswordReset.id)} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all">Reset Password</button>
+                <button onClick={() => { setShowPasswordReset(null); setNewPassword(''); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all">取消</button>
+                <button onClick={() => handleResetPassword(showPasswordReset.id)} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all">重設密碼</button>
               </div>
             </div>
           </div>
@@ -3398,12 +3398,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     <CalendarDays className="h-6 w-6" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">Registration control</p>
-                    <h3 className="mt-1 text-xl font-bold tracking-tight text-white">Edit Registration Date</h3>
-                    <p className="mt-1 text-xs text-cyan-100/60">Update the employee account timestamp securely.</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">註冊控制</p>
+                    <h3 className="mt-1 text-xl font-bold tracking-tight text-white">編輯註冊日期</h3>
+                    <p className="mt-1 text-xs text-cyan-100/60">安全地更新員工帳戶時間戳。</p>
                   </div>
                 </div>
-                <button type="button" onClick={closeRegistrationDateEditor} aria-label="Close edit registration date" className="rounded-xl border border-cyan-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/10 hover:text-white">
+                <button type="button" onClick={closeRegistrationDateEditor} aria-label="關閉編輯註冊日期" className="rounded-xl border border-cyan-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/10 hover:text-white">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -3416,17 +3416,17 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     <Users className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Employee account</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">員工帳戶</p>
                     <p title={editingCreatedAt.username} className="mt-1 truncate text-base font-bold text-white">{editingCreatedAt.username}</p>
-                    <p className="mt-0.5 truncate text-xs font-medium tracking-wide text-cyan-200/70">Employee ID: {editingCreatedAt.employeeId}</p>
+                    <p className="mt-0.5 truncate text-xs font-medium tracking-wide text-cyan-200/70">員工 ID：{editingCreatedAt.employeeId}</p>
                   </div>
                 </div>
               </div>
 
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <label htmlFor="employee-registration-date" className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">Registration date</label>
-                  <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-200">Date only</span>
+                  <label htmlFor="employee-registration-date" className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">註冊日期</label>
+                  <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-200">僅日期</span>
                 </div>
                 <div ref={registrationCalendarRef} className="relative">
                   <input
@@ -3442,14 +3442,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     }}
                     onBlur={() => {
                       if (!newCreatedAt || !isValidCalendarDate(newCreatedAt)) {
-                        setRegistrationDateInputError('请输入有效日期，格式为 YYYY-MM-DD');
+                        setRegistrationDateInputError('請輸入有效日期，格式為 YYYY-MM-DD');
                       }
                     }}
                     className={`w-full rounded-xl border bg-slate-950/75 px-4 py-3 pr-14 text-sm font-semibold tracking-wide text-white shadow-inner shadow-black/20 outline-none transition-colors [color-scheme:dark] focus:ring-4 ${registrationDateInputError ? 'border-rose-400/70 focus:border-rose-300 focus:ring-rose-400/10' : 'border-cyan-300/30 focus:border-cyan-300/75 focus:ring-cyan-400/10'}`}
                   />
                   <button
                     type="button"
-                    aria-label="打开日期选择器"
+                    aria-label="開啟日期選擇器"
                     aria-haspopup="dialog"
                     aria-expanded={registrationCalendarOpen}
                     onClick={() => {
@@ -3467,7 +3467,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       <div className="flex items-center justify-between border-b border-cyan-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-3.5 py-3">
                         <button
                           type="button"
-                          aria-label="Previous month"
+                          aria-label="上個月"
                           onClick={() => {
                             const previousMonth = new Date(calendarYear, calendarMonthNumber - 2, 1);
                             setRegistrationCalendarMonth(getCalendarMonthKey(previousMonth));
@@ -3477,12 +3477,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           <ChevronLeft className="h-4 w-4" />
                         </button>
                         <div className="text-center">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">日期选择</p>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">日期選擇</p>
                           <p className="mt-0.5 text-sm font-bold text-white">{calendarMonthLabel}</p>
                         </div>
                         <button
                           type="button"
-                          aria-label="Next month"
+                          aria-label="下個月"
                           onClick={() => {
                             const nextMonth = new Date(calendarYear, calendarMonthNumber, 1);
                             setRegistrationCalendarMonth(getCalendarMonthKey(nextMonth));
@@ -3507,7 +3507,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                               <button
                                 key={dateKey}
                                 type="button"
-                                aria-label={`Select ${formatCalendarDateLabel(dateKey)}`}
+                                aria-label={`選擇 ${formatCalendarDateLabel(dateKey)}`}
                                 aria-pressed={isSelected}
                                 onClick={() => {
                                   setNewCreatedAt(dateKey);
@@ -3556,7 +3556,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 </div>
                 <p className={`mt-2 flex items-center gap-1.5 text-[11px] leading-5 ${registrationDateInputError ? 'text-rose-300' : 'text-slate-500'}`}>
                   <CalendarDays className={`h-3.5 w-3.5 shrink-0 ${registrationDateInputError ? 'text-rose-300' : 'text-cyan-300/70'}`} />
-                  {registrationDateInputError || '可分别调整年、月、日，或点击右侧日历图标选择日期。'}
+                  {registrationDateInputError || '可分別調整年、月、日，或點擊右側日曆圖示選擇日期。'}
                 </p>
               </div>
 
@@ -3567,13 +3567,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
             </div>
 
             <div className="flex flex-col-reverse gap-2 overflow-hidden rounded-b-[1.75rem] border-t border-cyan-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end">
-              <button type="button" onClick={closeRegistrationDateEditor} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">Cancel</button>
+              <button type="button" onClick={closeRegistrationDateEditor} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">取消</button>
               <button
                 type="button"
                 disabled={savingCreatedAt}
                 onClick={async () => {
                   if (!isValidCalendarDate(newCreatedAt)) {
-                    setRegistrationDateInputError('请输入有效日期，格式为 YYYY-MM-DD');
+                    setRegistrationDateInputError('請輸入有效日期，格式為 YYYY-MM-DD');
                     return;
                   }
                   setSavingCreatedAt(true);
@@ -3591,7 +3591,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                       })));
                       closeRegistrationDateEditor();
                     } else {
-                      setNotification({ show: true, type: 'error', title: 'Error', message: 'Failed to update registration date' });
+                      setNotification({ show: true, type: 'error', title: '錯誤', message: '更新註冊日期失敗' });
                     }
                   } finally {
                     setSavingCreatedAt(false);
@@ -3600,7 +3600,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-300/35 bg-cyan-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-cyan-950/35 transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <CheckCircle className="h-4 w-4" />
-                {savingCreatedAt ? 'Saving...' : 'Save date'}
+                {savingCreatedAt ? '儲存中……' : '儲存日期'}
               </button>
             </div>
           </div>
@@ -3611,18 +3611,18 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       {pinConfirmEmployee && createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" onClick={() => setPinConfirmEmployee(null)}>
           <div className="bg-slate-900 border border-amber-500/20 rounded-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-white mb-3">{pinConfirmEmployee.currentPinned ? 'Unpin Employee' : 'Pin to Top'}</h3>
+            <h3 className="text-lg font-bold text-white mb-3">{pinConfirmEmployee.currentPinned ? '取消釘選員工' : '釘選至頂端'}</h3>
             <p className="text-slate-300 text-sm mb-5">
               {pinConfirmEmployee.currentPinned
-                ? `Remove pin from "${pinConfirmEmployee.username}"?`
-                : `Pin "${pinConfirmEmployee.username}" to the top of the list?`}
+                ? `要取消釘選「${pinConfirmEmployee.username}」嗎？`
+                : `要將「${pinConfirmEmployee.username}」釘選到清單頂端嗎？`}
             </p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setPinConfirmEmployee(null)} className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors text-sm">Cancel</button>
+              <button onClick={() => setPinConfirmEmployee(null)} className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors text-sm">取消</button>
               <button
                 onClick={() => { togglePin(pinConfirmEmployee.id, pinConfirmEmployee.currentPinned); setPinConfirmEmployee(null); }}
                 className="px-4 py-2 bg-amber-500 text-black font-semibold rounded-lg hover:bg-amber-400 transition-colors text-sm"
-              >{pinConfirmEmployee.currentPinned ? 'Unpin' : 'Pin'}</button>
+              >{pinConfirmEmployee.currentPinned ? '取消釘選' : '釘選'}</button>
             </div>
           </div>
         </div>,
@@ -3633,28 +3633,28 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
           <div className="bg-slate-900 border border-red-500/20 rounded-2xl p-6 max-w-md w-full">
             <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center gap-2">
-              <Trash2 className="w-6 h-6" /> Delete Employee
+              <Trash2 className="w-6 h-6" /> 刪除員工
             </h3>
             <div className="space-y-4">
               {deleteError && <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">{deleteError}</div>}
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                <p className="text-white font-medium mb-2">Are you sure you want to delete employee "{deletingEmployee.username}"?</p>
-                <p className="text-red-400 text-sm mb-3">This action cannot be undone!</p>
+                <p className="text-white font-medium mb-2">確定要刪除員工「{deletingEmployee.username}」嗎？</p>
+                <p className="text-red-400 text-sm mb-3">此操作無法復原！</p>
                 <div className="space-y-2 text-slate-300 text-sm">
-                  <p className="font-medium text-yellow-400">The following data will be permanently deleted:</p>
+                  <p className="font-medium text-yellow-400">以下資料將永久刪除：</p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>Employee account information</li>
-                    <li>All submitted orders</li>
-                    <li>Wallet balance and transaction history</li>
-                    <li>All withdrawal requests</li>
-                    <li>Verification request records</li>
+                    <li>員工帳戶資訊</li>
+                    <li>所有已提交的訂單</li>
+                    <li>錢包餘額與交易紀錄</li>
+                    <li>所有提現申請</li>
+                    <li>驗證申請紀錄</li>
                   </ul>
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => { setDeletingEmployee(null); setDeleteError(null); }} disabled={isDeleting} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:opacity-50">Cancel</button>
+                <button onClick={() => { setDeletingEmployee(null); setDeleteError(null); }} disabled={isDeleting} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:opacity-50">取消</button>
                 <button onClick={() => handleDeleteEmployee(deletingEmployee)} disabled={isDeleting} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all font-medium disabled:opacity-50 flex items-center justify-center gap-2">
-                  {isDeleting ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</>) : 'Delete Permanently'}
+                  {isDeleting ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />刪除中……</>) : '永久刪除'}
                 </button>
               </div>
             </div>
@@ -3672,52 +3672,52 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <Tag className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300/80">Employee labels</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300/80">員工標籤</p>
                   <h3 title={editingTags.username} className="truncate text-lg font-bold text-white">{editingTags.username}</h3>
                   <p className="truncate text-xs text-slate-400">Employee ID: {editingTags.employee_id}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200">{(editingTags.tags || []).length} active</span>
-                <button type="button" onClick={() => { setEditingTags(null); setNewTag(''); }} aria-label="Close manage tags" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-white">
+                <span className="rounded-full border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200">{(editingTags.tags || []).length} 個啟用</span>
+                <button type="button" onClick={() => { setEditingTags(null); setNewTag(''); }} aria-label="關閉標籤管理" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-white">
                   <X className="h-5 w-5" />
                 </button>
               </div>
             </div>
             <div className="space-y-4 p-5">
               <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4">
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-amber-200">Add New Tag</label>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-amber-200">新增標籤</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleAddTag(editingTags); }}
-                    placeholder="Enter tag name..."
+                    placeholder="輸入標籤名稱……"
                     className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15"
                   />
                   <button type="button" onClick={() => handleAddTag(editingTags)} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-400/60 bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-amber-950/30 transition-all hover:bg-amber-500 active:bg-amber-700">
                     <Tag className="h-4 w-4" />
-                    Add
+                    新增
                   </button>
                 </div>
               </div>
               <div className="rounded-xl border border-slate-700/80 bg-slate-950/45 p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">Current Tags</label>
-                  <span className="text-[11px] text-slate-500">Changes save instantly</span>
+                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">目前標籤</label>
+                  <span className="text-[11px] text-slate-500">變更會立即儲存</span>
                 </div>
                 <div className="flex min-h-[92px] flex-wrap content-start gap-2">
                   {(editingTags.tags || []).length === 0 ? (
                     <div className="flex w-full flex-col items-center justify-center gap-1.5 py-5 text-center">
                       <Tag className="h-5 w-5 text-slate-600" />
-                      <p className="text-sm text-slate-500">No tags assigned yet</p>
+                      <p className="text-sm text-slate-500">尚未指派任何標籤</p>
                     </div>
                   ) : (
                     (editingTags.tags || []).map((tag, idx) => (
                       <span key={idx} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/35 bg-amber-500/15 px-2.5 py-1.5 text-sm font-semibold text-amber-200">
                         {tag}
-                        <button type="button" onClick={() => handleRemoveTag(editingTags, tag)} aria-label={`Remove ${tag}`} className="rounded-md p-0.5 text-amber-300 transition-colors hover:bg-amber-400/25 hover:text-white">
+                        <button type="button" onClick={() => handleRemoveTag(editingTags, tag)} aria-label={`移除 ${tag}`} className="rounded-md p-0.5 text-amber-300 transition-colors hover:bg-amber-400/25 hover:text-white">
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </span>
@@ -3726,7 +3726,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 </div>
               </div>
               <div className="flex justify-end border-t border-slate-700/70 pt-4">
-                <button type="button" onClick={() => { setEditingTags(null); setNewTag(''); }} className="rounded-lg border border-slate-600 bg-slate-800 px-5 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">Close</button>
+                <button type="button" onClick={() => { setEditingTags(null); setNewTag(''); }} className="rounded-lg border border-slate-600 bg-slate-800 px-5 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">關閉</button>
               </div>
             </div>
           </div>
@@ -3771,8 +3771,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <UserPlus className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Administrator access</p>
-                  <h2 id="create-secondary-admin-title" className="truncate text-lg font-semibold text-white">Create Secondary Admin</h2>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">管理員存取權限</p>
+                  <h2 id="create-secondary-admin-title" className="truncate text-lg font-semibold text-white">建立次要管理員</h2>
                 </div>
               </div>
               <button
@@ -3785,14 +3785,14 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   setShowSecondaryAdminPassword(false);
                 }}
                 className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-cyan-300/10 hover:text-cyan-100"
-                aria-label="Close create secondary admin panel"
+                aria-label="關閉建立次要管理員面板"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="space-y-4 p-5">
               <div className="rounded-xl border border-cyan-300/15 bg-cyan-500/5 px-3.5 py-3 text-sm text-slate-300">
-                This account will be linked to your administrator account and can manage its assigned employees.
+                此帳戶會連結至您的管理員帳戶，並可管理指派給它的員工。
               </div>
               {createSecondaryAdminError && (
                 <div className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-200">
@@ -3800,7 +3800,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 </div>
               )}
               <div>
-                <label htmlFor="secondary-admin-username" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Username</label>
+                <label htmlFor="secondary-admin-username" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">使用者名稱</label>
                 <input
                   id="secondary-admin-username"
                   type="text"
@@ -3810,11 +3810,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   required
                   autoComplete="off"
                   className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-400/25 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100"
-                  placeholder="Enter admin username"
+                  placeholder="輸入管理員使用者名稱"
                 />
               </div>
               <div>
-                <label htmlFor="secondary-admin-password" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Password</label>
+                <label htmlFor="secondary-admin-password" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">密碼</label>
                 <div className="relative">
                   <input
                     id="secondary-admin-password"
@@ -3826,18 +3826,18 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     minLength={6}
                     autoComplete="new-password"
                     className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 pr-11 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-400/25 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100"
-                    placeholder="At least 6 characters"
+                    placeholder="至少 6 個字元"
                   />
                   <button
                     type="button"
                     onClick={() => setShowSecondaryAdminPassword((visible) => !visible)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                    aria-label={showSecondaryAdminPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showSecondaryAdminPassword ? '隱藏密碼' : '顯示密碼'}
                   >
                     {showSecondaryAdminPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <p className="mt-1.5 text-xs text-slate-500">Use at least 6 characters.</p>
+                <p className="mt-1.5 text-xs text-slate-500">請使用至少 6 個字元。</p>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-slate-800 bg-slate-950/35 px-5 py-4">
@@ -3853,7 +3853,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 disabled={creatingSecondaryAdmin}
                 className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Cancel
+                取消
               </button>
               <button
                 type="submit"
@@ -3861,9 +3861,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/40 bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-950/30 transition-all hover:from-blue-500 hover:to-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {creatingSecondaryAdmin ? (
-                  <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />Creating...</>
+                  <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />建立中……</>
                 ) : (
-                  <><UserPlus className="h-4 w-4" />Create Admin</>
+                  <><UserPlus className="h-4 w-4" />建立管理員</>
                 )}
               </button>
             </div>
@@ -3892,7 +3892,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               <p className="text-slate-300 text-base leading-relaxed text-center">{notification.message}</p>
             </div>
             <div className="relative p-6 bg-slate-900/50">
-              <button onClick={() => setNotification(null)} className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/40 border border-blue-500/50">OK</button>
+              <button onClick={() => setNotification(null)} className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/40 border border-blue-500/50">確定</button>
             </div>
           </div>
         </div>,
@@ -3915,13 +3915,13 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 </div>
                 <div className="min-w-0">
                   <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${confirmDialogStyle.eyebrow}`}>
-                    {confirmDialog.variant === 'verification' ? 'Verification control' : 'Work status control'}
+                    {confirmDialog.variant === 'verification' ? '驗證控制' : '工作狀態控制'}
                   </p>
                   <h3 id="employee-status-dialog-title" className="mt-1 truncate text-xl font-bold tracking-tight text-white">{confirmDialog.title}</h3>
-                  <p className="mt-1 text-xs text-slate-400">Review this account change before applying it.</p>
+                  <p className="mt-1 text-xs text-slate-400">套用前請確認此帳戶變更。</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setConfirmDialog(null)} aria-label="Close confirmation panel" className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
+              <button type="button" onClick={() => setConfirmDialog(null)} aria-label="關閉確認面板" className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -3929,29 +3929,29 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               <div className={`rounded-2xl border px-4 py-4 ${confirmDialogStyle.message}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${confirmDialogStyle.eyebrow}`}>Employee account</p>
+                    <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${confirmDialogStyle.eyebrow}`}>員工帳戶</p>
                     <div className="mt-1 flex min-w-0 items-baseline gap-3">
                       <p title={confirmDialog.employeeUsername} className={`min-w-0 truncate text-xl font-black tracking-tight ${confirmDialogStyle.icon}`}>{confirmDialog.employeeUsername}</p>
                       <span className="shrink-0 text-sm font-extrabold tracking-wide text-slate-100 drop-shadow-sm">ID {confirmDialog.employeeId || '—'}</span>
                     </div>
                   </div>
                   <span className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${confirmDialogStyle.badge}`}>
-                    {confirmDialog.variant === 'verification' ? 'Ver' : 'Status'}
+                    {confirmDialog.variant === 'verification' ? '驗證' : '狀態'}
                   </span>
                 </div>
                 <p className="mt-3 border-t border-white/10 pt-3 text-sm leading-6 text-slate-200">{confirmDialog.message}</p>
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
-                The change will be saved securely and reflected in the employee list.
+                此變更會安全儲存，並反映在員工清單中。
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-slate-700/70 bg-slate-950/35 px-5 py-4">
-              <button type="button" onClick={() => setConfirmDialog(null)} className="rounded-xl border border-slate-600 bg-slate-800 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">Cancel</button>
+              <button type="button" onClick={() => setConfirmDialog(null)} className="rounded-xl border border-slate-600 bg-slate-800 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">取消</button>
               <button type="button" onClick={confirmDialog.onConfirm} className={`rounded-xl border px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all ${confirmDialogStyle.confirmButton}`}>
                 {confirmDialog.nextStatus
-                  ? confirmDialog.variant === 'verification' ? 'Verify employee' : 'Activate employee'
-                  : confirmDialog.variant === 'verification' ? 'Unverify employee' : 'Deactivate employee'}
+                  ? confirmDialog.variant === 'verification' ? '驗證員工' : '啟用員工'
+                  : confirmDialog.variant === 'verification' ? '取消員工驗證' : '停用員工'}
               </button>
             </div>
           </div>

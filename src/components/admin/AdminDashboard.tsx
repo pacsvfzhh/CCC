@@ -106,8 +106,9 @@ interface NavigationPreferences {
 }
 
 const legacyNavigationLabelTranslations: Record<string, string> = {
-  Employees: '員工',
+  Employees: '員工詳情數據',
   Messages: '訊息',
+  '员工详情数据': '員工詳情數據',
   Withdrawals: '提款',
   Locked: '已鎖定',
   'Employee Search': '員工搜尋',
@@ -438,14 +439,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const defaultTabs = useMemo<NavigationTab[]>(() => admin.role === 'emergency_admin' ? [
     { id: 'accountlocks', label: '已鎖定', icon: Shield },
   ] : [
-    { id: 'employees', label: '員工', icon: Users },
+    { id: 'employees', label: '員工詳情數據', icon: Users },
     { id: 'employeesearch', label: '員工搜尋', icon: Search },
     { id: 'loginhistory', label: '登入紀錄', icon: Activity },
     { id: 'accountlocks', label: '已鎖定', icon: Shield },
     { id: 'messages', label: '訊息', icon: Bell },
     { id: 'announcements', label: '公告', icon: FileText },
-    { id: 'customerservice', label: '模拟客户', icon: MessageCircle },
-    { id: 'cccservice', label: '经理', icon: Headphones },
+    { id: 'customerservice', label: '模擬客戶', icon: MessageCircle },
+    { id: 'cccservice', label: '經理', icon: Headphones },
     { id: 'dispatch', label: '訂單指派', icon: PackageSearch },
     { id: 'withdrawals', label: '提款', icon: FileText },
     { id: 'verifications', label: '驗證', icon: UserCheck },

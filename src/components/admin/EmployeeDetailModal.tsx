@@ -71,7 +71,7 @@ const withdrawalStatusConfig: Record<
   }
 > = {
   pending: {
-    label: "Pending",
+    label: "待處理",
     className: "border-amber-200/60 bg-amber-500/20 text-amber-100",
     cardClassName:
       "border-amber-300/45 bg-gradient-to-r from-amber-950/75 via-slate-900/90 to-yellow-950/45 hover:border-amber-200/75",
@@ -79,7 +79,7 @@ const withdrawalStatusConfig: Record<
     amountClassName: "text-amber-100",
   },
   approved: {
-    label: "Approved",
+    label: "已核准",
     className: "border-emerald-200/60 bg-emerald-500/20 text-emerald-100",
     cardClassName:
       "border-emerald-300/45 bg-gradient-to-r from-emerald-950/75 via-slate-900/90 to-teal-950/45 hover:border-emerald-200/75",
@@ -87,7 +87,7 @@ const withdrawalStatusConfig: Record<
     amountClassName: "text-emerald-100",
   },
   rejected: {
-    label: "Rejected",
+    label: "已拒絕",
     className: "border-rose-200/60 bg-rose-500/20 text-rose-100",
     cardClassName:
       "border-rose-300/45 bg-gradient-to-r from-rose-950/75 via-slate-900/90 to-red-950/45 hover:border-rose-200/75",
@@ -95,7 +95,7 @@ const withdrawalStatusConfig: Record<
     amountClassName: "text-rose-100",
   },
   cancelled: {
-    label: "Cancelled",
+    label: "已取消",
     className: "border-slate-300/55 bg-slate-600/50 text-slate-100",
     cardClassName:
       "border-slate-400/40 bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-slate-700/55 hover:border-slate-300/70",
@@ -194,8 +194,8 @@ function PageNavigator({
         type="button"
         onClick={() => onPageChange(1)}
         disabled={disabled || page === 1}
-        aria-label="First page"
-        title="First page"
+        aria-label="第一頁"
+        title="第一頁"
         className={buttonClass}
       >
         <ChevronsLeft className="h-3.5 w-3.5" />
@@ -204,8 +204,8 @@ function PageNavigator({
         type="button"
         onClick={() => onPageChange(Math.max(1, page - 1))}
         disabled={disabled || page === 1}
-        aria-label="Previous page"
-        title="Previous page"
+        aria-label="上一頁"
+        title="上一頁"
         className={buttonClass}
       >
         <ChevronLeft className="h-3.5 w-3.5" />
@@ -227,7 +227,7 @@ function PageNavigator({
             }
           }}
           disabled={disabled}
-          aria-label="Current page"
+          aria-label="目前頁面"
           className="h-8 w-12 rounded-md border-2 border-white/90 bg-slate-100 px-1 text-center text-sm font-black text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.25)] outline-none transition-all focus:border-white focus:ring-2 focus:ring-white/90 focus:shadow-[0_0_0_2px_rgba(255,255,255,0.5)] disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-700 disabled:text-slate-300"
         />
         <span className="whitespace-nowrap">/ {pageCount}</span>
@@ -236,8 +236,8 @@ function PageNavigator({
         type="button"
         onClick={() => onPageChange(Math.min(pageCount, page + 1))}
         disabled={disabled || page === pageCount}
-        aria-label="Next page"
-        title="Next page"
+        aria-label="下一頁"
+        title="下一頁"
         className={buttonClass}
       >
         <ChevronRight className="h-3.5 w-3.5" />
@@ -246,8 +246,8 @@ function PageNavigator({
         type="button"
         onClick={() => onPageChange(pageCount)}
         disabled={disabled || page === pageCount}
-        aria-label="Last page"
-        title="Last page"
+        aria-label="最後一頁"
+        title="最後一頁"
         className={buttonClass}
       >
         <ChevronsRight className="h-3.5 w-3.5" />
@@ -701,13 +701,13 @@ export default function EmployeeDetailModal({
     const images: { url: string; label: string }[] = [];
 
     if (verificationData.id_front_url) {
-      images.push({ url: verificationData.id_front_url, label: 'ID Front' });
+      images.push({ url: verificationData.id_front_url, label: '證件正面' });
     }
     if (verificationData.id_back_url) {
-      images.push({ url: verificationData.id_back_url, label: 'ID Back' });
+      images.push({ url: verificationData.id_back_url, label: '證件背面' });
     }
     if (verificationData.selfie_url) {
-      images.push({ url: verificationData.selfie_url, label: 'Selfie Photo' });
+      images.push({ url: verificationData.selfie_url, label: '自拍照' });
     }
 
     if (images.length > 0) {
@@ -825,12 +825,12 @@ export default function EmployeeDetailModal({
 
   const getTransactionTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      commission: "Order Commission",
-      withdrawal_request: "Withdrawal Request",
-      withdrawal_approved: "Withdrawal Approved",
-      withdrawal_rejected: "Withdrawal Rejected",
-      manual_adjustment: "Admin Adjustment",
-      tip: "Tip",
+      commission: "訂單佣金",
+      withdrawal_request: "提現申請",
+      withdrawal_approved: "提現已核准",
+      withdrawal_rejected: "提現已拒絕",
+      manual_adjustment: "管理員調整",
+      tip: "小費",
     };
     return labels[type] || type;
   };
@@ -954,14 +954,14 @@ export default function EmployeeDetailModal({
                       ? 'text-slate-600 cursor-not-allowed'
                       : 'hover:bg-slate-800 text-slate-400 hover:text-white'
                   }`}
-                  title="Zoom Out"
+                  title="縮小"
                 >
                   <ZoomOut className="w-5 h-5" />
                 </button>
                 <button
                   onClick={resetZoom}
                   className="p-2 hover:bg-slate-800 rounded-lg transition-all text-slate-400 hover:text-white"
-                  title="Reset Zoom"
+                  title="重設縮放"
                 >
                   <Maximize2 className="w-5 h-5" />
                 </button>
@@ -973,7 +973,7 @@ export default function EmployeeDetailModal({
                       ? 'text-slate-600 cursor-not-allowed'
                       : 'hover:bg-slate-800 text-slate-400 hover:text-white'
                   }`}
-                  title="Zoom In"
+                  title="放大"
                 >
                   <ZoomIn className="w-5 h-5" />
                 </button>
@@ -1004,7 +1004,7 @@ export default function EmployeeDetailModal({
                       <div className="absolute inset-0 border-4 border-slate-700 rounded-full"></div>
                       <div className="absolute inset-0 border-4 border-transparent border-t-cyan-500 rounded-full animate-spin"></div>
                     </div>
-                    <div className="text-cyan-400 font-medium">Loading image...</div>
+                    <div className="text-cyan-400 font-medium">圖片載入中……</div>
                   </div>
                 </div>
               )}
@@ -1055,7 +1055,7 @@ export default function EmployeeDetailModal({
               {/* Zoom Instructions */}
               {imagePreview.scale > 1 && (
                 <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-slate-900/80 backdrop-blur border border-slate-700 rounded-lg text-slate-300 text-sm">
-                  Click and drag to pan the image
+                  按住並拖曳以平移圖片
                 </div>
               )}
             </div>
@@ -1100,7 +1100,7 @@ export default function EmployeeDetailModal({
                   {employee.username}
                 </h2>
                 <p className="mt-0.5 truncate text-xs text-slate-400 sm:text-sm">
-                  Employee ID: <span className="font-mono text-cyan-200/90">{employee.employee_id}</span>
+                  員工 ID：<span className="font-mono text-cyan-200/90">{employee.employee_id}</span>
                 </p>
                 {employee.remarks && (
                   <div className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-amber-300/80">
@@ -1113,42 +1113,42 @@ export default function EmployeeDetailModal({
             <div className="flex min-w-0 items-stretch gap-2">
               <div className="grid min-w-0 flex-1 grid-cols-2 overflow-hidden rounded-xl border border-cyan-300/20 bg-slate-800/70 sm:grid-cols-5 lg:w-[680px] lg:flex-none">
                 <div className="min-w-0 border-b border-slate-700/70 p-2.5 sm:border-b-0 sm:border-r">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-100">Status</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-100">狀態</p>
                   <div className="mt-1 flex flex-wrap gap-1">
                     <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${employee.is_active ? "border-emerald-300/40 bg-emerald-500/20 text-emerald-200" : "border-red-300/40 bg-red-500/20 text-red-200"}`}>
-                      {employee.is_active ? "Active" : "Inactive"}
+                      {employee.is_active ? "啟用" : "停用"}
                     </span>
                     <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${employee.is_verified ? "border-emerald-300/40 bg-emerald-500/20 text-emerald-200" : "border-red-300/40 bg-red-500/20 text-red-200"}`}>
-                      {employee.is_verified ? "Verified" : "Unverified"}
+                      {employee.is_verified ? "已驗證" : "未驗證"}
                     </span>
                   </div>
                 </div>
                 <div className="min-w-0 border-b border-slate-700/70 p-2.5 sm:border-b-0 sm:border-r">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">Total Income</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">總收入</p>
                   <p className="mt-1 truncate text-sm font-bold text-emerald-400">${employee.total_income.toFixed(2)}</p>
                 </div>
                 <div className="min-w-0 border-slate-700/70 p-2.5 sm:border-r">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-violet-200">Wallet Balance</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-violet-200">錢包餘額</p>
                   <p className="mt-1 truncate text-sm font-bold text-purple-400">${walletBalance.available.toFixed(2)}</p>
-                  {walletBalance.frozen > 0 && <p className="truncate text-[10px] text-slate-500">Frozen: ${walletBalance.frozen.toFixed(2)}</p>}
+                  {walletBalance.frozen > 0 && <p className="truncate text-[10px] text-slate-500">凍結：${walletBalance.frozen.toFixed(2)}</p>}
                 </div>
                 <div className="min-w-0 border-b border-slate-700/70 p-2.5 sm:border-b-0 sm:border-r">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-300">Total Orders</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-300">總訂單數</p>
                   <p className="mt-1 truncate text-sm font-bold text-blue-400">
                     {totalOrderCount === null ? "—" : totalOrderCount.toLocaleString()}
                   </p>
-                  <p className="truncate text-[10px] text-blue-200/70">All history</p>
+                  <p className="truncate text-[10px] text-blue-200/70">全部歷史紀錄</p>
                 </div>
                 <div className="min-w-0 p-2.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-sky-200">Member Since</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-sky-200">加入日期</p>
                   <p className="mt-1 truncate text-xs font-bold text-white">{new Date(employee.created_at).toLocaleDateString("zh-CN")}</p>
-                  {firstOrderDate && <p className="truncate text-[10px] text-sky-200/75">First order: {new Date(firstOrderDate).toLocaleDateString("zh-CN")}</p>}
+                  {firstOrderDate && <p className="truncate text-[10px] text-sky-200/75">首筆訂單：{new Date(firstOrderDate).toLocaleDateString("zh-CN")}</p>}
                 </div>
               </div>
               <button
                 onClick={onClose}
                 className="shrink-0 self-start rounded-xl border border-red-400/50 bg-red-500/15 p-2 text-red-300 transition-colors hover:border-red-300 hover:bg-red-500/30 hover:text-white lg:self-center"
-                aria-label="Close employee details"
+                aria-label="關閉員工詳情"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1169,7 +1169,7 @@ export default function EmployeeDetailModal({
             }`}
           >
             <TrendingUp className={`h-4 w-4 shrink-0 ${activeTab === "daily" ? "text-cyan-100" : "text-cyan-300/70"}`} />
-            <span className="truncate sm:whitespace-nowrap">Daily Statistics</span>
+            <span className="truncate sm:whitespace-nowrap">每日統計</span>
           </button>
           <button
             type="button"
@@ -1182,7 +1182,7 @@ export default function EmployeeDetailModal({
             }`}
           >
             <DollarSign className={`h-4 w-4 shrink-0 ${activeTab === "transactions" ? "text-emerald-100" : "text-emerald-300/70"}`} />
-            <span className="truncate sm:whitespace-nowrap">Transaction History</span>
+            <span className="truncate sm:whitespace-nowrap">交易紀錄</span>
           </button>
           <button
             type="button"
@@ -1195,7 +1195,7 @@ export default function EmployeeDetailModal({
             }`}
           >
             <Wallet className={`h-4 w-4 shrink-0 ${activeTab === "withdrawals" ? "text-amber-100" : "text-amber-300/70"}`} />
-            <span className="truncate sm:whitespace-nowrap">Withdrawal Records</span>
+            <span className="truncate sm:whitespace-nowrap">提現紀錄</span>
           </button>
           <button
             type="button"
@@ -1208,7 +1208,7 @@ export default function EmployeeDetailModal({
             }`}
           >
             <Shield className={`h-4 w-4 shrink-0 ${activeTab === "verification" ? "text-violet-100" : "text-violet-300/70"}`} />
-            <span className="truncate sm:whitespace-nowrap">Verification Info</span>
+            <span className="truncate sm:whitespace-nowrap">驗證資訊</span>
           </button>
         </div>
 
@@ -1219,12 +1219,12 @@ export default function EmployeeDetailModal({
               <div className="flex flex-col items-center justify-center h-48 gap-3">
                 <div className="w-10 h-10 border-4 border-cyan-500/25 border-t-cyan-300 rounded-full animate-spin"></div>
                 <div className="text-slate-400 text-sm">
-                  Loading statistics...
+                  正在載入統計資料……
                 </div>
               </div>
             ) : dailyStats.length === 0 ? (
               <div className="flex min-h-[360px] items-center justify-center text-center text-slate-400">
-                No order data available
+                沒有可用的訂單資料
               </div>
             ) : (
               <>
@@ -1233,7 +1233,7 @@ export default function EmployeeDetailModal({
                   <div className="mb-3 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-cyan-300" />
                     <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-                      Overall Statistics
+                      整體統計
                     </h3>
                   </div>
                   <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-[5fr_5fr_5fr_3fr_3fr_3fr]">
@@ -1241,7 +1241,7 @@ export default function EmployeeDetailModal({
                       <div className="flex min-w-0 items-center gap-1.5">
                         <DollarSign className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
                         <span className="truncate text-[10px] font-bold text-emerald-300">
-                          Total Revenue
+                          總營收
                         </span>
                       </div>
                       <div className="shrink-0 text-sm font-black leading-none text-emerald-400">
@@ -1255,7 +1255,7 @@ export default function EmployeeDetailModal({
                       <div className="flex min-w-0 items-center gap-1.5">
                         <Gift className="h-3.5 w-3.5 shrink-0 text-violet-300" />
                         <span className="truncate text-[10px] font-bold text-violet-200">
-                          Tip Amount
+                          小費金額
                         </span>
                       </div>
                       <div className="shrink-0 text-sm font-black leading-none text-violet-200">
@@ -1266,7 +1266,7 @@ export default function EmployeeDetailModal({
                       <div className="flex min-w-0 items-center gap-1.5">
                         <CreditCard className="h-3.5 w-3.5 shrink-0 text-sky-300" />
                         <span className="truncate text-[10px] font-bold text-sky-200">
-                          Admin Added
+                          管理員新增
                         </span>
                       </div>
                       <div className="shrink-0 text-sm font-black leading-none text-sky-200">
@@ -1277,7 +1277,7 @@ export default function EmployeeDetailModal({
                       <div className="flex min-w-0 items-center gap-1.5">
                         <TrendingUp className="h-3.5 w-3.5 shrink-0 text-blue-400" />
                         <span className="truncate text-[10px] font-bold text-blue-300">
-                          Orders
+                          訂單數
                         </span>
                       </div>
                       <div className="shrink-0 text-sm font-black leading-none text-blue-200">
@@ -1291,7 +1291,7 @@ export default function EmployeeDetailModal({
                       <div className="flex min-w-0 items-center gap-1.5">
                         <CheckCircle className="h-3.5 w-3.5 shrink-0 text-green-400" />
                         <span className="truncate text-[10px] font-bold text-green-300">
-                          Success
+                          成功
                         </span>
                       </div>
                       <div className="shrink-0 text-sm font-black leading-none text-green-400">
@@ -1305,7 +1305,7 @@ export default function EmployeeDetailModal({
                       <div className="flex min-w-0 items-center gap-1.5">
                         <XCircle className="h-3.5 w-3.5 shrink-0 text-red-400" />
                         <span className="truncate text-[10px] font-bold text-red-300">
-                          Failed
+                          失敗
                         </span>
                       </div>
                       <div className="shrink-0 text-sm font-black leading-none text-red-400">
@@ -1323,11 +1323,11 @@ export default function EmployeeDetailModal({
                   <div className="flex flex-col gap-3 border-b border-slate-600/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                     <div>
                       <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-                        Daily Breakdown
+                        每日明細
                       </h3>
                       <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-cyan-300/25 bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold tracking-wide text-cyan-100">
                         <Calendar className="h-3.5 w-3.5 text-cyan-300" />
-                        <span>{dailyStats.length} {dailyStats.length === 1 ? "day" : "days"} of activity</span>
+                        <span>{dailyStats.length} 天的活動紀錄</span>
                       </p>
                     </div>
                     {dailyStats.length > itemsPerPage && (
@@ -1346,31 +1346,31 @@ export default function EmployeeDetailModal({
                           <th className="text-left px-4 py-2 text-xs font-bold text-slate-300 uppercase tracking-wider">
                             <div className="flex items-center gap-2">
                               <Calendar className="w-3.5 h-3.5 text-blue-400" />
-                              Date
+                              日期
                             </div>
                           </th>
                           <th className="text-center px-3 py-2 text-xs font-bold text-slate-300 uppercase tracking-wider">
                             <div className="flex items-center justify-center gap-1.5">
                               <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
-                              Total
+                              總數
                             </div>
                           </th>
                           <th className="text-center px-3 py-2 text-xs font-bold text-slate-300 uppercase tracking-wider">
                             <div className="flex items-center justify-center gap-1.5">
                               <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-                              Success
+                              成功
                             </div>
                           </th>
                           <th className="text-center px-3 py-2 text-xs font-bold text-slate-300 uppercase tracking-wider">
                             <div className="flex items-center justify-center gap-1.5">
                               <XCircle className="w-3.5 h-3.5 text-red-400" />
-                              Failed
+                              失敗
                             </div>
                           </th>
                           <th className="text-right px-4 py-2 text-xs font-bold text-slate-300 uppercase tracking-wider">
                             <div className="flex items-center justify-end gap-1.5">
                               <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                              Earnings
+                              收益
                             </div>
                           </th>
                         </tr>
@@ -1431,12 +1431,12 @@ export default function EmployeeDetailModal({
               <div className="flex flex-col items-center justify-center h-48 gap-3">
                 <div className="w-10 h-10 border-4 border-cyan-500/25 border-t-cyan-300 rounded-full animate-spin"></div>
                 <div className="text-slate-400 text-sm">
-                  Loading transactions...
+                  正在載入交易紀錄……
                 </div>
               </div>
             ) : transactions.length === 0 ? (
               <div className="flex min-h-[360px] items-center justify-center text-center text-slate-400">
-                No transaction history available
+                沒有可用的交易歷史紀錄
               </div>
             ) : (
               <>
@@ -1452,7 +1452,7 @@ export default function EmployeeDetailModal({
                           {transactionTotalCount === null ? "—" : transactionTotalCount.toLocaleString()}
                         </span>
                         <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-200">
-                          {selectedTransactionDate ? "matching wallet records" : "all wallet records"}
+                          {selectedTransactionDate ? "符合的錢包紀錄" : "所有錢包紀錄"}
                         </span>
                       </p>
                     </div>
@@ -1469,7 +1469,7 @@ export default function EmployeeDetailModal({
                         className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-blue-300/35 bg-blue-950/80 px-2.5 text-xs font-semibold text-blue-100 transition-colors hover:border-blue-200/55 hover:bg-blue-900/90 hover:text-white"
                       >
                         <X className="h-3.5 w-3.5" />
-                        All dates
+                        所有日期
                       </button>
                     )}
                     <div className="relative">
@@ -1488,21 +1488,21 @@ export default function EmployeeDetailModal({
                         <span>
                           {selectedTransactionDate
                             ? selectedTransactionDate.split("-").join("/")
-                            : "Select date"}
+                            : "選擇日期"}
                         </span>
                         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isDateFilterOpen ? "rotate-180" : ""}`} />
                       </button>
                       {isDateFilterOpen && (
                         <div
                           className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-cyan-300/30 bg-slate-950 shadow-2xl shadow-slate-950/80"
-                          aria-label="Available transaction dates"
+                          aria-label="可用交易日期"
                         >
                           <div className="flex items-center justify-between gap-3 border-b border-cyan-300/20 bg-blue-950/80 px-3 py-2">
                             <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-200">
-                              Activity dates
+                              活動日期
                             </p>
                             <p className="shrink-0 text-[11px] font-semibold tabular-nums text-slate-300">
-                              {availableTransactionDates.length} dates with records
+                              {availableTransactionDates.length} 個有紀錄的日期
                             </p>
                           </div>
                           <div
@@ -1531,7 +1531,7 @@ export default function EmployeeDetailModal({
                                   {date.split("-").join("/")}
                                 </span>
                                 <span className="shrink-0 text-[11px] font-semibold tabular-nums text-amber-200/90">
-                                  {transactionDateCounts[date]} records
+                                  {transactionDateCounts[date]} 筆紀錄
                                 </span>
                               </button>
                             ))}
@@ -1558,7 +1558,7 @@ export default function EmployeeDetailModal({
                     <div className="pointer-events-none absolute inset-x-4 top-3 z-10 flex items-center justify-center sm:inset-x-5">
                       <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/35 bg-slate-950/90 px-3 py-1.5 text-[11px] font-semibold text-cyan-100 shadow-lg shadow-slate-950/40">
                         <span className="h-3 w-3 animate-spin rounded-full border-2 border-cyan-300/30 border-t-cyan-200"></span>
-                        Loading page...
+                        正在載入頁面……
                       </div>
                     </div>
                   )}
@@ -1615,11 +1615,11 @@ export default function EmployeeDetailModal({
                             </div>
                             <div className="shrink-0 text-right text-[10px] font-normal leading-tight sm:text-[11px]">
                               <div>
-                                <span className="inline-block w-11 text-left text-slate-400">Before</span>
+                                <span className="inline-block w-11 text-left text-slate-400">調整前</span>
                                 <span className={style.meta}>${Number(tx.balance_before).toFixed(2)}</span>
                               </div>
                               <div>
-                                <span className="inline-block w-11 text-left text-slate-400">After</span>
+                                <span className="inline-block w-11 text-left text-slate-400">調整後</span>
                                 <span className={style.meta}>${Number(tx.balance_after).toFixed(2)}</span>
                               </div>
                               <div className="mt-0.5 whitespace-nowrap text-white">
@@ -1648,11 +1648,11 @@ export default function EmployeeDetailModal({
             {loadingWithdrawals ? (
               <div className="flex h-48 flex-col items-center justify-center gap-3">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-500/25 border-t-amber-300"></div>
-                <div className="text-sm text-slate-400">Loading withdrawal records...</div>
+                <div className="text-sm text-slate-400">正在載入提現紀錄……</div>
               </div>
             ) : withdrawals.length === 0 ? (
               <div className="flex min-h-[360px] items-center justify-center text-center text-slate-400">
-                No withdrawal records available
+                沒有可用的提現紀錄
               </div>
             ) : (
               <>
@@ -1662,14 +1662,14 @@ export default function EmployeeDetailModal({
                       <Wallet className="h-4 w-4 text-amber-300" />
                     </div>
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-bold text-slate-100">Withdrawal Records</p>
+                      <p className="text-xs font-bold text-slate-100">提現紀錄</p>
                       <p className="inline-flex items-center gap-1.5 rounded-md border border-amber-300/30 bg-amber-500/15 px-2 py-0.5">
                         <FileText className="h-3 w-3 text-amber-300" />
                         <span className="text-base font-black leading-none tabular-nums text-amber-50">
                           {withdrawals.length}
                         </span>
                         <span className="text-[10px] font-bold uppercase tracking-wide text-amber-200">
-                          total
+                          總數
                         </span>
                       </p>
                     </div>
@@ -1720,9 +1720,9 @@ export default function EmployeeDetailModal({
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="truncate text-xs font-bold text-slate-100">Withdrawal Request</p>
+                                <p className="truncate text-xs font-bold text-slate-100">提現申請</p>
                                 <p className="mt-0.5 truncate text-[10px] text-slate-300/80">
-                                  Submitted {new Date(withdrawal.created_at).toLocaleString("zh-CN")}
+                                  提交時間 {new Date(withdrawal.created_at).toLocaleString("zh-CN")}
                                 </p>
                               </div>
                             </div>
@@ -1738,10 +1738,10 @@ export default function EmployeeDetailModal({
                           {(withdrawal.audit_remark || withdrawal.audited_at) && (
                             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 border-t border-white/10 pt-2 text-[10px] leading-tight text-slate-300/80">
                               {withdrawal.audited_at && (
-                                <span>Processed {new Date(withdrawal.audited_at).toLocaleString("zh-CN")}</span>
+                                <span>處理時間 {new Date(withdrawal.audited_at).toLocaleString("zh-CN")}</span>
                               )}
                               {withdrawal.audit_remark && (
-                                <span className="text-slate-100/85">Note: {withdrawal.audit_remark}</span>
+                                <span className="text-slate-100/85">備註：{withdrawal.audit_remark}</span>
                               )}
                             </div>
                           )}
@@ -1761,17 +1761,17 @@ export default function EmployeeDetailModal({
               <div className="flex flex-col items-center justify-center h-48 gap-3">
                 <div className="w-10 h-10 border-4 border-cyan-500/25 border-t-cyan-300 rounded-full animate-spin"></div>
                 <div className="text-slate-400 text-sm">
-                  Loading verification information...
+                  正在載入驗證資訊……
                 </div>
               </div>
             ) : !verificationData ? (
               <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
                 <FileText className="mb-4 h-8 w-8 text-cyan-300/60" />
                 <p className="mb-2 text-lg font-medium text-slate-300">
-                  No Verification Submitted
+                  尚未提交驗證
                 </p>
                 <p className="text-sm text-slate-400">
-                  This employee has not submitted verification information yet.
+                  此員工尚未提交驗證資訊。
                 </p>
               </div>
             ) : (
@@ -1780,7 +1780,7 @@ export default function EmployeeDetailModal({
                 <div className="rounded-xl border border-cyan-300/20 bg-gradient-to-br from-blue-950/45 via-slate-800/65 to-cyan-950/25 p-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">
-                      Verification Status
+                      驗證狀態
                     </h3>
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -1791,28 +1791,28 @@ export default function EmployeeDetailModal({
                           : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/50"
                       }`}
                     >
-                      {verificationData.status.toUpperCase()}
+                      {verificationData.status === "approved" ? "已核准" : verificationData.status === "rejected" ? "已拒絕" : "待處理"}
                     </span>
                   </div>
                   {verificationData.audit_remark && (
                     <div className="mt-3 rounded-lg border border-cyan-300/15 bg-blue-950/40 p-3">
-                      <p className="text-xs text-slate-400 mb-1">Admin Remarks:</p>
+                      <p className="text-xs text-slate-400 mb-1">管理員備註：</p>
                       <p className="text-sm text-white">{verificationData.audit_remark}</p>
                     </div>
                   )}
                   {verificationData.audited_at && (
                     <div className="mt-2 text-xs text-slate-500">
-                      Reviewed on {new Date(verificationData.audited_at).toLocaleString("zh-CN")}
+                      審核時間 {new Date(verificationData.audited_at).toLocaleString("zh-CN")}
                     </div>
                   )}
                 </div>
 
-                {/* Personal Information */}
+                {/* 個人資訊 */}
                 <div className="overflow-hidden rounded-xl border border-cyan-300/20 bg-gradient-to-br from-blue-950/45 via-slate-800/65 to-cyan-950/25">
                   <div className="border-b border-cyan-300/15 bg-blue-950/30 p-4">
                     <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                       <User className="w-4 h-4 text-blue-400" />
-                      Personal Information
+                      個人資訊
                     </h3>
                   </div>
                   <div className="p-4 space-y-4">
@@ -1820,28 +1820,28 @@ export default function EmployeeDetailModal({
                       <div className="rounded-lg border border-cyan-300/15 bg-blue-950/25 p-3">
                         <div className="flex items-center gap-2 mb-1">
                           <User className="w-4 h-4 text-blue-400" />
-                          <span className="text-xs text-slate-400 font-medium">Real Name</span>
+                          <span className="text-xs text-slate-400 font-medium">真實姓名</span>
                         </div>
                         <p className="text-white font-semibold">{verificationData.real_name}</p>
                       </div>
                       <div className="rounded-lg border border-cyan-300/15 bg-blue-950/25 p-3">
                         <div className="flex items-center gap-2 mb-1">
                           <Phone className="w-4 h-4 text-green-400" />
-                          <span className="text-xs text-slate-400 font-medium">Phone Number</span>
+                          <span className="text-xs text-slate-400 font-medium">電話號碼</span>
                         </div>
                         <p className="text-white font-semibold">{verificationData.phone}</p>
                       </div>
                       <div className="rounded-lg border border-cyan-300/15 bg-blue-950/25 p-3">
                         <div className="flex items-center gap-2 mb-1">
                           <Mail className="w-4 h-4 text-purple-400" />
-                          <span className="text-xs text-slate-400 font-medium">Email Address</span>
+                          <span className="text-xs text-slate-400 font-medium">電子郵件地址</span>
                         </div>
                         <p className="text-white font-semibold break-all">{verificationData.email}</p>
                       </div>
                       <div className="rounded-lg border border-cyan-300/15 bg-blue-950/25 p-3">
                         <div className="flex items-center gap-2 mb-1">
                           <CreditCard className="w-4 h-4 text-amber-400" />
-                          <span className="text-xs text-slate-400 font-medium">Wallet Address</span>
+                          <span className="text-xs text-slate-400 font-medium">錢包地址</span>
                         </div>
                         <p className="text-white font-mono text-xs break-all">{verificationData.wallet_address}</p>
                       </div>
@@ -1855,7 +1855,7 @@ export default function EmployeeDetailModal({
                     <div className="border-b border-cyan-300/15 bg-blue-950/30 p-4">
                       <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                         <FileText className="w-4 h-4 text-blue-400" />
-                        Verification Documents
+                        驗證文件
                       </h3>
                     </div>
                     <div className="p-4">
@@ -1864,12 +1864,12 @@ export default function EmployeeDetailModal({
                         className="w-full px-4 py-3 bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/30 hover:to-blue-600/30 border border-cyan-500/50 rounded-lg text-cyan-300 font-medium transition-all flex items-center justify-center gap-2 mb-4"
                       >
                         <Eye className="w-4 h-4" />
-                        View Verification Documents
+                        檢視驗證文件
                       </button>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {verificationData.id_front_url && (
                           <div className="rounded-lg border border-cyan-300/15 bg-blue-950/25 p-3">
-                            <p className="text-xs text-slate-400 font-medium mb-2">ID Front</p>
+                            <p className="text-xs text-slate-400 font-medium mb-2">證件正面</p>
                             <div className="flex h-24 w-full items-center justify-center rounded border border-cyan-300/20 bg-blue-950/35">
                               <FileText className="w-8 h-8 text-slate-500" />
                             </div>
@@ -1877,7 +1877,7 @@ export default function EmployeeDetailModal({
                         )}
                         {verificationData.id_back_url && (
                           <div className="rounded-lg border border-cyan-300/15 bg-blue-950/25 p-3">
-                            <p className="text-xs text-slate-400 font-medium mb-2">ID Back</p>
+                            <p className="text-xs text-slate-400 font-medium mb-2">證件背面</p>
                             <div className="flex h-24 w-full items-center justify-center rounded border border-cyan-300/20 bg-blue-950/35">
                               <FileText className="w-8 h-8 text-slate-500" />
                             </div>
@@ -1885,7 +1885,7 @@ export default function EmployeeDetailModal({
                         )}
                         {verificationData.selfie_url && (
                           <div className="rounded-lg border border-cyan-300/15 bg-blue-950/25 p-3">
-                            <p className="text-xs text-slate-400 font-medium mb-2">Selfie Photo</p>
+                            <p className="text-xs text-slate-400 font-medium mb-2">自拍照</p>
                             <div className="flex h-24 w-full items-center justify-center rounded border border-cyan-300/20 bg-blue-950/35">
                               <FileText className="w-8 h-8 text-slate-500" />
                             </div>
@@ -1901,7 +1901,7 @@ export default function EmployeeDetailModal({
                   <div className="flex items-center gap-2 text-xs text-slate-400">
                     <Clock className="w-4 h-4" />
                     <span>
-                      Submitted on {new Date(verificationData.created_at).toLocaleString("zh-CN")}
+                      提交時間 {new Date(verificationData.created_at).toLocaleString("zh-CN")}
                     </span>
                   </div>
                 </div>
