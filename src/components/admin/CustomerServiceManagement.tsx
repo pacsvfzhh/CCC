@@ -4332,18 +4332,27 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
       {/* Customer Create/Edit Modal */}
       {(showCustomerForm || editingCustomer) && (
-        <div className="fixed inset-0 flex items-center justify-center z-[9999] overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-md" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null);   setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' }); } }}>
-          <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--orange w-full max-h-[calc(100vh-2rem)] rounded-2xl border p-5 shadow-2xl ${customerForm.isSuper ? 'max-w-[95vw]' : 'max-w-3xl'} transition-all duration-200`}>
-            <h3 className="mb-4 border-b border-orange-200/15 pb-3 text-lg font-black tracking-tight text-white">{editingCustomer ? '編輯客戶' : '建立客戶'}</h3>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-slate-950/85 p-4 backdrop-blur-lg" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null); setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' }); } }}>
+          <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--orange relative w-full max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[28px] border p-6 shadow-[0_28px_100px_rgba(2,6,23,0.78)] ring-1 ring-white/5 ${customerForm.isSuper ? 'max-w-6xl' : 'max-w-4xl'} transition-all duration-200`}>
+            <div className="mb-5 flex items-start justify-between gap-4 border-b border-orange-200/15 pb-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-orange-300/30 bg-gradient-to-br from-orange-500/30 via-amber-500/20 to-slate-900/60 text-orange-100 shadow-lg shadow-orange-950/30">
+                  {customerForm.isSuper ? <Star className="h-5 w-5" fill="currentColor" /> : <User className="h-5 w-5" />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-300/75">模擬客戶管理</p>
+                  <h3 className="mt-1 truncate text-xl font-black tracking-tight text-white">{editingCustomer ? '編輯客戶' : '建立客戶'}</h3>
+                  <p className="mt-1 text-xs text-slate-400">{editingCustomer ? '更新現有客戶角色資料' : '建立一個新的客戶角色並設定顯示資料'}</p>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-full border border-orange-300/25 bg-orange-500/10 px-3 py-1 text-[10px] font-bold tracking-wider text-orange-200">{customerForm.isSuper ? 'VIP 客戶' : '一般客戶'}</span>
+            </div>
             {/* Super Customer Toggle */}
-            <div className="mb-4 p-3 bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-500/30 rounded-lg">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${customerForm.isSuper ? 'bg-amber-500 border-amber-400' : 'border-amber-500/60 bg-transparent'}`}>
-                  {customerForm.isSuper && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
+            <div className={`relative mb-5 overflow-hidden rounded-2xl border p-4 transition-all duration-300 ${customerForm.isSuper ? 'border-amber-300/45 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-slate-950/35 shadow-lg shadow-amber-950/20' : 'border-slate-600/70 bg-slate-900/50'}`}>
+              <div className="pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full bg-amber-400/15 blur-3xl" />
+              <label className="relative flex cursor-pointer items-center gap-3">
+                <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-all ${customerForm.isSuper ? 'border-amber-300 bg-amber-400 text-slate-950 shadow-md shadow-amber-500/30' : 'border-slate-500 bg-slate-950/40'}`}>
+                  {customerForm.isSuper && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
                 </div>
                 <input
                   type="checkbox"
@@ -4351,17 +4360,26 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                   onChange={(e) => setCustomerForm({ ...customerForm, isSuper: e.target.checked, avatar: e.target.checked ? 'customer-avatar:vip:0' : 'customer-avatar:regular:0' })}
                   className="sr-only"
                 />
-                <div className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-amber-400" fill="currentColor" />
-                  <span className="text-sm font-bold text-amber-200">超級客戶（VIP）</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Star className={`h-4 w-4 ${customerForm.isSuper ? 'text-amber-300' : 'text-slate-500'}`} fill="currentColor" />
+                    <span className={`text-sm font-black ${customerForm.isSuper ? 'text-amber-100' : 'text-slate-200'}`}>超級客戶（VIP）</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${customerForm.isSuper ? 'bg-amber-300/20 text-amber-200' : 'bg-slate-700 text-slate-400'}`}>{customerForm.isSuper ? '已啟用' : '未啟用'}</span>
+                  </div>
+                  <p className="mt-1 text-[11px] leading-5 text-slate-400">啟用後可使用 VIP 頭像、標題前綴與專屬徽章設定。</p>
                 </div>
+                <span className={`hidden shrink-0 rounded-lg px-2.5 py-1.5 text-[10px] font-bold sm:inline-flex ${customerForm.isSuper ? 'bg-amber-400/15 text-amber-200' : 'bg-slate-800 text-slate-500'}`}>{customerForm.isSuper ? 'VIP 模式' : '一般模式'}</span>
               </label>
             </div>
 
             {customerForm.isSuper ? (
-              <div className="flex flex-col gap-4 md:flex-row">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
                 {/* Left column: basic info + avatar */}
-                <div className="flex-1 min-w-0 p-3 bg-slate-800/40 border border-blue-500/30 rounded-xl">
+                <div className="min-w-0 rounded-2xl border border-slate-700/70 bg-gradient-to-br from-slate-800/75 via-slate-900/60 to-blue-950/25 p-4 shadow-lg shadow-slate-950/20">
+                  <div className="mb-4 flex items-center gap-3 border-b border-white/10 pb-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-300 ring-1 ring-blue-400/25"><User className="h-4 w-4" /></div>
+                    <div><h4 className="text-sm font-bold text-white">基本資料與頭像</h4><p className="mt-0.5 text-[10px] text-slate-400">設定客戶名稱與顯示頭像</p></div>
+                  </div>
                   <div className="mb-3">
                     <label className="block text-xs font-medium text-slate-400 mb-1.5">客戶名稱</label>
                     <input
@@ -4446,7 +4464,11 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                 </div>
 
                 {/* Right column: VIP settings */}
-                <div className="flex-1 min-w-0 p-3 bg-amber-950/30 border border-amber-500/30 rounded-xl">
+                <div className="min-w-0 rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-950/55 via-orange-950/25 to-slate-900/60 p-4 shadow-lg shadow-amber-950/20">
+                  <div className="mb-4 flex items-center gap-3 border-b border-amber-300/15 pb-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400/15 text-amber-200 ring-1 ring-amber-300/25"><Star className="h-4 w-4" fill="currentColor" /></div>
+                    <div><h4 className="text-sm font-bold text-amber-50">VIP 專屬設定</h4><p className="mt-0.5 text-[10px] text-amber-200/60">自訂身份標籤與聊天顯示風格</p></div>
+                  </div>
                   <div className="mb-3">
                     <label className="block text-xs font-medium text-amber-300 mb-1.5">
                       自訂 ID <span className="text-amber-500/70 text-[10px]">（選填）</span>
@@ -4537,50 +4559,62 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
               </div>
             ) : (
-              <>
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    value={customerForm.name}
-                    onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="客戶名稱"
-                    required
-                  />
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+                <div className="min-w-0 rounded-2xl border border-orange-400/25 bg-gradient-to-br from-orange-950/35 via-slate-900/65 to-slate-950/50 p-4 shadow-lg shadow-orange-950/15">
+                  <div className="mb-4 flex items-center gap-3 border-b border-orange-200/10 pb-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500/15 text-orange-200 ring-1 ring-orange-300/25"><User className="h-4 w-4" /></div>
+                    <div><h4 className="text-sm font-bold text-white">基本資料</h4><p className="mt-0.5 text-[10px] text-slate-400">設定客戶名稱與角色頭像</p></div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-xs font-semibold text-orange-200/85">客戶名稱</label>
+                    <input
+                      type="text"
+                      value={customerForm.name}
+                      onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950/55 px-3.5 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="輸入客戶名稱"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-3 block text-xs font-semibold text-orange-200/85">選擇角色頭像</label>
+                    <CustomerAvatarPicker
+                      value={customerForm.avatar}
+                      onChange={(avatar) => setCustomerForm({ ...customerForm, avatar })}
+                      theme="orange"
+                      variant="regular"
+                    />
+                  </div>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-orange-200 mb-3">選擇角色頭像</label>
-                  <CustomerAvatarPicker
-                    value={customerForm.avatar}
-                    onChange={(avatar) => setCustomerForm({ ...customerForm, avatar })}
-                    theme="orange"
-                    variant="regular"
-                  />
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">備註（選填）</label>
+                <div className="min-w-0 rounded-2xl border border-slate-700/70 bg-gradient-to-br from-slate-800/70 via-slate-900/60 to-slate-950/55 p-4 shadow-lg shadow-slate-950/20">
+                  <div className="mb-4 flex items-center gap-3 border-b border-white/10 pb-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-700/60 text-slate-200 ring-1 ring-slate-500/40"><Tag className="h-4 w-4" /></div>
+                    <div><h4 className="text-sm font-bold text-white">補充資料</h4><p className="mt-0.5 text-[10px] text-slate-400">新增備註方便辨識客戶</p></div>
+                  </div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-300">備註（選填）</label>
                   <input
                     type="text"
                     value={customerForm.remarks}
                     onChange={(e) => setCustomerForm({ ...customerForm, remarks: e.target.value })}
                     placeholder="新增備註以識別此客戶……"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-950/55 px-3 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     maxLength={100}
                   />
+                  <div className="mt-5 rounded-xl border border-orange-300/10 bg-orange-500/5 p-3 text-[11px] leading-5 text-slate-400">
+                    <span className="font-semibold text-orange-200">提示：</span> 客戶建立後可在列表中繼續管理角色資料。
+                  </div>
                 </div>
-
-              </>
+              </div>
             )}
 
-            <div className="create-customer-modal__actions flex gap-2 mt-4">
+            <div className="create-customer-modal__actions mt-6 flex gap-3">
               <button
                 type="submit"
                 disabled={savingCustomer}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg transition-all font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex-1 px-4 py-3 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {savingCustomer ? '儲存中……' : editingCustomer ? '儲存' : '建立'}
+                {savingCustomer ? '儲存中……' : editingCustomer ? <><Check className="mr-2 inline-block h-4 w-4" />儲存變更</> : <><Plus className="mr-2 inline-block h-4 w-4" />建立客戶</>}
               </button>
               <button
                 type="button"
@@ -4589,9 +4623,9 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                   setEditingCustomer(null);
                   setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' });
                 }}
-                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
+                className="flex-1 px-4 py-3 text-sm"
               >
-                取消
+                <X className="mr-2 inline-block h-4 w-4" />取消
               </button>
             </div>
           </form>
