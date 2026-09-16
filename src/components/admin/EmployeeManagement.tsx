@@ -345,6 +345,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     let realtimeReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let realtimeReloadWindowStartedAt: number | null = null;
     const scheduleRealtimeReload = (delay: number) => {
+      if (!isMountedRef.current) return;
       const now = Date.now();
       realtimeReloadWindowStartedAt ??= now;
       if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
@@ -353,7 +354,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       realtimeReloadTimer = setTimeout(() => {
         realtimeReloadTimer = null;
         realtimeReloadWindowStartedAt = null;
-        void guardedLoadEmployeesRef.current?.(true);
+        if (isMountedRef.current) void guardedLoadEmployeesRef.current?.(true);
       }, wait);
     };
     const markRealtimeChange = () => {
@@ -447,9 +448,11 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
     let commissionRefreshTimer: ReturnType<typeof setTimeout> | null = null;
     let commissionRefreshWindowStartedAt: number | null = null;
+    let commissionRefreshRunning = false;
     const pendingCommissionUserIds = new Set<string>();
     const scheduleCommissionRefresh = (userId: string) => {
       pendingCommissionUserIds.add(userId);
+      if (commissionRefreshRunning) return;
       const now = Date.now();
       commissionRefreshWindowStartedAt ??= now;
       if (commissionRefreshTimer) clearTimeout(commissionRefreshTimer);
@@ -461,6 +464,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         const userIds = Array.from(pendingCommissionUserIds);
         pendingCommissionUserIds.clear();
         if (userIds.length === 0 || !isMountedRef.current) return;
+        commissionRefreshRunning = true;
         const requestGeneration = realtimeChangeGenerationRef.current;
 
         try {
@@ -490,6 +494,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           })));
         } catch {
           if (isMountedRef.current) debouncedStatsReload();
+        } finally {
+          commissionRefreshRunning = false;
+          if (isMountedRef.current && pendingCommissionUserIds.size > 0) {
+            const nextUserId = pendingCommissionUserIds.values().next().value;
+            if (nextUserId) scheduleCommissionRefresh(nextUserId);
+          }
         }
       }, wait);
     };
