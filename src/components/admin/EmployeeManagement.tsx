@@ -2624,7 +2624,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           <Pin className={`w-3 h-3 ${employee.is_pinned ? 'fill-current' : ''}`} />
         </button>
       </td>
-      <td className="group/withdrawal relative w-[116px] overflow-visible py-0.5 px-1 whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>
+      <td className="group/withdrawal relative w-[104px] overflow-visible py-0.5 px-1 whitespace-nowrap cursor-pointer sm:w-[116px]" onClick={() => setViewingEmployee(employee)}>
         <div className="flex min-w-0 flex-col">
           <div className="flex min-w-0 items-center gap-0.5">
             <span title={employee.username} className={`block max-w-full truncate text-xs font-medium ${!employee.is_active ? 'text-red-400' : employee.workStatus === 'online' ? 'text-green-400' : employee.hasPendingWithdrawal ? 'text-orange-400' : 'text-white'}`}>{employee.username}</span>
@@ -2669,8 +2669,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           )}
         </div>
       </td>
-      <td title={employee.employee_id} className="w-[100px] max-w-[100px] overflow-hidden text-ellipsis py-0.5 px-1 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
-      <td className="w-[72px] py-0.5 px-1 text-[10px] text-emerald-400 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+      <td title={employee.employee_id} className="hidden w-[100px] max-w-[100px] overflow-hidden text-ellipsis py-0.5 px-1 text-xs text-slate-300 font-mono whitespace-nowrap cursor-pointer lg:table-cell" onClick={() => setViewingEmployee(employee)}>{employee.employee_id}</td>
+      <td className="hidden w-[72px] py-0.5 px-1 text-[10px] text-emerald-400 whitespace-nowrap xl:table-cell" onClick={(e) => e.stopPropagation()}>
         <span>{employee.created_at ? new Date(employee.created_at).toLocaleDateString('en-CA') : '-'}</span>
         <button
           onClick={() => {
@@ -2687,7 +2687,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           <Pencil className="w-2.5 h-2.5" />
         </button>
       </td>
-      <td className="w-[44px] py-0.5 pl-1 pr-0 align-middle relative group/ver">
+      <td className="hidden w-[44px] py-0.5 pl-1 pr-0 align-middle relative group/ver xl:table-cell">
         <button
           onClick={(e) => { e.stopPropagation(); toggleVerification(employee.id, employee.is_verified, employee.username, employee.employee_id); }}
           className={`inline-flex h-5 items-center justify-center gap-0.5 px-1.5 py-0.5 align-middle leading-none rounded text-[10px] font-medium ${
@@ -2719,7 +2719,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           {employee.is_active ? '啟用' : '停用'}
         </button>
       </td>
-      <td className="w-[66px] py-0.5 px-1 relative group/remarks" onClick={(e) => e.stopPropagation()}>
+      <td className="hidden w-[66px] py-0.5 px-1 relative group/remarks 2xl:table-cell" onClick={(e) => e.stopPropagation()}>
         <div className="flex min-w-0 items-center gap-0.5 max-w-[66px]">
           <span className="text-xs text-blue-400 truncate flex-1">{employee.remarks || '-'}</span>
           <button onClick={() => setEditingRemarksOnly(employee)} className="flex-shrink-0 rounded p-0.5 text-blue-400 opacity-0 transition-all hover:bg-blue-500/15 hover:text-cyan-300 group-hover/remarks:opacity-100">
@@ -2732,7 +2732,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           </div>
         )}
       </td>
-      <td className="w-[88px] py-0.5 px-1 relative group/tags" onClick={(e) => e.stopPropagation()}>
+      <td className="hidden w-[88px] py-0.5 px-1 relative group/tags 2xl:table-cell" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-0.5 max-w-[88px] min-w-0 overflow-hidden whitespace-nowrap">
           {(employee.tags || []).length > 0 && (
             <span className="min-w-0 flex-1 px-1.5 py-0 bg-amber-500/20 text-amber-400 text-[10px] font-medium rounded-full border border-amber-500/30 truncate">
@@ -2768,10 +2768,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         <span className="text-red-400">{employee.failedOrders}</span>
       </td>
       {/* Money group */}
-      <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
+      <td className="hidden py-0.5 px-1 text-[10px] text-center whitespace-nowrap xl:table-cell">
         <span className="text-white font-medium">${(employee.walletBalance || 0).toFixed(2)}</span>
       </td>
-      <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
+      <td className="hidden py-0.5 px-1 text-[10px] text-center whitespace-nowrap lg:table-cell">
         <span className="text-blue-400 font-medium">${employee.accountBalance.toFixed(2)}</span>
       </td>
       <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
@@ -2862,19 +2862,19 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
       <tr className="h-[40px]">
         <th className="w-[54px] px-1.5 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
-        <th className="w-[116px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">使用者</th>
-        <th className="w-[100px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">員工 ID</th>
-        {renderSortableHeader(adminId, 'created_at', '建立日期', 'w-[72px]')}
-        <th className="h-[40px] w-[44px] pl-1 pr-0 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">驗證</th>
+        <th className="w-[104px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider sm:w-[116px]">使用者</th>
+        <th className="hidden w-[100px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider lg:table-cell">員工 ID</th>
+        {renderSortableHeader(adminId, 'created_at', '建立日期', 'hidden w-[72px] xl:table-cell')}
+        <th className="hidden h-[40px] w-[44px] pl-1 pr-0 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider xl:table-cell">驗證</th>
         <th className="h-[40px] w-[48px] pl-0 pr-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">狀態</th>
-        <th className="h-[40px] w-[66px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">備註</th>
-        <th className="h-[40px] w-[88px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">標籤</th>
+        <th className="hidden h-[40px] w-[66px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider 2xl:table-cell">備註</th>
+        <th className="hidden h-[40px] w-[88px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider 2xl:table-cell">標籤</th>
         {renderSortableHeader(adminId, 'totalOrders', '總數', 'w-[41px]')}
         {renderSortableHeader(adminId, 'todayOrders', '今日', 'w-[41px]')}
         {renderSortableHeader(adminId, 'todayCompletedOrders', '成功', 'w-[45px]')}
         {renderSortableHeader(adminId, 'failedOrders', '失敗', 'w-[43px]')}
-        {renderSortableHeader(adminId, 'walletBalance', '錢包餘額', 'w-[59px]')}
-        {renderSortableHeader(adminId, 'accountBalance', '可用餘額', 'w-[59px]')}
+        {renderSortableHeader(adminId, 'walletBalance', '錢包餘額', 'hidden w-[59px] xl:table-cell')}
+        {renderSortableHeader(adminId, 'accountBalance', '可用餘額', 'hidden w-[59px] lg:table-cell')}
         {renderSortableHeader(adminId, 'todayCommission', '今日佣金', 'w-[58px]')}
         {renderSortableHeader(adminId, 'totalWorkMinutes', '總工時', 'w-[54px]')}
         {renderSortableHeader(adminId, 'todayWorkMinutes', '今日工時', 'w-[54px]')}
@@ -3040,7 +3040,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const calendarMonthLabel = registrationCalendarMonth;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       {/* Unified toolbar: search + group filter + countdown + refresh (super admin only) */}
       {admin.role === 'super_admin' && (
         <div className="relative z-40 flex h-9 w-full min-w-0 items-center overflow-visible rounded-none border border-cyan-200/45 bg-slate-950/95 shadow-lg shadow-cyan-950/25 shrink-0 sticky top-0 backdrop-blur-sm">
@@ -3212,7 +3212,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
       <div
         ref={employeeGroupsScrollRef}
-        className={`${admin.role === 'super_admin' ? 'employee-super-admin-scrollbar overflow-y-auto' : 'dark-panel-scroll overflow-hidden'} flex min-h-0 flex-1 flex-col overscroll-contain`}
+        className={`${admin.role === 'super_admin' ? 'employee-super-admin-scrollbar overflow-y-auto' : 'dark-panel-scroll overflow-hidden'} flex min-h-0 min-w-0 w-full flex-1 flex-col overscroll-contain`}
         style={{ scrollbarGutter: 'stable' }}
       >
         {/* Content */}
@@ -3376,8 +3376,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               {renderCreateForm(admin.id)}
 
               {/* Table - fixed ~22 rows */}
-              <div className="-ml-1 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 flex-1 min-h-0 dark-panel-scroll">
-                <table className="w-full table-fixed">
+              <div className="-ml-1 min-w-0 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 flex-1 min-h-0 dark-panel-scroll">
+                <table className="w-full min-w-0 table-fixed">
                   {renderTableHeader(flatAdminId)}
                   <tbody>
                     {flatFilteredEmployees.map((emp, idx) => renderEmployeeRow(emp, idx, true))}
@@ -3563,7 +3563,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     </div>
                     {group.employees.length > 0 ? (
                       <div className={`-ml-1 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 min-h-[300px] dark-panel-scroll ${selectedAdminFilter !== 'all' ? 'min-h-0 flex-1' : 'max-h-[calc(100vh-160px)]'}`}>
-                        <table className="w-full table-fixed">
+                        <table className="w-full min-w-0 table-fixed">
                           {renderTableHeader(group.admin.id)}
                           <tbody>{employeeRowsByGroup.get(group.admin.id)}</tbody>
                         </table>
