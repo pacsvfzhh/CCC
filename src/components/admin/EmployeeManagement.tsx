@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet, MapPin, Clock3, ShieldCheck } from 'lucide-react';
+import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet, MapPin, Clock3, History, LogIn, LogOut } from 'lucide-react';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { Employee, Admin } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
@@ -200,6 +200,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [loginIPEmployee, setLoginIPEmployee] = useState<{ id: string; username: string; employeeId?: string } | null>(null);
   const [loginIPRecords, setLoginIPRecords] = useState<LoginIPRecord[]>([]);
   const [loginIPLoading, setLoginIPLoading] = useState(false);
+  const [loginIPActionFilter, setLoginIPActionFilter] = useState<'login' | 'logout' | null>(null);
 
   // Wallet adjustment popup state
   const [walletEmployee, setWalletEmployee] = useState<{ id: string; username: string; employeeId?: string } | null>(null);
@@ -1896,6 +1897,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const handleViewLoginIP = useCallback(async (employee: { id: string; username: string; employeeId?: string }) => {
     setLoginIPEmployee(employee);
     setLoginIPRecords([]);
+    setLoginIPActionFilter(null);
     setLoginIPLoading(true);
     try {
       const { data, error } = await supabase.rpc('get_employee_login_history_with_device_info', {
@@ -1925,10 +1927,11 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       const s = String(d.getSeconds()).padStart(2, '0');
       return `${Y}-${M}-${D} ${h}:${m}:${s}`;
     };
-    const loginCount = loginIPRecords.filter(record => record.action_type === 'login').length;
-    const latestLogin = loginIPRecords
-      .filter(record => record.action_type === 'login')
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    const loginRecordCount = loginIPRecords.filter(record => record.action_type === 'login').length;
+    const logoutRecordCount = loginIPRecords.filter(record => record.action_type === 'logout').length;
+    const displayedLoginIPRecords = loginIPActionFilter
+      ? loginIPRecords.filter(record => record.action_type === loginIPActionFilter)
+      : loginIPRecords;
 
     return createPortal(
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm" onClick={() => setLoginIPEmployee(null)}>
@@ -1948,37 +1951,58 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   </div>
                 </div>
               </div>
-              <div className="flex shrink-0 items-stretch gap-2">
-                <div className="min-w-[118px] rounded-xl border border-emerald-300/15 bg-emerald-300/[0.07] px-3 py-2">
-                  <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase leading-4 tracking-[0.12em] text-emerald-300/80">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    登入總次數
-                  </div>
-                  <p className="mt-0.5 text-xl font-bold leading-6 text-emerald-200">{loginIPLoading ? '—' : loginCount}</p>
-                </div>
-                <div className="w-[278px] max-w-[calc(100vw-2rem)] rounded-xl border border-cyan-300/15 bg-cyan-300/[0.07] px-3 py-2">
-                  <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase leading-4 tracking-[0.12em] text-cyan-300/80">
-                    <Clock3 className="h-3.5 w-3.5" />
-                    最近登入
-                  </div>
-                  {latestLogin ? (
-                    <div className="mt-0.5 flex items-center gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold leading-5 text-cyan-100">{formatDateTime(latestLogin.created_at)}</p>
-                        <p className="flex items-center gap-1 truncate text-[10px] font-mono leading-4 text-amber-200">
-                          <MapPin className="h-3 w-3 shrink-0 text-amber-400" />
-                          {latestLogin.ip_address || '未知 IP'}
-                        </p>
-                      </div>
-                      <div className="min-w-[78px] border-l border-cyan-300/15 pl-3">
-                        <p className="text-[8px] font-bold uppercase leading-3 tracking-wider text-slate-500">系統</p>
-                        <LoginDeviceSummary systemOnly compact deviceInfo={latestLogin.device_info} userAgent={latestLogin.user_agent} />
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="mt-0.5 text-[10px] leading-5 text-slate-500">{loginIPLoading ? '載入中' : '沒有登入活動'}</p>
-                  )}
-                </div>
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setLoginIPActionFilter(null)}
+                  aria-pressed={loginIPActionFilter === null}
+                  title="顯示全部紀錄"
+                  className={`inline-flex h-9 min-w-[82px] items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${loginIPActionFilter === null ? 'border-cyan-200 bg-gradient-to-br from-cyan-300 to-blue-500 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.3)]' : 'border-cyan-400/60 bg-gradient-to-br from-cyan-950/90 to-slate-900 text-cyan-100 hover:border-cyan-200/80 hover:from-cyan-900/90 hover:to-blue-950/80'}`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className={`flex h-5 w-5 items-center justify-center rounded-md ${loginIPActionFilter === null ? 'bg-slate-950/15' : 'bg-cyan-400/15'}`}>
+                      <History className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="text-[10px] font-black">全部</span>
+                  </span>
+                  <span className={`min-w-[1.5rem] rounded-md px-1 py-0.5 text-center text-xs font-black leading-none ${loginIPActionFilter === null ? 'bg-slate-950/15' : 'bg-cyan-400/15'}`}>
+                    {loginIPLoading ? '—' : loginIPRecords.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLoginIPActionFilter((current) => current === 'login' ? null : 'login')}
+                  aria-pressed={loginIPActionFilter === 'login'}
+                  title="篩選登入紀錄"
+                  className={`inline-flex h-9 min-w-[82px] items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-emerald-300/80 ${loginIPActionFilter === 'login' ? 'border-emerald-200 bg-gradient-to-br from-emerald-300 to-emerald-500 text-slate-950 shadow-[0_0_18px_rgba(52,211,153,0.3)]' : 'border-emerald-400/60 bg-gradient-to-br from-emerald-950/90 to-slate-900 text-emerald-100 hover:border-emerald-200/80 hover:from-emerald-900/90 hover:to-emerald-950/80'}`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className={`flex h-5 w-5 items-center justify-center rounded-md ${loginIPActionFilter === 'login' ? 'bg-slate-950/15' : 'bg-emerald-400/15'}`}>
+                      <LogIn className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="text-[10px] font-black">登入</span>
+                  </span>
+                  <span className={`min-w-[1.5rem] rounded-md px-1 py-0.5 text-center text-xs font-black leading-none ${loginIPActionFilter === 'login' ? 'bg-slate-950/15' : 'bg-emerald-400/15'}`}>
+                    {loginIPLoading ? '—' : loginRecordCount}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLoginIPActionFilter((current) => current === 'logout' ? null : 'logout')}
+                  aria-pressed={loginIPActionFilter === 'logout'}
+                  title="篩選登出紀錄"
+                  className={`inline-flex h-9 min-w-[82px] items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-rose-300/80 ${loginIPActionFilter === 'logout' ? 'border-rose-200 bg-gradient-to-br from-rose-300 to-rose-500 text-slate-950 shadow-[0_0_18px_rgba(251,113,133,0.3)]' : 'border-rose-400/60 bg-gradient-to-br from-rose-950/90 to-slate-900 text-rose-100 hover:border-rose-200/80 hover:from-rose-900/90 hover:to-rose-950/80'}`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className={`flex h-5 w-5 items-center justify-center rounded-md ${loginIPActionFilter === 'logout' ? 'bg-slate-950/15' : 'bg-rose-400/15'}`}>
+                      <LogOut className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="text-[10px] font-black">登出</span>
+                  </span>
+                  <span className={`min-w-[1.5rem] rounded-md px-1 py-0.5 text-center text-xs font-black leading-none ${loginIPActionFilter === 'logout' ? 'bg-slate-950/15' : 'bg-rose-400/15'}`}>
+                    {loginIPLoading ? '—' : logoutRecordCount}
+                  </span>
+                </button>
               </div>
             </div>
             <button
@@ -1999,12 +2023,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 <p className="mt-3 text-sm font-semibold text-slate-300">正在載入安全活動</p>
                 <p className="mt-1 text-xs text-slate-500">正在取得最新登入紀錄</p>
               </div>
-            ) : loginIPRecords.length === 0 ? (
+            ) : displayedLoginIPRecords.length === 0 ? (
               <div className="m-4 flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.03] text-center sm:m-6">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-500/20 bg-slate-500/10">
                   <Globe className="h-6 w-6 text-slate-500" />
                 </div>
-                <p className="mt-3 text-sm font-semibold text-slate-300">找不到登入紀錄</p>
+                <p className="mt-3 text-sm font-semibold text-slate-300">{loginIPActionFilter ? `找不到${loginIPActionFilter === 'login' ? '登入' : '登出'}紀錄` : '找不到登入紀錄'}</p>
                 <p className="mt-1 max-w-xs text-xs text-slate-500">新的登入與登出活動會顯示在這裡。</p>
               </div>
             ) : (
@@ -2019,7 +2043,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     </tr>
                   </thead>
                   <tbody>
-                    {loginIPRecords.map((record) => (
+                    {displayedLoginIPRecords.map((record) => (
                       <tr key={record.id} className="group border-b border-white/[0.07] transition-colors duration-150 ease-out last:border-b-0 hover:bg-cyan-300/[0.07]">
                         <td className={`whitespace-nowrap px-4 py-3.5 text-xs ${record.action_type === 'login' ? 'text-emerald-200' : 'text-rose-300'}`}>
                           <span className="flex items-center gap-2">
