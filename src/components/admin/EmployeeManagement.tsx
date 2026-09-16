@@ -498,27 +498,42 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         field in payload.new && JSON.stringify(payload.new[field]) !== JSON.stringify((currentEmployee as unknown as Record<string, unknown>)[field])
       );
     };
+    let realtimeRecoveryPending = false;
+    const handleRealtimeStatus = (status: string) => {
+      if (status === 'SUBSCRIBED') {
+        if (!realtimeRecoveryPending || !isMountedRef.current) return;
+        realtimeRecoveryPending = false;
+        void guardedLoadEmployeesRef.current?.(true);
+        return;
+      }
+
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        realtimeRecoveryPending = true;
+        markRealtimeChange();
+        scheduleRealtimeReload(1000);
+      }
+    };
 
     const adminsSubscription = supabase
       .channel('employee_mgmt_admins')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'admins' }, () => {
         debouncedStructureReload();
       })
-      .subscribe();
+      .subscribe(handleRealtimeStatus);
 
     const usersSubscription = supabase
       .channel('employee_mgmt_users')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
         if (hasRelevantEmployeeChange(payload)) debouncedStructureReload();
       })
-      .subscribe();
+      .subscribe(handleRealtimeStatus);
 
     const verificationRequestsSubscription = supabase
       .channel('employee_mgmt_verification_requests')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'verification_requests' }, (payload) => {
         if (isVisibleEmployeePayload(payload)) debouncedStructureReload();
       })
-      .subscribe();
+      .subscribe(handleRealtimeStatus);
 
     const workSessionsSubscription = supabase
       .channel('employee_mgmt_work_sessions')
@@ -532,7 +547,24 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         scheduleWorkStatusUpdate(userId, isEnding ? 'offline' : 'online');
         scheduleWorkTimeRefresh(userId);
       })
-      .subscribe();
+      .subscribe(handleRealtimeStatus);
+
+    const dispatchSessionsSubscription = supabase
+      .channel('employee_mgmt_dispatch_sessions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dispatch_sessions' }, (payload) => {
+        const userId = getPayloadUserId(payload);
+        if (!userId || !isVisibleEmployeePayload(payload)) return;
+
+        const isStarting = payload.eventType === 'INSERT' && payload.new.status === 'online';
+        const isEnding = payload.eventType === 'DELETE'
+          || payload.new.status === 'offline'
+          || payload.new.ended_at != null;
+        if (!isStarting && !isEnding) return;
+
+        scheduleWorkStatusUpdate(userId, isStarting ? 'online' : 'offline');
+        if (isEnding) scheduleWorkTimeRefresh(userId);
+      })
+      .subscribe(handleRealtimeStatus);
 
     const withdrawalsSubscription = supabase
       .channel('employee_mgmt_withdrawals')
@@ -542,7 +574,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           scheduleRealtimeReload(500);
         }
       })
-      .subscribe();
+      .subscribe(handleRealtimeStatus);
 
     let commissionRefreshTimer: ReturnType<typeof setTimeout> | null = null;
     let commissionRefreshWindowStartedAt: number | null = null;
@@ -612,7 +644,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         const userId = String(currentRecord.user_id || previousRecord.user_id || '');
         if (userId) scheduleCommissionRefresh(userId);
       })
-      .subscribe();
+      .subscribe(handleRealtimeStatus);
 
     const walletsSubscription = supabase
       .channel('employee_mgmt_wallets')
@@ -633,7 +665,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         }
         debouncedStatsReload();
       })
-      .subscribe();
+      .subscribe(handleRealtimeStatus);
 
     const ordersSubscription = supabase
       .channel('employee_mgmt_orders')
@@ -704,7 +736,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         }
         debouncedStatsReload();
       })
-      .subscribe();
+      .subscribe(handleRealtimeStatus);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
@@ -727,6 +759,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       supabase.removeChannel(usersSubscription);
       supabase.removeChannel(verificationRequestsSubscription);
       supabase.removeChannel(workSessionsSubscription);
+      supabase.removeChannel(dispatchSessionsSubscription);
       supabase.removeChannel(withdrawalsSubscription);
       supabase.removeChannel(walletsSubscription);
       supabase.removeChannel(walletTransactionsSubscription);
