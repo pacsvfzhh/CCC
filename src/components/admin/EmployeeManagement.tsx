@@ -129,7 +129,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
-  const [pinConfirmEmployee, setPinConfirmEmployee] = useState<{id: string; username: string; currentPinned: boolean} | null>(null);
+  const [pinConfirmEmployee, setPinConfirmEmployee] = useState<{id: string; username: string; employeeId?: string; currentPinned: boolean} | null>(null);
   const [editingCreatedAt, setEditingCreatedAt] = useState<{id: string; username: string; employeeId: string; currentDate: string} | null>(null);
   const [newCreatedAt, setNewCreatedAt] = useState('');
   const [registrationDateInputError, setRegistrationDateInputError] = useState<string | null>(null);
@@ -2340,7 +2340,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         />
         <span className="absolute left-2 top-1/2 z-10 inline-block -translate-y-1/2 text-left tabular-nums">{index + 1}</span>
         <button
-          onClick={(e) => { e.stopPropagation(); setPinConfirmEmployee({ id: employee.id, username: employee.username, currentPinned: employee.is_pinned }); }}
+          onClick={(e) => { e.stopPropagation(); setPinConfirmEmployee({ id: employee.id, username: employee.username, employeeId: employee.employee_id, currentPinned: employee.is_pinned }); }}
           className={`absolute right-2 top-1/2 inline-flex -translate-y-1/2 rounded p-0.5 transition-all ${employee.is_pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-amber-400'}`}
           title={employee.is_pinned ? '取消釘選' : '釘選至頂端'}
         >
@@ -3640,20 +3640,58 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       )}
 
       {pinConfirmEmployee && createPortal(
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" onClick={() => setPinConfirmEmployee(null)}>
-          <div className="bg-slate-900 border border-amber-500/20 rounded-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-white mb-3">{pinConfirmEmployee.currentPinned ? '取消釘選員工' : '釘選至頂端'}</h3>
-            <p className="text-slate-300 text-sm mb-5">
-              {pinConfirmEmployee.currentPinned
-                ? `要取消釘選「${pinConfirmEmployee.username}」嗎？`
-                : `要將「${pinConfirmEmployee.username}」釘選到清單頂端嗎？`}
-            </p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setPinConfirmEmployee(null)} className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors text-sm">取消</button>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-[3px]" onClick={() => setPinConfirmEmployee(null)}>
+          <div className="relative w-full max-w-md overflow-hidden rounded-[26px] border border-amber-200/25 bg-[#0b1724] shadow-[0_24px_90px_rgba(2,12,27,0.68)]" onClick={e => e.stopPropagation()}>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_38%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(10,31,46,0.96))]" />
+            <div className="relative border-b border-white/10 px-5 pb-4 pt-5 sm:px-6">
               <button
+                type="button"
+                onClick={() => setPinConfirmEmployee(null)}
+                aria-label="關閉釘選確認面板"
+                className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-slate-950/35 text-slate-400 transition-all hover:border-rose-300/60 hover:bg-rose-500/20 hover:text-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/70"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <div className="flex items-start gap-3 pr-10">
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border shadow-lg ${pinConfirmEmployee.currentPinned ? 'border-rose-300/35 bg-rose-400/15 text-rose-200 shadow-rose-950/40' : 'border-amber-300/35 bg-amber-400/15 text-amber-200 shadow-amber-950/40'}`}>
+                  <Pin className={`h-5 w-5 ${pinConfirmEmployee.currentPinned ? 'rotate-45' : '-rotate-45'}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${pinConfirmEmployee.currentPinned ? 'text-rose-300/90' : 'text-amber-300/90'}`}>員工清單管理</p>
+                  <h3 className="mt-1 text-xl font-bold tracking-tight text-white">{pinConfirmEmployee.currentPinned ? '取消釘選員工' : '釘選至頂端'}</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">{pinConfirmEmployee.currentPinned ? '此員工將恢復一般排序位置。' : '此員工將固定顯示在員工清單頂端。'}</p>
+                </div>
+              </div>
+            </div>
+            <div className="relative space-y-3 px-5 py-5 sm:px-6">
+              <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">員工帳戶</p>
+                <p className="mt-1.5 truncate text-2xl font-bold tracking-tight text-white" title={pinConfirmEmployee.username}>{pinConfirmEmployee.username}</p>
+                {pinConfirmEmployee.employeeId && (
+                  <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">員工 ID</span>
+                    <span className="font-mono text-xs font-semibold tracking-wide text-cyan-200">{pinConfirmEmployee.employeeId}</span>
+                  </div>
+                )}
+              </div>
+              <p className="px-1 text-xs leading-5 text-slate-400">
+                {pinConfirmEmployee.currentPinned ? '確定要取消此員工的置頂狀態嗎？' : '確定要將此員工釘選到清單頂端嗎？'}
+              </p>
+            </div>
+            <div className="relative flex flex-col-reverse gap-2 border-t border-white/10 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+              <button
+                type="button"
+                onClick={() => setPinConfirmEmployee(null)}
+                className="inline-flex items-center justify-center rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-all hover:border-slate-500 hover:bg-slate-700 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/70"
+              >取消</button>
+              <button
+                type="button"
                 onClick={() => { togglePin(pinConfirmEmployee.id, pinConfirmEmployee.currentPinned); setPinConfirmEmployee(null); }}
-                className="px-4 py-2 bg-amber-500 text-black font-semibold rounded-lg hover:bg-amber-400 transition-colors text-sm"
-              >{pinConfirmEmployee.currentPinned ? '取消釘選' : '釘選'}</button>
+                className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-bold shadow-lg transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 ${pinConfirmEmployee.currentPinned ? 'border-rose-200/60 bg-rose-600 text-white shadow-rose-950/40 hover:bg-rose-500 focus-visible:ring-rose-300/80' : 'border-amber-200/60 bg-amber-400 text-slate-950 shadow-amber-950/40 hover:bg-amber-300 focus-visible:ring-amber-200/80'}`}
+              >
+                <Pin className={`h-4 w-4 ${pinConfirmEmployee.currentPinned ? 'rotate-45' : '-rotate-45'}`} />
+                {pinConfirmEmployee.currentPinned ? '取消釘選' : '釘選至頂端'}
+              </button>
             </div>
           </div>
         </div>,
