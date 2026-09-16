@@ -98,10 +98,11 @@ interface LoginIPRecord {
 
 interface EmployeeManagementProps {
   admin: Admin;
+  isActive?: boolean;
   onQuickAction?: (action: 'message' | 'customerservice' | 'cccservice', employee: { id: string; username: string }) => void;
 }
 
-export default function EmployeeManagement({ admin, onQuickAction }: EmployeeManagementProps) {
+export default function EmployeeManagement({ admin, isActive = true, onQuickAction }: EmployeeManagementProps) {
   const [employeeGroups, setEmployeeGroups] = useState<EmployeeGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -226,6 +227,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   const nextAutoRefreshAtRef = useRef(Date.now() + AUTO_REFRESH_INTERVAL_MS);
   const withdrawalDateRefreshAttemptedRef = useRef(false);
   const guardedLoadEmployeesRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
+  const realtimeChangeGenerationRef = useRef(0);
 
   const resetAutoRefreshTimer = useCallback((delayMs = AUTO_REFRESH_INTERVAL_MS) => {
     if (!isMountedRef.current) return;
@@ -321,10 +323,22 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   }, [showCreateSecondaryAdmin, adminFilterOpen, editingEmployee, showPasswordReset, deletingEmployee, editingTags, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
 
   useEffect(() => {
+    if (!isActive) {
+      isMountedRef.current = false;
+      if (autoRefreshTimerRef.current) clearTimeout(autoRefreshTimerRef.current);
+      autoRefreshTimerRef.current = null;
+      if (pendingReloadTimerRef.current) clearTimeout(pendingReloadTimerRef.current);
+      pendingReloadTimerRef.current = null;
+      pendingReloadRef.current = false;
+      return;
+    }
+
     isMountedRef.current = true;
     if (!initialLoadStartedRef.current) {
       initialLoadStartedRef.current = true;
       void guardedLoadEmployeesRef.current?.(false);
+    } else if (Date.now() >= nextAutoRefreshAtRef.current && !loadInProgressRef.current) {
+      void guardedLoadEmployeesRef.current?.(true);
     } else {
       resetAutoRefreshTimer();
     }
@@ -337,8 +351,29 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         void guardedLoadEmployeesRef.current?.(true);
       }, delay);
     };
-    const debouncedStructureReload = () => scheduleRealtimeReload(800);
-    const debouncedStatsReload = () => scheduleRealtimeReload(2000);
+    const markRealtimeChange = () => {
+      realtimeChangeGenerationRef.current += 1;
+    };
+    const debouncedStructureReload = () => {
+      markRealtimeChange();
+      scheduleRealtimeReload(800);
+    };
+    const debouncedStatsReload = () => {
+      markRealtimeChange();
+      scheduleRealtimeReload(2000);
+    };
+    const getPayloadUserId = (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => (
+      String(payload.new.user_id || payload.old.user_id || '')
+    );
+    const isVisibleEmployeePayload = (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => {
+      const userId = getPayloadUserId(payload);
+      if (!userId) return true;
+      return employeeGroupsRef.current.some(group => group.employees.some(employee => employee.id === userId));
+    };
+    const isBusinessWorkSessionChange = (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
+      if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') return true;
+      return payload.new.end_time != null || payload.new.duration_minutes != null;
+    };
     const hasRelevantEmployeeChange = (payload: {
       eventType: string;
       new: Record<string, unknown>;
@@ -374,32 +409,84 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
     const verificationRequestsSubscription = supabase
       .channel('employee_mgmt_verification_requests')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'verification_requests' }, () => {
-        debouncedStructureReload();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'verification_requests' }, (payload) => {
+        if (isVisibleEmployeePayload(payload)) debouncedStructureReload();
       })
       .subscribe();
 
     const workSessionsSubscription = supabase
       .channel('employee_mgmt_work_sessions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_sessions' }, () => {
-        debouncedStatsReload();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_sessions' }, (payload) => {
+        if (isVisibleEmployeePayload(payload) && isBusinessWorkSessionChange(payload)) {
+          debouncedStatsReload();
+        }
       })
       .subscribe();
 
     const withdrawalsSubscription = supabase
       .channel('employee_mgmt_withdrawals')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => {
-        scheduleRealtimeReload(300);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, (payload) => {
+        if (isVisibleEmployeePayload(payload)) {
+          markRealtimeChange();
+          scheduleRealtimeReload(500);
+        }
+      })
+      .subscribe();
+
+    let commissionRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const pendingCommissionUserIds = new Set<string>();
+    const scheduleCommissionRefresh = (userId: string) => {
+      pendingCommissionUserIds.add(userId);
+      if (commissionRefreshTimer) clearTimeout(commissionRefreshTimer);
+      commissionRefreshTimer = setTimeout(async () => {
+        commissionRefreshTimer = null;
+        const userIds = Array.from(pendingCommissionUserIds);
+        pendingCommissionUserIds.clear();
+        if (userIds.length === 0 || !isMountedRef.current) return;
+
+        const { data, error } = await supabase.rpc('get_today_commission_by_user', { user_ids: userIds });
+        if (error) {
+          debouncedStatsReload();
+          return;
+        }
+
+        const commissionMap = new Map<string, number>();
+        (data || []).forEach((row) => {
+          commissionMap.set(row.user_id, Number(row.today_commission) || 0);
+        });
+        markRealtimeChange();
+        setEmployeeGroups(prev => prev.map(group => ({
+          ...group,
+          employees: group.employees.map(employee => (
+            commissionMap.has(employee.id)
+              ? { ...employee, todayCommission: commissionMap.get(employee.id) || 0 }
+              : employee
+          )),
+        })));
+      }, 700);
+    };
+
+    const walletTransactionsSubscription = supabase
+      .channel('employee_mgmt_wallet_transactions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions' }, (payload) => {
+        if (!isVisibleEmployeePayload(payload)) return;
+        const currentRecord = (payload.eventType === 'DELETE' ? payload.old : payload.new) as Record<string, unknown>;
+        const previousRecord = payload.old as Record<string, unknown>;
+        if (currentRecord.type !== 'commission' && previousRecord.type !== 'commission') return;
+        const userId = String(currentRecord.user_id || previousRecord.user_id || '');
+        if (userId) scheduleCommissionRefresh(userId);
       })
       .subscribe();
 
     const walletsSubscription = supabase
       .channel('employee_mgmt_wallets')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'wallets' }, (payload) => {
-        if (payload.new && payload.new.user_id) {
-          const userId = payload.new.user_id;
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallets' }, (payload) => {
+        if (!isVisibleEmployeePayload(payload)) return;
+        if (payload.eventType !== 'DELETE' && payload.new && payload.new.user_id) {
+          const userId = String(payload.new.user_id);
           const available = Number(payload.new.available_balance) || 0;
           const frozen = Number(payload.new.frozen_balance) || 0;
+          markRealtimeChange();
           setEmployeeGroups(prev => prev.map(group => ({
             ...group,
             employees: group.employees.map(emp =>
@@ -410,35 +497,38 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         }
         debouncedStatsReload();
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'wallets' }, () => {
-        debouncedStatsReload();
-      })
       .subscribe();
 
     const ordersSubscription = supabase
       .channel('employee_mgmt_orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        if (!isVisibleEmployeePayload(payload)) return;
         if (payload.eventType === 'UPDATE' && payload.new && payload.new.user_id) {
           const order = payload.new as unknown as OrderRealtimeData;
           const previousOrder = payload.old as unknown as Partial<OrderRealtimeData>;
+          if (!previousOrder.status) {
+            debouncedStatsReload();
+            return;
+          }
           const userId = order.user_id;
+          const commissionChanged = previousOrder.status !== order.status
+            || Number(previousOrder.commission_amount || 0) !== Number(order.commission_amount || 0);
+          if (commissionChanged) scheduleCommissionRefresh(userId);
+          markRealtimeChange();
           setEmployeeGroups(prev => prev.map(group => ({
             ...group,
             employees: group.employees.map(emp => {
               if (emp.id !== userId) return emp;
               const wasSuccess = previousOrder.status === 'success';
               const isSuccess = order.status === 'success';
-              const wasFailed = previousOrder.status === 'failed';
-              const isFailed = order.status === 'failed';
+              const wasFailed = previousOrder.status === 'failure';
+              const isFailed = order.status === 'failure';
               let todayCompletedDelta = 0;
               let failedDelta = 0;
-              let commissionDelta = 0;
               if (isSuccess && !wasSuccess) {
                 todayCompletedDelta = 1;
-                commissionDelta = Number(order.commission_amount) || 0;
               } else if (!isSuccess && wasSuccess) {
                 todayCompletedDelta = -1;
-                commissionDelta = -(Number(previousOrder.commission_amount) || 0);
               }
               if (isFailed && !wasFailed) failedDelta = 1;
               else if (!isFailed && wasFailed) failedDelta = -1;
@@ -446,7 +536,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 ...emp,
                 todayCompletedOrders: Math.max(0, emp.todayCompletedOrders + todayCompletedDelta),
                 failedOrders: Math.max(0, emp.failedOrders + failedDelta),
-                todayCommission: Math.max(0, emp.todayCommission + commissionDelta),
+                todayCommission: emp.todayCommission,
               };
             }),
           })));
@@ -455,6 +545,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         if (payload.eventType === 'INSERT' && payload.new && payload.new.user_id) {
           const order = payload.new as unknown as OrderRealtimeData;
           const userId = order.user_id;
+          if (order.status === 'success') scheduleCommissionRefresh(userId);
+          markRealtimeChange();
           setEmployeeGroups(prev => prev.map(group => ({
             ...group,
             employees: group.employees.map(emp => {
@@ -464,8 +556,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 todayOrders: emp.todayOrders + 1,
                 totalOrders: emp.totalOrders + 1,
                 todayCompletedOrders: order.status === 'success' ? emp.todayCompletedOrders + 1 : emp.todayCompletedOrders,
-                failedOrders: order.status === 'failed' ? emp.failedOrders + 1 : emp.failedOrders,
-                todayCommission: order.status === 'success' ? emp.todayCommission + (Number(order.commission_amount) || 0) : emp.todayCommission,
+                failedOrders: order.status === 'failure' ? emp.failedOrders + 1 : emp.failedOrders,
+                todayCommission: emp.todayCommission,
               };
             }),
           })));
@@ -498,13 +590,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       supabase.removeChannel(workSessionsSubscription);
       supabase.removeChannel(withdrawalsSubscription);
       supabase.removeChannel(walletsSubscription);
+      supabase.removeChannel(walletTransactionsSubscription);
       supabase.removeChannel(ordersSubscription);
+      if (commissionRefreshTimer) clearTimeout(commissionRefreshTimer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (autoRefreshTimerRef.current) clearTimeout(autoRefreshTimerRef.current);
       if (pendingReloadTimerRef.current) clearTimeout(pendingReloadTimerRef.current);
       clearInterval(timeUpdateInterval);
     };
-  }, [resetAutoRefreshTimer]);
+  }, [isActive, resetAutoRefreshTimer]);
 
   useEffect(() => {
     if (loading || employeeGroups.length === 0 || withdrawalDateRefreshAttemptedRef.current) return;
@@ -573,6 +667,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
   guardedLoadEmployeesRef.current = guardedLoadEmployees;
 
   const loadEmployees = async (silent: boolean = false) => {
+    const requestRealtimeGeneration = realtimeChangeGenerationRef.current;
     const hasExistingGroups = employeeGroupsRef.current.length > 0;
     const showInitialLoading = !silent && !hasExistingGroups;
     let committed = false;
@@ -626,8 +721,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         workTimeResult,
         pendingWithdrawalsResult,
       ] = await Promise.all([
-        supabase.from('wallets').select('user_id, available_balance, frozen_balance'),
-        supabase.from('verification_requests').select('user_id, real_name, wallet_address, phone, email').eq('status', 'approved'),
+        userIds.length > 0
+          ? supabase.from('wallets').select('user_id, available_balance, frozen_balance').in('user_id', userIds)
+          : Promise.resolve({ data: [], error: null }),
+        userIds.length > 0
+          ? supabase.from('verification_requests').select('user_id, real_name, wallet_address, phone, email').eq('status', 'approved').in('user_id', userIds)
+          : Promise.resolve({ data: [], error: null }),
         (async () => {
           try { return await supabase.rpc('count_orders_by_user', { user_ids: userIds }); }
           catch { return { data: null, error: null }; }
@@ -659,6 +758,20 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           ? supabase.from('withdrawals').select('id, user_id, amount, created_at').in('user_id', userIds).eq('status', 'pending')
           : Promise.resolve({ data: [], error: null }),
       ]);
+
+      const statsError = [
+        walletsResult.error,
+        verificationsResult.error,
+        totalOrdersResult.error,
+        todayOrdersResult.error,
+        todayCompletedOrdersResult.error,
+        failedOrdersResult.error,
+        todayCommissionResult.error,
+        workStatusResult.error,
+        workTimeResult.error,
+        pendingWithdrawalsResult.error,
+      ].find(Boolean);
+      if (statsError) throw statsError;
 
       // Build maps
       const walletTotalMap = new Map<string, number>();
@@ -812,6 +925,10 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         && nextEmployeeCount === 0
         && (admins.length === 0 || employees.length > 0);
       if (hasIncompleteSilentResult || !isMountedRef.current) return false;
+      if (requestRealtimeGeneration !== realtimeChangeGenerationRef.current) {
+        pendingReloadRef.current = true;
+        return false;
+      }
 
       setEmployeeGroups(groupsArray);
       setAdminPinOverrides(new Map());
