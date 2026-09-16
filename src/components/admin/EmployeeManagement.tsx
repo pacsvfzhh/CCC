@@ -21,6 +21,37 @@ interface PendingWithdrawalRecord {
   created_at: string;
 }
 
+interface WalletModalData {
+  available: number;
+  pending: number;
+}
+
+const loadWalletModalData = async (userId: string): Promise<WalletModalData> => {
+  const [walletResult, pendingWithdrawalsResult] = await Promise.all([
+    supabase
+      .from('wallets')
+      .select('available_balance')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase
+      .from('withdrawals')
+      .select('amount')
+      .eq('user_id', userId)
+      .eq('status', 'pending'),
+  ]);
+
+  if (walletResult.error) throw walletResult.error;
+  if (pendingWithdrawalsResult.error) throw pendingWithdrawalsResult.error;
+
+  return {
+    available: Number(walletResult.data?.available_balance) || 0,
+    pending: (pendingWithdrawalsResult.data || []).reduce(
+      (total, withdrawal) => total + (Number(withdrawal.amount) || 0),
+      0,
+    ),
+  };
+};
+
 interface EmployeeWithAdmin extends Employee {
   admin?: {
     id: string;
@@ -208,7 +239,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
   // Wallet adjustment popup state
   const [walletEmployee, setWalletEmployee] = useState<{ id: string; username: string; employeeId?: string } | null>(null);
-  const [walletData, setWalletData] = useState<{ available: number; frozen: number } | null>(null);
+  const [walletData, setWalletData] = useState<WalletModalData | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletAdjustData, setWalletAdjustData] = useState({ amount: '', remarks: '' });
   const [walletAdjusting, setWalletAdjusting] = useState(false);
@@ -2411,19 +2442,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     walletAdjustmentOperationIdRef.current = null;
     setWalletLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('wallets')
-        .select('available_balance, frozen_balance')
-        .eq('user_id', employee.id)
-        .maybeSingle();
-      if (error) throw error;
-      setWalletData({
-        available: data?.available_balance ?? 0,
-        frozen: data?.frozen_balance ?? 0,
-      });
+      setWalletData(await loadWalletModalData(employee.id));
     } catch (err) {
       console.error('Error loading wallet:', formatSupabaseError(err));
-      setWalletData({ available: 0, frozen: 0 });
+      setWalletData({ available: 0, pending: 0 });
     } finally {
       setWalletLoading(false);
     }
@@ -2458,16 +2480,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         setWalletAdjusting(false);
         return;
       }
-      // Refresh wallet data
-      const { data: refreshed } = await supabase
-        .from('wallets')
-        .select('available_balance, frozen_balance')
-        .eq('user_id', walletEmployee.id)
-        .maybeSingle();
-      setWalletData({
-        available: refreshed?.available_balance ?? 0,
-        frozen: refreshed?.frozen_balance ?? 0,
-      });
+      setWalletData(await loadWalletModalData(walletEmployee.id));
       walletAdjustmentOperationIdRef.current = null;
       setWalletAdjustData({ amount: '', remarks: '' });
       setWalletNotification({ type: 'success', message: '餘額調整成功' });
@@ -2555,9 +2568,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     <div className="pointer-events-none absolute -right-5 -top-7 h-24 w-24 rounded-full bg-amber-300/10 blur-2xl" />
                     <div className="relative flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200/70">Frozen balance</p>
-                        <p className="mt-2 text-2xl font-bold tabular-nums text-amber-100">${(walletData?.frozen ?? 0).toFixed(2)}</p>
-                        <p className="mt-1 text-[10px] font-medium text-amber-200/55">凍結餘額</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200/70">Pending withdrawal</p>
+                        <p className="mt-2 text-2xl font-bold tabular-nums text-amber-100">${(walletData?.pending ?? 0).toFixed(2)}</p>
+                        <p className="mt-1 text-[10px] font-medium text-amber-200/55">提现中金额</p>
                       </div>
                       <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200/20 bg-amber-300/10 text-amber-200">
                         <Wallet className="h-4 w-4" />
