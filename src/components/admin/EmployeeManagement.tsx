@@ -1605,8 +1605,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         className="fixed z-[9999]"
         style={{ top: idleDaysDropdownPos.top, left: idleDaysDropdownPos.left }}
       >
-        <div className="w-[148px] overflow-hidden rounded-xl border border-[#4d8b5c] bg-[#07150b] shadow-2xl shadow-black/70 ring-1 ring-inset ring-emerald-200/10">
-          <div role="menu" aria-label="閒置天數篩選" className="space-y-1 bg-[#07150b] p-1.5">
+        <div className="w-[156px] overflow-hidden rounded-xl border border-[#4d8b5c] bg-[#07150b] shadow-2xl shadow-black/70 ring-1 ring-inset ring-emerald-200/10">
+          <div role="menu" aria-label="停工天数篩選" className="space-y-1 bg-[#07150b] p-1.5">
             {items.map(({ key, label, accent, badge }, index) => {
               const isSelected = inactiveDaysFilterByGroup.get(adminId) === key;
               return (
@@ -1678,7 +1678,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       setIdleDaysDropdownPos(null);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      const menuWidth = 148;
+      const menuWidth = 156;
       const menuHeight = 204;
       const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
       const top = window.innerHeight - rect.bottom < menuHeight + 8
@@ -1819,33 +1819,39 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         </div>
 
         {/* Idle Days */}
-        <div data-inactive-days-dropdown className="ml-2 inline-flex items-center gap-1">
-          <button
-            type="button"
-            onClick={(e) => handleIdleDaysClick(adminId, e)}
-            aria-haspopup="menu"
-            aria-expanded={inactiveDaysDropdownOpen === adminId}
-            className={`inline-flex h-7 w-[120px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500 ${
-              hasIdleFilter
-                ? 'border-emerald-500/80 bg-emerald-800 text-emerald-50'
-                : inactiveDaysDropdownOpen === adminId
-                  ? 'border-emerald-500/80 bg-emerald-950 text-emerald-100'
-                  : 'border-emerald-700/70 bg-slate-900 text-emerald-200 hover:border-emerald-500/80 hover:bg-emerald-950 hover:text-emerald-100'
-            }`}
-          >
-            <Timer className="h-3.5 w-3.5" />
-            <span>
-              {hasIdleFilter
-                ? (() => {
-                    const r = inactiveDaysFilterByGroup.get(adminId);
-                    return r === '2-3' ? '2-3d' : r === '3-7' ? '3-7d' : r === '7-15' ? '7-15d' : '15d+';
-                  })()
-                : '停工天数'
-              }
-            </span>
-            <ChevronDown className={`h-3 w-3 transition-transform ${inactiveDaysDropdownOpen === adminId ? 'rotate-180' : ''}`} />
-          </button>
-          <div className="ml-1 flex h-6 w-6 shrink-0 items-center justify-center">
+        <div data-inactive-days-dropdown className="ml-2 inline-flex items-center">
+          <div className={`inline-flex h-8 w-[156px] shrink-0 overflow-hidden rounded-lg border shadow-sm transition-all ${
+            hasIdleFilter
+              ? 'border-emerald-400/90 bg-emerald-900/90 shadow-emerald-950/40'
+              : inactiveDaysDropdownOpen === adminId
+                ? 'border-emerald-500/80 bg-emerald-950 shadow-emerald-950/30'
+                : 'border-emerald-700/70 bg-slate-900 hover:border-emerald-500/80 hover:bg-emerald-950'
+          }`}>
+            <button
+              type="button"
+              onClick={(e) => handleIdleDaysClick(adminId, e)}
+              aria-haspopup="menu"
+              aria-expanded={inactiveDaysDropdownOpen === adminId}
+              className={`flex h-full min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${
+                hasIdleFilter
+                  ? 'bg-emerald-800 text-emerald-50 hover:bg-emerald-700'
+                  : inactiveDaysDropdownOpen === adminId
+                    ? 'bg-emerald-950 text-emerald-100'
+                    : 'text-emerald-200 hover:bg-emerald-950 hover:text-emerald-100'
+              }`}
+            >
+              <Timer className="h-3.5 w-3.5 shrink-0" />
+              <span className="min-w-0 truncate">
+                {hasIdleFilter
+                  ? (() => {
+                      const r = inactiveDaysFilterByGroup.get(adminId);
+                      return r === '2-3' ? '2-3d' : r === '3-7' ? '3-7d' : r === '7-15' ? '7-15d' : '15d+';
+                    })()
+                  : '停工天数'
+                }
+              </span>
+              <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${inactiveDaysDropdownOpen === adminId ? 'rotate-180' : ''}`} />
+            </button>
             {hasIdleFilter && (
               <button
                 type="button"
@@ -1860,7 +1866,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 }}
                 aria-label="清除停工天数篩選"
                 title="清除停工天数篩選"
-                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-300 bg-rose-600 text-white transition-colors hover:border-rose-200 hover:bg-rose-500"
+                className="inline-flex h-full w-8 shrink-0 items-center justify-center border-l border-rose-200/30 bg-rose-600 text-white transition-colors hover:bg-rose-500 active:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/80"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -1871,11 +1877,12 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
         <button
           type="button"
           onClick={() => resetEmployeeListFilters(adminId)}
-          title="重設員工清單篩選條件"
-          className={`ml-8 inline-flex h-7 min-w-[78px] items-center justify-center gap-1.5 rounded-lg border border-blue-400/70 px-3 py-1 text-[11px] font-semibold text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70 ${
+          title="取消全部选中"
+          aria-label="取消全部选中"
+          className={`ml-3 inline-flex h-8 min-w-[142px] items-center justify-center gap-1.5 rounded-lg border border-blue-300/80 px-3.5 py-1 text-[11px] font-semibold text-white shadow-sm transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70 ${
             resetFeedbackAdminId === adminId
-              ? 'bg-emerald-600'
-              : 'bg-blue-700 hover:bg-blue-500 hover:text-white active:bg-blue-900'
+              ? 'bg-emerald-600 shadow-emerald-950/40'
+              : 'bg-blue-700 shadow-blue-950/30 hover:bg-blue-500 hover:text-white active:bg-blue-900'
           }`}
         >
           {resetFeedbackAdminId === adminId ? (
@@ -1886,7 +1893,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
           ) : (
             <>
               <RefreshCw className="h-3.5 w-3.5" />
-              <span>重設</span>
+              <span>取消全部选中</span>
             </>
           )}
         </button>
