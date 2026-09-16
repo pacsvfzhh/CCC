@@ -2021,9 +2021,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   <tbody>
                     {loginIPRecords.map((record) => (
                       <tr key={record.id} className="group border-b border-white/[0.07] transition-colors duration-150 ease-out last:border-b-0 hover:bg-cyan-300/[0.07]">
-                        <td className="whitespace-nowrap px-4 py-3.5 text-xs text-slate-300">
+                        <td className={`whitespace-nowrap px-4 py-3.5 text-xs ${record.action_type === 'login' ? 'text-emerald-200' : 'text-rose-300'}`}>
                           <span className="flex items-center gap-2">
-                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.05] text-slate-500 transition-colors group-hover:bg-cyan-300/10 group-hover:text-cyan-300">
+                            <span className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${record.action_type === 'login' ? 'bg-emerald-300/10 text-emerald-300 group-hover:bg-emerald-300/20' : 'bg-rose-300/10 text-rose-300 group-hover:bg-rose-300/20'}`}>
                               <Clock3 className="h-3.5 w-3.5" />
                             </span>
                             {formatDateTime(record.created_at)}
@@ -2033,15 +2033,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                           <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
                             record.action_type === 'login'
                               ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-300'
-                              : 'border-slate-300/15 bg-slate-300/[0.06] text-slate-400'
+                              : 'border-rose-300/20 bg-rose-300/10 text-rose-300'
                           }`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${record.action_type === 'login' ? 'bg-emerald-300' : 'bg-slate-500'}`} />
+                            <span className={`h-1.5 w-1.5 rounded-full ${record.action_type === 'login' ? 'bg-emerald-300' : 'bg-rose-300'}`} />
                             {record.action_type === 'login' ? '登入' : '登出'}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5 text-xs font-mono text-slate-200">
+                        <td className={`px-4 py-3.5 text-xs font-mono ${record.action_type === 'login' ? 'text-emerald-200' : 'text-rose-300'}`}>
                           <span className="flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5 text-slate-500" />
+                            <MapPin className={`h-3.5 w-3.5 ${record.action_type === 'login' ? 'text-emerald-300' : 'text-rose-300'}`} />
                             {record.ip_address || '未知 IP'}
                           </span>
                         </td>
