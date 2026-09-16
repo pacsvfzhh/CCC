@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense, startTransition } from 'react';
 import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Database, Lock, Eye, EyeOff, Bell, PackageSearch, MessageCircle, Search, History, UserCog, Activity, Clock, Headphones, ChevronDown, ChevronUp, ChevronsUpDown, SlidersHorizontal, RotateCcw, Save, X } from 'lucide-react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { LucideIcon } from 'lucide-react';
@@ -858,8 +858,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
   const handleTabChange = useCallback((tabId: typeof activeTab) => {
     preloadServiceTab(tabId);
-    setActiveTab(tabId);
-    setLoadedTabs(prev => new Set([...prev, tabId]));
+    startTransition(() => {
+      setActiveTab(tabId);
+      setLoadedTabs(prev => prev.has(tabId) ? prev : new Set([...prev, tabId]));
+    });
   }, []);
 
   const handleEmployeeQuickAction = useCallback((action: 'message' | 'customerservice' | 'cccservice', employee: { id: string; username: string }) => {
@@ -1372,27 +1374,27 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           }>
 
             {loadedTabs.has('employees') && (
-              <div className={activeTab === 'employees' ? 'flex-1 min-h-0 flex flex-col animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'employees' ? 'flex-1 min-h-0 flex flex-col' : 'hidden'}>
                 <EmployeeManagement admin={admin} isActive={activeTab === 'employees'} onQuickAction={handleEmployeeQuickAction} />
               </div>
             )}
             {loadedTabs.has('employeesearch') && (
-              <div className={activeTab === 'employeesearch' ? 'flex min-h-0 flex-1 flex-col px-2 py-1.5 sm:px-3 sm:py-2 lg:px-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'employeesearch' ? 'flex min-h-0 flex-1 flex-col px-2 py-1.5 sm:px-3 sm:py-2 lg:px-4' : 'hidden'}>
                 <EmployeeSearch />
               </div>
             )}
             {loadedTabs.has('loginhistory') && (
-              <div className={activeTab === 'loginhistory' ? 'flex min-h-0 flex-1 flex-col animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'loginhistory' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
                 <EmployeeLoginHistory admin={admin} />
               </div>
             )}
             {loadedTabs.has('messages') && (
-              <div className={activeTab === 'messages' ? 'flex-1 min-h-0 flex flex-col animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'messages' ? 'flex-1 min-h-0 flex flex-col' : 'hidden'}>
                 <MessageManagement admin={admin} isActive={activeTab === 'messages'} initialEmployee={navigateToMessageEmployee} onConsumeInitialEmployee={() => setNavigateToMessageEmployee(null)} />
               </div>
             )}
             {loadedTabs.has('customerservice') && (
-              <div className={activeTab === 'customerservice' ? 'flex-1 min-h-0 flex flex-col animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'customerservice' ? 'flex-1 min-h-0 flex flex-col' : 'hidden'}>
                 <CustomerServiceManagement
                   adminId={admin.id}
                   isSuperAdmin={admin.role === 'super_admin'}
@@ -1404,7 +1406,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('cccservice') && (
-              <div className={activeTab === 'cccservice' ? 'flex-1 min-h-0 flex flex-col animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'cccservice' ? 'flex-1 min-h-0 flex flex-col' : 'hidden'}>
                 <CccServiceManagement
                   adminId={admin.id}
                   isSuperAdmin={admin.role === 'super_admin'}
@@ -1416,22 +1418,22 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('dispatch') && (
-              <div className={activeTab === 'dispatch' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'dispatch' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
                 <DispatchManagement />
               </div>
             )}
             {loadedTabs.has('withdrawals') && (
-              <div className={activeTab === 'withdrawals' ? 'flex-1 min-h-0 flex flex-col overflow-hidden animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'withdrawals' ? 'flex-1 min-h-0 flex flex-col overflow-hidden' : 'hidden'}>
                 <WithdrawalReview admin={admin} />
               </div>
             )}
             {loadedTabs.has('verifications') && (
-              <div className={activeTab === 'verifications' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'verifications' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
                 <VerificationReview admin={admin} />
               </div>
             )}
             {loadedTabs.has('config') && (
-              <div className={activeTab === 'config' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'config' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
                 {admin.role === 'super_admin' ? (
                   <SystemConfiguration admin={admin} />
                 ) : (
@@ -1440,34 +1442,34 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('submittime') && (
-              <div className={activeTab === 'submittime' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'submittime' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
                 <SubmitTimeManagement admin={admin} />
               </div>
             )}
             {loadedTabs.has('announcements') && (
-              <div className={activeTab === 'announcements' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'announcements' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
                 <AnnouncementManagement admin={admin} />
               </div>
             )}
             {admin.role === 'super_admin' && (
               <>
                 {loadedTabs.has('products') && (
-                  <div className={activeTab === 'products' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+                  <div className={activeTab === 'products' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
                     <ProductTypeManagement />
                   </div>
                 )}
                 {loadedTabs.has('validdata') && (
-                  <div className={activeTab === 'validdata' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+                  <div className={activeTab === 'validdata' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
                     <ValidOrderDataManagement adminId={admin.id} />
                   </div>
                 )}
                 {loadedTabs.has('admins') && (
-                  <div className={activeTab === 'admins' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+                  <div className={activeTab === 'admins' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
                     <AdminManagement admin={admin} />
                   </div>
                 )}
                 {loadedTabs.has('history') && (
-                  <div className={activeTab === 'history' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4 animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+                  <div className={activeTab === 'history' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
                     <HistoryDataManagement admin={admin} />
                   </div>
                 )}
@@ -1475,7 +1477,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             )}
 
             {loadedTabs.has('accountlocks') && (
-              <div className={activeTab === 'accountlocks' ? 'flex min-h-0 flex-1 flex-col overflow-hidden animate-[fadeIn_150ms_ease-out]' : 'hidden'}>
+              <div className={activeTab === 'accountlocks' ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'hidden'}>
                 <AccountLockManagement
                   admin={admin}
                   isActive={activeTab === 'accountlocks'}
