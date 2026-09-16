@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet, MapPin, Clock3, History, LogIn, LogOut } from 'lucide-react';
+import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet, MapPin, Clock3, History, LogIn, LogOut } from 'lucide-react';
 import { formatSupabaseError, isFinancialAdminSessionError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { Employee, Admin } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken, logout } from '../../lib/auth';
@@ -2577,34 +2577,65 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             e.stopPropagation();
             setOpenActionMenu(isOpen ? null : employee.id);
           }}
-          className="p-1.5 hover:bg-slate-700 rounded transition-all text-slate-400 hover:text-white"
+          className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-all ${isOpen ? 'border-blue-300/50 bg-blue-500/20 text-blue-100 shadow-lg shadow-blue-950/30' : 'border-transparent text-slate-400 hover:border-slate-600 hover:bg-slate-700/80 hover:text-white'}`}
           title="操作"
+          aria-label={`開啟 ${employee.username} 的操作選單`}
+          aria-expanded={isOpen}
         >
-          <MoreVertical className="w-4 h-4" />
+          <MoreVertical className="h-4 w-4" />
         </button>
         {isOpen && (
-          <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 flex items-center gap-1 bg-slate-800 border border-slate-500/50 rounded-full px-1.5 py-1 shadow-lg shadow-black/40">
-            <button
-              onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setEditingEmployee(employee); }}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-blue-300 bg-blue-500/15 hover:bg-blue-500/30 border border-blue-500/30 hover:border-blue-400/50 transition-all whitespace-nowrap"
-              title="編輯詳情"
-            >
-              <Edit className="w-3 h-3" /> 編輯
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setNewPassword(''); setShowResetPassword(false); setShowPasswordReset({ id: employee.id, username: employee.username }); }}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-amber-300 bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/30 hover:border-amber-400/50 transition-all whitespace-nowrap"
-              title="重設密碼"
-            >
-              <Key className="w-3 h-3" /> 密碼
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setDeletingEmployee(employee); }}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-red-300 bg-red-500/15 hover:bg-red-500/30 border border-red-500/30 hover:border-red-400/50 transition-all whitespace-nowrap"
-              title="刪除"
-            >
-              <Trash2 className="w-3 h-3" /> 刪除
-            </button>
+          <div className="absolute right-8 top-1/2 z-50 w-60 -translate-y-1/2 overflow-hidden rounded-2xl border border-blue-300/25 bg-slate-950/95 p-1.5 shadow-[0_18px_50px_rgba(2,6,23,0.75)] ring-1 ring-inset ring-white/10 backdrop-blur-xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-2.5 py-2">
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-blue-300/80">帳戶操作</p>
+                <p className="truncate text-xs font-semibold text-white" title={employee.username}>{employee.username}</p>
+              </div>
+              <span className={`ml-2 shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${employee.is_active ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200' : 'border-rose-300/25 bg-rose-400/10 text-rose-200'}`}>
+                {employee.is_active ? '啟用中' : '已停用'}
+              </span>
+            </div>
+            <div className="space-y-1 pt-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setEditingEmployee(employee); }}
+                className="group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-blue-500/15"
+                title="編輯詳情"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-300/25 bg-blue-500/10 text-blue-200 transition-colors group-hover:border-blue-200/50 group-hover:bg-blue-500/20">
+                  <Pencil className="h-3.5 w-3.5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold text-slate-100">編輯員工</span>
+                  <span className="block text-[10px] text-slate-500">修改名稱、ID 與備註</span>
+                </span>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setNewPassword(''); setShowResetPassword(false); setShowPasswordReset({ id: employee.id, username: employee.username }); }}
+                className="group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-amber-500/15"
+                title="重設密碼"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-300/25 bg-amber-500/10 text-amber-200 transition-colors group-hover:border-amber-200/50 group-hover:bg-amber-500/20">
+                  <Key className="h-3.5 w-3.5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold text-slate-100">修改密碼</span>
+                  <span className="block text-[10px] text-slate-500">更新登入密碼並撤銷舊會話</span>
+                </span>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setDeletingEmployee(employee); }}
+                className="group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-rose-500/15"
+                title="刪除"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-300/25 bg-rose-500/10 text-rose-200 transition-colors group-hover:border-rose-200/50 group-hover:bg-rose-500/20">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold text-slate-100">刪除帳戶</span>
+                  <span className="block text-[10px] text-slate-500">永久移除帳戶與關聯資料</span>
+                </span>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -3609,26 +3640,68 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       {/* ===== MODALS ===== */}
 
       {editingEmployee && createPortal(
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-white mb-4">編輯員工</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">使用者名稱</label>
-                <input type="text" value={editingEmployee.username} onChange={(e) => setEditingEmployee({ ...editingEmployee, username: e.target.value })} className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEditingEmployee(null)}>
+          <div className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-blue-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="relative overflow-hidden rounded-t-[1.75rem] border-b border-blue-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-5 py-5 sm:px-6">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-blue-300/35 bg-blue-400/15 text-blue-100 shadow-lg shadow-blue-950/35 ring-1 ring-inset ring-white/10">
+                    <Pencil className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-300">帳戶資料</p>
+                    <h3 className="mt-1 text-xl font-bold tracking-tight text-white">編輯員工</h3>
+                    <p className="mt-1 text-xs text-blue-100/60">更新可識別資訊與內部備註。</p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setEditingEmployee(null)} aria-label="關閉編輯員工" className="rounded-xl border border-blue-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-blue-300/40 hover:bg-blue-400/10 hover:text-white">
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">員工 ID</label>
-                <input type="text" value={editingEmployee.employee_id} onChange={(e) => setEditingEmployee({ ...editingEmployee, employee_id: e.target.value })} className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="space-y-5 p-5 sm:p-6">
+              <div className="flex items-center gap-3 rounded-2xl border border-blue-300/15 bg-slate-950/45 px-4 py-3.5 shadow-inner shadow-black/20">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-200">
+                  <Users className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">員工帳戶</p>
+                  <p className="mt-1 truncate text-sm font-bold text-white" title={editingEmployee.username}>{editingEmployee.username}</p>
+                  <p className="mt-0.5 truncate text-[11px] font-medium tracking-wide text-cyan-200/70">目前 ID：{editingEmployee.employee_id}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">備註</label>
-                <input type="text" value={editingEmployee.remarks || ''} onChange={(e) => setEditingEmployee({ ...editingEmployee, remarks: e.target.value })} className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-2 flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[0.14em] text-blue-100" htmlFor="edit-employee-username">
+                    使用者名稱
+                    <span className="rounded-full border border-blue-300/20 bg-blue-400/10 px-2 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-blue-200">登入識別</span>
+                  </label>
+                  <input id="edit-employee-username" type="text" value={editingEmployee.username} onChange={(e) => setEditingEmployee({ ...editingEmployee, username: e.target.value })} className="w-full rounded-xl border border-blue-300/25 bg-slate-950/70 px-4 py-3 text-sm font-medium text-white shadow-inner shadow-black/20 outline-none transition-colors placeholder:text-slate-500 focus:border-blue-300/75 focus:ring-4 focus:ring-blue-400/10" />
+                </div>
+                <div>
+                  <label className="mb-2 flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[0.14em] text-blue-100" htmlFor="edit-employee-id">
+                    員工 ID
+                    <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-cyan-200">內部識別</span>
+                  </label>
+                  <input id="edit-employee-id" type="text" value={editingEmployee.employee_id} onChange={(e) => setEditingEmployee({ ...editingEmployee, employee_id: e.target.value })} className="w-full rounded-xl border border-blue-300/25 bg-slate-950/70 px-4 py-3 font-mono text-sm font-medium text-white shadow-inner shadow-black/20 outline-none transition-colors placeholder:text-slate-500 focus:border-blue-300/75 focus:ring-4 focus:ring-blue-400/10" />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-blue-100" htmlFor="edit-employee-remarks">備註</label>
+                  <input id="edit-employee-remarks" type="text" value={editingEmployee.remarks || ''} onChange={(e) => setEditingEmployee({ ...editingEmployee, remarks: e.target.value })} placeholder="輸入管理員備註……" className="w-full rounded-xl border border-blue-300/25 bg-slate-950/70 px-4 py-3 text-sm font-medium text-white shadow-inner shadow-black/20 outline-none transition-colors placeholder:text-slate-500 focus:border-blue-300/75 focus:ring-4 focus:ring-blue-400/10" />
+                </div>
               </div>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setEditingEmployee(null)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all">取消</button>
-                <button onClick={() => handleUpdateEmployee(editingEmployee.id, { username: editingEmployee.username, employee_id: editingEmployee.employee_id, remarks: editingEmployee.remarks })} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all">儲存變更</button>
+              <div className="flex items-start gap-2.5 rounded-xl border border-blue-300/15 bg-blue-500/5 px-3.5 py-3 text-xs leading-5 text-slate-400">
+                <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-300" />
+                <span>儲存後，員工清單與相關管理檢視會同步顯示最新資料。</span>
               </div>
+            </div>
+            <div className="flex flex-col-reverse gap-2 overflow-hidden rounded-b-[1.75rem] border-t border-blue-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+              <button type="button" onClick={() => setEditingEmployee(null)} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">取消</button>
+              <button type="button" onClick={() => handleUpdateEmployee(editingEmployee.id, { username: editingEmployee.username, employee_id: editingEmployee.employee_id, remarks: editingEmployee.remarks })} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300/40 bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-950/35 transition-colors hover:bg-blue-500 active:bg-blue-700">
+                <CheckCircle className="h-4 w-4" />
+                儲存變更
+              </button>
             </div>
           </div>
         </div>,
@@ -3682,30 +3755,66 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       )}
 
       {showPasswordReset && createPortal(
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-white mb-1">重設密碼</h3>
-            <p className="text-sm text-slate-400 mb-4">使用者名稱：<span className="text-white font-medium">{showPasswordReset.username}</span></p>
-            <div className="space-y-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => { if (!resettingPassword) { setShowPasswordReset(null); setNewPassword(''); setShowResetPassword(false); } }}>
+          <div className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-amber-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/25 shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="relative overflow-hidden rounded-t-[1.75rem] border-b border-amber-300/15 bg-gradient-to-r from-amber-950/80 via-orange-950/30 to-slate-900/80 px-5 py-5 sm:px-6">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 via-yellow-200 to-orange-500" />
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-300/35 bg-amber-400/15 text-amber-100 shadow-lg shadow-amber-950/35 ring-1 ring-inset ring-white/10">
+                    <Key className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-300">安全控制</p>
+                    <h3 className="mt-1 text-xl font-bold tracking-tight text-white">修改登入密碼</h3>
+                    <p className="mt-1 text-xs text-amber-100/60">更新後，舊密碼與既有會話將立即失效。</p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => { setShowPasswordReset(null); setNewPassword(''); setShowResetPassword(false); }} disabled={resettingPassword} aria-label="關閉修改密碼" className="rounded-xl border border-amber-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-amber-300/40 hover:bg-amber-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="space-y-5 p-5 sm:p-6">
+              <div className="flex items-center gap-3 rounded-2xl border border-amber-300/15 bg-slate-950/45 px-4 py-3.5 shadow-inner shadow-black/20">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-300/25 bg-amber-400/10 text-amber-200">
+                  <Users className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">目標員工帳戶</p>
+                  <p className="mt-1 truncate text-base font-bold text-white" title={showPasswordReset.username}>{showPasswordReset.username}</p>
+                  <p className="mt-0.5 text-[11px] font-medium tracking-wide text-amber-200/70">密碼變更需要重新登入</p>
+                </div>
+              </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">新密碼</label>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <label className="text-xs font-bold uppercase tracking-[0.14em] text-amber-100" htmlFor="reset-employee-password">新密碼</label>
+                  <span className="rounded-full border border-amber-300/20 bg-amber-400/10 px-2 py-0.5 text-[9px] font-semibold text-amber-200">至少 6 位</span>
+                </div>
                 <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <input type={showResetPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="輸入新密碼" autoComplete="new-password" minLength={6} disabled={resettingPassword} className="w-full px-4 py-2 pr-10 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60" />
-                    <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} disabled={resettingPassword} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50">
-                      {showResetPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  <div className="relative min-w-0 flex-1">
+                    <Key className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-300/70" />
+                    <input id="reset-employee-password" type={showResetPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="輸入新密碼" autoComplete="new-password" minLength={6} disabled={resettingPassword} className="w-full rounded-xl border border-amber-300/25 bg-slate-950/70 py-3 pl-10 pr-11 text-sm font-medium text-white shadow-inner shadow-black/20 outline-none transition-colors placeholder:text-slate-500 focus:border-amber-300/75 focus:ring-4 focus:ring-amber-400/10 disabled:cursor-not-allowed disabled:opacity-60" />
+                    <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} disabled={resettingPassword} aria-label={showResetPassword ? '隱藏密碼' : '顯示密碼'} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-amber-400/10 hover:text-amber-100 disabled:cursor-not-allowed disabled:opacity-50">
+                      {showResetPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  <button type="button" onClick={generateResetPassword} disabled={resettingPassword} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-50" title="產生高強度密碼">
-                    <RefreshCw className="w-5 h-5" />
+                  <button type="button" onClick={generateResetPassword} disabled={resettingPassword} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-300/25 bg-amber-400/10 text-amber-200 transition-all hover:border-amber-200/50 hover:bg-amber-400/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-50" title="產生高強度密碼" aria-label="產生高強度密碼">
+                    <RefreshCw className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-              <p className="text-xs text-slate-500">密碼至少需要 6 個字元；重設後員工需要使用新密碼重新登入。</p>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setShowPasswordReset(null); setNewPassword(''); setShowResetPassword(false); }} disabled={resettingPassword} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-50">取消</button>
-                <button type="button" onClick={() => { if (showPasswordReset) void handleResetPassword(showPasswordReset.id); }} disabled={resettingPassword || newPassword.length < 6} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-50">{resettingPassword ? '重設中…' : '重設密碼'}</button>
+              <div className="flex items-start gap-2.5 rounded-xl border border-amber-300/15 bg-amber-400/5 px-3.5 py-3 text-xs leading-5 text-slate-400">
+                <Key className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+                <span>重設完成後，員工必須使用新密碼重新登入；系統也會撤銷目前的員工工作會話。</span>
               </div>
+            </div>
+            <div className="flex flex-col-reverse gap-2 overflow-hidden rounded-b-[1.75rem] border-t border-amber-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+              <button type="button" onClick={() => { setShowPasswordReset(null); setNewPassword(''); setShowResetPassword(false); }} disabled={resettingPassword} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">取消</button>
+              <button type="button" onClick={() => { if (showPasswordReset) void handleResetPassword(showPasswordReset.id); }} disabled={resettingPassword || newPassword.length < 6} className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200/50 bg-amber-500 px-5 py-2.5 text-sm font-bold text-slate-950 shadow-lg shadow-amber-950/35 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50">
+                {resettingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                {resettingPassword ? '重設中…' : '確認修改'}
+              </button>
             </div>
           </div>
         </div>,
@@ -3993,33 +4102,67 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       )}
 
       {deletingEmployee && createPortal(
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-slate-900 border border-red-500/20 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center gap-2">
-              <Trash2 className="w-6 h-6" /> 刪除員工
-            </h3>
-            <div className="space-y-4">
-              {deleteError && <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">{deleteError}</div>}
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                <p className="text-white font-medium mb-2">確定要刪除員工「{deletingEmployee.username}」嗎？</p>
-                <p className="text-red-400 text-sm mb-3">此操作無法復原！</p>
-                <div className="space-y-2 text-slate-300 text-sm">
-                  <p className="font-medium text-yellow-400">以下資料將永久刪除：</p>
-                  <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>員工帳戶資訊</li>
-                    <li>所有已提交的訂單</li>
-                    <li>錢包餘額與交易紀錄</li>
-                    <li>所有提現申請</li>
-                    <li>驗證申請紀錄</li>
-                  </ul>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => { if (!isDeleting) { setDeletingEmployee(null); setDeleteError(null); } }}>
+          <div className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-rose-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-rose-950/25 shadow-[0_24px_90px_rgba(2,6,23,0.8)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="relative overflow-hidden rounded-t-[1.75rem] border-b border-rose-300/15 bg-gradient-to-r from-rose-950/85 via-red-950/35 to-slate-900/80 px-5 py-5 sm:px-6">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-600 via-red-300 to-orange-400" />
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-rose-300/35 bg-rose-500/15 text-rose-100 shadow-lg shadow-rose-950/40 ring-1 ring-inset ring-white/10">
+                    <Trash2 className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-rose-300">危險操作</p>
+                    <h3 className="mt-1 text-xl font-bold tracking-tight text-white">刪除員工帳戶</h3>
+                    <p className="mt-1 text-xs text-rose-100/60">請確認你了解此操作的不可逆性。</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => { setDeletingEmployee(null); setDeleteError(null); }} disabled={isDeleting} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:opacity-50">取消</button>
-                <button onClick={() => handleDeleteEmployee(deletingEmployee)} disabled={isDeleting} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all font-medium disabled:opacity-50 flex items-center justify-center gap-2">
-                  {isDeleting ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />刪除中……</>) : '永久刪除'}
+                <button type="button" onClick={() => { setDeletingEmployee(null); setDeleteError(null); }} disabled={isDeleting} aria-label="關閉刪除員工" className="rounded-xl border border-rose-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-rose-300/40 hover:bg-rose-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
+                  <X className="h-4 w-4" />
                 </button>
               </div>
+            </div>
+            <div className="space-y-4 p-5 sm:p-6">
+              {deleteError && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-rose-400/40 bg-rose-500/10 px-3.5 py-3 text-sm leading-5 text-rose-200">
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
+                  <span>{deleteError}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-3 rounded-2xl border border-rose-300/15 bg-slate-950/45 px-4 py-3.5 shadow-inner shadow-black/20">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-300/25 bg-rose-400/10 text-rose-200">
+                  <Users className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">目標員工帳戶</p>
+                  <p className="mt-1 truncate text-base font-bold text-white" title={deletingEmployee.username}>{deletingEmployee.username}</p>
+                  <p className="mt-0.5 truncate text-[11px] font-mono font-medium tracking-wide text-rose-200/70">員工 ID：{deletingEmployee.employee_id}</p>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-rose-300/25 bg-rose-500/5 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-300/25 bg-rose-500/10 text-rose-200">
+                    <Trash2 className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-white">確定要永久刪除這個員工帳戶嗎？</p>
+                    <p className="mt-1 text-xs leading-5 text-rose-200/80">此操作無法復原，以下資料將一併永久移除：</p>
+                  </div>
+                </div>
+                <ul className="mt-4 grid gap-2 border-t border-rose-300/15 pt-3 text-xs text-slate-300 sm:grid-cols-2">
+                  <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-rose-300" />員工帳戶資訊</li>
+                  <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-rose-300" />已提交的訂單</li>
+                  <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-rose-300" />錢包與交易紀錄</li>
+                  <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-rose-300" />提現申請與驗證紀錄</li>
+                </ul>
+              </div>
+            </div>
+            <div className="flex flex-col-reverse gap-2 overflow-hidden rounded-b-[1.75rem] border-t border-rose-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+              <button type="button" onClick={() => { setDeletingEmployee(null); setDeleteError(null); }} disabled={isDeleting} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">取消</button>
+              <button type="button" onClick={() => handleDeleteEmployee(deletingEmployee)} disabled={isDeleting} className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200/50 bg-rose-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-rose-950/40 transition-colors hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50">
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {isDeleting ? '刪除中……' : '永久刪除'}
+              </button>
             </div>
           </div>
         </div>,
