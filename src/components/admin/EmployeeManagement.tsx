@@ -2588,7 +2588,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           <div className="absolute right-8 top-1/2 z-50 flex h-7 -translate-y-1/2 items-center gap-1 whitespace-nowrap rounded-xl border border-slate-400/55 bg-[#0b1220] px-1.5 shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_12px_30px_rgba(2,6,23,0.86)] ring-1 ring-inset ring-blue-300/15">
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setEditingEmployee(employee); }}
-              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-transparent border-l-2 border-l-blue-400/70 bg-blue-500/10 px-3 text-xs font-bold text-blue-200 transition-all duration-150 hover:-translate-y-px hover:border-blue-200 hover:bg-blue-600 hover:text-white hover:shadow-[0_0_14px_rgba(59,130,246,0.62)] active:translate-y-px active:scale-[0.96] active:bg-blue-800 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-blue-300/45 border-l-2 border-l-blue-300/95 bg-blue-950/75 px-3 text-xs font-extrabold text-blue-100 shadow-[inset_0_1px_0_rgba(147,197,253,0.16)] transition-all duration-150 hover:-translate-y-px hover:border-blue-100 hover:bg-blue-600 hover:text-white hover:shadow-[0_0_14px_rgba(59,130,246,0.62)] active:translate-y-px active:scale-[0.96] active:bg-blue-800 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="編輯詳情"
               aria-label="編輯員工"
             >
@@ -2597,7 +2597,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setNewPassword(''); setShowResetPassword(false); setShowPasswordReset({ id: employee.id, username: employee.username }); }}
-              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-transparent border-l-2 border-l-amber-300/75 bg-amber-500/10 px-3 text-xs font-bold text-amber-200 transition-all duration-150 hover:-translate-y-px hover:border-amber-100 hover:bg-amber-500 hover:text-amber-950 hover:shadow-[0_0_14px_rgba(245,158,11,0.68)] active:translate-y-px active:scale-[0.96] active:bg-amber-700 active:text-white active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-amber-200/55 border-l-2 border-l-amber-200/95 bg-amber-950/75 px-3 text-xs font-extrabold text-amber-100 shadow-[inset_0_1px_0_rgba(253,230,138,0.2)] transition-all duration-150 hover:-translate-y-px hover:border-amber-50 hover:bg-amber-400 hover:text-slate-950 hover:shadow-[0_0_14px_rgba(245,158,11,0.68)] active:translate-y-px active:scale-[0.96] active:bg-amber-700 active:text-white active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="重設密碼"
               aria-label="修改員工密碼"
             >
@@ -2606,7 +2606,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setDeletingEmployee(employee); }}
-              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-transparent border-l-2 border-l-rose-400/75 bg-rose-500/10 px-3 text-xs font-bold text-rose-200 transition-all duration-150 hover:-translate-y-px hover:border-rose-100 hover:bg-rose-600 hover:text-white hover:shadow-[0_0_14px_rgba(244,63,94,0.68)] active:translate-y-px active:scale-[0.96] active:bg-rose-800 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-rose-300/50 border-l-2 border-l-rose-300/95 bg-rose-950/75 px-3 text-xs font-extrabold text-rose-100 shadow-[inset_0_1px_0_rgba(253,164,175,0.18)] transition-all duration-150 hover:-translate-y-px hover:border-rose-50 hover:bg-rose-600 hover:text-white hover:shadow-[0_0_14px_rgba(244,63,94,0.68)] active:translate-y-px active:scale-[0.96] active:bg-rose-800 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="刪除"
               aria-label="刪除員工帳戶"
             >
