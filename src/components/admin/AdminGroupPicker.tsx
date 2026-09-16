@@ -157,11 +157,9 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
                         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all duration-200 ${getRoleIconStyles(group.admin_role)}`} title={formatRole(group.admin_role)}>
                           <RoleIcon className="h-[18px] w-[18px]" />
                         </div>
-                        <div className="min-w-0">
-                          <div className="flex min-w-0 flex-wrap items-center gap-2">
-                            <span className="truncate text-sm font-bold text-white sm:text-[15px]">{group.admin_username}</span>
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${getRoleChipStyles(group.admin_role)}`}>{formatRole(group.admin_role)}</span>
-                          </div>
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-bold leading-tight text-white sm:text-[15px]">{group.admin_username}</span>
+                          <span className={`mt-1 inline-flex max-w-full truncate rounded-full border px-2 py-0.5 text-[10px] font-bold leading-none ${getRoleChipStyles(group.admin_role)}`}>{formatRole(group.admin_role)}</span>
                         </div>
                       </div>
 
