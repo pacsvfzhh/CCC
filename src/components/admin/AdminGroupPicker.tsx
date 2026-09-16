@@ -32,6 +32,8 @@ const serviceStyles = {
     metric: 'border-orange-500/15 bg-orange-950/35',
     skeleton: 'bg-orange-500/10',
     rail: 'bg-gradient-to-b from-orange-300 via-orange-500 to-amber-500',
+    unreadBadge: 'border-cyan-200/65 bg-gradient-to-r from-cyan-500/30 via-sky-500/20 to-slate-950/55 text-cyan-50 shadow-[0_8px_24px_-10px_rgba(34,211,238,0.95)] ring-1 ring-cyan-300/15',
+    unreadIcon: 'bg-cyan-300/20 text-cyan-100 ring-cyan-200/60',
   },
   manager: {
     Icon: Users,
@@ -45,6 +47,8 @@ const serviceStyles = {
     metric: 'border-emerald-500/15 bg-emerald-950/35',
     skeleton: 'bg-emerald-500/10',
     rail: 'bg-gradient-to-b from-emerald-300 via-emerald-500 to-teal-500',
+    unreadBadge: 'border-amber-200/70 bg-gradient-to-r from-amber-400/35 via-yellow-500/20 to-slate-950/55 text-amber-50 shadow-[0_8px_24px_-10px_rgba(251,191,36,0.95)] ring-1 ring-amber-300/15',
+    unreadIcon: 'bg-amber-300/20 text-amber-100 ring-amber-200/65',
   },
 };
 
@@ -178,10 +182,10 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
 
                       <div className="flex items-center justify-end gap-2">
                         {unread > 0 && (
-                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-orange-300/40 bg-gradient-to-r from-orange-500/25 via-amber-500/15 to-orange-950/30 px-2 py-1 text-[10px] font-bold text-orange-100 shadow-[0_6px_18px_-10px_rgba(249,115,22,0.95)]">
-                            <span className="relative flex h-4 w-4 items-center justify-center rounded-full bg-orange-400/20 ring-1 ring-orange-300/35">
-                              <BellRing className="h-2.5 w-2.5 text-orange-200" />
-                              <span className="absolute inset-0 animate-ping rounded-full bg-orange-300/35" />
+                          <span className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-1 text-[10px] font-bold transition-[opacity,transform,box-shadow] duration-300 animate-pulse motion-reduce:animate-none ${styles.unreadBadge}`}>
+                            <span className={`relative flex h-4 w-4 items-center justify-center rounded-full ring-1 ${styles.unreadIcon}`}>
+                              <BellRing className="relative z-10 h-2.5 w-2.5" />
+                              <span className="absolute inset-0 animate-ping rounded-full bg-current/35 motion-reduce:animate-none" />
                             </span>
                             <span>{unread > 99 ? '99+' : unread} 未讀</span>
                           </span>
