@@ -2577,7 +2577,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             e.stopPropagation();
             setOpenActionMenu(isOpen ? null : employee.id);
           }}
-          className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-all ${isOpen ? 'border-blue-300/50 bg-blue-500/20 text-blue-100 shadow-lg shadow-blue-950/30' : 'border-transparent text-slate-400 hover:border-slate-600 hover:bg-slate-700/80 hover:text-white'}`}
+          className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-all duration-150 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 ${isOpen ? 'border-blue-200/80 bg-blue-600 text-white shadow-[0_0_14px_rgba(37,99,235,0.5)]' : 'border-slate-600/70 bg-slate-800/75 text-slate-300 hover:border-blue-300/80 hover:bg-blue-600/85 hover:text-white hover:shadow-[0_0_12px_rgba(59,130,246,0.4)]'}`}
           title="操作"
           aria-label={`開啟 ${employee.username} 的操作選單`}
           aria-expanded={isOpen}
@@ -2585,32 +2585,32 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           <MoreVertical className="h-4 w-4" />
         </button>
         {isOpen && (
-          <div className="absolute right-8 top-1/2 z-50 flex h-7 -translate-y-1/2 items-center gap-1 whitespace-nowrap rounded-xl border border-blue-200/35 bg-slate-950/95 px-1.5 shadow-[0_10px_28px_rgba(2,6,23,0.72)] ring-1 ring-inset ring-white/10 backdrop-blur-xl">
+          <div className="absolute right-8 top-1/2 z-50 flex h-7 -translate-y-1/2 items-center gap-1 whitespace-nowrap rounded-xl border border-blue-100/60 bg-slate-900 px-1.5 shadow-[0_10px_28px_rgba(2,6,23,0.8)] ring-2 ring-slate-950/70 backdrop-blur-xl">
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setEditingEmployee(employee); }}
-              className="inline-flex h-6 items-center gap-1.5 rounded-lg border border-blue-300/35 bg-blue-500/15 px-3 text-xs font-bold text-blue-100 shadow-sm shadow-blue-950/30 transition-all hover:border-blue-200/70 hover:bg-blue-500/35 hover:text-white hover:shadow-blue-500/20"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-lg border border-blue-300/75 bg-blue-700 px-3 text-xs font-bold text-white shadow-[0_2px_8px_rgba(37,99,235,0.4)] transition-all duration-150 hover:border-blue-100 hover:bg-blue-500 hover:shadow-[0_0_14px_rgba(59,130,246,0.55)] active:scale-95 active:bg-blue-300 active:text-blue-950 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="編輯詳情"
               aria-label="編輯員工"
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <Pencil className="h-3.5 w-3.5 transition-transform duration-150 group-hover:scale-110" />
               <span>編輯</span>
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setNewPassword(''); setShowResetPassword(false); setShowPasswordReset({ id: employee.id, username: employee.username }); }}
-              className="inline-flex h-6 items-center gap-1.5 rounded-lg border border-amber-300/35 bg-amber-500/15 px-3 text-xs font-bold text-amber-100 shadow-sm shadow-amber-950/30 transition-all hover:border-amber-200/70 hover:bg-amber-500/35 hover:text-white hover:shadow-amber-500/20"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-lg border border-amber-200/80 bg-amber-600 px-3 text-xs font-bold text-white shadow-[0_2px_8px_rgba(217,119,6,0.4)] transition-all duration-150 hover:border-amber-50 hover:bg-amber-400 hover:text-amber-950 hover:shadow-[0_0_14px_rgba(245,158,11,0.55)] active:scale-95 active:bg-amber-200 active:text-amber-950 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="重設密碼"
               aria-label="修改員工密碼"
             >
-              <Key className="h-3.5 w-3.5" />
+              <Key className="h-3.5 w-3.5 transition-transform duration-150 group-hover:rotate-[-8deg] group-hover:scale-110" />
               <span>改密碼</span>
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setDeletingEmployee(employee); }}
-              className="inline-flex h-6 items-center gap-1.5 rounded-lg border border-rose-300/35 bg-rose-500/15 px-3 text-xs font-bold text-rose-100 shadow-sm shadow-rose-950/30 transition-all hover:border-rose-200/70 hover:bg-rose-500/35 hover:text-white hover:shadow-rose-500/20"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-lg border border-rose-200/80 bg-rose-700 px-3 text-xs font-bold text-white shadow-[0_2px_8px_rgba(225,29,72,0.42)] transition-all duration-150 hover:border-rose-50 hover:bg-rose-500 hover:shadow-[0_0_14px_rgba(244,63,94,0.55)] active:scale-95 active:bg-rose-300 active:text-rose-950 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="刪除"
               aria-label="刪除員工帳戶"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-3.5 w-3.5 transition-transform duration-150 group-hover:scale-110" />
               <span>刪除</span>
             </button>
           </div>
