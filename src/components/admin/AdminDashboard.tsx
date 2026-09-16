@@ -105,6 +105,30 @@ interface NavigationPreferences {
   labels: Partial<Record<AdminTabId, string>>;
 }
 
+const legacyNavigationLabelTranslations: Record<string, string> = {
+  Employees: '員工',
+  Messages: '訊息',
+  Withdrawals: '提款',
+  Locked: '已鎖定',
+  'Employee Search': '員工搜尋',
+  'Employee Sea': '員工搜尋',
+  'Login History': '登入紀錄',
+  'Login Histor': '登入紀錄',
+  Announcement: '公告',
+  Announcements: '公告',
+  'Order Assignment': '訂單指派',
+  'Order Assign': '訂單指派',
+  Verification: '驗證',
+  Verifications: '驗證',
+  Configuration: '設定',
+  Configuratio: '設定',
+  'Submit Time': '提交時間',
+  Products: '產品',
+  'Valid Data': '有效資料',
+  Admins: '管理員',
+  'History Data': '歷史資料',
+};
+
 interface NavigationDragState {
   tabId: AdminTabId;
   direction: -1 | 1;
@@ -412,26 +436,26 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const consumeCccServiceEmployee = useCallback(() => setNavigateToCccServiceEmployee(null), []);
 
   const defaultTabs = useMemo<NavigationTab[]>(() => admin.role === 'emergency_admin' ? [
-    { id: 'accountlocks', label: 'Locked', icon: Shield },
+    { id: 'accountlocks', label: '已鎖定', icon: Shield },
   ] : [
-    { id: 'employees', label: 'Employees', icon: Users },
+    { id: 'employees', label: '員工', icon: Users },
     { id: 'employeesearch', label: '員工搜尋', icon: Search },
     { id: 'loginhistory', label: '登入紀錄', icon: Activity },
-    { id: 'accountlocks', label: 'Locked', icon: Shield },
-    { id: 'messages', label: 'Messages', icon: Bell },
-    { id: 'announcements', label: 'Announcements', icon: FileText },
+    { id: 'accountlocks', label: '已鎖定', icon: Shield },
+    { id: 'messages', label: '訊息', icon: Bell },
+    { id: 'announcements', label: '公告', icon: FileText },
     { id: 'customerservice', label: '模拟客户', icon: MessageCircle },
     { id: 'cccservice', label: '经理', icon: Headphones },
-    { id: 'dispatch', label: 'Order Assignment', icon: PackageSearch },
-    { id: 'withdrawals', label: 'Withdrawals', icon: FileText },
-    { id: 'verifications', label: 'Verifications', icon: UserCheck },
-    { id: 'config', label: 'Configuration', icon: Settings },
-    { id: 'submittime', label: 'Submit Time', icon: Clock },
+    { id: 'dispatch', label: '訂單指派', icon: PackageSearch },
+    { id: 'withdrawals', label: '提款', icon: FileText },
+    { id: 'verifications', label: '驗證', icon: UserCheck },
+    { id: 'config', label: '設定', icon: Settings },
+    { id: 'submittime', label: '提交時間', icon: Clock },
     ...(admin.role === 'super_admin' ? [
-      { id: 'products' as const, label: 'Products', icon: Package },
-      { id: 'validdata' as const, label: 'Valid Data', icon: Database },
-      { id: 'admins' as const, label: 'Admins', icon: Shield },
-      { id: 'history' as const, label: 'History Data', icon: History },
+      { id: 'products' as const, label: '產品', icon: Package },
+      { id: 'validdata' as const, label: '有效資料', icon: Database },
+      { id: 'admins' as const, label: '管理員', icon: Shield },
+      { id: 'history' as const, label: '歷史資料', icon: History },
     ] : []),
   ], [admin.role]);
 
@@ -445,7 +469,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     return orderedIds.map(id => {
       const tab = tabsById.get(id)!;
       const customLabel = navigationPreferences.labels[id]?.trim();
-      return { ...tab, label: customLabel || tab.label };
+      return {
+        ...tab,
+        label: customLabel ? legacyNavigationLabelTranslations[customLabel] || customLabel : tab.label,
+      };
     });
   }, [defaultTabs, navigationPreferences]);
 
@@ -966,17 +993,17 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setPasswordSuccess(false);
 
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      setPasswordError('Please fill in all fields');
+      setPasswordError('請填寫所有欄位');
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordError('New passwords do not match');
+      setPasswordError('新密碼不一致');
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
+      setPasswordError('密碼至少需要 6 個字元');
       return;
     }
 
@@ -990,7 +1017,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       });
 
       if (updateError) throw updateError;
-      if (!data) throw new Error('Failed to change password');
+      if (!data) throw new Error('密碼變更失敗');
 
       setPasswordSuccess(true);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -1001,7 +1028,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       }, 2000);
     } catch (error: unknown) {
       console.error('Error changing password:', error);
-      setPasswordError(error instanceof Error ? error.message : 'Failed to change password');
+      setPasswordError(error instanceof Error ? error.message : '密碼變更失敗');
     } finally {
       setChangingPassword(false);
     }
@@ -1012,17 +1039,17 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setUsernameSuccess(false);
 
     if (!usernameData.newUsername || !usernameData.currentPassword) {
-      setUsernameError('Please fill in all fields');
+      setUsernameError('請填寫所有欄位');
       return;
     }
 
     if (usernameData.newUsername.length < 3) {
-      setUsernameError('Username must be at least 3 characters');
+      setUsernameError('使用者名稱至少需要 3 個字元');
       return;
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(usernameData.newUsername)) {
-      setUsernameError('Username can only contain letters, numbers and underscores');
+      setUsernameError('使用者名稱只能包含英文字母、數字與底線');
       return;
     }
 
@@ -1036,10 +1063,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       });
 
       if (updateError) {
-        if (updateError.code === '23505') throw new Error('Username already exists');
+        if (updateError.code === '23505') throw new Error('使用者名稱已存在');
         throw updateError;
       }
-      if (!data?.success) throw new Error('Failed to change username');
+      if (!data?.success) throw new Error('使用者名稱變更失敗');
 
       setUsernameSuccess(true);
       setUsernameData({ newUsername: '', currentPassword: '' });
@@ -1053,7 +1080,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       }, 2000);
     } catch (error: unknown) {
       console.error('Error changing username:', error);
-      setUsernameError(error instanceof Error ? error.message : 'Failed to change username');
+      setUsernameError(error instanceof Error ? error.message : '使用者名稱變更失敗');
     } finally {
       setChangingUsername(false);
     }
@@ -1070,12 +1097,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           aria-haspopup="menu"
           aria-expanded={accountMenuOpen}
           className={`flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-colors duration-200 ${isSidebar ? `h-8 w-full justify-between border-l-2 border-emerald-300 bg-emerald-700 px-1.5 text-[10px] text-white hover:border-emerald-100 hover:bg-emerald-600 ${accountMenuOpen ? 'border-emerald-100 bg-emerald-600' : ''}` : `h-7 border border-emerald-300/90 bg-emerald-700 px-2 text-[10px] text-white hover:border-emerald-100 hover:bg-emerald-600 sm:px-2.5 sm:text-[11px] ${accountMenuOpen ? 'border-emerald-100 bg-emerald-600' : ''}`}`}
-          title="Account actions"
+          title="帳戶操作"
         >
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-600">
             <UserCog className="h-3 w-3 text-white" />
           </span>
-          <span className="flex-1 text-left tracking-wide">Account</span>
+          <span className="flex-1 text-left tracking-wide">帳戶</span>
           <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-emerald-100 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180 text-white' : ''}`} />
         </button>
         {accountMenuOpen && (
@@ -1096,7 +1123,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-violet-600">
                   <UserCog className="h-3 w-3 text-violet-100" />
                 </span>
-                <span>Username</span>
+                <span>使用者名稱</span>
               </button>
             )}
             <button
@@ -1111,7 +1138,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-cyan-600">
                 <Lock className="h-3 w-3 text-cyan-100" />
               </span>
-              <span>Password</span>
+              <span>密碼</span>
             </button>
             <button
               type="button"
@@ -1125,7 +1152,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-rose-600">
                 <LogOut className="h-3 w-3 text-rose-100" />
               </span>
-              <span>Logout</span>
+              <span>登出</span>
             </button>
           </div>
         )}
@@ -1152,7 +1179,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 </h1>
                 <Shield className="h-3.5 w-3.5 shrink-0 justify-self-center text-purple-400" />
                 <span className="min-w-0 truncate text-[9px] font-semibold uppercase text-purple-200">
-                  {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                  {admin.role === 'super_admin' ? '超級管理員' : '管理員'}
                 </span>
                 <span className="h-2 w-2 shrink-0 justify-self-center rounded-full border border-green-200/70 bg-green-400 shadow-sm shadow-green-500/40" />
                 <span className="min-w-0 truncate text-[11px] font-semibold tracking-wide text-cyan-100 drop-shadow-[0_0_5px_rgba(103,232,249,0.25)]">{admin.username}</span>
@@ -1181,7 +1208,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 </h1>
                 <Shield className="h-4 w-4 shrink-0 justify-self-center text-purple-400" />
                 <span className="min-w-0 truncate text-[9px] font-semibold uppercase tracking-wide text-purple-200">
-                  {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                  {admin.role === 'super_admin' ? '超級管理員' : '管理員'}
                 </span>
                 <span className="h-2 w-2 shrink-0 justify-self-center rounded-full border border-green-200/70 bg-green-400 shadow-sm shadow-green-500/40" />
                 <span className="min-w-0 truncate text-[11px] font-semibold tracking-wide text-cyan-100" title={admin.username}>
@@ -1244,7 +1271,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   aria-label="Customize navigation order and names"
                 >
                   <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-cyan-300 transition-colors group-hover:text-cyan-100" />
-                  <span className="min-w-0 flex-1 truncate">Nav Settings</span>
+                  <span className="min-w-0 flex-1 truncate">導航設定</span>
                   <Settings className="h-3 w-3 shrink-0 text-amber-300/80 transition-colors group-hover:text-amber-100" />
                 </button>
               </div>
@@ -1449,15 +1476,15 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={2.4} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="truncate text-base font-bold text-white">Navigation Settings</h3>
-                  <p className="text-[11px] text-slate-300">Preview updates instantly. Save to apply.</p>
+                  <h3 className="truncate text-base font-bold text-white">導航設定</h3>
+                  <p className="text-[11px] text-slate-300">預覽會即時更新，儲存後套用。</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowNavigationSettings(false)}
                 className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-500/70 bg-slate-950/30 text-slate-300 transition-colors hover:border-cyan-600 hover:bg-slate-700/70 hover:text-white"
-                aria-label="Close navigation settings"
+                aria-label="關閉導航設定"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1466,7 +1493,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             <div className="grid min-h-0 flex-1 lg:grid-cols-[180px_minmax(0,1fr)]">
               <aside className="hidden min-h-0 border-r border-cyan-800/60 bg-[linear-gradient(180deg,#11253f_0%,#123743_58%,#3a311f_100%)] lg:flex lg:flex-col">
                 <div className="shrink-0 border-b border-cyan-800/60 bg-slate-950/25 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">
-                  Live preview
+                  即時預覽
                 </div>
                 <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden p-2">
                   {navigationDraft.map((item, index) => {
@@ -1489,7 +1516,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                         <Icon className="h-3 w-3 shrink-0" />
                         <span className="min-w-0 flex-1 truncate text-[10px] font-medium leading-none">{previewLabel}</span>
                         {previewBadgeCount > 0 && (
-                          <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full border border-orange-300/70 bg-orange-600 px-1 text-[8px] font-bold leading-none text-white shadow-sm" title="Notification preview">
+                          <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full border border-orange-300/70 bg-orange-600 px-1 text-[8px] font-bold leading-none text-white shadow-sm" title="通知預覽">
                             {previewBadgeCount}
                           </span>
                         )}
@@ -1514,14 +1541,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                         onClick={() => setNavigationSelectedItemId(item.id)}
                         className={`group relative grid grid-cols-[26px_30px_minmax(0,1fr)] items-center gap-2 rounded-lg border p-2 shadow-sm transition-all duration-150 sm:grid-cols-[26px_30px_minmax(0,1fr)_132px] ${navigationDragState?.tabId === item.id ? 'scale-[0.99] border-cyan-300 bg-cyan-950/60 opacity-30' : navigationSelectedItemId === item.id ? 'scale-[1.005] border-blue-300 bg-blue-950/65 shadow-[0_0_0_1px_rgba(96,165,250,0.5),0_7px_16px_rgba(2,6,23,0.55)] ring-1 ring-blue-400/50 hover:border-cyan-300 hover:bg-blue-900/60' : 'border-slate-600/90 bg-slate-800/85 hover:scale-[1.01] hover:border-cyan-400 hover:bg-cyan-950/35 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.28),0_6px_14px_rgba(2,6,23,0.48)]'}`}
                       >
-                        <div className="flex h-7 w-[26px] items-center justify-center rounded-md border border-yellow-200/70 bg-yellow-400 text-[10px] font-black tabular-nums text-slate-950 shadow-sm shadow-yellow-950/30 transition-transform group-hover:scale-105 group-focus-within:scale-105" title={`Position ${index + 1}`}>
+                        <div className="flex h-7 w-[26px] items-center justify-center rounded-md border border-yellow-200/70 bg-yellow-400 text-[10px] font-black tabular-nums text-slate-950 shadow-sm shadow-yellow-950/30 transition-transform group-hover:scale-105 group-focus-within:scale-105" title={`位置 ${index + 1}`}>
                           {String(index + 1).padStart(2, '0')}
                         </div>
                         <div className="flex h-7 w-[30px] items-center justify-center rounded-md border border-cyan-700/70 bg-cyan-950/65 text-cyan-200 transition-colors group-hover:border-cyan-400 group-hover:bg-cyan-800/70 group-hover:text-white group-focus-within:border-blue-400 group-focus-within:bg-blue-800/70 group-focus-within:text-white" title={originalLabel}>
                           <Icon className="h-3.5 w-3.5" strokeWidth={2.3} />
                         </div>
                         <div className="min-w-0">
-                          <label htmlFor={`navigation-label-${item.id}`} className="sr-only">Display name for {originalLabel}</label>
+                          <label htmlFor={`navigation-label-${item.id}`} className="sr-only">{originalLabel} 的顯示名稱</label>
                           <input
                             id={`navigation-label-${item.id}`}
                             type="text"
@@ -1535,7 +1562,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             }}
                             className="h-8 w-full rounded-md border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-950 shadow-sm outline-none transition-all placeholder:text-slate-400 hover:border-cyan-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                             placeholder={originalLabel}
-                            title={`Original name: ${originalLabel}`}
+                            title={`原始名稱：${originalLabel}`}
                           />
                         </div>
                         <div className="col-span-3 flex items-center justify-end gap-1 sm:col-span-1">
@@ -1548,10 +1575,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             onFocus={() => setNavigationSelectedItemId(item.id)}
                             disabled={!hasCustomLabel}
                             className="inline-flex h-8 w-[66px] items-center justify-center gap-1 rounded-md border border-amber-500/80 bg-gradient-to-b from-amber-700/80 to-amber-900 px-1.5 text-[10px] font-bold text-amber-100 shadow-sm shadow-slate-950/60 transition-colors hover:border-yellow-300 hover:from-amber-500 hover:to-amber-700 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 disabled:shadow-none"
-                            title={`Restore “${originalLabel}”`}
+                            title={`還原「${originalLabel}」`}
                           >
                             <RotateCcw className="h-3 w-3" />
-                            Reset
+                            重設
                           </button>
                           <button
                             type="button"
@@ -1562,11 +1589,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                             onPointerUp={endNavigationDrag}
                             onPointerCancel={endNavigationDrag}
                             className="flex h-8 w-[60px] touch-none select-none items-center justify-center gap-1 rounded-md border border-cyan-400/80 bg-gradient-to-b from-blue-700 to-cyan-800 text-white shadow-sm shadow-slate-950/60 transition-colors hover:border-cyan-100 hover:from-blue-600 hover:to-cyan-700"
-                            aria-label={`Move ${item.label || originalLabel} up or down. Hold and drag to reorder.`}
-                            title="Hold and drag up or down to reorder"
+                            aria-label={`將 ${item.label || originalLabel} 上下移動；按住並拖曳以重新排序。`}
+                            title="按住並拖曳上下重新排序"
                           >
                             <ChevronsUpDown className="h-4 w-4" strokeWidth={2.6} />
-                            <span className="text-[9px] font-bold uppercase tracking-wide">Move</span>
+                            <span className="text-[9px] font-bold uppercase tracking-wide">移動</span>
                           </button>
                         </div>
                       </div>
@@ -1582,7 +1609,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 onClick={() => setShowNavigationSettings(false)}
                 className="h-9 rounded-lg border border-slate-600 bg-slate-800 px-4 text-xs font-semibold text-slate-200 shadow-sm transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white"
               >
-                Cancel
+                取消
               </button>
               <button
                 type="button"
@@ -1590,7 +1617,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 className="inline-flex h-9 items-center gap-2 rounded-lg border border-cyan-700/70 bg-gradient-to-r from-blue-700 to-cyan-700 px-4 text-xs font-bold text-white shadow-md shadow-slate-950/40 transition-colors hover:from-blue-600 hover:to-cyan-600"
               >
                 <Save className="h-3.5 w-3.5" />
-                Save settings
+                儲存設定
               </button>
             </div>
           </div>
@@ -1630,7 +1657,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         </div>
       )}
 
-      {/* Change Password Modal */}
+      {/* 變更密碼 Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
           <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-900 p-5 shadow-[0_24px_70px_rgba(2,6,23,0.7)] sm:p-6">
@@ -1639,8 +1666,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 <Lock className="h-5 w-5 text-cyan-200" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-lg font-bold text-white sm:text-xl">Change Password</h3>
-                <p className="mt-0.5 text-xs text-slate-400">Update your administrator login credentials</p>
+                <h3 className="text-lg font-bold text-white sm:text-xl">變更密碼</h3>
+                <p className="mt-0.5 text-xs text-slate-400">更新管理員登入憑證</p>
               </div>
             </div>
 
@@ -1649,7 +1676,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
                   <span className="text-white text-xs">✓</span>
                 </div>
-                Password changed successfully!
+                密碼變更成功！
               </div>
             )}
 
@@ -1662,7 +1689,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             <div className="space-y-4">
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-300">
-                  Current Password
+                  目前密碼
                 </label>
                 <div className="relative">
                   <input
@@ -1671,7 +1698,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                     autoComplete="current-password"
                     className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
-                    placeholder="Enter current password"
+                    placeholder="輸入目前密碼"
                     disabled={changingPassword}
                   />
                   <button
@@ -1686,7 +1713,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-300">
-                  New Password
+                  新密碼
                 </label>
                 <div className="relative">
                   <input
@@ -1695,7 +1722,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                     autoComplete="new-password"
                     className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
-                    placeholder="Enter new password"
+                    placeholder="輸入新密碼"
                     disabled={changingPassword}
                   />
                   <button
@@ -1710,7 +1737,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-300">
-                  Confirm New Password
+                  確認新密碼
                 </label>
                 <div className="relative">
                   <input
@@ -1719,7 +1746,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                     autoComplete="new-password"
                     className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
-                    placeholder="Confirm new password"
+                    placeholder="確認新密碼"
                     disabled={changingPassword}
                     onKeyPress={(e) => {
                       if (e.key === 'Enter' && !changingPassword) {
@@ -1749,7 +1776,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={changingPassword}
               >
-                Cancel
+                取消
               </button>
               <button
                 onClick={handleChangePassword}
@@ -1759,12 +1786,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 {changingPassword ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Changing...
+                    變更中…
                   </>
                 ) : (
                   <>
                     <Lock className="w-4 h-4" />
-                    Change Password
+                    變更密碼
                   </>
                 )}
               </button>
@@ -1773,7 +1800,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         </div>
       )}
 
-      {/* Change Username Modal */}
+      {/* 變更使用者名稱 Modal */}
       {showUsernameModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
           <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-900 p-5 shadow-[0_24px_70px_rgba(2,6,23,0.7)] sm:p-6">
@@ -1782,8 +1809,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 <UserCog className="h-5 w-5 text-violet-200" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-lg font-bold text-white sm:text-xl">Change Username</h3>
-                <p className="mt-0.5 text-xs text-slate-400">Choose a new name for your administrator account</p>
+                <h3 className="text-lg font-bold text-white sm:text-xl">變更使用者名稱</h3>
+                <p className="mt-0.5 text-xs text-slate-400">為管理員帳戶設定新的使用者名稱</p>
               </div>
             </div>
 
@@ -1792,7 +1819,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
                   <span className="text-white text-xs">✓</span>
                 </div>
-                Username changed successfully! Reloading...
+                使用者名稱變更成功！重新載入中…
               </div>
             )}
 
@@ -1805,7 +1832,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             <div className="space-y-4">
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-300">
-                  New Username
+                  新使用者名稱
                 </label>
                 <input
                   type="text"
@@ -1813,17 +1840,17 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   onChange={(e) => setUsernameData({ ...usernameData, newUsername: e.target.value })}
                   autoComplete="username"
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
-                  placeholder="Enter new username"
+                  placeholder="輸入新的使用者名稱"
                   disabled={changingUsername}
                 />
                 <p className="mt-1.5 text-[11px] text-slate-400">
-                  Only letters, numbers and underscores (minimum 3 characters)
+                  僅限英文字母、數字與底線（至少 3 個字元）
                 </p>
               </div>
 
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-300">
-                  Current Password
+                  目前密碼
                 </label>
                 <div className="relative">
                   <input
@@ -1832,7 +1859,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     onChange={(e) => setUsernameData({ ...usernameData, currentPassword: e.target.value })}
                     autoComplete="current-password"
                     className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
-                    placeholder="Confirm with your password"
+                    placeholder="輸入密碼以確認"
                     disabled={changingUsername}
                     onKeyPress={(e) => {
                       if (e.key === 'Enter' && !changingUsername) {
@@ -1862,7 +1889,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={changingUsername}
               >
-                Cancel
+                取消
               </button>
               <button
                 onClick={handleChangeUsername}
@@ -1872,12 +1899,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 {changingUsername ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Changing...
+                    變更中…
                   </>
                 ) : (
                   <>
                     <UserCog className="w-4 h-4" />
-                    Change Username
+                    變更使用者名稱
                   </>
                 )}
               </button>

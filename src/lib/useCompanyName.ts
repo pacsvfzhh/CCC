@@ -92,7 +92,7 @@ export function useCompanyName(adminId?: string | null) {
   }, [adminId]);
 
   useEffect(() => {
-    document.title = 'Work Platform';
+    document.title = '工作平台';
   }, [companyName]);
 
   const loadCompanyName = async () => {
