@@ -468,6 +468,114 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     ? detailedHistory.filter((record) => record.action_type === historyActionFilter)
     : detailedHistory;
 
+  const renderSecondaryControls = () => {
+    if (!secondaryGroup) return null;
+
+    return (
+      <>
+        <div data-shared-ip-menu={secondaryGroup.admin_id} className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setSearchTerm('');
+              setIsAdminMenuOpen(false);
+              setOpenSharedIpMenu((current) => current === secondaryGroup.admin_id ? null : secondaryGroup.admin_id);
+            }}
+            disabled={secondarySharedIpGroups.length === 0}
+            className={`inline-flex h-9 w-[230px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold outline-none transition-[background-color,border-color,box-shadow,color] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50 ${
+              selectedSecondarySharedIpGroup
+                ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
+                : 'border border-cyan-300/30 bg-slate-900 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
+            }`}
+            title={selectedSecondarySharedIpGroup ? 'Open shared login IP choices' : 'Choose a shared login IP'}
+          >
+            <MapPin className="h-3 w-3 shrink-0" />
+            {selectedSecondarySharedIpGroup ? (
+              <>
+                <span className="min-w-0 flex-1 truncate text-left">{selectedSecondarySharedIpGroup.ip}</span>
+                <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{selectedSecondarySharedIpGroup.employees.length}</span>
+                <span
+                  role="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSharedIpSelection(null);
+                    setOpenSharedIpMenu(null);
+                  }}
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-600 text-white ring-1 ring-inset ring-red-300 transition-colors hover:bg-red-500 hover:text-white"
+                  aria-label="Clear shared IP filter"
+                >
+                  <X className="h-3 w-3" />
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="min-w-0 flex-1 truncate text-left">Shared Login IP</span>
+                <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{secondarySharedIpGroups.length}</span>
+                <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === secondaryGroup.admin_id ? 'rotate-180' : ''}`} />
+              </>
+            )}
+          </button>
+          {openSharedIpMenu === secondaryGroup.admin_id && (
+            <div role="listbox" aria-label="Shared login IP options" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+              <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
+                <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{secondarySharedIpGroups.length}</span>
+              </div>
+              <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
+                {secondarySharedIpGroups.map((option) => (
+                  <button
+                    key={option.ip}
+                    type="button"
+                    role="option"
+                    aria-selected={selectedSecondarySharedIpGroup?.ip === option.ip}
+                    onClick={() => {
+                      setSearchTerm('');
+                      setSharedIpSelection({ scope: 'group', groupId: secondaryGroup.admin_id, ip: option.ip });
+                      setOpenSharedIpMenu(null);
+                    }}
+                    className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-slate-300 transition-[background-color,color,box-shadow] hover:bg-slate-800 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35"
+                  >
+                    <MapPin className="h-3 w-3 shrink-0 text-cyan-300" />
+                    <span className="min-w-0 flex-1 truncate text-xs font-semibold">{option.ip}</span>
+                    <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">{option.employees.length}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="relative w-full min-w-0 sm:max-w-[280px] xl:max-w-[320px]">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setSharedIpSelection(null);
+            }}
+            placeholder="Search by username, employee ID, or IP address..."
+            className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-xs font-medium text-slate-900 shadow-[0_6px_18px_rgba(2,6,23,0.14)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+                setSharedIpSelection(null);
+                setOpenSharedIpMenu(null);
+              }}
+              className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-500"
+              aria-label="Clear search"
+              title="Clear search"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </>
+    );
+  };
+
   const renderEmployeeTable = (rows: EmployeeTableRow[], showAdminGroup = false, sharedIpMode = false) => {
     if (rows.length === 0) {
       return (
@@ -757,26 +865,30 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 bg-slate-950 text-slate-100">
       <div className="flex min-h-0 flex-1 flex-col bg-slate-950">
-        <div className="mb-0 flex shrink-0 flex-col justify-start gap-2 border-b border-cyan-400/25 bg-gradient-to-tr from-blue-950/85 via-slate-950 to-cyan-950/90 px-4 py-2.5 shadow-[0_8px_24px_rgba(8,47,73,0.18)] xl:min-h-[109px]">
+        <div className={`mb-0 flex shrink-0 flex-col justify-start gap-2 border-b border-cyan-400/25 bg-gradient-to-tr from-blue-950/85 via-slate-950 to-cyan-950/90 px-4 py-2.5 shadow-[0_8px_24px_rgba(8,47,73,0.18)] ${admin.role === 'super_admin' ? 'xl:min-h-[109px]' : 'xl:min-h-[72px]'}`}>
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="min-w-0 pt-1.5">
               <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/80">Admin activity</p>
               <h2 className="mt-0 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-xl font-bold tracking-tight text-transparent sm:text-2xl">Login History</h2>
             </div>
-            <button
-              onClick={() => {
-                void loadAdminsRef.current?.();
-                void loadEmployeeSummaryRef.current?.();
-              }}
-              disabled={loading}
-              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-[0_6px_18px_rgba(8,145,178,0.2)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_10px_22px_rgba(8,145,178,0.26)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:min-w-[88px] xl:min-w-[88px]"
-              title="Refresh data"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="font-medium">Refresh</span>
-            </button>
+            <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+              {admin.role !== 'super_admin' && renderSecondaryControls()}
+              <button
+                onClick={() => {
+                  void loadAdminsRef.current?.();
+                  void loadEmployeeSummaryRef.current?.();
+                }}
+                disabled={loading}
+                className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-[0_6px_18px_rgba(8,145,178,0.2)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_10px_22px_rgba(8,145,178,0.26)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:min-w-[88px] xl:min-w-[88px]"
+                title="Refresh data"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span className="font-medium">Refresh</span>
+              </button>
+            </div>
           </div>
 
+          {admin.role === 'super_admin' && (
           <div className="flex w-full min-w-0 items-center gap-1.5">
             {admin.role === 'super_admin' && (
               <div className="flex shrink-0 items-center gap-1.5">
@@ -940,79 +1052,6 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 )}
               </div>
             )}
-            {admin.role !== 'super_admin' && secondaryGroup && (
-              <div data-shared-ip-menu={secondaryGroup.admin_id} className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setIsAdminMenuOpen(false);
-                    setOpenSharedIpMenu((current) => current === secondaryGroup.admin_id ? null : secondaryGroup.admin_id);
-                  }}
-                  disabled={secondarySharedIpGroups.length === 0}
-                  className={`inline-flex h-9 w-[230px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold outline-none transition-[background-color,border-color,box-shadow,color] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50 ${
-                    selectedSecondarySharedIpGroup
-                      ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
-                      : 'border border-cyan-300/30 bg-slate-900 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
-                  }`}
-                  title={selectedSecondarySharedIpGroup ? 'Open shared login IP choices' : 'Choose a shared login IP'}
-                >
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  {selectedSecondarySharedIpGroup ? (
-                    <>
-                      <span className="min-w-0 flex-1 truncate text-left">{selectedSecondarySharedIpGroup.ip}</span>
-                      <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{selectedSecondarySharedIpGroup.employees.length}</span>
-                      <span
-                        role="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setSharedIpSelection(null);
-                          setOpenSharedIpMenu(null);
-                        }}
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-600 text-white ring-1 ring-inset ring-red-300 transition-colors hover:bg-red-500 hover:text-white"
-                        aria-label="Clear shared IP filter"
-                      >
-                        <X className="h-3 w-3" />
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="min-w-0 flex-1 truncate text-left">Shared Login IP</span>
-                      <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{secondarySharedIpGroups.length}</span>
-                      <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === secondaryGroup.admin_id ? 'rotate-180' : ''}`} />
-                    </>
-                  )}
-                </button>
-                {openSharedIpMenu === secondaryGroup.admin_id && (
-                  <div role="listbox" aria-label="Shared login IP options" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
-                    <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
-                      <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{secondarySharedIpGroups.length}</span>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
-                      {secondarySharedIpGroups.map((option) => (
-                        <button
-                          key={option.ip}
-                          type="button"
-                          role="option"
-                          aria-selected={selectedSecondarySharedIpGroup?.ip === option.ip}
-                          onClick={() => {
-                            setSearchTerm('');
-                            setSharedIpSelection({ scope: 'group', groupId: secondaryGroup.admin_id, ip: option.ip });
-                            setOpenSharedIpMenu(null);
-                          }}
-                          className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-slate-300 transition-[background-color,color,box-shadow] hover:bg-slate-800 hover:text-cyan-100 hover:ring-1 hover:ring-inset hover:ring-cyan-300/35"
-                        >
-                          <MapPin className="h-3 w-3 shrink-0 text-cyan-300" />
-                          <span className="min-w-0 flex-1 truncate text-xs font-semibold">{option.ip}</span>
-                          <span className="shrink-0 rounded-full border border-slate-600/70 bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">{option.employees.length}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
             <div className="relative w-full min-w-0 sm:max-w-[280px] xl:max-w-[320px]">
               <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
               <input
@@ -1043,6 +1082,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             </div>
             </div>
           </div>
+          )}
         </div>
 
         {loading ? (
