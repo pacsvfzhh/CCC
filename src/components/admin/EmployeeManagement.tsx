@@ -2577,7 +2577,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             e.stopPropagation();
             setOpenActionMenu(isOpen ? null : employee.id);
           }}
-          className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-all duration-150 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 ${isOpen ? 'border-blue-200/80 bg-blue-600 text-white shadow-[0_0_14px_rgba(37,99,235,0.5)]' : 'border-slate-600/70 bg-slate-800/75 text-slate-300 hover:border-blue-300/80 hover:bg-blue-600/85 hover:text-white hover:shadow-[0_0_12px_rgba(59,130,246,0.4)]'}`}
+          className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-all duration-150 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 ${isOpen ? 'bg-blue-500/15 text-blue-200 shadow-[0_0_12px_rgba(59,130,246,0.3)]' : 'text-slate-500 hover:bg-slate-700/45 hover:text-white hover:shadow-[0_0_10px_rgba(148,163,184,0.2)]'}`}
           title="操作"
           aria-label={`開啟 ${employee.username} 的操作選單`}
           aria-expanded={isOpen}
@@ -2585,10 +2585,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           <MoreVertical className="h-4 w-4" />
         </button>
         {isOpen && (
-          <div className="absolute right-8 top-1/2 z-50 flex h-7 -translate-y-1/2 items-center gap-1 whitespace-nowrap rounded-xl border-2 border-slate-200/35 bg-gradient-to-b from-slate-800 to-slate-950 px-1.5 shadow-[0_0_0_2px_rgba(2,6,23,0.9),0_12px_30px_rgba(2,6,23,0.82)] ring-1 ring-inset ring-blue-300/35">
+          <div className="absolute right-8 top-1/2 z-50 flex h-7 -translate-y-1/2 items-center gap-1 whitespace-nowrap rounded-xl border border-slate-400/55 bg-[#0b1220] px-1.5 shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_12px_30px_rgba(2,6,23,0.86)] ring-1 ring-inset ring-blue-300/15">
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setEditingEmployee(employee); }}
-              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-blue-200/90 bg-gradient-to-b from-blue-500 to-blue-800 px-3 text-xs font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_2px_7px_rgba(30,64,175,0.65)] transition-all duration-150 hover:-translate-y-px hover:border-white hover:from-blue-400 hover:to-blue-600 hover:shadow-[0_0_16px_rgba(59,130,246,0.7)] active:translate-y-px active:scale-[0.97] active:from-blue-700 active:to-blue-900 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-transparent border-l-2 border-l-blue-400/70 bg-blue-500/10 px-3 text-xs font-bold text-blue-200 transition-all duration-150 hover:-translate-y-px hover:border-blue-200 hover:bg-blue-600 hover:text-white hover:shadow-[0_0_14px_rgba(59,130,246,0.62)] active:translate-y-px active:scale-[0.96] active:bg-blue-800 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="編輯詳情"
               aria-label="編輯員工"
             >
@@ -2597,7 +2597,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setNewPassword(''); setShowResetPassword(false); setShowPasswordReset({ id: employee.id, username: employee.username }); }}
-              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-amber-100/90 bg-gradient-to-b from-amber-400 to-amber-700 px-3 text-xs font-extrabold text-amber-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.38),0_2px_7px_rgba(180,83,9,0.65)] transition-all duration-150 hover:-translate-y-px hover:border-white hover:from-amber-300 hover:to-amber-500 hover:shadow-[0_0_16px_rgba(245,158,11,0.72)] active:translate-y-px active:scale-[0.97] active:from-amber-500 active:to-amber-800 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-transparent border-l-2 border-l-amber-300/75 bg-amber-500/10 px-3 text-xs font-bold text-amber-200 transition-all duration-150 hover:-translate-y-px hover:border-amber-100 hover:bg-amber-500 hover:text-amber-950 hover:shadow-[0_0_14px_rgba(245,158,11,0.68)] active:translate-y-px active:scale-[0.96] active:bg-amber-700 active:text-white active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="重設密碼"
               aria-label="修改員工密碼"
             >
@@ -2606,7 +2606,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setDeletingEmployee(employee); }}
-              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-rose-100/90 bg-gradient-to-b from-rose-500 to-rose-800 px-3 text-xs font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_2px_7px_rgba(159,18,57,0.68)] transition-all duration-150 hover:-translate-y-px hover:border-white hover:from-rose-400 hover:to-rose-600 hover:shadow-[0_0_16px_rgba(244,63,94,0.72)] active:translate-y-px active:scale-[0.97] active:from-rose-700 active:to-rose-900 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-transparent border-l-2 border-l-rose-400/75 bg-rose-500/10 px-3 text-xs font-bold text-rose-200 transition-all duration-150 hover:-translate-y-px hover:border-rose-100 hover:bg-rose-600 hover:text-white hover:shadow-[0_0_14px_rgba(244,63,94,0.68)] active:translate-y-px active:scale-[0.96] active:bg-rose-800 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="刪除"
               aria-label="刪除員工帳戶"
             >
