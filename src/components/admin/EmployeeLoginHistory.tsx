@@ -610,7 +610,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           </thead>
           <tbody className="bg-slate-950">
             {rows.map(({ employee, adminUsername }, index) => (
-              <tr key={employee.user_id} className="bg-slate-950 hover:bg-slate-800/30">
+              <tr key={employee.user_id} className="border-b border-slate-800/80 bg-slate-950 transition-[background-color,filter,box-shadow] duration-150 hover:bg-cyan-900/55 hover:brightness-125 hover:shadow-[inset_0_0_0_1px_rgba(34,211,238,0.55)]">
                 <td className="px-2 py-1 text-center text-[11px] font-semibold text-slate-500">{index + 1}</td>
                 <td className="px-2 py-1 text-xs font-semibold text-cyan-100">{employee.username}</td>
                 {showAdminGroup && (
@@ -1297,7 +1297,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                               </thead>
                               <tbody className="bg-slate-950">
                                 {getDisplayedGroupEmployees(group).map((employee, index) => (
-                                  <tr key={employee.user_id} className="bg-slate-950 hover:bg-slate-800/30">
+                                  <tr key={employee.user_id} className="border-b border-slate-800/80 bg-slate-950 transition-[background-color,filter,box-shadow] duration-150 hover:bg-cyan-900/55 hover:brightness-125 hover:shadow-[inset_0_0_0_1px_rgba(34,211,238,0.55)]">
                                     <td className="px-2 py-1 text-center text-[11px] font-semibold text-slate-500">{index + 1}</td>
                                     <td className="px-2 py-1 text-xs font-semibold text-cyan-100">{employee.username}</td>
                                     <td className="px-2 py-1 text-xs text-slate-300">{employee.employee_id}</td>
