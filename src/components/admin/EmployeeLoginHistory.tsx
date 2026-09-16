@@ -83,6 +83,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [sharedIpSelection, setSharedIpSelection] = useState<SharedIpSelection | null>(null);
   const [openSharedIpMenu, setOpenSharedIpMenu] = useState<'all' | string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -432,6 +433,16 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     setSelectedEmployee(null);
     setDetailedHistory([]);
     setHistoryActionFilter(null);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadAdminsRef.current?.();
+      await loadEmployeeSummaryRef.current?.(true, searchTermRef.current);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const formatDateTime = (dateString: string | null) => {
@@ -895,15 +906,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             <div className={`flex min-w-0 items-center justify-end gap-1.5 ${admin.role === 'super_admin' ? 'flex-wrap' : 'flex-nowrap translate-y-2'}`}>
               {admin.role !== 'super_admin' && renderSecondaryControls()}
               <button
-                onClick={() => {
-                  void loadAdminsRef.current?.();
-                  void loadEmployeeSummaryRef.current?.();
-                }}
-                disabled={loading}
+                onClick={handleRefresh}
+                disabled={loading || refreshing}
+                aria-busy={refreshing}
                 className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-[0_6px_18px_rgba(8,145,178,0.2)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_10px_22px_rgba(8,145,178,0.26)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:min-w-[88px] xl:min-w-[88px]"
                 title="Refresh data"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-3.5 w-3.5 ${loading || refreshing ? 'animate-spin' : ''}`} />
                 <span className="font-medium">Refresh</span>
               </button>
             </div>
@@ -1117,7 +1126,15 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 isolate">
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 isolate">
+            {refreshing && (
+              <div className="pointer-events-none absolute inset-0 z-30 flex items-start justify-center bg-slate-950/20 pt-2 transition-opacity duration-200">
+                <div className="flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-slate-900/90 px-2.5 py-1 text-[10px] font-semibold text-cyan-200 shadow-[0_8px_18px_rgba(2,6,23,0.32)]">
+                  <RefreshCw className="h-3 w-3 animate-spin text-cyan-300" />
+                  Refreshing
+                </div>
+              </div>
+            )}
             {sharedIpSelection?.scope === 'all' ? (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950 isolate">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
