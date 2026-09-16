@@ -2585,10 +2585,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           <MoreVertical className="h-4 w-4" />
         </button>
         {isOpen && (
-          <div className="absolute right-8 top-1/2 z-50 flex h-7 -translate-y-1/2 items-center gap-1 whitespace-nowrap rounded-xl border border-blue-100/60 bg-slate-900 px-1.5 shadow-[0_10px_28px_rgba(2,6,23,0.8)] ring-2 ring-slate-950/70 backdrop-blur-xl">
+          <div className="absolute right-8 top-1/2 z-50 flex h-7 -translate-y-1/2 items-center gap-1 whitespace-nowrap rounded-xl border-2 border-slate-200/35 bg-gradient-to-b from-slate-800 to-slate-950 px-1.5 shadow-[0_0_0_2px_rgba(2,6,23,0.9),0_12px_30px_rgba(2,6,23,0.82)] ring-1 ring-inset ring-blue-300/35">
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setEditingEmployee(employee); }}
-              className="group inline-flex h-6 items-center gap-1.5 rounded-lg border border-blue-300/75 bg-blue-700 px-3 text-xs font-bold text-white shadow-[0_2px_8px_rgba(37,99,235,0.4)] transition-all duration-150 hover:border-blue-100 hover:bg-blue-500 hover:shadow-[0_0_14px_rgba(59,130,246,0.55)] active:scale-95 active:bg-blue-300 active:text-blue-950 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-blue-200/90 bg-gradient-to-b from-blue-500 to-blue-800 px-3 text-xs font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_2px_7px_rgba(30,64,175,0.65)] transition-all duration-150 hover:-translate-y-px hover:border-white hover:from-blue-400 hover:to-blue-600 hover:shadow-[0_0_16px_rgba(59,130,246,0.7)] active:translate-y-px active:scale-[0.97] active:from-blue-700 active:to-blue-900 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="編輯詳情"
               aria-label="編輯員工"
             >
@@ -2597,7 +2597,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setNewPassword(''); setShowResetPassword(false); setShowPasswordReset({ id: employee.id, username: employee.username }); }}
-              className="group inline-flex h-6 items-center gap-1.5 rounded-lg border border-amber-200/80 bg-amber-600 px-3 text-xs font-bold text-white shadow-[0_2px_8px_rgba(217,119,6,0.4)] transition-all duration-150 hover:border-amber-50 hover:bg-amber-400 hover:text-amber-950 hover:shadow-[0_0_14px_rgba(245,158,11,0.55)] active:scale-95 active:bg-amber-200 active:text-amber-950 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-amber-100/90 bg-gradient-to-b from-amber-400 to-amber-700 px-3 text-xs font-extrabold text-amber-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.38),0_2px_7px_rgba(180,83,9,0.65)] transition-all duration-150 hover:-translate-y-px hover:border-white hover:from-amber-300 hover:to-amber-500 hover:shadow-[0_0_16px_rgba(245,158,11,0.72)] active:translate-y-px active:scale-[0.97] active:from-amber-500 active:to-amber-800 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="重設密碼"
               aria-label="修改員工密碼"
             >
@@ -2606,7 +2606,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setDeletingEmployee(employee); }}
-              className="group inline-flex h-6 items-center gap-1.5 rounded-lg border border-rose-200/80 bg-rose-700 px-3 text-xs font-bold text-white shadow-[0_2px_8px_rgba(225,29,72,0.42)] transition-all duration-150 hover:border-rose-50 hover:bg-rose-500 hover:shadow-[0_0_14px_rgba(244,63,94,0.55)] active:scale-95 active:bg-rose-300 active:text-rose-950 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
+              className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-rose-100/90 bg-gradient-to-b from-rose-500 to-rose-800 px-3 text-xs font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_2px_7px_rgba(159,18,57,0.68)] transition-all duration-150 hover:-translate-y-px hover:border-white hover:from-rose-400 hover:to-rose-600 hover:shadow-[0_0_16px_rgba(244,63,94,0.72)] active:translate-y-px active:scale-[0.97] active:from-rose-700 active:to-rose-900 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-100 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="刪除"
               aria-label="刪除員工帳戶"
             >
