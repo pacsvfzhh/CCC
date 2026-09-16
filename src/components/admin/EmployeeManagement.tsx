@@ -3771,18 +3771,18 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     使用者名稱
                     <span className="rounded-full border border-blue-300/20 bg-blue-400/10 px-2 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-blue-200">登入識別</span>
                   </label>
-                  <input id="edit-employee-username" type="text" value={editingEmployee.username} onChange={(e) => setEditingEmployee({ ...editingEmployee, username: e.target.value })} className="w-full rounded-xl border border-blue-300/25 bg-slate-950/70 px-4 py-3 text-sm font-medium text-white shadow-inner shadow-black/20 outline-none transition-colors placeholder:text-slate-500 focus:border-blue-300/75 focus:ring-4 focus:ring-blue-400/10" />
+                  <input id="edit-employee-username" type="text" value={editingEmployee.username} onChange={(e) => setEditingEmployee({ ...editingEmployee, username: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20" />
                 </div>
                 <div>
                   <label className="mb-2 flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[0.14em] text-blue-100" htmlFor="edit-employee-id">
                     員工 ID
                     <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-cyan-200">內部識別</span>
                   </label>
-                  <input id="edit-employee-id" type="text" value={editingEmployee.employee_id} onChange={(e) => setEditingEmployee({ ...editingEmployee, employee_id: e.target.value })} className="w-full rounded-xl border border-blue-300/25 bg-slate-950/70 px-4 py-3 font-mono text-sm font-medium text-white shadow-inner shadow-black/20 outline-none transition-colors placeholder:text-slate-500 focus:border-blue-300/75 focus:ring-4 focus:ring-blue-400/10" />
+                  <input id="edit-employee-id" type="text" value={editingEmployee.employee_id} onChange={(e) => setEditingEmployee({ ...editingEmployee, employee_id: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20" />
                 </div>
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-blue-100" htmlFor="edit-employee-remarks">備註</label>
-                  <input id="edit-employee-remarks" type="text" value={editingEmployee.remarks || ''} onChange={(e) => setEditingEmployee({ ...editingEmployee, remarks: e.target.value })} placeholder="輸入管理員備註……" className="w-full rounded-xl border border-blue-300/25 bg-slate-950/70 px-4 py-3 text-sm font-medium text-white shadow-inner shadow-black/20 outline-none transition-colors placeholder:text-slate-500 focus:border-blue-300/75 focus:ring-4 focus:ring-blue-400/10" />
+                  <input id="edit-employee-remarks" type="text" value={editingEmployee.remarks || ''} onChange={(e) => setEditingEmployee({ ...editingEmployee, remarks: e.target.value })} placeholder="輸入管理員備註……" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20" />
                 </div>
               </div>
               <div className="flex items-start gap-2.5 rounded-xl border border-blue-300/15 bg-blue-500/5 px-3.5 py-3 text-xs leading-5 text-slate-400">
@@ -3888,7 +3888,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 <div className="flex gap-2">
                   <div className="relative min-w-0 flex-1">
                     <Key className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-300/70" />
-                    <input id="reset-employee-password" type={showResetPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="輸入新密碼" autoComplete="new-password" minLength={6} disabled={resettingPassword} className="w-full rounded-xl border border-amber-300/25 bg-slate-950/70 py-3 pl-10 pr-11 text-sm font-medium text-white shadow-inner shadow-black/20 outline-none transition-colors placeholder:text-slate-500 focus:border-amber-300/75 focus:ring-4 focus:ring-amber-400/10 disabled:cursor-not-allowed disabled:opacity-60" />
+                    <input id="reset-employee-password" type={showResetPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="輸入新密碼" autoComplete="new-password" minLength={6} disabled={resettingPassword} className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-11 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-300/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100" />
                     <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} disabled={resettingPassword} aria-label={showResetPassword ? '隱藏密碼' : '顯示密碼'} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-amber-400/10 hover:text-amber-100 disabled:cursor-not-allowed disabled:opacity-50">
                       {showResetPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
