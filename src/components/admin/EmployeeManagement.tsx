@@ -12,6 +12,7 @@ interface OrderRealtimeData {
   user_id: string;
   status: string;
   commission_amount?: number | string | null;
+  created_at?: string | null;
 }
 
 interface PendingWithdrawalRecord {
@@ -337,10 +338,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     if (!initialLoadStartedRef.current) {
       initialLoadStartedRef.current = true;
       void guardedLoadEmployeesRef.current?.(false);
-    } else if (Date.now() >= nextAutoRefreshAtRef.current && !loadInProgressRef.current) {
-      void guardedLoadEmployeesRef.current?.(true);
     } else {
-      resetAutoRefreshTimer();
+      void guardedLoadEmployeesRef.current?.(true);
     }
 
     let realtimeReloadTimer: ReturnType<typeof setTimeout> | null = null;
@@ -373,6 +372,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const isBusinessWorkSessionChange = (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
       if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') return true;
       return payload.new.end_time != null || payload.new.duration_minutes != null;
+    };
+    const isTodayOrder = (dateString?: string | null) => {
+      if (!dateString) return true;
+      const now = new Date();
+      const start = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+      const timestamp = new Date(dateString).getTime();
+      return timestamp >= start && timestamp < start + 24 * 60 * 60 * 1000;
     };
     const hasRelevantEmployeeChange = (payload: {
       eventType: string;
@@ -443,6 +449,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         const userIds = Array.from(pendingCommissionUserIds);
         pendingCommissionUserIds.clear();
         if (userIds.length === 0 || !isMountedRef.current) return;
+        const requestGeneration = realtimeChangeGenerationRef.current;
 
         const { data, error } = await supabase.rpc('get_today_commission_by_user', { user_ids: userIds });
         if (error) {
@@ -450,10 +457,15 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           return;
         }
 
-        const commissionMap = new Map<string, number>();
+        const commissionMap = new Map<string, number>(userIds.map(userId => [userId, 0]));
         (data || []).forEach((row) => {
           commissionMap.set(row.user_id, Number(row.today_commission) || 0);
         });
+        if (!isMountedRef.current) return;
+        if (requestGeneration !== realtimeChangeGenerationRef.current) {
+          debouncedStatsReload();
+          return;
+        }
         markRealtimeChange();
         setEmployeeGroups(prev => prev.map(group => ({
           ...group,
@@ -511,9 +523,11 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             return;
           }
           const userId = order.user_id;
+          const wasToday = isTodayOrder(previousOrder.created_at);
+          const isToday = isTodayOrder(order.created_at);
           const commissionChanged = previousOrder.status !== order.status
             || Number(previousOrder.commission_amount || 0) !== Number(order.commission_amount || 0);
-          if (commissionChanged) scheduleCommissionRefresh(userId);
+          if (commissionChanged && (wasToday || isToday)) scheduleCommissionRefresh(userId);
           markRealtimeChange();
           setEmployeeGroups(prev => prev.map(group => ({
             ...group,
@@ -525,13 +539,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               const isFailed = order.status === 'failure';
               let todayCompletedDelta = 0;
               let failedDelta = 0;
-              if (isSuccess && !wasSuccess) {
+              if (isToday && isSuccess && !wasSuccess) {
                 todayCompletedDelta = 1;
-              } else if (!isSuccess && wasSuccess) {
+              } else if (wasToday && !isSuccess && wasSuccess) {
                 todayCompletedDelta = -1;
               }
-              if (isFailed && !wasFailed) failedDelta = 1;
-              else if (!isFailed && wasFailed) failedDelta = -1;
+              if (isToday && isFailed && !wasFailed) failedDelta = 1;
+              else if (wasToday && !isFailed && wasFailed) failedDelta = -1;
               return {
                 ...emp,
                 todayCompletedOrders: Math.max(0, emp.todayCompletedOrders + todayCompletedDelta),
@@ -545,7 +559,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         if (payload.eventType === 'INSERT' && payload.new && payload.new.user_id) {
           const order = payload.new as unknown as OrderRealtimeData;
           const userId = order.user_id;
-          if (order.status === 'success') scheduleCommissionRefresh(userId);
+          const isToday = isTodayOrder(order.created_at);
+          if (isToday && order.status === 'success') scheduleCommissionRefresh(userId);
           markRealtimeChange();
           setEmployeeGroups(prev => prev.map(group => ({
             ...group,
@@ -553,10 +568,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               if (emp.id !== userId) return emp;
               return {
                 ...emp,
-                todayOrders: emp.todayOrders + 1,
+                todayOrders: isToday ? emp.todayOrders + 1 : emp.todayOrders,
                 totalOrders: emp.totalOrders + 1,
-                todayCompletedOrders: order.status === 'success' ? emp.todayCompletedOrders + 1 : emp.todayCompletedOrders,
-                failedOrders: order.status === 'failure' ? emp.failedOrders + 1 : emp.failedOrders,
+                todayCompletedOrders: isToday && order.status === 'success' ? emp.todayCompletedOrders + 1 : emp.todayCompletedOrders,
+                failedOrders: isToday && order.status === 'failure' ? emp.failedOrders + 1 : emp.failedOrders,
                 todayCommission: emp.todayCommission,
               };
             }),
@@ -727,30 +742,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         userIds.length > 0
           ? supabase.from('verification_requests').select('user_id, real_name, wallet_address, phone, email').eq('status', 'approved').in('user_id', userIds)
           : Promise.resolve({ data: [], error: null }),
-        (async () => {
-          try { return await supabase.rpc('count_orders_by_user', { user_ids: userIds }); }
-          catch { return { data: null, error: null }; }
-        })(),
-        (async () => {
-          try { return await supabase.rpc('count_today_orders_by_user', { user_ids: userIds, today_start: todayISO }); }
-          catch { return { data: null, error: null }; }
-        })(),
-        (async () => {
-          try { return await supabase.rpc('count_today_completed_orders_by_user', { user_ids: userIds, today_start: todayISO }); }
-          catch { return { data: null, error: null }; }
-        })(),
-        (async () => {
-          try { return await supabase.rpc('count_today_valid_data_failed_orders_by_user', { user_ids: userIds, today_start: todayISO }); }
-          catch { return { data: null, error: null }; }
-        })(),
-        (async () => {
-          try { return await supabase.rpc('get_today_commission_by_user', { user_ids: userIds }); }
-          catch { return { data: null, error: null }; }
-        })(),
-        (async () => {
-          try { return await supabase.rpc('get_batch_work_status', { p_user_ids: userIds }); }
-          catch { return { data: null, error: null }; }
-        })(),
+        supabase.rpc('count_orders_by_user', { user_ids: userIds }),
+        supabase.rpc('count_today_orders_by_user', { user_ids: userIds, today_start: todayISO }),
+        supabase.rpc('count_today_completed_orders_by_user', { user_ids: userIds, today_start: todayISO }),
+        supabase.rpc('count_today_valid_data_failed_orders_by_user', { user_ids: userIds, today_start: todayISO }),
+        supabase.rpc('get_today_commission_by_user', { user_ids: userIds }),
+        supabase.rpc('get_batch_work_status', { p_user_ids: userIds }),
         userIds.length > 0
           ? supabase.rpc('get_batch_work_time', { p_user_ids: userIds })
           : Promise.resolve({ data: [], error: null }),
@@ -930,6 +927,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         return false;
       }
 
+      realtimeChangeGenerationRef.current += 1;
       setEmployeeGroups(groupsArray);
       setAdminPinOverrides(new Map());
       committed = true;
