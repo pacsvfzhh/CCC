@@ -2481,98 +2481,184 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
   const renderWalletModal = () => {
     if (!walletEmployee) return null;
+
+    const enteredAmount = Number.parseFloat(walletAdjustData.amount);
+    const hasValidAmount = Number.isFinite(enteredAmount) && enteredAmount > 0;
+
     return createPortal(
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4" onClick={() => setWalletEmployee(null)}>
-        <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-amber-400" />
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) setWalletEmployee(null);
+        }}
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="wallet-adjustment-title"
+          className="relative flex max-h-[min(760px,calc(100dvh-2rem))] w-full max-w-xl flex-col overflow-hidden rounded-[28px] border border-amber-200/20 bg-[#07111f] text-slate-100 shadow-[0_28px_90px_rgba(2,6,23,0.75)] ring-1 ring-white/5"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-300 via-orange-400 to-cyan-300" />
+          <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-amber-400/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 -left-24 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
+
+          <div className="relative flex items-start justify-between gap-4 border-b border-white/10 bg-gradient-to-br from-amber-500/[0.13] via-slate-900/60 to-cyan-500/[0.08] px-5 py-5 sm:px-6">
+            <div className="flex min-w-0 items-center gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-200/30 bg-gradient-to-br from-amber-300/25 to-orange-500/10 text-amber-200 shadow-[0_0_28px_rgba(251,191,36,0.16)]">
+                <Wallet className="h-6 w-6" />
               </div>
-              <div>
-                <p className="text-xs text-slate-400 leading-none">錢包調整</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <h3 className="text-lg font-bold text-amber-300 tracking-wide">{walletEmployee.username}</h3>
-                  {walletEmployee.employeeId && <span className="text-sm text-white font-mono font-semibold">ID: {walletEmployee.employeeId}</span>}
+              <div className="min-w-0">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-amber-200/70">Financial control</p>
+                <h3 id="wallet-adjustment-title" className="truncate text-xl font-bold tracking-tight text-white">調整錢包</h3>
+                <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-2 text-[11px]">
+                  <span className="max-w-[220px] truncate font-semibold text-amber-100">{walletEmployee.username}</span>
+                  {walletEmployee.employeeId && <span className="rounded-md border border-white/10 bg-white/[0.06] px-1.5 py-0.5 font-mono text-slate-300">ID · {walletEmployee.employeeId}</span>}
                 </div>
               </div>
             </div>
-            <button onClick={() => setWalletEmployee(null)} className="p-1.5 rounded-lg hover:bg-slate-700/60 text-slate-400 hover:text-white transition-colors">
-              <X className="w-5 h-5" />
+            <button
+              type="button"
+              onClick={() => setWalletEmployee(null)}
+              aria-label="關閉錢包調整面板"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:border-amber-200/30 hover:bg-amber-400/15 hover:text-amber-100 active:scale-95"
+            >
+              <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="p-5 space-y-4">
+
+          <div className="relative min-h-0 overflow-y-auto px-5 py-5 sm:px-6">
             {walletLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+              <div className="flex min-h-[280px] flex-col items-center justify-center gap-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-300/25 bg-amber-400/10">
+                  <Loader2 className="h-6 w-6 animate-spin text-amber-300" />
+                </div>
+                <p className="text-xs font-medium text-slate-400">正在讀取錢包資料</p>
               </div>
             ) : (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50">
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">可用餘額</p>
-                    <p className="text-lg font-bold text-green-400">${(walletData?.available ?? 0).toFixed(2)}</p>
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="relative overflow-hidden rounded-2xl border border-emerald-300/20 bg-gradient-to-br from-emerald-400/[0.14] via-emerald-950/45 to-slate-900/70 p-4 shadow-[0_12px_30px_rgba(16,185,129,0.08)]">
+                    <div className="pointer-events-none absolute -right-5 -top-7 h-24 w-24 rounded-full bg-emerald-300/10 blur-2xl" />
+                    <div className="relative flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-200/70">Available balance</p>
+                        <p className="mt-2 text-2xl font-bold tabular-nums text-emerald-100">${(walletData?.available ?? 0).toFixed(2)}</p>
+                        <p className="mt-1 text-[10px] font-medium text-emerald-200/55">可用餘額</p>
+                      </div>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200/20 bg-emerald-300/10 text-emerald-200">
+                        <DollarSign className="h-4 w-4" />
+                      </span>
+                    </div>
                   </div>
-                  <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50">
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">凍結餘額</p>
-                    <p className="text-lg font-bold text-yellow-400">${(walletData?.frozen ?? 0).toFixed(2)}</p>
+                  <div className="relative overflow-hidden rounded-2xl border border-amber-300/20 bg-gradient-to-br from-amber-400/[0.13] via-amber-950/45 to-slate-900/70 p-4 shadow-[0_12px_30px_rgba(245,158,11,0.07)]">
+                    <div className="pointer-events-none absolute -right-5 -top-7 h-24 w-24 rounded-full bg-amber-300/10 blur-2xl" />
+                    <div className="relative flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200/70">Frozen balance</p>
+                        <p className="mt-2 text-2xl font-bold tabular-nums text-amber-100">${(walletData?.frozen ?? 0).toFixed(2)}</p>
+                        <p className="mt-1 text-[10px] font-medium text-amber-200/55">凍結餘額</p>
+                      </div>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200/20 bg-amber-300/10 text-amber-200">
+                        <Wallet className="h-4 w-4" />
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-amber-400">$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={walletAdjustData.amount}
-                      onChange={(e) => {
-                        walletAdjustmentOperationIdRef.current = null;
-                        setWalletAdjustData(d => ({ ...d, amount: e.target.value }));
-                      }}
-                      placeholder="0.00"
-                      className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm font-medium focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 focus:outline-none placeholder-slate-400"
-                    />
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-inner shadow-black/10">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-white">調整內容</p>
+                      <p className="mt-1 text-[10px] text-slate-500">請填寫金額與可追溯的操作備註</p>
+                    </div>
+                    <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-cyan-200">Audit required</span>
                   </div>
-                  <textarea
-                    value={walletAdjustData.remarks}
-                    onChange={(e) => {
-                      walletAdjustmentOperationIdRef.current = null;
-                      setWalletAdjustData(d => ({ ...d, remarks: e.target.value }));
-                    }}
-                    placeholder="備註（必填）"
-                    rows={3}
-                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 focus:outline-none placeholder-slate-400 resize-none"
-                  />
+
+                  <div className="space-y-4">
+                    <label className="block">
+                      <span className="mb-2 flex items-center justify-between text-[11px] font-semibold text-slate-300">
+                        <span>調整金額</span>
+                        <span className="font-normal text-slate-500">正數金額</span>
+                      </span>
+                      <span className="relative block">
+                        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-base font-bold text-amber-300">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={walletAdjustData.amount}
+                          onChange={(e) => {
+                            walletAdjustmentOperationIdRef.current = null;
+                            setWalletAdjustData(d => ({ ...d, amount: e.target.value }));
+                          }}
+                          placeholder="0.00"
+                          className="h-12 w-full rounded-xl border border-white/10 bg-slate-950/75 pl-9 pr-4 text-base font-semibold tabular-nums text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-300/60 focus:bg-slate-950 focus:ring-4 focus:ring-amber-300/10"
+                        />
+                      </span>
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-2 flex items-center justify-between text-[11px] font-semibold text-slate-300">
+                        <span>操作備註 <span className="text-rose-300">*</span></span>
+                        <span className="font-normal text-slate-500">將記錄至財務流水</span>
+                      </span>
+                      <textarea
+                        value={walletAdjustData.remarks}
+                        onChange={(e) => {
+                          walletAdjustmentOperationIdRef.current = null;
+                          setWalletAdjustData(d => ({ ...d, remarks: e.target.value }));
+                        }}
+                        placeholder="例如：訂單補償、人工修正原因……"
+                        rows={3}
+                        className="w-full resize-none rounded-xl border border-white/10 bg-slate-950/75 px-3.5 py-3 text-sm leading-6 text-white outline-none transition-all placeholder:text-slate-600 focus:border-cyan-300/50 focus:bg-slate-950 focus:ring-4 focus:ring-cyan-300/10"
+                      />
+                    </label>
+                  </div>
                 </div>
-                {walletNotification && (
-                  <div className={`px-3 py-2 rounded-lg text-sm ${walletNotification.type === 'success' ? 'bg-green-500/15 text-green-400 border border-green-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'}`}>
-                    {walletNotification.message}
+
+                {hasValidAmount && (
+                  <div className="flex items-center gap-2 rounded-xl border border-blue-300/15 bg-blue-400/[0.07] px-3 py-2.5 text-[11px] text-blue-100/80">
+                    <Clock className="h-3.5 w-3.5 shrink-0 text-blue-300" />
+                    <span>輸入金額：<strong className="font-semibold tabular-nums text-blue-100">${enteredAmount.toFixed(2)}</strong>，請確認操作方向後提交。</span>
                   </div>
                 )}
-                <div className="flex gap-2 pt-1">
+
+                {walletNotification && (
+                  <div className={`flex items-start gap-2 rounded-xl border px-3.5 py-3 text-xs font-medium ${walletNotification.type === 'success' ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200' : 'border-rose-300/25 bg-rose-400/10 text-rose-200'}`}>
+                    <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${walletNotification.type === 'success' ? 'bg-emerald-300' : 'bg-rose-300'}`} />
+                    <span>{walletNotification.message}</span>
+                  </div>
+                )}
+
+                <div className="flex flex-col-reverse gap-2 border-t border-white/10 pt-4 sm:flex-row">
                   <button
-                    onClick={() => handleWalletAdjust('add')}
-                    disabled={walletAdjusting}
-                    className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
-                  >
-                    {walletAdjusting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <span className="flex items-center justify-center gap-1"><span className="text-base font-bold leading-none">+</span> 新增</span>}
-                  </button>
-                  <button
-                    onClick={() => handleWalletAdjust('subtract')}
-                    disabled={walletAdjusting}
-                    className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
-                  >
-                    {walletAdjusting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <span className="flex items-center justify-center gap-1"><span className="text-base font-bold leading-none">&minus;</span> 扣除</span>}
-                  </button>
-                  <button
+                    type="button"
                     onClick={() => setWalletEmployee(null)}
-                    className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-medium transition-colors"
+                    className="h-11 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-semibold text-slate-300 transition-all hover:border-white/20 hover:bg-white/[0.09] hover:text-white active:scale-[0.98] sm:w-24"
                   >
                     關閉
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => handleWalletAdjust('subtract')}
+                    disabled={walletAdjusting}
+                    className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-rose-300/30 bg-gradient-to-r from-rose-500/85 to-red-600/80 px-4 text-xs font-bold text-white shadow-[0_10px_24px_rgba(225,29,72,0.16)] transition-all hover:from-rose-400 hover:to-red-500 active:scale-[0.98] disabled:cursor-wait disabled:opacity-50"
+                  >
+                    {walletAdjusting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDown className="h-4 w-4" />}
+                    扣除餘額
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleWalletAdjust('add')}
+                    disabled={walletAdjusting}
+                    className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-300/30 bg-gradient-to-r from-emerald-500/85 to-teal-500/80 px-4 text-xs font-bold text-white shadow-[0_10px_24px_rgba(16,185,129,0.16)] transition-all hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] disabled:cursor-wait disabled:opacity-50"
+                  >
+                    {walletAdjusting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+                    新增餘額
+                  </button>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </div>
