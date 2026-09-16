@@ -1519,7 +1519,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
     return (
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-500/20 border border-slate-500/50">
         <span className="w-1 h-1 rounded-full bg-slate-400" />
-        <span className="text-xs font-medium text-slate-400">新進</span>
+        <span className="text-xs font-medium text-slate-400">新人</span>
       </span>
     );
   }, []);
@@ -1839,7 +1839,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                     const r = inactiveDaysFilterByGroup.get(adminId);
                     return r === '2-3' ? '2-3d' : r === '3-7' ? '3-7d' : r === '7-15' ? '7-15d' : '15d+';
                   })()
-                : '閒置天數'
+                : '停工天数'
               }
             </span>
             <ChevronDown className={`h-3 w-3 transition-transform ${inactiveDaysDropdownOpen === adminId ? 'rotate-180' : ''}`} />
@@ -1857,8 +1857,8 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   setInactiveDaysDropdownOpen(null);
                   setIdleDaysDropdownPos(null);
                 }}
-                aria-label="清除閒置天數篩選"
-                title="清除閒置天數篩選"
+                aria-label="清除停工天数篩選"
+                title="清除停工天数篩選"
                 className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-300 bg-rose-600 text-white transition-colors hover:border-rose-200 hover:bg-rose-500"
               >
                 <X className="h-3.5 w-3.5" />
