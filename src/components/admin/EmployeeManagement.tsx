@@ -1901,7 +1901,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
       const { data, error } = await supabase.rpc('get_employee_login_history_with_device_info', {
         p_admin_id: admin.id,
         p_user_id: employee.id,
-        p_limit: 50,
+        p_limit: 10000,
         p_offset: 0
       });
       if (error) throw error;
