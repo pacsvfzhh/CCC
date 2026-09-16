@@ -65,8 +65,8 @@ const getRoleIconStyles = (role: string) => role === 'super_admin'
   : 'border-sky-300/40 bg-gradient-to-br from-sky-300/20 via-blue-500/15 to-indigo-700/10 text-sky-200 shadow-[0_8px_20px_-12px_rgba(56,189,248,0.9)] group-hover:border-sky-200/75 group-hover:from-sky-300/30 group-hover:text-sky-100';
 
 const getRoleChipStyles = (role: string) => role === 'super_admin'
-  ? 'border-amber-300/40 bg-amber-400/10 text-amber-200'
-  : 'border-sky-300/35 bg-sky-400/10 text-sky-200';
+  ? 'text-amber-200'
+  : 'text-sky-200';
 
 export default function AdminGroupPicker({ service, groups, unreadCounts, fallbackUnreadCount = 0, loading, onSelect, onRefresh }: AdminGroupPickerProps) {
   const styles = serviceStyles[service];
@@ -159,7 +159,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
                         </div>
                         <div className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-bold leading-tight text-white sm:text-[15px]">{group.admin_username}</span>
-                          <span className={`mt-1 inline-flex max-w-full truncate rounded-full border px-2 py-0.5 text-[10px] font-bold leading-none ${getRoleChipStyles(group.admin_role)}`}>{formatRole(group.admin_role)}</span>
+                          <span className={`mt-1 block max-w-full truncate text-[10px] font-bold leading-none ${getRoleChipStyles(group.admin_role)}`}>{formatRole(group.admin_role)}</span>
                         </div>
                       </div>
 
