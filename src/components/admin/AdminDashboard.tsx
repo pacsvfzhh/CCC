@@ -6,7 +6,7 @@ import { Admin } from '../../types';
 import { getAdminFinancialSessionToken, logout, updateStoredUsername } from '../../lib/auth';
 import { useCompanyName } from '../../lib/useCompanyName';
 import { AdminBackground } from '../AdminBackground';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, isFinancialAdminSessionError, supabase } from '../../lib/supabase';
 import { autoCleanupService } from '../../services/autoCleanupService';
 import { prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 
@@ -710,6 +710,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       setLockedAccountsCount(employeeLocks.length);
       setNextLockedAccountExpiry(expiryTimes.length > 0 ? Math.min(...expiryTimes) : null);
     } catch (error) {
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+        return;
+      }
+
       console.warn('Locked accounts notification is temporarily unavailable:', formatRequestError(error));
     }
   }, []);
@@ -1008,6 +1013,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       return;
     }
 
+    if (passwordData.currentPassword === passwordData.newPassword) {
+      setPasswordError('新密碼不能與目前密碼相同');
+      return;
+    }
+
     setChangingPassword(true);
 
     try {
@@ -1028,8 +1038,13 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         setPasswordSuccess(false);
       }, 2000);
     } catch (error: unknown) {
-      console.error('Error changing password:', error);
-      setPasswordError(error instanceof Error ? error.message : '密碼變更失敗');
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+        return;
+      }
+
+      console.error('Error changing password:', formatSupabaseError(error));
+      setPasswordError(formatSupabaseError(error) || '密碼變更失敗');
     } finally {
       setChangingPassword(false);
     }
@@ -1039,18 +1054,24 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     setUsernameError(null);
     setUsernameSuccess(false);
 
-    if (!usernameData.newUsername || !usernameData.currentPassword) {
+    const newUsername = usernameData.newUsername.trim();
+    if (!newUsername || !usernameData.currentPassword) {
       setUsernameError('請填寫所有欄位');
       return;
     }
 
-    if (usernameData.newUsername.length < 3) {
+    if (newUsername.length < 3) {
       setUsernameError('使用者名稱至少需要 3 個字元');
       return;
     }
 
-    if (!/^[a-zA-Z0-9_]+$/.test(usernameData.newUsername)) {
+    if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
       setUsernameError('使用者名稱只能包含英文字母、數字與底線');
+      return;
+    }
+
+    if (newUsername === admin.username) {
+      setUsernameError('新使用者名稱不能與目前名稱相同');
       return;
     }
 
@@ -1060,7 +1081,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       const { data, error: updateError } = await supabase.rpc('change_admin_username_atomic', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_current_password: usernameData.currentPassword,
-        p_new_username: usernameData.newUsername,
+        p_new_username: newUsername,
       });
 
       if (updateError) {
@@ -1073,15 +1094,20 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       setUsernameData({ newUsername: '', currentPassword: '' });
 
       // Update localStorage and trigger state update
-      updateStoredUsername(usernameData.newUsername);
+      updateStoredUsername(newUsername);
 
       setTimeout(() => {
         setShowUsernameModal(false);
         setUsernameSuccess(false);
       }, 2000);
     } catch (error: unknown) {
-      console.error('Error changing username:', error);
-      setUsernameError(error instanceof Error ? error.message : '使用者名稱變更失敗');
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+        return;
+      }
+
+      console.error('Error changing username:', formatSupabaseError(error));
+      setUsernameError(formatSupabaseError(error) || '使用者名稱變更失敗');
     } finally {
       setChangingUsername(false);
     }

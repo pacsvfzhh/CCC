@@ -44,6 +44,12 @@ export function isSupabaseAbortError(error: unknown): boolean {
   return Boolean(error && typeof error === 'object' && 'name' in error && error.name === 'AbortError');
 }
 
+export function isFinancialAdminSessionError(error: unknown): boolean {
+  const message = formatSupabaseError(error).toLowerCase();
+  return message.includes('financial administrator session is invalid or expired')
+    || message.includes('administrator session has expired');
+}
+
 const clientUrl = supabaseUrl || 'https://placeholder.supabase.co';
 const clientKey = supabaseAnonKey || 'missing-anon-key';
 

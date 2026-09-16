@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef, useTransition } from 'react';
 import { Shield, Unlock, AlertTriangle, Clock, User, RefreshCw, History, Search, Users, ChevronDown, X } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, isFinancialAdminSessionError, supabase } from '../../lib/supabase';
 import { unlockAccount } from '../../lib/rateLimitService';
 import { Admin } from '../../types';
-import { getAdminFinancialSessionToken } from '../../lib/auth';
+import { getAdminFinancialSessionToken, logout } from '../../lib/auth';
 
 interface AccountLock {
   id: string;
@@ -81,16 +81,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
         p_admin_id: getAdminFinancialSessionToken()
       });
 
-      if (error) {
-        console.error('Failed to load locks:', error);
-        if (isInitial) {
-          setMessage({
-            type: 'error',
-            text: '載入鎖定記錄失敗，請稍後再試。'
-          });
-        }
-        return;
-      }
+      if (error) throw error;
 
       const accountLocks = (data || []).filter(
         (lock: AccountLock) => lock.identifier_type === 'username'
@@ -130,7 +121,12 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
       setNextExpiry(nextLockExpiry);
       setMessage(null);
     } catch (error: unknown) {
-      console.error('Failed to load locks:', error);
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+        return;
+      }
+
+      console.error('Failed to load locks:', formatSupabaseError(error));
       if (isInitial) {
         setMessage({
           type: 'error',
@@ -177,6 +173,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
         if (!error) {
           historyData = data || [];
         } else {
+          if (isFinancialAdminSessionError(error)) throw error;
           if (error.code === 'PGRST202') {
             historyRpcUnavailableRef.current = true;
           }
@@ -263,8 +260,13 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
           })
       );
       historyLoadedRef.current = true;
-    } catch (error) {
-      console.error('Failed to load lock history:', error);
+    } catch (error: unknown) {
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+        return;
+      }
+
+      console.error('Failed to load lock history:', formatSupabaseError(error));
       if (!silent) {
         setMessage({ type: 'error', text: '載入歷史鎖定記錄失敗，請稍後再試。' });
       }
@@ -454,8 +456,13 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
       } else {
         setMessage({ type: 'error', text: '解除鎖定失敗，請稍後再試。' });
       }
-    } catch (error) {
-      console.error('Unlock failed:', error);
+    } catch (error: unknown) {
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+        return;
+      }
+
+      console.error('Unlock failed:', formatSupabaseError(error));
       setMessage({ type: 'error', text: '解除鎖定失敗，請稍後再試。' });
     } finally {
       setUnlocking(null);

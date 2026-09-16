@@ -1,5 +1,5 @@
-import { formatSupabaseError, isSupabaseAbortError, supabase } from './supabase';
-import { getAdminFinancialSessionToken } from './auth';
+import { formatSupabaseError, isFinancialAdminSessionError, isSupabaseAbortError, supabase } from './supabase';
+import { getAdminFinancialSessionToken, logout } from './auth';
 
 export interface RateLimitCheckResult {
   allowed: boolean;
@@ -98,18 +98,22 @@ export async function unlockAccount(
     });
 
     if (error) {
-      if (!isSupabaseAbortError(error)) {
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+      } else if (!isSupabaseAbortError(error)) {
         console.error('Unlock account error:', formatSupabaseError(error));
       }
-      return { success: false, message: error.message };
+      return { success: false, message: formatSupabaseError(error) };
     }
 
     return data;
   } catch (error) {
-    if (!isSupabaseAbortError(error)) {
+    if (isFinancialAdminSessionError(error)) {
+      void logout(false);
+    } else if (!isSupabaseAbortError(error)) {
       console.error('Unlock account exception:', formatSupabaseError(error));
     }
-    return { success: false, message: 'Failed to unlock account' };
+    return { success: false, message: formatSupabaseError(error) };
   }
 }
 
