@@ -368,6 +368,99 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       markRealtimeChange();
       scheduleRealtimeReload(2000);
     };
+    let workStatusUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+    const pendingWorkStatusUpdates = new Map<string, 'online' | 'offline'>();
+    const scheduleWorkStatusUpdate = (userId: string, status: 'online' | 'offline') => {
+      pendingWorkStatusUpdates.set(userId, status);
+      markRealtimeChange();
+      if (workStatusUpdateTimer) return;
+
+      workStatusUpdateTimer = setTimeout(() => {
+        workStatusUpdateTimer = null;
+        const updates = new Map(pendingWorkStatusUpdates);
+        pendingWorkStatusUpdates.clear();
+        if (!isMountedRef.current || updates.size === 0) return;
+
+        setEmployeeGroups(prev => prev.map(group => {
+          let groupChanged = false;
+          const employees = group.employees.map(employee => {
+            const nextStatus = updates.get(employee.id);
+            if (!nextStatus || nextStatus === employee.workStatus) return employee;
+            groupChanged = true;
+            return { ...employee, workStatus: nextStatus };
+          });
+          return groupChanged ? { ...group, employees } : group;
+        }));
+      }, 150);
+    };
+    let workTimeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let workTimeRefreshWindowStartedAt: number | null = null;
+    let workTimeRefreshRunning = false;
+    const pendingWorkTimeUserIds = new Set<string>();
+    const scheduleWorkTimeRefresh = (userId: string) => {
+      pendingWorkTimeUserIds.add(userId);
+      if (workTimeRefreshRunning) return;
+
+      const now = Date.now();
+      workTimeRefreshWindowStartedAt ??= now;
+      if (workTimeRefreshTimer) clearTimeout(workTimeRefreshTimer);
+
+      const elapsed = now - workTimeRefreshWindowStartedAt;
+      const wait = Math.max(0, Math.min(700, 2000 - elapsed));
+      workTimeRefreshTimer = setTimeout(async () => {
+        workTimeRefreshTimer = null;
+        workTimeRefreshWindowStartedAt = null;
+        const userIds = Array.from(pendingWorkTimeUserIds);
+        pendingWorkTimeUserIds.clear();
+        if (userIds.length === 0 || !isMountedRef.current) return;
+
+        workTimeRefreshRunning = true;
+        const requestGeneration = realtimeChangeGenerationRef.current;
+        try {
+          const { data, error } = await supabase.rpc('get_batch_work_time', { p_user_ids: userIds });
+          if (error) {
+            if (isMountedRef.current) debouncedStatsReload();
+            return;
+          }
+          if (!isMountedRef.current) return;
+          if (requestGeneration !== realtimeChangeGenerationRef.current) {
+            userIds.forEach(id => pendingWorkTimeUserIds.add(id));
+            return;
+          }
+
+          const workTimeMap = new Map<string, { total: number; today: number }>();
+          (data || []).forEach((row) => {
+            workTimeMap.set(row.user_id, {
+              total: row.total_work_minutes || 0,
+              today: row.today_work_minutes || 0,
+            });
+          });
+
+          markRealtimeChange();
+          setEmployeeGroups(prev => prev.map(group => ({
+            ...group,
+            employees: group.employees.map(employee => {
+              const workTime = workTimeMap.get(employee.id);
+              return workTime
+                ? {
+                    ...employee,
+                    totalWorkMinutes: workTime.total,
+                    todayWorkMinutes: workTime.today,
+                  }
+                : employee;
+            }),
+          })));
+        } catch {
+          if (isMountedRef.current) debouncedStatsReload();
+        } finally {
+          workTimeRefreshRunning = false;
+          if (isMountedRef.current && pendingWorkTimeUserIds.size > 0) {
+            const nextUserId = pendingWorkTimeUserIds.values().next().value;
+            if (nextUserId) scheduleWorkTimeRefresh(nextUserId);
+          }
+        }
+      }, wait);
+    };
     const getPayloadUserId = (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => (
       String(payload.new.user_id || payload.old.user_id || '')
     );
@@ -430,9 +523,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const workSessionsSubscription = supabase
       .channel('employee_mgmt_work_sessions')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'work_sessions' }, (payload) => {
-        if (isVisibleEmployeePayload(payload) && isBusinessWorkSessionChange(payload)) {
-          debouncedStatsReload();
-        }
+        const userId = getPayloadUserId(payload);
+        if (!userId || !isVisibleEmployeePayload(payload) || !isBusinessWorkSessionChange(payload)) return;
+
+        const isEnding = payload.eventType === 'DELETE'
+          || payload.new.end_time != null
+          || payload.new.duration_minutes != null;
+        scheduleWorkStatusUpdate(userId, isEnding ? 'offline' : 'online');
+        scheduleWorkTimeRefresh(userId);
       })
       .subscribe();
 
@@ -634,10 +732,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       supabase.removeChannel(walletTransactionsSubscription);
       supabase.removeChannel(ordersSubscription);
       if (commissionRefreshTimer) clearTimeout(commissionRefreshTimer);
+      if (workStatusUpdateTimer) clearTimeout(workStatusUpdateTimer);
+      pendingWorkStatusUpdates.clear();
+      if (workTimeRefreshTimer) clearTimeout(workTimeRefreshTimer);
+      pendingWorkTimeUserIds.clear();
+      if (resetFeedbackTimeoutRef.current) clearTimeout(resetFeedbackTimeoutRef.current);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (autoRefreshTimerRef.current) clearTimeout(autoRefreshTimerRef.current);
       if (pendingReloadTimerRef.current) clearTimeout(pendingReloadTimerRef.current);
-      if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
       clearInterval(timeUpdateInterval);
     };
   }, [isActive, resetAutoRefreshTimer]);
