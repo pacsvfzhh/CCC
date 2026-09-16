@@ -3758,12 +3758,12 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                 setFromHistoryFilterMode(historyFilterMode);
                                 setFromHistorySource(historyScope);
                               }}
-                              className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${
+                              className={`w-full px-3 py-2.5 rounded-lg text-left group relative ${
                                 isSelected
                                   ? 'bg-emerald-500/20 border border-emerald-300/70 shadow-md shadow-emerald-500/20'
                                   : hasUnread
-                                    ? 'bg-gradient-to-r from-emerald-950/40 to-teal-950/25 border border-emerald-400/60 hover:border-emerald-200/90 shadow-sm shadow-emerald-500/20'
-                                    : 'bg-slate-800/30 hover:bg-emerald-900/25 border border-slate-700/40 hover:border-emerald-400/60 hover:shadow-md hover:shadow-emerald-950/30'
+                                    ? 'bg-gradient-to-r from-emerald-950/40 to-teal-950/25 border border-emerald-400/60 hover:bg-emerald-900/45 shadow-sm shadow-emerald-500/20'
+                                    : 'bg-slate-800/30 hover:bg-emerald-900/25 border border-slate-700/40'
                               }`}
                             >
                               {isSelected ? (

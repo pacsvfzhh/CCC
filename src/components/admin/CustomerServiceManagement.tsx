@@ -3340,12 +3340,12 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                 setFromHistoryFilterMode(historyFilterMode);
                                 setFromHistorySource(historyScope);
                               }}
-                              className={`w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${
+                              className={`w-full px-3 py-2.5 rounded-lg text-left group relative ${
                                 isSelected
                                   ? 'bg-orange-500/20 border border-orange-300/70 shadow-md shadow-orange-500/20'
                                   : hasUnread
-                                    ? 'bg-gradient-to-r from-orange-950/40 to-amber-950/25 border border-orange-400/60 hover:border-orange-200/90 shadow-sm shadow-orange-500/20'
-                                    : 'bg-slate-800/30 hover:bg-orange-900/25 border border-slate-700/40 hover:border-orange-400/60 hover:shadow-md hover:shadow-orange-950/30'
+                                    ? 'bg-gradient-to-r from-orange-950/40 to-amber-950/25 border border-orange-400/60 hover:bg-orange-900/45 shadow-sm shadow-orange-500/20'
+                                    : 'bg-slate-800/30 hover:bg-orange-900/25 border border-slate-700/40'
                               }`}
                             >
                               {isSelected ? (
