@@ -3760,10 +3760,10 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                               }}
                               className={`w-full px-3 py-2.5 rounded-lg text-left group relative ${
                                 isSelected
-                                  ? 'bg-emerald-500/20 border border-emerald-300/70 shadow-md shadow-emerald-500/20'
+                                  ? 'bg-emerald-500/20 border border-emerald-300/70 shadow-md shadow-emerald-500/20 ring-2 ring-emerald-200/35'
                                   : hasUnread
-                                    ? 'bg-gradient-to-r from-emerald-950/40 to-teal-950/25 border border-emerald-400/60 hover:bg-emerald-900/45 shadow-sm shadow-emerald-500/20'
-                                    : 'bg-slate-800/30 hover:bg-emerald-900/25 border border-slate-700/40'
+                                    ? 'bg-gradient-to-r from-emerald-950/40 to-teal-950/25 border border-emerald-400/60 hover:bg-emerald-900/60 hover:ring-2 hover:ring-emerald-200/55 shadow-sm shadow-emerald-500/20'
+                                    : 'bg-slate-800/30 hover:bg-emerald-900/55 hover:ring-2 hover:ring-emerald-300/50 border border-slate-700/40'
                               }`}
                             >
                               {isSelected ? (
