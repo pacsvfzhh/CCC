@@ -40,9 +40,22 @@ export function formatSupabaseError(error: unknown): string {
 }
 
 export function isSupabaseAbortError(error: unknown): boolean {
-  if (error instanceof Error) return error.name === 'AbortError';
-  return Boolean(error && typeof error === 'object' && 'name' in error && error.name === 'AbortError');
+  if (error instanceof Error) {
+    return error.name === 'AbortError' || error.message === 'signal is aborted without reason';
+  }
+
+  if (error && typeof error === 'object') {
+    const details = error as { name?: unknown; message?: unknown };
+    return details.name === 'AbortError' || details.message === 'signal is aborted without reason';
+  }
+
+  return false;
 }
+
+const isSupabaseTimeoutError = (error: unknown) => {
+  if (error instanceof Error) return error.name === 'SupabaseTimeoutError';
+  return Boolean(error && typeof error === 'object' && 'name' in error && error.name === 'SupabaseTimeoutError');
+};
 
 export function isFinancialAdminSessionError(error: unknown): boolean {
   const message = formatSupabaseError(error).toLowerCase();
@@ -195,7 +208,7 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
     } catch (error) {
       if (callerSignal?.aborted) throw createSupabaseAbortError();
 
-      const isTimeout = timedOut;
+      const isTimeout = timedOut || isSupabaseTimeoutError(error);
       if (!isTimeout && isSupabaseAbortError(error)) {
         throw createSupabaseAbortError();
       }

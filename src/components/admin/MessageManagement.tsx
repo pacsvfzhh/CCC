@@ -180,6 +180,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const loadTemplatesRef = useRef<(() => Promise<void>) | null>(null);
   const loadRecipientDetailsRef = useRef<((messageId: string) => Promise<void>) | null>(null);
   const recipientDetailsRequestsRef = useRef(new Set<string>());
+  const sentMessagesLoadingRef = useRef(false);
   onConsumeInitialEmployeeRef.current = onConsumeInitialEmployee;
 
   useEffect(() => {
@@ -627,6 +628,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   loadTemplatesRef.current = loadTemplates;
 
   const loadSentMessages = async (isBackgroundRefresh = false) => {
+    if (sentMessagesLoadingRef.current) return;
+
+    sentMessagesLoadingRef.current = true;
     if (!isBackgroundRefresh) setMessagesLoading(true);
     try {
       let query = supabase
@@ -707,6 +711,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         console.error('Error loading messages:', formatSupabaseError(error));
       }
     } finally {
+      sentMessagesLoadingRef.current = false;
       if (!isBackgroundRefresh) setMessagesLoading(false);
     }
   };
@@ -731,14 +736,22 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         return;
       }
 
-      const { data: employees, error: empError } = await supabase
-        .from('users')
-        .select('id, username, employee_id, is_verified')
-        .in('id', rIds);
+      const employeeMap = new Map(
+        Array.from(allEmployees.values())
+          .flat()
+          .map(employee => [employee.id, employee] as const),
+      );
+      const missingRecipientIds = rIds.filter(recipientId => !employeeMap.has(recipientId));
 
-      if (empError) throw empError;
+      if (missingRecipientIds.length > 0) {
+        const { data: employees, error: empError } = await supabase
+          .from('users')
+          .select('id, username, employee_id, is_verified')
+          .in('id', missingRecipientIds);
 
-      const employeeMap = new Map(employees?.map(e => [e.id, e]) || []);
+        if (empError) throw empError;
+        employees?.forEach(employee => employeeMap.set(employee.id, employee as Employee));
+      }
       const read: Employee[] = [];
       const unread: Employee[] = [];
 
