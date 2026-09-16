@@ -180,7 +180,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const loadTemplatesRef = useRef<(() => Promise<void>) | null>(null);
   const loadRecipientDetailsRef = useRef<((messageId: string) => Promise<void>) | null>(null);
   const recipientDetailsRequestsRef = useRef(new Set<string>());
+  const recipientDetailsLoadingCountRef = useRef(0);
+  const allDataLoadingRef = useRef(false);
+  const templatesLoadingRef = useRef(false);
   const sentMessagesLoadingRef = useRef(false);
+  const sentMessagesRefreshPendingRef = useRef(false);
   onConsumeInitialEmployeeRef.current = onConsumeInitialEmployee;
 
   useEffect(() => {
@@ -272,6 +276,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   }, [showTemplateDropdown]);
 
   const loadAllData = async (isBackgroundRefresh = false) => {
+    if (allDataLoadingRef.current) return;
+
+    allDataLoadingRef.current = true;
     if (!isBackgroundRefresh) setLoading(true);
     try {
       const { data: allAdmins, error: adminsError } = await supabase
@@ -344,6 +351,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         console.error('Error loading data:', formatSupabaseError(error));
       }
     } finally {
+      allDataLoadingRef.current = false;
       setLoading(false);
       hasInitiallyLoaded.current = true;
     }
@@ -351,6 +359,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   loadAllDataRef.current = loadAllData;
 
   const loadTemplates = async () => {
+    if (templatesLoadingRef.current) return;
+
+    templatesLoadingRef.current = true;
     try {
       const { data, error } = await supabase
         .from('message_templates')
@@ -364,6 +375,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       if (!isSupabaseAbortError(error)) {
         console.error('Error loading templates:', formatSupabaseError(error));
       }
+    } finally {
+      templatesLoadingRef.current = false;
     }
   };
 
@@ -628,7 +641,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   loadTemplatesRef.current = loadTemplates;
 
   const loadSentMessages = async (isBackgroundRefresh = false) => {
-    if (sentMessagesLoadingRef.current) return;
+    if (sentMessagesLoadingRef.current) {
+      sentMessagesRefreshPendingRef.current = true;
+      return;
+    }
 
     sentMessagesLoadingRef.current = true;
     if (!isBackgroundRefresh) setMessagesLoading(true);
@@ -713,6 +729,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     } finally {
       sentMessagesLoadingRef.current = false;
       if (!isBackgroundRefresh) setMessagesLoading(false);
+
+      if (sentMessagesRefreshPendingRef.current) {
+        sentMessagesRefreshPendingRef.current = false;
+        void loadSentMessages(true);
+      }
     }
   };
   loadSentMessagesRef.current = loadSentMessages;
@@ -721,6 +742,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     if (recipientDetails.has(messageId) || recipientDetailsRequestsRef.current.has(messageId)) return;
 
     recipientDetailsRequestsRef.current.add(messageId);
+    recipientDetailsLoadingCountRef.current += 1;
     setLoadingRecipientDetails(true);
     try {
       const { data: recipients, error } = await supabase
@@ -770,7 +792,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       }
     } finally {
       recipientDetailsRequestsRef.current.delete(messageId);
-      setLoadingRecipientDetails(false);
+      recipientDetailsLoadingCountRef.current = Math.max(0, recipientDetailsLoadingCountRef.current - 1);
+      setLoadingRecipientDetails(recipientDetailsLoadingCountRef.current > 0);
     }
   };
   loadRecipientDetailsRef.current = loadRecipientDetails;
