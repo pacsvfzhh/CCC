@@ -65,7 +65,7 @@ const hi = {
     title: 'वॉलेट',
     balance: 'शेष राशि',
     availableBalance: 'उपलब्ध शेष राशि',
-    frozenFunds: 'निकासी में राशि',
+    frozenFunds: 'निकासी आवेदन राशि',
     todayCommission: 'आज का कमीशन',
     totalCommission: 'कुल कमीशन',
     totalWithdrawals: 'कुल निकासी',

@@ -2568,9 +2568,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     <div className="pointer-events-none absolute -right-5 -top-7 h-24 w-24 rounded-full bg-amber-300/10 blur-2xl" />
                     <div className="relative flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200/70">Pending withdrawal</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200/70">Withdrawal request funds</p>
                         <p className="mt-2 text-2xl font-bold tabular-nums text-amber-100">${(walletData?.pending ?? 0).toFixed(2)}</p>
-                        <p className="mt-1 text-[10px] font-medium text-amber-200/55">提现中金额</p>
+                        <p className="mt-1 text-[10px] font-medium text-amber-200/55">申请提现资金</p>
                       </div>
                       <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200/20 bg-amber-300/10 text-amber-200">
                         <Wallet className="h-4 w-4" />

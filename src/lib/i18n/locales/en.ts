@@ -65,7 +65,7 @@ const en = {
     title: 'Wallet',
     balance: 'Balance',
     availableBalance: 'Available Balance',
-    frozenFunds: 'Funds in Withdrawal',
+    frozenFunds: 'Withdrawal Request Funds',
     todayCommission: "Today's Commission",
     totalCommission: 'Total Commission',
     totalWithdrawals: 'Total Withdrawals',

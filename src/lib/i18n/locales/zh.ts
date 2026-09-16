@@ -56,7 +56,7 @@ const zh = {
     title: '钱包',
     balance: '余额',
     availableBalance: '可用余额',
-    frozenFunds: '提现中资金',
+    frozenFunds: '申请提现资金',
     todayCommission: '今日佣金',
     totalCommission: '总佣金',
     totalWithdrawals: '总提款',

@@ -56,7 +56,7 @@ const es = {
     title: 'Billetera',
     balance: 'Saldo',
     availableBalance: 'Saldo Disponible',
-    frozenFunds: 'Fondos en Retiro',
+    frozenFunds: 'Fondos de solicitud de retiro',
     todayCommission: 'Comision de hoy',
     totalCommission: 'Comision total',
     totalWithdrawals: 'Retiros totales',
