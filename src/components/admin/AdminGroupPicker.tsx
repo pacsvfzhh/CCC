@@ -158,17 +158,18 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
                           <RoleIcon className="h-[18px] w-[18px]" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex min-w-0 items-center gap-2">
+                          <div className="flex min-w-0 items-center gap-3">
                             <span className="min-w-0 max-w-full truncate text-sm font-bold leading-tight text-white sm:text-[15px]">{group.admin_username}</span>
-                            {unread > 0 && (
-                              <span className={`inline-flex min-h-9 min-w-[112px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border px-3 py-1.5 text-xs font-bold transition-[opacity,transform,box-shadow] duration-300 animate-pulse motion-reduce:animate-none ${styles.unreadBadge}`}>
-                                <span className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded-full ring-1 ${styles.unreadIcon}`}>
-                                  <BellRing className="relative z-10 h-3 w-3" />
-                                  <span className="absolute inset-0 animate-ping rounded-full bg-current/35 motion-reduce:animate-none" />
-                                </span>
-                                <span>{unread > 99 ? '99+' : unread} 未讀</span>
+                            <span
+                              aria-hidden={unread === 0}
+                              className={`inline-flex min-h-9 min-w-[112px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border px-3 py-1.5 text-xs font-bold transition-[opacity,transform,box-shadow] duration-300 motion-reduce:animate-none ${unread > 0 ? 'animate-pulse' : 'invisible'} ${styles.unreadBadge}`}
+                            >
+                              <span className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded-full ring-1 ${styles.unreadIcon}`}>
+                                <BellRing className="relative z-10 h-3 w-3" />
+                                <span className={`absolute inset-0 rounded-full bg-current/35 motion-reduce:animate-none ${unread > 0 ? 'animate-ping' : ''}`} />
                               </span>
-                            )}
+                              <span>{unread > 99 ? '99+' : unread} 未讀</span>
+                            </span>
                           </div>
                           <span className={`mt-1 block max-w-full truncate text-[10px] font-bold leading-none ${getRoleChipStyles(group.admin_role)}`}>{formatRole(group.admin_role)}</span>
                         </div>
