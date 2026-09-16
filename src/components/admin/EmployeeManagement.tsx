@@ -2593,7 +2593,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                             setWalletAdjustData(d => ({ ...d, amount: e.target.value }));
                           }}
                           placeholder="0.00"
-                          className="h-12 w-full rounded-xl border border-white/10 bg-slate-950/75 pl-9 pr-4 text-base font-semibold tabular-nums text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-300/60 focus:bg-slate-950 focus:ring-4 focus:ring-amber-300/10"
+                          className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 text-base font-semibold tabular-nums text-slate-900 outline-none shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] transition-all placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-300/20"
                         />
                       </span>
                     </label>
@@ -2611,7 +2611,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                         }}
                         placeholder="例如：訂單補償、人工修正原因……"
                         rows={3}
-                        className="w-full resize-none rounded-xl border border-white/10 bg-slate-950/75 px-3.5 py-3 text-sm leading-6 text-white outline-none transition-all placeholder:text-slate-600 focus:border-cyan-300/50 focus:bg-slate-950 focus:ring-4 focus:ring-cyan-300/10"
+                        className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm leading-6 text-slate-900 outline-none shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] transition-all placeholder:text-slate-400 focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-300/20"
                       />
                     </label>
                   </div>
