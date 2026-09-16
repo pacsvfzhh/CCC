@@ -63,6 +63,24 @@ export function isFinancialAdminSessionError(error: unknown): boolean {
     || message.includes('administrator session has expired');
 }
 
+export function isSupabaseTransientError(error: unknown): boolean {
+  const name = error && typeof error === 'object' && 'name' in error
+    ? String(error.name)
+    : '';
+  const status = error && typeof error === 'object' && 'status' in error
+    ? Number(error.status)
+    : NaN;
+  const message = formatSupabaseError(error).toLowerCase();
+
+  return name === 'SupabaseTimeoutError'
+    || name === 'SupabaseNetworkError'
+    || name === 'TypeError'
+    || [408, 425, 429, 500, 502, 503, 504].includes(status)
+    || message.includes('failed to fetch')
+    || message.includes('networkerror')
+    || message.includes('timed out');
+}
+
 const clientUrl = supabaseUrl || 'https://placeholder.supabase.co';
 const clientKey = supabaseAnonKey || 'missing-anon-key';
 const nativeFetch = globalThis.fetch.bind(globalThis);
@@ -110,6 +128,23 @@ const waitForNetworkRetry = (signal?: AbortSignal) => new Promise<void>((resolve
 const getRequestMethod = (input: RequestInfo | URL, init?: RequestInit) => (
   init?.method || (input instanceof Request ? input.method : 'GET')
 ).toUpperCase();
+
+const isReadOnlyRpcRequest = (input: RequestInfo | URL, method: string) => {
+  if (method !== 'POST') return false;
+
+  const url = input instanceof Request ? input.url : input.toString();
+  const match = url.match(/\/rpc\/([^/?#]+)/i);
+  if (!match) return false;
+
+  const functionName = decodeURIComponent(match[1]).toLowerCase();
+  if (functionName === 'get_or_create_service_session') return false;
+
+  return functionName.startsWith('get_')
+    || functionName.startsWith('count_')
+    || functionName === 'preview_cleanup'
+    || functionName === 'check_login_rate_limit'
+    || functionName === 'validate_employee_session';
+};
 
 const fetchWithXhrFallback: typeof fetch = async (input, init) => {
   const request = input instanceof Request ? input : null;
@@ -191,7 +226,9 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
   const callerSignal = init?.signal || (input instanceof Request ? input.signal : undefined);
   if (callerSignal?.aborted) throw createSupabaseAbortError();
 
-  const canRetry = ['GET', 'HEAD', 'OPTIONS'].includes(getRequestMethod(input, init));
+  const requestMethod = getRequestMethod(input, init);
+  const canRetry = ['GET', 'HEAD', 'OPTIONS'].includes(requestMethod)
+    || isReadOnlyRpcRequest(input, requestMethod);
 
   for (let attempt = 0; attempt <= MAX_NETWORK_RETRIES; attempt += 1) {
     const controller = new AbortController();
@@ -205,7 +242,13 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
     callerSignal?.addEventListener('abort', forwardCallerAbort, { once: true });
 
     try {
-      return await fetchWithNetworkFallback(input, { ...init, signal: controller.signal });
+      const response = await fetchWithNetworkFallback(input, { ...init, signal: controller.signal });
+      const retryableStatus = [408, 425, 429, 500, 502, 503, 504].includes(response.status);
+      if (canRetry && retryableStatus && attempt < MAX_NETWORK_RETRIES) {
+        await waitForNetworkRetry(callerSignal);
+        continue;
+      }
+      return response;
     } catch (error) {
       if (callerSignal?.aborted) throw createSupabaseAbortError();
 

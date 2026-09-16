@@ -374,51 +374,46 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, [showNavigationSettings]);
 
   useEffect(() => {
-    if (admin.role === 'super_admin') {
-      void prefetchAdminGroups(admin.id, 'customer').catch(error => {
-        console.warn('Unable to prefetch customer service workspaces:', error);
-      });
-      void prefetchAdminGroups(admin.id, 'manager').catch(error => {
-        console.warn('Unable to prefetch manager workspaces:', error);
-      });
-    } else if (admin.role !== 'emergency_admin') {
-      void prefetchAdminWorkspaceData(admin.id, 'customer').catch(error => {
-        console.warn('Unable to prefetch customer service data:', error);
-      });
-      void prefetchAdminWorkspaceData(admin.id, 'manager').catch(error => {
-        console.warn('Unable to prefetch manager service data:', error);
-      });
-      void prefetchConversationSummaries(admin.id, 'customer', async () => {
-        const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-          p_admin_id: admin.id,
-          p_source_type: 'aaa_service'
-        });
-        if (error) throw error;
-        return data || [];
-      }).catch(error => {
-        console.warn('Unable to prefetch customer service sessions:', error);
-      });
-      void prefetchConversationSummaries(admin.id, 'manager', async () => {
-        const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-          p_admin_id: admin.id,
-          p_source_type: 'ccc_service'
-        });
-        if (error) throw error;
-        return data || [];
-      }).catch(error => {
-        console.warn('Unable to prefetch manager service sessions:', error);
-      });
-    }
-
     const preload = () => {
+      if (admin.role === 'super_admin') {
+        void prefetchAdminGroups(admin.id, 'customer').catch(error => {
+          console.warn('Unable to prefetch customer service workspaces:', error);
+        });
+        void prefetchAdminGroups(admin.id, 'manager').catch(error => {
+          console.warn('Unable to prefetch manager workspaces:', error);
+        });
+      } else if (admin.role !== 'emergency_admin') {
+        void prefetchAdminWorkspaceData(admin.id, 'customer').catch(error => {
+          console.warn('Unable to prefetch customer service data:', error);
+        });
+        void prefetchAdminWorkspaceData(admin.id, 'manager').catch(error => {
+          console.warn('Unable to prefetch manager service data:', error);
+        });
+        void prefetchConversationSummaries(admin.id, 'customer', async () => {
+          const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
+            p_admin_id: admin.id,
+            p_source_type: 'aaa_service'
+          });
+          if (error) throw error;
+          return data || [];
+        }).catch(error => {
+          console.warn('Unable to prefetch customer service sessions:', error);
+        });
+        void prefetchConversationSummaries(admin.id, 'manager', async () => {
+          const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
+            p_admin_id: admin.id,
+            p_source_type: 'ccc_service'
+          });
+          if (error) throw error;
+          return data || [];
+        }).catch(error => {
+          console.warn('Unable to prefetch manager service sessions:', error);
+        });
+      }
+
       void loadCustomerServiceManagement();
       void loadCccServiceManagement();
     };
-
-    if (admin.role !== 'super_admin' && admin.role !== 'emergency_admin') {
-      preload();
-      return;
-    }
 
     if ('requestIdleCallback' in window) {
       const idleId = window.requestIdleCallback(preload, { timeout: 1500 });
@@ -904,7 +899,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
     const pendingCountsTimer = window.setTimeout(() => {
       void loadPendingCounts();
-    }, 600);
+    }, 1500);
     const pendingCountsFallbackTimer = window.setInterval(() => {
       if (document.visibilityState === 'visible') {
         void loadPendingCounts();

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AUTH_STORAGE_KEY } from '../../lib/auth';
+import { getStoredAuth } from '../../lib/auth';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { Upload, Trash2, CreditCard as Edit2, Save, X, PackageSearch, Settings, CheckCircle, XCircle, Users, Plus, FolderPlus, Layers, Search, Filter, BarChart3, ArrowRight } from 'lucide-react';
 
@@ -109,7 +109,6 @@ export default function DispatchManagement() {
   const itemsPerPage = 500;
   const [isLoadingPage, setIsLoadingPage] = useState(false);
   const [jumpToPage, setJumpToPage] = useState('');
-  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, percentage: 0 });
   const [isUploading, setIsUploading] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0, percentage: 0 });
@@ -119,6 +118,7 @@ export default function DispatchManagement() {
   const loadGroupsRef = useRef<(() => Promise<void>) | null>(null);
   const loadEmployeesRef = useRef<(() => Promise<void>) | null>(null);
   const loadOrdersRef = useRef<((page?: number, showLoading?: boolean, retryCount?: number) => Promise<void>) | null>(null);
+  const ordersRequestRef = useRef(0);
   const selectedGroupId = selectedGroup?.id;
 
   const isAnyModalOpen = showBulkImport || showDeleteConfirm || showCreateGroup || showEditGroup || showMemberManagement || showMoveConfirm || showDeleteGroupConfirm || showDeleteOrderConfirm || (isDeleting && deleteProgress.total > 0);
@@ -244,17 +244,16 @@ export default function DispatchManagement() {
   }, [selectedGroupId, isOptimisticUpdate, isBulkImporting]);
 
   const checkAdminRole = () => {
-    const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-    if (auth) {
-      const { user } = JSON.parse(auth);
-      setIsSuperAdmin(user.role === 'super_admin');
+    const auth = getStoredAuth();
+    if (auth?.userType === 'admin') {
+      setIsSuperAdmin(auth.user.role === 'super_admin');
     }
   };
 
   const loadGroups = async () => {
     try {
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      const currentAdmin = auth ? JSON.parse(auth).user : null;
+      const auth = getStoredAuth();
+      const currentAdmin = auth?.userType === 'admin' ? auth.user : null;
       const isCurrentSuperAdmin = currentAdmin?.role === 'super_admin';
 
       console.log(`[loadGroups] Current Admin: ${currentAdmin?.username}, Role: ${currentAdmin?.role}, isSuperAdmin: ${isCurrentSuperAdmin}`);
@@ -387,39 +386,28 @@ export default function DispatchManagement() {
   };
 
   const loadOrders = async (page: number = 1, showLoading: boolean = false, retryCount: number = 0) => {
-    if (!selectedGroup) {
+    const requestId = ++ordersRequestRef.current;
+    const group = selectedGroup;
+    if (!group || group.id.startsWith('temp-')) {
       setOrders([]);
       setTotalCount(0);
-      return;
-    }
-
-    if (selectedGroup.id.startsWith('temp-')) {
-      setOrders([]);
-      setTotalCount(0);
-      return;
-    }
-
-    // Prevent multiple simultaneous loads
-    if (isLoadingOrders) {
-      console.log('[loadOrders] Already loading, skipping...');
       return;
     }
 
     if (showLoading) {
       setIsLoadingPage(true);
     }
-    setIsLoadingOrders(true);
 
     try {
       const from = (page - 1) * itemsPerPage;
       const to = from + itemsPerPage - 1;
 
-      console.log(`[loadOrders] Loading orders for group: ${selectedGroup.group_name} (${selectedGroup.id}), page: ${page}`);
+      console.log(`[loadOrders] Loading orders for group: ${group.group_name} (${group.id}), page: ${page}`);
 
       let query = supabase
         .from('dispatch_group_orders')
         .select('*', { count: 'exact' })
-        .eq('group_id', selectedGroup.id)
+        .eq('group_id', group.id)
         .order('created_at', { ascending: true })
         .range(from, to);
 
@@ -436,18 +424,20 @@ export default function DispatchManagement() {
 
       console.log(`[loadOrders] Loaded ${data?.length || 0} orders, total count: ${count}`);
 
+      if (requestId !== ordersRequestRef.current) return;
       setOrders(data || []);
       setTotalCount(count || 0);
       setCurrentPage(page);
     } catch (error: unknown) {
+      if (requestId !== ordersRequestRef.current) return;
       console.error('[loadOrders] Failed to load orders:', error);
 
-      // Retry once after a short delay if it's a network error
       if (retryCount === 0 && (getDispatchErrorMessage(error).includes('fetch') || getDispatchErrorMessage(error).includes('network'))) {
         console.log('[loadOrders] Retrying after network error...');
-        setIsLoadingOrders(false);
         setTimeout(() => {
-          loadOrders(page, showLoading, 1);
+          if (requestId === ordersRequestRef.current) {
+            void loadOrders(page, showLoading, 1);
+          }
         }, 1000);
         return;
       }
@@ -456,8 +446,7 @@ export default function DispatchManagement() {
       setOrders([]);
       setTotalCount(0);
     } finally {
-      setIsLoadingOrders(false);
-      if (showLoading) {
+      if (requestId === ordersRequestRef.current && showLoading) {
         setIsLoadingPage(false);
       }
     }
@@ -467,8 +456,8 @@ export default function DispatchManagement() {
     if (!selectedGroup) return;
 
     try {
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      const currentAdmin = auth ? JSON.parse(auth).user : null;
+      const currentAuth = getStoredAuth();
+      const currentAdmin = currentAuth?.userType === 'admin' ? currentAuth.user : null;
 
       let employeeQuery = supabase
         .from('users')
@@ -506,7 +495,7 @@ export default function DispatchManagement() {
         const membership = memberships?.find(m => m.user_id === emp.id);
         const wallet = Array.isArray(emp.wallets) ? emp.wallets[0] : emp.wallets;
         const wallet_balance = wallet ? Number(wallet.available_balance) + Number(wallet.frozen_balance) : 0;
-        const isOwnEmployee = currentAdmin && emp.created_by === currentAdmin.id;
+        const isOwnEmployee = currentAdmin ? emp.created_by === currentAdmin.id : false;
 
         return {
           ...emp,
@@ -585,8 +574,8 @@ export default function DispatchManagement() {
     setIsOptimisticUpdate(true);
 
     try {
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      const adminId = auth ? JSON.parse(auth).user.id : null;
+      const currentAuth = getStoredAuth();
+      const adminId = currentAuth?.userType === 'admin' ? currentAuth.user.id : null;
 
       // Create optimistic group object
       const optimisticGroup: DispatchGroup = {
@@ -820,8 +809,8 @@ export default function DispatchManagement() {
     setIsUploading(true);
 
     try {
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      const adminId = auth ? JSON.parse(auth).user.id : null;
+      const currentAuth = getStoredAuth();
+      const adminId = currentAuth?.userType === 'admin' ? currentAuth.user.id : null;
 
       const ordersToInsert = orderContents.map(content => ({
         group_id: selectedGroup.id,
@@ -1183,8 +1172,8 @@ export default function DispatchManagement() {
     setShowMoveConfirm(false);
 
     try {
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      const adminId = auth ? JSON.parse(auth).user.id : null;
+      const currentAuth = getStoredAuth();
+      const adminId = currentAuth?.userType === 'admin' ? currentAuth.user.id : null;
 
       // Optimistic update
       const updatedEmployees = employees.map(e =>
@@ -1412,8 +1401,8 @@ export default function DispatchManagement() {
                           onClick={() => {
                             setShowMemberManagement(true);
                             if (!isSuperAdmin) {
-                              const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-                              const currentAdmin = auth ? JSON.parse(auth).user : null;
+                              const currentAuth = getStoredAuth();
+                              const currentAdmin = currentAuth?.userType === 'admin' ? currentAuth.user : null;
                               if (currentAdmin) {
                                 setSelectedAdminFilter(currentAdmin.id);
                               }
@@ -2707,8 +2696,8 @@ export default function DispatchManagement() {
                         const selectedIds = [...unassignedEmployeesSelection];
 
                         try {
-                          const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-                          const adminId = auth ? JSON.parse(auth).user.id : null;
+                          const currentAuth = getStoredAuth();
+      const adminId = currentAuth?.userType === 'admin' ? currentAuth.user.id : null;
 
                           // Optimistic update - update local state immediately
                           const updatedEmployees = employees.map(emp => {

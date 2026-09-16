@@ -85,7 +85,7 @@ type SortField = 'totalOrders' | 'todayOrders' | 'todayCompletedOrders' | 'faile
 type SummaryFilter = 'today_working' | 'new_today' | 'currently_working';
 
 const AUTO_REFRESH_INTERVAL_MS = 180000;
-const AUTO_REFRESH_RETRY_MS = 15000;
+const AUTO_REFRESH_RETRY_MS = 5000;
 
 const formatWithdrawalDate = (value: string) => {
   const date = new Date(value);

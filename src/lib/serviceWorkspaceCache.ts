@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { isSupabaseTransientError, supabase } from './supabase';
 import type { AdminGroup } from '../components/admin/AdminGroupPicker';
 
 export type ServiceWorkspace = 'customer' | 'manager';
@@ -17,6 +17,25 @@ const pendingDataRequests = new Map<string, Promise<ServiceWorkspaceData>>();
 const cachedWorkspaceData = new Map<string, ServiceWorkspaceData>();
 const pendingConversationRequests = new Map<string, Promise<unknown[]>>();
 const cachedConversationSummaries = new Map<string, unknown[]>();
+const CACHE_RETRY_LIMIT = 2;
+const CACHE_RETRY_DELAY_MS = 350;
+
+const waitForCacheRetry = () => new Promise<void>(resolve => {
+  globalThis.setTimeout(resolve, CACHE_RETRY_DELAY_MS);
+});
+
+async function loadWithTransientRetry<T>(loader: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; attempt <= CACHE_RETRY_LIMIT; attempt += 1) {
+    try {
+      return await loader();
+    } catch (error) {
+      if (!isSupabaseTransientError(error) || attempt === CACHE_RETRY_LIMIT) throw error;
+      await waitForCacheRetry();
+    }
+  }
+
+  throw new Error('Service workspace request failed after retries.');
+}
 
 function queueRequest<T>(
   pendingRequests: Map<string, Promise<T>>,
@@ -28,7 +47,7 @@ function queueRequest<T>(
   const pending = pendingRequests.get(cacheKey);
   if (pending && !force) return pending;
 
-  const request = loader().then(value => {
+  const request = loadWithTransientRetry(loader).then(value => {
     if (pendingRequests.get(cacheKey) === trackedRequest) {
       onSuccess(value);
     }

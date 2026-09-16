@@ -171,6 +171,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const templateDropdownRef = useRef<HTMLDivElement>(null);
 
   const hasInitiallyLoaded = useRef(false);
+  const initialDataRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialDataRetryCountRef = useRef(0);
   const wasActiveRef = useRef(false);
   const userDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recipientDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -245,6 +247,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     return () => {
       if (userDebounceTimer.current) clearTimeout(userDebounceTimer.current);
       if (recipientDebounceTimer.current) clearTimeout(recipientDebounceTimer.current);
+      if (initialDataRetryTimerRef.current) clearTimeout(initialDataRetryTimerRef.current);
+      initialDataRetryTimerRef.current = null;
       supabase.removeChannel(usersChannel);
       supabase.removeChannel(adminsChannel);
       supabase.removeChannel(recipientsChannel);
@@ -340,6 +344,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         ? groups.filter(g => g.id === admin.id)
         : groups;
 
+      initialDataRetryCountRef.current = 0;
+      if (initialDataRetryTimerRef.current) {
+        clearTimeout(initialDataRetryTimerRef.current);
+        initialDataRetryTimerRef.current = null;
+      }
       setAdminGroups(filteredGroups);
       setAllEmployees(employeesByAdmin);
 
@@ -349,6 +358,16 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     } catch (error) {
       if (!isSupabaseAbortError(error)) {
         console.error('Error loading data:', formatSupabaseError(error));
+      }
+
+      if (initialDataRetryCountRef.current < 3) {
+        initialDataRetryCountRef.current += 1;
+        const retryDelay = Math.min(1000 * 2 ** (initialDataRetryCountRef.current - 1), 8000);
+        if (initialDataRetryTimerRef.current) clearTimeout(initialDataRetryTimerRef.current);
+        initialDataRetryTimerRef.current = setTimeout(() => {
+          initialDataRetryTimerRef.current = null;
+          void loadAllDataRef.current?.(true);
+        }, retryDelay);
       }
     } finally {
       allDataLoadingRef.current = false;
