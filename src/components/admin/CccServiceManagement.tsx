@@ -1968,7 +1968,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     if (customerForm.isSuper) {
       if (!customerForm.name.trim()) {
-        setNotification({ type: 'error', text: '請輸入客戶名稱' });
+        setNotification({ type: 'error', text: '請輸入經理名稱' });
         return;
       }
       if (!customerForm.badgeType) {
@@ -2069,7 +2069,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         if (autoMessagesSettingError) throw autoMessagesSettingError;
       }
 
-      setNotification({ type: 'success', text: '客戶已成功建立！' });
+      setNotification({ type: 'success', text: '經理已成功建立！' });
       setShowCustomerForm(false);
       setEditingCustomer(null);
       setAutoMessageDrafts([]);
@@ -2077,7 +2077,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '', employeePinTop: false, employeeAlwaysVisible: false, targetEmployeeIds: [], _empSearch: '' });
       loadAdminData(selectedAdminId, true, true);
     } catch (error: unknown) {
-      const errorMessage = getCccErrorMessage(error, '建立客戶失敗');
+      const errorMessage = getCccErrorMessage(error, '建立經理失敗');
       const msg = errorMessage.includes('customer_id_unique') ? '此自訂 ID 已被使用，請改用其他 ID。' : errorMessage;
       setNotification({ type: 'error', text: msg });
     } finally {
@@ -2090,7 +2090,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     if (customerForm.isSuper) {
       if (!customerForm.name.trim()) {
-        setNotification({ type: 'error', text: '請輸入客戶名稱' });
+        setNotification({ type: 'error', text: '請輸入經理名稱' });
         return;
       }
       if (!customerForm.badgeType) {
@@ -2163,12 +2163,12 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
       if (error) throw error;
 
-      setNotification({ type: 'success', text: '客戶已成功更新！' });
+      setNotification({ type: 'success', text: '經理已成功更新！' });
       setEditingCustomer(null);
       setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '', employeePinTop: false, employeeAlwaysVisible: false, targetEmployeeIds: [], _empSearch: '' });
       loadAdminData(selectedAdminId, true, true);
     } catch (error: unknown) {
-      const errorMessage = getCccErrorMessage(error, '更新客戶失敗');
+      const errorMessage = getCccErrorMessage(error, '更新經理失敗');
       const msg = errorMessage.includes('customer_id_unique') ? '此自訂 ID 已被使用，請改用其他 ID。' : errorMessage;
       setNotification({ type: 'error', text: msg });
     }
@@ -2192,8 +2192,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     setConfirmDialog({
       show: true,
-      title: '刪除客戶',
-      message: `確定要刪除客戶「${customerToDelete?.customer_name || '此客戶'}」嗎？所有對話歷史將永久刪除。`,
+      title: '刪除經理',
+      message: `確定要刪除經理「${customerToDelete?.customer_name || '此經理'}」嗎？所有對話歷史將永久刪除。`,
       onConfirm: async () => {
         try {
           const { data: convos } = await supabase
@@ -2243,7 +2243,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           if (error) throw error;
 
           invalidateAdminWorkspaceDataCache(selectedAdminId || adminId, 'manager');
-          setNotification({ type: 'success', text: 'Customer deleted successfully!' });
+          setNotification({ type: 'success', text: '經理已成功刪除！' });
           if (selectedCustomer?.id === customerId) {
             setSelectedCustomer(null);
             setSelectedEmployee(null);
@@ -2251,7 +2251,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           setCustomers(prev => prev.filter(c => c.id !== customerId));
           setConfirmDialog(null);
         } catch (error: unknown) {
-          setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to delete customer') });
+          setNotification({ type: 'error', text: getCccErrorMessage(error, '刪除經理失敗') });
           setConfirmDialog(null);
         }
       }
@@ -3164,7 +3164,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                 <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-emerald-300/30 bg-emerald-500/15 shadow-sm shadow-emerald-950/20">
                   <Users className="h-3.5 w-3.5 text-emerald-200" />
                 </span>
-                客戶
+                經理
               </h3>
               <button
                 type="button"
@@ -3400,7 +3400,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
             {customers.length === 0 && (
               <div className="text-center py-6 text-slate-400">
                 <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-[10px]">尚無客戶</p>
+                <p className="text-[10px]">尚無經理</p>
               </div>
             )}
           </div>
@@ -3731,7 +3731,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                     || {
                                       id: history.customer_id,
                                       admin_id: selectedAdminId || adminId,
-                                      customer_name: history.customer_name || '客戶',
+                                      customer_name: history.customer_name || '經理',
                                       customer_id: history.customer_id,
                                       customer_avatar: history.customer_avatar || 'customer-avatar:regular:0',
                                       is_active: true,
@@ -3782,7 +3782,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                         avatar={historyCustomer?.customer_avatar || history.customer_avatar}
                                         isVip={historyCustomer?.is_super || (historyCustomer?.customer_avatar || history.customer_avatar)?.startsWith('customer-avatar:vip:')}
                                         customAvatarUrl={historyCustomer?.custom_avatar_url || history.custom_avatar_url}
-                                        alt={history.customer_name || '客戶頭像'}
+                                        alt={history.customer_name || '經理頭像'}
                                         className="h-9 w-9 rounded-full"
                                       />
                                     </div>
@@ -4653,7 +4653,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                         }
                       }}
                       className="min-h-[40px] max-h-[216px] overflow-y-auto px-3 py-2 text-slate-800 focus:outline-none text-sm leading-5 [&_b]:font-bold [&_u]:underline [&_font[size='5']]:text-lg [&_font[size='7']]:text-xl"
-                      data-placeholder={`以 ${selectedCustomer?.customer_name || '客戶'} 身分傳送訊息……（Ctrl+Enter 傳送）`}
+                      data-placeholder={`以 ${selectedCustomer?.customer_name || '經理'} 身分傳送訊息……（Ctrl+Enter 傳送）`}
                       style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
                     />
                   </div>
@@ -4686,7 +4686,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-white leading-tight">
-                        {selectedEmployee ? selectedEmployee.username : '客戶服務'}
+                        {selectedEmployee ? selectedEmployee.username : '經理服務'}
                       </h3>
                       <p className="text-[10px] text-slate-400">
                         {selectedEmployee ? `編號： ${selectedEmployee.employee_id}` : '請選擇員工開始'}
@@ -4705,7 +4705,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                     </div>
                     <p className="text-sm font-bold text-white mb-0.5">{selectedEmployee?.username}</p>
                     <p className="text-[10px] text-blue-400 font-mono mb-3">編號： {selectedEmployee?.employee_id}</p>
-                    <p className="text-xs text-slate-400">請選擇客戶開始聊天</p>
+                    <p className="text-xs text-slate-400">請選擇經理開始聊天</p>
                   </>
                 ) : (
                   <>
@@ -4959,7 +4959,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       {(showCustomerForm || editingCustomer) && (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-md" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null); setAutoMessageDrafts([]); setAutoMessageDraftMasterEnabled(false); setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '', employeePinTop: false, employeeAlwaysVisible: false, targetEmployeeIds: [], _empSearch: '' }); } }}>
           <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--emerald w-full max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border p-4 shadow-2xl ${customerForm.isSuper ? 'max-w-[95vw]' : 'max-w-5xl'} transition-all duration-200`}>
-            <h3 className="mb-3 border-b border-emerald-200/15 pb-2 text-lg font-black tracking-tight text-white">{editingCustomer ? '編輯客戶' : '建立客戶'}</h3>
+            <h3 className="mb-3 border-b border-emerald-200/15 pb-2 text-lg font-black tracking-tight text-white">{editingCustomer ? '編輯經理' : '建立經理'}</h3>
             {/* Super Customer Toggle */}
             <div className="mb-3 p-2.5 bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-500/30 rounded-lg">
               <label className="flex items-center gap-3 cursor-pointer">
@@ -4978,7 +4978,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                 />
                 <div className="flex items-center gap-2">
                   <Star className="w-5 h-5 text-amber-400" fill="currentColor" />
-                  <span className="text-sm font-bold text-amber-200">超級客戶（VIP）</span>
+                  <span className="text-sm font-bold text-amber-200">超級經理（VIP）</span>
                 </div>
               </label>
             </div>
@@ -4989,13 +4989,13 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                 {/* Left column: basic info + avatar */}
                 <div className="min-w-0 p-3 bg-slate-800/40 border border-blue-500/30 rounded-xl">
                   <div className="mb-3">
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">客戶名稱</label>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">經理名稱</label>
                     <input
                       type="text"
                       value={customerForm.name}
                       onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
                       className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder="客戶名稱"
+                      placeholder="經理名稱"
                       required
                     />
                   </div>
@@ -5060,7 +5060,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-xs font-medium text-amber-300 mb-1.5">VIP 角色頭像</label>
+                      <label className="block text-xs font-medium text-amber-300 mb-1.5">VIP 經理頭像</label>
                       <CustomerAvatarPicker
                         value={customerForm.avatar}
                         onChange={(avatar) => setCustomerForm({ ...customerForm, avatar })}
@@ -5155,7 +5155,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                       type="text"
                       value={customerForm.remarks}
                       onChange={(e) => setCustomerForm({ ...customerForm, remarks: e.target.value })}
-                      placeholder="新增備註以識別此客戶……"
+                      placeholder="新增備註以識別此經理……"
                       className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       maxLength={100}
                     />
@@ -5307,13 +5307,13 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                         value={customerForm.name}
                         onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
                         className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="客戶名稱"
+                        placeholder="經理名稱"
                         required
                       />
                     </div>
 
                     <div className="mb-3">
-                      <label className="block text-sm font-medium text-emerald-200 mb-2">選擇角色頭像</label>
+                      <label className="block text-sm font-medium text-emerald-200 mb-2">選擇經理頭像</label>
                       <CustomerAvatarPicker
                         value={customerForm.avatar}
                         onChange={(avatar) => setCustomerForm({ ...customerForm, avatar })}
@@ -5329,7 +5329,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                         type="text"
                         value={customerForm.remarks}
                         onChange={(e) => setCustomerForm({ ...customerForm, remarks: e.target.value })}
-                        placeholder="新增備註以識別此客戶……"
+                        placeholder="新增備註以識別此經理……"
                         className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         maxLength={100}
                       />
