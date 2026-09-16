@@ -3164,7 +3164,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           {/* Right: Chat Interface or History View */}
           <div className="relative flex min-h-[420px] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-orange-400/30 bg-slate-950/75 shadow-2xl shadow-orange-950/15 backdrop-blur-xl">
           {/* History / Sessions Panel */}
-          <div className={`absolute inset-0 transition-all duration-300 ease-in-out ${
+          <div className={`absolute inset-0 ${
             showHistoryView || (selectedCustomer && !selectedEmployee)
               ? 'opacity-100 translate-y-0 z-10 pointer-events-auto'
               : 'opacity-0 translate-y-2 z-0 pointer-events-none'
@@ -3444,7 +3444,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
             </div>
           </div>
           {/* Chat Panel */}
-          <div className={`absolute inset-0 transition-all duration-300 ease-in-out ${
+          <div className={`absolute inset-0 ${
             selectedEmployee && selectedCustomer && !showHistoryView
               ? 'opacity-100 translate-y-0 z-10 pointer-events-auto'
               : 'opacity-0 translate-y-2 z-0 pointer-events-none'
@@ -4124,7 +4124,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
             </div>
           </div>
           {/* Empty State Panel */}
-          <div className={`absolute inset-0 transition-all duration-300 ease-in-out ${
+          <div className={`absolute inset-0 ${
             !showHistoryView && !(selectedEmployee && selectedCustomer) && !(selectedCustomer && !selectedEmployee)
               ? 'opacity-100 translate-y-0 z-10 pointer-events-auto'
               : 'opacity-0 translate-y-2 z-0 pointer-events-none'
