@@ -65,6 +65,7 @@ export function isFinancialAdminSessionError(error: unknown): boolean {
 
 const clientUrl = supabaseUrl || 'https://placeholder.supabase.co';
 const clientKey = supabaseAnonKey || 'missing-anon-key';
+const nativeFetch = globalThis.fetch.bind(globalThis);
 
 const createSupabaseAbortError = () => {
   const abortError = new Error('Supabase request was cancelled.');
@@ -179,7 +180,7 @@ const fetchWithXhrFallback: typeof fetch = async (input, init) => {
 
 const fetchWithNetworkFallback: typeof fetch = async (input, init) => {
   try {
-    return await fetch(input, init);
+    return await nativeFetch(input, init);
   } catch (error) {
     if (!isNetworkFetchError(error)) throw error;
     return fetchWithXhrFallback(input, init);
