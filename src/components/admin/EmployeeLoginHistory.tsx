@@ -81,6 +81,8 @@ const getEmployeesForSharedIp = (employees: EmployeeSummary[], ip: string) => (
 
 export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
   const [sharedIpSelection, setSharedIpSelection] = useState<SharedIpSelection | null>(null);
   const [openSharedIpMenu, setOpenSharedIpMenu] = useState<'all' | string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,8 +96,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   const adminMenuRef = useRef<HTMLDivElement | null>(null);
   const loadAdminsRef = useRef<(() => Promise<void>) | null>(null);
-  const loadEmployeeSummaryRef = useRef<((silentRefresh?: boolean) => Promise<void>) | null>(null);
+  const loadEmployeeSummaryRef = useRef<((silentRefresh?: boolean, query?: string) => Promise<void>) | null>(null);
+  const searchTermRef = useRef('');
   const adminCount = admins.length;
+  searchTermRef.current = searchTerm;
 
   useEffect(() => {
     if (!isAdminMenuOpen && !openSharedIpMenu) return;
@@ -246,9 +250,14 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   }, [admin.id]);
 
   useEffect(() => {
-    if (adminCount > 0) {
-      void loadEmployeeSummaryRef.current?.();
-    }
+    if (adminCount === 0) return;
+
+    const timeout = window.setTimeout(() => {
+      setSearchLoading(true);
+      void loadEmployeeSummaryRef.current?.(true, searchTerm);
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
   }, [searchTerm, adminCount]);
 
   // Auto-refresh data every 30 seconds (silent refresh, no loading state)
@@ -299,7 +308,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     }
   };
 
-  const loadEmployeeSummary = async (silentRefresh = false) => {
+  const loadEmployeeSummary = async (silentRefresh = false, query = searchTerm) => {
     try {
       if (!silentRefresh) {
         setLoading(true);
@@ -307,7 +316,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
 
       const { data, error } = await supabase.rpc('get_employee_login_summary', {
         p_admin_id: admin.id,
-        p_search_term: searchTerm || null
+        p_search_term: query || null
       });
 
       if (error) {
@@ -315,8 +324,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         throw error;
       }
 
+      if (query !== searchTermRef.current) return;
+
       const employees = (data as EmployeeSummary[]) || [];
       console.log('Loaded employees:', employees.length);
+      setActiveSearchTerm(query);
 
       if (admin.role === 'super_admin') {
         // Ensure we have admins loaded
@@ -379,6 +391,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
       if (!silentRefresh) {
         setLoading(false);
       }
+      if (query === searchTermRef.current) {
+        setSearchLoading(false);
+      }
     }
   };
   loadAdminsRef.current = loadAdmins;
@@ -428,7 +443,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   };
 
   const totalEmployees = adminGroups.reduce((sum, group) => sum + group.employees.length, 0);
-  const isSearching = searchTerm.trim().length > 0;
+  const isSearching = activeSearchTerm.trim().length > 0;
   const searchRows: EmployeeTableRow[] = adminGroups.flatMap((group) => (
     group.employees.map((employee) => ({ employee, adminUsername: group.admin_username }))
   ));
@@ -545,7 +560,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           )}
         </div>
         <div className="relative w-full min-w-0 sm:max-w-[280px] xl:max-w-[320px]">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
+          {searchLoading ? (
+            <RefreshCw className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-cyan-600" />
+          ) : (
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
+          )}
           <input
             type="text"
             value={searchTerm}
@@ -1053,7 +1072,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               </div>
             )}
             <div className="relative w-full min-w-0 sm:max-w-[280px] xl:max-w-[320px]">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
+              {searchLoading ? (
+            <RefreshCw className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-cyan-600" />
+          ) : (
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
+          )}
               <input
                 type="text"
                 value={searchTerm}
