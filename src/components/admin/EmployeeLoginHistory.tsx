@@ -871,7 +871,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/80">Admin activity</p>
               <h2 className="mt-0 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-xl font-bold tracking-tight text-transparent sm:text-2xl">Login History</h2>
             </div>
-            <div className={`flex min-w-0 items-center justify-end gap-1.5 ${admin.role === 'super_admin' ? 'flex-wrap' : 'flex-nowrap'}`}>
+            <div className={`flex min-w-0 items-center justify-end gap-1.5 ${admin.role === 'super_admin' ? 'flex-wrap' : 'flex-nowrap translate-y-2'}`}>
               {admin.role !== 'super_admin' && renderSecondaryControls()}
               <button
                 onClick={() => {
