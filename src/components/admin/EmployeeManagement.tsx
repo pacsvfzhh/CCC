@@ -343,12 +343,18 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     }
 
     let realtimeReloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let realtimeReloadWindowStartedAt: number | null = null;
     const scheduleRealtimeReload = (delay: number) => {
+      const now = Date.now();
+      realtimeReloadWindowStartedAt ??= now;
       if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
+      const elapsed = now - realtimeReloadWindowStartedAt;
+      const wait = Math.max(0, Math.min(delay, 2000 - elapsed));
       realtimeReloadTimer = setTimeout(() => {
         realtimeReloadTimer = null;
+        realtimeReloadWindowStartedAt = null;
         void guardedLoadEmployeesRef.current?.(true);
-      }, delay);
+      }, wait);
     };
     const markRealtimeChange = () => {
       realtimeChangeGenerationRef.current += 1;
@@ -440,47 +446,57 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       .subscribe();
 
     let commissionRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let commissionRefreshWindowStartedAt: number | null = null;
     const pendingCommissionUserIds = new Set<string>();
     const scheduleCommissionRefresh = (userId: string) => {
       pendingCommissionUserIds.add(userId);
+      const now = Date.now();
+      commissionRefreshWindowStartedAt ??= now;
       if (commissionRefreshTimer) clearTimeout(commissionRefreshTimer);
+      const elapsed = now - commissionRefreshWindowStartedAt;
+      const wait = Math.max(0, Math.min(700, 2000 - elapsed));
       commissionRefreshTimer = setTimeout(async () => {
         commissionRefreshTimer = null;
+        commissionRefreshWindowStartedAt = null;
         const userIds = Array.from(pendingCommissionUserIds);
         pendingCommissionUserIds.clear();
         if (userIds.length === 0 || !isMountedRef.current) return;
         const requestGeneration = realtimeChangeGenerationRef.current;
 
-        const { data, error } = await supabase.rpc('get_today_commission_by_user', { user_ids: userIds });
-        if (error) {
-          debouncedStatsReload();
-          return;
-        }
+        try {
+          const { data, error } = await supabase.rpc('get_today_commission_by_user', { user_ids: userIds });
+          if (error) {
+            if (isMountedRef.current) debouncedStatsReload();
+            return;
+          }
 
-        const commissionMap = new Map<string, number>(userIds.map(userId => [userId, 0]));
-        (data || []).forEach((row) => {
-          commissionMap.set(row.user_id, Number(row.today_commission) || 0);
-        });
-        if (!isMountedRef.current) return;
-        if (requestGeneration !== realtimeChangeGenerationRef.current) {
-          debouncedStatsReload();
-          return;
+          const commissionMap = new Map<string, number>(userIds.map(userId => [userId, 0]));
+          (data || []).forEach((row) => {
+            commissionMap.set(row.user_id, Number(row.today_commission) || 0);
+          });
+          if (!isMountedRef.current) return;
+          if (requestGeneration !== realtimeChangeGenerationRef.current) {
+            debouncedStatsReload();
+            return;
+          }
+          markRealtimeChange();
+          setEmployeeGroups(prev => prev.map(group => ({
+            ...group,
+            employees: group.employees.map(employee => (
+              commissionMap.has(employee.id)
+                ? { ...employee, todayCommission: commissionMap.get(employee.id) || 0 }
+                : employee
+            )),
+          })));
+        } catch {
+          if (isMountedRef.current) debouncedStatsReload();
         }
-        markRealtimeChange();
-        setEmployeeGroups(prev => prev.map(group => ({
-          ...group,
-          employees: group.employees.map(employee => (
-            commissionMap.has(employee.id)
-              ? { ...employee, todayCommission: commissionMap.get(employee.id) || 0 }
-              : employee
-          )),
-        })));
-      }, 700);
+      }, wait);
     };
 
     const walletTransactionsSubscription = supabase
       .channel('employee_mgmt_wallet_transactions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions' }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions', filter: 'type=eq.commission' }, (payload) => {
         if (!isVisibleEmployeePayload(payload)) return;
         const currentRecord = (payload.eventType === 'DELETE' ? payload.old : payload.new) as Record<string, unknown>;
         const previousRecord = payload.old as Record<string, unknown>;
@@ -611,6 +627,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (autoRefreshTimerRef.current) clearTimeout(autoRefreshTimerRef.current);
       if (pendingReloadTimerRef.current) clearTimeout(pendingReloadTimerRef.current);
+      if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
       clearInterval(timeUpdateInterval);
     };
   }, [isActive, resetAutoRefreshTimer]);
@@ -941,8 +958,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       }
     } finally {
       if (isMountedRef.current) {
-        if (showInitialLoading) setLoading(false);
-        else setIsRefreshing(false);
+        setLoading(false);
+        if (!showInitialLoading) setIsRefreshing(false);
       }
     }
     return committed;
