@@ -1951,21 +1951,21 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   </div>
                 </div>
               </div>
-              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+              <div className="flex shrink-0 rounded-2xl border border-white/10 bg-slate-950/55 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_24px_rgba(2,12,27,0.28)] backdrop-blur-md">
                 <button
                   type="button"
                   onClick={() => setLoginIPActionFilter(null)}
                   aria-pressed={loginIPActionFilter === null}
                   title="顯示全部紀錄"
-                  className={`inline-flex h-9 min-w-[82px] items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${loginIPActionFilter === null ? 'border-cyan-200 bg-gradient-to-br from-cyan-300 to-blue-500 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.3)]' : 'border-cyan-400/60 bg-gradient-to-br from-cyan-950/90 to-slate-900 text-cyan-100 hover:border-cyan-200/80 hover:from-cyan-900/90 hover:to-blue-950/80'}`}
+                  className={`group inline-flex h-9 min-w-[84px] items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-cyan-200/90 ${loginIPActionFilter === null ? 'border-white/70 bg-gradient-to-br from-white via-cyan-100 to-cyan-300 text-slate-950 shadow-[0_5px_14px_rgba(103,232,249,0.25)]' : 'border-transparent text-cyan-100/80 hover:border-cyan-300/25 hover:bg-cyan-300/10 hover:text-white'}`}
                 >
                   <span className="flex items-center gap-1.5">
-                    <span className={`flex h-5 w-5 items-center justify-center rounded-md ${loginIPActionFilter === null ? 'bg-slate-950/15' : 'bg-cyan-400/15'}`}>
+                    <span className={`flex h-5 w-5 items-center justify-center rounded-lg transition-colors ${loginIPActionFilter === null ? 'bg-slate-950/15' : 'bg-cyan-300/10 group-hover:bg-cyan-300/20'}`}>
                       <History className="h-3.5 w-3.5" />
                     </span>
-                    <span className="text-[10px] font-black">全部</span>
+                    <span className="text-[10px] font-black tracking-wide">全部</span>
                   </span>
-                  <span className={`min-w-[1.5rem] rounded-md px-1 py-0.5 text-center text-xs font-black leading-none ${loginIPActionFilter === null ? 'bg-slate-950/15' : 'bg-cyan-400/15'}`}>
+                  <span className={`min-w-[1.5rem] rounded-lg px-1 py-1 text-center text-[11px] font-black leading-none ${loginIPActionFilter === null ? 'bg-slate-950/15' : 'bg-cyan-300/10'}`}>
                     {loginIPLoading ? '—' : loginIPRecords.length}
                   </span>
                 </button>
@@ -1974,15 +1974,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   onClick={() => setLoginIPActionFilter((current) => current === 'login' ? null : 'login')}
                   aria-pressed={loginIPActionFilter === 'login'}
                   title="篩選登入紀錄"
-                  className={`inline-flex h-9 min-w-[82px] items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-emerald-300/80 ${loginIPActionFilter === 'login' ? 'border-emerald-200 bg-gradient-to-br from-emerald-300 to-emerald-500 text-slate-950 shadow-[0_0_18px_rgba(52,211,153,0.3)]' : 'border-emerald-400/60 bg-gradient-to-br from-emerald-950/90 to-slate-900 text-emerald-100 hover:border-emerald-200/80 hover:from-emerald-900/90 hover:to-emerald-950/80'}`}
+                  className={`group inline-flex h-9 min-w-[84px] items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-emerald-200/90 ${loginIPActionFilter === 'login' ? 'border-emerald-100/80 bg-gradient-to-br from-emerald-200 via-emerald-300 to-teal-400 text-slate-950 shadow-[0_5px_14px_rgba(52,211,153,0.24)]' : 'border-transparent text-emerald-100/80 hover:border-emerald-300/25 hover:bg-emerald-300/10 hover:text-white'}`}
                 >
                   <span className="flex items-center gap-1.5">
-                    <span className={`flex h-5 w-5 items-center justify-center rounded-md ${loginIPActionFilter === 'login' ? 'bg-slate-950/15' : 'bg-emerald-400/15'}`}>
+                    <span className={`flex h-5 w-5 items-center justify-center rounded-lg transition-colors ${loginIPActionFilter === 'login' ? 'bg-slate-950/15' : 'bg-emerald-300/10 group-hover:bg-emerald-300/20'}`}>
                       <LogIn className="h-3.5 w-3.5" />
                     </span>
-                    <span className="text-[10px] font-black">登入</span>
+                    <span className="text-[10px] font-black tracking-wide">登入</span>
                   </span>
-                  <span className={`min-w-[1.5rem] rounded-md px-1 py-0.5 text-center text-xs font-black leading-none ${loginIPActionFilter === 'login' ? 'bg-slate-950/15' : 'bg-emerald-400/15'}`}>
+                  <span className={`min-w-[1.5rem] rounded-lg px-1 py-1 text-center text-[11px] font-black leading-none ${loginIPActionFilter === 'login' ? 'bg-slate-950/15' : 'bg-emerald-300/10'}`}>
                     {loginIPLoading ? '—' : loginRecordCount}
                   </span>
                 </button>
@@ -1991,15 +1991,15 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   onClick={() => setLoginIPActionFilter((current) => current === 'logout' ? null : 'logout')}
                   aria-pressed={loginIPActionFilter === 'logout'}
                   title="篩選登出紀錄"
-                  className={`inline-flex h-9 min-w-[82px] items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-rose-300/80 ${loginIPActionFilter === 'logout' ? 'border-rose-200 bg-gradient-to-br from-rose-300 to-rose-500 text-slate-950 shadow-[0_0_18px_rgba(251,113,133,0.3)]' : 'border-rose-400/60 bg-gradient-to-br from-rose-950/90 to-slate-900 text-rose-100 hover:border-rose-200/80 hover:from-rose-900/90 hover:to-rose-950/80'}`}
+                  className={`group inline-flex h-9 min-w-[84px] items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-rose-200/90 ${loginIPActionFilter === 'logout' ? 'border-rose-100/80 bg-gradient-to-br from-rose-200 via-rose-300 to-red-400 text-slate-950 shadow-[0_5px_14px_rgba(251,113,133,0.24)]' : 'border-transparent text-rose-100/80 hover:border-rose-300/25 hover:bg-rose-300/10 hover:text-white'}`}
                 >
                   <span className="flex items-center gap-1.5">
-                    <span className={`flex h-5 w-5 items-center justify-center rounded-md ${loginIPActionFilter === 'logout' ? 'bg-slate-950/15' : 'bg-rose-400/15'}`}>
+                    <span className={`flex h-5 w-5 items-center justify-center rounded-lg transition-colors ${loginIPActionFilter === 'logout' ? 'bg-slate-950/15' : 'bg-rose-300/10 group-hover:bg-rose-300/20'}`}>
                       <LogOut className="h-3.5 w-3.5" />
                     </span>
-                    <span className="text-[10px] font-black">登出</span>
+                    <span className="text-[10px] font-black tracking-wide">登出</span>
                   </span>
-                  <span className={`min-w-[1.5rem] rounded-md px-1 py-0.5 text-center text-xs font-black leading-none ${loginIPActionFilter === 'logout' ? 'bg-slate-950/15' : 'bg-rose-400/15'}`}>
+                  <span className={`min-w-[1.5rem] rounded-lg px-1 py-1 text-center text-[11px] font-black leading-none ${loginIPActionFilter === 'logout' ? 'bg-slate-950/15' : 'bg-rose-300/10'}`}>
                     {loginIPLoading ? '—' : logoutRecordCount}
                   </span>
                 </button>
@@ -2044,7 +2044,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                   </thead>
                   <tbody>
                     {displayedLoginIPRecords.map((record) => (
-                      <tr key={record.id} className="group border-b border-white/[0.07] transition-colors duration-150 ease-out last:border-b-0 hover:bg-cyan-300/[0.07]">
+                      <tr key={record.id} className={`group border-b transition-[background-color,box-shadow,filter] duration-200 ease-out last:border-b-0 ${record.action_type === 'login' ? 'border-emerald-300/15 bg-emerald-400/[0.045] hover:bg-emerald-400/[0.11] hover:shadow-[inset_3px_0_0_rgba(52,211,153,0.85)]' : 'border-rose-300/15 bg-rose-400/[0.045] hover:bg-rose-400/[0.11] hover:shadow-[inset_3px_0_0_rgba(251,113,133,0.85)]'}`}>
                         <td className={`whitespace-nowrap px-4 py-3.5 text-xs ${record.action_type === 'login' ? 'text-emerald-200' : 'text-rose-300'}`}>
                           <span className="flex items-center gap-2">
                             <span className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${record.action_type === 'login' ? 'bg-emerald-300/10 text-emerald-300 group-hover:bg-emerald-300/20' : 'bg-rose-300/10 text-rose-300 group-hover:bg-rose-300/20'}`}>
