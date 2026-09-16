@@ -182,9 +182,9 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
 
                       <div className="flex items-center justify-end gap-2">
                         {unread > 0 && (
-                          <span className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-1 text-[10px] font-bold transition-[opacity,transform,box-shadow] duration-300 animate-pulse motion-reduce:animate-none ${styles.unreadBadge}`}>
-                            <span className={`relative flex h-4 w-4 items-center justify-center rounded-full ring-1 ${styles.unreadIcon}`}>
-                              <BellRing className="relative z-10 h-2.5 w-2.5" />
+                          <span className={`inline-flex min-h-9 items-center gap-2 rounded-2xl border px-3 py-1.5 text-xs font-bold transition-[opacity,transform,box-shadow] duration-300 animate-pulse motion-reduce:animate-none ${styles.unreadBadge}`}>
+                            <span className={`relative flex h-5 w-5 items-center justify-center rounded-full ring-1 ${styles.unreadIcon}`}>
+                              <BellRing className="relative z-10 h-3 w-3" />
                               <span className="absolute inset-0 animate-ping rounded-full bg-current/35 motion-reduce:animate-none" />
                             </span>
                             <span>{unread > 99 ? '99+' : unread} 未讀</span>
