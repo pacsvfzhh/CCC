@@ -2,9 +2,9 @@ import { Fragment, useState, useEffect, useLayoutEffect, useRef, useMemo, useCal
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, CreditCard as Edit, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet, MapPin, Clock3, History, LogIn, LogOut } from 'lucide-react';
-import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
+import { formatSupabaseError, isFinancialAdminSessionError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { Employee, Admin } from '../../types';
-import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
+import { createFinancialOperationId, getAdminFinancialSessionToken, logout } from '../../lib/auth';
 import EmployeeDetailModal from './EmployeeDetailModal';
 import LoginDeviceSummary from './LoginDeviceSummary';
 
@@ -124,6 +124,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [editingRemarksOnly, setEditingRemarksOnly] = useState<EmployeeWithAdmin | null>(null);
   const [showPasswordReset, setShowPasswordReset] = useState<{id: string; username: string} | null>(null);
   const [newPassword, setNewPassword] = useState('');
+  const [resettingPassword, setResettingPassword] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const expandedGroupsBeforeSearchRef = useRef<Set<string> | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<EmployeeWithAdmin | null>(null);
@@ -1142,6 +1143,11 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setSelectedAdminForCreate(null);
       await guardedLoadEmployeesRef.current?.(false);
     } catch (error: unknown) {
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+        return;
+      }
+
       setCreateError(formatSupabaseError(error) || '建立員工失敗。');
     } finally {
       setCreating(false);
@@ -1252,10 +1258,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   }, []);
 
   const handleResetPassword = async (employeeId: string) => {
-    if (!newPassword.trim()) {
-      setNotification({ show: true, type: 'warning', title: '輸入無效', message: '請輸入新密碼' });
+    if (newPassword.length < 6) {
+      setNotification({ show: true, type: 'warning', title: '輸入無效', message: '密碼至少需要 6 個字元' });
       return;
     }
+
+    setResettingPassword(true);
     try {
       const { data, error } = await supabase.rpc('admin_reset_employee_password', {
         p_admin_session_token: getAdminFinancialSessionToken(),
@@ -1266,9 +1274,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       if (!data) throw new Error('沒有資料列被更新。');
       setShowPasswordReset(null);
       setNewPassword('');
+      setShowResetPassword(false);
       setNotification({ show: true, type: 'success', title: '成功', message: '密碼重設成功' });
     } catch (error: unknown) {
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+        return;
+      }
+
       setNotification({ show: true, type: 'error', title: '錯誤', message: formatSupabaseError(error) || '重設密碼失敗' });
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -2576,7 +2592,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               <Edit className="w-3 h-3" /> 編輯
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setShowPasswordReset({ id: employee.id, username: employee.username }); }}
+              onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setNewPassword(''); setShowResetPassword(false); setShowPasswordReset({ id: employee.id, username: employee.username }); }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-amber-300 bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/30 hover:border-amber-400/50 transition-all whitespace-nowrap"
               title="重設密碼"
             >
@@ -3675,19 +3691,20 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 <label className="block text-sm font-medium text-slate-300 mb-2">新密碼</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <input type={showResetPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="輸入新密碼" autoComplete="new-password" className="w-full px-4 py-2 pr-10 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
+                    <input type={showResetPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="輸入新密碼" autoComplete="new-password" minLength={6} disabled={resettingPassword} className="w-full px-4 py-2 pr-10 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60" />
+                    <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} disabled={resettingPassword} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50">
                       {showResetPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
-                  <button type="button" onClick={generateResetPassword} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all" title="產生高強度密碼">
+                  <button type="button" onClick={generateResetPassword} disabled={resettingPassword} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-50" title="產生高強度密碼">
                     <RefreshCw className="w-5 h-5" />
                   </button>
                 </div>
               </div>
+              <p className="text-xs text-slate-500">密碼至少需要 6 個字元；重設後員工需要使用新密碼重新登入。</p>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => { setShowPasswordReset(null); setNewPassword(''); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all">取消</button>
-                <button onClick={() => handleResetPassword(showPasswordReset.id)} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all">重設密碼</button>
+                <button type="button" onClick={() => { setShowPasswordReset(null); setNewPassword(''); setShowResetPassword(false); }} disabled={resettingPassword} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-50">取消</button>
+                <button type="button" onClick={() => { if (showPasswordReset) void handleResetPassword(showPasswordReset.id); }} disabled={resettingPassword || newPassword.length < 6} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-50">{resettingPassword ? '重設中…' : '重設密碼'}</button>
               </div>
             </div>
           </div>
