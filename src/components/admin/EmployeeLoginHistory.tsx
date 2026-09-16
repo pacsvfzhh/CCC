@@ -560,11 +560,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           )}
         </div>
         <div className="relative w-full min-w-0 sm:max-w-[280px] xl:max-w-[320px]">
-          {searchLoading ? (
-            <RefreshCw className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-cyan-600" />
-          ) : (
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
-          )}
+          <span className="absolute left-3 top-1/2 flex h-3.5 w-3.5 -translate-y-1/2 items-center justify-center">
+            {searchLoading ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-600" />
+            ) : (
+              <Search className="h-3.5 w-3.5 text-cyan-700" />
+            )}
+          </span>
           <input
             type="text"
             value={searchTerm}
@@ -1072,11 +1074,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               </div>
             )}
             <div className="relative w-full min-w-0 sm:max-w-[280px] xl:max-w-[320px]">
-              {searchLoading ? (
-            <RefreshCw className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-cyan-600" />
-          ) : (
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-700" />
-          )}
+              <span className="absolute left-3 top-1/2 flex h-3.5 w-3.5 -translate-y-1/2 items-center justify-center">
+            {searchLoading ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-600" />
+            ) : (
+              <Search className="h-3.5 w-3.5 text-cyan-700" />
+            )}
+          </span>
               <input
                 type="text"
                 value={searchTerm}
