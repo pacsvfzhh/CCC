@@ -2827,7 +2827,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       </td>
       {/* Work days */}
       <td className="w-[52px] py-0.5 px-1 text-center whitespace-nowrap">
-        <span className="text-[10px] font-normal tabular-nums text-cyan-300" title="每日明細中的獨立活動天數">{employee.workDays}</span>
+        <span className="text-[11px] font-normal tabular-nums text-cyan-300" title="每日明細中的獨立活動天數">{employee.workDays}</span>
       </td>
       <td className="w-[132px] py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-center gap-1">
