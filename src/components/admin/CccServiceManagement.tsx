@@ -1793,9 +1793,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
         setDocImportProgress({ phase: '讀取檔案中……', pct: 10 });
         const arrayBuffer = await file.arrayBuffer();
-        setDocImportProgress({ phase: 'Loading converter...', pct: 30 });
+        setDocImportProgress({ phase: '正在載入轉換器……', pct: 30 });
         const mammoth = await import('mammoth');
-        setDocImportProgress({ phase: 'Converting document...', pct: 60 });
+        setDocImportProgress({ phase: '正在轉換文件……', pct: 60 });
         const result = await mammoth.convertToHtml({ arrayBuffer });
         setDocImportProgress({ phase: '套用內容中……', pct: 90 });
         if (templateEditorRef.current) {
@@ -2505,13 +2505,13 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                   <Megaphone className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
-                  <span className="text-[12.5px] font-semibold text-white block truncate leading-snug">{msg.title || 'View details'}</span>
+                  <span className="text-[12.5px] font-semibold text-white block truncate leading-snug">{msg.title || '查看詳情'}</span>
                   {msg.subtitle && <span className="text-[11px] text-blue-100/80 block truncate mt-1 leading-snug">{msg.subtitle}</span>}
                 </div>
               </div>
             </div>
             <div className="flex items-center justify-between px-4 py-2 bg-white border-t border-blue-100">
-              <span className="text-[10.5px] text-blue-600 font-medium">View details</span>
+              <span className="text-[10.5px] text-blue-600 font-medium">查看詳情</span>
               <ChevronRight className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all duration-200" />
             </div>
           </button>
@@ -2884,25 +2884,25 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   };
 
   const BG_COLORS = [
-    { color: '#fef08a', label: 'Yellow' },
-    { color: '#bbf7d0', label: 'Green' },
-    { color: '#bfdbfe', label: 'Blue' },
-    { color: '#fecaca', label: 'Red' },
-    { color: '#e9d5ff', label: 'Purple' },
-    { color: '#fed7aa', label: 'Orange' },
-    { color: '#99f6e4', label: 'Teal' },
-    { color: '#fce7f3', label: 'Pink' },
+    { color: '#fef08a', label: '黃色' },
+    { color: '#bbf7d0', label: '綠色' },
+    { color: '#bfdbfe', label: '藍色' },
+    { color: '#fecaca', label: '紅色' },
+    { color: '#e9d5ff', label: '紫色' },
+    { color: '#fed7aa', label: '橙色' },
+    { color: '#99f6e4', label: '青綠色' },
+    { color: '#fce7f3', label: '粉紅色' },
   ];
 
   const TEXT_COLORS = [
-    { color: '#000000', label: 'Black' },
-    { color: '#dc2626', label: 'Red' },
-    { color: '#2563eb', label: 'Blue' },
-    { color: '#16a34a', label: 'Green' },
-    { color: '#d97706', label: 'Orange' },
-    { color: '#7c3aed', label: 'Purple' },
-    { color: '#0891b2', label: 'Cyan' },
-    { color: '#be185d', label: 'Pink' },
+    { color: '#000000', label: '黑色' },
+    { color: '#dc2626', label: '紅色' },
+    { color: '#2563eb', label: '藍色' },
+    { color: '#16a34a', label: '綠色' },
+    { color: '#d97706', label: '橙色' },
+    { color: '#7c3aed', label: '紫色' },
+    { color: '#0891b2', label: '青色' },
+    { color: '#be185d', label: '粉紅色' },
   ];
 
   const ensureEditorSelection = (editor: HTMLDivElement) => {
@@ -2997,13 +2997,13 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
             throw error;
           }
 
-          setNotification({ type: 'success', text: `Conversation deleted (${data?.length || 0} messages removed)` });
+          setNotification({ type: 'success', text: `對話已刪除（已移除 ${data?.length || 0} 則訊息）` });
           conversationMessagesCacheRef.current.delete(`${selectedCustomer.id}:${selectedEmployee.id}`);
           setMessages([]);
           loadConversationHistory();
         } catch (error: unknown) {
           console.error('Delete conversation failed:', formatSupabaseError(error));
-          setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to delete conversation') });
+          setNotification({ type: 'error', text: getCccErrorMessage(error, '刪除對話失敗') });
         }
         setConfirmDialog(null);
       },
@@ -3080,7 +3080,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
               <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold text-white leading-none truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{selectedEmployee?.username} <span className="text-[10px] font-medium text-emerald-100">ID: {selectedEmployee?.employee_id}</span></div>
+              <div className="text-sm font-bold text-white leading-none truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{selectedEmployee?.username} <span className="text-[10px] font-medium text-emerald-100">編號： {selectedEmployee?.employee_id}</span></div>
             </div>
             <button
               type="button"
@@ -3534,7 +3534,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                           <span className={`truncate font-bold leading-4 ${selectedEmployee?.id === emp.id ? 'text-[15px] text-white' : 'text-[11px] text-slate-200'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 6px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)' } : undefined}>{emp.username}</span>
                           {selectedEmployee?.id === emp.id && <span className="ml-auto flex-shrink-0 rounded bg-white/25 px-1.5 py-0.5 text-[9px] font-bold leading-relaxed text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>啟用中</span>}
                         </div>
-                        <div className={`truncate font-mono leading-3 ${selectedEmployee?.id === emp.id ? 'text-[11px] text-emerald-100' : 'text-[10px] text-slate-400 group-hover:text-emerald-200/80'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>ID: {emp.employee_id || '—'}</div>
+                        <div className={`truncate font-mono leading-3 ${selectedEmployee?.id === emp.id ? 'text-[11px] text-emerald-100' : 'text-[10px] text-slate-400 group-hover:text-emerald-200/80'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>編號： {emp.employee_id || '—'}</div>
                         <EmployeeMetadataPopover
                           kind="tag"
                           theme="emerald"
@@ -3811,7 +3811,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
                                   <div className="flex items-center gap-1.5 mb-1">
                                     <span className={`text-xs font-semibold truncate ${isSelected ? 'text-slate-200' : 'text-slate-300'}`}>{history.employee_username}</span>
-                                    <span className="text-[10px] text-emerald-200/90 font-mono flex-shrink-0">ID: {history.employee_number || '—'}</span>
+                                    <span className="text-[10px] text-emerald-200/90 font-mono flex-shrink-0">編號： {history.employee_number || '—'}</span>
                                   </div>
 
                                   <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1 pr-1">
@@ -3923,7 +3923,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                     </div>
                     <div className="min-w-0">
                       <div className="text-white text-sm font-bold leading-tight truncate">{selectedEmployee?.username}</div>
-                      <div className="text-[11px] text-emerald-300 leading-tight mt-0.5 truncate">ID: {selectedEmployee?.employee_id}</div>
+                      <div className="text-[11px] text-emerald-300 leading-tight mt-0.5 truncate">編號： {selectedEmployee?.employee_id}</div>
                     </div>
                     {serviceTicketNumber && (
                       <div className="flex max-w-[96px] items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-gradient-to-r from-emerald-500/15 to-teal-500/10 px-2 py-1.5 ml-1 flex-shrink-0">
@@ -4425,7 +4425,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                             <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-sky-300/25 bg-sky-500/20 shadow-lg shadow-blue-900/20">
                               <Megaphone className="w-3 h-3 text-white" />
                             </div>
-                            <span className="text-[13px] font-bold text-slate-100 tracking-tight">Rich Card</span>
+                            <span className="text-[13px] font-bold text-slate-100 tracking-tight">富媒體卡片</span>
                             <span className="flex h-5 min-w-5 items-center justify-center rounded-full border border-sky-300/30 bg-sky-500/20 px-1.5 text-[11px] font-bold text-sky-100">{richCardTemplates.length}</span>
                           </div>
                           <div className="flex items-center gap-1">
@@ -4437,7 +4437,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                               <Pencil className="w-3 h-3" />
                               管理
                             </button>
-                            <button type="button" onClick={() => setShowRichCardPopup(false)} className="rounded-lg p-1.5 transition-colors hover:bg-sky-500/15" aria-label="關閉 Rich Card">
+                            <button type="button" onClick={() => setShowRichCardPopup(false)} className="rounded-lg p-1.5 transition-colors hover:bg-sky-500/15" aria-label="關閉富媒體卡片">
                               <X className="h-3.5 w-3.5 text-sky-200/70 hover:text-sky-100" />
                             </button>
                           </div>
@@ -4483,14 +4483,14 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                       }).select('id').single();
                                       if (msgErr) {
                                         setMessages(prev => prev.filter(m => m.id !== optimisticId));
-                                        setNotification({ type: 'error', text: msgErr.message || 'Rich Card 傳送失敗' });
+                                        setNotification({ type: 'error', text: msgErr.message || '富媒體卡片傳送失敗' });
                                       } else {
                                         loadMessages();
                                         loadConversationHistory();
                                       }
                                     } catch (err: unknown) {
                                       setMessages(prev => prev.filter(m => m.id !== optimisticId));
-                                      setNotification({ type: 'error', text: getCccErrorMessage(err, 'Rich Card 傳送失敗') });
+                                      setNotification({ type: 'error', text: getCccErrorMessage(err, '富媒體卡片傳送失敗') });
                                     } finally { setSendingRichCard(false); }
                                   }}
                                   className="group w-full rounded-xl border border-sky-400/35 bg-gradient-to-r from-sky-900/55 via-blue-950/45 to-indigo-950/50 px-3 py-2.5 text-left shadow-sm shadow-blue-950/25 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300/75 hover:from-sky-800/65 hover:via-blue-900/55 hover:to-indigo-900/60 hover:shadow-lg hover:shadow-blue-950/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70"
@@ -4519,14 +4519,14 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                             <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-300/20 bg-sky-500/10 shadow-lg shadow-blue-950/20">
                               <Megaphone className="h-5 w-5 text-sky-300" />
                             </div>
-                            <p className="text-sm text-slate-200 mb-1 font-semibold">尚無 Rich Card 範本</p>
-                            <p className="text-[11px] text-slate-400 mb-3">建立 Rich Card 範本即可直接傳送</p>
+                            <p className="text-sm text-slate-200 mb-1 font-semibold">尚無富媒體卡片範本</p>
+                            <p className="text-[11px] text-slate-400 mb-3">建立富媒體卡片範本即可直接傳送</p>
                             <button
                               type="button"
                               onClick={() => { setShowRichCardPopup(false); setTemplateManagerMode('rich_card'); setTemplateForm({ name: '', title: '', subtitle: '', content: '', content_type: 'rich_card' }); setShowTemplateManager(true); loadTemplates(); }}
                               className="rounded-lg border border-sky-300/35 bg-sky-500/20 px-3.5 py-1.5 text-xs font-semibold text-sky-50 shadow-sm shadow-blue-950/20 transition-all hover:border-sky-200/70 hover:bg-sky-500 hover:shadow-sky-500/25"
                             >
-                              建立 Rich Card
+                              建立富媒體卡片
                             </button>
                           </div>
                         )}
@@ -4611,14 +4611,14 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                         type="button"
                         onClick={() => { loadTemplates(); setShowRichCardPopup(!showRichCardPopup); setShowTemplatePopup(false); }}
                         className={`group flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.04em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 ${showRichCardPopup ? 'border-sky-300 bg-gradient-to-r from-blue-500 to-sky-500 text-white shadow-md shadow-blue-500/30' : 'border-sky-300/80 bg-sky-50 text-blue-700 shadow-sm shadow-sky-200/50 hover:-translate-y-0.5 hover:border-sky-500 hover:bg-sky-100 hover:text-blue-800 hover:shadow-md hover:shadow-sky-300/40'}`}
-                        title="Rich Card 範本"
-                        aria-label="開啟 Rich Card 範本"
+                        title="富媒體卡片範本"
+                        aria-label="開啟富媒體卡片範本"
                         aria-pressed={showRichCardPopup}
                       >
                         <span className={`flex h-5 w-5 items-center justify-center rounded-md ${showRichCardPopup ? 'bg-white/20' : 'bg-sky-200/70 group-hover:bg-sky-300/70'}`}>
                           <Megaphone className="h-3.5 w-3.5" strokeWidth={2.5} />
                         </span>
-                        <span>Rich Card</span>
+                        <span>富媒體卡片</span>
                       </button>
                       <button
                         type="button"
@@ -4685,7 +4685,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                         {selectedEmployee ? selectedEmployee.username : '客戶服務'}
                       </h3>
                       <p className="text-[10px] text-slate-400">
-                        {selectedEmployee ? `ID: ${selectedEmployee.employee_id}` : '請選擇員工開始'}
+                        {selectedEmployee ? `編號： ${selectedEmployee.employee_id}` : '請選擇員工開始'}
                       </p>
                     </div>
                   </div>
@@ -4700,7 +4700,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                       <User className="w-7 h-7 text-blue-400" />
                     </div>
                     <p className="text-sm font-bold text-white mb-0.5">{selectedEmployee?.username}</p>
-                    <p className="text-[10px] text-blue-400 font-mono mb-3">ID: {selectedEmployee?.employee_id}</p>
+                    <p className="text-[10px] text-blue-400 font-mono mb-3">編號： {selectedEmployee?.employee_id}</p>
                     <p className="text-xs text-slate-400">請選擇客戶開始聊天</p>
                   </>
                 ) : (
@@ -5092,7 +5092,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                       value={customerForm.superTitle}
                       onChange={(e) => setCustomerForm({ ...customerForm, superTitle: e.target.value })}
                       className="w-full px-3 py-2.5 bg-amber-900/20 border border-amber-500/30 rounded-lg text-amber-200 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder:text-amber-600/50 truncate"
-                      placeholder="例如：鑽石、VIP Gold"
+                      placeholder="例如：鑽石、VIP 金牌"
                       maxLength={30}
                       style={{ textShadow: '0 0 10px rgba(251, 191, 36, 0.5)' }}
                     />
@@ -5503,7 +5503,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                 <div className={`p-1.5 rounded-lg ${templateManagerMode === 'rich_card' ? 'bg-blue-600/20' : 'bg-teal-600/20'}`}>
                   {templateManagerMode === 'rich_card' ? <Megaphone className="w-4 h-4 text-blue-400" /> : <BookOpen className="w-4 h-4 text-teal-400" />}
                 </div>
-                <h3 className="text-sm font-bold text-white">{templateManagerMode === 'rich_card' ? 'Rich Card 範本' : '訊息範本'}</h3>
+                <h3 className="text-sm font-bold text-white">{templateManagerMode === 'rich_card' ? '富媒體卡片範本' : '訊息範本'}</h3>
                 <span className="text-[11px] text-slate-500 font-medium ml-1">{messageTemplates.filter(t => templateManagerMode === 'rich_card' ? t.content_type === 'rich_card' : t.content_type !== 'rich_card').length} 個範本</span>
               </div>
               <button onClick={() => { setShowTemplateManager(false); setEditingTemplate(null); setTemplateForm({ name: '', title: '', subtitle: '', content: '', content_type: 'richtext' }); if (templateEditorRef.current) templateEditorRef.current.innerHTML = ''; }} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
@@ -5525,7 +5525,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                     value={templateForm.name}
                     onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
                     className="flex-1 min-w-0 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 placeholder:text-slate-400 shadow-sm"
-                    placeholder="範本名稱（例如：歡迎訊息、FAQ、跟進……）"
+                    placeholder="範本名稱（例如：歡迎訊息、常見問答、跟進……）"
                   />
                 </div>
                 <input ref={templateImageInputRef} type="file" accept="image/*" onChange={handleTemplateImageUpload} className="hidden" />
@@ -5538,7 +5538,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                   </button>
                   <button type="button" onClick={() => { setTemplateForm(f => ({ ...f, content_type: 'rich_card' })); }} className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5 ${templateForm.content_type === 'rich_card' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
                     <Megaphone className="w-3 h-3" />
-                    Rich Card
+                    富媒體卡片
                   </button>
                 </div>
                 )}
@@ -5567,7 +5567,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                         ref={richCardEditorRef}
                         content={richCardContent}
                         onChange={(c) => { setRichCardContent(c); setTemplateForm(f => ({ ...f, content: c })); }}
-                        placeholder="撰寫 Rich Card 內容（圖片、格式、標題）……"
+                        placeholder="撰寫富媒體卡片內容（圖片、格式、標題）……"
                         adminId={adminId}
                         theme="light"
                       />

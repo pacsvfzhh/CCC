@@ -35,10 +35,10 @@ export default function EmployeeMetadataPopover({
 
   const preview = values.length > 0
     ? `${values[0]}${values.length > 1 ? ` +${values.length - 1}` : ''}`
-    : value.trim() || (kind === 'tag' ? 'No tag' : 'No note');
+    : value.trim() || (kind === 'tag' ? '無標籤' : '無備註');
   const details = values.length > 0
     ? values.join(' · ')
-    : value.trim() || (kind === 'tag' ? 'No tags assigned' : 'No note added');
+    : value.trim() || (kind === 'tag' ? '尚未設定標籤' : '尚未新增備註');
   const isTag = kind === 'tag';
 
   const updatePosition = useCallback(() => {
@@ -140,7 +140,7 @@ export default function EmployeeMetadataPopover({
           ) : (
             <FileText className="h-2.5 w-2.5 shrink-0 opacity-70" />
           )}
-          <span className="min-w-0 truncate">{isTag ? 'Tag' : 'Note'}: {preview}</span>
+          <span className="min-w-0 truncate">{isTag ? '標籤' : '備註'}：{preview}</span>
         </span>
       </span>
       {open && createPortal(
@@ -173,7 +173,7 @@ export default function EmployeeMetadataPopover({
               ? 'text-slate-300'
               : theme === 'orange' ? 'text-orange-300' : 'text-emerald-300'
           }`}>
-            {isTag ? 'Tags' : 'Note'}
+            {isTag ? '標籤' : '備註'}
           </div>
           <div className="break-words text-[11px] font-semibold leading-4 text-white">{details}</div>
         </div>,

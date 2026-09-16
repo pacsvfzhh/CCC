@@ -2545,14 +2545,14 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   };
 
   const BG_COLORS = [
-    { color: '#fef08a', label: 'Yellow' },
-    { color: '#bbf7d0', label: 'Green' },
-    { color: '#bfdbfe', label: 'Blue' },
-    { color: '#fecaca', label: 'Red' },
-    { color: '#e9d5ff', label: 'Purple' },
-    { color: '#fed7aa', label: 'Orange' },
-    { color: '#99f6e4', label: 'Teal' },
-    { color: '#fce7f3', label: 'Pink' },
+    { color: '#fef08a', label: '黃色' },
+    { color: '#bbf7d0', label: '綠色' },
+    { color: '#bfdbfe', label: '藍色' },
+    { color: '#fecaca', label: '紅色' },
+    { color: '#e9d5ff', label: '紫色' },
+    { color: '#fed7aa', label: '橙色' },
+    { color: '#99f6e4', label: '青綠色' },
+    { color: '#fce7f3', label: '粉紅色' },
   ];
 
   const applyBgColor = (color: string | null, target: 'main' | 'edit' | 'template') => {
@@ -2702,7 +2702,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
               <MessageCircle className="w-3.5 h-3.5 text-orange-700" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold text-white leading-none truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{selectedEmployee?.username} <span className="text-[10px] font-medium text-orange-100">ID: {selectedEmployee?.employee_id}</span></div>
+              <div className="text-sm font-bold text-white leading-none truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{selectedEmployee?.username} <span className="text-[10px] font-medium text-orange-100">編號： {selectedEmployee?.employee_id}</span></div>
             </div>
             <button
               type="button"
@@ -3123,7 +3123,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                           <span className={`truncate font-bold leading-4 ${selectedEmployee?.id === emp.id ? 'text-[15px] text-white' : 'text-[11px] text-slate-200'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 6px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)' } : undefined}>{emp.username}</span>
                           {selectedEmployee?.id === emp.id && <span className="ml-auto flex-shrink-0 rounded bg-white/25 px-1.5 py-0.5 text-[9px] font-bold leading-relaxed text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>啟用中</span>}
                         </div>
-                        <div className={`truncate font-mono leading-3 ${selectedEmployee?.id === emp.id ? 'text-[11px] text-orange-100' : 'text-[10px] text-slate-400 group-hover:text-orange-200/80'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>ID: {emp.employee_id || '—'}</div>
+                        <div className={`truncate font-mono leading-3 ${selectedEmployee?.id === emp.id ? 'text-[11px] text-orange-100' : 'text-[10px] text-slate-400 group-hover:text-orange-200/80'}`} style={selectedEmployee?.id === emp.id ? { textShadow: '0 2px 4px rgba(0,0,0,0.45), 0 1px 1px rgba(0,0,0,0.25)' } : undefined}>編號： {emp.employee_id || '—'}</div>
                         <EmployeeMetadataPopover
                           kind="tag"
                           theme="orange"
@@ -3397,7 +3397,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
                                   <div className="flex items-center gap-1.5 mb-1">
                                     <span className={`text-xs font-semibold truncate ${isSelected ? 'text-slate-200' : 'text-slate-300'}`}>{history.employee_username}</span>
-                                    <span className="text-[10px] text-orange-200/90 font-mono flex-shrink-0">ID: {history.employee_number || '—'}</span>
+                                    <span className="text-[10px] text-orange-200/90 font-mono flex-shrink-0">編號： {history.employee_number || '—'}</span>
                                   </div>
 
                                   <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1 pr-1">
@@ -3509,7 +3509,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                     </div>
                     <div className="min-w-0">
                       <div className="text-white text-sm font-bold leading-tight truncate">{selectedEmployee?.username}</div>
-                      <div className="text-[11px] text-orange-300 leading-tight mt-0.5 truncate">ID: {selectedEmployee?.employee_id}</div>
+                      <div className="text-[11px] text-orange-300 leading-tight mt-0.5 truncate">編號： {selectedEmployee?.employee_id}</div>
                     </div>
                     {serviceTicketNumber && (
                       <div className="flex max-w-[96px] items-center gap-1.5 rounded-lg border border-orange-400/30 bg-gradient-to-r from-orange-500/15 to-amber-500/10 px-2 py-1.5 ml-1 flex-shrink-0">
@@ -3954,11 +3954,11 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                     {hasImages && (
                                       <span className="flex items-center gap-0.5 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 flex-shrink-0">
                                         <Image className="w-2.5 h-2.5" />
-                                        IMG
+                                        圖片
                                       </span>
                                     )}
                                     {tpl.content_type === 'richtext' && (
-                                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 flex-shrink-0">Rich</span>
+                                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 flex-shrink-0">富文字</span>
                                     )}
                                     <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg border border-orange-300/0 bg-orange-500/0 opacity-0 transition-all group-hover:border-orange-300/40 group-hover:bg-orange-500 group-hover:opacity-100" title="填入輸入框">
                                       <Pencil className="w-2.5 h-2.5 text-white" />
@@ -4142,7 +4142,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                         {selectedEmployee ? selectedEmployee.username : '客戶服務'}
                       </h3>
                       <p className="text-[10px] text-slate-400">
-                        {selectedEmployee ? `ID: ${selectedEmployee.employee_id}` : '請選擇員工開始'}
+                        {selectedEmployee ? `編號： ${selectedEmployee.employee_id}` : '請選擇員工開始'}
                       </p>
                     </div>
                   </div>
@@ -4157,7 +4157,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                       <User className="w-7 h-7 text-blue-400" />
                     </div>
                     <p className="text-sm font-bold text-white mb-0.5">{selectedEmployee?.username}</p>
-                    <p className="text-[10px] text-blue-400 font-mono mb-3">ID: {selectedEmployee?.employee_id}</p>
+                    <p className="text-[10px] text-blue-400 font-mono mb-3">編號： {selectedEmployee?.employee_id}</p>
                     <p className="text-xs text-slate-400">請選擇客戶開始聊天</p>
                   </>
                 ) : (
@@ -4492,7 +4492,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                       value={customerForm.superTitle}
                       onChange={(e) => setCustomerForm({ ...customerForm, superTitle: e.target.value })}
                       className="w-full px-3 py-2.5 bg-amber-900/20 border border-amber-500/30 rounded-lg text-amber-200 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder:text-amber-600/50 truncate"
-                      placeholder="例如：鑽石、VIP Gold"
+                      placeholder="例如：鑽石、VIP 金牌"
                       maxLength={30}
                       style={{ textShadow: '0 0 10px rgba(251, 191, 36, 0.5)' }}
                     />
@@ -4665,7 +4665,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                   value={templateForm.name}
                   onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
                   className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 placeholder:text-slate-400 flex-shrink-0 shadow-sm"
-                  placeholder="範本名稱（例如：歡迎訊息、FAQ、跟進……）"
+                  placeholder="範本名稱（例如：歡迎訊息、常見問答、跟進……）"
                 />
                 <input ref={templateImageInputRef} type="file" accept="image/*" onChange={handleTemplateImageUpload} className="hidden" />
                 <input id="templateFileImport" type="file" accept=".txt,.doc,.docx" onChange={handleTemplateFileImport} className="hidden" />
@@ -4787,7 +4787,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                               <span className="text-sm font-bold text-white truncate">{tpl.name}</span>
                               <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase flex-shrink-0 ${
                                 tpl.content_type === 'richtext' ? 'bg-blue-500/20 text-blue-400' : 'bg-teal-500/20 text-teal-400'
-                              }`}>{tpl.content_type === 'richtext' ? 'RTF' : 'TXT'}</span>
+                              }`}>{tpl.content_type === 'richtext' ? '富文字' : '純文字'}</span>
                             </div>
                             {tpl.content_type === 'richtext' ? (
                               <div className="text-xs text-slate-400 line-clamp-2 chat-rich-content" dangerouslySetInnerHTML={{ __html: sanitizeChatMessage(tpl.content) }} />
