@@ -1110,10 +1110,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 {adminGroups.filter((group) => group.admin_id === selectedAdminId).map((group) => (
                   <div
                     key={group.admin_id}
-                    className={`flex min-h-0 flex-1 flex-col overflow-hidden border-b border-slate-800/70 border-l-2 ${
+                    className={`flex min-h-0 flex-1 flex-col overflow-hidden border-b border-slate-800/70 ${
                       group.admin_role === 'super_admin'
-                        ? 'border-l-yellow-400/80 bg-gradient-to-br from-yellow-500/[0.08] via-slate-900/20 to-transparent'
-                        : 'border-l-cyan-400/80 bg-gradient-to-br from-blue-500/[0.08] via-slate-900/20 to-transparent'
+                        ? 'bg-gradient-to-br from-yellow-500/[0.08] via-slate-900/20 to-transparent'
+                        : 'bg-gradient-to-br from-blue-500/[0.08] via-slate-900/20 to-transparent'
                     }`}
                   >
                     {/* Group Header */}
