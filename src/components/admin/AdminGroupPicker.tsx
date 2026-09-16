@@ -159,7 +159,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex min-w-0 items-center gap-2">
-                            <span className="min-w-0 flex-1 truncate text-sm font-bold leading-tight text-white sm:text-[15px]">{group.admin_username}</span>
+                            <span className="min-w-0 max-w-full truncate text-sm font-bold leading-tight text-white sm:text-[15px]">{group.admin_username}</span>
                             {unread > 0 && (
                               <span className={`inline-flex min-h-9 min-w-[112px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border px-3 py-1.5 text-xs font-bold transition-[opacity,transform,box-shadow] duration-300 animate-pulse motion-reduce:animate-none ${styles.unreadBadge}`}>
                                 <span className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded-full ring-1 ${styles.unreadIcon}`}>
