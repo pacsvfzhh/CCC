@@ -2585,31 +2585,32 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           <MoreVertical className="h-4 w-4" />
         </button>
         {isOpen && (
-          <div className="absolute right-8 top-1/2 z-50 flex h-6 -translate-y-1/2 items-center gap-0.5 whitespace-nowrap rounded-lg border border-blue-300/25 bg-slate-950/95 px-1 shadow-[0_10px_28px_rgba(2,6,23,0.72)] ring-1 ring-inset ring-white/10 backdrop-blur-xl">
+          <div className="absolute right-8 top-1/2 z-50 flex h-7 -translate-y-1/2 items-center gap-1 whitespace-nowrap rounded-xl border border-blue-200/35 bg-slate-950/95 px-1.5 shadow-[0_10px_28px_rgba(2,6,23,0.72)] ring-1 ring-inset ring-white/10 backdrop-blur-xl">
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setEditingEmployee(employee); }}
-              className="group inline-flex h-5 items-center gap-1 rounded-md border border-transparent px-2 text-[10px] font-semibold text-blue-200 transition-colors hover:border-blue-300/35 hover:bg-blue-500/20 hover:text-blue-50"
+              className="inline-flex h-6 items-center gap-1.5 rounded-lg border border-blue-300/35 bg-blue-500/15 px-3 text-xs font-bold text-blue-100 shadow-sm shadow-blue-950/30 transition-all hover:border-blue-200/70 hover:bg-blue-500/35 hover:text-white hover:shadow-blue-500/20"
               title="編輯詳情"
+              aria-label="編輯員工"
             >
-              <Pencil className="h-3 w-3" />
+              <Pencil className="h-3.5 w-3.5" />
               <span>編輯</span>
             </button>
-            <span aria-hidden="true" className="h-3.5 w-px bg-white/10" />
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setNewPassword(''); setShowResetPassword(false); setShowPasswordReset({ id: employee.id, username: employee.username }); }}
-              className="group inline-flex h-5 items-center gap-1 rounded-md border border-transparent px-2 text-[10px] font-semibold text-amber-200 transition-colors hover:border-amber-300/35 hover:bg-amber-500/20 hover:text-amber-50"
+              className="inline-flex h-6 items-center gap-1.5 rounded-lg border border-amber-300/35 bg-amber-500/15 px-3 text-xs font-bold text-amber-100 shadow-sm shadow-amber-950/30 transition-all hover:border-amber-200/70 hover:bg-amber-500/35 hover:text-white hover:shadow-amber-500/20"
               title="重設密碼"
+              aria-label="修改員工密碼"
             >
-              <Key className="h-3 w-3" />
-              <span>密碼</span>
+              <Key className="h-3.5 w-3.5" />
+              <span>改密碼</span>
             </button>
-            <span aria-hidden="true" className="h-3.5 w-px bg-white/10" />
             <button
               onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setDeletingEmployee(employee); }}
-              className="group inline-flex h-5 items-center gap-1 rounded-md border border-transparent px-2 text-[10px] font-semibold text-rose-200 transition-colors hover:border-rose-300/35 hover:bg-rose-500/20 hover:text-rose-50"
+              className="inline-flex h-6 items-center gap-1.5 rounded-lg border border-rose-300/35 bg-rose-500/15 px-3 text-xs font-bold text-rose-100 shadow-sm shadow-rose-950/30 transition-all hover:border-rose-200/70 hover:bg-rose-500/35 hover:text-white hover:shadow-rose-500/20"
               title="刪除"
+              aria-label="刪除員工帳戶"
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 className="h-3.5 w-3.5" />
               <span>刪除</span>
             </button>
           </div>
