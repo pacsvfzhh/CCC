@@ -522,7 +522,7 @@ export default function CustomerAvatarPicker({ value, onChange, theme, variant, 
 
   return (
     <div className={`rounded-2xl border shadow-inner shadow-black/15 ${size === 'large' ? 'p-1.5' : 'p-2.5'} ${variant === 'vip' ? 'border-amber-100/55 bg-gradient-to-br from-amber-100/25 via-white/10 to-yellow-100/20' : styles.panel}`}>
-      <div className={`grid ${size === 'large' ? 'grid-cols-6 gap-1 sm:grid-cols-8' : 'gap-1'} ${variant === 'vip' ? 'grid-cols-6' : size === 'large' ? '' : 'grid-cols-8 sm:grid-cols-10'}`}>
+      <div className={`grid gap-1 ${variant === 'vip' ? (size === 'large' ? 'grid-cols-8' : 'grid-cols-6') : size === 'large' ? 'grid-cols-6 sm:grid-cols-8' : 'grid-cols-8 sm:grid-cols-10'}`}>
         {options.map((option, index) => {
           const optionValue = getAvatarKey(collection, index);
           const selected = value === optionValue || (!isStoredAvatarKey && selectedIndex === index);

@@ -4333,8 +4333,8 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       {/* Customer Create/Edit Modal */}
       {(showCustomerForm || editingCustomer) && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-slate-950/85 p-4 backdrop-blur-lg" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowCustomerForm(false); setEditingCustomer(null); setCustomerForm({ name: '', avatar: 'customer-avatar:regular:0', isSuper: false, superTitle: '', customId: '', badgeType: '', vipLabel: 'VIP', customAvatarFile: null, useCustomAvatar: false, remarks: '' }); } }}>
-          <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--orange relative w-full max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[24px] border p-5 shadow-[0_24px_80px_rgba(2,6,23,0.78)] ring-1 ring-white/5 ${customerForm.isSuper ? 'max-w-5xl' : 'max-w-3xl'} transition-all duration-200`}>
-            <div className="mb-5 flex items-start justify-between gap-4 border-b border-orange-200/15 pb-4">
+          <form onClick={(e) => e.stopPropagation()} onSubmit={editingCustomer ? (e) => { e.preventDefault(); handleUpdateCustomer(); } : handleCreateCustomer} className={`create-customer-modal create-customer-modal--orange relative w-full max-h-[calc(100vh-1rem)] overflow-y-auto rounded-[20px] border p-4 shadow-[0_22px_70px_rgba(2,6,23,0.78)] ring-1 ring-white/5 ${customerForm.isSuper ? 'max-w-4xl' : 'max-w-3xl'} transition-all duration-200`}>
+            <div className="mb-4 flex items-start justify-between gap-4 border-b border-orange-200/15 pb-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-orange-300/30 bg-gradient-to-br from-orange-500/30 via-amber-500/20 to-slate-900/60 text-orange-100 shadow-lg shadow-orange-950/30">
                   {customerForm.isSuper ? <Star className="h-5 w-5" fill="currentColor" /> : <User className="h-5 w-5" />}
@@ -4348,7 +4348,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
               <span className="shrink-0 rounded-full border border-orange-300/25 bg-orange-500/10 px-3 py-1 text-[10px] font-bold tracking-wider text-orange-200">{customerForm.isSuper ? 'VIP 客戶' : '一般客戶'}</span>
             </div>
             {/* Super Customer Toggle */}
-            <div className={`relative mb-5 overflow-hidden rounded-2xl border p-4 transition-all duration-300 ${customerForm.isSuper ? 'border-amber-300/45 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-slate-950/35 shadow-lg shadow-amber-950/20' : 'border-slate-600/70 bg-slate-900/50'}`}>
+            <div className={`relative mb-4 overflow-hidden rounded-xl border p-3 transition-all duration-300 ${customerForm.isSuper ? 'border-amber-300/45 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-slate-950/35 shadow-lg shadow-amber-950/20' : 'border-slate-600/70 bg-slate-900/50'}`}>
               <div className="pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full bg-amber-400/15 blur-3xl" />
               <label className="relative flex cursor-pointer items-center gap-3">
                 <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-all ${customerForm.isSuper ? 'border-amber-300 bg-amber-400 text-slate-950 shadow-md shadow-amber-500/30' : 'border-slate-500 bg-slate-950/40'}`}>
@@ -4373,10 +4373,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
             </div>
 
             {customerForm.isSuper ? (
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
                 {/* Left column: basic info + avatar */}
-                <div className="min-w-0 rounded-2xl border border-slate-700/70 bg-gradient-to-br from-slate-800/75 via-slate-900/60 to-blue-950/25 p-4 shadow-lg shadow-slate-950/20">
-                  <div className="mb-4 flex items-center gap-3 border-b border-white/10 pb-3">
+                <div className="min-w-0 rounded-xl border border-slate-700/70 bg-gradient-to-br from-slate-800/75 via-slate-900/60 to-blue-950/25 p-3 shadow-lg shadow-slate-950/20">
+                  <div className="mb-3 flex items-center gap-3 border-b border-white/10 pb-2">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-300 ring-1 ring-blue-400/25"><User className="h-4 w-4" /></div>
                     <div><h4 className="text-sm font-bold text-white">基本資料與頭像</h4><p className="mt-0.5 text-[10px] text-slate-400">設定客戶名稱與顯示頭像</p></div>
                   </div>
@@ -4458,14 +4458,15 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                         onChange={(avatar) => setCustomerForm({ ...customerForm, avatar })}
                         theme="orange"
                         variant="vip"
+                        size="large"
                       />
                     </div>
                   )}
                 </div>
 
                 {/* Right column: VIP settings */}
-                <div className="min-w-0 rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-950/55 via-orange-950/25 to-slate-900/60 p-4 shadow-lg shadow-amber-950/20">
-                  <div className="mb-4 flex items-center gap-3 border-b border-amber-300/15 pb-3">
+                <div className="min-w-0 rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-950/55 via-orange-950/25 to-slate-900/60 p-3 shadow-lg shadow-amber-950/20">
+                  <div className="mb-3 flex items-center gap-3 border-b border-amber-300/15 pb-2">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400/15 text-amber-200 ring-1 ring-amber-300/25"><Star className="h-4 w-4" fill="currentColor" /></div>
                     <div><h4 className="text-sm font-bold text-amber-50">VIP 專屬設定</h4><p className="mt-0.5 text-[10px] text-amber-200/60">自訂身份標籤與聊天顯示風格</p></div>
                   </div>
@@ -4608,7 +4609,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
               </div>
             )}
 
-            <div className="create-customer-modal__actions mt-6 flex gap-3">
+            <div className="create-customer-modal__actions mt-4 flex gap-3">
               <button
                 type="submit"
                 disabled={savingCustomer}
