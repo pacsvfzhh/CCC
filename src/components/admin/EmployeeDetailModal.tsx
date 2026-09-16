@@ -384,9 +384,9 @@ export default function EmployeeDetailModal({
       .order("id", { ascending: false });
 
     if (date) {
-      const start = new Date(`${date}T00:00:00`);
+      const start = new Date(`${date}T00:00:00Z`);
       const end = new Date(start);
-      end.setDate(end.getDate() + 1);
+      end.setUTCDate(end.getUTCDate() + 1);
       const matchingOrderIds = Object.entries(orderDateByIdRef.current)
         .filter(([, orderDate]) => orderDate === date)
         .map(([orderId]) => orderId);
@@ -838,9 +838,9 @@ export default function EmployeeDetailModal({
   const formatCalendarDate = (timestamp: string) => {
     const date = new Date(timestamp);
     return [
-      date.getFullYear(),
-      String(date.getMonth() + 1).padStart(2, "0"),
-      String(date.getDate()).padStart(2, "0"),
+      date.getUTCFullYear(),
+      String(date.getUTCMonth() + 1).padStart(2, "0"),
+      String(date.getUTCDate()).padStart(2, "0"),
     ].join("-");
   };
 
