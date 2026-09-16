@@ -190,6 +190,10 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
       if (callerSignal?.aborted) throw createSupabaseAbortError();
 
       const isTimeout = timedOut;
+      if (!isTimeout && isSupabaseAbortError(error)) {
+        throw createSupabaseAbortError();
+      }
+
       const shouldRetry = canRetry
         && attempt < MAX_NETWORK_RETRIES
         && (isTimeout || isNetworkFetchError(error));

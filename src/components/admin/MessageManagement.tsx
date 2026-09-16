@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { formatSupabaseError, supabase } from '../../lib/supabase';
+import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import TiptapEditor, { type TiptapEditorRef } from './TiptapEditor';
 import {
@@ -734,7 +734,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
       setRecipientDetails(prev => new Map(prev).set(messageId, { read, unread }));
     } catch (error) {
-      console.error('Error loading recipient details:', error);
+      if (!isSupabaseAbortError(error)) {
+        console.error('Error loading recipient details:', formatSupabaseError(error));
+      }
     } finally {
       setLoadingRecipientDetails(false);
     }
