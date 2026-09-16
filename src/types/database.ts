@@ -2072,6 +2072,20 @@ export interface Database {
         Args: Record<string, never>;
         Returns: unknown;
       };
+      reconcile_stale_dispatch_assignments: {
+        Args: {
+          p_submitted_timeout_minutes?: number;
+          p_unsubmitted_timeout_minutes?: number;
+        };
+        Returns: {
+          auto_completed?: number;
+          auto_failed?: number;
+          checked_at?: string;
+          submitted_timed_out?: number;
+          success?: boolean;
+          unsubmitted_timed_out?: number;
+        };
+      };
       assign_next_dispatch_order: {
         Args: {
           p_dispatch_mode?: string;
