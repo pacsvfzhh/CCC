@@ -1230,6 +1230,34 @@ button .animate-bell-ring.keep-animation,
     height: 8px;
   }
 
+  .scrollbar-manager {
+    scrollbar-color: rgba(45, 212, 191, 0.78) rgba(6, 78, 59, 0.38);
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-manager::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-manager::-webkit-scrollbar-track {
+    background: linear-gradient(180deg, rgba(6, 78, 59, 0.48), rgba(15, 61, 52, 0.34));
+    border: 1px solid rgba(45, 212, 191, 0.14);
+    border-radius: 999px;
+  }
+
+  .scrollbar-manager::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(52, 211, 153, 0.9), rgba(13, 148, 136, 0.78));
+    border: 2px solid rgba(6, 78, 59, 0.55);
+    border-radius: 999px;
+    box-shadow: 0 0 10px rgba(20, 184, 166, 0.28);
+  }
+
+  .scrollbar-manager::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(110, 231, 183, 0.98), rgba(20, 184, 166, 0.92));
+    box-shadow: 0 0 14px rgba(45, 212, 191, 0.48);
+  }
+
   .scrollbar-thumb-slate-700::-webkit-scrollbar-thumb {
     background-color: rgb(51 65 85);
     border-radius: 4px;

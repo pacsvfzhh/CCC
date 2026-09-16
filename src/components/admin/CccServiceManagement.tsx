@@ -5222,7 +5222,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                         <div className="px-2 py-1 bg-slate-800/80 border-b border-slate-600/30 flex-shrink-0">
                           <span className="text-[10px] font-medium text-slate-400">可選員工 ({employees.filter(emp => !customerForm.targetEmployeeIds.includes(emp.id) && (!customerForm._empSearch || emp.username.toLowerCase().includes((customerForm._empSearch || '').toLowerCase()) || emp.employee_id.toLowerCase().includes((customerForm._empSearch || '').toLowerCase()))).length})</span>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
+                        <div className="flex-1 overflow-y-auto p-1 space-y-0.5 scrollbar-thin scrollbar-manager">
                           {employees.filter(emp => !customerForm.targetEmployeeIds.includes(emp.id) && (!customerForm._empSearch || emp.username.toLowerCase().includes((customerForm._empSearch || '').toLowerCase()) || emp.employee_id.toLowerCase().includes((customerForm._empSearch || '').toLowerCase()))).map(emp => (
                             <button
                               key={emp.id}
@@ -5244,7 +5244,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                         <div className="px-2 py-1 bg-teal-900/40 border-b border-teal-500/20 flex-shrink-0">
                           <span className="text-[10px] font-medium text-teal-300">已選員工 ({customerForm.targetEmployeeIds.length})</span>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
+                        <div className="flex-1 overflow-y-auto p-1 space-y-0.5 scrollbar-thin scrollbar-manager">
                           {customerForm.targetEmployeeIds.length === 0 ? (
                             <div className="flex items-center justify-center h-full">
                               <span className="text-[10px] text-teal-400/60 italic">所有員工（未指定個別員工）</span>
@@ -5396,7 +5396,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                           <div className="px-2 py-1 bg-slate-800/80 border-b border-slate-600/30 flex-shrink-0">
                             <span className="text-[10px] font-medium text-slate-400">可選員工 ({employees.filter(emp => !customerForm.targetEmployeeIds.includes(emp.id) && (!customerForm._empSearch || emp.username.toLowerCase().includes((customerForm._empSearch || '').toLowerCase()) || emp.employee_id.toLowerCase().includes((customerForm._empSearch || '').toLowerCase()))).length})</span>
                           </div>
-                          <div className="flex-1 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
+                          <div className="flex-1 overflow-y-auto p-1 space-y-0.5 scrollbar-thin scrollbar-manager">
                             {employees.filter(emp => !customerForm.targetEmployeeIds.includes(emp.id) && (!customerForm._empSearch || emp.username.toLowerCase().includes((customerForm._empSearch || '').toLowerCase()) || emp.employee_id.toLowerCase().includes((customerForm._empSearch || '').toLowerCase()))).map(emp => (
                               <button
                                 key={emp.id}
@@ -5418,7 +5418,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                           <div className="px-2 py-1 bg-teal-900/40 border-b border-teal-500/20 flex-shrink-0">
                             <span className="text-[10px] font-medium text-teal-300">已選員工 ({customerForm.targetEmployeeIds.length})</span>
                           </div>
-                          <div className="flex-1 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
+                          <div className="flex-1 overflow-y-auto p-1 space-y-0.5 scrollbar-thin scrollbar-manager">
                             {customerForm.targetEmployeeIds.length === 0 ? (
                               <div className="flex items-center justify-center h-full">
                                 <span className="text-[10px] text-teal-400/60 italic">所有員工（未指定個別員工）</span>
