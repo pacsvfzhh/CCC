@@ -1932,7 +1932,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
 
     return createPortal(
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm" onClick={() => setLoginIPEmployee(null)}>
-        <div className="flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-[26px] border border-white/10 bg-[#0b1724] shadow-[0_24px_90px_rgba(2,12,27,0.65)]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-[26px] border border-cyan-200/25 bg-[#0b1724] shadow-[0_24px_90px_rgba(2,12,27,0.65)]" onClick={(e) => e.stopPropagation()}>
           <div className="relative shrink-0 overflow-hidden border-b border-white/10 px-5 py-3.5 pr-24 sm:px-6 sm:pr-24">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_34%),linear-gradient(115deg,rgba(15,23,42,0.96),rgba(10,31,46,0.88))]" />
             <div className="relative flex flex-wrap items-center gap-3">
@@ -1990,9 +1990,9 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="login-history-modal-scroll min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#0d1b2a_0%,#0a1521_100%)] p-4 sm:p-6">
+          <div className="login-history-modal-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#0d1b2a_0%,#0a1521_100%)]">
             {loginIPLoading ? (
-              <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
+              <div className="m-4 flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] sm:m-6">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10">
                   <Loader2 className="h-6 w-6 animate-spin text-cyan-300" />
                 </div>
@@ -2000,7 +2000,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 <p className="mt-1 text-xs text-slate-500">正在取得最新登入紀錄</p>
               </div>
             ) : loginIPRecords.length === 0 ? (
-              <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.03] text-center">
+              <div className="m-4 flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.03] text-center sm:m-6">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-500/20 bg-slate-500/10">
                   <Globe className="h-6 w-6 text-slate-500" />
                 </div>
@@ -2008,7 +2008,7 @@ export default function EmployeeManagement({ admin, onQuickAction }: EmployeeMan
                 <p className="mt-1 max-w-xs text-xs text-slate-500">新的登入與登出活動會顯示在這裡。</p>
               </div>
             ) : (
-              <div className="login-history-modal-scroll overflow-x-auto">
+              <div className="w-full overflow-x-auto">
                 <table className="min-w-[720px] w-full">
                   <thead className="bg-white/[0.025]">
                     <tr className="border-y border-white/10">
