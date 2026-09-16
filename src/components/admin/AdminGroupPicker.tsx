@@ -1,4 +1,4 @@
-import { Activity, ArrowUpRight, ChevronRight, MessageCircle, RefreshCw, Users } from 'lucide-react';
+import { Activity, ArrowUpRight, BellRing, ChevronRight, MessageCircle, RefreshCw, Shield, UserCog, Users } from 'lucide-react';
 
 export interface AdminGroup {
   admin_id: string;
@@ -50,9 +50,19 @@ const serviceStyles = {
 
 const formatRole = (role: string) => {
   if (role === 'super_admin') return '超級管理員';
-  if (role === 'secondary_admin') return '副管理員';
+  if (role === 'secondary_admin') return '二級管理員';
   return role;
 };
+
+const getRoleIcon = (role: string) => role === 'super_admin' ? Shield : UserCog;
+
+const getRoleIconStyles = (role: string) => role === 'super_admin'
+  ? 'border-amber-300/45 bg-gradient-to-br from-amber-300/25 via-amber-500/15 to-yellow-700/10 text-amber-200 shadow-[0_8px_20px_-12px_rgba(251,191,36,0.95)] group-hover:border-amber-200/75 group-hover:from-amber-300/35 group-hover:text-amber-100'
+  : 'border-sky-300/40 bg-gradient-to-br from-sky-300/20 via-blue-500/15 to-indigo-700/10 text-sky-200 shadow-[0_8px_20px_-12px_rgba(56,189,248,0.9)] group-hover:border-sky-200/75 group-hover:from-sky-300/30 group-hover:text-sky-100';
+
+const getRoleChipStyles = (role: string) => role === 'super_admin'
+  ? 'border-amber-300/40 bg-amber-400/10 text-amber-200'
+  : 'border-sky-300/35 bg-sky-400/10 text-sky-200';
 
 export default function AdminGroupPicker({ service, groups, unreadCounts, fallbackUnreadCount = 0, loading, onSelect, onRefresh }: AdminGroupPickerProps) {
   const styles = serviceStyles[service];
@@ -78,26 +88,29 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
                   <h2 className="text-lg font-semibold tracking-tight text-white">管理員工作區</h2>
                   <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${styles.chip}`}>{groups.length} 個可用</span>
                 </div>
-                <p className="mt-1 max-w-[560px] break-words text-xs font-medium leading-5 text-slate-300">選擇工作區以進入即時服務控制台 · 所有工作區共有 {totalConversations} 個對話。</p>
               </div>
             </div>
 
-            <div className="flex w-full max-w-[440px] shrink-0 flex-wrap justify-start gap-2 lg:justify-end">
-              <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Users className="h-3 w-3 shrink-0" /> <span className="truncate">群組</span></div>
-                <div className="mt-1 text-base font-bold text-white">{groups.length}</div>
+            <div className="flex w-full max-w-[560px] shrink-0 flex-wrap justify-start gap-2 lg:justify-end">
+              <div className="group/metric w-[104px] rounded-xl border border-cyan-400/25 bg-gradient-to-br from-cyan-500/15 via-cyan-500/5 to-slate-950/35 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(165,243,252,0.12)]">
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-cyan-200/80"><Users className="h-3 w-3 shrink-0" /> <span className="truncate">群組</span></div>
+                <div className="mt-1 text-base font-bold text-cyan-50">{groups.length}</div>
               </div>
-              <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Users className="h-3 w-3 shrink-0" /> <span className="truncate">員工</span></div>
-                <div className="mt-1 text-base font-bold text-white">{totalEmployees}</div>
+              <div className="group/metric w-[104px] rounded-xl border border-violet-400/25 bg-gradient-to-br from-violet-500/15 via-violet-500/5 to-slate-950/35 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(221,214,254,0.12)]">
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-violet-200/80"><UserCog className="h-3 w-3 shrink-0" /> <span className="truncate">員工</span></div>
+                <div className="mt-1 text-base font-bold text-violet-50">{totalEmployees}</div>
               </div>
-              <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><MessageCircle className="h-3 w-3 shrink-0" /> <span className="truncate">客戶</span></div>
-                <div className="mt-1 text-base font-bold text-white">{totalCustomers}</div>
+              <div className="group/metric w-[104px] rounded-xl border border-sky-400/25 bg-gradient-to-br from-sky-500/15 via-sky-500/5 to-slate-950/35 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)]">
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-sky-200/80"><MessageCircle className="h-3 w-3 shrink-0" /> <span className="truncate">客戶</span></div>
+                <div className="mt-1 text-base font-bold text-sky-50">{totalCustomers}</div>
               </div>
-              <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Activity className="h-3 w-3 shrink-0" /> <span className="truncate">未讀</span></div>
-                <div className={`mt-1 text-base font-bold ${totalUnread > 0 ? 'text-rose-300' : 'text-white'}`}>{totalUnread}</div>
+              <div className="group/metric w-[104px] rounded-xl border border-indigo-400/25 bg-gradient-to-br from-indigo-500/15 via-indigo-500/5 to-slate-950/35 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(199,210,254,0.12)]">
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-indigo-200/80"><Activity className="h-3 w-3 shrink-0" /> <span className="truncate">對話</span></div>
+                <div className="mt-1 text-base font-bold text-indigo-50">{totalConversations}</div>
+              </div>
+              <div className="group/metric w-[104px] rounded-xl border border-orange-400/30 bg-gradient-to-br from-orange-500/20 via-amber-500/10 to-slate-950/35 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(253,186,116,0.14)]">
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-orange-200/85"><BellRing className="h-3 w-3 shrink-0" /> <span className="truncate">未讀</span></div>
+                <div className={`mt-1 text-base font-bold ${totalUnread > 0 ? 'text-orange-100' : 'text-orange-200/70'}`}>{totalUnread}</div>
               </div>
             </div>
           </div>
@@ -125,6 +138,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
               <div className="space-y-1 p-1">
                 {groups.map(group => {
                   const unread = getUnreadCount(group);
+                  const RoleIcon = getRoleIcon(group.admin_role);
                   return (
                     <button
                       key={group.admin_id}
@@ -136,37 +150,40 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
                     >
                       <span className={`absolute inset-y-0 left-0 w-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 ${styles.rail}`} />
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${styles.rowIcon}`}>
-                          <Users className="h-4 w-4" />
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all duration-200 ${getRoleIconStyles(group.admin_role)}`} title={formatRole(group.admin_role)}>
+                          <RoleIcon className="h-[18px] w-[18px]" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex min-w-0 flex-wrap items-center gap-2">
                             <span className="truncate text-sm font-bold text-white sm:text-[15px]">{group.admin_username}</span>
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${styles.chip}`}>{formatRole(group.admin_role)}</span>
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${getRoleChipStyles(group.admin_role)}`}>{formatRole(group.admin_role)}</span>
                           </div>
-                          <span className="mt-1 block truncate text-[11px] font-medium text-slate-300/80">工作區 ID · {group.admin_id.slice(0, 8)}</span>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 sm:contents">
                         <div className={`flex items-center justify-between rounded-lg border px-3 py-2 sm:block sm:border-0 sm:bg-transparent sm:p-0 ${styles.metric}`}>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300/70 sm:block">Employees</span>
+                          <span className="text-[10px] font-bold tracking-wider text-slate-300/70 sm:block">員工</span>
                           <span className="text-base font-bold text-white sm:mt-1 sm:block">{Number(group.employee_count || 0)}</span>
                         </div>
                         <div className={`flex items-center justify-between rounded-lg border px-3 py-2 sm:block sm:border-0 sm:bg-transparent sm:p-0 ${styles.metric}`}>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300/70 sm:block">Customers</span>
+                          <span className="text-[10px] font-bold tracking-wider text-slate-300/70 sm:block">客戶</span>
                           <span className="text-base font-bold text-white sm:mt-1 sm:block">{Number(group.customer_count || 0)}</span>
                         </div>
                         <div className={`flex items-center justify-between rounded-lg border px-3 py-2 sm:block sm:border-0 sm:bg-transparent sm:p-0 ${styles.metric}`}>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300/70 sm:block">Conversations</span>
+                          <span className="text-[10px] font-bold tracking-wider text-slate-300/70 sm:block">對話</span>
                           <span className="text-base font-bold text-white sm:mt-1 sm:block">{Number(group.conversation_count || 0)}</span>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-end gap-2">
                         {unread > 0 && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/35 bg-rose-500/15 px-2 py-1 text-[10px] font-bold text-rose-200">
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-300" /> {unread > 99 ? '99+' : unread} 未讀
+                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-orange-300/40 bg-gradient-to-r from-orange-500/25 via-amber-500/15 to-orange-950/30 px-2 py-1 text-[10px] font-bold text-orange-100 shadow-[0_6px_18px_-10px_rgba(249,115,22,0.95)]">
+                            <span className="relative flex h-4 w-4 items-center justify-center rounded-full bg-orange-400/20 ring-1 ring-orange-300/35">
+                              <BellRing className="h-2.5 w-2.5 text-orange-200" />
+                              <span className="absolute inset-0 animate-ping rounded-full bg-orange-300/35" />
+                            </span>
+                            <span>{unread > 99 ? '99+' : unread} 未讀</span>
                           </span>
                         )}
                         <span className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold transition-all ${styles.action}`}>
