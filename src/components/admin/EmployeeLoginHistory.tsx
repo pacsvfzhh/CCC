@@ -367,7 +367,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           return a.admin_username.localeCompare(b.admin_username);
         });
 
-        console.log('Admin groups created:', sorted.length);
+        console.log('管理員群組 created:', sorted.length);
         setAdminGroups(sorted);
         setSelectedAdminId((current) => (
           current && sorted.some((group) => group.admin_id === current)
@@ -513,7 +513,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
                 : 'border border-cyan-300/30 bg-slate-900 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
             }`}
-            title={selectedSecondarySharedIpGroup ? 'Open shared login IP choices' : 'Choose a shared login IP'}
+            title={selectedSecondarySharedIpGroup ? '開啟共用登入 IP 選項' : '選擇共用登入 IP'}
           >
             <MapPin className="h-3 w-3 shrink-0" />
             {selectedSecondarySharedIpGroup ? (
@@ -528,23 +528,23 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     setOpenSharedIpMenu(null);
                   }}
                   className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-600 text-white ring-1 ring-inset ring-red-300 transition-colors hover:bg-red-500 hover:text-white"
-                  aria-label="Clear shared IP filter"
+                  aria-label="清除共用 IP 篩選"
                 >
                   <X className="h-3 w-3" />
                 </span>
               </>
             ) : (
               <>
-                <span className="min-w-0 flex-1 truncate text-left">Shared Login IP</span>
+                <span className="min-w-0 flex-1 truncate text-left">共用登入 IP</span>
                 <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{secondarySharedIpGroups.length}</span>
                 <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === secondaryGroup.admin_id ? 'rotate-180' : ''}`} />
               </>
             )}
           </button>
           {openSharedIpMenu === secondaryGroup.admin_id && (
-            <div role="listbox" aria-label="Shared login IP options" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+            <div role="listbox" aria-label="共用登入 IP 選項" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
               <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">共用登入 IP</span>
                 <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{secondarySharedIpGroups.length}</span>
               </div>
               <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
@@ -585,7 +585,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               setSearchTerm(e.target.value);
               setSharedIpSelection(null);
             }}
-            placeholder="Search by username, employee ID, or IP address..."
+            placeholder="依使用者名稱、員工編號或 IP 位址搜尋…"
             className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-xs font-medium text-slate-900 shadow-[0_6px_18px_rgba(2,6,23,0.14)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
           />
           {searchTerm && (
@@ -597,8 +597,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 setOpenSharedIpMenu(null);
               }}
               className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-500"
-              aria-label="Clear search"
-              title="Clear search"
+              aria-label="清除搜尋"
+              title="清除搜尋"
             >
               <X className="h-3 w-3" />
             </button>
@@ -614,7 +614,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         <div className="flex min-h-0 flex-1 items-center justify-center py-8">
           <div className="text-center">
             <Users className="mx-auto mb-2 h-10 w-10 text-slate-600" />
-            <p className="text-sm text-slate-300">No employees found</p>
+            <p className="text-sm text-slate-300">找不到員工</p>
           </div>
         </div>
       );
@@ -626,18 +626,18 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           <thead className="bg-cyan-950">
             <tr className="border-b border-cyan-500/45">
               <th className="sticky top-0 z-20 w-10 bg-cyan-950 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">#</th>
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Username</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">使用者名稱</th>
               {showAdminGroup && (
-                <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Admin Group</th>
+                <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">管理員群組</th>
               )}
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Employee ID</th>
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">{sharedIpMode ? 'Shared Login IP' : 'Latest Login IP'}</th>
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">{sharedIpMode ? 'Shared Login Time' : 'Latest Login Time'}</th>
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Login System</th>
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout IP</th>
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout Time</th>
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Total Logins</th>
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Actions</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">員工編號</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">{sharedIpMode ? '共用登入 IP' : '最近登入 IP'}</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">{sharedIpMode ? '共用登入時間' : '最近登入時間'}</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">登入系統</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">最近登出 IP</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">最近登出時間</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">登入總次數</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">操作</th>
             </tr>
           </thead>
           <tbody className="bg-slate-950">
@@ -702,7 +702,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                       <History className="h-3.5 w-3.5 text-blue-400" />
                     </div>
                     <span className="text-sm font-semibold text-cyan-100">{(employee.total_logins || 0).toLocaleString()}</span>
-                    <span className="text-[11px] text-slate-300">{(employee.total_logins || 0) === 1 ? 'time' : 'times'}</span>
+                    <span className="text-[11px] text-slate-300">{(employee.total_logins || 0) === 1 ? '次' : '次'}</span>
                   </div>
                 </td>
                 <td className="px-2 py-1">
@@ -711,7 +711,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     className="inline-flex h-5 items-center gap-0.5 whitespace-nowrap px-1 text-[9px] font-medium text-blue-300 transition-colors hover:text-cyan-200"
                   >
                     <Eye className="h-2.5 w-2.5" />
-                    View History
+                    檢視紀錄
                   </button>
                 </td>
               </tr>
@@ -731,9 +731,9 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <History className="h-4 w-4 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/75">Login History</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/75">登入紀錄</p>
               <h3 className="truncate text-base font-bold text-cyan-100 sm:text-lg">{selectedEmployee.username}</h3>
-              <p className="truncate text-[10px] text-slate-400 sm:text-xs">Employee ID: {selectedEmployee.employee_id}</p>
+              <p className="truncate text-[10px] text-slate-400 sm:text-xs">員工編號: {selectedEmployee.employee_id}</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -742,13 +742,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               onClick={() => setHistoryActionFilter(null)}
               className={`group inline-flex h-10 min-w-[104px] shrink-0 items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-cyan-300/80 sm:min-w-[118px] sm:px-3 ${historyActionFilter === null ? 'border-cyan-200 bg-gradient-to-br from-cyan-300 to-blue-500 text-slate-950 shadow-[0_0_20px_rgba(34,211,238,0.38)]' : 'border-cyan-400/60 bg-gradient-to-br from-cyan-950/90 to-slate-900 text-cyan-100 shadow-[0_0_12px_rgba(6,182,212,0.12)] hover:border-cyan-200/80 hover:from-cyan-900/90 hover:to-blue-950/80'}`}
               aria-pressed={historyActionFilter === null}
-              title="Show all records"
+              title="顯示全部紀錄"
             >
               <span className="flex items-center gap-1.5">
                 <span className={`flex h-6 w-6 items-center justify-center rounded-lg ${historyActionFilter === null ? 'bg-slate-950/15' : 'bg-cyan-400/15'}`}>
                   <History className="h-4 w-4" />
                 </span>
-                <span className="text-left text-[11px] font-black uppercase tracking-[0.08em]">All</span>
+                <span className="text-left text-[11px] font-black uppercase tracking-[0.08em]">全部</span>
               </span>
               <span className={`flex min-w-[2rem] items-center justify-center rounded-lg px-1.5 py-1 text-sm font-black leading-none ${historyActionFilter === null ? 'bg-slate-950/15' : 'bg-cyan-400/15'}`}>
                 {detailedHistory.length}
@@ -759,13 +759,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               onClick={() => setHistoryActionFilter((current) => current === 'login' ? null : 'login')}
               className={`group inline-flex h-10 min-w-[104px] shrink-0 items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-emerald-300/80 sm:min-w-[118px] sm:px-3 ${historyActionFilter === 'login' ? 'border-emerald-200 bg-gradient-to-br from-emerald-300 to-emerald-500 text-slate-950 shadow-[0_0_20px_rgba(52,211,153,0.38)]' : 'border-emerald-400/60 bg-gradient-to-br from-emerald-950/90 to-slate-900 text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.12)] hover:border-emerald-200/80 hover:from-emerald-900/90 hover:to-emerald-950/80'}`}
               aria-pressed={historyActionFilter === 'login'}
-              title="Filter login records"
+              title="篩選登入紀錄"
             >
               <span className="flex items-center gap-1.5">
                 <span className={`flex h-6 w-6 items-center justify-center rounded-lg ${historyActionFilter === 'login' ? 'bg-slate-950/15' : 'bg-emerald-400/15'}`}>
                   <LogIn className="h-4 w-4" />
                 </span>
-                <span className="text-left text-[11px] font-black uppercase tracking-[0.08em]">Login</span>
+                <span className="text-left text-[11px] font-black uppercase tracking-[0.08em]">登入</span>
               </span>
               <span className={`flex min-w-[2rem] items-center justify-center rounded-lg px-1.5 py-1 text-sm font-black leading-none ${historyActionFilter === 'login' ? 'bg-slate-950/15' : 'bg-emerald-400/15'}`}>
                 {loginRecordCount}
@@ -776,13 +776,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               onClick={() => setHistoryActionFilter((current) => current === 'logout' ? null : 'logout')}
               className={`group inline-flex h-10 min-w-[104px] shrink-0 items-center justify-between gap-2 rounded-xl border px-2.5 outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-orange-300/80 sm:min-w-[118px] sm:px-3 ${historyActionFilter === 'logout' ? 'border-orange-200 bg-gradient-to-br from-orange-300 to-orange-500 text-slate-950 shadow-[0_0_20px_rgba(251,146,60,0.38)]' : 'border-orange-400/60 bg-gradient-to-br from-orange-950/90 to-slate-900 text-orange-100 shadow-[0_0_12px_rgba(249,115,22,0.12)] hover:border-orange-200/80 hover:from-orange-900/90 hover:to-orange-950/80'}`}
               aria-pressed={historyActionFilter === 'logout'}
-              title="Filter logout records"
+              title="篩選登出紀錄"
             >
               <span className="flex items-center gap-1.5">
                 <span className={`flex h-6 w-6 items-center justify-center rounded-lg ${historyActionFilter === 'logout' ? 'bg-slate-950/15' : 'bg-orange-400/15'}`}>
                   <LogOut className="h-4 w-4" />
                 </span>
-                <span className="text-left text-[11px] font-black uppercase tracking-[0.08em]">Logout</span>
+                <span className="text-left text-[11px] font-black uppercase tracking-[0.08em]">登出</span>
               </span>
               <span className={`flex min-w-[2rem] items-center justify-center rounded-lg px-1.5 py-1 text-sm font-black leading-none ${historyActionFilter === 'logout' ? 'bg-slate-950/15' : 'bg-orange-400/15'}`}>
                 {logoutRecordCount}
@@ -792,7 +792,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               type="button"
               onClick={handleCloseHistory}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-300 bg-red-600 text-white shadow-[0_0_16px_rgba(239,68,68,0.28)] outline-none transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px hover:border-red-200 hover:bg-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.45)] active:translate-y-0 focus-visible:ring-2 focus-visible:ring-red-300/70"
-              aria-label="Close login history"
+              aria-label="關閉登入紀錄"
             >
               <X className="h-4 w-4" />
             </button>
@@ -807,7 +807,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           ) : displayedHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <History className="mb-2 h-10 w-10 text-slate-600" />
-              <p className="text-slate-400">{historyActionFilter ? `No ${historyActionFilter} records found` : 'No login history found'}</p>
+              <p className="text-slate-400">{historyActionFilter ? `找不到${historyActionFilter === 'login' ? '登入' : '登出'}紀錄` : '找不到登入紀錄'}</p>
             </div>
           ) : (
             <div className="min-w-full">
@@ -815,11 +815,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 <thead className="sticky top-0 z-10 bg-slate-900">
                   <tr className="border-b border-cyan-500/35">
                     <th className="w-12 border-b border-cyan-500/30 px-2 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">#</th>
-                    <th className="w-28 border-b border-cyan-500/30 px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">Action</th>
-                    <th className="w-40 border-b border-cyan-500/30 px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">IP Address</th>
-                    <th className="w-[180px] border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">Device Info</th>
-                    <th className="w-[340px] border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">User-Agent</th>
-                    <th className="w-44 border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">Time</th>
+                    <th className="w-28 border-b border-cyan-500/30 px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">動作</th>
+                    <th className="w-40 border-b border-cyan-500/30 px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">IP 位址</th>
+                    <th className="w-[180px] border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">裝置資訊</th>
+                    <th className="w-[340px] border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">使用者代理程式</th>
+                    <th className="w-44 border-b border-cyan-500/30 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/75">時間</th>
                   </tr>
                 </thead>
                 <tbody className="bg-slate-950">
@@ -848,13 +848,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             : 'bg-orange-500/10 text-orange-400 border border-orange-500/30'
                         }`}>
                           {record.action_type === 'login' ? '→' : '←'}
-                          {record.action_type === 'login' ? 'Login' : 'Logout'}
+                          {record.action_type === 'login' ? '登入' : '登出'}
                         </span>
                       </td>
                       <td className="px-3 py-1.5">
                         <div className={`flex max-w-[210px] items-center gap-1.5 font-mono text-[11px] font-bold tracking-tight ${record.action_type === 'login' ? 'text-emerald-100' : 'text-orange-100'}`}>
                           <MapPin className={`h-3.5 w-3.5 shrink-0 ${record.action_type === 'login' ? 'text-emerald-300' : 'text-orange-300'}`} />
-                          <span className="break-all">{record.ip_address || 'Unknown'}</span>
+                          <span className="break-all">{record.ip_address || '未知'}</span>
                         </div>
                       </td>
                       <td className="px-3 py-1.5">
@@ -870,10 +870,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                       <td className="w-[340px] max-w-[340px] px-3 py-1.5 align-top">
                         <p
                           className={`max-h-[2.7em] max-w-[320px] overflow-hidden break-all font-mono text-[9px] leading-[1.35] ${record.action_type === 'login' ? 'text-emerald-200/75' : 'text-orange-200/75'}`}
-                          title={record.user_agent || 'User-Agent not recorded'}
+                          title={record.user_agent || 'User-Agent 未記錄'}
                         >
                           <span className="mr-1 font-sans font-bold uppercase tracking-[0.12em] opacity-70">UA</span>
-                          {record.user_agent || 'Not recorded'}
+                          {record.user_agent || '未記錄'}
                         </p>
                       </td>
                       <td className="px-3 py-1.5">
@@ -900,8 +900,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         <div className={`relative z-50 mb-0 flex shrink-0 flex-col justify-start gap-2 overflow-visible border-b border-cyan-400/25 bg-gradient-to-tr from-blue-950/85 via-slate-950 to-cyan-950/90 px-4 py-2.5 shadow-[0_8px_24px_rgba(8,47,73,0.18)] ${admin.role === 'super_admin' ? 'xl:min-h-[109px]' : 'xl:min-h-[72px]'}`}>
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="min-w-0 pt-1.5">
-              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/80">Admin activity</p>
-              <h2 className="mt-0 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-xl font-bold tracking-tight text-transparent sm:text-2xl">Login History</h2>
+              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300/80">管理員活動</p>
+              <h2 className="mt-0 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-xl font-bold tracking-tight text-transparent sm:text-2xl">登入紀錄</h2>
             </div>
             <div className={`flex min-w-0 items-center justify-end gap-1.5 ${admin.role === 'super_admin' ? 'flex-wrap' : 'flex-nowrap translate-y-2'}`}>
               {admin.role !== 'super_admin' && renderSecondaryControls()}
@@ -910,10 +910,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 disabled={loading || refreshing}
                 aria-busy={refreshing}
                 className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-[0_6px_18px_rgba(8,145,178,0.2)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_10px_22px_rgba(8,145,178,0.26)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:min-w-[88px] xl:min-w-[88px]"
-                title="Refresh data"
+                title="重新整理資料"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${loading || refreshing ? 'animate-spin' : ''}`} />
-                <span className="font-medium">Refresh</span>
+                <span className="font-medium">重新整理</span>
               </button>
             </div>
           </div>
@@ -926,7 +926,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   <div className="flex items-center gap-2">
                     <Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
                     <div>
-                      <p className="text-[8px] font-bold uppercase tracking-[0.08em] text-cyan-200/80">Total Employees</p>
+                      <p className="text-[8px] font-bold uppercase tracking-[0.08em] text-cyan-200/80">員工總數</p>
                       <p className="mt-0.5 text-base font-bold leading-none text-cyan-100">{totalEmployees}</p>
                     </div>
                   </div>
@@ -935,7 +935,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   <div className="flex items-center gap-2">
                     <History className="h-3.5 w-3.5 shrink-0 text-blue-300" />
                     <div>
-                      <p className="text-[8px] font-bold uppercase tracking-[0.08em] text-blue-200/80">Admin Groups</p>
+                      <p className="text-[8px] font-bold uppercase tracking-[0.08em] text-blue-200/80">管理員群組</p>
                       <p className="mt-0.5 text-base font-bold leading-none text-blue-100">{adminGroups.length}</p>
                     </div>
                   </div>
@@ -958,7 +958,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                       ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
                       : 'border border-cyan-300/30 bg-slate-900 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
                   }`}
-                  title={selectedAllSharedIpGroup ? 'Clear shared IP filter' : 'Choose a shared login IP across all admin groups'}
+                  title={selectedAllSharedIpGroup ? '清除共用 IP 篩選' : '選擇所有管理員群組的共用登入 IP'}
                 >
                   <MapPin className="h-3 w-3 shrink-0" />
                   {selectedAllSharedIpGroup ? (
@@ -973,23 +973,23 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           setOpenSharedIpMenu(null);
                         }}
                         className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-600 text-white ring-1 ring-inset ring-red-300 transition-colors hover:bg-red-500 hover:text-white"
-                        aria-label="Clear shared IP filter"
+                        aria-label="清除共用 IP 篩選"
                       >
                         <X className="h-3 w-3" />
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className="min-w-0 flex-1 truncate text-left">Shared Login IP</span>
+                      <span className="min-w-0 flex-1 truncate text-left">共用登入 IP</span>
                       <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{allSharedIpGroups.length}</span>
                       <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === 'all' ? 'rotate-180' : ''}`} />
                     </>
                   )}
                 </button>
                 {openSharedIpMenu === 'all' && (
-                  <div role="listbox" aria-label="Shared login IP options" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+                  <div role="listbox" aria-label="共用登入 IP 選項" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
                     <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">共用登入 IP</span>
                       <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{allSharedIpGroups.length}</span>
                     </div>
                     <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
@@ -1024,22 +1024,22 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   className="inline-flex h-9 w-[190px] items-center gap-2 rounded-lg border border-cyan-300/35 bg-gradient-to-r from-slate-900 to-cyan-950 px-2.5 text-left text-xs font-semibold text-cyan-100 shadow-[0_6px_18px_rgba(8,47,73,0.2)] outline-none transition-[border-color,box-shadow,background-color] hover:border-cyan-200/65 hover:from-slate-800 hover:to-cyan-950 focus:border-cyan-200 focus:ring-4 focus:ring-cyan-400/20"
                   aria-haspopup="listbox"
                   aria-expanded={isAdminMenuOpen}
-                  aria-label="Select admin group"
+                  aria-label="選擇管理員群組"
                 >
                   <Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
                   <span className="min-w-0 flex-1 truncate">
-                    {isSearching ? 'All groups · Search' : selectedAdmin?.username || 'Select group'}
+                    {isSearching ? '所有群組 · 搜尋' : selectedAdmin?.username || '選擇群組'}
                   </span>
                   <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-300 transition-transform ${isAdminMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {isAdminMenuOpen && (
                   <div
                     role="listbox"
-                    aria-label="Admin groups"
+                    aria-label="管理員群組"
                     className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[190px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl"
                   >
                     <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Admin groups</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">管理員群組</span>
                       <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{admins.length}</span>
                     </div>
                     <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
@@ -1097,7 +1097,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                   setSearchTerm(e.target.value);
                   setSharedIpSelection(null);
                 }}
-                placeholder="Search by username, employee ID, or IP address..."
+                placeholder="依使用者名稱、員工編號或 IP 位址搜尋…"
                 className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-xs font-medium text-slate-900 shadow-[0_6px_18px_rgba(2,6,23,0.14)] outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-cyan-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20"
               />
               {searchTerm && (
@@ -1109,8 +1109,8 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     setOpenSharedIpMenu(null);
                   }}
                   className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-500"
-                  aria-label="Clear search"
-                  title="Clear search"
+                  aria-label="清除搜尋"
+                  title="清除搜尋"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -1131,7 +1131,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <div className="pointer-events-none absolute inset-0 z-30 flex items-start justify-center bg-slate-950/20 pt-2 transition-opacity duration-200">
                 <div className="flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-slate-900/90 px-2.5 py-1 text-[10px] font-semibold text-cyan-200 shadow-[0_8px_18px_rgba(2,6,23,0.32)]">
                   <RefreshCw className="h-3 w-3 animate-spin text-cyan-300" />
-                  Refreshing
+                  重新整理中
                 </div>
               </div>
             )}
@@ -1139,11 +1139,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950 isolate">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">Shared IP employees</p>
-                    <p className="mt-0.5 text-xs text-slate-300">All admin groups</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">共用 IP 員工</p>
+                    <p className="mt-0.5 text-xs text-slate-300">所有管理員群組</p>
                   </div>
                   <span className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-200">
-                    {sharedIpRows.length} employees
+                    {sharedIpRows.length} 位員工
                   </span>
                 </div>
                 {renderEmployeeTable(sharedIpRows, true, true)}
@@ -1152,11 +1152,11 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950 isolate">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">Shared IP employees</p>
-                    <p className="mt-0.5 text-xs text-slate-300">Your employees only</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">共用 IP 員工</p>
+                    <p className="mt-0.5 text-xs text-slate-300">僅限您的員工</p>
                   </div>
                   <span className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-200">
-                    {selectedSecondarySharedIpGroup?.employees.length || 0} employees
+                    {selectedSecondarySharedIpGroup?.employees.length || 0} 位員工
                   </span>
                 </div>
                 {renderEmployeeTable(
@@ -1171,13 +1171,13 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950 isolate">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">Search results</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">搜尋結果</p>
                     <p className="mt-0.5 text-xs text-slate-300">
-                      {admin.role === 'super_admin' ? 'All admin groups' : 'Your employees only'}
+                      {admin.role === 'super_admin' ? '所有管理員群組' : '僅限您的員工'}
                     </p>
                   </div>
                   <span className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-200">
-                    {searchRows.length} employees
+                    {searchRows.length} 位員工
                   </span>
                 </div>
                 {renderEmployeeTable(searchRows, true)}
@@ -1186,7 +1186,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <div className="flex min-h-0 flex-1 items-center justify-center py-12">
                 <div className="text-center">
                   <History className="mx-auto mb-3 h-12 w-12 text-slate-600" />
-                  <p className="text-slate-300">No admin groups found</p>
+                  <p className="text-slate-300">找不到管理員群組</p>
                 </div>
               </div>
             ) : (
@@ -1224,7 +1224,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           </h3>
                           {group.admin_role === 'super_admin' && (
                             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-300 border border-yellow-400/40">
-                              SUPER ADMIN
+                              超級管理員
                             </span>
                           )}
                         </div>
@@ -1237,7 +1237,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
                         }`}>
-                          {getDisplayedGroupEmployees(group).length} employee{getDisplayedGroupEmployees(group).length !== 1 ? 's' : ''}
+                          {getDisplayedGroupEmployees(group).length} 位員工
                         </span>
                       </div>
                     {admin.role === 'super_admin' && (
@@ -1255,7 +1255,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_12px_rgba(34,211,238,0.2)]'
                             : 'border border-cyan-300/25 bg-slate-950 text-cyan-200 hover:border-cyan-200/60 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
                         }`}
-                        title={getSelectedGroupSharedIp(group) ? 'Open shared login IP choices' : 'Choose a shared login IP in this group'}
+                        title={getSelectedGroupSharedIp(group) ? '開啟共用登入 IP 選項' : '選擇此群組的共用登入 IP'}
                       >
                         <MapPin className="h-3 w-3 shrink-0" />
                         {getSelectedGroupSharedIp(group) ? (
@@ -1270,23 +1270,23 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                 setOpenSharedIpMenu(null);
                               }}
                               className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-600 text-white ring-1 ring-inset ring-red-300 transition-colors hover:bg-red-500 hover:text-white"
-                              aria-label="Clear shared IP filter"
+                              aria-label="清除共用 IP 篩選"
                             >
                               <X className="h-3 w-3" />
                             </span>
                           </>
                         ) : (
                           <>
-                            <span className="min-w-0 flex-1 truncate text-left">Shared Login IP</span>
+                            <span className="min-w-0 flex-1 truncate text-left">共用登入 IP</span>
                             <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{getSharedIpGroups(group.employees).length}</span>
                             <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === group.admin_id ? 'rotate-180' : ''}`} />
                           </>
                         )}
                       </button>
                       {openSharedIpMenu === group.admin_id && (
-                        <div role="listbox" aria-label={`${group.admin_username} shared login IP options`} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+                        <div role="listbox" aria-label={`${group.admin_username} 共用登入 IP 選項`} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
                           <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
-                            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">Shared Login IP</span>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">共用登入 IP</span>
                             <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{getSharedIpGroups(group.employees).length}</span>
                           </div>
                           <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
@@ -1320,7 +1320,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                         {getDisplayedGroupEmployees(group).length === 0 ? (
                           <div className="text-center py-8">
                             <Users className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-                            <p className="text-slate-300 text-sm">No employees under this admin</p>
+                            <p className="text-slate-300 text-sm">此管理員下沒有員工</p>
                           </div>
                         ) : (
                           <div className="min-h-0 flex-1 overflow-y-scroll overflow-x-auto bg-slate-950 login-history-list-scrollbar pb-1 sm:pb-1.5">
@@ -1328,15 +1328,15 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                               <thead className="bg-cyan-950">
                                 <tr className="border-b border-cyan-500/45">
                                   <th className="sticky top-0 z-20 w-10 bg-cyan-950 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">#</th>
-                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Username</th>
-                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Employee ID</th>
-                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login IP</th>
-                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Login Time</th>
-                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Login System</th>
-                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout IP</th>
-                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Latest Logout Time</th>
-                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Total Logins</th>
-                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">Actions</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">使用者名稱</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">員工編號</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">最近登入 IP</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">最近登入時間</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">登入系統</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">最近登出 IP</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">最近登出時間</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">登入總次數</th>
+                                  <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">操作</th>
                                 </tr>
                               </thead>
                               <tbody className="bg-slate-950">
@@ -1401,7 +1401,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                           {(employee.total_logins || 0).toLocaleString()}
                                         </span>
                                         <span className="text-[11px] text-slate-300">
-                                          {(employee.total_logins || 0) === 1 ? 'time' : 'times'}
+                                          {(employee.total_logins || 0) === 1 ? '次' : '次'}
                                         </span>
                                       </div>
                                     </td>
@@ -1411,7 +1411,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                         className="inline-flex h-5 items-center gap-0.5 whitespace-nowrap px-1 text-[9px] font-medium text-blue-300 transition-colors hover:text-cyan-200"
                                       >
                                         <Eye className="h-2.5 w-2.5" />
-                                        View History
+                                        檢視紀錄
                                       </button>
                                     </td>
                                   </tr>

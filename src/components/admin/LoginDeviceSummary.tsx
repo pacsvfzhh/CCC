@@ -19,7 +19,7 @@ const osLabels = {
   macos: 'macOS',
   linux: 'Linux',
   chromeos: 'ChromeOS',
-  unknown: 'Unknown OS',
+  unknown: '未知作業系統',
 } as const;
 
 const browserLabels = {
@@ -30,8 +30,8 @@ const browserLabels = {
   webview: 'WebView',
   opera: 'Opera',
   samsung: 'Samsung Internet',
-  other: 'Other browser',
-  unknown: 'Unknown browser',
+  other: '其他瀏覽器',
+  unknown: '未知瀏覽器',
 } as const;
 
 const osStyles = {
@@ -133,16 +133,16 @@ export default function LoginDeviceSummary({
         <details className="group mt-2 max-w-full">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[10px] font-semibold text-slate-500 transition-colors hover:text-cyan-300">
             <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
-            <span>User-Agent</span>
-            <span className="font-normal text-slate-600">· raw audit evidence</span>
+            <span>使用者代理程式</span>
+            <span className="font-normal text-slate-600">· 原始稽核證據</span>
           </summary>
           <div className="mt-2 w-full max-w-[420px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.14)]">
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2">
               <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Browser signature
+                瀏覽器特徵
               </span>
-              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[9px] font-semibold text-slate-500">Read only</span>
+              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[9px] font-semibold text-slate-500">唯讀</span>
             </div>
             <p className="max-h-28 overflow-y-auto break-words bg-white p-3 font-mono text-[10px] leading-relaxed text-slate-600">
               {userAgent}
