@@ -50,7 +50,7 @@ interface EmployeeWithAdmin extends Employee {
   pendingWithdrawals?: PendingWithdrawalRecord[];
 }
 
-type SortField = 'totalOrders' | 'todayOrders' | 'todayCompletedOrders' | 'failedOrders' | 'walletBalance' | 'accountBalance' | 'todayCommission' | 'totalWorkMinutes' | 'todayWorkMinutes' | 'created_at';
+type SortField = 'totalOrders' | 'todayOrders' | 'todayCompletedOrders' | 'failedOrders' | 'walletBalance' | 'accountBalance' | 'todayCommission' | 'totalWorkMinutes' | 'todayWorkMinutes' | 'workDays' | 'created_at';
 type SummaryFilter = 'today_working' | 'new_today' | 'currently_working';
 
 const AUTO_REFRESH_INTERVAL_MS = 180000;
@@ -1644,6 +1644,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             todayCommission: employee.todayCommission,
             totalWorkMinutes: employee.totalWorkMinutes,
             todayWorkMinutes: employee.todayWorkMinutes,
+            workDays: employee.workDays,
           };
           return values[groupSort.sortBy!] || 0;
         };
@@ -2640,7 +2641,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           : isSuperAdmin ? 'hover:bg-yellow-500/15' : 'hover:bg-blue-500/15'
       }`}
     >
-      <td className="relative w-[54px] py-0.5 px-1.5 text-xs text-center whitespace-nowrap">
+      <td className="relative w-[34px] py-0.5 px-0.5 text-xs text-left whitespace-nowrap">
         <span
           aria-hidden="true"
           className={`pointer-events-none absolute inset-y-0 left-0 w-1 transition-opacity duration-75 ${
@@ -2654,14 +2655,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setPinConfirmEmployee({ id: employee.id, username: employee.username, employeeId: employee.employee_id, currentPinned: employee.is_pinned }); }}
-          className={`inline-flex h-5 min-w-[28px] items-center justify-center rounded-md px-1.5 font-bold tabular-nums transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/80 ${employee.is_pinned ? 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 hover:text-amber-300' : 'text-slate-400 hover:bg-amber-500/10 hover:text-amber-300'}`}
+          className={`inline-flex h-5 min-w-[24px] items-center justify-start rounded-md px-1 font-bold tabular-nums transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/80 ${employee.is_pinned ? 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 hover:text-amber-300' : 'text-slate-400 hover:bg-amber-500/10 hover:text-amber-300'}`}
           title={employee.is_pinned ? '取消釘選' : '釘選至頂端'}
           aria-label={employee.is_pinned ? `取消釘選 ${employee.username}` : `釘選 ${employee.username} 至頂端`}
         >
           {index + 1}
         </button>
       </td>
-      <td className="w-[50px] py-0.5 px-1 text-center whitespace-nowrap">
+      <td className="w-[46px] py-0.5 px-0 text-center whitespace-nowrap">
         {renderWorkStatusBadge(employee.workStatus)}
       </td>
       <td className="group/withdrawal relative w-[104px] overflow-visible py-0.5 px-1 whitespace-nowrap cursor-pointer sm:w-[116px]" onClick={() => setViewingEmployee(employee)}>
@@ -2826,7 +2827,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       </td>
       {/* Work days */}
       <td className="w-[52px] py-0.5 px-1 text-center whitespace-nowrap">
-        <span className="font-bold tabular-nums text-cyan-300" title="每日明細中的獨立活動天數">{employee.workDays}</span>
+        <span className="font-normal tabular-nums text-cyan-300" title="每日明細中的獨立活動天數">{employee.workDays}</span>
       </td>
       <td className="w-[132px] py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-center gap-1">
@@ -2901,8 +2902,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const renderTableHeader = (adminId: string) => (
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
       <tr className="h-[40px]">
-        <th className="w-[54px] px-1.5 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
-        <th className="h-[40px] w-[50px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">工作狀態</th>
+        <th className="w-[34px] px-0.5 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
+        <th className="h-[40px] w-[46px] px-0 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">工作狀態</th>
         <th className="w-[104px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider sm:w-[116px]">使用者</th>
         <th className="hidden w-[100px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider lg:table-cell">員工 ID</th>
         {renderSortableHeader(adminId, 'created_at', '建立日期', 'hidden w-[72px] xl:table-cell')}
@@ -2919,7 +2920,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         {renderSortableHeader(adminId, 'todayCommission', '今日佣金', 'w-[58px]')}
         {renderSortableHeader(adminId, 'totalWorkMinutes', '總工時', 'w-[54px]')}
         {renderSortableHeader(adminId, 'todayWorkMinutes', '今日工時', 'w-[54px]')}
-        <th className="h-[40px] w-[52px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">工作天數</th>
+        {renderSortableHeader(adminId, 'workDays', '工作天數', 'w-[52px]')}
         <th className="h-[40px] w-[132px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">操作</th>
       </tr>
     </thead>
