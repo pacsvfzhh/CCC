@@ -513,7 +513,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
                 : 'border border-cyan-300/30 bg-slate-900 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
             }`}
-            title={selectedSecondarySharedIpGroup ? '開啟共用登入 IP 選項' : '選擇共用登入 IP'}
+            title={selectedSecondarySharedIpGroup ? '開啟相同登入 IP 選項' : '選擇相同登入 IP'}
           >
             <MapPin className="h-3 w-3 shrink-0" />
             {selectedSecondarySharedIpGroup ? (
@@ -528,23 +528,23 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                     setOpenSharedIpMenu(null);
                   }}
                   className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-600 text-white ring-1 ring-inset ring-red-300 transition-colors hover:bg-red-500 hover:text-white"
-                  aria-label="清除共用 IP 篩選"
+                  aria-label="清除相同登入 IP 篩選"
                 >
                   <X className="h-3 w-3" />
                 </span>
               </>
             ) : (
               <>
-                <span className="min-w-0 flex-1 truncate text-left">共用登入 IP</span>
+                <span className="min-w-0 flex-1 truncate text-left">相同登入 IP</span>
                 <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{secondarySharedIpGroups.length}</span>
                 <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === secondaryGroup.admin_id ? 'rotate-180' : ''}`} />
               </>
             )}
           </button>
           {openSharedIpMenu === secondaryGroup.admin_id && (
-            <div role="listbox" aria-label="共用登入 IP 選項" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+            <div role="listbox" aria-label="相同登入 IP 選項" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
               <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">共用登入 IP</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">相同登入 IP</span>
                 <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{secondarySharedIpGroups.length}</span>
               </div>
               <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
@@ -631,7 +631,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">管理員群組</th>
               )}
               <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">員工編號</th>
-              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">{sharedIpMode ? '共用登入 IP' : '最近登入 IP'}</th>
+              <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">{sharedIpMode ? '相同登入 IP' : '最近登入 IP'}</th>
               <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">{sharedIpMode ? '共用登入時間' : '最近登入時間'}</th>
               <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">登入系統</th>
               <th className="sticky top-0 z-20 bg-cyan-950 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-cyan-200/85">最近登出 IP</th>
@@ -958,7 +958,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                       ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_14px_rgba(34,211,238,0.2)]'
                       : 'border border-cyan-300/30 bg-slate-900 text-cyan-200 hover:border-cyan-200/65 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
                   }`}
-                  title={selectedAllSharedIpGroup ? '清除共用 IP 篩選' : '選擇所有管理員群組的共用登入 IP'}
+                  title={selectedAllSharedIpGroup ? '清除相同登入 IP 篩選' : '選擇所有管理員群組的相同登入 IP'}
                 >
                   <MapPin className="h-3 w-3 shrink-0" />
                   {selectedAllSharedIpGroup ? (
@@ -973,23 +973,23 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                           setOpenSharedIpMenu(null);
                         }}
                         className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-600 text-white ring-1 ring-inset ring-red-300 transition-colors hover:bg-red-500 hover:text-white"
-                        aria-label="清除共用 IP 篩選"
+                        aria-label="清除相同登入 IP 篩選"
                       >
                         <X className="h-3 w-3" />
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className="min-w-0 flex-1 truncate text-left">共用登入 IP</span>
+                      <span className="min-w-0 flex-1 truncate text-left">相同登入 IP</span>
                       <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{allSharedIpGroups.length}</span>
                       <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === 'all' ? 'rotate-180' : ''}`} />
                     </>
                   )}
                 </button>
                 {openSharedIpMenu === 'all' && (
-                  <div role="listbox" aria-label="共用登入 IP 選項" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+                  <div role="listbox" aria-label="相同登入 IP 選項" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
                     <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">共用登入 IP</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">相同登入 IP</span>
                       <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{allSharedIpGroups.length}</span>
                     </div>
                     <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
@@ -1139,7 +1139,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950 isolate">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">共用 IP 員工</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">相同登入 IP 員工</p>
                     <p className="mt-0.5 text-xs text-slate-300">所有管理員群組</p>
                   </div>
                   <span className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-200">
@@ -1152,7 +1152,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-cyan-500/20 bg-slate-950 isolate">
                 <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/25 bg-cyan-950/55 px-3 py-2">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">共用 IP 員工</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200/80">相同登入 IP 員工</p>
                     <p className="mt-0.5 text-xs text-slate-300">僅限您的員工</p>
                   </div>
                   <span className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-200">
@@ -1255,7 +1255,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                             ? 'border border-cyan-200/70 bg-cyan-700 text-white shadow-[0_0_12px_rgba(34,211,238,0.2)]'
                             : 'border border-cyan-300/25 bg-slate-950 text-cyan-200 hover:border-cyan-200/60 hover:bg-cyan-800 hover:text-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-600 disabled:shadow-none'
                         }`}
-                        title={getSelectedGroupSharedIp(group) ? '開啟共用登入 IP 選項' : '選擇此群組的共用登入 IP'}
+                        title={getSelectedGroupSharedIp(group) ? '開啟相同登入 IP 選項' : '選擇此群組的相同登入 IP'}
                       >
                         <MapPin className="h-3 w-3 shrink-0" />
                         {getSelectedGroupSharedIp(group) ? (
@@ -1270,23 +1270,23 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                                 setOpenSharedIpMenu(null);
                               }}
                               className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-600 text-white ring-1 ring-inset ring-red-300 transition-colors hover:bg-red-500 hover:text-white"
-                              aria-label="清除共用 IP 篩選"
+                              aria-label="清除相同登入 IP 篩選"
                             >
                               <X className="h-3 w-3" />
                             </span>
                           </>
                         ) : (
                           <>
-                            <span className="min-w-0 flex-1 truncate text-left">共用登入 IP</span>
+                            <span className="min-w-0 flex-1 truncate text-left">相同登入 IP</span>
                             <span className="shrink-0 rounded-full bg-slate-950 px-1.5 py-0.5 text-[9px]">{getSharedIpGroups(group.employees).length}</span>
                             <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${openSharedIpMenu === group.admin_id ? 'rotate-180' : ''}`} />
                           </>
                         )}
                       </button>
                       {openSharedIpMenu === group.admin_id && (
-                        <div role="listbox" aria-label={`${group.admin_username} 共用登入 IP 選項`} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+                        <div role="listbox" aria-label={`${group.admin_username} 相同登入 IP 選項`} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[230px] overflow-hidden rounded-lg border border-cyan-300/30 bg-slate-950 shadow-[0_14px_28px_rgba(2,6,23,0.55)] backdrop-blur-xl">
                           <div className="flex items-center justify-between border-b border-cyan-400/15 bg-gradient-to-r from-cyan-950 to-blue-950 px-2.5 py-1.5">
-                            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">共用登入 IP</span>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/85">相同登入 IP</span>
                             <span className="rounded-full border border-cyan-300/20 bg-cyan-950 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-200">{getSharedIpGroups(group.employees).length}</span>
                           </div>
                           <div className="max-h-64 overflow-y-auto p-1 login-history-menu-scrollbar">
