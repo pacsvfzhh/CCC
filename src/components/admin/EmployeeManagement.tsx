@@ -40,6 +40,7 @@ interface EmployeeWithAdmin extends Employee {
   todayCommission: number;
   totalWorkMinutes: number;
   todayWorkMinutes: number;
+  workDays: number;
   workStatus: 'online' | 'offline' | 'never_started';
   totalOrders: number;
   accountBalance: number;
@@ -891,6 +892,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         walletsResult,
         verificationsResult,
         totalOrdersResult,
+        workDaysResult,
         todayOrdersResult,
         todayCompletedOrdersResult,
         failedOrdersResult,
@@ -906,6 +908,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           ? supabase.from('verification_requests').select('user_id, real_name, wallet_address, phone, email').eq('status', 'approved').in('user_id', userIds)
           : Promise.resolve({ data: [], error: null }),
         supabase.rpc('count_orders_by_user', { user_ids: userIds }),
+        supabase.rpc('count_order_days_by_user', { user_ids: userIds }),
         supabase.rpc('count_today_orders_by_user', { user_ids: userIds, today_start: todayISO }),
         supabase.rpc('count_today_completed_orders_by_user', { user_ids: userIds, today_start: todayISO }),
         supabase.rpc('count_today_valid_data_failed_orders_by_user', { user_ids: userIds, today_start: todayISO }),
@@ -923,6 +926,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         walletsResult.error,
         verificationsResult.error,
         totalOrdersResult.error,
+        workDaysResult.error,
         todayOrdersResult.error,
         todayCompletedOrdersResult.error,
         failedOrdersResult.error,
@@ -954,6 +958,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       if (totalOrdersResult.data) {
         totalOrdersResult.data.forEach((row) => {
           totalOrdersMap.set(row.user_id, row.count || 0);
+        });
+      }
+
+      const workDaysMap = new Map<string, number>();
+      if (workDaysResult.data) {
+        workDaysResult.data.forEach((row) => {
+          workDaysMap.set(row.user_id, Number(row.day_count) || 0);
         });
       }
 
@@ -1057,6 +1068,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           todayCommission: todayCommissionMap.get(emp.id) || 0,
           totalWorkMinutes: wt?.total || 0,
           todayWorkMinutes: wt?.today || 0,
+          workDays: workDaysMap.get(emp.id) || 0,
           workStatus,
           totalOrders: totalOrdersMap.get(emp.id) || 0,
           accountBalance: walletAvailableMap.get(emp.id) || 0,
@@ -2628,7 +2640,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           : isSuperAdmin ? 'hover:bg-yellow-500/15' : 'hover:bg-blue-500/15'
       }`}
     >
-      <td className="relative w-[54px] py-0.5 px-1.5 text-xs text-slate-500 text-center whitespace-nowrap">
+      <td className="relative w-[54px] py-0.5 px-1.5 text-xs text-center whitespace-nowrap">
         <span
           aria-hidden="true"
           className={`pointer-events-none absolute inset-y-0 left-0 w-1 transition-opacity duration-75 ${
@@ -2639,14 +2651,18 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 : 'bg-blue-400 opacity-0 group-hover:opacity-100'
           }`}
         />
-        <span className="absolute left-2 top-1/2 z-10 inline-block -translate-y-1/2 text-left tabular-nums">{index + 1}</span>
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); setPinConfirmEmployee({ id: employee.id, username: employee.username, employeeId: employee.employee_id, currentPinned: employee.is_pinned }); }}
-          className={`absolute right-2 top-1/2 inline-flex -translate-y-1/2 rounded p-0.5 transition-all ${employee.is_pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-amber-400'}`}
+          className={`inline-flex h-5 min-w-[28px] items-center justify-center rounded-md px-1.5 font-bold tabular-nums transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/80 ${employee.is_pinned ? 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 hover:text-amber-300' : 'text-slate-400 hover:bg-amber-500/10 hover:text-amber-300'}`}
           title={employee.is_pinned ? '取消釘選' : '釘選至頂端'}
+          aria-label={employee.is_pinned ? `取消釘選 ${employee.username}` : `釘選 ${employee.username} 至頂端`}
         >
-          <Pin className={`w-3 h-3 ${employee.is_pinned ? 'fill-current' : ''}`} />
+          {index + 1}
         </button>
+      </td>
+      <td className="w-[50px] py-0.5 px-1 text-center whitespace-nowrap">
+        {renderWorkStatusBadge(employee.workStatus)}
       </td>
       <td className="group/withdrawal relative w-[104px] overflow-visible py-0.5 px-1 whitespace-nowrap cursor-pointer sm:w-[116px]" onClick={() => setViewingEmployee(employee)}>
         <div className="flex min-w-0 flex-col">
@@ -2808,9 +2824,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
         <span className="text-green-400">{formatTime(employee.todayWorkMinutes)}</span>
       </td>
-      {/* Work status */}
-      <td className="w-[50px] py-0.5 px-1 text-center whitespace-nowrap">
-        {renderWorkStatusBadge(employee.workStatus)}
+      {/* Work days */}
+      <td className="w-[52px] py-0.5 px-1 text-center whitespace-nowrap">
+        <span className="font-bold tabular-nums text-cyan-300" title="每日明細中的獨立活動天數">{employee.workDays}</span>
       </td>
       <td className="w-[132px] py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-center gap-1">
@@ -2886,6 +2902,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
       <tr className="h-[40px]">
         <th className="w-[54px] px-1.5 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
+        <th className="h-[40px] w-[50px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">工作狀態</th>
         <th className="w-[104px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider sm:w-[116px]">使用者</th>
         <th className="hidden w-[100px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider lg:table-cell">員工 ID</th>
         {renderSortableHeader(adminId, 'created_at', '建立日期', 'hidden w-[72px] xl:table-cell')}
@@ -2902,7 +2919,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         {renderSortableHeader(adminId, 'todayCommission', '今日佣金', 'w-[58px]')}
         {renderSortableHeader(adminId, 'totalWorkMinutes', '總工時', 'w-[54px]')}
         {renderSortableHeader(adminId, 'todayWorkMinutes', '今日工時', 'w-[54px]')}
-        <th className="h-[40px] w-[50px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">工作狀態</th>
+        <th className="h-[40px] w-[52px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">工作天數</th>
         <th className="h-[40px] w-[132px] px-1 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">操作</th>
       </tr>
     </thead>

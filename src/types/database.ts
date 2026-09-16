@@ -2190,6 +2190,10 @@ export interface Database {
         Args: { user_ids: string[] };
         Returns: Array<{ count: number; user_id: string }>;
       };
+      count_order_days_by_user: {
+        Args: { user_ids: string[] };
+        Returns: Array<{ day_count: number; user_id: string }>;
+      };
       count_today_orders_by_user: {
         Args: { today_start: string; user_ids: string[] };
         Returns: Array<{ count: number; user_id: string }>;
