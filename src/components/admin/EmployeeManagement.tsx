@@ -2641,7 +2641,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           : isSuperAdmin ? 'hover:bg-yellow-500/15' : 'hover:bg-blue-500/15'
       }`}
     >
-      <td className="relative w-[34px] py-0.5 pl-1.5 pr-0 text-xs text-left whitespace-nowrap">
+      <td className="relative w-[40px] py-0.5 pl-1.5 pr-0 text-xs text-left whitespace-nowrap">
         <span
           aria-hidden="true"
           className={`pointer-events-none absolute inset-y-0 left-0 w-1 transition-opacity duration-75 ${
@@ -2655,7 +2655,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setPinConfirmEmployee({ id: employee.id, username: employee.username, employeeId: employee.employee_id, currentPinned: employee.is_pinned }); }}
-          className={`inline-flex h-5 min-w-[24px] items-center justify-start rounded-md px-1 font-bold tabular-nums transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/80 ${employee.is_pinned ? 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 hover:text-amber-300' : 'text-slate-400 hover:bg-amber-500/10 hover:text-amber-300'}`}
+          className={`inline-flex h-5 min-w-[32px] items-center justify-start rounded-md px-1.5 font-bold tabular-nums transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/80 ${employee.is_pinned ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 hover:text-amber-300' : 'text-slate-400 hover:bg-amber-500/10 hover:text-amber-300'}`}
           title={employee.is_pinned ? '取消釘選' : '釘選至頂端'}
           aria-label={employee.is_pinned ? `取消釘選 ${employee.username}` : `釘選 ${employee.username} 至頂端`}
         >
@@ -2902,7 +2902,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const renderTableHeader = (adminId: string) => (
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">
       <tr className="h-[40px]">
-        <th className="w-[34px] pl-1.5 pr-0 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
+        <th className="w-[40px] pl-1.5 pr-0 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider">#</th>
         <th className="h-[40px] w-[46px] px-0 py-1 text-center text-[10px] font-semibold text-white uppercase tracking-wider">工作狀態</th>
         <th className="w-[104px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider sm:w-[116px]">使用者</th>
         <th className="hidden w-[100px] px-1 py-1 text-left text-[10px] font-semibold text-white uppercase tracking-wider lg:table-cell">員工 ID</th>
