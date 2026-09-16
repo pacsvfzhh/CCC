@@ -179,6 +179,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const loadSentMessagesRef = useRef<((isBackgroundRefresh?: boolean) => Promise<void>) | null>(null);
   const loadTemplatesRef = useRef<(() => Promise<void>) | null>(null);
   const loadRecipientDetailsRef = useRef<((messageId: string) => Promise<void>) | null>(null);
+  const recipientDetailsRequestsRef = useRef(new Set<string>());
   onConsumeInitialEmployeeRef.current = onConsumeInitialEmployee;
 
   useEffect(() => {
@@ -338,7 +339,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         setSelectedAdminId(filteredGroups[0].id);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      if (!isSupabaseAbortError(error)) {
+        console.error('Error loading data:', formatSupabaseError(error));
+      }
     } finally {
       setLoading(false);
       hasInitiallyLoaded.current = true;
@@ -357,7 +360,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       if (error) throw error;
       setTemplates(data || []);
     } catch (error) {
-      console.error('Error loading templates:', error);
+      if (!isSupabaseAbortError(error)) {
+        console.error('Error loading templates:', formatSupabaseError(error));
+      }
     }
   };
 
@@ -637,27 +642,30 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       if (error) throw error;
 
       const messageIds = (data || []).map(msg => msg.id);
-      const { data: allRecipients } = messageIds.length > 0
+      const { data: allRecipients, error: recipientsError } = messageIds.length > 0
         ? await supabase
             .from('message_recipients')
             .select('message_id, recipient_id, is_read')
             .in('message_id', messageIds)
-        : { data: [] };
+        : { data: [], error: null };
+      if (recipientsError) throw recipientsError;
 
       const recipientIds = Array.from(new Set((allRecipients || []).map(r => r.recipient_id)));
-      const { data: recipientUsers } = recipientIds.length > 0
-        ? await supabase.from('users').select('id, username').in('id', recipientIds)
-        : { data: [] };
+      const { data: recipientUsers, error: recipientUsersError } = recipientIds.length > 0
+        ? await supabase.from('users').select('id, username, employee_id, is_verified').in('id', recipientIds)
+        : { data: [], error: null };
+      if (recipientUsersError) throw recipientUsersError;
 
-      const recipientUsernameMap = new Map(recipientUsers?.map(u => [u.id, u.username]) || []);
-
+      const recipientEmployeeMap = new Map(recipientUsers?.map(user => [user.id, user]) || []);
       const recipientsByMessage = new Map<string, string[]>();
       const statsByMessage = new Map<string, MessageStats>();
       const recipientUsernamesByMessage = new Map<string, string[]>();
+      const recipientDetailsByMessage = new Map<string, { read: Employee[]; unread: Employee[] }>();
 
       messageIds.forEach(msgId => {
         recipientsByMessage.set(msgId, []);
         recipientUsernamesByMessage.set(msgId, []);
+        recipientDetailsByMessage.set(msgId, { read: [], unread: [] });
         statsByMessage.set(msgId, { total_recipients: 0, read_count: 0, unread_count: 0, read_percentage: 0 });
       });
 
@@ -665,10 +673,16 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         const recipientList = recipientsByMessage.get(recipient.message_id)!;
         recipientList.push(recipient.recipient_id);
 
-        const username = recipientUsernameMap.get(recipient.recipient_id);
-        if (username) {
+        const employee = recipientEmployeeMap.get(recipient.recipient_id);
+        if (employee) {
+          const details = recipientDetailsByMessage.get(recipient.message_id)!;
+          if (recipient.is_read) details.read.push(employee as Employee);
+          else details.unread.push(employee as Employee);
+        }
+
+        if (employee?.username) {
           const usernameList = recipientUsernamesByMessage.get(recipient.message_id)!;
-          usernameList.push(username);
+          usernameList.push(employee.username);
         }
 
         const stats = statsByMessage.get(recipient.message_id)!;
@@ -686,9 +700,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       setSentMessages(messagesWithRecipients);
       setMessageStats(statsByMessage);
       setRecipientUsernames(recipientUsernamesByMessage);
+      setRecipientDetails(recipientDetailsByMessage);
       if (!isBackgroundRefresh) setSelectedMessageIds(new Set());
     } catch (error) {
-      console.error('Error loading messages:', error);
+      if (!isSupabaseAbortError(error)) {
+        console.error('Error loading messages:', formatSupabaseError(error));
+      }
     } finally {
       if (!isBackgroundRefresh) setMessagesLoading(false);
     }
@@ -696,8 +713,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   loadSentMessagesRef.current = loadSentMessages;
 
   const loadRecipientDetails = async (messageId: string) => {
-    if (recipientDetails.has(messageId)) return;
+    if (recipientDetails.has(messageId) || recipientDetailsRequestsRef.current.has(messageId)) return;
 
+    recipientDetailsRequestsRef.current.add(messageId);
     setLoadingRecipientDetails(true);
     try {
       const { data: recipients, error } = await supabase
@@ -738,6 +756,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         console.error('Error loading recipient details:', formatSupabaseError(error));
       }
     } finally {
+      recipientDetailsRequestsRef.current.delete(messageId);
       setLoadingRecipientDetails(false);
     }
   };
@@ -902,22 +921,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     (currentPage - 1) * messagesPerPage,
     currentPage * messagesPerPage
   );
-  const paginatedMessageIds = paginatedMessages.map(message => message.id).join(',');
-
   useEffect(() => {
     setCurrentPage(1);
     setSelectedMessageIds(new Set());
   }, [selectedAdminId, messageTypeFilter, messageScopeFilter, readStatusFilter, sentMessagesSearchQuery]);
-
-  useEffect(() => {
-    if (paginatedMessages.length > 0) {
-      paginatedMessages.forEach(msg => {
-        if (msg.recipient_ids && msg.recipient_ids.length > 0 && !recipientDetails.has(msg.id)) {
-          void loadRecipientDetailsRef.current?.(msg.id);
-        }
-      });
-    }
-  }, [paginatedMessages, paginatedMessageIds, recipientDetails]);
 
   const toggleSelectAll = () => {
     if (selectedMessageIds.size === filteredMessages.length && filteredMessages.every(m => selectedMessageIds.has(m.id))) {
