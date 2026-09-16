@@ -1294,8 +1294,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   type="button"
                   onClick={openNavigationSettings}
                   className="group flex h-8 w-full items-center gap-1.5 rounded-lg border border-cyan-800/70 bg-gradient-to-r from-blue-950/90 via-cyan-950/70 to-amber-950/50 px-2 text-left text-[10px] font-semibold text-slate-200 shadow-sm shadow-slate-950/60 transition-all hover:-translate-y-px hover:border-cyan-500/80 hover:from-blue-900/90 hover:via-cyan-900/75 hover:to-amber-900/55 hover:text-white hover:shadow-md hover:shadow-cyan-950/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/80 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
-                  title="Customize navigation order and names"
-                  aria-label="Customize navigation order and names"
+                  title="自訂導覽順序與名稱"
+                  aria-label="自訂導覽順序與名稱"
                 >
                   <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-cyan-300 transition-colors group-hover:text-cyan-100" />
                   <span className="min-w-0 flex-1 truncate">導航設定</span>

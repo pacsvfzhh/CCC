@@ -436,7 +436,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
       const nextEntry: ConversationHistory = {
         employee_id: message.employee_id as string,
-        employee_username: existing?.employee_username || employee?.username || 'Employee',
+        employee_username: existing?.employee_username || employee?.username || '員工',
         employee_number: existing?.employee_number || employee?.employee_id || '',
         employee_tags: existing?.employee_tags || employee?.tags || [],
         employee_remarks: existing?.employee_remarks || employee?.remarks || '',
@@ -1338,14 +1338,14 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
       if (error) throw error;
 
-      setNotification({ type: 'success', text: 'Rating submitted successfully!' });
+      setNotification({ type: 'success', text: '評分已成功提交！' });
       setShowRatingModal(false);
       setRatingValue(0);
       setRatingComment('');
       setPendingRating(null);
       loadMessages();
     } catch (error: unknown) {
-      setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, 'Failed to submit rating') });
+      setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, '提交評分失敗') });
     }
   };
 
@@ -1373,15 +1373,15 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       );
 
       if (tipError) throw tipError;
-      if (!tipResult?.success) throw new Error(tipResult?.error || 'Failed to process tip');
+      if (!tipResult?.success) throw new Error(tipResult?.error || '處理打賞失敗');
       tipOperationIdRef.current = null;
 
-      setNotification({ type: 'success', text: `Tip of $${amount.toFixed(2)} sent to ${selectedEmployee.username}!` });
+      setNotification({ type: 'success', text: `已向 ${selectedEmployee.username} 送出 $${amount.toFixed(2)} 的打賞！` });
       setShowTipModal(false);
       setTipAmount('');
       loadMessages();
     } catch (error: unknown) {
-      setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, 'Failed to send tip') });
+      setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, '送出打賞失敗') });
     } finally {
       setSendingTip(false);
     }
@@ -1732,7 +1732,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
         if (existingCustomerError) throw existingCustomerError;
         if (existingCustomer) {
-          setNotification({ type: 'error', text: 'This 自訂 ID is already in use. Please use a different one.' });
+          setNotification({ type: 'error', text: '此自訂 ID 已被使用，請改用其他 ID。' });
           return;
         }
       }
@@ -1817,7 +1817,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       loadAdminData(selectedAdminId, true, true);
     } catch (error: unknown) {
       const errorMessage = getCustomerServiceErrorMessage(error, '建立客戶失敗');
-      const msg = errorMessage.includes('customer_id_unique') ? 'This 自訂 ID is already in use. Please use a different one.' : errorMessage;
+      const msg = errorMessage.includes('customer_id_unique') ? '此自訂 ID 已被使用，請改用其他 ID。' : errorMessage;
       setNotification({ type: 'error', text: msg });
     } finally {
       setSavingCustomer(false);
@@ -1905,7 +1905,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       loadAdminData(selectedAdminId, true, true);
     } catch (error: unknown) {
       const errorMessage = getCustomerServiceErrorMessage(error, '更新客戶失敗');
-      const msg = errorMessage.includes('customer_id_unique') ? 'This 自訂 ID is already in use. Please use a different one.' : errorMessage;
+      const msg = errorMessage.includes('customer_id_unique') ? '此自訂 ID 已被使用，請改用其他 ID。' : errorMessage;
       setNotification({ type: 'error', text: msg });
     }
   };
@@ -1940,7 +1940,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           if (error) throw error;
 
           invalidateAdminWorkspaceDataCache(selectedAdminId || adminId, 'customer');
-          setNotification({ type: 'success', text: 'Customer deleted successfully!' });
+          setNotification({ type: 'success', text: '客戶已成功刪除！' });
           if (selectedCustomer?.id === customerId) {
             setSelectedCustomer(null);
             setSelectedEmployee(null);
@@ -1948,7 +1948,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           setCustomers(prev => prev.filter(c => c.id !== customerId));
           setConfirmDialog(null);
         } catch (error: unknown) {
-          setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, 'Failed to delete customer') });
+          setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, '刪除客戶失敗') });
           setConfirmDialog(null);
         }
       }
@@ -2630,7 +2630,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setConfirmDialog({
       show: true,
       title: '刪除對話',
-      message: `Delete entire conversation with ${selectedEmployee.username}? This cannot be undone.`,
+      message: `確定要刪除與 ${selectedEmployee.username} 的完整對話嗎？此操作無法復原。`,
       onConfirm: async () => {
         try {
           console.log('Deleting conversation:', {
@@ -2652,13 +2652,13 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
             throw error;
           }
 
-          setNotification({ type: 'success', text: `Conversation deleted (${data?.length || 0} messages removed)` });
+          setNotification({ type: 'success', text: `對話已刪除（已移除 ${data?.length || 0} 則訊息）` });
           conversationMessagesCacheRef.current.delete(`${selectedCustomer.id}:${selectedEmployee.id}`);
           setMessages([]);
           loadConversationHistory();
         } catch (error: unknown) {
           console.error('Delete conversation failed:', formatSupabaseError(error));
-          setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, 'Failed to delete conversation') });
+          setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, '刪除對話失敗') });
         }
         setConfirmDialog(null);
       },
@@ -3119,7 +3119,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-slate-400 tabular-nums flex-shrink-0">{filteredEmployees.length}<span className="text-slate-600">/{employees.length}</span></span>
               <div className="flex items-center gap-1 flex-1">
-                <button type="button" onClick={() => setEmployeeGroupFilter('all')} className={`flex-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${employeeGroupFilter === 'all' ? 'bg-blue-500 text-white border-blue-400 shadow-md shadow-blue-500/30' : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600'}`}>All</button>
+                <button type="button" onClick={() => setEmployeeGroupFilter('all')} className={`flex-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${employeeGroupFilter === 'all' ? 'bg-blue-500 text-white border-blue-400 shadow-md shadow-blue-500/30' : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600'}`}>全部</button>
                 <button type="button" onClick={() => setEmployeeGroupFilter('chatted')} className={`flex-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${employeeGroupFilter === 'chatted' ? 'bg-emerald-500 text-white border-emerald-400 shadow-md shadow-emerald-500/30' : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600'}`}>已聊天</button>
                 <button type="button" onClick={() => setEmployeeGroupFilter('not_chatted')} className={`flex-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${employeeGroupFilter === 'not_chatted' ? 'bg-amber-500 text-white border-amber-400 shadow-md shadow-amber-500/30' : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600'}`}>新的</button>
               </div>
@@ -3221,11 +3221,11 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                       </div>
                     )}
                     <div className="min-w-0">
-                      <h3 className="text-base font-bold text-white leading-tight truncate">{selectedCustomer ? selectedCustomer.customer_name : 'Active Sessions'}</h3>
+                      <h3 className="text-base font-bold text-white leading-tight truncate">{selectedCustomer ? selectedCustomer.customer_name : '進行中的工作階段'}</h3>
                       {selectedCustomer?.is_super && selectedCustomer?.super_customer_title ? (
                         <p className="text-[11px] text-amber-400 font-medium leading-tight mt-0.5 truncate">{selectedCustomer?.super_customer_title}</p>
                       ) : null}
-                      <p className="text-[11px] text-emerald-400 font-mono leading-tight mt-0.5">{selectedCustomer ? `CUS-${selectedCustomer.customer_id}` : 'Select a conversation to continue'}</p>
+                      <p className="text-[11px] text-emerald-400 font-mono leading-tight mt-0.5">{selectedCustomer ? `CUS-${selectedCustomer.customer_id}` : '選擇對話以繼續'}</p>
                     </div>
                   </div>
                   <div className="flex min-w-0 max-w-[58%] items-center gap-1">
@@ -3684,7 +3684,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                             <div className="relative z-10">
                               {renderMessageContent(msg)}
                               <div className={`text-[10px] mt-1.5 ${msg.sender_type === 'customer' ? 'text-slate-500 text-right' : 'text-slate-500'}`}>
-                                {new Date(msg.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(msg.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                               {msg.sender_type === 'customer' && (
                                 <div className={`flex items-center justify-end gap-1 mt-0.5 text-[10px] ${
@@ -3693,7 +3693,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                   {msg.is_read ? (
                                     <>
                                       <CheckCheck className="w-3 h-3" />
-                                      <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                                      <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                                     </>
                                   ) : (
                                     <>
@@ -3720,7 +3720,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                               )}
                             </div>
                             <div className={`border-t px-3 py-1.5 text-[10px] ${msg.sender_type === 'customer' ? 'border-slate-100 bg-white text-right text-slate-500' : 'border-orange-200/10 bg-slate-950/25 text-orange-100/60'}`}>
-                              {new Date(msg.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(msg.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                             {msg.sender_type === 'customer' && (
                               <div className={`flex items-center justify-end gap-1 px-3 pb-1.5 text-[10px] ${
@@ -3729,7 +3729,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                 {msg.is_read ? (
                                   <>
                                     <CheckCheck className="w-3 h-3" />
-                                    <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                                    <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                                   </>
                                 ) : (
                                   <>
@@ -3855,7 +3855,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                       className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm shadow-blue-500/25"
                                     >
                                       <Check className="w-3 h-3" />
-                                      Save
+                                      儲存
                                     </button>
                                     <button
                                       type="button"
@@ -3875,7 +3875,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                   ? 'text-slate-500 text-right'
                                   : 'text-orange-100/60'
                               }`}>
-                                {new Date(msg.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(msg.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                               {msg.sender_type === 'customer' && (
                                 <div className={`flex items-center justify-end gap-1 mt-0.5 text-[10px] ${
@@ -3884,7 +3884,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                   {msg.is_read ? (
                                     <>
                                       <CheckCheck className="w-3 h-3" />
-                                      <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                                      <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                                     </>
                                   ) : (
                                     <>
@@ -3933,7 +3933,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                             <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-orange-300/25 bg-orange-500/20 shadow-lg shadow-orange-900/20">
                               <Zap className="w-3 h-3 text-white" />
                             </div>
-                            <span className="text-[13px] font-bold text-slate-100 tracking-tight">Quick Send</span>
+                            <span className="text-[13px] font-bold text-slate-100 tracking-tight">快速傳送</span>
                             <span className="flex h-5 min-w-5 items-center justify-center rounded-full border border-orange-300/30 bg-orange-500/20 px-1.5 text-[11px] font-bold text-orange-100">{messageTemplates.length}</span>
                           </div>
                           <div className="flex items-center gap-1">
@@ -3945,7 +3945,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                               <Pencil className="w-3 h-3" />
                               管理
                             </button>
-                            <button type="button" onClick={() => setShowTemplatePopup(false)} className="rounded-lg p-1.5 transition-colors hover:bg-orange-500/15" aria-label="Close Quick Send">
+                            <button type="button" onClick={() => setShowTemplatePopup(false)} className="rounded-lg p-1.5 transition-colors hover:bg-orange-500/15" aria-label="關閉快速傳送">
                               <X className="h-3.5 w-3.5 text-orange-200/70 hover:text-orange-100" />
                             </button>
                           </div>
@@ -3993,7 +3993,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                     {tpl.content_type === 'richtext' && (
                                       <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 flex-shrink-0">Rich</span>
                                     )}
-                                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg border border-orange-300/0 bg-orange-500/0 opacity-0 transition-all group-hover:border-orange-300/40 group-hover:bg-orange-500 group-hover:opacity-100" title="Fill into input">
+                                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg border border-orange-300/0 bg-orange-500/0 opacity-0 transition-all group-hover:border-orange-300/40 group-hover:bg-orange-500 group-hover:opacity-100" title="填入輸入框">
                                       <Pencil className="w-2.5 h-2.5 text-white" />
                                     </div>
                                   </div>
@@ -4003,7 +4003,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                     )}
                                     {hasImages && !plainPreview && (
                                       <p className="text-[11px] text-amber-400/70 group-hover:text-amber-300/80 truncate leading-relaxed flex items-center gap-1">
-                                        <Image className="w-3 h-3 inline" /> Contains image{tpl.content.match(/<img\s/gi)!.length > 1 ? 's' : ''}
+                                        <Image className="w-3 h-3 inline" /> 包含圖片
                                       </p>
                                     )}
                                   </div>
@@ -4591,7 +4591,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-orange-200 mb-3">Select Character Avatar</label>
+                  <label className="block text-sm font-medium text-orange-200 mb-3">選擇角色頭像</label>
                   <CustomerAvatarPicker
                     value={customerForm.avatar}
                     onChange={(avatar) => setCustomerForm({ ...customerForm, avatar })}

@@ -342,7 +342,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const [showTemplateManager, setShowTemplateManager] = useState(false);
   const [showTemplatePopup, setShowTemplatePopup] = useState(false);
   const [showRichCardPopup, setShowRichCardPopup] = useState(false);
-  const [templateManagerMode, setTemplate管理rMode] = useState<'richtext' | 'rich_card'>('richtext');
+  const [templateManagerMode, setTemplateManagerMode] = useState<'richtext' | 'rich_card'>('richtext');
   const [templateForm, setTemplateForm] = useState({ name: '', title: '', subtitle: '', content: '', content_type: 'richtext' as 'text' | 'richtext' | 'rich_card' });
   const templateEditorRef = useRef<HTMLDivElement>(null);
   const templateImageInputRef = useRef<HTMLInputElement>(null);
@@ -1534,14 +1534,14 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
       if (error) throw error;
 
-      setNotification({ type: 'success', text: 'Rating submitted successfully!' });
+      setNotification({ type: 'success', text: '評分已成功提交！' });
       setShowRatingModal(false);
       setRatingValue(0);
       setRatingComment('');
       setPendingRating(null);
       loadMessages();
     } catch (error: unknown) {
-      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to submit rating') });
+      setNotification({ type: 'error', text: getCccErrorMessage(error, '提交評分失敗') });
     }
   };
 
@@ -1569,15 +1569,15 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       );
 
       if (tipError) throw tipError;
-      if (!tipResult?.success) throw new Error(tipResult?.error || 'Failed to process tip');
+      if (!tipResult?.success) throw new Error(tipResult?.error || '處理打賞失敗');
       tipOperationIdRef.current = null;
 
-      setNotification({ type: 'success', text: `Tip of $${amount.toFixed(2)} sent to ${selectedEmployee.username}!` });
+      setNotification({ type: 'success', text: `已向 ${selectedEmployee.username} 送出 $${amount.toFixed(2)} 的打賞！` });
       setShowTipModal(false);
       setTipAmount('');
       loadMessages();
     } catch (error: unknown) {
-      setNotification({ type: 'error', text: getCccErrorMessage(error, 'Failed to send tip') });
+      setNotification({ type: 'error', text: getCccErrorMessage(error, '送出打賞失敗') });
     } finally {
       setSendingTip(false);
     }
@@ -3315,14 +3315,14 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                             selectedCustomer?.id === customer.id ? 'bg-white/20 text-white' : 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
                           }`}>
-                            <Pin className="w-2.5 h-2.5" style={{ transform: 'rotate(-45deg)' }} />TOP
+                            <Pin className="w-2.5 h-2.5" style={{ transform: 'rotate(-45deg)' }} />置頂
                           </span>
                         )}
                         {customer.employee_always_visible && (
                           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                             selectedCustomer?.id === customer.id ? 'bg-white/20 text-white' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
                           }`}>
-                            <Eye className="w-2.5 h-2.5" />SHOW
+                            <Eye className="w-2.5 h-2.5" />顯示
                           </span>
                         )}
                         {customer.target_employee_ids && customer.target_employee_ids.length > 0 && (
@@ -3331,8 +3331,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                           }`}>
                             <User className="w-2.5 h-2.5" />
                             {customer.target_employee_ids.length === 1
-                              ? (employees.find(e => e.id === customer.target_employee_ids![0])?.username || 'Specific')
-                              : `${customer.target_employee_ids.length} employees`}
+                              ? (employees.find(e => e.id === customer.target_employee_ids![0])?.username || '指定員工')
+                              : `${customer.target_employee_ids.length} 位員工`}
                           </span>
                         )}
                       </div>
@@ -3497,7 +3497,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-slate-400 tabular-nums flex-shrink-0">{filteredEmployees.length}<span className="text-slate-600">/{employees.length}</span></span>
               <div className="flex items-center gap-1 flex-1">
-                <button type="button" onClick={() => setEmployeeGroupFilter('all')} className={`flex-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${employeeGroupFilter === 'all' ? 'bg-blue-500 text-white border-blue-400 shadow-md shadow-blue-500/30' : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600'}`}>All</button>
+                <button type="button" onClick={() => setEmployeeGroupFilter('all')} className={`flex-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${employeeGroupFilter === 'all' ? 'bg-blue-500 text-white border-blue-400 shadow-md shadow-blue-500/30' : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600'}`}>全部</button>
                 <button type="button" onClick={() => setEmployeeGroupFilter('chatted')} className={`flex-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${employeeGroupFilter === 'chatted' ? 'bg-emerald-500 text-white border-emerald-400 shadow-md shadow-emerald-500/30' : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600'}`}>已聊天</button>
                 <button type="button" onClick={() => setEmployeeGroupFilter('not_chatted')} className={`flex-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${employeeGroupFilter === 'not_chatted' ? 'bg-amber-500 text-white border-amber-400 shadow-md shadow-amber-500/30' : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600'}`}>新的</button>
               </div>
@@ -3599,11 +3599,11 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                       </div>
                     )}
                     <div className="min-w-0">
-                      <h3 className="text-base font-bold text-white leading-tight truncate">{selectedCustomer ? selectedCustomer.customer_name : 'Active Sessions'}</h3>
+                      <h3 className="text-base font-bold text-white leading-tight truncate">{selectedCustomer ? selectedCustomer.customer_name : '進行中的工作階段'}</h3>
                       {selectedCustomer?.is_super && selectedCustomer?.super_customer_title ? (
                         <p className="text-[11px] text-amber-400 font-medium leading-tight mt-0.5 truncate">{selectedCustomer?.super_customer_title}</p>
                       ) : null}
-                      <p className="text-[11px] text-emerald-400 font-mono leading-tight mt-0.5">{selectedCustomer ? `CUS-${selectedCustomer.customer_id}` : 'Select a conversation to continue'}</p>
+                      <p className="text-[11px] text-emerald-400 font-mono leading-tight mt-0.5">{selectedCustomer ? `CUS-${selectedCustomer.customer_id}` : '選擇對話以繼續'}</p>
                     </div>
                   </div>
                   <div className="flex min-w-0 max-w-[58%] items-center gap-1">
@@ -4078,7 +4078,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                             <div className="relative z-10">
                               {renderMessageContent(msg)}
                               <div className={`text-[10px] mt-1.5 ${msg.sender_type === 'customer' ? 'text-slate-500 text-right' : 'text-slate-500'}`}>
-                                {new Date(msg.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(msg.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                               {msg.sender_type === 'customer' && (
                                 <div className={`flex items-center justify-end gap-1 mt-0.5 text-[10px] ${
@@ -4087,7 +4087,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                   {msg.is_read ? (
                                     <>
                                       <CheckCheck className="w-3 h-3" />
-                                      <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                                      <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                                     </>
                                   ) : (
                                     <>
@@ -4114,7 +4114,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                               )}
                             </div>
                             <div className={`border-t px-3 py-1.5 text-[10px] ${msg.sender_type === 'customer' ? 'border-slate-100 bg-white text-right text-slate-500' : 'border-emerald-200/10 bg-slate-950/25 text-emerald-100/60'}`}>
-                              {new Date(msg.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(msg.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                             {msg.sender_type === 'customer' && (
                               <div className={`flex items-center justify-end gap-1 px-3 pb-1.5 text-[10px] ${
@@ -4123,7 +4123,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                 {msg.is_read ? (
                                   <>
                                     <CheckCheck className="w-3 h-3" />
-                                    <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                                    <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                                   </>
                                 ) : (
                                   <>
@@ -4249,7 +4249,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                       className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm shadow-blue-500/25"
                                     >
                                       <Check className="w-3 h-3" />
-                                      Save
+                                      儲存
                                     </button>
                                     <button
                                       type="button"
@@ -4269,7 +4269,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                   ? 'text-slate-500 text-right'
                                   : 'text-emerald-100/60'
                               }`}>
-                                {new Date(msg.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(msg.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                               {msg.sender_type === 'customer' && (
                                 <div className={`flex items-center justify-end gap-1 mt-0.5 text-[10px] ${
@@ -4278,7 +4278,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                   {msg.is_read ? (
                                     <>
                                       <CheckCheck className="w-3 h-3" />
-                                      <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                                      <span>已讀 {msg.read_at ? new Date(msg.read_at).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                                     </>
                                   ) : (
                                     <>
@@ -4335,7 +4335,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
-                              onClick={() => { setShowTemplatePopup(false); setTemplate管理rMode('richtext'); setShowTemplateManager(true); loadTemplates(); }}
+                              onClick={() => { setShowTemplatePopup(false); setTemplateManagerMode('richtext'); setShowTemplateManager(true); loadTemplates(); }}
                               className="flex items-center gap-1 rounded-lg border border-emerald-300/35 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-50 shadow-sm shadow-emerald-950/20 transition-all duration-150 hover:border-emerald-200/70 hover:bg-emerald-500 hover:shadow-emerald-500/25"
                             >
                               <Pencil className="w-3 h-3" />
@@ -4401,7 +4401,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                             <p className="text-[11px] text-slate-400 mb-3">建立快速回覆範本</p>
                             <button
                               type="button"
-                              onClick={() => { setShowTemplatePopup(false); setTemplate管理rMode('richtext'); setShowTemplateManager(true); loadTemplates(); }}
+                              onClick={() => { setShowTemplatePopup(false); setTemplateManagerMode('richtext'); setShowTemplateManager(true); loadTemplates(); }}
                               className="rounded-lg border border-emerald-300/35 bg-emerald-500/20 px-3.5 py-1.5 text-xs font-semibold text-emerald-50 shadow-sm shadow-emerald-950/20 transition-all hover:border-emerald-200/70 hover:bg-emerald-500 hover:shadow-emerald-500/25"
                             >
                               建立範本
@@ -4431,7 +4431,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
-                              onClick={() => { setShowRichCardPopup(false); setTemplate管理rMode('rich_card'); setTemplateForm({ name: '', title: '', subtitle: '', content: '', content_type: 'rich_card' }); setShowTemplateManager(true); loadTemplates(); }}
+                              onClick={() => { setShowRichCardPopup(false); setTemplateManagerMode('rich_card'); setTemplateForm({ name: '', title: '', subtitle: '', content: '', content_type: 'rich_card' }); setShowTemplateManager(true); loadTemplates(); }}
                               className="flex items-center gap-1 rounded-lg border border-sky-300/35 bg-sky-500/15 px-2.5 py-1 text-[11px] font-semibold text-sky-50 shadow-sm shadow-blue-950/20 transition-all duration-150 hover:border-sky-200/70 hover:bg-sky-500 hover:shadow-sky-500/25"
                             >
                               <Pencil className="w-3 h-3" />
@@ -4523,7 +4523,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                             <p className="text-[11px] text-slate-400 mb-3">建立 Rich Card 範本即可直接傳送</p>
                             <button
                               type="button"
-                              onClick={() => { setShowRichCardPopup(false); setTemplate管理rMode('rich_card'); setTemplateForm({ name: '', title: '', subtitle: '', content: '', content_type: 'rich_card' }); setShowTemplateManager(true); loadTemplates(); }}
+                              onClick={() => { setShowRichCardPopup(false); setTemplateManagerMode('rich_card'); setTemplateForm({ name: '', title: '', subtitle: '', content: '', content_type: 'rich_card' }); setShowTemplateManager(true); loadTemplates(); }}
                               className="rounded-lg border border-sky-300/35 bg-sky-500/20 px-3.5 py-1.5 text-xs font-semibold text-sky-50 shadow-sm shadow-blue-950/20 transition-all hover:border-sky-200/70 hover:bg-sky-500 hover:shadow-sky-500/25"
                             >
                               建立 Rich Card
@@ -5504,7 +5504,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                   {templateManagerMode === 'rich_card' ? <Megaphone className="w-4 h-4 text-blue-400" /> : <BookOpen className="w-4 h-4 text-teal-400" />}
                 </div>
                 <h3 className="text-sm font-bold text-white">{templateManagerMode === 'rich_card' ? 'Rich Card 範本' : '訊息範本'}</h3>
-                <span className="text-[11px] text-slate-500 font-medium ml-1">{messageTemplates.filter(t => templateManagerMode === 'rich_card' ? t.content_type === 'rich_card' : t.content_type !== 'rich_card').length} template{messageTemplates.filter(t => templateManagerMode === 'rich_card' ? t.content_type === 'rich_card' : t.content_type !== 'rich_card').length !== 1 ? 's' : ''}</span>
+                <span className="text-[11px] text-slate-500 font-medium ml-1">{messageTemplates.filter(t => templateManagerMode === 'rich_card' ? t.content_type === 'rich_card' : t.content_type !== 'rich_card').length} 個範本</span>
               </div>
               <button onClick={() => { setShowTemplateManager(false); setEditingTemplate(null); setTemplateForm({ name: '', title: '', subtitle: '', content: '', content_type: 'richtext' }); if (templateEditorRef.current) templateEditorRef.current.innerHTML = ''; }} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
                 <X className="w-4 h-4 text-slate-400" />

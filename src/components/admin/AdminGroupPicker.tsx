@@ -48,7 +48,11 @@ const serviceStyles = {
   },
 };
 
-const formatRole = (role: string) => role === 'super_admin' ? 'Super admin' : role;
+const formatRole = (role: string) => {
+  if (role === 'super_admin') return '超級管理員';
+  if (role === 'secondary_admin') return '副管理員';
+  return role;
+};
 
 export default function AdminGroupPicker({ service, groups, unreadCounts, fallbackUnreadCount = 0, loading, onSelect, onRefresh }: AdminGroupPickerProps) {
   const styles = serviceStyles[service];
@@ -71,28 +75,28 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg font-semibold tracking-tight text-white">Admin workspaces</h2>
-                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${styles.chip}`}>{groups.length} available</span>
+                  <h2 className="text-lg font-semibold tracking-tight text-white">管理員工作區</h2>
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${styles.chip}`}>{groups.length} 個可用</span>
                 </div>
-                <p className="mt-1 max-w-[560px] break-words text-xs font-medium leading-5 text-slate-300">Select a workspace to enter its live service console · {totalConversations} conversations across all workspaces.</p>
+                <p className="mt-1 max-w-[560px] break-words text-xs font-medium leading-5 text-slate-300">選擇工作區以進入即時服務控制台 · 所有工作區共有 {totalConversations} 個對話。</p>
               </div>
             </div>
 
             <div className="flex w-full max-w-[440px] shrink-0 flex-wrap justify-start gap-2 lg:justify-end">
               <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Users className="h-3 w-3 shrink-0" /> <span className="truncate">Groups</span></div>
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Users className="h-3 w-3 shrink-0" /> <span className="truncate">群組</span></div>
                 <div className="mt-1 text-base font-bold text-white">{groups.length}</div>
               </div>
               <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Users className="h-3 w-3 shrink-0" /> <span className="truncate">Employees</span></div>
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Users className="h-3 w-3 shrink-0" /> <span className="truncate">員工</span></div>
                 <div className="mt-1 text-base font-bold text-white">{totalEmployees}</div>
               </div>
               <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><MessageCircle className="h-3 w-3 shrink-0" /> <span className="truncate">Customers</span></div>
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><MessageCircle className="h-3 w-3 shrink-0" /> <span className="truncate">客戶</span></div>
                 <div className="mt-1 text-base font-bold text-white">{totalCustomers}</div>
               </div>
               <div className={`w-[104px] rounded-xl border px-2.5 py-2 ${styles.metric}`}>
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Activity className="h-3 w-3 shrink-0" /> <span className="truncate">Unread</span></div>
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300/75"><Activity className="h-3 w-3 shrink-0" /> <span className="truncate">未讀</span></div>
                 <div className={`mt-1 text-base font-bold ${totalUnread > 0 ? 'text-rose-300' : 'text-white'}`}>{totalUnread}</div>
               </div>
             </div>
@@ -116,7 +120,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
           ) : groups.length > 0 ? (
             <div className={`overflow-hidden rounded-xl border bg-slate-900/35 ${styles.border}`}>
               <div className="hidden grid-cols-[minmax(200px,1fr)_repeat(3,90px)_150px] items-center gap-4 border-b border-slate-700/70 bg-slate-900/80 px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-300/75 sm:grid">
-                <span>Workspace</span><span>Employees</span><span>Customers</span><span>Conversations</span><span className="text-right">Action</span>
+                <span>工作區</span><span>員工</span><span>客戶</span><span>對話</span><span className="text-right">操作</span>
               </div>
               <div className="space-y-1 p-1">
                 {groups.map(group => {
@@ -140,7 +144,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
                             <span className="truncate text-sm font-bold text-white sm:text-[15px]">{group.admin_username}</span>
                             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${styles.chip}`}>{formatRole(group.admin_role)}</span>
                           </div>
-                          <span className="mt-1 block truncate text-[11px] font-medium text-slate-300/80">Workspace ID · {group.admin_id.slice(0, 8)}</span>
+                          <span className="mt-1 block truncate text-[11px] font-medium text-slate-300/80">工作區 ID · {group.admin_id.slice(0, 8)}</span>
                         </div>
                       </div>
 
@@ -162,11 +166,11 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
                       <div className="flex items-center justify-end gap-2">
                         {unread > 0 && (
                           <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/35 bg-rose-500/15 px-2 py-1 text-[10px] font-bold text-rose-200">
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-300" /> {unread > 99 ? '99+' : unread} unread
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-300" /> {unread > 99 ? '99+' : unread} 未讀
                           </span>
                         )}
                         <span className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold transition-all ${styles.action}`}>
-                          Open <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                          開啟 <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                         </span>
                       </div>
                       <ChevronRight className={`pointer-events-none absolute -bottom-5 -right-3 h-20 w-20 opacity-[0.04] transition-all duration-300 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:opacity-10 ${styles.accent}`} />
@@ -179,10 +183,10 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
             <div className="flex h-full min-h-[280px] items-center justify-center rounded-xl border border-dashed border-slate-700/80 bg-slate-900/30 px-6 py-12 text-center">
               <div className="max-w-sm">
                 <div className={`mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border ${styles.headerIcon}`}><Users className="h-7 w-7" /></div>
-                <h4 className="mt-5 text-base font-bold text-white">No workspaces available</h4>
-                <p className="mt-2 text-sm font-medium leading-6 text-slate-300/80">There are no active admin workspaces to manage right now. Refresh to check for newly available groups.</p>
+                <h4 className="mt-5 text-base font-bold text-white">目前沒有可用工作區</h4>
+                <p className="mt-2 text-sm font-medium leading-6 text-slate-300/80">目前沒有可管理的啟用中管理員工作區，請重新整理以查看最新群組。</p>
                 <button type="button" onClick={onRefresh} className={`mt-5 inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold text-white shadow-lg transition-all ${styles.action}`}>
-                  <RefreshCw className="h-3.5 w-3.5" /> Refresh directory
+                  <RefreshCw className="h-3.5 w-3.5" /> 重新整理工作區
                 </button>
               </div>
             </div>

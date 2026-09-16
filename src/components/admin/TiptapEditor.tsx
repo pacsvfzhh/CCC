@@ -199,7 +199,7 @@ export interface TiptapEditorRef {
 const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
   content,
   onChange,
-  placeholder = 'Start typing your announcement...',
+  placeholder = '開始輸入公告內容……',
   editable = true,
   adminId,
   theme = 'dark'
@@ -368,7 +368,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       });
 
       xhr.addEventListener('error', () => {
-        resolve({ data: null, error: { message: 'Upload failed' } });
+        resolve({ data: null, error: { message: '上傳失敗' } });
       });
 
       xhr.open('POST', `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/${bucketName}/${fileName}`);
@@ -390,7 +390,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
     setUploading(true);
     setUploadProgress(0);
-    setUploadStatus(`Uploading ${files.length} image(s)...`);
+    setUploadStatus(`正在上傳 ${files.length} 張圖片……`);
 
     try {
       for (let i = 0; i < files.length; i++) {
@@ -400,18 +400,18 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
         console.log(`Processing file: ${file.name}, type: ${file.type}, size: ${fileSizeMB}MB`);
-        setUploadStatus(`Uploading image ${i + 1}/${files.length}: ${file.name} (${fileSizeMB}MB)`);
+        setUploadStatus(`正在上傳圖片 ${i + 1}/${files.length}：${file.name}（${fileSizeMB}MB）`);
 
         if (!file.type.startsWith('image/')) {
           console.log('File type rejected:', file.type);
-          setUploadStatus(`Error: ${file.name} is not an image`);
+          setUploadStatus(`錯誤：${file.name} 不是圖片檔案`);
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
         }
 
         if (file.size > 10 * 1024 * 1024) {
           console.log('File too large:', file.size);
-          setUploadStatus(`Error: ${file.name} exceeds 10MB`);
+          setUploadStatus(`錯誤：${file.name} 超過 10MB`);
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
         }
@@ -429,7 +429,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             setUploadProgress(Math.round(totalProgress));
             const loadedMB = (loaded / (1024 * 1024)).toFixed(2);
             const totalMB = (total / (1024 * 1024)).toFixed(2);
-            setUploadStatus(`Uploading image ${i + 1}/${files.length}: ${file.name} - ${loadedMB}MB / ${totalMB}MB (${fileProgress}%)`);;
+            setUploadStatus(`正在上傳圖片 ${i + 1}/${files.length}：${file.name} - ${loadedMB}MB / ${totalMB}MB（${fileProgress}%）`);;
           }
         );
 
@@ -437,7 +437,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
         if (uploadError) {
           console.error('Upload error:', uploadError);
-          setUploadStatus(`Error uploading ${file.name}: ${uploadError.message}`);
+          setUploadStatus(`上傳 ${file.name} 時發生錯誤：${uploadError.message}`);
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
         }
@@ -455,14 +455,14 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       }
 
       setUploadProgress(100);
-      setUploadStatus('Upload complete!');
+      setUploadStatus('上傳完成！');
       setTimeout(() => {
         setUploadStatus('');
         setUploadProgress(0);
       }, 2000);
     } catch (error: unknown) {
       console.error('Error uploading image:', error);
-      setUploadStatus(`Error: ${formatSupabaseError(error)}`);
+      setUploadStatus(`錯誤：${formatSupabaseError(error)}`);
       setTimeout(() => {
         setUploadStatus('');
         setUploadProgress(0);
@@ -490,7 +490,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
     setUploading(true);
     setUploadProgress(0);
-    setUploadStatus(`Uploading ${files.length} video(s)...`);
+    setUploadStatus(`正在上傳 ${files.length} 個影片……`);
 
     try {
       for (let i = 0; i < files.length; i++) {
@@ -500,18 +500,18 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
         console.log(`Processing file: ${file.name}, type: ${file.type}, size: ${fileSizeMB}MB`);
-        setUploadStatus(`Uploading video ${i + 1}/${files.length}: ${file.name} (${fileSizeMB}MB)`);
+        setUploadStatus(`正在上傳影片 ${i + 1}/${files.length}：${file.name}（${fileSizeMB}MB）`);
 
         if (!file.type.startsWith('video/') && !file.type.startsWith('image/')) {
           console.log('File type rejected:', file.type);
-          setUploadStatus(`Error: ${file.name} is not a video or image`);
+          setUploadStatus(`錯誤：${file.name} 不是影片或圖片檔案`);
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
         }
 
         if (file.size > 100 * 1024 * 1024) {
           console.log('File too large:', file.size);
-          setUploadStatus(`Error: ${file.name} exceeds 100MB`);
+          setUploadStatus(`錯誤：${file.name} 超過 100MB`);
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
         }
@@ -529,7 +529,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             setUploadProgress(Math.round(totalProgress));
             const loadedMB = (loaded / (1024 * 1024)).toFixed(2);
             const totalMB = (total / (1024 * 1024)).toFixed(2);
-            setUploadStatus(`Uploading video ${i + 1}/${files.length}: ${file.name} - ${loadedMB}MB / ${totalMB}MB (${fileProgress}%)`);;
+            setUploadStatus(`正在上傳影片 ${i + 1}/${files.length}：${file.name} - ${loadedMB}MB / ${totalMB}MB（${fileProgress}%）`);;
           }
         );
 
@@ -537,7 +537,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
         if (uploadError) {
           console.error('Upload error:', uploadError);
-          setUploadStatus(`Error uploading ${file.name}: ${uploadError.message}`);
+          setUploadStatus(`上傳 ${file.name} 時發生錯誤：${uploadError.message}`);
           await new Promise(resolve => setTimeout(resolve, 3000));
           continue;
         }
@@ -560,14 +560,14 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       }
 
       setUploadProgress(100);
-      setUploadStatus('Upload complete!');
+      setUploadStatus('上傳完成！');
       setTimeout(() => {
         setUploadStatus('');
         setUploadProgress(0);
       }, 2000);
     } catch (error: unknown) {
       console.error('Error uploading video:', error);
-      setUploadStatus(`Error: ${formatSupabaseError(error)}`);
+      setUploadStatus(`錯誤：${formatSupabaseError(error)}`);
       setTimeout(() => {
         setUploadStatus('');
         setUploadProgress(0);
@@ -589,13 +589,13 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
     if (!file) return;
 
     if (!file.name.endsWith('.docx')) {
-      setUploadStatus('Error: Please select a .docx file');
+      setUploadStatus('錯誤：請選擇 .docx 檔案');
       setTimeout(() => setUploadStatus(''), 3000);
       return;
     }
 
     setUploading(true);
-    setUploadStatus('Importing Word document...');
+    setUploadStatus('正在匯入 Word 文件……');
 
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -612,7 +612,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
           const imageBuffer = typeof imageData === 'string' ? imageData : imageData.toString('base64');
           const contentType: string = image.contentType || 'image/png';
           imageCount++;
-          setUploadStatus(`Uploading image ${imageCount} from Word...`);
+          setUploadStatus(`正在從 Word 文件上傳第 ${imageCount} 張圖片……`);
 
           const byteString = atob(imageBuffer);
           const uint8Array = new Uint8Array(byteString.length);
@@ -651,10 +651,10 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
           editor.chain().focus().insertContent(result.value).run();
         }
         setUploadStatus(imageCount > 0
-          ? `Word document imported with ${imageCount} image(s)!`
-          : 'Word document imported successfully!');
+          ? `Word 文件已匯入，包含 ${imageCount} 張圖片！`
+          : 'Word 文件已成功匯入！');
       } else {
-        setUploadStatus('Error: Could not parse document');
+        setUploadStatus('錯誤：無法解析文件');
       }
 
       if (result.messages.length > 0) {
@@ -662,7 +662,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       }
     } catch (error: unknown) {
       console.error('Error importing Word document:', formatSupabaseError(error));
-      setUploadStatus(`Error: ${formatSupabaseError(error)}`);
+      setUploadStatus(`錯誤：${formatSupabaseError(error)}`);
     } finally {
       setUploading(false);
       setTimeout(() => setUploadStatus(''), 3000);
@@ -843,7 +843,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={() => editor.chain().focus().toggleBold().run()}
               active={editor.isActive('bold')}
-              title="Bold (Ctrl+B)"
+              title="粗體（Ctrl+B）"
             >
               <Bold className="w-4 h-4" />
             </MenuButton>
@@ -851,7 +851,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={() => editor.chain().focus().toggleItalic().run()}
               active={editor.isActive('italic')}
-              title="Italic (Ctrl+I)"
+              title="斜體（Ctrl+I）"
             >
               <Italic className="w-4 h-4" />
             </MenuButton>
@@ -861,7 +861,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={() => (editor.chain().focus() as unknown as TextSizeChain).toggleTextSize('2em').run()}
               active={editor.isActive('textSize', { size: '2em' })}
-              title="Large Text (H1 size)"
+              title="大字（H1 大小）"
             >
               <Heading1 className="w-4 h-4" />
             </MenuButton>
@@ -869,7 +869,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={() => (editor.chain().focus() as unknown as TextSizeChain).toggleTextSize('1.5em').run()}
               active={editor.isActive('textSize', { size: '1.5em' })}
-              title="Medium Text (H2 size)"
+              title="中等文字（H2 大小）"
             >
               <Heading2 className="w-4 h-4" />
             </MenuButton>
@@ -877,7 +877,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={() => (editor.chain().focus() as unknown as TextSizeChain).toggleTextSize('1.25em').run()}
               active={editor.isActive('textSize', { size: '1.25em' })}
-              title="Small Heading (H3 size)"
+              title="小標題（H3 大小）"
             >
               <Heading3 className="w-4 h-4" />
             </MenuButton>
@@ -923,7 +923,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
                 }
               }}
               active={editor.isActive('bulletList')}
-              title="Bullet List"
+              title="項目符號清單"
             >
               <List className="w-4 h-4" />
             </MenuButton>
@@ -967,7 +967,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
                 }
               }}
               active={editor.isActive('orderedList')}
-              title="Numbered List"
+              title="編號清單"
             >
               <ListOrdered className="w-4 h-4" />
             </MenuButton>
@@ -977,7 +977,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={() => editor.chain().focus().setTextAlign('left').run()}
               active={editor.isActive({ textAlign: 'left' })}
-              title="Align Left"
+              title="靠左對齊"
             >
               <AlignLeft className="w-4 h-4" />
             </MenuButton>
@@ -985,7 +985,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={() => editor.chain().focus().setTextAlign('center').run()}
               active={editor.isActive({ textAlign: 'center' })}
-              title="Align Center"
+              title="置中對齊"
             >
               <AlignCenter className="w-4 h-4" />
             </MenuButton>
@@ -993,7 +993,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={() => editor.chain().focus().setTextAlign('right').run()}
               active={editor.isActive({ textAlign: 'right' })}
-              title="Align Right"
+              title="靠右對齊"
             >
               <AlignRight className="w-4 h-4" />
             </MenuButton>
@@ -1003,7 +1003,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <div className="relative">
               <MenuButton
                 onClick={() => { setShowColorPicker(!showColorPicker); setShowBgColorPicker(false); }}
-                title="Text Color"
+                title="文字顏色"
               >
                 <div className="flex flex-col items-center gap-0">
                   <span className="text-xs font-semibold leading-none">A</span>
@@ -1044,7 +1044,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
               <MenuButton
                 onClick={() => { setShowBgColorPicker(!showBgColorPicker); setShowColorPicker(false); }}
                 active={editor.isActive('highlightBg')}
-                title="Background Color"
+                title="背景顏色"
               >
                 <Highlighter className="w-4 h-4" />
               </MenuButton>
@@ -1082,7 +1082,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
                       }}
                       className={`w-full mt-2 px-2 py-1 text-[11px] font-bold rounded-md transition-all text-center ${theme === 'light' ? 'text-red-500 bg-red-50 border border-red-200 hover:bg-red-100' : 'text-red-400 bg-red-900/30 border border-red-700/50 hover:bg-red-900/50'}`}
                     >
-                      Clear
+                      清除
                     </button>
                   </div>
                 </>
@@ -1094,7 +1094,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={handleImageButtonClick}
               disabled={uploading}
-              title={uploading ? uploadStatus : "Upload Image"}
+              title={uploading ? uploadStatus : "上傳圖片"}
             >
               <ImageIcon className="w-4 h-4" />
             </MenuButton>
@@ -1102,7 +1102,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={handleVideoButtonClick}
               disabled={uploading}
-              title={uploading ? uploadStatus : "Upload Video (MP4, WebM)"}
+              title={uploading ? uploadStatus : "上傳影片（MP4、WebM）"}
             >
               <VideoIcon className="w-4 h-4" />
             </MenuButton>
@@ -1110,7 +1110,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={handleWordButtonClick}
               disabled={uploading}
-              title="Import Word Document (.docx)"
+              title="匯入 Word 文件（.docx）"
             >
               <FileText className="w-4 h-4" />
             </MenuButton>
@@ -1120,7 +1120,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={() => editor.chain().focus().undo().run()}
               disabled={!editor.can().chain().focus().undo().run()}
-              title="Undo (Ctrl+Z)"
+              title="復原（Ctrl+Z）"
             >
               <Undo className="w-4 h-4" />
             </MenuButton>
@@ -1128,7 +1128,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={() => editor.chain().focus().redo().run()}
               disabled={!editor.can().chain().focus().redo().run()}
-              title="Redo (Ctrl+Y)"
+              title="重做（Ctrl+Y）"
             >
               <Redo className="w-4 h-4" />
             </MenuButton>
