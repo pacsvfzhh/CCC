@@ -910,10 +910,10 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
                 disabled={loading || refreshing}
                 aria-busy={refreshing}
                 className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-[0_6px_18px_rgba(8,145,178,0.2)] transition-[filter,transform,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_10px_22px_rgba(8,145,178,0.26)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none sm:min-w-[88px] xl:min-w-[88px]"
-                title="重新整理資料"
+                title="刷新資料"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${loading || refreshing ? 'animate-spin' : ''}`} />
-                <span className="font-medium">重新整理</span>
+                <span className="font-medium">刷新</span>
               </button>
             </div>
           </div>
@@ -1131,7 +1131,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
               <div className="pointer-events-none absolute inset-0 z-30 flex items-start justify-center bg-slate-950/20 pt-2 transition-opacity duration-200">
                 <div className="flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-slate-900/90 px-2.5 py-1 text-[10px] font-semibold text-cyan-200 shadow-[0_8px_18px_rgba(2,6,23,0.32)]">
                   <RefreshCw className="h-3 w-3 animate-spin text-cyan-300" />
-                  重新整理中
+                  刷新中
                 </div>
               </div>
             )}
