@@ -195,6 +195,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const loadRecipientDetailsRef = useRef<((messageId: string) => Promise<void>) | null>(null);
   const recipientDetailsRequestsRef = useRef(new Set<string>());
   const recipientDetailsLoadingCountRef = useRef(0);
+  const scopedEmployeeIdsRef = useRef(new Set<string>());
+  const sentMessageIdsRef = useRef(new Set<string>());
   const allDataLoadingRef = useRef(false);
   const templatesLoadingRef = useRef(false);
   const sentMessagesLoadingRef = useRef(false);
@@ -277,17 +279,44 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
     const usersChannel = supabase
       .channel('msg-users-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, debouncedLoadAllData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, payload => {
+        if (admin.role === 'secondary_admin') {
+          const changedEmployee = (payload.new && Object.keys(payload.new).length > 0
+            ? payload.new
+            : payload.old) as { id?: unknown; created_by?: unknown };
+          const employeeId = typeof changedEmployee?.id === 'string' ? changedEmployee.id : null;
+          const createdBy = typeof changedEmployee?.created_by === 'string' ? changedEmployee.created_by : null;
+          if (createdBy !== admin.id && (!employeeId || !scopedEmployeeIdsRef.current.has(employeeId))) return;
+        }
+        debouncedLoadAllData();
+      })
       .subscribe();
 
     const adminsChannel = supabase
       .channel('msg-admins-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'admins' }, debouncedLoadAllData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admins' }, payload => {
+        if (admin.role === 'secondary_admin') {
+          const changedAdmin = (payload.new && Object.keys(payload.new).length > 0
+            ? payload.new
+            : payload.old) as { id?: unknown };
+          if (changedAdmin?.id !== admin.id) return;
+        }
+        debouncedLoadAllData();
+      })
       .subscribe();
 
     const recipientsChannel = supabase
       .channel('msg-recipients-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_recipients' }, debouncedLoadSentMessages)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_recipients' }, payload => {
+        if (admin.role === 'secondary_admin') {
+          const changedRecipient = (payload.new && Object.keys(payload.new).length > 0
+            ? payload.new
+            : payload.old) as { message_id?: unknown };
+          const messageId = typeof changedRecipient?.message_id === 'string' ? changedRecipient.message_id : null;
+          if (!messageId || !sentMessageIdsRef.current.has(messageId)) return;
+        }
+        debouncedLoadSentMessages();
+      })
       .subscribe();
 
     return () => {
@@ -300,7 +329,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       supabase.removeChannel(adminsChannel);
       supabase.removeChannel(recipientsChannel);
     };
-  }, []);
+  }, [admin.id, admin.role]);
 
   // Close tag dropdown on outside click
   useEffect(() => {
@@ -332,13 +361,17 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     allDataLoadingRef.current = true;
     if (!isBackgroundRefresh) setLoading(true);
     try {
-      const adminsQuery = supabase
+      let adminsQuery = supabase
         .from('admins')
         .select('id, username, role')
         .eq('is_active', true)
         .neq('role', 'emergency_admin')
         .order('role', { ascending: false })
         .order('username');
+
+      if (admin.role === 'secondary_admin') {
+        adminsQuery = adminsQuery.eq('id', admin.id);
+      }
 
       let employeesQuery = supabase
         .from('users')
@@ -357,6 +390,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
       if (adminsError) throw adminsError;
       if (employeesError) throw employeesError;
+
+      scopedEmployeeIdsRef.current = admin.role === 'secondary_admin'
+        ? new Set((employeesData || []).map(employee => employee.id))
+        : new Set();
 
       const tagsSet = new Set<string>();
       employeesData?.forEach(emp => {
@@ -401,6 +438,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       }
       setAdminGroups(filteredGroups);
       setAllEmployees(employeesByAdmin);
+
+      if (admin.role === 'secondary_admin' && sentMessageIdsRef.current.size > 0) {
+        void loadSentMessagesRef.current?.(true);
+      }
 
       if (filteredGroups.length > 0 && !selectedAdminIdRef.current) {
         selectedAdminIdRef.current = filteredGroups[0].id;
@@ -732,19 +773,36 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       if (error) throw error;
 
       const messageIds = (data || []).map(msg => msg.id);
-      const { data: allRecipients, error: recipientsError } = messageIds.length > 0
-        ? await supabase
-            .from('message_recipients')
-            .select('message_id, recipient_id, is_read')
-            .in('message_id', messageIds)
-        : { data: [], error: null };
-      if (recipientsError) throw recipientsError;
+      sentMessageIdsRef.current = new Set(messageIds);
 
-      const recipientIds = Array.from(new Set((allRecipients || []).map(r => r.recipient_id)));
-      const { data: recipientUsers, error: recipientUsersError } = recipientIds.length > 0
-        ? await supabase.from('users').select('id, username, employee_id, is_verified').in('id', recipientIds)
-        : { data: [], error: null };
-      if (recipientUsersError) throw recipientUsersError;
+      let allRecipients: Array<{ message_id: string; recipient_id: string; is_read: boolean | null }> = [];
+      if (messageIds.length > 0 && (admin.role !== 'secondary_admin' || scopedEmployeeIdsRef.current.size > 0)) {
+        let recipientsQuery = supabase
+          .from('message_recipients')
+          .select('message_id, recipient_id, is_read')
+          .in('message_id', messageIds);
+        if (admin.role === 'secondary_admin') {
+          recipientsQuery = recipientsQuery.in('recipient_id', Array.from(scopedEmployeeIdsRef.current));
+        }
+        const { data: recipients, error: recipientsError } = await recipientsQuery;
+        if (recipientsError) throw recipientsError;
+        allRecipients = recipients || [];
+      }
+
+      const recipientIds = Array.from(new Set(allRecipients.map(recipient => recipient.recipient_id)));
+      let recipientUsers: Array<{ id: string; username: string; employee_id: string; is_verified: boolean }> = [];
+      if (recipientIds.length > 0) {
+        let recipientUsersQuery = supabase
+          .from('users')
+          .select('id, username, employee_id, is_verified')
+          .in('id', recipientIds);
+        if (admin.role === 'secondary_admin') {
+          recipientUsersQuery = recipientUsersQuery.eq('created_by', admin.id);
+        }
+        const { data: users, error: recipientUsersError } = await recipientUsersQuery;
+        if (recipientUsersError) throw recipientUsersError;
+        recipientUsers = users || [];
+      }
 
       const recipientEmployeeMap = new Map(recipientUsers?.map(user => [user.id, user]) || []);
       const recipientsByMessage = new Map<string, string[]>();
@@ -815,10 +873,20 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     recipientDetailsLoadingCountRef.current += 1;
     setLoadingRecipientDetails(true);
     try {
-      const { data: recipients, error } = await supabase
+      let recipientsQuery = supabase
         .from('message_recipients')
         .select('recipient_id, is_read')
         .eq('message_id', messageId);
+      if (admin.role === 'secondary_admin') {
+        const scopedEmployeeIds = Array.from(scopedEmployeeIdsRef.current);
+        if (scopedEmployeeIds.length === 0) {
+          setRecipientDetails(prev => new Map(prev).set(messageId, { read: [], unread: [] }));
+          return;
+        }
+        recipientsQuery = recipientsQuery.in('recipient_id', scopedEmployeeIds);
+      }
+
+      const { data: recipients, error } = await recipientsQuery;
 
       if (error) throw error;
 
@@ -836,10 +904,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       const missingRecipientIds = rIds.filter(recipientId => !employeeMap.has(recipientId));
 
       if (missingRecipientIds.length > 0) {
-        const { data: employees, error: empError } = await supabase
+        let employeesQuery = supabase
           .from('users')
           .select('id, username, employee_id, is_verified')
           .in('id', missingRecipientIds);
+        if (admin.role === 'secondary_admin') {
+          employeesQuery = employeesQuery.eq('created_by', admin.id);
+        }
+        const { data: employees, error: empError } = await employeesQuery;
 
         if (empError) throw empError;
         employees?.forEach(employee => employeeMap.set(employee.id, employee as Employee));

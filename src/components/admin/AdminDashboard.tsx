@@ -986,16 +986,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         : payload.old;
       if (!message) return;
       const sourceType = message.source_type;
-      pendingCountsRequestRef.current += 1;
-      if (sourceType !== 'aaa_service' && sourceType !== 'ccc_service') {
-        schedulePendingCountsRefresh();
-        return;
-      }
-
-      invalidateConversationSummariesCache(
-        admin.id,
-        sourceType === 'aaa_service' ? 'customer' : 'manager',
-      );
+      if (sourceType !== 'aaa_service' && sourceType !== 'ccc_service') return;
 
       const customerId = typeof message.customer_id === 'string' ? message.customer_id : null;
       const employeeId = typeof message.employee_id === 'string' ? message.employee_id : null;
@@ -1010,9 +1001,16 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         && customerIds.has(customerId)
         && (scope.employeeIds === null || scope.employeeIds.has(employeeId)),
       );
-      const isUnreadEmployeeMessage = message.sender_type === 'employee' && message.is_read === false;
+      if (!isInScope) return;
 
-      if (isInScope && messageId) {
+      pendingCountsRequestRef.current += 1;
+      invalidateConversationSummariesCache(
+        admin.id,
+        sourceType === 'aaa_service' ? 'customer' : 'manager',
+      );
+
+      const isUnreadEmployeeMessage = message.sender_type === 'employee' && message.is_read === false;
+      if (messageId) {
         const tracked = realtimeUnreadMessageIdsRef.current.has(messageId);
         const adjustCount = (delta: number) => {
           if (sourceType === 'aaa_service') {
