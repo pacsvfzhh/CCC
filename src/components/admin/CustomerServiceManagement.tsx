@@ -246,6 +246,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   const conversationHistoryRef = useRef<ConversationHistory[]>([]);
   const conversationHistoryLoadRequestRef = useRef(0);
   const workspaceLoadRequestRef = useRef(0);
+  const employeeRealtimeRequestRef = useRef(0);
   const consumedInitialEmployeeRef = useRef(false);
   const loadAdminDataRef = useRef<((targetAdminId: string, silent?: boolean, force?: boolean) => Promise<void>) | null>(null);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
@@ -1266,6 +1267,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           schema: 'public',
           table: 'users'
         }, () => {
+          const requestId = ++employeeRealtimeRequestRef.current;
           invalidateAdminWorkspaceDataCache(targetAdminId, 'customer');
           supabase
             .from('users')
@@ -1274,7 +1276,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
             .order('username')
             .then(
               ({ data, error }) => {
-                if (selectedAdminIdRef.current !== targetAdminId) return;
+                if (selectedAdminIdRef.current !== targetAdminId || requestId !== employeeRealtimeRequestRef.current) return;
                 if (!error && data) {
                   setEmployees(data);
                   allEmployeesRef.current = data;

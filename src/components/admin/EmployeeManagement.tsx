@@ -278,6 +278,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [walletAdjusting, setWalletAdjusting] = useState(false);
   const [walletNotification, setWalletNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const walletAdjustmentOperationIdRef = useRef<string | null>(null);
+  const walletAdjustingRef = useRef(false);
   const walletLoadRequestRef = useRef(0);
 
   const scrollLockRef = useRef(false);
@@ -2663,6 +2664,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     available?: number;
     pending?: number;
   }) => {
+    if (walletAdjustingRef.current) return;
+
     const requestId = ++walletLoadRequestRef.current;
     const cachedWalletData = employee.available !== undefined && employee.pending !== undefined
       ? { available: employee.available, pending: employee.pending }
@@ -2693,7 +2696,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   }, []);
 
   const handleWalletAdjust = async (type: 'add' | 'subtract') => {
-    if (!walletEmployee || !walletData) return;
+    if (walletAdjustingRef.current || !walletEmployee || !walletData) return;
     if (!walletDataVerified) {
       setWalletNotification({ type: 'error', message: '請等待最新錢包餘額確認完成' });
       return;
@@ -2707,6 +2710,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setWalletNotification({ type: 'error', message: '請輸入備註' });
       return;
     }
+    walletAdjustingRef.current = true;
     setWalletAdjusting(true);
     setWalletNotification(null);
     try {
@@ -2722,7 +2726,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       if (adjustError) throw adjustError;
       if (!result?.success) {
         setWalletNotification({ type: 'error', message: result?.error || '調整餘額失敗' });
-        setWalletAdjusting(false);
         return;
       }
       setWalletData(await loadWalletModalData(walletEmployee.id));
@@ -2733,6 +2736,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       console.error('Error adjusting wallet:', formatSupabaseError(err));
       setWalletNotification({ type: 'error', message: formatSupabaseError(err) || '調整餘額失敗' });
     } finally {
+      walletAdjustingRef.current = false;
       setWalletAdjusting(false);
     }
   };
@@ -2747,7 +2751,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       <div
         className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md"
         onClick={(event) => {
-          if (event.target === event.currentTarget) setWalletEmployee(null);
+          if (event.target === event.currentTarget && !walletAdjustingRef.current) setWalletEmployee(null);
         }}
       >
         <div
@@ -2778,6 +2782,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             <button
               type="button"
               onClick={() => setWalletEmployee(null)}
+              disabled={walletAdjusting}
               aria-label="關閉錢包調整面板"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:border-amber-200/30 hover:bg-amber-400/15 hover:text-amber-100 active:scale-95"
             >
@@ -2900,6 +2905,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   <button
                     type="button"
                     onClick={() => setWalletEmployee(null)}
+                    disabled={walletAdjusting}
                     className="h-11 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-semibold text-slate-300 transition-all hover:border-white/20 hover:bg-white/[0.09] hover:text-white active:scale-[0.98] sm:w-24"
                   >
                     關閉
