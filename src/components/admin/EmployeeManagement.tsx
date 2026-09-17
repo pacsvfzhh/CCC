@@ -87,7 +87,6 @@ type SummaryFilter = 'today_working' | 'new_today' | 'currently_working';
 
 const AUTO_REFRESH_INTERVAL_MS = 180000;
 const AUTO_REFRESH_RETRY_MS = 5000;
-const UNASSIGNED_ADMIN_ID = 'unassigned-employees';
 
 function RefreshCountdown({ nextRefreshAt }: { nextRefreshAt: number }) {
   const [now, setNow] = useState(() => Date.now());
@@ -964,11 +963,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
       const employees = employeesResult.data || [];
       const admins = adminsResult.data || [];
-      const userIds = employees.map((emp: Employee) => emp.id);
+      const adminMap = new Map(admins.map((adminInfo) => [adminInfo.id, adminInfo]));
+      const groupedEmployees = employees.filter((emp: Employee) => adminMap.has(emp.created_by));
+      const userIds = groupedEmployees.map((emp: Employee) => emp.id);
       const previousEmployeesById = new Map(
         employeeGroupsRef.current.flatMap(group => group.employees.map(employee => [employee.id, employee] as const)),
       );
-      const adminMap = new Map(admins.map((adminInfo) => [adminInfo.id, adminInfo]));
       const baseGroups = new Map<string, EmployeeGroup>();
 
       admins.forEach((adminInfo) => {
@@ -978,17 +978,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         });
       });
 
-      employees.forEach((emp: Employee) => {
-        const adminInfo = adminMap.get(emp.created_by) || (
-          admin.role === 'super_admin'
-            ? {
-                id: UNASSIGNED_ADMIN_ID,
-                username: '未分配員工',
-                role: 'unassigned',
-                is_pinned: false,
-              }
-            : null
-        );
+      groupedEmployees.forEach((emp: Employee) => {
+        const adminInfo = adminMap.get(emp.created_by);
         if (!adminInfo) return;
 
         const previousEmployee = previousEmployeesById.get(emp.id);
@@ -1032,8 +1023,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
       const sortGroups = (groups: Map<string, EmployeeGroup>) => Array.from(groups.values())
         .sort((a, b) => {
-          if (a.admin.role === 'unassigned' && b.admin.role !== 'unassigned') return 1;
-          if (a.admin.role !== 'unassigned' && b.admin.role === 'unassigned') return -1;
           if (a.admin.role === 'super_admin' && b.admin.role !== 'super_admin') return -1;
           if (a.admin.role !== 'super_admin' && b.admin.role === 'super_admin') return 1;
           if (a.admin.role === 'secondary_admin' && b.admin.role === 'secondary_admin') {
@@ -3690,7 +3679,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         >
           {filteredGroups.map((group, groupIndex) => {
             const isSuperGroup = group.admin.role === 'super_admin';
-            const isUnassignedGroup = group.admin.role === 'unassigned';
             return (
               <Fragment key={group.admin.id}>
               <div
@@ -3728,7 +3716,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                         <span className="h-3.5 w-px bg-slate-600" />
                         <span className={`inline-flex items-center gap-1 text-[10px] font-bold tracking-wide ${isSuperGroup ? 'text-yellow-300' : 'text-cyan-300'}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${isSuperGroup ? 'bg-yellow-400' : 'bg-cyan-400'}`} />
-                          {isSuperGroup ? '超級管理員' : isUnassignedGroup ? '未分配員工' : '次要管理員'}
+                          {isSuperGroup ? '超級管理員' : '次要管理員'}
                         </span>
                         {group.admin.is_pinned && (
                           <>
@@ -3810,21 +3798,19 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
                 {expandedGroups.has(group.admin.id) && (
                   <>
-                    {!isUnassignedGroup && renderCreateForm(group.admin.id, group.admin)}
+                    {renderCreateForm(group.admin.id, group.admin)}
 
                     <div className={`flex min-h-8 items-center border-b px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-blue-500/30 bg-blue-500/5'}`}>
                       <div className="min-w-0 flex-1 -translate-y-0.5 overflow-x-auto scrollbar-hide">
                         {renderStatusFilterButtons(group.admin.id)}
                       </div>
-                      {!isUnassignedGroup && (
-                        <button
-                          type="button"
-                          onClick={() => { setSelectedAdminForCreate(group.admin.id); setShowCreateForm(true); setExpandedGroups(prev => new Set(prev).add(group.admin.id)); }}
-                          className="ml-auto inline-flex h-7 shrink-0 -translate-y-0.5 items-center gap-1.5 rounded-lg border border-yellow-400/50 bg-yellow-600/80 px-2.5 py-1 text-[11px] font-semibold text-yellow-50 shadow-lg shadow-yellow-950/30 transition-all hover:border-yellow-300/70 hover:bg-yellow-500 active:bg-yellow-700"
-                        >
-                          <UserPlus className="h-3.5 w-3.5" /> 新增
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedAdminForCreate(group.admin.id); setShowCreateForm(true); setExpandedGroups(prev => new Set(prev).add(group.admin.id)); }}
+                        className="ml-auto inline-flex h-7 shrink-0 -translate-y-0.5 items-center gap-1.5 rounded-lg border border-yellow-400/50 bg-yellow-600/80 px-2.5 py-1 text-[11px] font-semibold text-yellow-50 shadow-lg shadow-yellow-950/30 transition-all hover:border-yellow-300/70 hover:bg-yellow-500 active:bg-yellow-700"
+                      >
+                        <UserPlus className="h-3.5 w-3.5" /> 新增
+                      </button>
                     </div>
                     <div className={`flex min-h-8 flex-wrap items-center gap-2 border-b px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/20 bg-yellow-500/5' : 'border-blue-500/20 bg-blue-500/5'}`}>
                       {getGroupTags(group.admin.id).length > 0 && (
