@@ -3077,7 +3077,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
             {/* Filter row */}
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-slate-400 tabular-nums flex-shrink-0">{filteredEmployees.length}<span className="text-slate-600">/{employees.length}</span></span>
+              <span className="text-[10px] font-bold text-orange-300 tabular-nums flex-shrink-0">{filteredEmployees.length}<span className="text-orange-500/70">/{employees.length}</span></span>
               <div className="flex items-center gap-1 flex-1">
                 <button type="button" onClick={() => setEmployeeGroupFilter('all')} className={`flex-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${employeeGroupFilter === 'all' ? 'bg-blue-500 text-white border-blue-400 shadow-md shadow-blue-500/30' : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600'}`}>全部</button>
                 <button type="button" onClick={() => setEmployeeGroupFilter('chatted')} className={`flex-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${employeeGroupFilter === 'chatted' ? 'bg-emerald-500 text-white border-emerald-400 shadow-md shadow-emerald-500/30' : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600'}`}>已聊天</button>
