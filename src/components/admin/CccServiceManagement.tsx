@@ -808,7 +808,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     return loadConversationHistoryForCustomer(selectedCustomer);
   }, [selectedCustomer, loadConversationHistoryForCustomer]);
 
-  const loadAllConversationHistory = useCallback(async (overrideAdminId?: string, force = false) => {
+  const loadAllConversationHistory = useCallback(async (overrideAdminIdOrForce?: string | boolean, force = false) => {
+    const overrideAdminId = typeof overrideAdminIdOrForce === 'string' ? overrideAdminIdOrForce : undefined;
+    const forceLoad = typeof overrideAdminIdOrForce === 'boolean' ? overrideAdminIdOrForce : force;
     const adminIdToUse = overrideAdminId || selectedAdminId;
     if (!adminIdToUse) return;
     const requestId = ++conversationHistoryLoadRequestRef.current;
@@ -825,7 +827,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           if (error) throw error;
           return summaries || [];
         },
-        force,
+        forceLoad,
       );
 
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
@@ -875,12 +877,15 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         unread_count: Number(row.unread_count),
         };
       });
-      const summaryKeys = new Set(summaryHistory.map(history => `${history.customer_id}:${history.employee_id}`));
+      const summaryByKey = new Map(summaryHistory.map(history => [
+        `${history.customer_id}:${history.employee_id}`,
+        history,
+      ]));
       const supplementalHistory = allConversationHistoryRef.current.filter(history => {
         const key = `${history.customer_id}:${history.employee_id}`;
+        const summary = summaryByKey.get(key);
         return customerIds.has(history.customer_id || '') &&
-          history.unread_count > 0 &&
-          !summaryKeys.has(key);
+          (!summary || new Date(history.last_message_time).getTime() > new Date(summary.last_message_time).getTime());
       });
       const allHistory = dedupeConversationHistory([...summaryHistory, ...supplementalHistory]);
 
@@ -951,10 +956,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     setConversationHistory(nextConversationHistory);
     setAllConversationHistory(nextAllConversationHistory);
 
-    if (threadUnreadCount > 0) {
-      onUnreadCountChange?.(-threadUnreadCount);
-    }
-  }, [onUnreadCountChange]);
+    return threadUnreadCount;
+  }, []);
 
   const restoreCachedMessages = useCallback((customerId: string, employeeId: string) => {
     const cacheKey = `${customerId}:${employeeId}`;
@@ -1047,7 +1050,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       if (markAsRead && isActiveRef.current) {
         const customerId = selectedCustomer.id;
         const employeeId = selectedEmployee.id;
-        clearUnreadConversationLocally(customerId, employeeId);
 
         const { error: markReadError } = await supabase
           .from('customer_employee_conversations')
@@ -1061,6 +1063,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           console.error('Error marking conversation as read:', markReadError);
           void loadAllConversationHistory(undefined, true);
         } else {
+          const threadUnreadCount = clearUnreadConversationLocally(customerId, employeeId);
+          if (threadUnreadCount > 0) onUnreadCountChange?.(-threadUnreadCount);
           void loadAllConversationHistory(undefined, true);
         }
       }
@@ -1081,7 +1085,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       console.error('Error loading messages:', formatSupabaseError(error));
       setMessagesLoading(false);
     }
-  }, [clearUnreadConversationLocally, loadAllConversationHistory, restoreCachedMessages, selectedCustomer, selectedEmployee]);
+  }, [clearUnreadConversationLocally, loadAllConversationHistory, onUnreadCountChange, restoreCachedMessages, selectedCustomer, selectedEmployee]);
 
   useEffect(() => {
     loadMessagesRef.current = loadMessages;
@@ -1299,7 +1303,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   }, []);
 
   useEffect(() => {
-    if (isActive && selectedAdminId && customers.length > 0) {
+    if (selectedAdminId && customers.length > 0) {
       let reconcileTimer: ReturnType<typeof setTimeout> | null = null;
       const reconcileAfterChange = () => {
         if (reconcileTimer) clearTimeout(reconcileTimer);
@@ -1335,7 +1339,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         supabase.removeChannel(channel);
       };
     }
-  }, [isActive, selectedAdminId, customers, applyRealtimeConversation, loadAllConversationHistory]);
+  }, [selectedAdminId, customers, applyRealtimeConversation, loadAllConversationHistory]);
 
   // Subscribe to realtime updates for employees (users table)
   useEffect(() => {
@@ -1830,21 +1834,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     try {
       if (!silent) setLoading(true);
 
-      void prefetchConversationSummaries(
-        targetAdminId,
-        'manager',
-        async () => {
-          const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
-            p_admin_id: targetAdminId,
-            p_source_type: 'ccc_service',
-          });
-          if (error) throw error;
-          return data || [];
-        },
-      ).catch(error => {
-        console.warn('Unable to prefetch manager service sessions:', error);
-      });
-
       const { customers, employees } = await prefetchAdminWorkspaceData<SimulatedCustomer, Employee>(
         targetAdminId,
         'manager',
@@ -1858,11 +1847,14 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       allCustomersRef.current = customers;
       allEmployeesRef.current = employees;
 
-      if (!silent) setLoading(false);
-
       if (customers.length === 0 || employees.length === 0) {
+        if (!silent) setLoading(false);
         return;
       }
+
+      await loadAllConversationHistory(targetAdminId, true);
+      if (requestId !== workspaceLoadRequestRef.current) return;
+      if (!silent) setLoading(false);
 
     } catch (error) {
       if (requestId !== workspaceLoadRequestRef.current) return;
