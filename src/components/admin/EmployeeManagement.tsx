@@ -222,6 +222,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     type: 'success' | 'error' | 'warning';
     title: string;
     message: string;
+    category?: 'password' | 'profile';
   } | null>(null);
 
   // Sort state per group
@@ -1462,7 +1463,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setShowPasswordReset(null);
       setNewPassword('');
       setShowResetPassword(false);
-      setNotification({ show: true, type: 'success', title: '成功', message: '密碼重設成功' });
+      setNotification({
+        show: true,
+        type: 'success',
+        category: 'password',
+        title: '登入密碼已更新',
+        message: '新密碼已安全儲存，舊密碼與既有員工會話已失效。',
+      });
     } catch (error: unknown) {
       if (isFinancialAdminSessionError(error)) {
         void logout(false);
@@ -1508,6 +1515,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       });
       if (error) throw error;
       setEditingEmployee(null);
+      setNotification({
+        show: true,
+        type: 'success',
+        category: 'profile',
+        title: '員工資料已儲存',
+        message: '帳戶資料已成功更新，員工清單與管理檢視已同步最新內容。',
+      });
     } catch (error) {
       console.error('Error updating employee:', formatSupabaseError(error));
       setNotification({ show: true, type: 'error', title: '錯誤', message: '更新員工資料失敗' });
@@ -4640,26 +4654,36 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       )}
 
       {notification?.show && createPortal(
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
-          <div className="bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 rounded-3xl border border-slate-700/50 shadow-2xl max-w-md w-full overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-            <div className="relative p-8 text-center border-b border-slate-700/50">
-              <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 shadow-lg ${
-                notification.type === 'success' ? 'bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/30 shadow-green-500/20' :
-                notification.type === 'error' ? 'bg-gradient-to-br from-red-500/20 to-red-600/20 border border-red-500/30 shadow-red-500/20' :
-                'bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30 shadow-yellow-500/20'
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200">
+          <div className={`relative w-full max-w-md overflow-hidden rounded-[1.75rem] border shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200 ${notification.type === 'success' ? 'border-emerald-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/30' : notification.type === 'error' ? 'border-red-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-red-950/30' : 'border-amber-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/30'}`} role="dialog" aria-modal="true" aria-labelledby="employee-notification-title">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/5 via-transparent to-cyan-400/5 pointer-events-none" />
+            <div className={`absolute inset-x-0 top-0 h-1 ${notification.type === 'success' ? 'bg-gradient-to-r from-emerald-500 via-cyan-300 to-emerald-500' : notification.type === 'error' ? 'bg-gradient-to-r from-red-500 via-orange-300 to-red-500' : 'bg-gradient-to-r from-amber-500 via-yellow-200 to-orange-500'}`} />
+            <div className="relative flex items-center gap-4 border-b border-white/10 px-6 py-6">
+              <div className={`inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border shadow-lg ring-1 ring-inset ring-white/10 ${
+                notification.type === 'success' ? 'border-emerald-300/35 bg-emerald-400/15 text-emerald-100 shadow-emerald-950/40' :
+                notification.type === 'error' ? 'border-red-300/35 bg-red-400/15 text-red-100 shadow-red-950/40' :
+                'border-amber-300/35 bg-amber-400/15 text-amber-100 shadow-amber-950/40'
               }`}>
-                {notification.type === 'success' && <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>}
-                {notification.type === 'error' && <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>}
+                {notification.type === 'success' && (notification.category === 'password' ? <Key className="h-6 w-6" /> : notification.category === 'profile' ? <Pencil className="h-6 w-6" /> : <CheckCircle className="h-6 w-6" />)}
+                {notification.type === 'error' && <XCircle className="h-6 w-6" />}
                 {notification.type === 'warning' && <svg className="w-8 h-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">{notification.title}</h3>
+              <div className="min-w-0">
+                <p className={`text-[10px] font-bold uppercase tracking-[0.2em] ${notification.type === 'success' ? 'text-emerald-300' : notification.type === 'error' ? 'text-red-300' : 'text-amber-300'}`}>
+                  {notification.type === 'success' ? '操作完成' : notification.type === 'error' ? '操作未完成' : '需要注意'}
+                </p>
+                <h3 id="employee-notification-title" className="mt-1 text-xl font-bold tracking-tight text-white">{notification.title}</h3>
+              </div>
             </div>
-            <div className="relative p-8">
-              <p className="text-slate-300 text-base leading-relaxed text-center">{notification.message}</p>
+            <div className="relative space-y-4 px-6 py-6">
+              <p className="text-sm leading-6 text-slate-300">{notification.message}</p>
+              <div className={`flex items-center justify-between rounded-xl border px-3.5 py-3 text-xs ${notification.type === 'success' ? 'border-emerald-300/15 bg-emerald-400/5 text-emerald-100/80' : notification.type === 'error' ? 'border-red-300/15 bg-red-400/5 text-red-100/80' : 'border-amber-300/15 bg-amber-400/5 text-amber-100/80'}`}>
+                <span className="font-semibold uppercase tracking-[0.14em]">狀態</span>
+                <span className="inline-flex items-center gap-1.5 font-semibold"><span className={`h-1.5 w-1.5 rounded-full ${notification.type === 'success' ? 'bg-emerald-300' : notification.type === 'error' ? 'bg-red-300' : 'bg-amber-300'}`} />{notification.type === 'success' ? '已同步' : notification.type === 'error' ? '請檢查後重試' : '請確認輸入內容'}</span>
+              </div>
             </div>
-            <div className="relative p-6 bg-slate-900/50">
-              <button onClick={() => setNotification(null)} className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/40 border border-blue-500/50">確定</button>
+            <div className="border-t border-white/10 bg-slate-950/40 px-6 py-4">
+              <button type="button" onClick={() => setNotification(null)} className={`w-full rounded-xl border px-5 py-3 text-sm font-bold shadow-lg transition-all ${notification.type === 'success' ? 'border-emerald-300/35 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-emerald-950/35 hover:from-emerald-500 hover:to-cyan-500' : notification.type === 'error' ? 'border-red-300/35 bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-red-950/35 hover:from-red-500 hover:to-orange-500' : 'border-amber-300/35 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-amber-950/35 hover:from-amber-400 hover:to-orange-400'}`}>確定</button>
             </div>
           </div>
         </div>,
