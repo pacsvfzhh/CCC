@@ -328,6 +328,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const conversationHistoryRef = useRef<ConversationHistory[]>([]);
   const conversationHistoryLoadRequestRef = useRef(0);
   const workspaceLoadRequestRef = useRef(0);
+  const consumedInitialEmployeeRef = useRef(false);
   const loadAdminDataRef = useRef<((targetAdminId: string, silent?: boolean, force?: boolean) => Promise<void>) | null>(null);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
   const adminUnreadRequestRef = useRef(0);
@@ -780,7 +781,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
         setSelectedAdminId(userData.created_by);
         setSelectedAdminName(ownerAdmin?.username || '管理員群組');
-        await loadAdminDataRef.current?.(userData.created_by, false);
+        await loadAdminDataRef.current?.(userData.created_by, true);
         return;
       }
 
@@ -1165,6 +1166,11 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   useEffect(() => {
     if (!isActive) return;
 
+    if (!initialEmployee && consumedInitialEmployeeRef.current) {
+      consumedInitialEmployeeRef.current = false;
+      return;
+    }
+
     if (isSuperAdmin) {
       if (!initialEmployee) {
         void loadAdminGroups(null);
@@ -1180,6 +1186,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   useEffect(() => {
     if (!isActive || !initialEmployee) return;
 
+    setLoading(false);
     setSelectedCustomer(null);
     setSelectedEmployee(null);
     setMessages([]);
@@ -1188,10 +1195,10 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     setShowHistoryView(true);
 
     if (isSuperAdmin) {
-      void loadAdminGroups(initialEmployee);
+      void loadAdminGroups(initialEmployee, true);
     } else {
       setSelectedAdminId(adminId);
-      void loadAdminDataRef.current?.(adminId, false);
+      void loadAdminDataRef.current?.(adminId, true);
     }
   }, [adminId, isActive, isSuperAdmin, initialEmployee, loadAdminGroups]);
 
@@ -1212,7 +1219,10 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         setShowHistoryView(true);
         setHistoryScope('all');
         setHistoryFilterMode('all');
-        onConsumeInitialEmployee?.();
+        if (onConsumeInitialEmployee) {
+          consumedInitialEmployeeRef.current = true;
+          onConsumeInitialEmployee();
+        }
       }
     }
   }, [isActive, initialEmployee, loading, employees, onConsumeInitialEmployee]);

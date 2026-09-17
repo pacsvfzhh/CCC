@@ -236,6 +236,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   const conversationHistoryRef = useRef<ConversationHistory[]>([]);
   const conversationHistoryLoadRequestRef = useRef(0);
   const workspaceLoadRequestRef = useRef(0);
+  const consumedInitialEmployeeRef = useRef(false);
   const loadAdminDataRef = useRef<((targetAdminId: string, silent?: boolean, force?: boolean) => Promise<void>) | null>(null);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
   const adminUnreadRequestRef = useRef(0);
@@ -597,7 +598,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
         setSelectedAdminId(userData.created_by);
         setSelectedAdminName(ownerAdmin?.username || '管理員群組');
-        await loadAdminDataRef.current?.(userData.created_by, false);
+        await loadAdminDataRef.current?.(userData.created_by, true);
         return;
       }
 
@@ -983,6 +984,11 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   useEffect(() => {
     if (!isActive) return;
 
+    if (!initialEmployee && consumedInitialEmployeeRef.current) {
+      consumedInitialEmployeeRef.current = false;
+      return;
+    }
+
     if (isSuperAdmin) {
       if (!initialEmployee) {
         void loadAdminGroups(null);
@@ -998,6 +1004,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   useEffect(() => {
     if (!isActive || !initialEmployee) return;
 
+    setLoading(false);
     setSelectedCustomer(null);
     setSelectedEmployee(null);
     setMessages([]);
@@ -1006,10 +1013,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setShowHistoryView(true);
 
     if (isSuperAdmin) {
-      void loadAdminGroups(initialEmployee);
+      void loadAdminGroups(initialEmployee, true);
     } else {
       setSelectedAdminId(adminId);
-      void loadAdminDataRef.current?.(adminId, false);
+      void loadAdminDataRef.current?.(adminId, true);
     }
   }, [adminId, isActive, isSuperAdmin, initialEmployee, loadAdminGroups]);
 
@@ -1030,7 +1037,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         setShowHistoryView(true);
         setHistoryScope('all');
         setHistoryFilterMode('all');
-        onConsumeInitialEmployee?.();
+        if (onConsumeInitialEmployee) {
+          consumedInitialEmployeeRef.current = true;
+          onConsumeInitialEmployee();
+        }
       }
     }
   }, [isActive, initialEmployee, loading, employees, onConsumeInitialEmployee]);
