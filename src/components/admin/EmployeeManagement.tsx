@@ -2790,7 +2790,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </button>
           </div>
 
-          <div className="relative min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+          <div className="scrollbar-hide relative min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
             {walletLoading ? (
               <div className="flex h-full flex-col items-center justify-center gap-3">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-300/25 bg-amber-400/10">
@@ -2799,7 +2799,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 <p className="text-xs font-medium text-slate-400">正在讀取錢包資料</p>
               </div>
             ) : (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="relative overflow-hidden rounded-2xl border border-emerald-300/20 bg-gradient-to-br from-emerald-400/[0.14] via-emerald-950/45 to-slate-900/70 p-4 shadow-[0_12px_30px_rgba(16,185,129,0.08)]">
                     <div className="pointer-events-none absolute -right-5 -top-7 h-24 w-24 rounded-full bg-emerald-300/10 blur-2xl" />
@@ -2880,18 +2880,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   </div>
                 </div>
 
-                <div className="h-10">
-                  {hasValidAmount && (
-                    <div className="flex h-full items-center gap-2 rounded-xl border border-blue-300/15 bg-blue-400/[0.07] px-3 text-[11px] text-blue-100/80">
-                      <Clock className="h-3.5 w-3.5 shrink-0 text-blue-300" />
-                      <span>輸入金額：<strong className="font-semibold tabular-nums text-blue-100">${enteredAmount.toFixed(2)}</strong>，請確認操作方向後提交。</span>
-                    </div>
-                  )}
-                </div>
-
                 <div className="h-12">
                   {walletNotification ? (
-                    <div className={`flex h-full items-center gap-2 overflow-y-auto rounded-xl border px-3.5 py-2 text-xs font-medium ${walletNotification.type === 'success' ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200' : 'border-rose-300/25 bg-rose-400/10 text-rose-200'}`}>
+                    <div className={`flex h-full items-center gap-2 overflow-hidden rounded-xl border px-3.5 py-2 text-xs font-medium ${walletNotification.type === 'success' ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200' : 'border-rose-300/25 bg-rose-400/10 text-rose-200'}`}>
                       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${walletNotification.type === 'success' ? 'bg-emerald-300' : 'bg-rose-300'}`} />
                       <span>{walletNotification.message}</span>
                     </div>
@@ -2899,6 +2890,11 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     <div className="flex h-full items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.08] px-3.5 text-xs font-medium text-cyan-100">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       <span>正在同步最新錢包餘額</span>
+                    </div>
+                  ) : hasValidAmount ? (
+                    <div className="flex h-full items-center gap-2 rounded-xl border border-blue-300/15 bg-blue-400/[0.07] px-3 text-[11px] text-blue-100/80">
+                      <Clock className="h-3.5 w-3.5 shrink-0 text-blue-300" />
+                      <span>輸入金額：<strong className="font-semibold tabular-nums text-blue-100">${enteredAmount.toFixed(2)}</strong>，請確認操作方向後提交。</span>
                     </div>
                   ) : null}
                 </div>
