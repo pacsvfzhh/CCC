@@ -2027,6 +2027,24 @@ export interface Database {
         };
         Returns: { success?: boolean; error?: string };
       };
+      get_withdrawals_for_admin: {
+        Args: { p_admin_session_token: string };
+        Returns: Array<{
+          id: string;
+          user_id: string;
+          amount: number;
+          status: string;
+          audit_remark: string | null;
+          audited_by: string | null;
+          audited_at: string | null;
+          last_operation_id: string | null;
+          created_at: string;
+        }>;
+      };
+      get_pending_withdrawal_count_for_admin: {
+        Args: { p_admin_session_token: string };
+        Returns: number;
+      };
       review_withdrawal_atomic: {
         Args: {
           p_admin_session_token: string;

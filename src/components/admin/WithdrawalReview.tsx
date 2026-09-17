@@ -182,6 +182,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   const [dateMenuOpen, setDateMenuOpen] = useState(false);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const loadWithdrawalsRef = useRef<(() => Promise<void>) | null>(null);
+  const scopedEmployeeIdsRef = useRef<Set<string> | null>(admin.role === 'secondary_admin' ? new Set() : null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
   const dateMenuRef = useRef<HTMLDivElement>(null);
@@ -252,6 +253,13 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'withdrawals' },
         (payload) => {
+          const changedWithdrawal = (payload.new && Object.keys(payload.new).length > 0
+            ? payload.new
+            : payload.old) as { id?: unknown; user_id?: unknown };
+          const userId = typeof changedWithdrawal.user_id === 'string' ? changedWithdrawal.user_id : null;
+          const employeeScope = scopedEmployeeIdsRef.current;
+          if (employeeScope !== null && (!userId || !employeeScope.has(userId))) return;
+
           if (payload.eventType === 'UPDATE' && payload.new) {
             setAdminGroups(prev => prev.map(group => ({
               ...group,
@@ -271,7 +279,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(withdrawalChannel);
     };
-  }, []); // Remove admin.id from dependencies
+  }, [admin.role]);
 
   const loadWithdrawals = async () => {
     try {
@@ -280,38 +288,54 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         return;
       }
 
-      let employeeIds: string[] = [];
+      const employeeColumns = 'id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at';
+      const adminColumns = 'id, username, role, parent_id, is_active, is_pinned, created_at, updated_at';
+      let withdrawalsData: Withdrawal[] = [];
+      let employees: Employee[] = [];
+      let admins: Admin[] = [];
 
       if (admin.role === 'secondary_admin') {
-        const { data: employees } = await supabase
-          .from('users')
-          .select('id')
-          .eq('created_by', admin.id);
-        employeeIds = employees?.map((e) => e.id) || [];
+        const [withdrawalsResult, employeesResult] = await Promise.all([
+          supabase.rpc('get_withdrawals_for_admin', {
+            p_admin_session_token: getAdminFinancialSessionToken(),
+          }),
+          supabase
+            .from('users')
+            .select(employeeColumns)
+            .eq('created_by', admin.id),
+        ]);
+
+        if (withdrawalsResult.error) throw withdrawalsResult.error;
+        if (employeesResult.error) throw employeesResult.error;
+        withdrawalsData = (withdrawalsResult.data || []) as Withdrawal[];
+        employees = (employeesResult.data || []) as Employee[];
+        admins = [admin];
+        scopedEmployeeIdsRef.current = new Set(employees.map(employee => employee.id));
+      } else {
+        scopedEmployeeIdsRef.current = null;
+        const [withdrawalsResult, employeesResult, adminsResult] = await Promise.all([
+          supabase.rpc('get_withdrawals_for_admin', {
+            p_admin_session_token: getAdminFinancialSessionToken(),
+          }),
+          supabase.from('users').select(employeeColumns),
+          supabase.from('admins').select(adminColumns),
+        ]);
+
+        if (withdrawalsResult.error) throw withdrawalsResult.error;
+        if (employeesResult.error) throw employeesResult.error;
+        if (adminsResult.error) throw adminsResult.error;
+        withdrawalsData = (withdrawalsResult.data || []) as Withdrawal[];
+        employees = (employeesResult.data || []) as Employee[];
+        admins = (adminsResult.data || []) as Admin[];
       }
 
-      let query = supabase
-        .from('withdrawals')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const employeeMap = new Map(employees.map((employee) => [employee.id, employee]));
+      const adminMap = new Map(admins.map((adminRow) => [adminRow.id, adminRow]));
 
-      if (admin.role === 'secondary_admin' && employeeIds.length > 0) {
-        query = query.in('user_id', employeeIds);
-      }
-
-      const { data: withdrawalsData, error: withdrawalsError } = await query;
-      if (withdrawalsError) throw withdrawalsError;
-
-      const { data: employees } = await supabase.from('users').select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at');
-      const employeeMap = new Map(employees?.map((e) => [e.id, e]));
-
-      const { data: admins } = await supabase.from('admins').select('id, username, role, parent_id, is_active, is_pinned, created_at, updated_at');
-      const adminMap = new Map(admins?.map((a) => [a.id, a]));
-
-      const withdrawalsWithEmployees = withdrawalsData?.map((w) => ({
-        ...w,
-        employee: employeeMap.get(w.user_id),
-      })) || [];
+      const withdrawalsWithEmployees = withdrawalsData.map((withdrawal) => ({
+        ...withdrawal,
+        employee: employeeMap.get(withdrawal.user_id),
+      }));
 
       const groupedByAdmin = new Map<string, WithdrawalWithEmployee[]>();
 
@@ -326,7 +350,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       // Include every admin as a selectable group, even those with no withdrawal records yet
       // (emergency admin accounts don't manage employees, so they're excluded)
       if (admin.role === 'super_admin') {
-        (admins || []).forEach((a) => {
+        admins.forEach((a) => {
           if (a.role === 'emergency_admin') return;
           if (!groupedByAdmin.has(a.id)) {
             groupedByAdmin.set(a.id, []);

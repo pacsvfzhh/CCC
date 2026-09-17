@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, History, Eye, Users, Clock, MapPin, X, RefreshCw, ChevronDown, Check, LogIn, LogOut } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { Admin } from '../../types';
 import LoginDeviceSummary from './LoginDeviceSummary';
 
@@ -134,121 +135,62 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
       await loadAdminsRef.current?.();
       await loadEmployeeSummaryRef.current?.();
     };
-    initialize();
+    void initialize();
 
-    // Set up real-time subscriptions for new users and admins
-    const usersChannel = supabase
-      .channel('employee_login_history_users')
-      .on(
+    let usersChannel = supabase.channel('employee_login_history_users');
+    if (admin.role === 'super_admin') {
+      usersChannel = usersChannel.on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'users'
-        },
-        (payload) => {
-          console.log('New user detected:', payload);
-          void loadEmployeeSummaryRef.current?.(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'users'
-        },
-        (payload) => {
-          console.log('User updated:', payload);
-          void loadEmployeeSummaryRef.current?.(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'users'
-        },
-        (payload) => {
-          console.log('User deleted:', payload);
-          void loadEmployeeSummaryRef.current?.(true);
-        }
-      )
-      .subscribe((status) => {
-        console.log('Users channel subscription status:', status);
-      });
+        { event: '*', schema: 'public', table: 'users' },
+        () => { void loadEmployeeSummaryRef.current?.(true); }
+      );
+    } else {
+      const employeeFilter = `created_by=eq.${admin.id}`;
+      usersChannel = usersChannel
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'users', filter: employeeFilter },
+          () => { void loadEmployeeSummaryRef.current?.(true); }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'users', filter: employeeFilter },
+          () => { void loadEmployeeSummaryRef.current?.(true); }
+        );
+    }
+    usersChannel.subscribe();
 
-    const adminsChannel = supabase
-      .channel('employee_login_history_admins')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'admins'
-        },
-        (payload) => {
-          console.log('New admin detected:', payload);
-          void loadAdminsRef.current?.();
-          void loadEmployeeSummaryRef.current?.(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'admins'
-        },
-        (payload) => {
-          console.log('Admin updated:', payload);
-          void loadAdminsRef.current?.();
-          void loadEmployeeSummaryRef.current?.(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'admins'
-        },
-        (payload) => {
-          console.log('Admin deleted:', payload);
-          void loadAdminsRef.current?.();
-          void loadEmployeeSummaryRef.current?.(true);
-        }
-      )
-      .subscribe((status) => {
-        console.log('Admins channel subscription status:', status);
-      });
+    const adminsChannel = admin.role === 'super_admin'
+      ? supabase
+          .channel('employee_login_history_admins')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'admins' },
+            () => {
+              void loadAdminsRef.current?.();
+              void loadEmployeeSummaryRef.current?.(true);
+            }
+          )
+          .subscribe()
+      : null;
 
-    const loginHistoryChannel = supabase
-      .channel('employee_login_history_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'employee_login_history'
-        },
-        (payload) => {
-          console.log('Login history changed:', payload);
-          void loadEmployeeSummaryRef.current?.(true);
-        }
-      )
-      .subscribe((status) => {
-        console.log('Login history channel subscription status:', status);
-      });
+    const loginHistoryChannel = admin.role === 'super_admin'
+      ? supabase
+          .channel('employee_login_history_changes')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'employee_login_history' },
+            () => { void loadEmployeeSummaryRef.current?.(true); }
+          )
+          .subscribe()
+      : null;
 
     return () => {
-      console.log('Cleaning up real-time subscriptions');
       supabase.removeChannel(usersChannel);
-      supabase.removeChannel(adminsChannel);
-      supabase.removeChannel(loginHistoryChannel);
+      if (adminsChannel) supabase.removeChannel(adminsChannel);
+      if (loginHistoryChannel) supabase.removeChannel(loginHistoryChannel);
     };
-  }, [admin.id]);
+  }, [admin.id, admin.role]);
 
   useEffect(() => {
     if (adminCount === 0) return;
@@ -316,7 +258,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
       }
 
       const { data, error } = await supabase.rpc('get_employee_login_summary', {
-        p_admin_id: admin.id,
+        p_admin_id: getAdminFinancialSessionToken(),
         p_search_term: query || null
       });
 
@@ -405,7 +347,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
       setHistoryLoading(true);
 
       const { data, error } = await supabase.rpc('get_employee_login_history_with_device_info', {
-        p_admin_id: admin.id,
+        p_admin_id: getAdminFinancialSessionToken(),
         p_user_id: userId,
         p_limit: 10000,
         p_offset: 0
@@ -420,7 +362,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     } finally {
       setHistoryLoading(false);
     }
-  }, [admin.id]);
+  }, []);
 
   const handleViewHistory = (employee: EmployeeSummary) => {
     setHistoryActionFilter(null);

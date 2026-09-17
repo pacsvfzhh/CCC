@@ -2469,7 +2469,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setLoginIPLoading(true);
     try {
       const { data, error } = await supabase.rpc('get_employee_login_history_with_device_info', {
-        p_admin_id: admin.id,
+        p_admin_id: getAdminFinancialSessionToken(),
         p_user_id: employee.id,
         p_limit: 10000,
         p_offset: 0
@@ -2481,7 +2481,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     } finally {
       setLoginIPLoading(false);
     }
-  }, [admin.id]);
+  }, []);
 
   const renderLoginIPModal = () => {
     if (!loginIPEmployee) return null;

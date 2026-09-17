@@ -281,7 +281,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }>({
     aaaCustomerIds: new Set(),
     cccCustomerIds: new Set(),
-    employeeIds: null,
+    employeeIds: admin.role === 'secondary_admin' ? new Set() : null,
   });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -739,6 +739,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const loadPendingCounts = useCallback(async () => {
     const requestId = ++pendingCountsRequestRef.current;
     try {
+      const pendingWithdrawalCountRequest = supabase.rpc(
+        'get_pending_withdrawal_count_for_admin',
+        { p_admin_session_token: getAdminFinancialSessionToken() },
+      );
+
       // For secondary admins, fetch their employee IDs once for scoping
       let scopedEmployeeIds: string[] | null = null;
       if (admin.role === 'secondary_admin') {
@@ -750,28 +755,10 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         scopedEmployeeIds = myEmployees?.map(e => e.id) || [];
       }
 
-      // Load pending withdrawals count (scoped by admin)
-      let withdrawalsCount = 0;
-      if (scopedEmployeeIds !== null) {
-        if (scopedEmployeeIds.length > 0) {
-          const { count, error: wErr } = await supabase
-            .from('withdrawals')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', 'pending')
-            .in('user_id', scopedEmployeeIds);
-          if (wErr) throw wErr;
-          withdrawalsCount = count || 0;
-        }
-      } else {
-        const { count, error: wErr } = await supabase
-          .from('withdrawals')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
-        if (wErr) throw wErr;
-        withdrawalsCount = count || 0;
-      }
+      const { data: pendingWithdrawalCount, error: withdrawalCountError } = await pendingWithdrawalCountRequest;
+      if (withdrawalCountError) throw withdrawalCountError;
       if (requestId !== pendingCountsRequestRef.current) return;
-      setPendingWithdrawalsCount(withdrawalsCount);
+      setPendingWithdrawalsCount(Number(pendingWithdrawalCount || 0));
 
       // Load pending verifications count (scoped by admin)
       let verificationsCount = 0;
@@ -950,7 +937,13 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'withdrawals' },
-        () => {
+        (payload) => {
+          const changedWithdrawal = (payload.new && Object.keys(payload.new).length > 0
+            ? payload.new
+            : payload.old) as { user_id?: unknown };
+          const userId = typeof changedWithdrawal.user_id === 'string' ? changedWithdrawal.user_id : null;
+          const employeeScope = conversationScopeRef.current.employeeIds;
+          if (employeeScope !== null && (!userId || !employeeScope.has(userId))) return;
           loadPendingCounts();
         }
       )
