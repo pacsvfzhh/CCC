@@ -6,7 +6,7 @@ import CustomerAutoMessages, { type AutoMessageDraft } from './CustomerAutoMessa
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
 import TiptapEditor, { TiptapEditorRef } from './TiptapEditor';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
-import { invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
+import { getCachedAdminWorkspaceData, invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import { processContentImages } from '../../lib/imageOptimizer';
 import { cleanupContentImages } from '../../lib/storageCleanup';
@@ -225,7 +225,17 @@ interface CccServiceManagementProps {
   adminId: string;
   isSuperAdmin: boolean;
   isActive: boolean;
-  initialEmployee?: { id: string; username: string } | null;
+  initialEmployee?: {
+    id: string;
+    username: string;
+    employeeId: string;
+    adminId: string;
+    adminUsername?: string;
+    isVerified: boolean;
+    isActive: boolean;
+    remarks: string;
+    tags: string[];
+  } | null;
   onConsumeInitialEmployee?: () => void;
   onUnreadCountChange?: (delta: number) => void;
 }
@@ -759,29 +769,19 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     }
   };
 
-  const loadAdminGroups = useCallback(async (targetEmployee?: { id: string; username: string } | null, silent = false, force = false) => {
+  const loadAdminGroups = useCallback(async (targetEmployee?: {
+    id: string;
+    username: string;
+    adminId: string;
+    adminUsername?: string;
+  } | null, silent = false, force = false) => {
     try {
       if (!silent) setLoading(true);
 
       if (targetEmployee) {
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('created_by')
-          .eq('id', targetEmployee.id)
-          .maybeSingle();
-        if (userError) throw userError;
-        if (!userData?.created_by) throw new Error('找不到員工所屬管理員群組');
-
-        const { data: ownerAdmin, error: ownerError } = await supabase
-          .from('admins')
-          .select('id, username')
-          .eq('id', userData.created_by)
-          .maybeSingle();
-        if (ownerError) throw ownerError;
-
-        setSelectedAdminId(userData.created_by);
-        setSelectedAdminName(ownerAdmin?.username || '管理員群組');
-        await loadAdminDataRef.current?.(userData.created_by, true);
+        setSelectedAdminId(targetEmployee.adminId);
+        setSelectedAdminName(targetEmployee.adminUsername || '管理員群組');
+        await loadAdminDataRef.current?.(targetEmployee.adminId, true);
         return;
       }
 
@@ -1186,9 +1186,30 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   useEffect(() => {
     if (!isActive || !initialEmployee) return;
 
+    const immediateEmployee: Employee = {
+      id: initialEmployee.id,
+      username: initialEmployee.username,
+      employee_id: initialEmployee.employeeId,
+      is_verified: initialEmployee.isVerified,
+      is_active: initialEmployee.isActive,
+      remarks: initialEmployee.remarks,
+      tags: initialEmployee.tags,
+    };
+
+    const cachedWorkspace = getCachedAdminWorkspaceData<SimulatedCustomer, Employee>(initialEmployee.adminId, 'manager');
+    const nextCustomers = cachedWorkspace?.customers || [];
+    const cachedEmployees = cachedWorkspace?.employees || [];
+    const nextEmployees = cachedEmployees.some(employee => employee.id === immediateEmployee.id)
+      ? cachedEmployees
+      : [immediateEmployee, ...cachedEmployees];
+
     setLoading(false);
     setSelectedCustomer(null);
-    setSelectedEmployee(null);
+    setSelectedEmployee(immediateEmployee);
+    setCustomers(nextCustomers);
+    setEmployees(nextEmployees);
+    allCustomersRef.current = nextCustomers;
+    allEmployeesRef.current = nextEmployees;
     setMessages([]);
     setConversationHistory([]);
     conversationHistoryRef.current = [];
@@ -1933,7 +1954,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         return;
       }
 
-      await loadAllConversationHistory(targetAdminId, true);
+      await loadAllConversationHistory(targetAdminId, force);
       if (requestId !== workspaceLoadRequestRef.current) return;
       if (!silent) setLoading(false);
 
@@ -1946,6 +1967,18 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     }
   };
   loadAdminDataRef.current = loadAdminData;
+
+  const prefetchAdminGroupData = useCallback((group: AdminGroup) => {
+    void prefetchAdminWorkspaceData(group.admin_id, 'manager').catch(() => undefined);
+    void prefetchConversationSummaries(group.admin_id, 'manager', async () => {
+      const { data, error } = await supabase.rpc('get_ccc_conversation_summaries', {
+        p_admin_id: group.admin_id,
+        p_source_type: 'ccc_service',
+      });
+      if (error) throw error;
+      return data || [];
+    }).catch(() => undefined);
+  }, []);
 
   const handleAdminGroupSelect = (group: AdminGroup) => {
     workspaceLoadRequestRef.current += 1;
@@ -1963,13 +1996,20 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     setAllConversationHistory([]);
     conversationHistoryRef.current = [];
     allConversationHistoryRef.current = [];
-    setCustomers([]);
-    setEmployees([]);
+
+    const cachedWorkspace = getCachedAdminWorkspaceData<SimulatedCustomer, Employee>(group.admin_id, 'manager');
+    const nextCustomers = cachedWorkspace?.customers || [];
+    const nextEmployees = cachedWorkspace?.employees || [];
+    setCustomers(nextCustomers);
+    setEmployees(nextEmployees);
+    allCustomersRef.current = nextCustomers;
+    allEmployeesRef.current = nextEmployees;
+    setLoading(false);
     setShowHistoryView(true);
     setHistoryScope('all');
     setHistoryFilterMode('all');
     historyScrollTopRef.current = 0;
-    loadAdminData(group.admin_id);
+    void loadAdminData(group.admin_id, true);
   };
 
   const handleBackToGroups = () => {
@@ -3097,6 +3137,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         fallbackUnreadCount={0}
         loading
         onSelect={handleAdminGroupSelect}
+        onPrefetch={prefetchAdminGroupData}
         onRefresh={() => { void loadAdminGroups(null, false, true); }}
       />
     );
@@ -3122,6 +3163,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         fallbackUnreadCount={0}
         loading={false}
         onSelect={handleAdminGroupSelect}
+        onPrefetch={prefetchAdminGroupData}
         onRefresh={() => { void loadAdminGroups(null, false, true); }}
       />
     );

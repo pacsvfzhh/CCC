@@ -19,7 +19,8 @@ const SystemConfiguration = lazy(() => import('./SystemConfiguration'));
 const SecondaryAdminConfiguration = lazy(() => import('./SecondaryAdminConfiguration'));
 const AdminManagement = lazy(() => import('./AdminManagement'));
 const ValidOrderDataManagement = lazy(() => import('./ValidOrderDataManagement'));
-const MessageManagement = lazy(() => import('./MessageManagement'));
+const loadMessageManagement = () => import('./MessageManagement');
+const MessageManagement = lazy(loadMessageManagement);
 const DispatchManagement = lazy(() => import('./DispatchManagement'));
 const loadCustomerServiceManagement = () => import('./CustomerServiceManagement');
 const loadCccServiceManagement = () => import('./CccServiceManagement');
@@ -27,6 +28,7 @@ const CustomerServiceManagement = lazy(loadCustomerServiceManagement);
 const CccServiceManagement = lazy(loadCccServiceManagement);
 
 function preloadServiceTab(tabId: string) {
+  if (tabId === 'messages') void loadMessageManagement();
   if (tabId === 'customerservice') void loadCustomerServiceManagement();
   if (tabId === 'cccservice') void loadCccServiceManagement();
 }
@@ -98,6 +100,18 @@ interface NavigationTab {
   id: AdminTabId;
   label: string;
   icon: LucideIcon;
+}
+
+interface QuickActionEmployee {
+  id: string;
+  username: string;
+  employeeId: string;
+  adminId: string;
+  adminUsername?: string;
+  isVerified: boolean;
+  isActive: boolean;
+  remarks: string;
+  tags: string[];
 }
 
 interface NavigationPreferences {
@@ -384,7 +398,9 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, [showNavigationSettings]);
 
   useEffect(() => {
-    if (activeTab === 'employees') return;
+    void loadMessageManagement();
+    void loadCustomerServiceManagement();
+    void loadCccServiceManagement();
 
     const preload = () => {
       if (admin.role === 'super_admin') {
@@ -423,8 +439,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         });
       }
 
-      void loadCustomerServiceManagement();
-      void loadCccServiceManagement();
     };
 
     if ('requestIdleCallback' in window) {
@@ -434,12 +448,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
     const timerId = globalThis.setTimeout(preload, 800);
     return () => globalThis.clearTimeout(timerId);
-  }, [activeTab, admin.id, admin.role]);
+  }, [admin.id, admin.role]);
 
   // Cross-tab navigation targets
-  const [navigateToMessageEmployee, setNavigateToMessageEmployee] = useState<{ id: string; username: string } | null>(null);
-  const [navigateToCustomerServiceEmployee, setNavigateToCustomerServiceEmployee] = useState<{ id: string; username: string } | null>(null);
-  const [navigateToCccServiceEmployee, setNavigateToCccServiceEmployee] = useState<{ id: string; username: string } | null>(null);
+  const [navigateToMessageEmployee, setNavigateToMessageEmployee] = useState<QuickActionEmployee | null>(null);
+  const [navigateToCustomerServiceEmployee, setNavigateToCustomerServiceEmployee] = useState<QuickActionEmployee | null>(null);
+  const [navigateToCccServiceEmployee, setNavigateToCccServiceEmployee] = useState<QuickActionEmployee | null>(null);
   const consumeCustomerServiceEmployee = useCallback(() => setNavigateToCustomerServiceEmployee(null), []);
   const consumeCccServiceEmployee = useCallback(() => setNavigateToCccServiceEmployee(null), []);
 
@@ -886,7 +900,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     });
   }, []);
 
-  const handleEmployeeQuickAction = useCallback((action: 'message' | 'customerservice' | 'cccservice', employee: { id: string; username: string }) => {
+  const handleEmployeeQuickAction = useCallback((action: 'message' | 'customerservice' | 'cccservice', employee: QuickActionEmployee) => {
     const targetTab: AdminTabId = action === 'message'
       ? 'messages'
       : action === 'customerservice'
@@ -894,13 +908,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         : 'cccservice';
 
     preloadServiceTab(targetTab);
-    startTransition(() => {
-      setNavigateToMessageEmployee(action === 'message' ? employee : null);
-      setNavigateToCustomerServiceEmployee(action === 'customerservice' ? employee : null);
-      setNavigateToCccServiceEmployee(action === 'cccservice' ? employee : null);
-      setActiveTab(targetTab);
-      setLoadedTabs(prev => prev.has(targetTab) ? prev : new Set([...prev, targetTab]));
-    });
+    setNavigateToMessageEmployee(action === 'message' ? employee : null);
+    setNavigateToCustomerServiceEmployee(action === 'customerservice' ? employee : null);
+    setNavigateToCccServiceEmployee(action === 'cccservice' ? employee : null);
+    setActiveTab(targetTab);
+    setLoadedTabs(prev => prev.has(targetTab) ? prev : new Set([...prev, targetTab]));
   }, []);
 
   useEffect(() => {

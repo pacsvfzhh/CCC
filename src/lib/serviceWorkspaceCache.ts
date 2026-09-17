@@ -230,6 +230,13 @@ export function prefetchConversationSummaries<TSummary = unknown>(
   );
 }
 
+export function getCachedAdminWorkspaceData<TCustomer = Record<string, unknown>, TEmployee = Record<string, unknown>>(
+  adminId: string,
+  service: ServiceWorkspace,
+): ServiceWorkspaceData<TCustomer, TEmployee> | null {
+  return cachedWorkspaceData.get(getDataCacheKey(adminId, service)) as ServiceWorkspaceData<TCustomer, TEmployee> | undefined || null;
+}
+
 export function invalidateAdminWorkspaceDataCache(
   adminId: string,
   service: ServiceWorkspace,

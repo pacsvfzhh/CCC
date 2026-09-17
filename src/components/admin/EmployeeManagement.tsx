@@ -150,7 +150,17 @@ interface LoginIPRecord {
 interface EmployeeManagementProps {
   admin: Admin;
   isActive?: boolean;
-  onQuickAction?: (action: 'message' | 'customerservice' | 'cccservice', employee: { id: string; username: string }) => void;
+  onQuickAction?: (action: 'message' | 'customerservice' | 'cccservice', employee: {
+    id: string;
+    username: string;
+    employeeId: string;
+    adminId: string;
+    adminUsername?: string;
+    isVerified: boolean;
+    isActive: boolean;
+    remarks: string;
+    tags: string[];
+  }) => void;
 }
 
 export default function EmployeeManagement({ admin, isActive = true, onQuickAction }: EmployeeManagementProps) {
@@ -267,6 +277,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [walletAdjusting, setWalletAdjusting] = useState(false);
   const [walletNotification, setWalletNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const walletAdjustmentOperationIdRef = useRef<string | null>(null);
+  const walletLoadRequestRef = useRef(0);
 
   const scrollLockRef = useRef(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
@@ -1072,7 +1083,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setLoading(false);
       setStatsLoading(true);
       setExpandedGroups(prev => {
-        if (prev.size === 0) return new Set(baseGroupsArray.map(group => group.admin.id));
+        if (prev.size === 0) return new Set(baseGroupsArray.slice(0, 1).map(group => group.admin.id));
         return prev;
       });
 
@@ -1285,7 +1296,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setStatsLoading(false);
       committed = true;
       setExpandedGroups(prev => {
-        if (prev.size === 0) return new Set(groupsArray.map(g => g.admin.id));
+        if (prev.size === 0) return new Set(groupsArray.slice(0, 1).map(group => group.admin.id));
         return prev;
       });
     } catch (error) {
@@ -2644,21 +2655,34 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     );
   };
 
-  const handleOpenWallet = useCallback(async (employee: { id: string; username: string; employeeId?: string }) => {
+  const handleOpenWallet = useCallback(async (employee: {
+    id: string;
+    username: string;
+    employeeId?: string;
+    available?: number;
+    pending?: number;
+  }) => {
+    const requestId = ++walletLoadRequestRef.current;
+    const cachedWalletData = employee.available !== undefined && employee.pending !== undefined
+      ? { available: employee.available, pending: employee.pending }
+      : null;
+
     setWalletEmployee(employee);
-    setWalletData(null);
+    setWalletData(cachedWalletData);
     setWalletAdjustData({ amount: '', remarks: '' });
     setWalletAdjusting(false);
     setWalletNotification(null);
     walletAdjustmentOperationIdRef.current = null;
-    setWalletLoading(true);
+    setWalletLoading(!cachedWalletData);
     try {
-      setWalletData(await loadWalletModalData(employee.id));
+      const latestWalletData = await loadWalletModalData(employee.id);
+      if (requestId === walletLoadRequestRef.current) setWalletData(latestWalletData);
     } catch (err) {
+      if (requestId !== walletLoadRequestRef.current) return;
       console.error('Error loading wallet:', formatSupabaseError(err));
-      setWalletData({ available: 0, pending: 0 });
+      if (!cachedWalletData) setWalletData({ available: 0, pending: 0 });
     } finally {
-      setWalletLoading(false);
+      if (requestId === walletLoadRequestRef.current) setWalletLoading(false);
     }
   }, []);
 
@@ -3145,7 +3169,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             type="button"
             onClick={(event) => {
               event.stopPropagation();
-              onQuickAction?.('message', { id: employee.id, username: employee.username });
+              onQuickAction?.('message', {
+                id: employee.id,
+                username: employee.username,
+                employeeId: employee.employee_id,
+                adminId: employee.created_by,
+                adminUsername: employee.admin?.username,
+                isVerified: employee.is_verified,
+                isActive: employee.is_active,
+                remarks: employee.remarks || '',
+                tags: employee.tags || [],
+              });
             }}
             className="p-0.5 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/25 hover:text-blue-300 transition-all border border-blue-500/20 hover:border-blue-400/40"
             title={`傳送訊息給 ${employee.username}`}
@@ -3156,7 +3190,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             type="button"
             onClick={(event) => {
               event.stopPropagation();
-              onQuickAction?.('customerservice', { id: employee.id, username: employee.username });
+              onQuickAction?.('customerservice', {
+                id: employee.id,
+                username: employee.username,
+                employeeId: employee.employee_id,
+                adminId: employee.created_by,
+                adminUsername: employee.admin?.username,
+                isVerified: employee.is_verified,
+                isActive: employee.is_active,
+                remarks: employee.remarks || '',
+                tags: employee.tags || [],
+              });
             }}
             className="p-0.5 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/25 hover:text-rose-300 transition-all border border-rose-500/20 hover:border-rose-400/40"
             title={`直接傳送模擬客戶訊息給 ${employee.username}`}
@@ -3168,7 +3212,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             type="button"
             onClick={(event) => {
               event.stopPropagation();
-              onQuickAction?.('cccservice', { id: employee.id, username: employee.username });
+              onQuickAction?.('cccservice', {
+                id: employee.id,
+                username: employee.username,
+                employeeId: employee.employee_id,
+                adminId: employee.created_by,
+                adminUsername: employee.admin?.username,
+                isVerified: employee.is_verified,
+                isActive: employee.is_active,
+                remarks: employee.remarks || '',
+                tags: employee.tags || [],
+              });
             }}
             className="p-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-300 transition-all border border-emerald-500/20 hover:border-emerald-400/40"
             title={`直接傳送經理訊息給 ${employee.username}`}
@@ -3180,7 +3234,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             type="button"
             onClick={(event) => {
               event.stopPropagation();
-              void handleOpenWallet({ id: employee.id, username: employee.username, employeeId: employee.employee_id });
+              void handleOpenWallet({
+                id: employee.id,
+                username: employee.username,
+                employeeId: employee.employee_id,
+                available: employee.statsLoaded ? employee.accountBalance : undefined,
+                pending: employee.statsLoaded ? employee.pendingWithdrawalAmount : undefined,
+              });
             }}
             className="p-0.5 rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500/25 hover:text-amber-300 transition-all border border-amber-500/20 hover:border-amber-400/40"
             title={`調整 ${employee.username} 的錢包`}
@@ -3216,11 +3276,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const employeeRowsByGroup = useMemo(() => {
     const rows = new Map<string, ReactNode[]>();
     filteredEmployeeGroups.forEach(group => {
+      if (!expandedGroups.has(group.admin.id)) return;
       const isSuperAdminGroup = group.admin.role === 'super_admin';
       rows.set(group.admin.id, group.employees.map((employee, index) => renderEmployeeRow(employee, index, isSuperAdminGroup)));
     });
     return rows;
-  }, [filteredEmployeeGroups, renderEmployeeRow]);
+  }, [expandedGroups, filteredEmployeeGroups, renderEmployeeRow]);
 
   const renderTableHeader = (adminId: string) => (
     <thead className="sticky top-0 z-20 isolate bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)] border-b-2 border-blue-300/40">

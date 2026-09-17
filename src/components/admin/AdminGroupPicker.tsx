@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Activity, ArrowUpRight, BellRing, ChevronRight, MessageCircle, RefreshCw, Shield, UserCog, Users } from 'lucide-react';
 
 export interface AdminGroup {
@@ -16,6 +17,7 @@ interface AdminGroupPickerProps {
   fallbackUnreadCount?: number;
   loading: boolean;
   onSelect: (group: AdminGroup) => void;
+  onPrefetch?: (group: AdminGroup) => void;
   onRefresh: () => void;
 }
 
@@ -68,7 +70,7 @@ const getRoleChipStyles = (role: string) => role === 'super_admin'
   ? 'text-amber-200'
   : 'text-sky-200';
 
-export default function AdminGroupPicker({ service, groups, unreadCounts, fallbackUnreadCount = 0, loading, onSelect, onRefresh }: AdminGroupPickerProps) {
+export default function AdminGroupPicker({ service, groups, unreadCounts, fallbackUnreadCount = 0, loading, onSelect, onPrefetch, onRefresh }: AdminGroupPickerProps) {
   const styles = serviceStyles[service];
   const Icon = styles.Icon;
   const getUnreadCount = (group: AdminGroup) => unreadCounts[group.admin_id] ?? (groups.length === 1 ? fallbackUnreadCount : 0);
@@ -76,6 +78,16 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
   const totalCustomers = groups.reduce((total, group) => total + Number(group.customer_count || 0), 0);
   const totalConversations = groups.reduce((total, group) => total + Number(group.conversation_count || 0), 0);
   const totalUnread = groups.reduce((total, group) => total + getUnreadCount(group), 0);
+
+  useEffect(() => {
+    if (loading || !onPrefetch) return;
+
+    const timers = groups.slice(0, 4).map((group, index) => globalThis.setTimeout(() => {
+      onPrefetch(group);
+    }, 150 + index * 250));
+
+    return () => timers.forEach(timer => globalThis.clearTimeout(timer));
+  }, [groups, loading, onPrefetch]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col text-slate-100">
@@ -147,6 +159,8 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
                     <button
                       key={group.admin_id}
                       type="button"
+                      onPointerEnter={() => onPrefetch?.(group)}
+                      onFocus={() => onPrefetch?.(group)}
                       onPointerDown={(event) => event.currentTarget.blur()}
                       onClick={() => onSelect(group)}
                       className={`group relative flex w-full flex-col gap-3 overflow-hidden rounded-lg border px-3 py-3 text-left transition-all duration-200 hover:-translate-y-px focus:outline-none focus:ring-0 focus:ring-offset-0 sm:grid sm:grid-cols-[minmax(200px,1fr)_repeat(3,90px)_150px] sm:items-center sm:gap-4 sm:px-4 ${styles.row}`}

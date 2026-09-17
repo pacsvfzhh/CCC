@@ -58,7 +58,17 @@ interface Props {
     is_super_admin?: boolean;
   };
   isActive?: boolean;
-  initialEmployee?: { id: string; username: string } | null;
+  initialEmployee?: {
+    id: string;
+    username: string;
+    employeeId: string;
+    adminId: string;
+    adminUsername?: string;
+    isVerified: boolean;
+    isActive: boolean;
+    remarks: string;
+    tags: string[];
+  } | null;
   onConsumeInitialEmployee?: () => void;
 }
 
@@ -107,6 +117,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [allEmployees, setAllEmployees] = useState<Map<string, Employee[]>>(new Map());
   const [selectedAdminId, setSelectedAdminId] = useState<string>('');
+  const selectedAdminIdRef = useRef('');
+  selectedAdminIdRef.current = selectedAdminId;
   const [loading, setLoading] = useState(true);
 
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
@@ -198,26 +210,60 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   }, [isActive, initialEmployee]);
 
   useEffect(() => {
-    if (!isActive || !initialEmployee || loading) return;
+    if (!isActive || !initialEmployee) return;
 
-    const targetGroup = Array.from(allEmployees.entries()).find(([, employees]) =>
-      employees.some(employee => employee.id === initialEmployee.id),
-    );
+    selectedAdminIdRef.current = initialEmployee.adminId;
+    setSelectedAdminId(initialEmployee.adminId);
+    setAdminGroups(previous => previous.some(group => group.id === initialEmployee.adminId)
+      ? previous
+      : [{
+          id: initialEmployee.adminId,
+          username: initialEmployee.adminUsername || '管理員群組',
+          role: 'secondary_admin',
+          total_employees: 1,
+          active_employees: initialEmployee.isActive ? 1 : 0,
+          verified_employees: initialEmployee.isVerified ? 1 : 0,
+        }, ...previous]);
+    setAllEmployees(previous => {
+      const groupEmployees = previous.get(initialEmployee.adminId) || [];
+      if (groupEmployees.some(employee => employee.id === initialEmployee.id)) return previous;
 
-    if (!targetGroup) return;
-
-    setSelectedAdminId(targetGroup[0]);
+      const next = new Map(previous);
+      next.set(initialEmployee.adminId, [{
+        id: initialEmployee.id,
+        username: initialEmployee.username,
+        employee_id: initialEmployee.employeeId,
+        is_active: initialEmployee.isActive,
+        is_verified: initialEmployee.isVerified,
+        total_income: 0,
+        created_by: initialEmployee.adminId,
+        tags: initialEmployee.tags,
+        remarks: initialEmployee.remarks,
+        is_pinned: false,
+      }, ...groupEmployees]);
+      return next;
+    });
     setSearchQuery('');
     setFilterStatus('all');
     setSelectedTags(new Set());
     setSelectedEmployeeIds(new Set([initialEmployee.id]));
+
+    if (loading) return;
+
+    const targetGroup = Array.from(allEmployees.entries()).find(([, employees]) =>
+      employees.some(employee => employee.id === initialEmployee.id),
+    );
+    if (!targetGroup) return;
+
     onConsumeInitialEmployeeRef.current?.();
   }, [isActive, initialEmployee, loading, allEmployees]);
 
   useEffect(() => {
     void loadAllDataRef.current?.();
-    void loadSentMessagesRef.current?.();
-    void loadTemplatesRef.current?.();
+    const auxiliaryDataTimer = globalThis.setTimeout(() => {
+      void loadSentMessagesRef.current?.();
+      void loadTemplatesRef.current?.();
+    }, 250);
 
     const debouncedLoadAllData = () => {
       if (userDebounceTimer.current) clearTimeout(userDebounceTimer.current);
@@ -245,6 +291,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       .subscribe();
 
     return () => {
+      globalThis.clearTimeout(auxiliaryDataTimer);
       if (userDebounceTimer.current) clearTimeout(userDebounceTimer.current);
       if (recipientDebounceTimer.current) clearTimeout(recipientDebounceTimer.current);
       if (initialDataRetryTimerRef.current) clearTimeout(initialDataRetryTimerRef.current);
@@ -285,15 +332,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     allDataLoadingRef.current = true;
     if (!isBackgroundRefresh) setLoading(true);
     try {
-      const { data: allAdmins, error: adminsError } = await supabase
+      const adminsQuery = supabase
         .from('admins')
         .select('id, username, role')
         .eq('is_active', true)
         .neq('role', 'emergency_admin')
         .order('role', { ascending: false })
         .order('username');
-
-      if (adminsError) throw adminsError;
 
       let employeesQuery = supabase
         .from('users')
@@ -305,7 +350,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         employeesQuery = employeesQuery.eq('created_by', admin.id);
       }
 
-      const { data: employeesData, error: employeesError } = await employeesQuery;
+      const [
+        { data: allAdmins, error: adminsError },
+        { data: employeesData, error: employeesError },
+      ] = await Promise.all([adminsQuery, employeesQuery]);
+
+      if (adminsError) throw adminsError;
       if (employeesError) throw employeesError;
 
       const tagsSet = new Set<string>();
@@ -352,7 +402,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       setAdminGroups(filteredGroups);
       setAllEmployees(employeesByAdmin);
 
-      if (filteredGroups.length > 0 && !selectedAdminId) {
+      if (filteredGroups.length > 0 && !selectedAdminIdRef.current) {
+        selectedAdminIdRef.current = filteredGroups[0].id;
         setSelectedAdminId(filteredGroups[0].id);
       }
     } catch (error) {
@@ -1020,7 +1071,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     }
   };
 
-  if (loading) {
+  if (loading && !initialEmployee) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
