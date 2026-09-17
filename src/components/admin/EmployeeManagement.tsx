@@ -403,6 +403,24 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       markRealtimeChange();
       scheduleRealtimeReload(2000);
     };
+    const updateEmployeeGroups = (updateEmployee: (employee: EmployeeWithAdmin) => EmployeeWithAdmin) => {
+      setEmployeeGroups(prev => {
+        let groupsChanged = false;
+        const nextGroups = prev.map(group => {
+          let employeesChanged = false;
+          const employees = group.employees.map(employee => {
+            const nextEmployee = updateEmployee(employee);
+            if (nextEmployee === employee) return employee;
+            employeesChanged = true;
+            return nextEmployee;
+          });
+          if (!employeesChanged) return group;
+          groupsChanged = true;
+          return { ...group, employees };
+        });
+        return groupsChanged ? nextGroups : prev;
+      });
+    };
     let workStatusUpdateTimer: ReturnType<typeof setTimeout> | null = null;
     const pendingWorkStatusUpdates = new Map<string, 'online' | 'offline'>();
     const scheduleWorkStatusUpdate = (userId: string, status: 'online' | 'offline') => {
@@ -416,16 +434,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         pendingWorkStatusUpdates.clear();
         if (!isMountedRef.current || updates.size === 0) return;
 
-        setEmployeeGroups(prev => prev.map(group => {
-          let groupChanged = false;
-          const employees = group.employees.map(employee => {
-            const nextStatus = updates.get(employee.id);
-            if (!nextStatus || nextStatus === employee.workStatus) return employee;
-            groupChanged = true;
-            return { ...employee, workStatus: nextStatus };
-          });
-          return groupChanged ? { ...group, employees } : group;
-        }));
+        updateEmployeeGroups(employee => {
+          const nextStatus = updates.get(employee.id);
+          return !nextStatus || nextStatus === employee.workStatus
+            ? employee
+            : { ...employee, workStatus: nextStatus };
+        });
       }, 150);
     };
     let workTimeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -472,19 +486,16 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           });
 
           markRealtimeChange();
-          setEmployeeGroups(prev => prev.map(group => ({
-            ...group,
-            employees: group.employees.map(employee => {
-              const workTime = workTimeMap.get(employee.id);
-              return workTime
-                ? {
-                    ...employee,
-                    totalWorkMinutes: workTime.total,
-                    todayWorkMinutes: workTime.today,
-                  }
-                : employee;
-            }),
-          })));
+          updateEmployeeGroups(employee => {
+            const workTime = workTimeMap.get(employee.id);
+            return workTime
+              ? {
+                  ...employee,
+                  totalWorkMinutes: workTime.total,
+                  todayWorkMinutes: workTime.today,
+                }
+              : employee;
+          });
         } catch {
           if (isMountedRef.current) debouncedStatsReload();
         } finally {
@@ -520,12 +531,16 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       new: Record<string, unknown>;
       old: Record<string, unknown>;
     }) => {
-      if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') return true;
-
       const employeeId = String(payload.new.id || payload.old.id || '');
       const currentEmployee = employeeGroupsRef.current
         .flatMap(group => group.employees)
         .find(employee => employee.id === employeeId);
+      const nextCreatedBy = String(payload.new.created_by || payload.old.created_by || '');
+
+      if (admin.role === 'secondary_admin' && !currentEmployee && nextCreatedBy !== admin.id) {
+        return false;
+      }
+      if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') return true;
       if (!currentEmployee) return true;
 
       const relevantFields = ['username', 'employee_id', 'is_verified', 'is_active', 'remarks', 'tags', 'is_pinned', 'created_by', 'created_at'];
@@ -551,7 +566,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
     const adminsSubscription = supabase
       .channel('employee_mgmt_admins')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'admins' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admins' }, (payload) => {
+        if (admin.role === 'secondary_admin') {
+          const changedAdminId = String(
+            (payload.new as { id?: unknown }).id || (payload.old as { id?: unknown }).id || '',
+          );
+          if (changedAdminId !== admin.id) return;
+        }
         debouncedStructureReload();
       })
       .subscribe(handleRealtimeStatus);
@@ -649,14 +670,11 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             return;
           }
           markRealtimeChange();
-          setEmployeeGroups(prev => prev.map(group => ({
-            ...group,
-            employees: group.employees.map(employee => (
-              commissionMap.has(employee.id)
-                ? { ...employee, todayCommission: commissionMap.get(employee.id) || 0 }
-                : employee
-            )),
-          })));
+          updateEmployeeGroups(employee => (
+            commissionMap.has(employee.id)
+              ? { ...employee, todayCommission: commissionMap.get(employee.id) || 0 }
+              : employee
+          ));
         } catch {
           if (isMountedRef.current) debouncedStatsReload();
         } finally {
@@ -690,12 +708,11 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           const available = Number(payload.new.available_balance) || 0;
           const frozen = Number(payload.new.frozen_balance) || 0;
           markRealtimeChange();
-          setEmployeeGroups(prev => prev.map(group => ({
-            ...group,
-            employees: group.employees.map(emp =>
-              emp.id === userId ? { ...emp, walletBalance: available + frozen, accountBalance: available } : emp
-            ),
-          })));
+          updateEmployeeGroups(employee => (
+            employee.id === userId
+              ? { ...employee, walletBalance: available + frozen, accountBalance: available }
+              : employee
+          ));
           return;
         }
         debouncedStatsReload();
@@ -720,31 +737,28 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             || Number(previousOrder.commission_amount || 0) !== Number(order.commission_amount || 0);
           if (commissionChanged && (wasToday || isToday)) scheduleCommissionRefresh(userId);
           markRealtimeChange();
-          setEmployeeGroups(prev => prev.map(group => ({
-            ...group,
-            employees: group.employees.map(emp => {
-              if (emp.id !== userId) return emp;
-              const wasSuccess = previousOrder.status === 'success';
-              const isSuccess = order.status === 'success';
-              const wasFailed = previousOrder.status === 'failure';
-              const isFailed = order.status === 'failure';
-              let todayCompletedDelta = 0;
-              let failedDelta = 0;
-              if (isToday && isSuccess && !wasSuccess) {
-                todayCompletedDelta = 1;
-              } else if (wasToday && !isSuccess && wasSuccess) {
-                todayCompletedDelta = -1;
-              }
-              if (isToday && isFailed && !wasFailed) failedDelta = 1;
-              else if (wasToday && !isFailed && wasFailed) failedDelta = -1;
-              return {
-                ...emp,
-                todayCompletedOrders: Math.max(0, emp.todayCompletedOrders + todayCompletedDelta),
-                failedOrders: Math.max(0, emp.failedOrders + failedDelta),
-                todayCommission: emp.todayCommission,
-              };
-            }),
-          })));
+          updateEmployeeGroups(emp => {
+            if (emp.id !== userId) return emp;
+            const wasSuccess = previousOrder.status === 'success';
+            const isSuccess = order.status === 'success';
+            const wasFailed = previousOrder.status === 'failure';
+            const isFailed = order.status === 'failure';
+            let todayCompletedDelta = 0;
+            let failedDelta = 0;
+            if (isToday && isSuccess && !wasSuccess) {
+              todayCompletedDelta = 1;
+            } else if (wasToday && !isSuccess && wasSuccess) {
+              todayCompletedDelta = -1;
+            }
+            if (isToday && isFailed && !wasFailed) failedDelta = 1;
+            else if (wasToday && !isFailed && wasFailed) failedDelta = -1;
+            return {
+              ...emp,
+              todayCompletedOrders: Math.max(0, emp.todayCompletedOrders + todayCompletedDelta),
+              failedOrders: Math.max(0, emp.failedOrders + failedDelta),
+              todayCommission: emp.todayCommission,
+            };
+          });
           return;
         }
         if (payload.eventType === 'INSERT' && payload.new && payload.new.user_id) {
@@ -753,20 +767,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           const isToday = isTodayOrder(order.created_at);
           if (isToday && order.status === 'success') scheduleCommissionRefresh(userId);
           markRealtimeChange();
-          setEmployeeGroups(prev => prev.map(group => ({
-            ...group,
-            employees: group.employees.map(emp => {
-              if (emp.id !== userId) return emp;
-              return {
-                ...emp,
-                todayOrders: isToday ? emp.todayOrders + 1 : emp.todayOrders,
-                totalOrders: emp.totalOrders + 1,
-                todayCompletedOrders: isToday && order.status === 'success' ? emp.todayCompletedOrders + 1 : emp.todayCompletedOrders,
-                failedOrders: isToday && order.status === 'failure' ? emp.failedOrders + 1 : emp.failedOrders,
-                todayCommission: emp.todayCommission,
-              };
-            }),
-          })));
+          updateEmployeeGroups(emp => {
+            if (emp.id !== userId) return emp;
+            return {
+              ...emp,
+              todayOrders: isToday ? emp.todayOrders + 1 : emp.todayOrders,
+              totalOrders: emp.totalOrders + 1,
+              todayCompletedOrders: isToday && order.status === 'success' ? emp.todayCompletedOrders + 1 : emp.todayCompletedOrders,
+              failedOrders: isToday && order.status === 'failure' ? emp.failedOrders + 1 : emp.failedOrders,
+              todayCommission: emp.todayCommission,
+            };
+          });
           return;
         }
         debouncedStatsReload();
@@ -810,7 +821,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       if (pendingReloadTimerRef.current) clearTimeout(pendingReloadTimerRef.current);
       clearInterval(timeUpdateInterval);
     };
-  }, [isActive, resetAutoRefreshTimer]);
+  }, [admin.id, admin.role, isActive, resetAutoRefreshTimer]);
 
   useEffect(() => {
     if (loading || statsLoading || employeeGroups.length === 0 || withdrawalDateRefreshAttemptedRef.current) return;
