@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, Plus, Send, Trash2, CreditCard as Edit2, User, MessageCircle, ArrowLeft, X, Search, Tag, Filter, Image, Star, Clock, Bold, Underline, Strikethrough, Pencil, Check, Gift, DollarSign, MessageSquarePlus, FileText, BookOpen, Highlighter, Pin, Upload, Zap, CheckCheck, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
-import { getCachedAdminWorkspaceData, invalidateAdminWorkspaceDataCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
+import { getCachedAdminWorkspaceData, getCachedConversationSummaries, invalidateAdminWorkspaceDataCache, invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
 import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPicker';
@@ -121,6 +121,37 @@ function dedupeConversationHistory(history: ConversationHistory[]) {
   return Array.from(byConversation.values()).sort((a, b) =>
     new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime(),
   );
+}
+
+function buildConversationHistory(
+  summaries: ConversationSummaryRow[],
+  customers: SimulatedCustomer[],
+  employees: Employee[],
+) {
+  const customersById = new Map(customers.map(customer => [customer.id, customer]));
+  const employeesById = new Map(employees.map(employee => [employee.id, employee]));
+
+  return dedupeConversationHistory(summaries
+    .filter(row => customersById.has(row.customer_id))
+    .map(row => {
+      const customer = customersById.get(row.customer_id);
+      const employee = employeesById.get(row.employee_id);
+      return {
+        employee_id: row.employee_id,
+        employee_username: row.employee_username,
+        employee_number: row.employee_number,
+        employee_tags: employee?.tags || [],
+        employee_remarks: employee?.remarks || '',
+        customer_id: row.customer_id,
+        customer_name: row.customer_name,
+        customer_avatar: customer?.customer_avatar || row.customer_avatar,
+        custom_avatar_url: customer?.custom_avatar_url || row.custom_avatar_url,
+        message_count: Number(row.message_count),
+        last_message: row.last_message_type === 'image' ? '__IMAGE__' : (row.last_message || ''),
+        last_message_time: row.last_message_time || '',
+        unread_count: Number(row.unread_count),
+      };
+    }));
 }
 
 interface MessageTemplate {
@@ -496,6 +527,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     const employeeAdminId = adminUnreadScopeRef.current.employeesById.get(message.employee_id);
     if (!customerAdminId || employeeAdminId !== customerAdminId) return;
 
+    invalidateConversationSummariesCache(customerAdminId, 'customer');
     adminUnreadRequestRef.current += 1;
     const tracked = realtimeAdminUnreadMessageIdsRef.current.has(message.id);
     const isUnreadEmployeeMessage = payload.eventType !== 'DELETE'
@@ -604,13 +636,14 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       }
 
       const data = await prefetchAdminGroups(adminId, 'customer', force);
-      setAdminGroups(data);
 
       if (data.length > 0) {
-        void loadAdminUnreadCounts(data.map(g => g.admin_id));
+        await loadAdminUnreadCounts(data.map(g => g.admin_id));
       } else {
         setAdminUnreadCounts({});
       }
+
+      setAdminGroups(data);
     } catch (error) {
       console.error('Error loading admin groups:', formatSupabaseError(error));
       setNotification({ type: 'error', text: '載入管理員群組失敗' });
@@ -730,27 +763,11 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       }
 
       const customerIds = new Set(allCustomersRef.current.map(customer => customer.id));
-      const summaryHistory: ConversationHistory[] = (data || [])
-        .filter(row => customerIds.has(row.customer_id))
-        .map(row => {
-        const employee = employeeMetaById.get(row.employee_id);
-        const customer = allCustomersRef.current.find(item => item.id === row.customer_id);
-        return {
-        employee_id: row.employee_id,
-        employee_username: row.employee_username,
-        employee_number: row.employee_number,
-        employee_tags: employee?.tags || [],
-        employee_remarks: employee?.remarks || '',
-        customer_id: row.customer_id,
-        customer_name: row.customer_name,
-        customer_avatar: customer?.customer_avatar || row.customer_avatar,
-        custom_avatar_url: customer?.custom_avatar_url || row.custom_avatar_url,
-        message_count: Number(row.message_count),
-        last_message: row.last_message_type === 'image' ? '__IMAGE__' : (row.last_message || ''),
-        last_message_time: row.last_message_time || '',
-        unread_count: Number(row.unread_count),
-        };
-      });
+      const summaryHistory = buildConversationHistory(
+        data || [],
+        allCustomersRef.current,
+        allEmployeesRef.current,
+      );
       const summaryByKey = new Map(summaryHistory.map(history => [
         `${history.customer_id}:${history.employee_id}`,
         history,
@@ -1016,11 +1033,15 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     };
 
     const cachedWorkspace = getCachedAdminWorkspaceData<SimulatedCustomer, Employee>(initialEmployee.adminId, 'customer');
+    const cachedSummaries = getCachedConversationSummaries<ConversationSummaryRow>(initialEmployee.adminId, 'customer');
     const nextCustomers = cachedWorkspace?.customers || [];
     const cachedEmployees = cachedWorkspace?.employees || [];
     const nextEmployees = cachedEmployees.some(employee => employee.id === immediateEmployee.id)
       ? cachedEmployees
       : [immediateEmployee, ...cachedEmployees];
+    const nextHistory = cachedSummaries
+      ? buildConversationHistory(cachedSummaries, nextCustomers, nextEmployees)
+      : [];
 
     setLoading(false);
     setSelectedCustomer(null);
@@ -1030,8 +1051,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     allCustomersRef.current = nextCustomers;
     allEmployeesRef.current = nextEmployees;
     setMessages([]);
-    setConversationHistory([]);
-    conversationHistoryRef.current = [];
+    setConversationHistory(nextHistory);
+    setAllConversationHistory(nextHistory);
+    conversationHistoryRef.current = nextHistory;
+    allConversationHistoryRef.current = nextHistory;
     setShowHistoryView(true);
 
     if (isSuperAdmin) {
@@ -1069,10 +1092,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
   // Auto-load all conversation history when admin is selected and no customer is focused
   useEffect(() => {
-    if (isActive && selectedAdminId && customers.length > 0 && employees.length > 0 && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
+    if (isActive && !loading && selectedAdminId && customers.length > 0 && employees.length > 0 && allConversationHistory.length === 0 && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
       void loadAllConversationHistory(true);
     }
-  }, [isActive, selectedAdminId, customers.length, employees.length, selectedCustomer, selectedEmployee, showHistoryView, historyScope, loadAllConversationHistory]);
+  }, [isActive, loading, selectedAdminId, customers.length, employees.length, allConversationHistory.length, selectedCustomer, selectedEmployee, showHistoryView, historyScope, loadAllConversationHistory]);
 
   // Subscribe to realtime updates for admins table
   useEffect(() => {
@@ -1729,6 +1752,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     workspaceLoadRequestRef.current += 1;
     conversationHistoryLoadRequestRef.current += 1;
     messagesLoadRequestRef.current += 1;
+    selectedAdminIdRef.current = group.admin_id;
     setSelectedAdminId(group.admin_id);
     setSelectedAdminName(group.admin_username);
     setSelectedCustomer(null);
@@ -1737,21 +1761,40 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setMessagesLoading(false);
     setLoadingOlderMessages(false);
     setHasMoreMessages(false);
+    historyScrollTopRef.current = 0;
+
+    const cachedWorkspace = getCachedAdminWorkspaceData<SimulatedCustomer, Employee>(group.admin_id, 'customer');
+    const cachedSummaries = getCachedConversationSummaries<ConversationSummaryRow>(group.admin_id, 'customer');
+
+    if (cachedWorkspace && cachedSummaries) {
+      const nextHistory = buildConversationHistory(
+        cachedSummaries,
+        cachedWorkspace.customers,
+        cachedWorkspace.employees,
+      );
+      setCustomers(cachedWorkspace.customers);
+      setEmployees(cachedWorkspace.employees);
+      allCustomersRef.current = cachedWorkspace.customers;
+      allEmployeesRef.current = cachedWorkspace.employees;
+      setConversationHistory(nextHistory);
+      setAllConversationHistory(nextHistory);
+      conversationHistoryRef.current = nextHistory;
+      allConversationHistoryRef.current = nextHistory;
+      setLoading(false);
+      void loadAdminData(group.admin_id, true, true);
+      return;
+    }
+
+    setCustomers([]);
+    setEmployees([]);
+    allCustomersRef.current = [];
+    allEmployeesRef.current = [];
     setConversationHistory([]);
     setAllConversationHistory([]);
     conversationHistoryRef.current = [];
     allConversationHistoryRef.current = [];
-
-    const cachedWorkspace = getCachedAdminWorkspaceData<SimulatedCustomer, Employee>(group.admin_id, 'customer');
-    const nextCustomers = cachedWorkspace?.customers || [];
-    const nextEmployees = cachedWorkspace?.employees || [];
-    setCustomers(nextCustomers);
-    setEmployees(nextEmployees);
-    allCustomersRef.current = nextCustomers;
-    allEmployeesRef.current = nextEmployees;
-    setLoading(false);
-    historyScrollTopRef.current = 0;
-    void loadAdminData(group.admin_id, true, true);
+    setLoading(true);
+    void loadAdminData(group.admin_id);
   };
 
   const handleBackToGroups = () => {
@@ -2955,14 +2998,14 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                 return true;
               })
               .sort((a, b) => {
-                const aPinned = a.is_pinned ? 1 : 0;
-                const bPinned = b.is_pinned ? 1 : 0;
-                if (aPinned !== bPinned) return bPinned - aPinned;
                 const aUnread = customerUnreadCountsForCards[a.id] || 0;
                 const bUnread = customerUnreadCountsForCards[b.id] || 0;
                 if (aUnread > 0 && bUnread === 0) return -1;
                 if (aUnread === 0 && bUnread > 0) return 1;
                 if (aUnread !== bUnread) return bUnread - aUnread;
+                const aPinned = a.is_pinned ? 1 : 0;
+                const bPinned = b.is_pinned ? 1 : 0;
+                if (aPinned !== bPinned) return bPinned - aPinned;
                 if (a.is_super && !b.is_super) return -1;
                 if (!a.is_super && b.is_super) return 1;
                 return 0;

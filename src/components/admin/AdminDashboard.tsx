@@ -8,7 +8,7 @@ import { useCompanyName } from '../../lib/useCompanyName';
 import { AdminBackground } from '../AdminBackground';
 import { formatSupabaseError, isFinancialAdminSessionError, supabase } from '../../lib/supabase';
 import { autoCleanupService } from '../../services/autoCleanupService';
-import { prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
+import { invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 
 const EmployeeManagement = lazy(() => import('./EmployeeManagement'));
 const ProductTypeManagement = lazy(() => import('./ProductTypeManagement'));
@@ -998,6 +998,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         schedulePendingCountsRefresh();
         return;
       }
+
+      invalidateConversationSummariesCache(
+        admin.id,
+        sourceType === 'aaa_service' ? 'customer' : 'manager',
+      );
 
       const customerId = typeof message.customer_id === 'string' ? message.customer_id : null;
       const employeeId = typeof message.employee_id === 'string' ? message.employee_id : null;

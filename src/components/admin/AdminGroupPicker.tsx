@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Activity, ArrowUpRight, BellRing, ChevronRight, MessageCircle, RefreshCw, Shield, UserCog, Users } from 'lucide-react';
 
 export interface AdminGroup {
@@ -78,16 +78,21 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
   const totalCustomers = groups.reduce((total, group) => total + Number(group.customer_count || 0), 0);
   const totalConversations = groups.reduce((total, group) => total + Number(group.conversation_count || 0), 0);
   const totalUnread = groups.reduce((total, group) => total + getUnreadCount(group), 0);
+  const sortedGroups = useMemo(() => [...groups].sort((a, b) => {
+    const aUnread = unreadCounts[a.admin_id] ?? (groups.length === 1 ? fallbackUnreadCount : 0);
+    const bUnread = unreadCounts[b.admin_id] ?? (groups.length === 1 ? fallbackUnreadCount : 0);
+    return bUnread - aUnread;
+  }), [fallbackUnreadCount, groups, unreadCounts]);
 
   useEffect(() => {
     if (loading || !onPrefetch) return;
 
-    const timers = groups.slice(0, 4).map((group, index) => globalThis.setTimeout(() => {
+    const timers = sortedGroups.slice(0, 4).map((group, index) => globalThis.setTimeout(() => {
       onPrefetch(group);
     }, 150 + index * 250));
 
     return () => timers.forEach(timer => globalThis.clearTimeout(timer));
-  }, [groups, loading, onPrefetch]);
+  }, [loading, onPrefetch, sortedGroups]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col text-slate-100">
@@ -152,7 +157,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
                 <span>工作區</span><span>員工</span><span>客戶</span><span>對話</span><span className="text-right">操作</span>
               </div>
               <div className="space-y-1 p-1">
-                {groups.map(group => {
+                {sortedGroups.map(group => {
                   const unread = getUnreadCount(group);
                   const RoleIcon = getRoleIcon(group.admin_role);
                   return (

@@ -233,6 +233,13 @@ export function getCachedAdminWorkspaceData<TCustomer = Record<string, unknown>,
   return cachedWorkspaceData.get(getDataCacheKey(adminId, service)) as ServiceWorkspaceData<TCustomer, TEmployee> | undefined || null;
 }
 
+export function getCachedConversationSummaries<TSummary = unknown>(
+  adminId: string,
+  service: ServiceWorkspace,
+): TSummary[] | null {
+  return cachedConversationSummaries.get(`${getCacheKey(adminId, service)}:conversations`) as TSummary[] | undefined || null;
+}
+
 export function invalidateAdminWorkspaceDataCache(
   adminId: string,
   service: ServiceWorkspace,
