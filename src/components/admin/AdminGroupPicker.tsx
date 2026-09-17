@@ -94,6 +94,23 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
     return () => timers.forEach(timer => globalThis.clearTimeout(timer));
   }, [loading, onPrefetch, sortedGroups]);
 
+  if (loading) {
+    return (
+      <div className="flex min-h-[320px] flex-1 items-center justify-center bg-slate-950/30 text-slate-100">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className={`relative flex h-16 w-16 items-center justify-center rounded-2xl border ${service === 'customer' ? 'border-orange-300/30 bg-orange-400/15 shadow-[0_0_30px_rgba(251,146,60,0.14)]' : 'border-emerald-300/30 bg-emerald-400/15 shadow-[0_0_30px_rgba(52,211,153,0.14)]'}`}>
+            <span className={`absolute inset-1 animate-ping rounded-xl border [animation-duration:1.6s] ${service === 'customer' ? 'border-orange-300/25' : 'border-emerald-300/25'}`} />
+            <span className={`relative h-8 w-8 animate-spin rounded-full border-[3px] ${service === 'customer' ? 'border-orange-300/25 border-t-orange-300' : 'border-emerald-300/25 border-t-emerald-300'}`} />
+          </div>
+          <div>
+            <p className={`text-sm font-semibold ${service === 'customer' ? 'text-orange-100' : 'text-emerald-100'}`}>正在載入{service === 'customer' ? '模擬客戶' : '經理'}分組</p>
+            <p className="mt-1 text-[11px] text-slate-400">正在取得管理員工作區，請稍候……</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col text-slate-100">
       <section className="flex min-h-0 flex-1 flex-col">
@@ -138,34 +155,7 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto scrollbar-dark p-0 sm:p-1">
-          {loading ? (
-            <div className={`relative min-h-[320px] overflow-hidden rounded-xl border bg-slate-900/45 ${styles.border}`}>
-              <div className="divide-y divide-slate-700/50 opacity-55">
-                {[0, 1, 2, 3, 4].map(index => (
-                  <div key={index} className="flex animate-pulse flex-col gap-3 px-3 py-4 sm:flex-row sm:items-center sm:px-4">
-                    <div className="flex flex-1 items-center gap-3">
-                      <div className={`h-9 w-9 shrink-0 rounded-lg ${styles.skeleton}`} />
-                      <div className="space-y-2"><div className="h-3 w-36 rounded bg-slate-700/70" /><div className="h-2.5 w-24 rounded bg-slate-800" /></div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 sm:w-[270px]"><div className="h-10 rounded-lg bg-slate-800/70" /><div className="h-10 rounded-lg bg-slate-800/70" /><div className="h-10 rounded-lg bg-slate-800/70" /></div>
-                    <div className="h-9 w-28 self-end rounded-lg bg-slate-800 sm:self-auto" />
-                  </div>
-                ))}
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-950/45 backdrop-blur-[1px]">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className={`relative flex h-16 w-16 items-center justify-center rounded-2xl border ${service === 'customer' ? 'border-orange-300/30 bg-orange-400/15 shadow-[0_0_30px_rgba(251,146,60,0.14)]' : 'border-emerald-300/30 bg-emerald-400/15 shadow-[0_0_30px_rgba(52,211,153,0.14)]'}`}>
-                    <span className={`absolute inset-1 animate-ping rounded-xl border [animation-duration:1.6s] ${service === 'customer' ? 'border-orange-300/25' : 'border-emerald-300/25'}`} />
-                    <span className={`relative h-8 w-8 animate-spin rounded-full border-[3px] ${service === 'customer' ? 'border-orange-300/25 border-t-orange-300' : 'border-emerald-300/25 border-t-emerald-300'}`} />
-                  </div>
-                  <div>
-                    <p className={`text-sm font-semibold ${service === 'customer' ? 'text-orange-100' : 'text-emerald-100'}`}>正在載入{service === 'customer' ? '模擬客戶' : '經理'}分組</p>
-                    <p className="mt-1 text-[11px] text-slate-400">正在取得管理員工作區，請稍候……</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : groups.length > 0 ? (
+          {groups.length > 0 ? (
             <div className={`overflow-hidden rounded-xl border bg-slate-900/35 ${styles.border}`}>
               <div className="hidden grid-cols-[minmax(200px,1fr)_repeat(3,90px)_150px] items-center gap-4 border-b border-slate-700/70 bg-slate-900/80 px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-300/75 sm:grid">
                 <span>工作區</span><span>員工</span><span>客戶</span><span>對話</span><span className="text-right">操作</span>
