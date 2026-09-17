@@ -781,7 +781,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       if (targetEmployee) {
         setSelectedAdminId(targetEmployee.adminId);
         setSelectedAdminName(targetEmployee.adminUsername || '管理員群組');
-        await loadAdminDataRef.current?.(targetEmployee.adminId, true);
+        await loadAdminDataRef.current?.(targetEmployee.adminId, true, true);
         return;
       }
 
@@ -1219,7 +1219,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       void loadAdminGroups(initialEmployee, true);
     } else {
       setSelectedAdminId(adminId);
-      void loadAdminDataRef.current?.(adminId, true);
+      void loadAdminDataRef.current?.(adminId, true, true);
     }
   }, [adminId, isActive, isSuperAdmin, initialEmployee, loadAdminGroups]);
 
@@ -1446,7 +1446,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   // Subscribe to realtime updates for employees (users table)
   useEffect(() => {
     if (isActive && selectedAdminId) {
-      const employeeRequestId = workspaceLoadRequestRef.current;
+      const targetAdminId = selectedAdminId;
       const channel = supabase
         .channel(`ccc_service_employees_realtime_${selectedAdminId}`)
         .on('postgres_changes', {
@@ -1454,15 +1454,15 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           schema: 'public',
           table: 'users'
         }, () => {
-          // Reload employees when users table changes
+          invalidateAdminWorkspaceDataCache(targetAdminId, 'manager');
           supabase
             .from('users')
             .select('id, username, employee_id, is_verified, is_active, remarks, tags, created_by, created_at')
-            .eq('created_by', selectedAdminId)
+            .eq('created_by', targetAdminId)
             .order('username')
             .then(
               ({ data, error }) => {
-                if (employeeRequestId !== workspaceLoadRequestRef.current) return;
+                if (selectedAdminIdRef.current !== targetAdminId) return;
                 if (!error && data) {
                   setEmployees(data);
                   allEmployeesRef.current = data;
@@ -2009,7 +2009,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     setHistoryScope('all');
     setHistoryFilterMode('all');
     historyScrollTopRef.current = 0;
-    void loadAdminData(group.admin_id, true);
+    void loadAdminData(group.admin_id, true, true);
   };
 
   const handleBackToGroups = () => {

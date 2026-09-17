@@ -41,11 +41,10 @@ function queueRequest<T>(
   pendingRequests: Map<string, Promise<T>>,
   cacheKey: string,
   loader: () => Promise<T>,
-  force: boolean,
   onSuccess: (value: T) => void,
 ) {
   const pending = pendingRequests.get(cacheKey);
-  if (pending && !force) return pending;
+  if (pending) return pending;
 
   const request = loadWithTransientRetry(loader).then(value => {
     if (pendingRequests.get(cacheKey) === trackedRequest) {
@@ -157,7 +156,6 @@ export function prefetchAdminGroups(
     pendingRequests,
     cacheKey,
     loadGroups,
-    force,
     groups => cachedGroups.set(cacheKey, groups),
   );
 }
@@ -197,7 +195,6 @@ export function prefetchAdminWorkspaceData<TCustomer = Record<string, unknown>, 
         employees: employeesRes.data || [],
       } as ServiceWorkspaceData<TCustomer, TEmployee>;
     }),
-    force,
     data => cachedWorkspaceData.set(cacheKey, data as ServiceWorkspaceData),
   );
 }
@@ -225,7 +222,6 @@ export function prefetchConversationSummaries<TSummary = unknown>(
     pendingConversationRequests as Map<string, Promise<TSummary[]>>,
     cacheKey,
     loader,
-    force,
     summaries => cachedConversationSummaries.set(cacheKey, summaries as unknown[]),
   );
 }

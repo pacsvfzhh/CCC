@@ -273,6 +273,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [walletEmployee, setWalletEmployee] = useState<{ id: string; username: string; employeeId?: string } | null>(null);
   const [walletData, setWalletData] = useState<WalletModalData | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
+  const [walletDataVerified, setWalletDataVerified] = useState(false);
   const [walletAdjustData, setWalletAdjustData] = useState({ amount: '', remarks: '' });
   const [walletAdjusting, setWalletAdjusting] = useState(false);
   const [walletNotification, setWalletNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -2669,6 +2670,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
     setWalletEmployee(employee);
     setWalletData(cachedWalletData);
+    setWalletDataVerified(false);
     setWalletAdjustData({ amount: '', remarks: '' });
     setWalletAdjusting(false);
     setWalletNotification(null);
@@ -2676,11 +2678,15 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setWalletLoading(!cachedWalletData);
     try {
       const latestWalletData = await loadWalletModalData(employee.id);
-      if (requestId === walletLoadRequestRef.current) setWalletData(latestWalletData);
+      if (requestId === walletLoadRequestRef.current) {
+        setWalletData(latestWalletData);
+        setWalletDataVerified(true);
+      }
     } catch (err) {
       if (requestId !== walletLoadRequestRef.current) return;
       console.error('Error loading wallet:', formatSupabaseError(err));
       if (!cachedWalletData) setWalletData({ available: 0, pending: 0 });
+      setWalletNotification({ type: 'error', message: '無法確認最新錢包餘額，請稍後再試' });
     } finally {
       if (requestId === walletLoadRequestRef.current) setWalletLoading(false);
     }
@@ -2688,6 +2694,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
   const handleWalletAdjust = async (type: 'add' | 'subtract') => {
     if (!walletEmployee || !walletData) return;
+    if (!walletDataVerified) {
+      setWalletNotification({ type: 'error', message: '請等待最新錢包餘額確認完成' });
+      return;
+    }
     const amount = parseFloat(walletAdjustData.amount);
     if (isNaN(amount) || amount <= 0) {
       setWalletNotification({ type: 'error', message: '請輸入有效金額' });
@@ -2872,6 +2882,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   </div>
                 )}
 
+                {!walletDataVerified && !walletLoading && !walletNotification && (
+                  <div className="flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.08] px-3.5 py-3 text-xs font-medium text-cyan-100">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>正在同步最新錢包餘額</span>
+                  </div>
+                )}
+
                 {walletNotification && (
                   <div className={`flex items-start gap-2 rounded-xl border px-3.5 py-3 text-xs font-medium ${walletNotification.type === 'success' ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200' : 'border-rose-300/25 bg-rose-400/10 text-rose-200'}`}>
                     <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${walletNotification.type === 'success' ? 'bg-emerald-300' : 'bg-rose-300'}`} />
@@ -2890,7 +2907,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   <button
                     type="button"
                     onClick={() => handleWalletAdjust('subtract')}
-                    disabled={walletAdjusting}
+                    disabled={walletAdjusting || !walletDataVerified}
                     className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-rose-300/30 bg-gradient-to-r from-rose-500/85 to-red-600/80 px-4 text-xs font-bold text-white shadow-[0_10px_24px_rgba(225,29,72,0.16)] transition-all hover:from-rose-400 hover:to-red-500 active:scale-[0.98] disabled:cursor-wait disabled:opacity-50"
                   >
                     {walletAdjusting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDown className="h-4 w-4" />}
@@ -2899,7 +2916,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   <button
                     type="button"
                     onClick={() => handleWalletAdjust('add')}
-                    disabled={walletAdjusting}
+                    disabled={walletAdjusting || !walletDataVerified}
                     className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-300/30 bg-gradient-to-r from-emerald-500/85 to-teal-500/80 px-4 text-xs font-bold text-white shadow-[0_10px_24px_rgba(16,185,129,0.16)] transition-all hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] disabled:cursor-wait disabled:opacity-50"
                   >
                     {walletAdjusting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
