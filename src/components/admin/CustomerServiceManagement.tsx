@@ -597,7 +597,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
         setSelectedAdminId(userData.created_by);
         setSelectedAdminName(ownerAdmin?.username || '管理員群組');
-        await loadAdminDataRef.current?.(userData.created_by, false, true);
+        await loadAdminDataRef.current?.(userData.created_by, false);
         return;
       }
 
@@ -1009,7 +1009,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       void loadAdminGroups(initialEmployee);
     } else {
       setSelectedAdminId(adminId);
-      void loadAdminDataRef.current?.(adminId, false, true);
+      void loadAdminDataRef.current?.(adminId, false);
     }
   }, [adminId, isActive, isSuperAdmin, initialEmployee, loadAdminGroups]);
 
@@ -2711,7 +2711,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     );
   }
 
-  if (loading) {
+  if (loading && !initialEmployee) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-slate-400">
