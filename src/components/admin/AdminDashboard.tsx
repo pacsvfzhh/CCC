@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense, startTransition } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Database, Lock, Eye, EyeOff, Bell, PackageSearch, MessageCircle, Search, History, UserCog, Activity, Clock, Headphones, ChevronDown, ChevronUp, ChevronsUpDown, SlidersHorizontal, RotateCcw, Save, X } from 'lucide-react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { LucideIcon } from 'lucide-react';
@@ -48,6 +48,21 @@ function formatRequestError(error: unknown) {
     }
   }
   return String(error);
+}
+
+function AdminPageLoading({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-[280px] flex-1 flex-col items-center justify-center gap-4 text-center text-slate-400">
+      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 shadow-[0_0_30px_rgba(34,211,238,0.12)]">
+        <span className="absolute inset-1 animate-ping rounded-xl border border-cyan-300/25 [animation-duration:1.6s]" />
+        <span className="relative h-8 w-8 animate-spin rounded-full border-[3px] border-cyan-300/25 border-t-cyan-300" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-cyan-100">正在載入{label}</p>
+        <p className="mt-1 text-[11px] text-slate-500">正在準備頁面資料，請稍候……</p>
+      </div>
+    </div>
+  );
 }
 
 function ServiceWorkspaceSkeleton({ service }: { service: 'customerservice' | 'cccservice' }) {
@@ -894,10 +909,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
   const handleTabChange = useCallback((tabId: typeof activeTab) => {
     preloadServiceTab(tabId);
-    startTransition(() => {
-      setActiveTab(tabId);
-      setLoadedTabs(prev => prev.has(tabId) ? prev : new Set([...prev, tabId]));
-    });
+    setActiveTab(tabId);
+    setLoadedTabs(prev => prev.has(tabId) ? prev : new Set([...prev, tabId]));
   }, []);
 
   const handleEmployeeQuickAction = useCallback((action: 'message' | 'customerservice' | 'cccservice', employee: QuickActionEmployee) => {
@@ -1475,7 +1488,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           <Suspense fallback={
             activeTab === 'customerservice' || activeTab === 'cccservice'
               ? <ServiceWorkspaceSkeleton service={activeTab} />
-              : <div className="flex-1 flex items-center justify-center"><div className="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" /></div>
+              : <AdminPageLoading label={tabs.find(tab => tab.id === activeTab)?.label || '頁面'} />
           }>
 
             {loadedTabs.has('employees') && (
