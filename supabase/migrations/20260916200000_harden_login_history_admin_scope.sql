@@ -10,6 +10,7 @@ RETURNS TABLE (
   username text,
   employee_id text,
   is_active boolean,
+  is_pinned boolean,
   created_by uuid,
   latest_login_time timestamptz,
   latest_login_ip text,
@@ -38,6 +39,7 @@ BEGIN
       u.username,
       u.employee_id,
       u.is_active,
+      COALESCE(u.is_pinned, false) AS is_pinned,
       u.created_by,
       login_data.latest_login_time,
       login_data.latest_login_ip,
@@ -101,7 +103,7 @@ BEGIN
       OR login_data.latest_login_ip ILIKE '%' || p_search_term || '%'
       OR logout_data.latest_logout_ip ILIKE '%' || p_search_term || '%')
       AND (owner_admin.role IS NULL OR owner_admin.role != 'emergency_admin')
-    ORDER BY u.username;
+    ORDER BY u.is_pinned DESC, u.username;
   ELSE
     RETURN QUERY
     SELECT
@@ -109,6 +111,7 @@ BEGIN
       u.username,
       u.employee_id,
       u.is_active,
+      COALESCE(u.is_pinned, false) AS is_pinned,
       u.created_by,
       login_data.latest_login_time,
       login_data.latest_login_ip,
@@ -171,7 +174,7 @@ BEGIN
         OR u.employee_id ILIKE '%' || p_search_term || '%'
         OR login_data.latest_login_ip ILIKE '%' || p_search_term || '%'
         OR logout_data.latest_logout_ip ILIKE '%' || p_search_term || '%')
-    ORDER BY u.username;
+    ORDER BY u.is_pinned DESC, u.username;
   END IF;
 END;
 $function$;

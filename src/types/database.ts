@@ -2317,6 +2317,7 @@ export interface Database {
           created_by: string;
           employee_id: string;
           is_active: boolean;
+          is_pinned: boolean;
           latest_login_ip: string | null;
           latest_login_time: string | null;
           latest_login_device_info: unknown | null;

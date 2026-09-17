@@ -23,6 +23,7 @@ interface EmployeeSummary {
   latest_logout_time: string | null;
   total_logins: number;
   is_active: boolean;
+  is_pinned: boolean;
 }
 
 interface LoginHistoryRecord {
