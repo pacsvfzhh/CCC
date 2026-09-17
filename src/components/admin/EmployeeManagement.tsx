@@ -3142,7 +3142,11 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       <td className="w-[132px] py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-center gap-1">
           <button
-            onClick={() => onQuickAction?.('message', { id: employee.id, username: employee.username })}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onQuickAction?.('message', { id: employee.id, username: employee.username });
+            }}
             className="p-0.5 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/25 hover:text-blue-300 transition-all border border-blue-500/20 hover:border-blue-400/40"
             title={`傳送訊息給 ${employee.username}`}
           >
@@ -3173,14 +3177,22 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             <Headphones className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => handleOpenWallet({ id: employee.id, username: employee.username, employeeId: employee.employee_id })}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void handleOpenWallet({ id: employee.id, username: employee.username, employeeId: employee.employee_id });
+            }}
             className="p-0.5 rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500/25 hover:text-amber-300 transition-all border border-amber-500/20 hover:border-amber-400/40"
             title={`調整 ${employee.username} 的錢包`}
           >
             <DollarSign className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => handleViewLoginIP({ id: employee.id, username: employee.username, employeeId: employee.employee_id })}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void handleViewLoginIP({ id: employee.id, username: employee.username, employeeId: employee.employee_id });
+            }}
             className="p-0.5 rounded bg-sky-500/10 text-sky-400 hover:bg-sky-500/25 hover:text-sky-300 transition-all border border-sky-500/20 hover:border-sky-400/40"
             title={`檢視 ${employee.username} 的登入 IP`}
           >

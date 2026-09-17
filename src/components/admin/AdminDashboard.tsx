@@ -887,23 +887,21 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, []);
 
   const handleEmployeeQuickAction = useCallback((action: 'message' | 'customerservice' | 'cccservice', employee: { id: string; username: string }) => {
-    if (action === 'message') {
-      setNavigateToCustomerServiceEmployee(null);
-      setNavigateToCccServiceEmployee(null);
-      setNavigateToMessageEmployee(employee);
-      handleTabChange('messages');
-    } else if (action === 'customerservice') {
-      setNavigateToMessageEmployee(null);
-      setNavigateToCccServiceEmployee(null);
-      setNavigateToCustomerServiceEmployee(employee);
-      handleTabChange('customerservice');
-    } else {
-      setNavigateToMessageEmployee(null);
-      setNavigateToCustomerServiceEmployee(null);
-      setNavigateToCccServiceEmployee(employee);
-      handleTabChange('cccservice');
-    }
-  }, [handleTabChange]);
+    const targetTab: AdminTabId = action === 'message'
+      ? 'messages'
+      : action === 'customerservice'
+        ? 'customerservice'
+        : 'cccservice';
+
+    preloadServiceTab(targetTab);
+    startTransition(() => {
+      setNavigateToMessageEmployee(action === 'message' ? employee : null);
+      setNavigateToCustomerServiceEmployee(action === 'customerservice' ? employee : null);
+      setNavigateToCccServiceEmployee(action === 'cccservice' ? employee : null);
+      setActiveTab(targetTab);
+      setLoadedTabs(prev => prev.has(targetTab) ? prev : new Set([...prev, targetTab]));
+    });
+  }, []);
 
   useEffect(() => {
     if (!nextLockedAccountExpiry) return;

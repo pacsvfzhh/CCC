@@ -236,6 +236,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   const conversationHistoryRef = useRef<ConversationHistory[]>([]);
   const conversationHistoryLoadRequestRef = useRef(0);
   const workspaceLoadRequestRef = useRef(0);
+  const loadAdminDataRef = useRef<((targetAdminId: string, silent?: boolean, force?: boolean) => Promise<void>) | null>(null);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
   const adminUnreadRequestRef = useRef(0);
   const realtimeAdminUnreadMessageIdsRef = useRef(new Set<string>());
@@ -575,28 +576,36 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   };
 
   const loadAdminGroups = useCallback(async (targetEmployee?: { id: string; username: string } | null, silent = false, force = false) => {
-    let autoSelected = false;
     try {
       if (!silent) setLoading(true);
-      const data = await prefetchAdminGroups(adminId, 'customer', force || Boolean(targetEmployee));
+
+      if (targetEmployee) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('created_by')
+          .eq('id', targetEmployee.id)
+          .maybeSingle();
+        if (userError) throw userError;
+        if (!userData?.created_by) throw new Error('找不到員工所屬管理員群組');
+
+        const { data: ownerAdmin, error: ownerError } = await supabase
+          .from('admins')
+          .select('id, username')
+          .eq('id', userData.created_by)
+          .maybeSingle();
+        if (ownerError) throw ownerError;
+
+        setSelectedAdminId(userData.created_by);
+        setSelectedAdminName(ownerAdmin?.username || '管理員群組');
+        await loadAdminDataRef.current?.(userData.created_by, false, true);
+        return;
+      }
+
+      const data = await prefetchAdminGroups(adminId, 'customer', force);
       setAdminGroups(data);
 
       if (data.length > 0) {
         void loadAdminUnreadCounts(data.map(g => g.admin_id));
-
-        if (targetEmployee) {
-          const { data: userData } = await supabase.from('users').select('created_by').eq('id', targetEmployee.id).maybeSingle();
-          if (userData?.created_by) {
-            const group = data.find((g: AdminGroup) => g.admin_id === userData.created_by);
-            if (group) {
-              setSelectedAdminId(group.admin_id);
-              setSelectedAdminName(group.admin_username);
-              autoSelected = true;
-              void loadAdminData(group.admin_id, false, true);
-              return;
-            }
-          }
-        }
       } else {
         setAdminUnreadCounts({});
       }
@@ -604,9 +613,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       console.error('Error loading admin groups:', formatSupabaseError(error));
       setNotification({ type: 'error', text: '載入管理員群組失敗' });
     } finally {
-      if (!autoSelected && !silent) {
-        setLoading(false);
-      }
+      if (!silent) setLoading(false);
     }
   }, [adminId]);
 
@@ -974,6 +981,8 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   }, [isActive, initialEmployee]);
 
   useEffect(() => {
+    if (!isActive) return;
+
     if (isSuperAdmin) {
       if (!initialEmployee) {
         void loadAdminGroups(null);
@@ -981,13 +990,13 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     } else {
       setSelectedAdminId(adminId);
       if (!initialEmployee) {
-        void loadAdminData(adminId);
+        void loadAdminDataRef.current?.(adminId);
       }
     }
-  }, [adminId, isSuperAdmin, initialEmployee, loadAdminGroups]);
+  }, [adminId, isActive, isSuperAdmin, initialEmployee, loadAdminGroups]);
 
   useEffect(() => {
-    if (!initialEmployee) return;
+    if (!isActive || !initialEmployee) return;
 
     setSelectedCustomer(null);
     setSelectedEmployee(null);
@@ -1000,13 +1009,13 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       void loadAdminGroups(initialEmployee);
     } else {
       setSelectedAdminId(adminId);
-      void loadAdminData(adminId, false, true);
+      void loadAdminDataRef.current?.(adminId, false, true);
     }
-  }, [adminId, isSuperAdmin, initialEmployee, loadAdminGroups]);
+  }, [adminId, isActive, isSuperAdmin, initialEmployee, loadAdminGroups]);
 
   // Handle initial employee navigation from other tabs
   useEffect(() => {
-    if (!initialEmployee || loading) return;
+    if (!isActive || !initialEmployee || loading) return;
     if (employees.length > 0) {
       const found = employees.find(e => e.id === initialEmployee.id);
       if (found) {
@@ -1024,7 +1033,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         onConsumeInitialEmployee?.();
       }
     }
-  }, [initialEmployee, loading, employees, onConsumeInitialEmployee]);
+  }, [isActive, initialEmployee, loading, employees, onConsumeInitialEmployee]);
 
   // Auto-load all conversation history when admin is selected and no customer is focused
   useEffect(() => {
@@ -1669,6 +1678,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       if (!silent && requestId === workspaceLoadRequestRef.current) setLoading(false);
     }
   };
+  loadAdminDataRef.current = loadAdminData;
 
   const handleAdminGroupSelect = (group: AdminGroup) => {
     workspaceLoadRequestRef.current += 1;

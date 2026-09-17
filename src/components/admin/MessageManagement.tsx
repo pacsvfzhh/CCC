@@ -198,7 +198,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   }, [isActive, initialEmployee]);
 
   useEffect(() => {
-    if (!initialEmployee || loading) return;
+    if (!isActive || !initialEmployee || loading) return;
 
     const targetGroup = Array.from(allEmployees.entries()).find(([, employees]) =>
       employees.some(employee => employee.id === initialEmployee.id),
@@ -212,7 +212,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     setSelectedTags(new Set());
     setSelectedEmployeeIds(new Set([initialEmployee.id]));
     onConsumeInitialEmployeeRef.current?.();
-  }, [initialEmployee, loading, allEmployees]);
+  }, [isActive, initialEmployee, loading, allEmployees]);
 
   useEffect(() => {
     void loadAllDataRef.current?.();
