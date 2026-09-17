@@ -384,6 +384,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, [showNavigationSettings]);
 
   useEffect(() => {
+    if (activeTab === 'employees') return;
+
     const preload = () => {
       if (admin.role === 'super_admin') {
         void prefetchAdminGroups(admin.id, 'customer').catch(error => {
@@ -432,7 +434,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
 
     const timerId = globalThis.setTimeout(preload, 800);
     return () => globalThis.clearTimeout(timerId);
-  }, [admin.id, admin.role]);
+  }, [activeTab, admin.id, admin.role]);
 
   // Cross-tab navigation targets
   const [navigateToMessageEmployee, setNavigateToMessageEmployee] = useState<{ id: string; username: string } | null>(null);

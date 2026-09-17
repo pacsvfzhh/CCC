@@ -79,6 +79,7 @@ interface EmployeeWithAdmin extends Employee {
   pendingWithdrawalAmount: number;
   pendingWithdrawalDate: string | null;
   pendingWithdrawals?: PendingWithdrawalRecord[];
+  statsLoaded: boolean;
 }
 
 type SortField = 'totalOrders' | 'todayOrders' | 'todayCompletedOrders' | 'failedOrders' | 'walletBalance' | 'accountBalance' | 'todayCommission' | 'totalWorkMinutes' | 'todayWorkMinutes' | 'workDays' | 'created_at';
@@ -228,6 +229,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const resetFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const [timeTick, setTimeTick] = useState(0);
 
@@ -811,7 +813,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   }, [isActive, resetAutoRefreshTimer]);
 
   useEffect(() => {
-    if (loading || employeeGroups.length === 0 || withdrawalDateRefreshAttemptedRef.current) return;
+    if (loading || statsLoading || employeeGroups.length === 0 || withdrawalDateRefreshAttemptedRef.current) return;
 
     const hasPendingWithdrawalWithoutDate = employeeGroups.some(group =>
       group.employees.some(employee => employee.hasPendingWithdrawal && (!employee.pendingWithdrawalDate || !employee.pendingWithdrawals?.length))
@@ -820,7 +822,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     if (!hasPendingWithdrawalWithoutDate) return;
     withdrawalDateRefreshAttemptedRef.current = true;
     void guardedLoadEmployeesRef.current?.(true);
-  }, [employeeGroups, loading]);
+  }, [employeeGroups, loading, statsLoading]);
 
   const formatTime = useCallback((minutes: number): string => {
     const hours = Math.floor(minutes / 60);
@@ -917,6 +919,93 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       const employees = employeesResult.data || [];
       const admins = adminsResult.data || [];
       const userIds = employees.map((emp: Employee) => emp.id);
+      const previousEmployeesById = new Map(
+        employeeGroupsRef.current.flatMap(group => group.employees.map(employee => [employee.id, employee] as const)),
+      );
+      const adminMap = new Map(admins.map((adminInfo) => [adminInfo.id, adminInfo]));
+      const baseGroups = new Map<string, EmployeeGroup>();
+
+      admins.forEach((adminInfo) => {
+        baseGroups.set(adminInfo.id, {
+          admin: adminInfo,
+          employees: [],
+        });
+      });
+
+      employees.forEach((emp: Employee) => {
+        const adminInfo = adminMap.get(emp.created_by);
+        if (!adminInfo) return;
+
+        const previousEmployee = previousEmployeesById.get(emp.id);
+        const baseEmployee: EmployeeWithAdmin = previousEmployee
+          ? {
+              ...previousEmployee,
+              ...emp,
+              admin: adminInfo,
+            }
+          : {
+              ...emp,
+              admin: adminInfo,
+              walletBalance: 0,
+              verification: null,
+              todayOrders: 0,
+              todayCompletedOrders: 0,
+              failedOrders: 0,
+              todayCommission: 0,
+              totalWorkMinutes: 0,
+              todayWorkMinutes: 0,
+              workDays: 0,
+              workStatus: 'never_started',
+              totalOrders: 0,
+              accountBalance: 0,
+              hasPendingWithdrawal: false,
+              pendingWithdrawalAmount: 0,
+              pendingWithdrawalDate: null,
+              pendingWithdrawals: [],
+              statsLoaded: false,
+            };
+
+        baseEmployee.statsLoaded = previousEmployee?.statsLoaded ?? false;
+        if (!baseGroups.has(emp.created_by)) {
+          baseGroups.set(emp.created_by, {
+            admin: adminInfo,
+            employees: [],
+          });
+        }
+        baseGroups.get(emp.created_by)!.employees.push(baseEmployee);
+      });
+
+      const sortGroups = (groups: Map<string, EmployeeGroup>) => Array.from(groups.values())
+        .sort((a, b) => {
+          if (a.admin.role === 'super_admin' && b.admin.role !== 'super_admin') return -1;
+          if (a.admin.role !== 'super_admin' && b.admin.role === 'super_admin') return 1;
+          if (a.admin.role === 'secondary_admin' && b.admin.role === 'secondary_admin') {
+            if (a.admin.is_pinned && !b.admin.is_pinned) return -1;
+            if (!a.admin.is_pinned && b.admin.is_pinned) return 1;
+          }
+          return a.admin.username.localeCompare(b.admin.username);
+        });
+      const baseGroupsArray = sortGroups(baseGroups);
+      const currentEmployeeCount = employeeGroupsRef.current.reduce((sum, group) => sum + group.employees.length, 0);
+      const baseEmployeeCount = baseGroupsArray.reduce((sum, group) => sum + group.employees.length, 0);
+      const hasIncompleteBaseResult = silent
+        && currentEmployeeCount > 0
+        && baseEmployeeCount === 0
+        && (admins.length === 0 || employees.length > 0);
+
+      if (hasIncompleteBaseResult || !isMountedRef.current) return false;
+      if (requestRealtimeGeneration !== realtimeChangeGenerationRef.current) {
+        pendingReloadRef.current = true;
+        return false;
+      }
+
+      setEmployeeGroups(baseGroupsArray);
+      setLoading(false);
+      setStatsLoading(true);
+      setExpandedGroups(prev => {
+        if (prev.size === 0) return new Set(baseGroupsArray.map(group => group.admin.id));
+        return prev;
+      });
 
       // Now load all stats in parallel
       const [
@@ -1060,68 +1149,44 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         records.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       });
 
-      const adminMap = new Map(admins.map((a) => [a.id, a]));
-
       const groups = new Map<string, EmployeeGroup>();
-      admins.forEach((adminInfo) => {
-        groups.set(adminInfo.id, {
-          admin: adminInfo,
-          employees: []
+      baseGroups.forEach((group, adminId) => {
+        groups.set(adminId, {
+          admin: group.admin,
+          employees: group.employees.map((employee) => {
+            const wsRaw = workStatusMap.get(employee.id) || 'never_started';
+            const workStatus: 'online' | 'offline' | 'never_started' =
+              wsRaw === 'online' ? 'online' : wsRaw === 'offline' ? 'offline' : 'never_started';
+            const wt = workTimeMap.get(employee.id);
+            const pendingWithdrawals = pendingWithdrawalMap.get(employee.id) || [];
+
+            return {
+              ...employee,
+              admin: group.admin,
+              walletBalance: walletTotalMap.get(employee.id) || 0,
+              verification: verificationMap.get(employee.id) || null,
+              todayOrders: todayOrdersMap.get(employee.id) || 0,
+              todayCompletedOrders: todayCompletedMap.get(employee.id) || 0,
+              failedOrders: failedOrdersMap.get(employee.id) || 0,
+              todayCommission: todayCommissionMap.get(employee.id) || 0,
+              totalWorkMinutes: wt?.total || 0,
+              todayWorkMinutes: wt?.today || 0,
+              workDays: workDaysMap.get(employee.id) || 0,
+              workStatus,
+              totalOrders: totalOrdersMap.get(employee.id) || 0,
+              accountBalance: walletAvailableMap.get(employee.id) || 0,
+              hasPendingWithdrawal: pendingWithdrawals.length > 0,
+              pendingWithdrawalAmount: pendingWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0),
+              pendingWithdrawalDate: pendingWithdrawals[0]?.created_at || null,
+              pendingWithdrawals,
+              statsLoaded: true,
+            };
+          }),
         });
       });
 
-      employees.forEach((emp: Employee) => {
-        const adminInfo = adminMap.get(emp.created_by);
-        if (!adminInfo) return;
+      const groupsArray = sortGroups(groups);
 
-        if (!groups.has(emp.created_by)) {
-          groups.set(emp.created_by, {
-            admin: adminInfo,
-            employees: []
-          });
-        }
-
-        const wsRaw = workStatusMap.get(emp.id) || 'never_started';
-        const workStatus: 'online' | 'offline' | 'never_started' =
-          wsRaw === 'online' ? 'online' : wsRaw === 'offline' ? 'offline' : 'never_started';
-
-        const wt = workTimeMap.get(emp.id);
-
-        const pendingWithdrawals = pendingWithdrawalMap.get(emp.id) || [];
-        groups.get(emp.created_by)!.employees.push({
-          ...emp,
-          admin: adminInfo,
-          walletBalance: walletTotalMap.get(emp.id) || 0,
-          verification: verificationMap.get(emp.id) || null,
-          todayOrders: todayOrdersMap.get(emp.id) || 0,
-          todayCompletedOrders: todayCompletedMap.get(emp.id) || 0,
-          failedOrders: failedOrdersMap.get(emp.id) || 0,
-          todayCommission: todayCommissionMap.get(emp.id) || 0,
-          totalWorkMinutes: wt?.total || 0,
-          todayWorkMinutes: wt?.today || 0,
-          workDays: workDaysMap.get(emp.id) || 0,
-          workStatus,
-          totalOrders: totalOrdersMap.get(emp.id) || 0,
-          accountBalance: walletAvailableMap.get(emp.id) || 0,
-          hasPendingWithdrawal: pendingWithdrawals.length > 0,
-          pendingWithdrawalAmount: pendingWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0),
-          pendingWithdrawalDate: pendingWithdrawals[0]?.created_at || null,
-          pendingWithdrawals,
-        });
-      });
-
-      const groupsArray = Array.from(groups.values())
-        .sort((a, b) => {
-          if (a.admin.role === 'super_admin' && b.admin.role !== 'super_admin') return -1;
-          if (a.admin.role !== 'super_admin' && b.admin.role === 'super_admin') return 1;
-          if (a.admin.role === 'secondary_admin' && b.admin.role === 'secondary_admin') {
-            if (a.admin.is_pinned && !b.admin.is_pinned) return -1;
-            if (!a.admin.is_pinned && b.admin.is_pinned) return 1;
-          }
-          return a.admin.username.localeCompare(b.admin.username);
-        });
-
-      const currentEmployeeCount = employeeGroupsRef.current.reduce((sum, group) => sum + group.employees.length, 0);
       const nextEmployeeCount = groupsArray.reduce((sum, group) => sum + group.employees.length, 0);
       const hasIncompleteSilentResult = silent
         && currentEmployeeCount > 0
@@ -1136,6 +1201,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       realtimeChangeGenerationRef.current += 1;
       setEmployeeGroups(groupsArray);
       setAdminPinOverrides(new Map());
+      setStatsLoading(false);
       committed = true;
       setExpandedGroups(prev => {
         if (prev.size === 0) return new Set(groupsArray.map(g => g.admin.id));
@@ -1148,6 +1214,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
+        setStatsLoading(false);
         if (!showInitialLoading) setIsRefreshing(false);
       }
     }
@@ -1395,6 +1462,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   };
 
   const handleSort = (adminId: string, field: SortField) => {
+    const group = employeeGroups.find(item => item.admin.id === adminId);
+    if (group?.employees.some(employee => !employee.statsLoaded)) return;
+
     setSortByGroup(prev => {
       const newMap = new Map(prev);
       const current = newMap.get(adminId);
@@ -1837,6 +1907,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
   // ===== Render helpers =====
 
+  const renderEmployeeStat = useCallback((employee: EmployeeWithAdmin, value: ReactNode) => (
+    employee.statsLoaded ? value : <span className="text-slate-500" title="統計資料載入中">—</span>
+  ), []);
+
   const renderWorkStatusBadge = useCallback((status: 'online' | 'offline' | 'never_started') => {
     if (status === 'online') {
       return (
@@ -2027,11 +2101,15 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   };
 
   const renderStatusFilterButtons = (adminId: string) => {
+    const groupEmployees = employeeGroups.find(group => group.admin.id === adminId)?.employees || [];
+    if (groupEmployees.some(employee => !employee.statsLoaded)) {
+      return <span className="px-2 text-[10px] font-medium text-slate-500">統計資料載入中……</span>;
+    }
+
     const currentActive = getActiveFilter(adminId);
     const currentWorkStatus = getWorkStatusFilter(adminId);
     const hasIdleFilter = inactiveDaysFilterByGroup.has(adminId);
     const hasPendingFilter = pendingWithdrawalFilterByGroup.has(adminId);
-    const groupEmployees = employeeGroups.find(group => group.admin.id === adminId)?.employees || [];
     const pendingWithdrawalCount = groupEmployees.filter(employee => employee.hasPendingWithdrawal).length;
 
     const on = 'text-white font-semibold shadow-md border border-transparent';
@@ -2762,7 +2840,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         </button>
       </td>
       <td className="w-[46px] py-0.5 px-0 text-center whitespace-nowrap">
-        <span className="-ml-1 inline-flex">{renderWorkStatusBadge(employee.workStatus)}</span>
+        <span className="-ml-1 inline-flex">{employee.statsLoaded ? renderWorkStatusBadge(employee.workStatus) : <span className="text-xs text-slate-500" title="統計資料載入中">—</span>}</span>
       </td>
       <td className="group/withdrawal relative w-[104px] overflow-visible py-0.5 px-1 whitespace-nowrap cursor-pointer sm:w-[116px]" onClick={() => setViewingEmployee(employee)}>
         <div className="flex min-w-0 flex-col">
@@ -2896,37 +2974,37 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       </td>
       {/* Orders group */}
       <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
-        <span className="text-blue-400">{employee.totalOrders}</span>
+        {renderEmployeeStat(employee, <span className="text-blue-400">{employee.totalOrders}</span>)}
       </td>
       <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
-        <span className="text-cyan-400 font-medium">{employee.todayOrders}</span>
+        {renderEmployeeStat(employee, <span className="text-cyan-400 font-medium">{employee.todayOrders}</span>)}
       </td>
       <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
-        <span className="text-green-400 font-bold">{employee.todayCompletedOrders}</span>
+        {renderEmployeeStat(employee, <span className="text-green-400 font-bold">{employee.todayCompletedOrders}</span>)}
       </td>
       <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
-        <span className="text-red-400">{employee.failedOrders}</span>
+        {renderEmployeeStat(employee, <span className="text-red-400">{employee.failedOrders}</span>)}
       </td>
       {/* Money group */}
       <td className="hidden py-0.5 px-1 text-[10px] text-center whitespace-nowrap xl:table-cell">
-        <span className="text-white font-medium">${(employee.walletBalance || 0).toFixed(2)}</span>
+        {renderEmployeeStat(employee, <span className="text-white font-medium">${(employee.walletBalance || 0).toFixed(2)}</span>)}
       </td>
       <td className="hidden py-0.5 px-1 text-[10px] text-center whitespace-nowrap lg:table-cell">
-        <span className="text-blue-400 font-medium">${employee.accountBalance.toFixed(2)}</span>
+        {renderEmployeeStat(employee, <span className="text-blue-400 font-medium">${employee.accountBalance.toFixed(2)}</span>)}
       </td>
       <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
-        <span className="text-amber-400 font-medium">${employee.todayCommission.toFixed(2)}</span>
+        {renderEmployeeStat(employee, <span className="text-amber-400 font-medium">${employee.todayCommission.toFixed(2)}</span>)}
       </td>
       {/* Time group */}
       <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
-        <span className="text-white">{formatTime(employee.totalWorkMinutes)}</span>
+        {renderEmployeeStat(employee, <span className="text-white">{formatTime(employee.totalWorkMinutes)}</span>)}
       </td>
       <td className="py-0.5 px-1 text-[10px] text-center whitespace-nowrap">
-        <span className="text-green-400">{formatTime(employee.todayWorkMinutes)}</span>
+        {renderEmployeeStat(employee, <span className="text-green-400">{formatTime(employee.todayWorkMinutes)}</span>)}
       </td>
       {/* Work days */}
       <td className="w-[52px] py-0.5 px-1 text-center whitespace-nowrap">
-        <span className="text-[11px] font-normal tabular-nums text-cyan-300" title="每日明細中的獨立活動天數">{employee.workDays}</span>
+        {renderEmployeeStat(employee, <span className="text-[11px] font-normal tabular-nums text-cyan-300" title="每日明細中的獨立活動天數">{employee.workDays}</span>)}
       </td>
       <td className="w-[132px] py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-center gap-1">
@@ -2985,6 +3063,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     handleViewLoginIP,
     onQuickAction,
     renderActionsDropdown,
+    renderEmployeeStat,
     renderWorkStatusBadge,
     toggleEmployeeStatus,
     toggleVerification,
@@ -3335,17 +3414,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           </div>
           <button
             type="button"
-            onClick={() => { if (!loading && !isRefreshing) void guardedLoadEmployeesRef.current?.(employeeGroups.length > 0); }}
-            disabled={loading || isRefreshing}
-            aria-label={(loading || isRefreshing) ? '正在重新整理員工資料' : '立即重新整理員工資料'}
-            aria-busy={loading || isRefreshing}
+            onClick={() => { if (!loading && !isRefreshing && !statsLoading) void guardedLoadEmployeesRef.current?.(employeeGroups.length > 0); }}
+            disabled={loading || isRefreshing || statsLoading}
+            aria-label={(loading || isRefreshing || statsLoading) ? '正在重新整理員工資料' : '立即重新整理員工資料'}
+            aria-busy={loading || isRefreshing || statsLoading}
             className="group relative flex h-full w-20 min-w-20 shrink-0 items-center justify-center overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 px-4 text-white shadow-sm shadow-cyan-950/30 transition-all duration-300 hover:from-blue-400 hover:to-cyan-400 hover:shadow-md hover:shadow-cyan-500/25 active:from-blue-600 active:to-cyan-600 disabled:cursor-wait disabled:opacity-90"
-            title={(loading || isRefreshing) ? '正在重新整理員工資料……' : '立即重新整理'}
+            title={(loading || isRefreshing || statsLoading) ? '正在重新整理員工資料……' : '立即重新整理'}
           >
-            <span className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-opacity ${(loading || isRefreshing) ? 'animate-pulse opacity-100' : 'opacity-0 group-hover:opacity-60'}`} />
+            <span className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-opacity ${(loading || isRefreshing || statsLoading) ? 'animate-pulse opacity-100' : 'opacity-0 group-hover:opacity-60'}`} />
             <span className="relative flex h-8 w-8 items-center justify-center">
-              {(loading || isRefreshing) && <span className="absolute h-7 w-7 animate-ping rounded-full border border-white/60 [animation-duration:1200ms]" />}
-              <RefreshCw className={`h-4 w-4 drop-shadow-sm ${(loading || isRefreshing) ? 'animate-[spin_700ms_linear_infinite]' : 'transition-transform duration-500 group-hover:rotate-180 group-active:rotate-[270deg]'}`} />
+              {(loading || isRefreshing || statsLoading) && <span className="absolute h-7 w-7 animate-ping rounded-full border border-white/60 [animation-duration:1200ms]" />}
+              <RefreshCw className={`h-4 w-4 drop-shadow-sm ${(loading || isRefreshing || statsLoading) ? 'animate-[spin_700ms_linear_infinite]' : 'transition-transform duration-500 group-hover:rotate-180 group-active:rotate-[270deg]'}`} />
             </span>
           </button>
         </div>
@@ -3395,7 +3474,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                           <span className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200">符合篩選的員工</span>
                         </div>
                       </div>
-                    {allEmps.length > 0 && (
+                    {allEmps.length > 0 && (allEmps.every(employee => employee.statsLoaded) ? (
                       <>
                         <span className="text-slate-500">&bull;</span>
                         {renderSummaryFilterButton(
@@ -3427,7 +3506,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
                         )}
                       </>
-                    )}
+                    ) : (
+                      <span className="text-[10px] font-medium text-slate-500">統計資料載入中……</span>
+                    ))}
                     </div>
                     <div className="mt-1 flex items-center justify-between gap-2 flex-wrap">
                       {renderStatusFilterButtons(flatAdminId)}
@@ -3456,17 +3537,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                         </div>
                         <button
                           type="button"
-                          onClick={() => { if (!loading && !isRefreshing) void guardedLoadEmployeesRef.current?.(employeeGroups.length > 0); }}
-                          disabled={loading || isRefreshing}
-                          aria-label={(loading || isRefreshing) ? '正在重新整理員工資料' : '立即重新整理員工資料'}
-                          aria-busy={loading || isRefreshing}
+                          onClick={() => { if (!loading && !isRefreshing && !statsLoading) void guardedLoadEmployeesRef.current?.(employeeGroups.length > 0); }}
+                          disabled={loading || isRefreshing || statsLoading}
+                          aria-label={(loading || isRefreshing || statsLoading) ? '正在重新整理員工資料' : '立即重新整理員工資料'}
+                          aria-busy={loading || isRefreshing || statsLoading}
                           className="group relative flex h-full min-w-10 items-center justify-center overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 px-2.5 text-white shadow-sm shadow-cyan-950/30 transition-all duration-300 hover:from-blue-400 hover:to-cyan-400 hover:shadow-md hover:shadow-cyan-500/25 active:from-blue-600 active:to-cyan-600 disabled:cursor-wait disabled:opacity-90"
-                          title={(loading || isRefreshing) ? '正在重新整理員工資料……' : '立即重新整理'}
+                          title={(loading || isRefreshing || statsLoading) ? '正在重新整理員工資料……' : '立即重新整理'}
                         >
-                          <span className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-opacity ${(loading || isRefreshing) ? 'animate-pulse opacity-100' : 'opacity-0 group-hover:opacity-60'}`} />
+                          <span className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-opacity ${(loading || isRefreshing || statsLoading) ? 'animate-pulse opacity-100' : 'opacity-0 group-hover:opacity-60'}`} />
                           <span className="relative flex h-7 w-7 items-center justify-center">
-                            {(loading || isRefreshing) && <span className="absolute h-6 w-6 animate-ping rounded-full border border-white/60 [animation-duration:1200ms]" />}
-                            <RefreshCw className={`h-4 w-4 drop-shadow-sm ${(loading || isRefreshing) ? 'animate-[spin_700ms_linear_infinite]' : 'transition-transform duration-500 group-hover:rotate-180 group-active:rotate-[270deg]'}`} />
+                            {(loading || isRefreshing || statsLoading) && <span className="absolute h-6 w-6 animate-ping rounded-full border border-white/60 [animation-duration:1200ms]" />}
+                            <RefreshCw className={`h-4 w-4 drop-shadow-sm ${(loading || isRefreshing || statsLoading) ? 'animate-[spin_700ms_linear_infinite]' : 'transition-transform duration-500 group-hover:rotate-180 group-active:rotate-[270deg]'}`} />
                           </span>
                         </button>
                       </div>
