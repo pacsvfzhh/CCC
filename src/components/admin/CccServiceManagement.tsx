@@ -1259,7 +1259,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     };
 
     const channel = supabase
-      .channel(`customer_conversations_${selectedCustomer.id}`)
+      .channel(`ccc_service_conversations_${selectedCustomer.id}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -1316,7 +1316,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         void loadAllConversationHistory(undefined, true);
       }, 15000);
       const channel = supabase
-        .channel(`customer_unread_counts_${selectedAdminId}`)
+        .channel(`ccc_service_unread_counts_${selectedAdminId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1346,7 +1346,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     if (isActive && selectedAdminId) {
       const employeeRequestId = workspaceLoadRequestRef.current;
       const channel = supabase
-        .channel(`employees_realtime_${selectedAdminId}`)
+        .channel(`ccc_service_employees_realtime_${selectedAdminId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',

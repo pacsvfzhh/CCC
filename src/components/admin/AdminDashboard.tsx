@@ -259,6 +259,16 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [nextLockedAccountExpiry, setNextLockedAccountExpiry] = useState<number | null>(null);
   const pendingCountsRequestRef = useRef(0);
   const lockedCountsRequestRef = useRef(0);
+  const realtimeUnreadMessageIdsRef = useRef(new Set<string>());
+  const conversationScopeRef = useRef<{
+    aaaCustomerIds: Set<string>;
+    cccCustomerIds: Set<string>;
+    employeeIds: Set<string> | null;
+  }>({
+    aaaCustomerIds: new Set(),
+    cccCustomerIds: new Set(),
+    employeeIds: null,
+  });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -777,6 +787,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       // Load unread customer service messages count (AAA)
       let unreadCount = 0;
       let unreadCccCount = 0;
+      let aaaCustomerIds: string[] = [];
+      let cccCustomerIds: string[] = [];
       const countUnreadCustomerMessages = (customerIds: string[], sourceType: 'aaa_service' | 'ccc_service') => {
         if (customerIds.length === 0 || (scopedEmployeeIds !== null && scopedEmployeeIds.length === 0)) {
           return Promise.resolve({ count: 0, error: null });
@@ -804,12 +816,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         if (aaaCustomersRes.error) throw aaaCustomersRes.error;
         if (cccCustomersRes.error) throw cccCustomersRes.error;
 
-        const aaaIds = (aaaCustomersRes.data || []).map(c => c.id);
-        const cccIds = (cccCustomersRes.data || []).map(c => c.id);
+        aaaCustomerIds = (aaaCustomersRes.data || []).map(c => c.id);
+        cccCustomerIds = (cccCustomersRes.data || []).map(c => c.id);
 
         const [aaaUnread, cccUnread] = await Promise.all([
-          countUnreadCustomerMessages(aaaIds, 'aaa_service'),
-          countUnreadCustomerMessages(cccIds, 'ccc_service'),
+          countUnreadCustomerMessages(aaaCustomerIds, 'aaa_service'),
+          countUnreadCustomerMessages(cccCustomerIds, 'ccc_service'),
         ]);
 
         if (aaaUnread.error) throw aaaUnread.error;
@@ -825,12 +837,12 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
         if (aaaCustomersRes.error) throw aaaCustomersRes.error;
         if (cccCustomersRes.error) throw cccCustomersRes.error;
 
-        const aaaIds = (aaaCustomersRes.data || []).map(c => c.id);
-        const cccIds = (cccCustomersRes.data || []).map(c => c.id);
+        aaaCustomerIds = (aaaCustomersRes.data || []).map(c => c.id);
+        cccCustomerIds = (cccCustomersRes.data || []).map(c => c.id);
 
         const [aaaUnread, cccUnread] = await Promise.all([
-          countUnreadCustomerMessages(aaaIds, 'aaa_service'),
-          countUnreadCustomerMessages(cccIds, 'ccc_service'),
+          countUnreadCustomerMessages(aaaCustomerIds, 'aaa_service'),
+          countUnreadCustomerMessages(cccCustomerIds, 'ccc_service'),
         ]);
 
         if (aaaUnread.error) throw aaaUnread.error;
@@ -840,6 +852,14 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       }
 
       if (requestId !== pendingCountsRequestRef.current) return;
+
+      conversationScopeRef.current = {
+        aaaCustomerIds: new Set(aaaCustomerIds),
+        cccCustomerIds: new Set(cccCustomerIds),
+        employeeIds: scopedEmployeeIds ? new Set(scopedEmployeeIds) : null,
+      };
+      realtimeUnreadMessageIdsRef.current.clear();
+
       setUnreadCustomerServiceCount(unreadCount);
       setUnreadCccServiceCount(unreadCccCount);
 
@@ -943,17 +963,84 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       )
       .subscribe();
 
+    let pendingCountsRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const schedulePendingCountsRefresh = () => {
+      if (pendingCountsRefreshTimer) clearTimeout(pendingCountsRefreshTimer);
+      pendingCountsRefreshTimer = setTimeout(() => {
+        pendingCountsRefreshTimer = null;
+        void loadPendingCounts();
+      }, 250);
+    };
+    const handleConversationRealtime = (payload: {
+      eventType?: string;
+      new?: Record<string, unknown>;
+      old?: Record<string, unknown>;
+    }) => {
+      const message = payload.new && Object.keys(payload.new).length > 0
+        ? payload.new
+        : payload.old;
+      if (!message) return;
+      const sourceType = message.source_type;
+      pendingCountsRequestRef.current += 1;
+      if (sourceType !== 'aaa_service' && sourceType !== 'ccc_service') {
+        schedulePendingCountsRefresh();
+        return;
+      }
+
+      const customerId = typeof message.customer_id === 'string' ? message.customer_id : null;
+      const employeeId = typeof message.employee_id === 'string' ? message.employee_id : null;
+      const messageId = typeof message.id === 'string' ? message.id : null;
+      const scope = conversationScopeRef.current;
+      const customerIds = sourceType === 'aaa_service'
+        ? scope.aaaCustomerIds
+        : scope.cccCustomerIds;
+      const isInScope = Boolean(
+        customerId
+        && employeeId
+        && customerIds.has(customerId)
+        && (scope.employeeIds === null || scope.employeeIds.has(employeeId)),
+      );
+      const isUnreadEmployeeMessage = message.sender_type === 'employee' && message.is_read === false;
+
+      if (isInScope && messageId) {
+        const tracked = realtimeUnreadMessageIdsRef.current.has(messageId);
+        const adjustCount = (delta: number) => {
+          if (sourceType === 'aaa_service') {
+            setUnreadCustomerServiceCount(prev => Math.max(0, prev + delta));
+          } else {
+            setUnreadCccServiceCount(prev => Math.max(0, prev + delta));
+          }
+        };
+
+        if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && isUnreadEmployeeMessage && !tracked) {
+          realtimeUnreadMessageIdsRef.current.add(messageId);
+          adjustCount(1);
+        } else if (payload.eventType === 'UPDATE' && !isUnreadEmployeeMessage && tracked) {
+          realtimeUnreadMessageIdsRef.current.delete(messageId);
+          adjustCount(-1);
+        } else if (payload.eventType === 'DELETE' && tracked) {
+          realtimeUnreadMessageIdsRef.current.delete(messageId);
+          adjustCount(-1);
+        }
+      }
+
+      schedulePendingCountsRefresh();
+    };
+
     // Set up real-time subscriptions for customer service conversations
     const customerServiceChannel = supabase
       .channel('admin-customer-service')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'customer_employee_conversations' },
-        () => {
-          loadPendingCounts();
-        }
+        handleConversationRealtime,
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('Customer service notifications are temporarily unavailable.', error);
+          schedulePendingCountsRefresh();
+        }
+      });
 
     // Set up real-time subscriptions for account locks
     const accountLocksChannel = supabase
@@ -979,6 +1066,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     return () => {
       window.clearTimeout(pendingCountsTimer);
       window.clearInterval(pendingCountsFallbackTimer);
+      if (pendingCountsRefreshTimer) clearTimeout(pendingCountsRefreshTimer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       supabase.removeChannel(withdrawalChannel);
       supabase.removeChannel(verificationChannel);

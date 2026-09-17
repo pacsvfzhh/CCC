@@ -1077,7 +1077,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     };
 
     const channel = supabase
-      .channel(`customer_conversations_${selectedCustomer.id}`)
+      .channel(`customer_service_conversations_${selectedCustomer.id}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -1128,7 +1128,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
         void loadAllConversationHistory(true);
       }, 15000);
       const channel = supabase
-        .channel(`customer_unread_counts_${selectedAdminId}`)
+        .channel(`customer_service_unread_counts_${selectedAdminId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -1158,7 +1158,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (isActive && selectedAdminId) {
       const employeeRequestId = workspaceLoadRequestRef.current;
       const channel = supabase
-        .channel(`employees_realtime_${selectedAdminId}`)
+        .channel(`customer_service_employees_realtime_${selectedAdminId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
