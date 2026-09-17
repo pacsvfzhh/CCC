@@ -413,10 +413,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, [showNavigationSettings]);
 
   useEffect(() => {
-    void loadMessageManagement();
-    void loadCustomerServiceManagement();
-    void loadCccServiceManagement();
-
     const preload = () => {
       if (admin.role === 'super_admin') {
         void prefetchAdminGroups(admin.id, 'customer').catch(error => {
@@ -908,7 +904,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, []);
 
   const handleTabChange = useCallback((tabId: typeof activeTab) => {
-    preloadServiceTab(tabId);
     setActiveTab(tabId);
     setLoadedTabs(prev => prev.has(tabId) ? prev : new Set([...prev, tabId]));
   }, []);
@@ -1371,7 +1366,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    onPointerEnter={() => preloadServiceTab(tab.id)}
                     className={`relative flex items-center gap-1.5 px-1.5 py-1.5 rounded-lg font-medium transition-all text-left ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
@@ -1450,7 +1444,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    onPointerEnter={() => preloadServiceTab(tab.id)}
                     className={`relative flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
