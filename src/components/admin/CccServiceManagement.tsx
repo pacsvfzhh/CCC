@@ -3257,10 +3257,14 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
   if (loading && !initialEmployee) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-slate-400">
-          <div className="h-9 w-9 animate-spin rounded-full border-2 border-emerald-400/20 border-t-emerald-400" />
-          <span className="text-sm">正在載入工作區……</span>
+      <div className="flex min-h-[280px] flex-1 flex-col items-center justify-center gap-4 text-center text-slate-400">
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-300/30 bg-emerald-400/15 shadow-[0_0_30px_rgba(52,211,153,0.14)]">
+          <span className="absolute inset-1 animate-ping rounded-xl border border-emerald-300/25 [animation-duration:1.6s]" />
+          <span className="relative h-8 w-8 animate-spin rounded-full border-[3px] border-emerald-300/25 border-t-emerald-300" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-emerald-100">正在載入經理工作區</p>
+          <p className="mt-1 text-[11px] text-slate-500">正在同步角色與會話資料，請稍候……</p>
         </div>
       </div>
     );

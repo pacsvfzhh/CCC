@@ -69,7 +69,19 @@ function ServiceWorkspaceSkeleton({ service }: { service: 'customerservice' | 'c
   const isCustomerService = service === 'customerservice';
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col text-slate-100">
+    <div className="relative flex min-h-0 flex-1 flex-col text-slate-100">
+      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-950/35 backdrop-blur-[1px]">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className={`relative flex h-16 w-16 items-center justify-center rounded-2xl border shadow-[0_0_30px_rgba(15,23,42,0.35)] ${isCustomerService ? 'border-orange-300/30 bg-orange-400/15' : 'border-emerald-300/30 bg-emerald-400/15'}`}>
+            <span className={`absolute inset-1 animate-ping rounded-xl border [animation-duration:1.6s] ${isCustomerService ? 'border-orange-300/25' : 'border-emerald-300/25'}`} />
+            <span className={`relative h-8 w-8 animate-spin rounded-full border-[3px] ${isCustomerService ? 'border-orange-300/25 border-t-orange-300' : 'border-emerald-300/25 border-t-emerald-300'}`} />
+          </div>
+          <div>
+            <p className={`text-sm font-semibold ${isCustomerService ? 'text-orange-100' : 'text-emerald-100'}`}>正在載入{isCustomerService ? '模擬客戶' : '經理'}分組</p>
+            <p className="mt-1 text-[11px] text-slate-400">正在準備管理員工作區，請稍候……</p>
+          </div>
+        </div>
+      </div>
       <div className={`relative flex shrink-0 items-center justify-between gap-4 border-b px-4 py-4 sm:px-6 sm:py-5 ${isCustomerService ? 'border-orange-500/25' : 'border-emerald-500/25'}`}>
         <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${isCustomerService ? 'from-orange-300 via-orange-500 to-amber-500' : 'from-emerald-300 via-emerald-500 to-teal-500'}`} />
         <div className="flex min-w-0 flex-1 items-center gap-3">
