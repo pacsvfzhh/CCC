@@ -280,6 +280,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const withdrawalDateRefreshAttemptedRef = useRef(false);
   const guardedLoadEmployeesRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
   const realtimeChangeGenerationRef = useRef(0);
+  const employeeScopeGenerationRef = useRef(0);
+  const employeeScopeKeyRef = useRef(`${admin.id}:${admin.role}`);
 
   const resetAutoRefreshTimer = useCallback((delayMs = AUTO_REFRESH_INTERVAL_MS) => {
     if (!isMountedRef.current) return;
@@ -376,6 +378,23 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   }, [showCreateSecondaryAdmin, adminFilterOpen, editingEmployee, showPasswordReset, deletingEmployee, editingTags, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
 
   useEffect(() => {
+    const scopeKey = `${admin.id}:${admin.role}`;
+    const scopeChanged = employeeScopeKeyRef.current !== scopeKey;
+    employeeScopeKeyRef.current = scopeKey;
+    employeeScopeGenerationRef.current += 1;
+
+    if (scopeChanged) {
+      realtimeChangeGenerationRef.current += 1;
+      initialLoadStartedRef.current = false;
+      employeeGroupsRef.current = [];
+      withdrawalDateRefreshAttemptedRef.current = false;
+      setEmployeeGroups([]);
+      setExpandedGroups(new Set());
+      setLoading(true);
+      setStatsLoading(false);
+      setIsRefreshing(false);
+    }
+
     if (!isActive) {
       isMountedRef.current = false;
       if (autoRefreshTimerRef.current) clearTimeout(autoRefreshTimerRef.current);
@@ -565,17 +584,16 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         field in payload.new && JSON.stringify(payload.new[field]) !== JSON.stringify((currentEmployee as unknown as Record<string, unknown>)[field])
       );
     };
-    let realtimeRecoveryPending = false;
-    const handleRealtimeStatus = (status: string) => {
+    const realtimeRecoveryPending = new Set<string>();
+    const handleRealtimeStatus = (channelKey: string, status: string) => {
       if (status === 'SUBSCRIBED') {
-        if (!realtimeRecoveryPending || !isMountedRef.current) return;
-        realtimeRecoveryPending = false;
+        if (!realtimeRecoveryPending.delete(channelKey) || !isMountedRef.current) return;
         void guardedLoadEmployeesRef.current?.(true);
         return;
       }
 
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-        realtimeRecoveryPending = true;
+        realtimeRecoveryPending.add(channelKey);
         markRealtimeChange();
         scheduleRealtimeReload(1000);
       }
@@ -597,7 +615,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         }
         debouncedStructureReload();
       })
-      .subscribe(handleRealtimeStatus);
+      .subscribe((status) => handleRealtimeStatus('admins', status));
 
     const usersSubscription = supabase
       .channel('employee_mgmt_users')
@@ -609,14 +627,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       }, (payload) => {
         if (hasRelevantEmployeeChange(payload)) debouncedStructureReload();
       })
-      .subscribe(handleRealtimeStatus);
+      .subscribe((status) => handleRealtimeStatus('users', status));
 
     const verificationRequestsSubscription = supabase
       .channel('employee_mgmt_verification_requests')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'verification_requests' }, (payload) => {
         if (isVisibleEmployeePayload(payload)) debouncedStructureReload();
       })
-      .subscribe(handleRealtimeStatus);
+      .subscribe((status) => handleRealtimeStatus('verification_requests', status));
 
     const workSessionsSubscription = supabase
       .channel('employee_mgmt_work_sessions')
@@ -630,7 +648,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         scheduleWorkStatusUpdate(userId, isEnding ? 'offline' : 'online');
         scheduleWorkTimeRefresh(userId);
       })
-      .subscribe(handleRealtimeStatus);
+      .subscribe((status) => handleRealtimeStatus('work_sessions', status));
 
     const dispatchSessionsSubscription = supabase
       .channel('employee_mgmt_dispatch_sessions')
@@ -638,7 +656,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         const userId = getPayloadUserId(payload);
         if (!userId || !isVisibleEmployeePayload(payload)) return;
 
-        const isStarting = payload.eventType === 'INSERT' && payload.new.status === 'online';
+        const isStarting = payload.eventType !== 'DELETE'
+          && payload.new.status === 'online'
+          && payload.new.ended_at == null;
         const isEnding = payload.eventType === 'DELETE'
           || payload.new.status === 'offline'
           || payload.new.ended_at != null;
@@ -647,7 +667,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         scheduleWorkStatusUpdate(userId, isStarting ? 'online' : 'offline');
         if (isEnding) scheduleWorkTimeRefresh(userId);
       })
-      .subscribe(handleRealtimeStatus);
+      .subscribe((status) => handleRealtimeStatus('dispatch_sessions', status));
 
     const withdrawalsSubscription = supabase
       .channel('employee_mgmt_withdrawals')
@@ -657,7 +677,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           scheduleRealtimeReload(500);
         }
       })
-      .subscribe(handleRealtimeStatus);
+      .subscribe((status) => handleRealtimeStatus('withdrawals', status));
 
     let commissionRefreshTimer: ReturnType<typeof setTimeout> | null = null;
     let commissionRefreshWindowStartedAt: number | null = null;
@@ -724,7 +744,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         const userId = String(currentRecord.user_id || previousRecord.user_id || '');
         if (userId) scheduleCommissionRefresh(userId);
       })
-      .subscribe(handleRealtimeStatus);
+      .subscribe((status) => handleRealtimeStatus('wallet_transactions', status));
 
     const walletsSubscription = supabase
       .channel('employee_mgmt_wallets')
@@ -744,7 +764,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         }
         debouncedStatsReload();
       })
-      .subscribe(handleRealtimeStatus);
+      .subscribe((status) => handleRealtimeStatus('wallets', status));
 
     const ordersSubscription = supabase
       .channel('employee_mgmt_orders')
@@ -809,7 +829,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         }
         debouncedStatsReload();
       })
-      .subscribe(handleRealtimeStatus);
+      .subscribe((status) => handleRealtimeStatus('orders', status));
 
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
@@ -903,6 +923,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
   const loadEmployees = async (silent: boolean = false) => {
     const requestRealtimeGeneration = realtimeChangeGenerationRef.current;
+    const requestScopeGeneration = employeeScopeGenerationRef.current;
     const hasExistingGroups = employeeGroupsRef.current.length > 0;
     const showInitialLoading = !silent && !hasExistingGroups;
     let hasBaseData = false;
@@ -1018,6 +1039,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         && (admins.length === 0 || employees.length > 0);
 
       if (hasIncompleteBaseResult || !isMountedRef.current) return false;
+      if (requestScopeGeneration !== employeeScopeGenerationRef.current) return false;
       if (requestRealtimeGeneration !== realtimeChangeGenerationRef.current) {
         pendingReloadRef.current = true;
         return false;
@@ -1218,6 +1240,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         && nextEmployeeCount === 0
         && (admins.length === 0 || employees.length > 0);
       if (hasIncompleteSilentResult || !isMountedRef.current) return false;
+      if (requestScopeGeneration !== employeeScopeGenerationRef.current) return false;
       if (requestRealtimeGeneration !== realtimeChangeGenerationRef.current) {
         pendingReloadRef.current = true;
         return false;
