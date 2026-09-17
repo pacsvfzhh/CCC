@@ -214,9 +214,10 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
   const isInitialMount = useRef(true);
   const isSyncing = useRef(false);
-  const [, forceUpdate] = useState({});
 
   const editor = useEditor({
+    immediatelyRender: false,
+    shouldRerenderOnTransaction: true,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -274,13 +275,6 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
         const html = editor.getHTML();
         onChange(html);
       }
-    },
-    onSelectionUpdate: () => {
-      // Force re-render to update button states
-      forceUpdate({});
-    },
-    onTransaction: () => {
-      forceUpdate({});
     },
     editorProps: {
       attributes: {
