@@ -238,6 +238,14 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   const workspaceLoadRequestRef = useRef(0);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
   const adminUnreadRequestRef = useRef(0);
+  const realtimeAdminUnreadMessageIdsRef = useRef(new Set<string>());
+  const adminUnreadScopeRef = useRef<{
+    customersById: Map<string, string>;
+    employeesById: Map<string, string>;
+  }>({
+    customersById: new Map(),
+    employeesById: new Map(),
+  });
   const realtimeConversationIdsRef = useRef(new Set<string>());
   const [historyFilterMode, setHistoryFilterMode] = useState<'all' | 'history' | 'new'>('all');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
@@ -463,6 +471,39 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setConversationHistory(nextConversationHistory);
   }, [selectedCustomer?.id, workspaceCustomerIds]);
 
+  const applyRealtimeAdminUnread = useCallback((payload: {
+    eventType?: string;
+    new?: Partial<Message>;
+    old?: Partial<Message>;
+  }) => {
+    const message = payload.new?.id ? payload.new : payload.old;
+    if (!message?.id || !message.customer_id || !message.employee_id) return;
+
+    const customerAdminId = adminUnreadScopeRef.current.customersById.get(message.customer_id);
+    const employeeAdminId = adminUnreadScopeRef.current.employeesById.get(message.employee_id);
+    if (!customerAdminId || employeeAdminId !== customerAdminId) return;
+
+    adminUnreadRequestRef.current += 1;
+    const tracked = realtimeAdminUnreadMessageIdsRef.current.has(message.id);
+    const isUnreadEmployeeMessage = payload.eventType !== 'DELETE'
+      && message.sender_type === 'employee'
+      && message.is_read === false;
+
+    if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && isUnreadEmployeeMessage && !tracked) {
+      realtimeAdminUnreadMessageIdsRef.current.add(message.id);
+      setAdminUnreadCounts(prev => ({
+        ...prev,
+        [customerAdminId]: (prev[customerAdminId] || 0) + 1,
+      }));
+    } else if ((payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') && !isUnreadEmployeeMessage && tracked) {
+      realtimeAdminUnreadMessageIdsRef.current.delete(message.id);
+      setAdminUnreadCounts(prev => ({
+        ...prev,
+        [customerAdminId]: Math.max(0, (prev[customerAdminId] || 0) - 1),
+      }));
+    }
+  }, []);
+
   const loadAdminUnreadCounts = async (adminIds: string[]) => {
     const requestId = ++adminUnreadRequestRef.current;
     try {
@@ -486,8 +527,15 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
       const customerIds = (customers || []).map(customer => customer.id);
       const employeeIds = (employees || []).map(employee => employee.id);
+      const customersById = new Map((customers || []).map(customer => [customer.id, customer.admin_id]));
+      const employeesById = new Map((employees || []).map(employee => [employee.id, employee.created_by]));
+      if (requestId === adminUnreadRequestRef.current) {
+        adminUnreadScopeRef.current = { customersById, employeesById };
+      }
       if (customerIds.length === 0 || employeeIds.length === 0) {
         if (requestId !== adminUnreadRequestRef.current) return;
+        adminUnreadScopeRef.current = { customersById, employeesById };
+        realtimeAdminUnreadMessageIdsRef.current.clear();
         setAdminUnreadCounts(prev =>
           adminIds.some(id => prev[id] !== counts[id]) || Object.keys(prev).length !== adminIds.length
             ? counts
@@ -506,8 +554,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
       if (messagesError) throw messagesError;
 
-      const customersById = new Map((customers || []).map(customer => [customer.id, customer.admin_id]));
-      const employeesById = new Map((employees || []).map(employee => [employee.id, employee.created_by]));
       messages?.forEach(message => {
         const customerAdminId = customersById.get(message.customer_id);
         if (customerAdminId && employeesById.get(message.employee_id) === customerAdminId) {
@@ -516,6 +562,8 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       });
 
       if (requestId !== adminUnreadRequestRef.current) return;
+      adminUnreadScopeRef.current = { customersById, employeesById };
+      realtimeAdminUnreadMessageIdsRef.current.clear();
       setAdminUnreadCounts(prev =>
         adminIds.some(id => prev[id] !== counts[id]) || Object.keys(prev).length !== adminIds.length
           ? counts
@@ -1038,22 +1086,36 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   useEffect(() => {
     if (isSuperAdmin && adminGroups.length > 0) {
       const adminIds = adminGroups.map(g => g.admin_id);
+      let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+      const scheduleRefresh = () => {
+        if (refreshTimer) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+          refreshTimer = null;
+          void loadAdminUnreadCounts(adminIds);
+        }, 250);
+      };
       const channel = supabase
         .channel('customer_service_admin_unread_counts_realtime')
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'customer_employee_conversations'
-        }, () => {
-          loadAdminUnreadCounts(adminIds);
+        }, (payload) => {
+          applyRealtimeAdminUnread({
+            eventType: payload.eventType,
+            new: payload.new as Partial<Message>,
+            old: payload.old as Partial<Message>,
+          });
+          scheduleRefresh();
         })
         .subscribe();
 
       return () => {
+        if (refreshTimer) clearTimeout(refreshTimer);
         supabase.removeChannel(channel);
       };
     }
-  }, [isSuperAdmin, adminGroups]);
+  }, [isSuperAdmin, adminGroups, applyRealtimeAdminUnread]);
 
 
 

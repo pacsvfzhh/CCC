@@ -168,7 +168,8 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
                                 <BellRing className="relative z-10 h-3 w-3" />
                                 <span className={`absolute inset-0 rounded-full bg-current/35 motion-reduce:animate-none ${unread > 0 ? 'animate-ping' : ''}`} />
                               </span>
-                              <span>{unread > 99 ? '99+' : unread} 未讀</span>
+                              <span className="text-base font-black leading-none tabular-nums">{unread > 99 ? '99+' : unread}</span>
+                              <span className="text-xs font-bold">未讀</span>
                             </span>
                           </div>
                           <span className={`mt-1 block max-w-full truncate text-[10px] font-bold leading-none ${getRoleChipStyles(group.admin_role)}`}>{formatRole(group.admin_role)}</span>
