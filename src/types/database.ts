@@ -908,6 +908,32 @@ export interface Database {
         };
         Relationships: [];
       };
+      employee_login_history_events: {
+        Row: {
+          admin_id: string;
+          event_type: 'INSERT' | 'UPDATE' | 'DELETE';
+          occurred_at: string;
+        };
+        Insert: {
+          admin_id: string;
+          event_type: 'INSERT' | 'UPDATE' | 'DELETE';
+          occurred_at?: string;
+        };
+        Update: {
+          admin_id?: string;
+          event_type?: 'INSERT' | 'UPDATE' | 'DELETE';
+          occurred_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'employee_login_history_events_admin_id_fkey';
+            columns: ['admin_id'];
+            isOneToOne: true;
+            referencedRelation: 'admins';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       admins: {
         Row: {
           id: string;

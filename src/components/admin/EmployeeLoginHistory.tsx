@@ -174,21 +174,21 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
           .subscribe()
       : null;
 
-    const loginHistoryChannel = admin.role === 'super_admin'
-      ? supabase
-          .channel('employee_login_history_changes')
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'employee_login_history' },
-            () => { void loadEmployeeSummaryRef.current?.(true); }
-          )
-          .subscribe()
-      : null;
+    const loginHistoryChannel = supabase
+      .channel('employee_login_history_changes')
+      .on(
+        'postgres_changes',
+        admin.role === 'super_admin'
+          ? { event: '*', schema: 'public', table: 'employee_login_history_events' }
+          : { event: '*', schema: 'public', table: 'employee_login_history_events', filter: `admin_id=eq.${admin.id}` },
+        () => { void loadEmployeeSummaryRef.current?.(true); }
+      )
+      .subscribe();
 
     return () => {
       supabase.removeChannel(usersChannel);
       if (adminsChannel) supabase.removeChannel(adminsChannel);
-      if (loginHistoryChannel) supabase.removeChannel(loginHistoryChannel);
+      supabase.removeChannel(loginHistoryChannel);
     };
   }, [admin.id, admin.role]);
 
