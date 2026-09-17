@@ -537,6 +537,17 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     return historyCounts;
   }, [workspaceConversationHistory]);
+  const customerLatestMessageTimesForCards = useMemo(() => {
+    const latestTimes: Record<string, number> = {};
+
+    workspaceConversationHistory.forEach(history => {
+      if (!history.customer_id) return;
+      const messageTime = Date.parse(history.last_message_time) || 0;
+      latestTimes[history.customer_id] = Math.max(latestTimes[history.customer_id] || 0, messageTime);
+    });
+
+    return latestTimes;
+  }, [workspaceConversationHistory]);
   const conversationHistoryForView = useMemo(() => {
     const source = historyScope === 'all' ? workspaceConversationHistory : conversationHistory;
     return dedupeConversationHistory(source.filter(history =>
@@ -615,10 +626,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         return searchableText.includes(query);
       })
       .sort((a, b) => {
-        if (a.unread_count !== b.unread_count) {
-          return b.unread_count - a.unread_count;
-        }
-        return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
+        const timeDifference = (Date.parse(b.last_message_time) || 0) - (Date.parse(a.last_message_time) || 0);
+        if (timeDifference !== 0) return timeDifference;
+        return b.unread_count - a.unread_count;
       });
   }, [conversationHistoryForView, workspaceEmployeesById, historyFilterMode, historySearchQuery, historyScope, selectedCustomer?.id, selectedEmployee]);
 
@@ -3421,10 +3431,10 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                 return true;
               })
               .sort((a, b) => {
+                const timeDifference = (customerLatestMessageTimesForCards[b.id] || 0) - (customerLatestMessageTimesForCards[a.id] || 0);
+                if (timeDifference !== 0) return timeDifference;
                 const aUnread = customerUnreadCountsForCards[a.id] || 0;
                 const bUnread = customerUnreadCountsForCards[b.id] || 0;
-                if (aUnread > 0 && bUnread === 0) return -1;
-                if (aUnread === 0 && bUnread > 0) return 1;
                 if (aUnread !== bUnread) return bUnread - aUnread;
                 const aPinned = a.is_pinned ? 1 : 0;
                 const bPinned = b.is_pinned ? 1 : 0;
