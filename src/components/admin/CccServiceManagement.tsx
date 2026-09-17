@@ -1213,7 +1213,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       if (!initialEmployee) {
         const activeWorkspaceId = selectedAdminIdRef.current;
         if (activeWorkspaceId) {
-          void loadAdminDataRef.current?.(activeWorkspaceId, true, true);
+          const hasLoadedWorkspace = loadedWorkspaceAdminIdRef.current === activeWorkspaceId
+            && conversationHistoryInitializedRef.current;
+          void loadAdminDataRef.current?.(activeWorkspaceId, hasLoadedWorkspace, hasLoadedWorkspace);
         } else {
           const hasLoadedGroups = adminGroupsInitializedRef.current;
           void loadAdminGroups(null, hasLoadedGroups, hasLoadedGroups);
@@ -1223,7 +1225,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       selectedAdminIdRef.current = adminId;
       setSelectedAdminId(adminId);
       if (!initialEmployee) {
-        const hasLoadedWorkspace = loadedWorkspaceAdminIdRef.current === adminId;
+        const hasLoadedWorkspace = loadedWorkspaceAdminIdRef.current === adminId
+          && conversationHistoryInitializedRef.current;
         void loadAdminDataRef.current?.(adminId, hasLoadedWorkspace, hasLoadedWorkspace);
       }
     }
@@ -1318,7 +1321,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           schema: 'public',
           table: 'admins'
         }, () => {
-          loadAdminGroups(null, false, true);
+          loadAdminGroups(null, true, true);
         })
         .subscribe();
 
