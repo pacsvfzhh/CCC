@@ -47,16 +47,17 @@ export class AccountLockedError extends Error {
 }
 
 export async function login(credentials: LoginCredentials): Promise<StoredAuth> {
+  const username = credentials.username.trim();
   const [adminAccount, employeeAccount] = await Promise.all([
     supabase
       .from('admins')
       .select('id, is_active')
-      .eq('username', credentials.username)
+      .eq('username', username)
       .maybeSingle(),
     supabase
       .from('users')
       .select('id, is_active')
-      .eq('username', credentials.username)
+      .eq('username', username)
       .maybeSingle(),
   ]);
 
@@ -69,7 +70,7 @@ export async function login(credentials: LoginCredentials): Promise<StoredAuth> 
     }
 
     const { data, error } = await supabase.rpc('create_admin_financial_session', {
-      p_username: credentials.username,
+      p_username: username,
       p_password: credentials.password,
     });
     if (error) throw error;
@@ -96,7 +97,7 @@ export async function login(credentials: LoginCredentials): Promise<StoredAuth> 
 
     const tabId = tabSessionManager.getTabId();
     const { data, error } = await supabase.rpc('create_employee_financial_session', {
-      p_username: credentials.username,
+      p_username: username,
       p_password: credentials.password,
       p_tab_id: tabId,
     });

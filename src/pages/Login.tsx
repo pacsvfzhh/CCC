@@ -105,6 +105,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const normalizedUsername = username.trim();
 
     if (supabaseConfigurationError) {
       setError(supabaseConfigurationError);
@@ -114,7 +115,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     setLoading(true);
 
     try {
-      const rateLimitCheck = await checkLoginRateLimit(username, 'username');
+      const rateLimitCheck = await checkLoginRateLimit(normalizedUsername, 'username');
 
       if (!rateLimitCheck.allowed || rateLimitCheck.locked) {
         setLockInfo({
@@ -133,10 +134,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         setWarning(rateLimitCheck.warning);
       }
 
-      const result = await login({ username, password });
+      const result = await login({ username: normalizedUsername, password });
 
       await recordLoginAttempt(
-        username,
+        normalizedUsername,
         'username',
         true,
         undefined,
@@ -167,7 +168,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
       const attemptIp = await getUserIP();
       const attemptResult = await recordLoginAttempt(
-        username,
+        normalizedUsername,
         'username',
         false,
         attemptIp,
