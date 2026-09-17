@@ -172,7 +172,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [createError, setCreateError] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithAdmin | null>(null);
   const [editingRemarksOnly, setEditingRemarksOnly] = useState<EmployeeWithAdmin | null>(null);
-  const [showPasswordReset, setShowPasswordReset] = useState<{id: string; username: string} | null>(null);
+  const [showPasswordReset, setShowPasswordReset] = useState<{id: string; username: string; employeeId: string} | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resettingPassword, setResettingPassword] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -223,6 +223,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     title: string;
     message: string;
     category?: 'password' | 'profile';
+    employee?: { username: string; employeeId: string };
+    details?: Array<{ label: string; value: string }>;
   } | null>(null);
 
   // Sort state per group
@@ -1451,6 +1453,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       return;
     }
 
+    const passwordTarget = showPasswordReset ?? { username: '—', employeeId: '—' };
     setResettingPassword(true);
     try {
       const { data, error } = await supabase.rpc('admin_reset_employee_password', {
@@ -1469,6 +1472,11 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         category: 'password',
         title: '登入密碼已更新',
         message: '新密碼已安全儲存，舊密碼與既有員工會話已失效。',
+        employee: passwordTarget,
+        details: [
+          { label: '登入密碼', value: '已更新（實際密碼不顯示）' },
+          { label: '員工會話', value: '已撤銷，需使用新密碼重新登入' },
+        ],
       });
     } catch (error: unknown) {
       if (isFinancialAdminSessionError(error)) {
@@ -1514,6 +1522,16 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         p_updates: allowedUpdates,
       });
       if (error) throw error;
+      const previousEmployee = employeeGroups.flatMap(group => group.employees).find(employee => employee.id === employeeId);
+      const updatedEmployee = {
+        username: typeof updates.username === 'string' ? updates.username.trim() : previousEmployee?.username || '—',
+        employeeId: typeof updates.employee_id === 'string' ? updates.employee_id.trim() : previousEmployee?.employee_id || '—',
+      };
+      const profileDetails = [
+        { label: '使用者名稱', value: updatedEmployee.username },
+        { label: '員工 ID', value: updatedEmployee.employeeId },
+        { label: '備註', value: typeof updates.remarks === 'string' ? (updates.remarks.trim() || '（空白）') : undefined },
+      ].filter((detail): detail is { label: string; value: string } => detail.value !== undefined);
       setEditingEmployee(null);
       setNotification({
         show: true,
@@ -1521,6 +1539,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         category: 'profile',
         title: '員工資料已儲存',
         message: '帳戶資料已成功更新，員工清單與管理檢視已同步最新內容。',
+        employee: updatedEmployee,
+        details: profileDetails,
       });
     } catch (error) {
       console.error('Error updating employee:', formatSupabaseError(error));
@@ -2877,7 +2897,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               <span>編輯</span>
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setNewPassword(''); setShowResetPassword(false); setShowPasswordReset({ id: employee.id, username: employee.username }); }}
+              onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setNewPassword(''); setShowResetPassword(false); setShowPasswordReset({ id: employee.id, username: employee.username, employeeId: employee.employee_id }); }}
               className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-amber-200/55 border-l-2 border-l-amber-200/95 bg-amber-950/75 px-3 text-xs font-extrabold text-amber-100 shadow-[inset_0_1px_0_rgba(253,230,138,0.2)] transition-all duration-150 hover:-translate-y-px hover:border-amber-50 hover:bg-amber-400 hover:text-slate-950 hover:shadow-[0_0_14px_rgba(245,158,11,0.68)] active:translate-y-px active:scale-[0.96] active:bg-amber-700 active:text-white active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="重設密碼"
               aria-label="修改員工密碼"
@@ -4677,6 +4697,31 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </div>
             <div className="relative space-y-4 px-6 py-6">
               <p className="text-sm leading-6 text-slate-300">{notification.message}</p>
+              {notification.employee && (
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-xl border border-cyan-300/15 bg-cyan-400/5 px-3.5 py-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-300/80">員工帳戶</p>
+                    <p className="mt-1 truncate text-sm font-bold text-white" title={notification.employee.username}>{notification.employee.username}</p>
+                  </div>
+                  <div className="border-l border-cyan-300/15 pl-3 text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-300/80">員工 ID</p>
+                    <p className="mt-1 max-w-[9rem] truncate font-mono text-sm font-bold text-cyan-100" title={notification.employee.employeeId}>{notification.employee.employeeId}</p>
+                  </div>
+                </div>
+              )}
+              {notification.details && notification.details.length > 0 && (
+                <div className="rounded-xl border border-white/10 bg-slate-950/35 px-3.5 py-3">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">本次變更</p>
+                  <div className="space-y-2">
+                    {notification.details.map(detail => (
+                      <div key={detail.label} className="flex items-start justify-between gap-4 text-xs">
+                        <span className="shrink-0 font-semibold text-slate-400">{detail.label}</span>
+                        <span className="min-w-0 text-right font-semibold text-slate-100">{detail.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className={`flex items-center justify-between rounded-xl border px-3.5 py-3 text-xs ${notification.type === 'success' ? 'border-emerald-300/15 bg-emerald-400/5 text-emerald-100/80' : notification.type === 'error' ? 'border-red-300/15 bg-red-400/5 text-red-100/80' : 'border-amber-300/15 bg-amber-400/5 text-amber-100/80'}`}>
                 <span className="font-semibold uppercase tracking-[0.14em]">狀態</span>
                 <span className="inline-flex items-center gap-1.5 font-semibold"><span className={`h-1.5 w-1.5 rounded-full ${notification.type === 'success' ? 'bg-emerald-300' : notification.type === 'error' ? 'bg-red-300' : 'bg-amber-300'}`} />{notification.type === 'success' ? '已同步' : notification.type === 'error' ? '請檢查後重試' : '請確認輸入內容'}</span>
