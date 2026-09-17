@@ -277,6 +277,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
   const selectedAdminIdRef = useRef<string | null>(null);
+  const loadedWorkspaceAdminIdRef = useRef<string | null>(null);
+  const adminGroupsInitializedRef = useRef(false);
   const [selectedAdminName, setSelectedAdminName] = useState<string>('');
   const [customers, setCustomers] = useState<SimulatedCustomer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<SimulatedCustomer | null>(null);
@@ -833,6 +835,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       }
 
       if (requestId !== adminGroupsLoadRequestRef.current) return;
+      adminGroupsInitializedRef.current = true;
       setAdminGroups(data);
     } catch (error) {
       if (requestId !== adminGroupsLoadRequestRef.current) return;
@@ -1208,12 +1211,20 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     if (isSuperAdmin) {
       if (!initialEmployee) {
-        void loadAdminGroups(null);
+        const activeWorkspaceId = selectedAdminIdRef.current;
+        if (activeWorkspaceId) {
+          void loadAdminDataRef.current?.(activeWorkspaceId, true, true);
+        } else {
+          const hasLoadedGroups = adminGroupsInitializedRef.current;
+          void loadAdminGroups(null, hasLoadedGroups, hasLoadedGroups);
+        }
       }
     } else {
+      selectedAdminIdRef.current = adminId;
       setSelectedAdminId(adminId);
       if (!initialEmployee) {
-        void loadAdminDataRef.current?.(adminId);
+        const hasLoadedWorkspace = loadedWorkspaceAdminIdRef.current === adminId;
+        void loadAdminDataRef.current?.(adminId, hasLoadedWorkspace, hasLoadedWorkspace);
       }
     }
   }, [adminId, isActive, isSuperAdmin, initialEmployee, loadAdminGroups]);
@@ -1991,6 +2002,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setEmployees(employees);
       allCustomersRef.current = customers;
       allEmployeesRef.current = employees;
+      loadedWorkspaceAdminIdRef.current = targetAdminId;
 
       if (customers.length === 0 || employees.length === 0) {
         if (!silent) setLoading(false);
@@ -2056,6 +2068,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setEmployees(cachedWorkspace.employees);
       allCustomersRef.current = cachedWorkspace.customers;
       allEmployeesRef.current = cachedWorkspace.employees;
+      loadedWorkspaceAdminIdRef.current = group.admin_id;
       setConversationHistory(nextHistory);
       setAllConversationHistory(nextHistory);
       conversationHistoryRef.current = nextHistory;
