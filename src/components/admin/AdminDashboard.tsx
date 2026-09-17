@@ -1470,7 +1470,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             )}
             {loadedTabs.has('employeesearch') && (
               <div className={activeTab === 'employeesearch' ? 'flex min-h-0 flex-1 flex-col px-2 py-1.5 sm:px-3 sm:py-2 lg:px-4' : 'hidden'}>
-                <EmployeeSearch />
+                <EmployeeSearch admin={admin} />
               </div>
             )}
             {loadedTabs.has('loginhistory') && (

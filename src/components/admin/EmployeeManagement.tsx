@@ -369,7 +369,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   }, [registrationCalendarOpen]);
 
   useEffect(() => {
-    const anyModalOpen = !!(showCreateSecondaryAdmin || adminFilterOpen || editingEmployee || showPasswordReset || deletingEmployee || editingTags || notification?.show || confirmDialog?.show || loginIPEmployee || walletEmployee);
+    const anyModalOpen = !!(showCreateSecondaryAdmin || adminFilterOpen || editingEmployee || editingRemarksOnly || showPasswordReset || deletingEmployee || editingTags || editingCreatedAt || pinConfirmEmployee || notification?.show || confirmDialog?.show || loginIPEmployee || walletEmployee);
     if (anyModalOpen && !scrollLockRef.current) {
       scrollLockRef.current = true;
       document.documentElement.style.overflow = 'hidden';
@@ -379,7 +379,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     }
-  }, [showCreateSecondaryAdmin, adminFilterOpen, editingEmployee, showPasswordReset, deletingEmployee, editingTags, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
+  }, [showCreateSecondaryAdmin, adminFilterOpen, editingEmployee, editingRemarksOnly, showPasswordReset, deletingEmployee, editingTags, editingCreatedAt, pinConfirmEmployee, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
 
   useEffect(() => {
     const scopeKey = `${admin.id}:${admin.role}`;
@@ -941,6 +941,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           .from('users')
           .select(employeeSelect, { count: 'exact' })
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .range(from, to);
 
         if (admin.role === 'secondary_admin') {
@@ -969,8 +970,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       const employeeTotal = employeesResult.count ?? employees.length;
       if (employeeTotal > employees.length) {
         const pageStarts = Array.from(
-          { length: Math.ceil((employeeTotal - employees.length) / EMPLOYEE_PAGE_SIZE) },
-          (_, index) => employees.length + index * EMPLOYEE_PAGE_SIZE,
+          { length: Math.max(0, Math.ceil(employeeTotal / EMPLOYEE_PAGE_SIZE) - 1) },
+          (_, index) => (index + 1) * EMPLOYEE_PAGE_SIZE,
         );
         const pageResults = await Promise.all(
           pageStarts.map(from => buildEmployeesQuery(from, from + EMPLOYEE_PAGE_SIZE - 1)),
@@ -1422,6 +1423,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       nextStatus: newStatus,
       onConfirm: async () => {
         setConfirmDialog(null);
+        let userUpdated = false;
         try {
           setEmployeeGroups(prev => prev.map(g => ({
             ...g,
@@ -1433,15 +1435,26 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             p_updates: { is_verified: newStatus },
           });
           if (userError) throw userError;
+          userUpdated = true;
           if (!newStatus) {
-            await supabase.from('verification_requests').delete().eq('user_id', employeeId).eq('status', 'approved');
+            const { error: deleteError } = await supabase.from('verification_requests').delete().eq('user_id', employeeId).eq('status', 'approved');
+            if (deleteError) throw deleteError;
           }
         } catch (error) {
+          if (userUpdated && !newStatus) {
+            const { error: rollbackError } = await supabase.rpc('admin_update_employee_account', {
+              p_admin_session_token: getAdminFinancialSessionToken(),
+              p_user_id: employeeId,
+              p_updates: { is_verified: currentStatus },
+            });
+            if (rollbackError) console.error('Error rolling back verification:', formatSupabaseError(rollbackError));
+          }
           console.error('Error toggling verification:', formatSupabaseError(error));
           setEmployeeGroups(prev => prev.map(g => ({
             ...g,
             employees: g.employees.map(emp => emp.id === employeeId ? { ...emp, is_verified: currentStatus } : emp)
           })));
+          void guardedLoadEmployeesRef.current?.(true);
         }
       }
     });
@@ -1505,6 +1518,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   };
 
   const handleUpdateEmployee = async (employeeId: string, updates: Partial<EmployeeWithAdmin>) => {
+    const previousEmployee = employeeGroupsRef.current
+      .flatMap(group => group.employees)
+      .find(employee => employee.id === employeeId);
+
     try {
       setEmployeeGroups(prev => prev.map(g => ({
         ...g,
@@ -1522,7 +1539,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         p_updates: allowedUpdates,
       });
       if (error) throw error;
-      const previousEmployee = employeeGroups.flatMap(group => group.employees).find(employee => employee.id === employeeId);
       const updatedEmployee = {
         username: typeof updates.username === 'string' ? updates.username.trim() : previousEmployee?.username || '—',
         employeeId: typeof updates.employee_id === 'string' ? updates.employee_id.trim() : previousEmployee?.employee_id || '—',
@@ -1544,8 +1560,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       });
     } catch (error) {
       console.error('Error updating employee:', formatSupabaseError(error));
-      setNotification({ show: true, type: 'error', title: '錯誤', message: '更新員工資料失敗' });
-      guardedLoadEmployeesRef.current?.(true);
+      if (previousEmployee) {
+        setEmployeeGroups(prev => prev.map(group => ({
+          ...group,
+          employees: group.employees.map(employee => employee.id === employeeId ? previousEmployee : employee),
+        })));
+      }
+      setNotification({ show: true, type: 'error', title: '錯誤', message: '更新員工資料失敗，已還原畫面內容' });
+      void guardedLoadEmployeesRef.current?.(true);
     }
   };
 
@@ -4313,15 +4335,24 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                       p_user_id: editingCreatedAt.id,
                       p_updates: { created_at: isoDate },
                     });
-                    if (!error) {
-                      setEmployeeGroups(prev => prev.map(g => ({
-                        ...g,
-                        employees: g.employees.map(emp => emp.id === editingCreatedAt.id ? { ...emp, created_at: isoDate } : emp)
-                      })));
-                      closeRegistrationDateEditor();
-                    } else {
-                      setNotification({ show: true, type: 'error', title: '錯誤', message: '更新註冊日期失敗' });
-                    }
+                    if (error) throw error;
+                    setEmployeeGroups(prev => prev.map(g => ({
+                      ...g,
+                      employees: g.employees.map(emp => emp.id === editingCreatedAt.id ? { ...emp, created_at: isoDate } : emp)
+                    })));
+                    closeRegistrationDateEditor();
+                    setNotification({
+                      show: true,
+                      type: 'success',
+                      category: 'profile',
+                      title: '註冊日期已儲存',
+                      message: '員工註冊日期已更新並同步至員工詳情資料。',
+                      employee: { username: editingCreatedAt.username, employeeId: editingCreatedAt.employeeId },
+                      details: [{ label: '註冊日期', value: newCreatedAt }],
+                    });
+                  } catch (error) {
+                    console.error('Error updating employee registration date:', formatSupabaseError(error));
+                    setNotification({ show: true, type: 'error', title: '錯誤', message: formatSupabaseError(error) || '更新註冊日期失敗' });
                   } finally {
                     setSavingCreatedAt(false);
                   }

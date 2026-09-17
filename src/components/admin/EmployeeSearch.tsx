@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { Search, X, User, Calendar, Mail, Phone, Wallet, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { formatDateUTC } from '../../lib/dateUtils';
+import type { Admin } from '../../types';
 
 interface EmployeeSearchResult {
   id: string;
@@ -36,7 +37,7 @@ interface SearchProgress {
   percentage: number;
 }
 
-export default function EmployeeSearch() {
+export default function EmployeeSearch({ admin }: { admin: Admin }) {
   const [searchValue, setSearchValue] = useState('');
   const [results, setResults] = useState<EmployeeSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,6 +45,7 @@ export default function EmployeeSearch() {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [progress, setProgress] = useState<SearchProgress | null>(null);
   const searchAbortController = useRef<AbortController | null>(null);
+  const searchRequestIdRef = useRef(0);
 
   const handleSearch = useCallback(async () => {
     const trimmedValue = searchValue.trim();
@@ -55,17 +57,32 @@ export default function EmployeeSearch() {
       searchAbortController.current.abort();
     }
 
-    searchAbortController.current = new AbortController();
+    const requestId = ++searchRequestIdRef.current;
+    const requestController = new AbortController();
+    searchAbortController.current = requestController;
     setLoading(true);
     setHasSearched(true);
     setProgress({ step: 0, totalSteps: 5, currentTask: '正在初始化搜尋...', percentage: 0 });
 
     try {
       setProgress({ step: 1, totalSteps: 5, currentTask: '正在依使用者名稱與員工編號搜尋...', percentage: 20 });
-      const { data: usersFromDirect, error: userError } = await supabase
+      let scopedUserIds: string[] | null = null;
+      if (admin.role === 'secondary_admin') {
+        const { data: scopedUsers, error: scopedUsersError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('created_by', admin.id);
+        if (scopedUsersError) throw scopedUsersError;
+        scopedUserIds = (scopedUsers || []).map(user => user.id);
+      }
+
+      let directUsersQuery = supabase
         .from('users')
         .select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at')
         .or(`username.eq.${trimmedValue},employee_id.eq.${trimmedValue}`);
+      if (scopedUserIds) directUsersQuery = directUsersQuery.in('id', scopedUserIds);
+      const { data: usersFromDirect, error: userError } = await directUsersQuery.abortSignal(requestController.signal);
+      if (requestId !== searchRequestIdRef.current) return;
 
       if (userError) {
         console.error('User search error:', userError);
@@ -73,10 +90,13 @@ export default function EmployeeSearch() {
       }
 
       setProgress({ step: 2, totalSteps: 5, currentTask: '正在搜尋驗證記錄...', percentage: 40 });
-      const { data: verifications, error: verError } = await supabase
+      let verificationQuery = supabase
         .from('verification_requests')
         .select('*')
         .or(`real_name.eq.${trimmedValue},email.eq.${trimmedValue},phone.eq.${trimmedValue},wallet_address.eq.${trimmedValue}`);
+      if (scopedUserIds) verificationQuery = verificationQuery.in('user_id', scopedUserIds);
+      const { data: verifications, error: verError } = await verificationQuery.abortSignal(requestController.signal);
+      if (requestId !== searchRequestIdRef.current) return;
 
       if (verError) {
         console.error('Verification search error:', verError);
@@ -104,7 +124,9 @@ export default function EmployeeSearch() {
       const { data: allUsers, error: allUsersError } = await supabase
         .from('users')
         .select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at')
-        .in('id', allUserIds);
+        .in('id', allUserIds)
+        .abortSignal(requestController.signal);
+      if (requestId !== searchRequestIdRef.current) return;
 
       if (allUsersError) {
         console.error('All users fetch error:', allUsersError);
@@ -115,7 +137,9 @@ export default function EmployeeSearch() {
         .from('verification_requests')
         .select('*')
         .in('user_id', allUserIds)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .abortSignal(requestController.signal);
+      if (requestId !== searchRequestIdRef.current) return;
 
       if (allVerificationsError) {
         console.error('All verifications fetch error:', allVerificationsError);
@@ -125,7 +149,9 @@ export default function EmployeeSearch() {
       const { data: walletData, error: walletError } = await supabase
         .from('wallets')
         .select('user_id, available_balance, frozen_balance')
-        .in('user_id', allUserIds);
+        .in('user_id', allUserIds)
+        .abortSignal(requestController.signal);
+      if (requestId !== searchRequestIdRef.current) return;
 
       if (walletError) {
         console.error('Wallet fetch error:', walletError);
@@ -143,7 +169,9 @@ export default function EmployeeSearch() {
       const { data: adminData, error: adminError } = await supabase
         .from('admins')
         .select('id, username, role')
-        .in('id', adminIds);
+        .in('id', adminIds)
+        .abortSignal(requestController.signal);
+      if (requestId !== searchRequestIdRef.current) return;
 
       if (adminError) {
         console.error('Admin fetch error:', adminError);
@@ -182,10 +210,12 @@ export default function EmployeeSearch() {
       console.error('Search error:', error);
       setResults([]);
     } finally {
-      setLoading(false);
-      setTimeout(() => setProgress(null), 500);
+      if (requestId === searchRequestIdRef.current) {
+        setLoading(false);
+        setTimeout(() => setProgress(null), 500);
+      }
     }
-  }, [searchValue]);
+  }, [admin.id, admin.role, searchValue]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
