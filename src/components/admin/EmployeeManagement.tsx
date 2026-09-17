@@ -2758,7 +2758,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           role="dialog"
           aria-modal="true"
           aria-labelledby="wallet-adjustment-title"
-          className="relative flex max-h-[min(760px,calc(100dvh-2rem))] w-full max-w-xl flex-col overflow-hidden rounded-[28px] border border-amber-200/20 bg-[#07111f] text-slate-100 shadow-[0_28px_90px_rgba(2,6,23,0.75)] ring-1 ring-white/5"
+          className="relative flex h-[min(760px,calc(100dvh-2rem))] w-full max-w-xl flex-col overflow-hidden rounded-[28px] border border-amber-200/20 bg-[#07111f] text-slate-100 shadow-[0_28px_90px_rgba(2,6,23,0.75)] ring-1 ring-white/5"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-300 via-orange-400 to-cyan-300" />
@@ -2790,9 +2790,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </button>
           </div>
 
-          <div className="relative min-h-0 overflow-y-auto px-5 py-5 sm:px-6">
+          <div className="relative min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
             {walletLoading ? (
-              <div className="flex min-h-[280px] flex-col items-center justify-center gap-3">
+              <div className="flex h-full flex-col items-center justify-center gap-3">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-300/25 bg-amber-400/10">
                   <Loader2 className="h-6 w-6 animate-spin text-amber-300" />
                 </div>
@@ -2880,26 +2880,28 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   </div>
                 </div>
 
-                {hasValidAmount && (
-                  <div className="flex items-center gap-2 rounded-xl border border-blue-300/15 bg-blue-400/[0.07] px-3 py-2.5 text-[11px] text-blue-100/80">
-                    <Clock className="h-3.5 w-3.5 shrink-0 text-blue-300" />
-                    <span>輸入金額：<strong className="font-semibold tabular-nums text-blue-100">${enteredAmount.toFixed(2)}</strong>，請確認操作方向後提交。</span>
-                  </div>
-                )}
+                <div className="h-10">
+                  {hasValidAmount && (
+                    <div className="flex h-full items-center gap-2 rounded-xl border border-blue-300/15 bg-blue-400/[0.07] px-3 text-[11px] text-blue-100/80">
+                      <Clock className="h-3.5 w-3.5 shrink-0 text-blue-300" />
+                      <span>輸入金額：<strong className="font-semibold tabular-nums text-blue-100">${enteredAmount.toFixed(2)}</strong>，請確認操作方向後提交。</span>
+                    </div>
+                  )}
+                </div>
 
-                {!walletDataVerified && !walletLoading && !walletNotification && (
-                  <div className="flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.08] px-3.5 py-3 text-xs font-medium text-cyan-100">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span>正在同步最新錢包餘額</span>
-                  </div>
-                )}
-
-                {walletNotification && (
-                  <div className={`flex items-start gap-2 rounded-xl border px-3.5 py-3 text-xs font-medium ${walletNotification.type === 'success' ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200' : 'border-rose-300/25 bg-rose-400/10 text-rose-200'}`}>
-                    <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${walletNotification.type === 'success' ? 'bg-emerald-300' : 'bg-rose-300'}`} />
-                    <span>{walletNotification.message}</span>
-                  </div>
-                )}
+                <div className="h-12">
+                  {walletNotification ? (
+                    <div className={`flex h-full items-center gap-2 overflow-y-auto rounded-xl border px-3.5 py-2 text-xs font-medium ${walletNotification.type === 'success' ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200' : 'border-rose-300/25 bg-rose-400/10 text-rose-200'}`}>
+                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${walletNotification.type === 'success' ? 'bg-emerald-300' : 'bg-rose-300'}`} />
+                      <span>{walletNotification.message}</span>
+                    </div>
+                  ) : !walletDataVerified && !walletLoading ? (
+                    <div className="flex h-full items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.08] px-3.5 text-xs font-medium text-cyan-100">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>正在同步最新錢包餘額</span>
+                    </div>
+                  ) : null}
+                </div>
 
                 <div className="flex flex-col-reverse gap-2 border-t border-white/10 pt-4 sm:flex-row">
                   <button
