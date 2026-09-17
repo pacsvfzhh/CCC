@@ -245,83 +245,13 @@ BEGIN
 END;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.get_employee_login_history(
-  p_admin_id uuid,
-  p_user_id uuid,
-  p_limit integer DEFAULT 50,
-  p_offset integer DEFAULT 0
-)
-RETURNS TABLE (
-  id uuid,
-  action_type text,
-  ip_address text,
-  user_agent text,
-  session_id text,
-  created_at timestamptz
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
-AS $function$
-DECLARE
-  v_admin_id uuid;
-  v_admin_role text;
-  v_employee_admin_id uuid;
-  v_limit integer := LEAST(GREATEST(COALESCE(p_limit, 50), 1), 10000);
-  v_offset integer := GREATEST(COALESCE(p_offset, 0), 0);
-BEGIN
-  SELECT context.admin_id, context.admin_role
-  INTO v_admin_id, v_admin_role
-  FROM private.get_financial_admin_context(p_admin_id) context;
-
-  SELECT u.created_by
-  INTO v_employee_admin_id
-  FROM public.users AS u
-  WHERE u.id = p_user_id;
-
-  IF v_employee_admin_id IS NULL THEN
-    RAISE EXCEPTION 'Employee not found';
-  END IF;
-
-  IF v_admin_role != 'super_admin' AND v_employee_admin_id != v_admin_id THEN
-    RAISE EXCEPTION 'Permission denied: You can only view login history for your own employees';
-  END IF;
-
-  IF v_admin_role = 'super_admin' AND EXISTS (
-    SELECT 1
-    FROM public.admins AS owner_admin
-    WHERE owner_admin.id = v_employee_admin_id
-      AND owner_admin.role = 'emergency_admin'
-  ) THEN
-    RAISE EXCEPTION 'Permission denied: Cannot access emergency admin data';
-  END IF;
-
-  RETURN QUERY
-  SELECT
-    elh.id,
-    elh.action_type,
-    elh.ip_address,
-    elh.user_agent,
-    elh.session_id,
-    elh.created_at
-  FROM public.employee_login_history AS elh
-  WHERE elh.user_id = p_user_id
-  ORDER BY elh.created_at DESC
-  LIMIT v_limit
-  OFFSET v_offset;
-END;
-$function$;
-
 REVOKE ALL ON FUNCTION public.get_employee_login_summary(uuid, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.get_employee_login_history(uuid, uuid, integer, integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.get_employee_login_history_with_device_info(uuid, uuid, integer, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_employee_login_summary(uuid, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.get_employee_login_history(uuid, uuid, integer, integer) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_employee_login_history_with_device_info(uuid, uuid, integer, integer) TO anon, authenticated;
 
 COMMENT ON FUNCTION public.get_employee_login_summary(uuid, text) IS
   'Returns login summaries within the administrator scope derived from the financial session token passed through p_admin_id.';
-COMMENT ON FUNCTION public.get_employee_login_history(uuid, uuid, integer, integer) IS
-  'Returns legacy employee login history after deriving administrator scope from the financial session token passed through p_admin_id.';
 COMMENT ON FUNCTION public.get_employee_login_history_with_device_info(uuid, uuid, integer, integer) IS
   'Returns one employee login history after deriving administrator scope from the financial session token passed through p_admin_id.';

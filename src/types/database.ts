@@ -2041,6 +2041,35 @@ export interface Database {
           created_at: string;
         }>;
       };
+      get_withdrawal_review_data: {
+        Args: { p_admin_session_token: string };
+        Returns: {
+          admin_id: string;
+          admin_role: string;
+          withdrawals: Array<{
+            id: string;
+            user_id: string;
+            amount: number;
+            status: string;
+            audit_remark: string | null;
+            audited_by: string | null;
+            audited_at: string | null;
+            last_operation_id: string | null;
+            created_at: string;
+          }>;
+          employees: Array<{
+            id: string;
+            username: string;
+            employee_id: string;
+            created_by: string;
+          }>;
+          admins: Array<{
+            id: string;
+            username: string;
+            role: string;
+          }>;
+        };
+      };
       get_pending_withdrawal_count_for_admin: {
         Args: { p_admin_session_token: string };
         Returns: number;

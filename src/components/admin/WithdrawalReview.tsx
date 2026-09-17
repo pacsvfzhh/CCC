@@ -4,12 +4,15 @@ import { formatSupabaseError, supabase, supabaseConfigurationError } from '../..
 import { Withdrawal, Employee, Admin } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
 
+type WithdrawalEmployee = Pick<Employee, 'id' | 'username' | 'employee_id' | 'created_by'>;
+type WithdrawalAdmin = Pick<Admin, 'id' | 'username' | 'role'> & { admin_id?: string };
+
 interface WithdrawalWithEmployee extends Withdrawal {
-  employee?: Employee;
+  employee?: WithdrawalEmployee;
 }
 
 interface WithdrawalRow extends WithdrawalWithEmployee {
-  admin: Admin | null;
+  admin: WithdrawalAdmin | null;
 }
 
 interface WithdrawalReviewProps {
@@ -17,8 +20,16 @@ interface WithdrawalReviewProps {
 }
 
 interface AdminGroup {
-  admin: Admin | null;
+  admin: WithdrawalAdmin | null;
   withdrawals: WithdrawalWithEmployee[];
+}
+
+interface WithdrawalReviewData {
+  admin_id: string;
+  admin_role: Admin['role'];
+  withdrawals: Withdrawal[];
+  employees: WithdrawalEmployee[];
+  admins: WithdrawalAdmin[];
 }
 
 const FINANCIAL_CORRECTION_REMARK = 'Withdrawal accounting adjustment, please resubmit your application';
@@ -247,6 +258,22 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
     // Set up real-time subscription for withdrawal requests
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const employeeScopeChannel = admin.role === 'secondary_admin'
+      ? supabase
+          .channel(`withdrawal-employee-scope-${admin.id}`)
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'users', filter: `created_by=eq.${admin.id}` },
+            () => { void loadWithdrawalsRef.current?.(); }
+          )
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'users', filter: `created_by=eq.${admin.id}` },
+            () => { void loadWithdrawalsRef.current?.(); }
+          )
+          .subscribe()
+      : null;
+
     const withdrawalChannel = supabase
       .channel('withdrawal-changes')
       .on(
@@ -277,9 +304,10 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
+      if (employeeScopeChannel) supabase.removeChannel(employeeScopeChannel);
       supabase.removeChannel(withdrawalChannel);
     };
-  }, [admin.role]);
+  }, [admin.id, admin.role]);
 
   const loadWithdrawals = async () => {
     try {
@@ -288,46 +316,18 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         return;
       }
 
-      const employeeColumns = 'id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at';
-      const adminColumns = 'id, username, role, parent_id, is_active, is_pinned, created_at, updated_at';
-      let withdrawalsData: Withdrawal[] = [];
-      let employees: Employee[] = [];
-      let admins: Admin[] = [];
+      const { data, error: reviewDataError } = await supabase.rpc('get_withdrawal_review_data', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+      });
+      if (reviewDataError) throw reviewDataError;
 
-      if (admin.role === 'secondary_admin') {
-        const [withdrawalsResult, employeesResult] = await Promise.all([
-          supabase.rpc('get_withdrawals_for_admin', {
-            p_admin_session_token: getAdminFinancialSessionToken(),
-          }),
-          supabase
-            .from('users')
-            .select(employeeColumns)
-            .eq('created_by', admin.id),
-        ]);
-
-        if (withdrawalsResult.error) throw withdrawalsResult.error;
-        if (employeesResult.error) throw employeesResult.error;
-        withdrawalsData = (withdrawalsResult.data || []) as Withdrawal[];
-        employees = (employeesResult.data || []) as Employee[];
-        admins = [admin];
-        scopedEmployeeIdsRef.current = new Set(employees.map(employee => employee.id));
-      } else {
-        scopedEmployeeIdsRef.current = null;
-        const [withdrawalsResult, employeesResult, adminsResult] = await Promise.all([
-          supabase.rpc('get_withdrawals_for_admin', {
-            p_admin_session_token: getAdminFinancialSessionToken(),
-          }),
-          supabase.from('users').select(employeeColumns),
-          supabase.from('admins').select(adminColumns),
-        ]);
-
-        if (withdrawalsResult.error) throw withdrawalsResult.error;
-        if (employeesResult.error) throw employeesResult.error;
-        if (adminsResult.error) throw adminsResult.error;
-        withdrawalsData = (withdrawalsResult.data || []) as Withdrawal[];
-        employees = (employeesResult.data || []) as Employee[];
-        admins = (adminsResult.data || []) as Admin[];
-      }
+      const reviewData = data as unknown as WithdrawalReviewData;
+      const withdrawalsData = Array.isArray(reviewData?.withdrawals) ? reviewData.withdrawals : [];
+      const employees = Array.isArray(reviewData?.employees) ? reviewData.employees : [];
+      const admins = Array.isArray(reviewData?.admins) ? reviewData.admins : [];
+      scopedEmployeeIdsRef.current = reviewData?.admin_role === 'secondary_admin'
+        ? new Set(employees.map(employee => employee.id))
+        : null;
 
       const employeeMap = new Map(employees.map((employee) => [employee.id, employee]));
       const adminMap = new Map(admins.map((adminRow) => [adminRow.id, adminRow]));
