@@ -1359,7 +1359,14 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           event: '*',
           schema: 'public',
           table: 'users'
-        }, () => {
+        }, (payload) => {
+          const changedEmployee = (payload.new && Object.keys(payload.new).length > 0
+            ? payload.new
+            : payload.old) as { id?: unknown; created_by?: unknown };
+          const employeeId = typeof changedEmployee.id === 'string' ? changedEmployee.id : null;
+          const createdBy = typeof changedEmployee.created_by === 'string' ? changedEmployee.created_by : null;
+          if (createdBy !== targetAdminId && (!employeeId || !allEmployeesRef.current.some(employee => employee.id === employeeId))) return;
+
           const requestId = ++employeeRealtimeRequestRef.current;
           invalidateAdminWorkspaceDataCache(targetAdminId, 'customer');
           supabase

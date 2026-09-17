@@ -313,7 +313,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             ? payload.new
             : payload.old) as { message_id?: unknown };
           const messageId = typeof changedRecipient?.message_id === 'string' ? changedRecipient.message_id : null;
-          if (!messageId || !sentMessageIdsRef.current.has(messageId)) return;
+          if (payload.eventType !== 'DELETE' && (!messageId || !sentMessageIdsRef.current.has(messageId))) return;
         }
         debouncedLoadSentMessages();
       })
