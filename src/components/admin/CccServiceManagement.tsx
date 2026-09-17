@@ -374,6 +374,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const consumedInitialEmployeeRef = useRef(false);
   const loadAdminDataRef = useRef<((targetAdminId: string, silent?: boolean, force?: boolean) => Promise<void>) | null>(null);
   const allConversationHistoryRef = useRef<ConversationHistory[]>([]);
+  const adminGroupsLoadRequestRef = useRef(0);
   const adminUnreadRequestRef = useRef(0);
   const realtimeAdminUnreadMessageIdsRef = useRef(new Set<string>());
   const adminUnreadScopeRef = useRef<{
@@ -809,10 +810,13 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     adminId: string;
     adminUsername?: string;
   } | null, silent = false, force = false) => {
+    const requestId = ++adminGroupsLoadRequestRef.current;
+
     try {
       if (!silent) setLoading(true);
 
       if (targetEmployee) {
+        selectedAdminIdRef.current = targetEmployee.adminId;
         setSelectedAdminId(targetEmployee.adminId);
         setSelectedAdminName(targetEmployee.adminUsername || '管理員群組');
         await loadAdminDataRef.current?.(targetEmployee.adminId, true, true);
@@ -820,6 +824,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       }
 
       const data = await prefetchAdminGroups(adminId, 'manager', force);
+      if (requestId !== adminGroupsLoadRequestRef.current) return;
 
       if (data.length > 0) {
         await loadAdminUnreadCounts(data.map(g => g.admin_id));
@@ -827,12 +832,14 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         setAdminUnreadCounts({});
       }
 
+      if (requestId !== adminGroupsLoadRequestRef.current) return;
       setAdminGroups(data);
     } catch (error) {
+      if (requestId !== adminGroupsLoadRequestRef.current) return;
       console.error('Error loading admin groups:', formatSupabaseError(error));
       setNotification({ type: 'error', text: '載入管理員群組失敗' });
     } finally {
-      if (!silent) setLoading(false);
+      if (!silent && requestId === adminGroupsLoadRequestRef.current) setLoading(false);
     }
   }, [adminId]);
 
@@ -2017,6 +2024,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   }, []);
 
   const handleAdminGroupSelect = (group: AdminGroup) => {
+    adminGroupsLoadRequestRef.current += 1;
     workspaceLoadRequestRef.current += 1;
     conversationHistoryLoadRequestRef.current += 1;
     messagesLoadRequestRef.current += 1;

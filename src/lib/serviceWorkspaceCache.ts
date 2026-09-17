@@ -244,7 +244,9 @@ export function invalidateAdminWorkspaceDataCache(
   adminId: string,
   service: ServiceWorkspace,
 ) {
-  cachedWorkspaceData.delete(getDataCacheKey(adminId, service));
+  const cacheKey = getDataCacheKey(adminId, service);
+  pendingDataRequests.delete(cacheKey);
+  cachedWorkspaceData.delete(cacheKey);
 }
 
 export function invalidateConversationSummariesCache(
