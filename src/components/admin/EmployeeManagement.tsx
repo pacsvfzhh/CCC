@@ -88,6 +88,22 @@ type SummaryFilter = 'today_working' | 'new_today' | 'currently_working';
 const AUTO_REFRESH_INTERVAL_MS = 180000;
 const AUTO_REFRESH_RETRY_MS = 5000;
 
+function RefreshCountdown({ nextRefreshAt }: { nextRefreshAt: number }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    const interval = globalThis.setInterval(update, 1000);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      globalThis.clearInterval(interval);
+      document.removeEventListener('visibilitychange', update);
+    };
+  }, []);
+
+  return <>{Math.max(0, Math.ceil((nextRefreshAt - now) / 1000))}s</>;
+}
+
 const formatWithdrawalDate = (value: string) => {
   const date = new Date(value);
   const year = date.getFullYear();
@@ -231,7 +247,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
 
-  const [timeTick, setTimeTick] = useState(0);
+  const [nextRefreshAt, setNextRefreshAt] = useState(() => Date.now() + AUTO_REFRESH_INTERVAL_MS);
 
   // Login IP popup state
   const [loginIPEmployee, setLoginIPEmployee] = useState<{ id: string; username: string; employeeId?: string } | null>(null);
@@ -268,8 +284,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const resetAutoRefreshTimer = useCallback((delayMs = AUTO_REFRESH_INTERVAL_MS) => {
     if (!isMountedRef.current) return;
     if (autoRefreshTimerRef.current) clearTimeout(autoRefreshTimerRef.current);
-    nextAutoRefreshAtRef.current = Date.now() + delayMs;
-    setTimeTick(tick => tick + 1);
+    const nextRefreshAt = Date.now() + delayMs;
+    nextAutoRefreshAtRef.current = nextRefreshAt;
+    setNextRefreshAt(nextRefreshAt);
     autoRefreshTimerRef.current = setTimeout(() => {
       void guardedLoadEmployeesRef.current?.(true);
     }, delayMs);
@@ -566,7 +583,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
     const adminsSubscription = supabase
       .channel('employee_mgmt_admins')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'admins' }, (payload) => {
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'admins',
+        ...(admin.role === 'secondary_admin' ? { filter: `id=eq.${admin.id}` } : {}),
+      }, (payload) => {
         if (admin.role === 'secondary_admin') {
           const changedAdminId = String(
             (payload.new as { id?: unknown }).id || (payload.old as { id?: unknown }).id || '',
@@ -579,7 +601,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
     const usersSubscription = supabase
       .channel('employee_mgmt_users')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'users',
+        ...(admin.role === 'secondary_admin' ? { filter: `created_by=eq.${admin.id}` } : {}),
+      }, (payload) => {
         if (hasRelevantEmployeeChange(payload)) debouncedStructureReload();
       })
       .subscribe(handleRealtimeStatus);
@@ -786,16 +813,11 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
-      setTimeTick(tick => tick + 1);
       if (Date.now() >= nextAutoRefreshAtRef.current && !loadInProgressRef.current) {
         void guardedLoadEmployeesRef.current?.(true);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    const timeUpdateInterval = setInterval(() => {
-      setTimeTick(tick => tick + 1);
-    }, 1000);
 
     return () => {
       isMountedRef.current = false;
@@ -819,7 +841,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (autoRefreshTimerRef.current) clearTimeout(autoRefreshTimerRef.current);
       if (pendingReloadTimerRef.current) clearTimeout(pendingReloadTimerRef.current);
-      clearInterval(timeUpdateInterval);
     };
   }, [admin.id, admin.role, isActive, resetAutoRefreshTimer]);
 
@@ -840,15 +861,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const mins = Math.round(minutes % 60);
     return `${hours}h ${mins}m`;
   }, []);
-
-  const getCountdownSeconds = () => {
-    void timeTick;
-    return Math.max(0, Math.ceil((nextAutoRefreshAtRef.current - Date.now()) / 1000));
-  };
-
-  const formatCountdown = () => {
-    return getCountdownSeconds();
-  };
 
   const generatePassword = () => {
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
@@ -3423,7 +3435,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           <div className="w-px h-5 bg-cyan-300/30 shrink-0" />
           <div className="flex h-full w-[100px] shrink-0 items-center justify-center gap-1.5 bg-cyan-500/15 px-3">
             <Clock className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
-            <span className="text-sm text-cyan-100 font-mono font-bold tabular-nums w-[40px] text-center">{formatCountdown()}s</span>
+            <span className="text-sm text-cyan-100 font-mono font-bold tabular-nums w-[40px] text-center"><RefreshCountdown nextRefreshAt={nextRefreshAt} /></span>
           </div>
           <button
             type="button"
@@ -3555,7 +3567,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                       <div className="flex h-8 items-center overflow-hidden rounded-lg border border-cyan-300/45 bg-cyan-950/35 shadow-sm shadow-cyan-950/30">
                         <div className="flex h-full w-[82px] items-center justify-center gap-1.5 border-r border-cyan-300/30 bg-cyan-500/15 px-2">
                           <Clock className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
-                          <span className="text-xs text-cyan-100 font-mono font-bold tabular-nums w-[34px] text-center">{formatCountdown()}s</span>
+                          <span className="text-xs text-cyan-100 font-mono font-bold tabular-nums w-[34px] text-center"><RefreshCountdown nextRefreshAt={nextRefreshAt} /></span>
                         </div>
                         <button
                           type="button"
