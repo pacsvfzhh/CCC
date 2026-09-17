@@ -882,6 +882,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const requestRealtimeGeneration = realtimeChangeGenerationRef.current;
     const hasExistingGroups = employeeGroupsRef.current.length > 0;
     const showInitialLoading = !silent && !hasExistingGroups;
+    let hasBaseData = false;
     let committed = false;
 
     if (showInitialLoading) setLoading(true);
@@ -999,6 +1000,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         return false;
       }
 
+      hasBaseData = true;
       setEmployeeGroups(baseGroupsArray);
       setLoading(false);
       setStatsLoading(true);
@@ -1213,7 +1215,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       }
     } finally {
       if (isMountedRef.current) {
-        setLoading(false);
+        setLoading(showInitialLoading && !hasBaseData);
         setStatsLoading(false);
         if (!showInitialLoading) setIsRefreshing(false);
       }
