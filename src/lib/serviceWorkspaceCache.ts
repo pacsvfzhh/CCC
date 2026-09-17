@@ -251,5 +251,7 @@ export function invalidateConversationSummariesCache(
   adminId: string,
   service: ServiceWorkspace,
 ) {
-  cachedConversationSummaries.delete(`${getCacheKey(adminId, service)}:conversations`);
+  const cacheKey = `${getCacheKey(adminId, service)}:conversations`;
+  pendingConversationRequests.delete(cacheKey);
+  cachedConversationSummaries.delete(cacheKey);
 }

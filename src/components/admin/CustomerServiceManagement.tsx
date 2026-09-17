@@ -276,6 +276,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   const allEmployeesRef = useRef<Employee[]>([]);
   const conversationHistoryRef = useRef<ConversationHistory[]>([]);
   const conversationHistoryLoadRequestRef = useRef(0);
+  const conversationHistoryInitializedRef = useRef(false);
   const workspaceLoadRequestRef = useRef(0);
   const employeeRealtimeRequestRef = useRef(0);
   const consumedInitialEmployeeRef = useRef(false);
@@ -781,6 +782,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       const allHistory = dedupeConversationHistory([...summaryHistory, ...supplementalHistory]);
 
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
+      conversationHistoryInitializedRef.current = true;
       conversationHistoryRef.current = allHistory;
       allConversationHistoryRef.current = allHistory;
       setConversationHistory(allHistory);
@@ -907,6 +909,8 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (!selectedCustomer || !selectedEmployee) return;
 
     const cacheKey = `${selectedCustomer.id}:${selectedEmployee.id}`;
+    const workspaceRequestId = workspaceLoadRequestRef.current;
+    const targetAdminId = selectedAdminIdRef.current;
     restoreCachedMessages(selectedCustomer.id, selectedEmployee.id);
     const requestId = ++messagesLoadRequestRef.current;
     try {
@@ -950,13 +954,19 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           .eq('sender_type', 'employee')
           .eq('is_read', false);
 
+        if (
+          requestId !== messagesLoadRequestRef.current ||
+          workspaceRequestId !== workspaceLoadRequestRef.current ||
+          targetAdminId !== selectedAdminIdRef.current
+        ) return;
+
         if (markReadError) {
           console.error('Error marking conversation as read:', markReadError);
-          void loadAllConversationHistory(true);
+          void loadAllConversationHistory(targetAdminId || undefined, true);
         } else {
           const threadUnreadCount = clearUnreadConversationLocally(customerId, employeeId);
           if (threadUnreadCount > 0) onUnreadCountChange?.(-threadUnreadCount);
-          void loadAllConversationHistory(true);
+          void loadAllConversationHistory(targetAdminId || undefined, true);
         }
       }
 
@@ -1043,6 +1053,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       ? buildConversationHistory(cachedSummaries, nextCustomers, nextEmployees)
       : [];
 
+    conversationHistoryInitializedRef.current = cachedSummaries !== null;
     setLoading(false);
     setSelectedCustomer(null);
     setSelectedEmployee(immediateEmployee);
@@ -1092,10 +1103,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
   // Auto-load all conversation history when admin is selected and no customer is focused
   useEffect(() => {
-    if (isActive && !loading && selectedAdminId && customers.length > 0 && employees.length > 0 && allConversationHistory.length === 0 && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
+    if (isActive && !loading && !conversationHistoryInitializedRef.current && selectedAdminId && customers.length > 0 && employees.length > 0 && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
       void loadAllConversationHistory(true);
     }
-  }, [isActive, loading, selectedAdminId, customers.length, employees.length, allConversationHistory.length, selectedCustomer, selectedEmployee, showHistoryView, historyScope, loadAllConversationHistory]);
+  }, [isActive, loading, selectedAdminId, customers.length, employees.length, selectedCustomer, selectedEmployee, showHistoryView, historyScope, loadAllConversationHistory]);
 
   // Subscribe to realtime updates for admins table
   useEffect(() => {
@@ -1753,6 +1764,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     conversationHistoryLoadRequestRef.current += 1;
     messagesLoadRequestRef.current += 1;
     selectedAdminIdRef.current = group.admin_id;
+    conversationHistoryInitializedRef.current = false;
     setSelectedAdminId(group.admin_id);
     setSelectedAdminName(group.admin_username);
     setSelectedCustomer(null);
@@ -1761,6 +1773,9 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setMessagesLoading(false);
     setLoadingOlderMessages(false);
     setHasMoreMessages(false);
+    setShowHistoryView(true);
+    setHistoryScope('all');
+    setHistoryFilterMode('all');
     historyScrollTopRef.current = 0;
 
     const cachedWorkspace = getCachedAdminWorkspaceData<SimulatedCustomer, Employee>(group.admin_id, 'customer');
@@ -1780,6 +1795,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       setAllConversationHistory(nextHistory);
       conversationHistoryRef.current = nextHistory;
       allConversationHistoryRef.current = nextHistory;
+      conversationHistoryInitializedRef.current = true;
       setLoading(false);
       void loadAdminData(group.admin_id, true, true);
       return;
@@ -1801,6 +1817,8 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     workspaceLoadRequestRef.current += 1;
     conversationHistoryLoadRequestRef.current += 1;
     messagesLoadRequestRef.current += 1;
+    selectedAdminIdRef.current = null;
+    conversationHistoryInitializedRef.current = false;
     setSelectedAdminId(null);
     setSelectedAdminName('');
     setSelectedCustomer(null);
@@ -1809,6 +1827,9 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setMessagesLoading(false);
     setLoadingOlderMessages(false);
     setHasMoreMessages(false);
+    setShowHistoryView(true);
+    setHistoryScope('all');
+    setHistoryFilterMode('all');
     setConversationHistory([]);
     setAllConversationHistory([]);
     conversationHistoryRef.current = [];

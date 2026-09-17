@@ -368,6 +368,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const allEmployeesRef = useRef<Employee[]>([]);
   const conversationHistoryRef = useRef<ConversationHistory[]>([]);
   const conversationHistoryLoadRequestRef = useRef(0);
+  const conversationHistoryInitializedRef = useRef(false);
   const workspaceLoadRequestRef = useRef(0);
   const employeeRealtimeRequestRef = useRef(0);
   const consumedInitialEmployeeRef = useRef(false);
@@ -964,6 +965,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       const allHistory = dedupeConversationHistory([...summaryHistory, ...supplementalHistory]);
 
       if (requestId !== conversationHistoryLoadRequestRef.current) return;
+      conversationHistoryInitializedRef.current = true;
       conversationHistoryRef.current = allHistory;
       allConversationHistoryRef.current = allHistory;
       setConversationHistory(allHistory);
@@ -1090,6 +1092,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     if (!selectedCustomer || !selectedEmployee) return;
 
     const cacheKey = `${selectedCustomer.id}:${selectedEmployee.id}`;
+    const workspaceRequestId = workspaceLoadRequestRef.current;
+    const targetAdminId = selectedAdminIdRef.current;
     restoreCachedMessages(selectedCustomer.id, selectedEmployee.id);
     const requestId = ++messagesLoadRequestRef.current;
     try {
@@ -1133,13 +1137,19 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           .eq('sender_type', 'employee')
           .eq('is_read', false);
 
+        if (
+          requestId !== messagesLoadRequestRef.current ||
+          workspaceRequestId !== workspaceLoadRequestRef.current ||
+          targetAdminId !== selectedAdminIdRef.current
+        ) return;
+
         if (markReadError) {
           console.error('Error marking conversation as read:', markReadError);
-          void loadAllConversationHistory(undefined, true);
+          void loadAllConversationHistory(targetAdminId || undefined, true);
         } else {
           const threadUnreadCount = clearUnreadConversationLocally(customerId, employeeId);
           if (threadUnreadCount > 0) onUnreadCountChange?.(-threadUnreadCount);
-          void loadAllConversationHistory(undefined, true);
+          void loadAllConversationHistory(targetAdminId || undefined, true);
         }
       }
 
@@ -1225,6 +1235,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       ? buildConversationHistory(cachedSummaries, nextCustomers, nextEmployees)
       : [];
 
+    conversationHistoryInitializedRef.current = cachedSummaries !== null;
     setLoading(false);
     setSelectedCustomer(null);
     setSelectedEmployee(immediateEmployee);
@@ -1274,10 +1285,10 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
   // Auto-load all conversation history when admin is selected and no customer is focused
   useEffect(() => {
-    if (isActive && !loading && selectedAdminId && customers.length > 0 && employees.length > 0 && allConversationHistory.length === 0 && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
+    if (isActive && !loading && !conversationHistoryInitializedRef.current && selectedAdminId && customers.length > 0 && employees.length > 0 && !selectedCustomer && !selectedEmployee && showHistoryView && historyScope === 'all') {
       void loadAllConversationHistory(selectedAdminId, true);
     }
-  }, [isActive, loading, selectedAdminId, customers.length, employees.length, allConversationHistory.length, selectedCustomer, selectedEmployee, showHistoryView, historyScope, loadAllConversationHistory]);
+  }, [isActive, loading, selectedAdminId, customers.length, employees.length, selectedCustomer, selectedEmployee, showHistoryView, historyScope, loadAllConversationHistory]);
 
   // Subscribe to realtime updates for admins table
   useEffect(() => {
@@ -2010,6 +2021,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     conversationHistoryLoadRequestRef.current += 1;
     messagesLoadRequestRef.current += 1;
     selectedAdminIdRef.current = group.admin_id;
+    conversationHistoryInitializedRef.current = false;
     setSelectedAdminId(group.admin_id);
     setSelectedAdminName(group.admin_username);
     setSelectedCustomer(null);
@@ -2040,6 +2052,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       setAllConversationHistory(nextHistory);
       conversationHistoryRef.current = nextHistory;
       allConversationHistoryRef.current = nextHistory;
+      conversationHistoryInitializedRef.current = true;
       setLoading(false);
       void loadAdminData(group.admin_id, true, true);
       return;
@@ -2061,6 +2074,8 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     workspaceLoadRequestRef.current += 1;
     conversationHistoryLoadRequestRef.current += 1;
     messagesLoadRequestRef.current += 1;
+    selectedAdminIdRef.current = null;
+    conversationHistoryInitializedRef.current = false;
     setSelectedAdminId(null);
     setSelectedAdminName('');
     setSelectedCustomer(null);
@@ -2069,6 +2084,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     setMessagesLoading(false);
     setLoadingOlderMessages(false);
     setHasMoreMessages(false);
+    setShowHistoryView(true);
+    setHistoryScope('all');
+    setHistoryFilterMode('all');
     setConversationHistory([]);
     setAllConversationHistory([]);
     conversationHistoryRef.current = [];
