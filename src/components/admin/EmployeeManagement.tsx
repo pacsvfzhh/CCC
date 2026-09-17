@@ -87,6 +87,7 @@ type SummaryFilter = 'today_working' | 'new_today' | 'currently_working';
 
 const AUTO_REFRESH_INTERVAL_MS = 180000;
 const AUTO_REFRESH_RETRY_MS = 5000;
+const EMPLOYEE_PAGE_SIZE = 500;
 
 function RefreshCountdown({ nextRefreshAt }: { nextRefreshAt: number }) {
   const [now, setNow] = useState(() => Date.now());
@@ -406,13 +407,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     }
 
     isMountedRef.current = true;
-    if (!initialLoadStartedRef.current) {
-      initialLoadStartedRef.current = true;
-      void guardedLoadEmployeesRef.current?.(false);
-    } else {
-      void guardedLoadEmployeesRef.current?.(true);
-    }
-
     let realtimeReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let realtimeReloadWindowStartedAt: number | null = null;
     const scheduleRealtimeReload = (delay: number) => {
@@ -461,21 +455,15 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const pendingWorkStatusUpdates = new Map<string, 'online' | 'offline'>();
     const scheduleWorkStatusUpdate = (userId: string, status: 'online' | 'offline') => {
       pendingWorkStatusUpdates.set(userId, status);
-      markRealtimeChange();
       if (workStatusUpdateTimer) return;
 
       workStatusUpdateTimer = setTimeout(() => {
         workStatusUpdateTimer = null;
-        const updates = new Map(pendingWorkStatusUpdates);
+        const hasUpdates = pendingWorkStatusUpdates.size > 0;
         pendingWorkStatusUpdates.clear();
-        if (!isMountedRef.current || updates.size === 0) return;
+        if (!isMountedRef.current || !hasUpdates) return;
 
-        updateEmployeeGroups(employee => {
-          const nextStatus = updates.get(employee.id);
-          return !nextStatus || nextStatus === employee.workStatus
-            ? employee
-            : { ...employee, workStatus: nextStatus };
-        });
+        debouncedStatsReload();
       }, 150);
     };
     let workTimeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -548,7 +536,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     );
     const isVisibleEmployeePayload = (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => {
       const userId = getPayloadUserId(payload);
-      if (!userId) return true;
+      if (!userId) return false;
       return employeeGroupsRef.current.some(group => group.employees.some(employee => employee.id === userId));
     };
     const isBusinessWorkSessionChange = (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
@@ -831,6 +819,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       })
       .subscribe((status) => handleRealtimeStatus('orders', status));
 
+    if (!initialLoadStartedRef.current) {
+      initialLoadStartedRef.current = true;
+      void guardedLoadEmployeesRef.current?.(false);
+    } else {
+      void guardedLoadEmployeesRef.current?.(true);
+    }
+
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
       if (Date.now() >= nextAutoRefreshAtRef.current && !loadInProgressRef.current) {
@@ -937,15 +932,21 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
       const todayISO = todayUTC.toISOString();
 
-      let employeesQuery = supabase
-        .from('users')
-        .select('id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at')
-        .order('created_at', { ascending: false });
+      const employeeSelect = 'id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at';
+      const buildEmployeesQuery = (from: number, to: number) => {
+        let query = supabase
+          .from('users')
+          .select(employeeSelect, { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range(from, to);
 
-      if (admin.role === 'secondary_admin') {
-        employeesQuery = employeesQuery.eq('created_by', admin.id);
-      }
+        if (admin.role === 'secondary_admin') {
+          query = query.eq('created_by', admin.id);
+        }
 
+        return query;
+      };
+      const employeesQuery = buildEmployeesQuery(0, EMPLOYEE_PAGE_SIZE - 1);
       let adminsQuery = supabase.from('admins').select('id, username, role, is_pinned');
       if (admin.role === 'secondary_admin') {
         adminsQuery = adminsQuery.eq('id', admin.id);
@@ -961,7 +962,20 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       if (employeesResult.error) throw employeesResult.error;
       if (adminsResult.error) throw adminsResult.error;
 
-      const employees = employeesResult.data || [];
+      let employees = employeesResult.data || [];
+      const employeeTotal = employeesResult.count ?? employees.length;
+      if (employeeTotal > employees.length) {
+        const pageStarts = Array.from(
+          { length: Math.ceil((employeeTotal - employees.length) / EMPLOYEE_PAGE_SIZE) },
+          (_, index) => employees.length + index * EMPLOYEE_PAGE_SIZE,
+        );
+        const pageResults = await Promise.all(
+          pageStarts.map(from => buildEmployeesQuery(from, from + EMPLOYEE_PAGE_SIZE - 1)),
+        );
+        const pageError = pageResults.find(result => result.error)?.error;
+        if (pageError) throw pageError;
+        employees = employees.concat(pageResults.flatMap(result => result.data || []));
+      }
       const admins = adminsResult.data || [];
       const adminMap = new Map(admins.map((adminInfo) => [adminInfo.id, adminInfo]));
       const groupedEmployees = employees.filter((emp: Employee) => adminMap.has(emp.created_by));
@@ -1032,12 +1046,15 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           return a.admin.username.localeCompare(b.admin.username);
         });
       const baseGroupsArray = sortGroups(baseGroups);
+      if (employees.length !== employeeTotal) {
+        throw new Error('Employee list response was incomplete.');
+      }
       const currentEmployeeCount = employeeGroupsRef.current.reduce((sum, group) => sum + group.employees.length, 0);
       const baseEmployeeCount = baseGroupsArray.reduce((sum, group) => sum + group.employees.length, 0);
       const hasIncompleteBaseResult = silent
         && currentEmployeeCount > 0
         && baseEmployeeCount === 0
-        && (admins.length === 0 || employees.length > 0);
+        && employeeTotal > 0;
 
       if (hasIncompleteBaseResult || !isMountedRef.current) return false;
       if (requestScopeGeneration !== employeeScopeGenerationRef.current) return false;
@@ -1104,6 +1121,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         pendingWithdrawalsResult.error,
       ].find(Boolean);
       if (statsError) throw statsError;
+      if (userIds.length > 0) {
+        const completeResponseLengths = [
+          walletsResult.data?.length,
+          workDaysResult.data?.length,
+          workStatusResult.data?.length,
+          workTimeResult.data?.length,
+        ];
+        if (completeResponseLengths.some(length => length !== userIds.length)) {
+          throw new Error('Employee statistics response was incomplete.');
+        }
+      }
 
       // Build maps
       const walletTotalMap = new Map<string, number>();
@@ -1239,7 +1267,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       const hasIncompleteSilentResult = silent
         && currentEmployeeCount > 0
         && nextEmployeeCount === 0
-        && (admins.length === 0 || employees.length > 0);
+        && employeeTotal > 0;
       if (hasIncompleteSilentResult || !isMountedRef.current) return false;
       if (requestScopeGeneration !== employeeScopeGenerationRef.current) return false;
       if (requestRealtimeGeneration !== realtimeChangeGenerationRef.current) {
