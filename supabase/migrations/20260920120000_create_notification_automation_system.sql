@@ -91,9 +91,9 @@ CREATE TABLE public.notification_automation_progress (
 
 CREATE TABLE public.notification_automation_executions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  task_id uuid NOT NULL REFERENCES public.notification_automation_tasks(id) ON DELETE RESTRICT,
+  task_id uuid REFERENCES public.notification_automation_tasks(id) ON DELETE SET NULL,
   task_version integer NOT NULL,
-  owner_admin_id uuid NOT NULL REFERENCES public.admins(id) ON DELETE RESTRICT,
+  owner_admin_id uuid REFERENCES public.admins(id) ON DELETE SET NULL,
   user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
   period_key text NOT NULL,
   stage integer NOT NULL CHECK (stage > 0),
@@ -134,6 +134,99 @@ CREATE INDEX notification_automation_queue_due_idx
 CREATE UNIQUE INDEX wallet_transactions_performance_bonus_reference_idx
   ON public.wallet_transactions(reference_id)
   WHERE type = 'performance_bonus' AND reference_id IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.track_wallet_transaction_in_ledger()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+  v_operation_id uuid := COALESCE(NEW.operation_id, gen_random_uuid());
+  v_available_delta numeric := 0;
+  v_income_delta numeric := 0;
+BEGIN
+  IF NEW.type IN ('commission', 'tip', 'manual_adjustment', 'performance_bonus') THEN
+    v_available_delta := NEW.amount;
+  ELSE
+    RETURN NEW;
+  END IF;
+
+  IF NEW.type IN ('commission', 'tip', 'performance_bonus') THEN
+    v_income_delta := NEW.amount;
+  END IF;
+
+  INSERT INTO public.wallet_ledger_entries (
+    user_id,
+    operation_id,
+    source_type,
+    source_id,
+    event_type,
+    available_delta,
+    frozen_delta,
+    income_delta
+  ) VALUES (
+    NEW.user_id,
+    v_operation_id,
+    'wallet_transaction',
+    NEW.id,
+    NEW.type,
+    v_available_delta,
+    0,
+    v_income_delta
+  )
+  ON CONFLICT DO NOTHING;
+
+  PERFORM public.enqueue_wallet_reconciliation(NEW.user_id);
+  RETURN NEW;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.reverse_deleted_wallet_transaction_in_ledger()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+  v_operation_id uuid := gen_random_uuid();
+  v_available_delta numeric := 0;
+  v_income_delta numeric := 0;
+BEGIN
+  IF OLD.type IN ('commission', 'tip', 'manual_adjustment', 'performance_bonus') THEN
+    v_available_delta := -OLD.amount;
+  ELSE
+    RETURN OLD;
+  END IF;
+
+  IF OLD.type IN ('commission', 'tip', 'performance_bonus') THEN
+    v_income_delta := -OLD.amount;
+  END IF;
+
+  INSERT INTO public.wallet_ledger_entries (
+    user_id,
+    operation_id,
+    source_type,
+    source_id,
+    event_type,
+    available_delta,
+    frozen_delta,
+    income_delta
+  ) VALUES (
+    OLD.user_id,
+    v_operation_id,
+    'wallet_transaction',
+    OLD.id,
+    'reversal:' || OLD.type,
+    v_available_delta,
+    0,
+    v_income_delta
+  );
+
+  PERFORM public.enqueue_wallet_reconciliation(OLD.user_id);
+  RETURN OLD;
+END;
+$function$;
 
 ALTER TABLE public.notification_automation_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notification_automation_task_recipients ENABLE ROW LEVEL SECURITY;
@@ -215,16 +308,21 @@ AS $$
       AND owner.is_active = true
       AND employee.is_active = true
       AND (
-        owner.role = 'super_admin'
-        OR employee.created_by = owner.id
-      )
-      AND (
-        p_task.recipient_scope = 'all_managed'
-        OR EXISTS (
-          SELECT 1
-          FROM public.notification_automation_task_recipients AS recipient
-          WHERE recipient.task_id = p_task.id
-            AND recipient.user_id = employee.id
+        (
+          p_task.recipient_scope = 'all_managed'
+          AND (
+            owner.role = 'super_admin'
+            OR employee.created_by = owner.id
+          )
+        )
+        OR (
+          p_task.recipient_scope = 'selected'
+          AND EXISTS (
+            SELECT 1
+            FROM public.notification_automation_task_recipients AS recipient
+            WHERE recipient.task_id = p_task.id
+              AND recipient.user_id = employee.id
+          )
         )
       )
   );
@@ -263,15 +361,20 @@ BEGIN
       AND processed_at >= date_trunc('day', p_now AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
       AND processed_at < (date_trunc('day', p_now AT TIME ZONE 'UTC') + interval '1 day') AT TIME ZONE 'UTC';
   ELSIF p_task.trigger_type = 'work_days' THEN
-    SELECT count(DISTINCT (start_time AT TIME ZONE 'UTC')::date)::numeric
+    SELECT count(*)::numeric
     INTO v_metric
-    FROM public.work_sessions
-    WHERE user_id = p_user_id
-      AND COALESCE(
+    FROM (
+      SELECT (start_time AT TIME ZONE 'UTC')::date AS day_date
+      FROM public.work_sessions
+      WHERE user_id = p_user_id
+        AND end_time IS NOT NULL
+      GROUP BY (start_time AT TIME ZONE 'UTC')::date
+      HAVING sum(COALESCE(
         duration_minutes,
         floor(extract(epoch FROM (COALESCE(end_time, p_now) - start_time)) / 60)::integer,
         0
-      ) >= COALESCE(p_task.minimum_daily_work_minutes, 1);
+      )) >= COALESCE(p_task.minimum_daily_work_minutes, 1)
+    ) AS qualifying_work_days;
   ELSIF p_task.trigger_type = 'commission_amount' THEN
     SELECT COALESCE(sum(amount), 0)
     INTO v_metric
@@ -295,20 +398,15 @@ BEGIN
       GROUP BY (processed_at AT TIME ZONE 'UTC')::date
     ) AS order_day
     WHERE order_day.completed_orders >= p_task.minimum_daily_orders
-      AND (
-        p_task.minimum_daily_work_minutes IS NULL
-        OR EXISTS (
-          SELECT 1
-          FROM public.work_sessions AS work_session
-          WHERE work_session.user_id = p_user_id
-            AND (work_session.start_time AT TIME ZONE 'UTC')::date = order_day.day_date
-          GROUP BY (work_session.start_time AT TIME ZONE 'UTC')::date
-          HAVING sum(COALESCE(
-            work_session.duration_minutes,
-            floor(extract(epoch FROM (COALESCE(work_session.end_time, p_now) - work_session.start_time)) / 60)::integer,
-            0
-          )) >= p_task.minimum_daily_work_minutes
-        )
+      AND EXISTS (
+        SELECT 1
+        FROM public.work_sessions AS work_session
+        WHERE work_session.user_id = p_user_id
+          AND work_session.end_time IS NOT NULL
+          AND (work_session.start_time AT TIME ZONE 'UTC')::date = order_day.day_date
+        GROUP BY (work_session.start_time AT TIME ZONE 'UTC')::date
+        HAVING sum(COALESCE(work_session.duration_minutes, 0))
+          >= COALESCE(p_task.minimum_daily_work_minutes, 1)
       );
 
     SELECT max(day_date) INTO v_latest_day
@@ -454,24 +552,6 @@ BEGIN
   SET total_income = COALESCE(total_income, 0) + p_amount
   WHERE id = p_user_id;
 
-  INSERT INTO public.wallet_ledger_entries (
-    user_id,
-    operation_id,
-    source_type,
-    source_id,
-    event_type,
-    available_delta,
-    income_delta
-  ) VALUES (
-    p_user_id,
-    p_operation_id,
-    'wallet_transaction',
-    v_transaction_id,
-    'performance_bonus',
-    p_amount,
-    p_amount
-  );
-
   RETURN v_transaction_id;
 END;
 $function$;
@@ -526,6 +606,7 @@ DECLARE
   v_period_key text;
   v_previous_stage integer;
   v_stage integer;
+  v_target_stage integer;
   v_execution_id uuid;
   v_message_id uuid;
   v_recipient_id uuid;
@@ -550,6 +631,7 @@ BEGIN
     SELECT task.*
     FROM public.notification_automation_tasks AS task
     WHERE task.status = 'active'
+      AND task.is_shared_template = false
       AND COALESCE(task.starts_at, '-infinity'::timestamptz) <= p_now
       AND COALESCE(task.ends_at, 'infinity'::timestamptz) > p_now
     ORDER BY task.id
@@ -563,16 +645,37 @@ BEGIN
     FOR UPDATE;
 
     IF NOT FOUND THEN
-      PERFORM private.capture_automation_baseline(v_task, p_user_id, p_now);
-      CONTINUE;
+      INSERT INTO public.notification_automation_progress (
+        task_id,
+        user_id,
+        last_metric,
+        last_stage,
+        last_period_key
+      ) VALUES (
+        v_task.id,
+        p_user_id,
+        0,
+        0,
+        'all_time'
+      )
+      RETURNING * INTO v_progress;
     END IF;
 
     v_metric_result := private.calculate_automation_metric(v_task, p_user_id, p_now);
     v_metric := COALESCE((v_metric_result->>'metric')::numeric, 0);
     v_period_key := COALESCE(v_metric_result->>'period_key', 'all_time');
+    IF v_task.trigger_type = 'consecutive_work_days'
+      AND v_task.trigger_mode = 'reach_once' THEN
+      v_period_key := 'all_time';
+    END IF;
     v_previous_stage := CASE
-      WHEN v_task.trigger_type IN ('daily_orders', 'consecutive_work_days')
-        AND v_progress.last_period_key <> v_period_key THEN 0
+      WHEN (
+        v_task.trigger_type = 'daily_orders'
+        OR (
+          v_task.trigger_type = 'consecutive_work_days'
+          AND v_task.trigger_mode = 'recurring'
+        )
+      ) AND v_progress.last_period_key <> v_period_key THEN 0
       ELSE v_progress.last_stage
     END;
     v_stage := CASE
@@ -591,8 +694,14 @@ BEGIN
 
     CONTINUE WHEN v_stage <= 0 OR v_stage <= v_previous_stage;
 
-    v_currency := private.resolve_admin_currency(v_task.owner_admin_id);
-    v_title := private.render_automation_template(
+    FOR v_target_stage IN v_previous_stage + 1..v_stage
+    LOOP
+      v_execution_id := NULL;
+      v_message_id := NULL;
+      v_recipient_id := NULL;
+      v_transaction_id := NULL;
+      v_currency := private.resolve_admin_currency(v_task.owner_admin_id);
+      v_title := private.render_automation_template(
       v_task.title_template,
       v_username,
       v_metric,
@@ -626,7 +735,7 @@ BEGIN
       v_task.owner_admin_id,
       p_user_id,
       v_period_key,
-      v_stage,
+      v_target_stage,
       v_metric,
       jsonb_build_object(
         'trigger_type', v_task.trigger_type,
@@ -706,7 +815,7 @@ BEGIN
           'task_version', v_task.version,
           'user_id', p_user_id,
           'period_key', v_period_key,
-          'stage', v_stage
+          'stage', v_target_stage
         ),
         v_operation_result
       );
@@ -719,7 +828,8 @@ BEGIN
         completed_at = clock_timestamp()
     WHERE id = v_execution_id;
 
-    v_processed := v_processed + 1;
+      v_processed := v_processed + 1;
+    END LOOP;
   END LOOP;
 
   RETURN v_processed;
@@ -1079,12 +1189,17 @@ BEGIN
         is_shared_template = COALESCE(p_is_shared_template, false),
         starts_at = p_starts_at,
         ends_at = p_ends_at,
+        status = 'draft',
+        activated_at = NULL,
         version = version + 1,
         updated_at = now()
     WHERE id = p_task_id
     RETURNING * INTO v_task;
 
     DELETE FROM public.notification_automation_task_recipients
+    WHERE task_id = v_task.id;
+
+    DELETE FROM public.notification_automation_progress
     WHERE task_id = v_task.id;
   END IF;
 
@@ -1159,14 +1274,22 @@ BEGIN
       FROM public.users AS employee
       JOIN public.admins AS owner ON owner.id = v_task.owner_admin_id
       WHERE employee.is_active = true
-        AND (owner.role = 'super_admin' OR employee.created_by = owner.id)
         AND (
-          v_task.recipient_scope = 'all_managed'
-          OR EXISTS (
-            SELECT 1
-            FROM public.notification_automation_task_recipients AS recipient
-            WHERE recipient.task_id = v_task.id
-              AND recipient.user_id = employee.id
+            (
+            v_task.recipient_scope = 'all_managed'
+            AND (
+              owner.role = 'super_admin'
+              OR employee.created_by = owner.id
+            )
+          )
+          OR (
+            v_task.recipient_scope = 'selected'
+            AND EXISTS (
+              SELECT 1
+              FROM public.notification_automation_task_recipients AS recipient
+              WHERE recipient.task_id = v_task.id
+                AND recipient.user_id = employee.id
+            )
           )
         )
     LOOP
