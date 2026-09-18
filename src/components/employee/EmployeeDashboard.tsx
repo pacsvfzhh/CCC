@@ -24,6 +24,15 @@ const OrderDispatch = lazy(() => import('./OrderDispatch'));
 const CustomerServiceChat = lazy(() => import('./CustomerServiceChat'));
 const PasswordChange = lazy(() => import('./PasswordChange'));
 
+function MessageOverlayFallback() {
+  return createPortal(
+    <div className="fixed inset-0 flex items-center justify-center bg-slate-900/45" style={{ zIndex: 10100 }}>
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/35 border-t-white" />
+    </div>,
+    document.body,
+  );
+}
+
 interface EmployeeDashboardProps {
   employee: Employee;
 }
@@ -54,6 +63,14 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const loadUnreadCountRef = useRef<(() => Promise<void>) | null>(null);
   const checkLoginPopupMessagesRef = useRef<(() => Promise<void>) | null>(null);
   const loadLatestMessageRef = useRef<(() => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    const preloadTimer = window.setTimeout(() => {
+      void import('./MessageCenter');
+      void import('./LoginPopupMessages');
+    }, 500);
+    return () => window.clearTimeout(preloadTimer);
+  }, []);
 
   // Trigger auto messages for all eligible customers on login
   useEffect(() => {
@@ -1041,11 +1058,13 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
       {/* Password Change Modal */}
       {showPasswordChange && (
-        <PasswordChange
-          employeeId={employee.id}
-          onClose={() => setShowPasswordChange(false)}
-          onLogout={logout}
-        />
+        <Suspense fallback={<MessageOverlayFallback />}>
+          <PasswordChange
+            employeeId={employee.id}
+            onClose={() => setShowPasswordChange(false)}
+            onLogout={logout}
+          />
+        </Suspense>
       )}
 
       {/* Language Selection Modal */}
@@ -1244,28 +1263,34 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
       {/* Message Center */}
       {showMessageCenter && (
-        <MessageCenter
-          employee={employee}
-          onClose={() => {
-            setShowMessageCenter(false);
-            void loadUnreadCountRef.current?.();
-          }}
-        />
+        <Suspense fallback={<MessageOverlayFallback />}>
+          <MessageCenter
+            employee={employee}
+            onClose={() => {
+              setShowMessageCenter(false);
+              void loadUnreadCountRef.current?.();
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Login Popup Messages */}
       {showLoginPopup && (
-        <LoginPopupMessages
-          employee={employee}
-          onClose={() => {
-            setShowLoginPopup(false);
-            void loadUnreadCountRef.current?.();
-          }}
-        />
+        <Suspense fallback={<MessageOverlayFallback />}>
+          <LoginPopupMessages
+            employee={employee}
+            onClose={() => {
+              setShowLoginPopup(false);
+              void loadUnreadCountRef.current?.();
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Customer Service Chat Widget */}
-      <CustomerServiceChat employeeId={employee.id} />
+      <Suspense fallback={null}>
+        <CustomerServiceChat employeeId={employee.id} />
+      </Suspense>
 
       {/* Session Expired Modal */}
       <SessionExpiredModal
