@@ -2360,7 +2360,6 @@ export interface Database {
           created_at: string;
           is_active: boolean;
           is_verified: boolean;
-          created_by: string;
           remarks: string | null;
           tags: string[];
           total_income: number;
@@ -2374,7 +2373,6 @@ export interface Database {
             email: string | null;
             phone: string | null;
             wallet_address: string | null;
-            status: string;
             created_at: string;
           } | null;
         }>;

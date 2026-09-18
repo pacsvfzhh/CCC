@@ -26,20 +26,39 @@ STABLE
 SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
 AS $function$
 DECLARE
-  v_admin_id uuid;
-  v_admin_role text;
   v_search_term text := btrim(COALESCE(p_search_term, ''));
   v_limit integer := LEAST(GREATEST(COALESCE(p_limit, 100), 1), 200);
   v_result jsonb;
 BEGIN
-  SELECT context.admin_id, context.admin_role
-  INTO v_admin_id, v_admin_role
+  PERFORM context.admin_id
   FROM private.get_financial_admin_context(p_admin_session_token) context;
 
   IF v_search_term = '' THEN
     RETURN '[]'::jsonb;
   END IF;
 
+  WITH candidate_user_ids AS (
+    SELECT u.id AS user_id
+    FROM public.users AS u
+    LEFT JOIN public.admins AS owner_admin ON owner_admin.id = u.created_by
+    WHERE owner_admin.role IS DISTINCT FROM 'emergency_admin'
+      AND (u.username = v_search_term OR u.employee_id = v_search_term)
+
+    UNION
+
+    SELECT search_verification.user_id
+    FROM public.verification_requests AS search_verification
+    JOIN public.users AS search_user ON search_user.id = search_verification.user_id
+    LEFT JOIN public.admins AS search_owner_admin ON search_owner_admin.id = search_user.created_by
+    WHERE search_owner_admin.role IS DISTINCT FROM 'emergency_admin'
+      AND search_verification.status = 'approved'
+      AND (
+        search_verification.real_name = v_search_term
+        OR search_verification.email = v_search_term
+        OR search_verification.phone = v_search_term
+        OR search_verification.wallet_address = v_search_term
+      )
+  )
   SELECT COALESCE(
     jsonb_agg(matched.payload ORDER BY matched.is_pinned DESC, matched.username),
     '[]'::jsonb
@@ -56,7 +75,6 @@ BEGIN
         'created_at', u.created_at,
         'is_active', u.is_active,
         'is_verified', u.is_verified,
-        'created_by', u.created_by,
         'remarks', u.remarks,
         'tags', COALESCE(to_jsonb(u.tags), '[]'::jsonb),
         'total_income', COALESCE(w.available_balance, 0) + COALESCE(w.frozen_balance, 0),
@@ -75,12 +93,12 @@ BEGIN
             'email', verification.email,
             'phone', verification.phone,
             'wallet_address', verification.wallet_address,
-            'status', verification.status,
             'created_at', verification.created_at
           )
         END
       ) AS payload
-    FROM public.users AS u
+    FROM candidate_user_ids AS candidate
+    JOIN public.users AS u ON u.id = candidate.user_id
     LEFT JOIN public.admins AS owner_admin ON owner_admin.id = u.created_by
     LEFT JOIN public.wallets AS w ON w.user_id = u.id
     LEFT JOIN LATERAL (
@@ -90,7 +108,6 @@ BEGIN
         vr.email,
         vr.phone,
         vr.wallet_address,
-        vr.status,
         vr.created_at
       FROM public.verification_requests AS vr
       WHERE vr.user_id = u.id
@@ -99,22 +116,6 @@ BEGIN
       LIMIT 1
     ) AS verification ON true
     WHERE owner_admin.role IS DISTINCT FROM 'emergency_admin'
-      AND (
-        u.username = v_search_term
-        OR u.employee_id = v_search_term
-        OR EXISTS (
-          SELECT 1
-          FROM public.verification_requests AS search_verification
-          WHERE search_verification.user_id = u.id
-            AND search_verification.status = 'approved'
-            AND (
-              search_verification.real_name = v_search_term
-              OR search_verification.email = v_search_term
-              OR search_verification.phone = v_search_term
-              OR search_verification.wallet_address = v_search_term
-            )
-        )
-      )
     ORDER BY COALESCE(u.is_pinned, false) DESC, u.username
     LIMIT v_limit
   ) AS matched;

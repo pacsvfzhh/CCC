@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Search, X, User, Calendar, Mail, Phone, Wallet, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { getAdminFinancialSessionToken } from '../../lib/auth';
+import { formatSupabaseError, isFinancialAdminSessionError, supabase } from '../../lib/supabase';
+import { getAdminFinancialSessionToken, logout } from '../../lib/auth';
 import { formatDateUTC } from '../../lib/dateUtils';
 
 interface EmployeeSearchResult {
@@ -11,7 +11,6 @@ interface EmployeeSearchResult {
   created_at: string;
   is_active: boolean;
   is_verified: boolean;
-  created_by: string;
   remarks: string | null;
   tags: string[];
   total_income: number;
@@ -25,7 +24,6 @@ interface EmployeeSearchResult {
     email: string | null;
     phone: string | null;
     wallet_address: string | null;
-    status: string;
     created_at: string;
   } | null;
 }
@@ -44,6 +42,7 @@ export default function EmployeeSearch() {
   const [hasSearched, setHasSearched] = useState(false);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [progress, setProgress] = useState<SearchProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const searchAbortController = useRef<AbortController | null>(null);
   const searchRequestIdRef = useRef(0);
 
@@ -62,6 +61,7 @@ export default function EmployeeSearch() {
     searchAbortController.current = requestController;
     setLoading(true);
     setHasSearched(true);
+    setError(null);
     setProgress({ step: 0, totalSteps: 5, currentTask: '正在初始化搜尋...', percentage: 0 });
 
     try {
@@ -85,7 +85,13 @@ export default function EmployeeSearch() {
         setProgress(null);
         return;
       }
+      if (isFinancialAdminSessionError(error)) {
+        setError('管理員登入已失效，請重新登入。');
+        void logout(false);
+        return;
+      }
       console.error('Search error:', error);
+      setError(formatSupabaseError(error) || '搜尋失敗，請稍後再試。');
       setResults([]);
     } finally {
       if (requestId === searchRequestIdRef.current) {
@@ -106,6 +112,7 @@ export default function EmployeeSearch() {
     setResults([]);
     setHasSearched(false);
     setExpandedCard(null);
+    setError(null);
   };
 
   const toggleCard = (userId: string) => {
@@ -183,6 +190,11 @@ export default function EmployeeSearch() {
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
               <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-300 transition-all duration-300" style={{ width: `${progress.percentage}%` }} />
             </div>
+          </div>
+        )}
+        {error && (
+          <div className="border-t border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-sm font-medium text-rose-200 sm:px-5">
+            {error}
           </div>
         )}
       </section>
