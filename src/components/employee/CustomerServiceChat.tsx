@@ -6,6 +6,7 @@ import { sanitizeChatMessage, sanitizeAnnouncementContent } from '../../lib/sani
 import { useLanguage } from '../../lib/i18n/context';
 import { CustomerAvatarDisplay } from '../admin/CustomerAvatarPicker';
 import { preloadCustomerAvatar } from '../admin/customerAvatarUtils';
+import { uploadStorageObjectWithProgress } from '../../lib/storageUpload';
 
 function extractImageOnlyUrl(content: string): string | null {
   const container = document.createElement('div');
@@ -233,7 +234,6 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const [serviceTicketNumber, setServiceTicketNumber] = useState<string>('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const uploadingTempIdRef = useRef<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -248,29 +248,6 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const conversationListRef = useRef<HTMLDivElement>(null);
   const conversationListScrollRef = useRef(0);
-
-  const animateProgressTo = (from: number, target: number, duration: number = 800) => {
-    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    let current = from;
-    const steps = Math.max(Math.ceil(duration / 50), 1);
-    const increment = (target - current) / steps;
-    if (increment === 0) { setUploadProgress(target); return; }
-    progressIntervalRef.current = setInterval(() => {
-      current += increment;
-      if ((increment > 0 && current >= target) || (increment <= 0 && current <= target)) {
-        current = target;
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-      setUploadProgress(Math.round(current));
-    }, 50);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
-  }, []);
 
   const messagesContainerCallbackRef = (node: HTMLDivElement | null) => {
     if (node) {
@@ -1536,34 +1513,29 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     uploadingTempIdRef.current = tempId;
     setUploadingImage(true);
     setUploadProgress(0);
-    animateProgressTo(0, 20, 600);
 
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${selectedCustomer.id}_${employeeId}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('chat-images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      animateProgressTo(20, 90, 200);
-      await new Promise(r => setTimeout(r, 200));
+      await uploadStorageObjectWithProgress({
+        bucket: 'chat-images',
+        path: filePath,
+        body: file,
+        onProgress: percentage => setUploadProgress(percentage),
+      });
 
       const { data: { publicUrl } } = supabase.storage
         .from('chat-images')
         .getPublicUrl(filePath);
 
-      animateProgressTo(90, 100, 150);
-      await new Promise(r => setTimeout(r, 150));
+      setUploadProgress(100);
 
       setMessages(prev => prev.map(m => m.id === tempId ? { ...m, image_url: publicUrl } : m));
       uploadingTempIdRef.current = null;
       setUploadingImage(false);
       setUploadProgress(0);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
 
       justSentRef.current = true;
       setTimeout(() => { justSentRef.current = false; }, 3000);
@@ -1601,7 +1573,6 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
       uploadingTempIdRef.current = null;
       setUploadingImage(false);
       setUploadProgress(0);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';

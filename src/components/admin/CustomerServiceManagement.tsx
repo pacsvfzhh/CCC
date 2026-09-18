@@ -9,6 +9,7 @@ import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPic
 import EmployeeMetadataPopover from './EmployeeMetadataPopover';
 import type { Database } from '../../types/database';
 import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
+import { uploadStorageObjectWithProgress } from '../../lib/storageUpload';
 
 function extractImageOnlyUrl(content: string): string | null {
   const container = document.createElement('div');
@@ -211,7 +212,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   const [serviceTicketNumber, setServiceTicketNumber] = useState<string>('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const uploadingTempIdRef = useRef<string | null>(null);
   const pendingImageMessagesRef = useRef(new Map<string, Message>());
   const conversationMessagesCacheRef = useRef(new Map<string, Message[]>());
@@ -386,12 +386,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     () => Array.from(new Set(employees.flatMap(employee => employee.tags || []))).sort(),
     [employees],
   );
-
-  useEffect(() => {
-    return () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 80);
@@ -2173,23 +2167,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     });
   };
 
-  const animateProgressTo = (from: number, target: number, duration: number = 800) => {
-    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    let current = from;
-    const steps = Math.max(Math.ceil(duration / 50), 1);
-    const increment = (target - current) / steps;
-    if (increment === 0) { setUploadProgress(target); return; }
-    progressIntervalRef.current = setInterval(() => {
-      current += increment;
-      if ((increment > 0 && current >= target) || (increment <= 0 && current <= target)) {
-        current = target;
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-      setUploadProgress(Math.round(current));
-    }, 50);
-  };
-
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selectedCustomer || !selectedEmployee) return;
@@ -2229,32 +2206,24 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     uploadingTempIdRef.current = tempId;
     setUploadingImage(true);
     setUploadProgress(0);
-    animateProgressTo(0, 20, 600);
 
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${selectedCustomer.id}_${selectedEmployee.id}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const startTime = Date.now();
-      const { error: uploadError } = await supabase.storage
-        .from('chat-images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 400) await new Promise(r => setTimeout(r, 400 - elapsed));
-
-      animateProgressTo(20, 85, 400);
-      await new Promise(r => setTimeout(r, 400));
+      await uploadStorageObjectWithProgress({
+        bucket: 'chat-images',
+        path: filePath,
+        body: file,
+        onProgress: percentage => setUploadProgress(Math.round(percentage * 0.9)),
+      });
 
       const { data: { publicUrl } } = supabase.storage
         .from('chat-images')
         .getPublicUrl(filePath);
 
-      animateProgressTo(85, 100, 400);
-      await new Promise(r => setTimeout(r, 400));
+      setUploadProgress(92);
 
       const pendingMessage = pendingImageMessagesRef.current.get(tempId);
       if (pendingMessage) {
@@ -2280,10 +2249,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
       if (insertError) throw insertError;
 
+      setUploadProgress(100);
       uploadingTempIdRef.current = null;
       setUploadingImage(false);
       setUploadProgress(0);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       void loadConversationHistory();
     } catch (error: unknown) {
       pendingImageMessagesRef.current.delete(tempId);
@@ -2292,7 +2261,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
       uploadingTempIdRef.current = null;
       setUploadingImage(false);
       setUploadProgress(0);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';

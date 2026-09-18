@@ -28,6 +28,7 @@ import {
   Copy
 } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
+import { uploadStorageObjectWithProgress } from '../../lib/storageUpload';
 
 // Custom Video extension for Tiptap
 type VideoChain = {
@@ -415,41 +416,20 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
     bucketName: string,
     onProgress: (progress: number, loaded: number, total: number) => void
   ): Promise<{ data: { path: string } | null; error: { message: string } | null }> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    return new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const percentComplete = Math.round((e.loaded / e.total) * 100);
-          onProgress(percentComplete, e.loaded, e.total);
-        }
+    try {
+      await uploadStorageObjectWithProgress({
+        bucket: bucketName,
+        path: fileName,
+        body: file,
+        onProgress,
       });
-
-      xhr.upload.addEventListener('loadstart', () => {
-        onProgress(0, 0, file.size);
-      });
-
-      xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          onProgress(100, file.size, file.size);
-          resolve({ data: { path: fileName }, error: null });
-        } else {
-          resolve({ data: null, error: { message: xhr.statusText } });
-        }
-      });
-
-      xhr.addEventListener('error', () => {
-        resolve({ data: null, error: { message: '上傳失敗' } });
-      });
-
-      xhr.open('POST', `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/${bucketName}/${fileName}`);
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      xhr.setRequestHeader('Content-Type', file.type);
-      xhr.setRequestHeader('x-upsert', 'false');
-      xhr.send(file);
-    });
+      return { data: { path: fileName }, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : '上傳失敗' },
+      };
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -668,12 +648,29 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
     }
 
     setUploading(true);
-    setUploadStatus('正在匯入 Word 文件……');
+    setUploadProgress(0);
+    setUploadStatus('正在讀取 Word 文件……');
 
     try {
-      const arrayBuffer = await file.arrayBuffer();
+      const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.addEventListener('progress', event => {
+          if (!event.lengthComputable) return;
+          setUploadProgress(Math.round((event.loaded / event.total) * 20));
+        });
+        reader.addEventListener('load', () => {
+          if (reader.result instanceof ArrayBuffer) resolve(reader.result);
+          else reject(new Error('無法讀取 Word 文件'));
+        });
+        reader.addEventListener('error', () => reject(reader.error || new Error('無法讀取 Word 文件')));
+        reader.readAsArrayBuffer(file);
+      });
+      setUploadProgress(20);
+      setUploadStatus('正在載入 Word 轉換器……');
       const mammothModule = await import('mammoth');
       const mammoth = mammothModule.default || mammothModule;
+      setUploadProgress(25);
+      setUploadStatus('正在轉換 Word 文件……');
 
       let imageCount = 0;
       const uploadImageDuringConversion = async (image: {
@@ -697,16 +694,23 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
           if (ext === 'jpeg') ext = 'jpg';
           const fileName = `${adminId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
 
-          const { error: uploadError } = await supabase.storage
-            .from('chat-images')
-            .upload(fileName, blob, { cacheControl: '3600', upsert: false, contentType });
+          await uploadStorageObjectWithProgress({
+            bucket: 'chat-images',
+            path: fileName,
+            body: blob,
+            contentType,
+            onProgress: (percentage, loaded, total) => {
+              setUploadProgress(current => Math.max(current, 25 + Math.round(percentage * 0.6)));
+              const loadedMB = (loaded / (1024 * 1024)).toFixed(2);
+              const totalMB = (total / (1024 * 1024)).toFixed(2);
+              setUploadStatus(`正在上傳 Word 圖片 ${imageCount}：${loadedMB}MB / ${totalMB}MB（${percentage}%）`);
+            },
+          });
 
-          if (!uploadError) {
-            const { data: { publicUrl } } = supabase.storage
-              .from('chat-images')
-              .getPublicUrl(fileName);
-            return { src: publicUrl };
-          }
+          const { data: { publicUrl } } = supabase.storage
+            .from('chat-images')
+            .getPublicUrl(fileName);
+          return { src: publicUrl };
         } catch (err) {
           console.error('Error uploading Word image:', err);
         }
@@ -718,11 +722,14 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
         : {};
 
       const result = await mammoth.convertToHtml({ arrayBuffer }, convertOptions);
+      setUploadProgress(95);
+      setUploadStatus('正在套用 Word 內容……');
 
       if (result.value) {
         if (editor) {
           editor.chain().focus().insertContent(result.value).run();
         }
+        setUploadProgress(100);
         setUploadStatus(imageCount > 0
           ? `Word 文件已匯入，包含 ${imageCount} 張圖片！`
           : 'Word 文件已成功匯入！');
@@ -735,6 +742,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       }
     } catch (error: unknown) {
       console.error('Error importing Word document:', formatSupabaseError(error));
+      setUploadProgress(0);
       setUploadStatus(`錯誤：${formatSupabaseError(error)}`);
     } finally {
       setUploading(false);
@@ -1244,19 +1252,19 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
         </div>
 
         {uploadStatus && (
-          <div className={`px-4 py-3 border-t space-y-2 ${theme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/50 border-slate-700'}`}>
-            <div className="flex items-center justify-between">
-              <span className={`text-xs font-medium ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>
+          <div className={`min-w-0 overflow-hidden px-4 py-3 border-t space-y-2 ${theme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/50 border-slate-700'}`}>
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <span className={`min-w-0 flex-1 truncate text-xs font-medium ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`} title={uploadStatus}>
                 {uploading && '⏳ '}{uploadStatus}
               </span>
               {uploading && (
-                <span className="text-xs text-blue-400 font-bold">
+                <span className="shrink-0 text-xs text-blue-500 font-bold tabular-nums">
                   {uploadProgress}%
                 </span>
               )}
             </div>
             {uploading && (
-              <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+              <div className={`w-full rounded-full h-2 overflow-hidden ${theme === 'light' ? 'bg-blue-100' : 'bg-slate-700'}`}>
                 <div
                   className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full transition-all duration-300 ease-out"
                   style={{ width: `${uploadProgress}%` }}

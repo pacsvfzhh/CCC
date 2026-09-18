@@ -139,8 +139,12 @@ export default function QuickCopyRichContent({
     const container = containerRef.current;
     if (!container) return;
 
-    container.innerHTML = sanitizedHtml;
+    container.querySelectorAll<HTMLImageElement>('img').forEach(image => {
+      image.loading = 'lazy';
+      image.decoding = 'async';
+    });
     container.querySelectorAll('button.message-quick-copy-button').forEach(button => button.remove());
+    const insertionAnchors = new Map<HTMLElement, Element>();
     collectMarkerGroups(container).forEach((markers, index) => {
       const lastMarker = markers[markers.length - 1];
       if (!lastMarker) return;
@@ -152,23 +156,15 @@ export default function QuickCopyRichContent({
       button.setAttribute('aria-live', 'polite');
       setButtonLabel(button, copyLabel);
 
-      const containingLink = lastMarker.closest<HTMLAnchorElement>('a');
-      if (!containingLink || !container.contains(containingLink)) {
-        lastMarker.insertAdjacentElement('afterend', button);
+      const block = getBlockAncestor(lastMarker, container);
+      if (block === container) {
+        container.appendChild(button);
         return;
       }
 
-      const trailingRange = document.createRange();
-      trailingRange.setStartAfter(lastMarker);
-      trailingRange.setEnd(containingLink, containingLink.childNodes.length);
-      const trailingContent = trailingRange.extractContents();
-      containingLink.insertAdjacentElement('afterend', button);
-
-      if (trailingContent.childNodes.length > 0) {
-        const trailingLink = containingLink.cloneNode(false) as HTMLAnchorElement;
-        trailingLink.appendChild(trailingContent);
-        button.insertAdjacentElement('afterend', trailingLink);
-      }
+      const insertionAnchor = insertionAnchors.get(block) || block;
+      insertionAnchor.insertAdjacentElement('afterend', button);
+      insertionAnchors.set(block, button);
     });
 
     return () => {
@@ -222,12 +218,17 @@ export default function QuickCopyRichContent({
           box-shadow: inset 0 -2px 0 rgba(14, 165, 233, 0.55);
           padding: 0 0.125rem;
         }
+        .quick-copy-rich-content > * {
+          content-visibility: auto;
+          contain-intrinsic-size: auto 1.5rem;
+        }
         .quick-copy-rich-content .message-quick-copy-button {
-          display: inline-flex;
+          display: flex;
+          width: fit-content;
           min-height: 1.75rem;
           align-items: center;
           justify-content: center;
-          margin: 0.125rem 0.25rem 0.125rem 0.5rem;
+          margin: 0.375rem 0 0.25rem;
           border: 1px solid rgb(125 211 252);
           border-radius: 0.5rem;
           background: rgb(240 249 255);
