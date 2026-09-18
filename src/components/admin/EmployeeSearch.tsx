@@ -24,7 +24,7 @@ interface EmployeeSearchResult {
     email: string | null;
     phone: string | null;
     wallet_address: string | null;
-    created_at: string;
+    created_at: string | null;
   } | null;
 }
 
@@ -125,7 +125,7 @@ export default function EmployeeSearch() {
         <div className="relative flex flex-col gap-4 xl:flex-row xl:items-end">
           <div className="min-w-0 xl:w-[260px] xl:shrink-0">
             <h2 className="mt-0 bg-gradient-to-r from-cyan-300 via-cyan-100 to-blue-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-[28px]">搜尋員工資料</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">可透過使用者名稱、員工編號或已驗證的聯絡資料尋找帳戶。</p>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">跨全部管理員分組，透過使用者名稱、員工編號或已驗證的聯絡資料尋找帳戶。</p>
           </div>
 
           <div className="min-w-0 flex-1">
@@ -305,7 +305,7 @@ export default function EmployeeSearch() {
                               <InfoRow label="電子郵件" value={employee.verification_info.email || '無資料'} icon={<Mail className="h-3.5 w-3.5 text-slate-300" />} />
                               <InfoRow label="電話號碼" value={employee.verification_info.phone || '無資料'} icon={<Phone className="h-3.5 w-3.5 text-slate-300" />} />
                               <InfoRow label="錢包地址" value={employee.verification_info.wallet_address || '無資料'} icon={<Wallet className="h-3.5 w-3.5 text-slate-300" />} breakAll />
-                              <InfoRow label="驗證日期" value={formatDateUTC(employee.verification_info.created_at)} icon={<Calendar className="h-3.5 w-3.5 text-slate-300" />} />
+                              <InfoRow label="驗證日期" value={employee.verification_info.created_at ? formatDateUTC(employee.verification_info.created_at) : '無資料'} icon={<Calendar className="h-3.5 w-3.5 text-slate-300" />} />
                             </div>
                           ) : (
                             <div className="mt-4 flex items-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.06] px-3 py-2.5 text-xs text-rose-300"><Clock className="h-4 w-4" />沒有可用的驗證資料</div>

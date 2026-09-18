@@ -2373,7 +2373,7 @@ export interface Database {
             email: string | null;
             phone: string | null;
             wallet_address: string | null;
-            created_at: string;
+            created_at: string | null;
           } | null;
         }>;
       };
