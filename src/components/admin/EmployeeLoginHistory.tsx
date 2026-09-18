@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { Admin } from '../../types';
 import LoginDeviceSummary from './LoginDeviceSummary';
+import AdminPageLoading from './AdminPageLoading';
 
 interface EmployeeLoginHistoryProps {
   admin: Admin;
@@ -1065,9 +1066,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
+          <AdminPageLoading label="登入紀錄" />
         ) : (
           <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 isolate">
             {refreshing && (

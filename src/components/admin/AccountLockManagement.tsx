@@ -4,6 +4,7 @@ import { formatSupabaseError, isFinancialAdminSessionError, supabase } from '../
 import { unlockAccount } from '../../lib/rateLimitService';
 import { Admin } from '../../types';
 import { getAdminFinancialSessionToken, logout } from '../../lib/auth';
+import AdminPageLoading from './AdminPageLoading';
 
 interface AccountLock {
   id: string;
@@ -624,16 +625,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
     : 'bg-orange-200 shadow-[0_0_10px_rgba(253,186,116,0.65)]';
 
   if (loading) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center text-slate-400">
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-orange-400/20 bg-orange-500/10">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-300/25 border-t-orange-300" />
-          </div>
-          <span className="text-sm">正在載入鎖定記錄...</span>
-        </div>
-      </div>
-    );
+    return <AdminPageLoading label="已鎖定" />;
   }
 
   return (

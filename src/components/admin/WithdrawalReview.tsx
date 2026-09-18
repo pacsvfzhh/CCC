@@ -3,6 +3,7 @@ import { CheckCircle, XCircle, Clock, Ban, AlertCircle, ArrowUpDown, Pencil, Sav
 import { formatSupabaseError, supabase, supabaseConfigurationError } from '../../lib/supabase';
 import { Withdrawal, Employee, Admin } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
+import AdminPageLoading from './AdminPageLoading';
 
 type WithdrawalEmployee = Pick<Employee, 'id' | 'username' | 'employee_id' | 'created_by'>;
 type WithdrawalAdmin = Pick<Admin, 'id' | 'username' | 'role'> & { admin_id?: string };
@@ -724,14 +725,7 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
   };
 
   if (loading) {
-    return (
-      <div className="flex h-full min-h-0 flex-col items-center justify-center overflow-hidden bg-slate-950/60">
-        <div className="flex items-center gap-3 text-sm text-slate-400">
-          <span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-400/25 border-t-blue-400" />
-          正在載入提現資料...
-        </div>
-      </div>
-    );
+    return <AdminPageLoading label="提款" />;
   }
 
   const editingTheme = withdrawalStatusThemes[editingStatusTheme || editingWithdrawal?.status || 'approved'];
