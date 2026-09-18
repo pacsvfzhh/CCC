@@ -40,6 +40,7 @@ BEGIN
       COUNT(*)::bigint AS total_orders
     FROM public.orders AS o
     WHERE o.user_id = p_user_id
+      AND o.created_at IS NOT NULL
     GROUP BY (o.created_at AT TIME ZONE 'UTC')::date
   ),
   transaction_summary AS (
@@ -154,7 +155,7 @@ BEGIN
       wt.created_by,
       wt.reference_id,
       CASE
-        WHEN wt.type = 'commission' AND matching_order.id IS NOT NULL
+        WHEN wt.type = 'commission' AND matching_order.created_at IS NOT NULL
           THEN (matching_order.created_at AT TIME ZONE 'UTC')::date
         ELSE (wt.created_at AT TIME ZONE 'UTC')::date
       END AS activity_date
@@ -174,7 +175,7 @@ BEGIN
   page_rows AS (
     SELECT filtered_tx.*
     FROM filtered_transactions AS filtered_tx
-    ORDER BY filtered_tx.created_at DESC, filtered_tx.id DESC
+    ORDER BY filtered_tx.created_at DESC NULLS LAST, filtered_tx.id DESC
     LIMIT v_page_size
     OFFSET ((v_page - 1)::bigint * v_page_size)
   )
@@ -194,7 +195,7 @@ BEGIN
             'reference_id', page_row.reference_id,
             'activity_date', to_char(page_row.activity_date, 'YYYY-MM-DD')
           )
-          ORDER BY page_row.created_at DESC, page_row.id DESC
+          ORDER BY page_row.created_at DESC NULLS LAST, page_row.id DESC
         )
         FROM page_rows AS page_row
       ),
@@ -232,7 +233,7 @@ BEGIN
   WITH activity_transactions AS (
     SELECT
       CASE
-        WHEN wt.type = 'commission' AND matching_order.id IS NOT NULL
+        WHEN wt.type = 'commission' AND matching_order.created_at IS NOT NULL
           THEN (matching_order.created_at AT TIME ZONE 'UTC')::date
         ELSE (wt.created_at AT TIME ZONE 'UTC')::date
       END AS activity_date
@@ -248,6 +249,7 @@ BEGIN
       activity_tx.activity_date,
       COUNT(*)::bigint AS transaction_count
     FROM activity_transactions AS activity_tx
+    WHERE activity_tx.activity_date IS NOT NULL
     GROUP BY activity_tx.activity_date
   )
   SELECT COALESCE(

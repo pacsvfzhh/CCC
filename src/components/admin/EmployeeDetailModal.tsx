@@ -1474,12 +1474,14 @@ export default function EmployeeDetailModal({
                                 <span className={style.meta}>${Number(tx.balance_after).toFixed(2)}</span>
                               </div>
                               <div className="mt-0.5 whitespace-nowrap text-white">
-                                {activityDate.split("-").join("/")}
+                                {activityDate ? activityDate.split("-").join("/") : "日期不詳"}
                                 <span className="ml-1 text-slate-300">
-                                  {new Date(tx.created_at).toLocaleTimeString("zh-CN", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
+                                  {tx.created_at
+                                    ? new Date(tx.created_at).toLocaleTimeString("zh-CN", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })
+                                    : "—"}
                                 </span>
                               </div>
                             </div>

@@ -2203,11 +2203,11 @@ export interface Database {
             amount: number;
             balance_before: number;
             balance_after: number;
-            remarks: string;
-            created_at: string;
+            remarks: string | null;
+            created_at: string | null;
             created_by: string | null;
             reference_id: string | null;
-            activity_date: string;
+            activity_date: string | null;
           }>;
           total_count: number;
         };
