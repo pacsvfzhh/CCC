@@ -672,66 +672,82 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       setUploadProgress(25);
       setUploadStatus('正在轉換 Word 文件……');
 
-      let imageCount = 0;
-      const uploadImageDuringConversion = async (image: {
+      const pendingImages: Array<{
+        token: string;
+        blob: Blob;
+        contentType: string;
+        base64: string;
+      }> = [];
+      const collectImageDuringConversion = async (image: {
         contentType: string;
         read: (encoding?: string) => Promise<string | Buffer>;
       }) => {
-        try {
-          const imageData = await image.read("base64");
-          const imageBuffer = typeof imageData === 'string' ? imageData : imageData.toString('base64');
-          const contentType: string = image.contentType || 'image/png';
-          imageCount++;
-          setUploadStatus(`正在從 Word 文件上傳第 ${imageCount} 張圖片……`);
-
-          const byteString = atob(imageBuffer);
-          const uint8Array = new Uint8Array(byteString.length);
-          for (let j = 0; j < byteString.length; j++) {
-            uint8Array[j] = byteString.charCodeAt(j);
-          }
-          const blob = new Blob([uint8Array], { type: contentType });
-          let ext = contentType.split('/')[1] || 'png';
-          if (ext === 'jpeg') ext = 'jpg';
-          const fileName = `${adminId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-
-          await uploadStorageObjectWithProgress({
-            bucket: 'chat-images',
-            path: fileName,
-            body: blob,
-            contentType,
-            onProgress: (percentage, loaded, total) => {
-              setUploadProgress(current => Math.max(current, 25 + Math.round(percentage * 0.6)));
-              const loadedMB = (loaded / (1024 * 1024)).toFixed(2);
-              const totalMB = (total / (1024 * 1024)).toFixed(2);
-              setUploadStatus(`正在上傳 Word 圖片 ${imageCount}：${loadedMB}MB / ${totalMB}MB（${percentage}%）`);
-            },
-          });
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('chat-images')
-            .getPublicUrl(fileName);
-          return { src: publicUrl };
-        } catch (err) {
-          console.error('Error uploading Word image:', err);
+        const imageData = await image.read('base64');
+        const base64 = typeof imageData === 'string' ? imageData : imageData.toString('base64');
+        const contentType = image.contentType || 'image/png';
+        const byteString = atob(base64);
+        const bytes = new Uint8Array(byteString.length);
+        for (let index = 0; index < byteString.length; index++) {
+          bytes[index] = byteString.charCodeAt(index);
         }
-        return { src: `data:${image.contentType || 'image/png'};base64,${await image.read("base64")}` };
+        const token = `word-import-image-${Date.now()}-${pendingImages.length}-${Math.random().toString(36).slice(2)}`;
+        pendingImages.push({ token, blob: new Blob([bytes], { type: contentType }), contentType, base64 });
+        return { src: token };
       };
 
       const convertOptions = mammoth.images?.imgElement
-        ? { convertImage: mammoth.images.imgElement(uploadImageDuringConversion) }
+        ? { convertImage: mammoth.images.imgElement(collectImageDuringConversion) }
         : {};
 
       const result = await mammoth.convertToHtml({ arrayBuffer }, convertOptions);
+      let importedHtml = result.value;
+      const totalImageBytes = pendingImages.reduce((total, image) => total + image.blob.size, 0);
+      let uploadedImageBytes = 0;
+
+      for (let index = 0; index < pendingImages.length; index++) {
+        const image = pendingImages[index];
+        let ext = image.contentType.split('/')[1] || 'png';
+        if (ext === 'jpeg') ext = 'jpg';
+        const fileName = `${adminId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+        try {
+          await uploadStorageObjectWithProgress({
+            bucket: 'chat-images',
+            path: fileName,
+            body: image.blob,
+            contentType: image.contentType,
+            onProgress: (_percentage, loaded) => {
+              const transferred = uploadedImageBytes + loaded;
+              const imageProgress = totalImageBytes > 0 ? transferred / totalImageBytes : 1;
+              setUploadProgress(25 + Math.round(imageProgress * 65));
+              const loadedMB = (transferred / (1024 * 1024)).toFixed(2);
+              const totalMB = (totalImageBytes / (1024 * 1024)).toFixed(2);
+              setUploadStatus(`正在上傳 Word 圖片 ${index + 1}/${pendingImages.length}：${loadedMB}MB / ${totalMB}MB`);
+            },
+          });
+          const { data: { publicUrl } } = supabase.storage
+            .from('chat-images')
+            .getPublicUrl(fileName);
+          importedHtml = importedHtml.split(image.token).join(publicUrl);
+        } catch (error) {
+          console.error('Error uploading Word image:', error);
+          importedHtml = importedHtml
+            .split(image.token)
+            .join(`data:${image.contentType};base64,${image.base64}`);
+        }
+        uploadedImageBytes += image.blob.size;
+      }
+
       setUploadProgress(95);
       setUploadStatus('正在套用 Word 內容……');
 
-      if (result.value) {
+      if (importedHtml) {
         if (editor) {
-          editor.chain().focus().insertContent(result.value).run();
+          editor.chain().focus().insertContent(importedHtml).run();
         }
         setUploadProgress(100);
-        setUploadStatus(imageCount > 0
-          ? `Word 文件已匯入，包含 ${imageCount} 張圖片！`
+        setUploadStatus(pendingImages.length > 0
+          ? `Word 文件已匯入，包含 ${pendingImages.length} 張圖片！`
           : 'Word 文件已成功匯入！');
       } else {
         setUploadStatus('錯誤：無法解析文件');
