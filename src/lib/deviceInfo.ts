@@ -62,13 +62,13 @@ const isKnownValue = <T extends string>(value: unknown, values: readonly T[]): v
 const parseOs = (userAgent: string, hints: DeviceParseHints): DeviceOsFamily => {
   const platform = hints.platform?.toLowerCase();
   const isDesktopModeIpad = hints.navigatorPlatform === 'MacIntel'
-    && (hints.maxTouchPoints || 0) > 1
-    && (hints.screenWidth === undefined || hints.screenWidth <= 1366);
+    && (hints.maxTouchPoints || 0) > 1;
 
+  if (/Windows Phone/i.test(userAgent) || platform?.startsWith('win')) return 'windows';
   if (/Android/i.test(userAgent) || platform === 'android') return 'android';
   if (/iPhone|iPad|iPod/i.test(userAgent) || isDesktopModeIpad) return 'ios';
   if (/CrOS/i.test(userAgent) || platform === 'chrome os') return 'chromeos';
-  if (/Windows NT/i.test(userAgent) || platform?.startsWith('win')) return 'windows';
+  if (/Windows NT/i.test(userAgent)) return 'windows';
   if (/Mac OS X/i.test(userAgent) || platform?.startsWith('mac')) return 'macos';
   if (/Linux/i.test(userAgent) || platform?.includes('linux')) return 'linux';
   return 'unknown';
@@ -88,6 +88,9 @@ const parseOsVersion = (
     return normalizeVersion(firstMatch(userAgent, /(?:CPU(?: iPhone)? OS|iPhone OS)\s+([\d_]+)/i));
   }
   if (osFamily === 'windows') {
+    const windowsPhoneVersion = normalizeVersion(firstMatch(userAgent, /Windows Phone(?: OS)?\s+([\d.]+)/i));
+    if (windowsPhoneVersion) return windowsPhoneVersion;
+
     if (platformVersion) {
       const major = Number.parseInt(platformVersion, 10);
       if (major >= 13) return '11';
@@ -114,32 +117,41 @@ const parseOsVersion = (
 };
 
 const parseDeviceModel = (userAgent: string, osFamily: DeviceOsFamily, hints: DeviceParseHints) => {
-  const hintedModel = nonEmptyString(hints.model);
-  if (hintedModel) return hintedModel;
-  if (osFamily !== 'android') return null;
+  const model = nonEmptyString(hints.model)
+    || (osFamily === 'android'
+      ? nonEmptyString(firstMatch(userAgent, /;\s*([^;()]+?)\s+Build\/[^;)]+/i))
+      : null);
 
-  return nonEmptyString(firstMatch(userAgent, /;\s*([^;()]+?)\s+Build\/[^;)]+/i));
+  return model && !/^(?:K|Mobile|Tablet|wv)$/i.test(model) ? model : null;
 };
 
 const parseBrowser = (userAgent: string, hints: DeviceParseHints) => {
-  const edgeVersion = firstMatch(userAgent, /(?:Edg|EdgA|EdgiOS)\/([\d.]+)/i);
-  if (edgeVersion) return { family: 'edge' as const, version: edgeVersion };
+  const hintedVersion = (brandPattern: RegExp) => normalizeVersion(
+    hints.brands?.find(({ brand }) => brandPattern.test(brand))?.version,
+  );
+  const hintedChromeVersion = hintedVersion(/Google Chrome/i) || hintedVersion(/Chromium/i);
+
+  const edgeVersion = firstMatch(userAgent, /(?:Edg|EdgA|EdgiOS|Edge)\/([\d.]+)/i);
+  if (edgeVersion) return { family: 'edge' as const, version: hintedVersion(/edge/i) || edgeVersion };
 
   const operaVersion = firstMatch(userAgent, /OPR\/([\d.]+)/i);
-  if (operaVersion) return { family: 'opera' as const, version: operaVersion };
+  if (operaVersion) return { family: 'opera' as const, version: hintedVersion(/opera/i) || operaVersion };
 
   const samsungVersion = firstMatch(userAgent, /SamsungBrowser\/([\d.]+)/i);
-  if (samsungVersion) return { family: 'samsung' as const, version: samsungVersion };
+  if (samsungVersion) return { family: 'samsung' as const, version: hintedVersion(/samsung/i) || samsungVersion };
 
   const firefoxVersion = firstMatch(userAgent, /(?:Firefox|FxiOS)\/([\d.]+)/i);
   if (firefoxVersion) return { family: 'firefox' as const, version: firefoxVersion };
 
   if (/(?:;\s*wv\)|\bwv\b)/i.test(userAgent)) {
-    return { family: 'webview' as const, version: firstMatch(userAgent, /;\s*Version\/([\d.]+)/i) };
+    return {
+      family: 'webview' as const,
+      version: hintedChromeVersion || firstMatch(userAgent, /Chrome\/([\d.]+)/i),
+    };
   }
 
   const chromeVersion = firstMatch(userAgent, /(?:Chrome|CriOS)\/([\d.]+)/i);
-  if (chromeVersion) return { family: 'chrome' as const, version: chromeVersion };
+  if (chromeVersion) return { family: 'chrome' as const, version: hintedChromeVersion || chromeVersion };
 
   const safariVersion = firstMatch(userAgent, /Version\/([\d.]+).*Safari\//i);
   if (safariVersion) return { family: 'safari' as const, version: safariVersion };
@@ -151,7 +163,7 @@ const parseBrowser = (userAgent: string, hints: DeviceParseHints) => {
     const brand = hintedBrand.brand.toLowerCase();
     return {
       family: /edge/.test(brand) ? 'edge' as const : /opera/.test(brand) ? 'opera' as const : 'chrome' as const,
-      version: hintedBrand.version || null,
+      version: normalizeVersion(hintedBrand.version),
     };
   }
 
