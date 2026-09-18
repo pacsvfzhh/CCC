@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Bell, Eye, AlertCircle, CheckCircle, Clock, Zap, Shield, Radio, ChevronRight, MailOpen, Sparkles } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -25,23 +25,35 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     void loadMessagesRef.current?.();
   }, [employee.id, filter]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const scrollY = window.scrollY;
     const body = document.body;
-    body.style.position = 'fixed';
-    body.style.top = `-${scrollY}px`;
-    body.style.left = '0';
-    body.style.right = '0';
-    body.style.overflow = 'hidden';
-    return () => {
-      body.style.position = '';
-      body.style.top = '';
-      body.style.left = '';
-      body.style.right = '';
-      body.style.overflow = '';
-      window.scrollTo(0, scrollY);
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+      paddingRight: body.style.paddingRight,
     };
-  }, []);
+
+    if (isDesktop) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
+    } else {
+      body.style.position = 'fixed';
+      body.style.top = `-${scrollY}px`;
+      body.style.left = '0';
+      body.style.right = '0';
+      body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      Object.assign(body.style, previousStyles);
+      if (!isDesktop) window.scrollTo(0, scrollY);
+    };
+  }, [isDesktop]);
 
   const loadMessages = async () => {
     setLoading(true);
