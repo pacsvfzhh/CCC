@@ -413,6 +413,379 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.start_employee_dispatch_session_secure(
+  p_user_id uuid,
+  p_session_token uuid,
+  p_tab_id text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
+AS $function$
+DECLARE
+  v_valid_user_id uuid;
+  v_started_at timestamptz := clock_timestamp();
+  v_dispatch_session_id uuid;
+  v_dispatch_session record;
+  v_work_session record;
+  v_work_session_id uuid;
+  v_work_start timestamptz;
+  v_work_heartbeat timestamptz;
+  v_end_time timestamptz;
+  v_duration integer;
+BEGIN
+  IF p_tab_id IS NULL OR btrim(p_tab_id) = '' THEN
+    RAISE EXCEPTION 'Employee session is invalid or expired.';
+  END IF;
+
+  SELECT u.id
+  INTO v_valid_user_id
+  FROM public.employee_financial_sessions AS financial_session
+  INNER JOIN public.users AS u ON u.id = financial_session.user_id
+  WHERE financial_session.user_id = p_user_id
+    AND financial_session.token_hash = private.hash_financial_token(p_session_token)
+    AND financial_session.revoked_at IS NULL
+    AND financial_session.expires_at > now()
+    AND financial_session.tab_id = p_tab_id
+    AND financial_session.session_marker = u.current_session_token
+    AND u.current_tab_id = p_tab_id
+    AND u.is_active = true
+  FOR UPDATE OF financial_session, u;
+
+  IF v_valid_user_id IS NULL THEN
+    RAISE EXCEPTION 'Employee session is invalid or expired.';
+  END IF;
+
+  FOR v_dispatch_session IN
+    SELECT
+      dispatch_session.id,
+      dispatch_session.started_at,
+      dispatch_session.last_activity_at
+    FROM public.dispatch_sessions AS dispatch_session
+    WHERE dispatch_session.user_id = v_valid_user_id
+      AND dispatch_session.status = 'online'
+      AND dispatch_session.ended_at IS NULL
+    ORDER BY dispatch_session.started_at, dispatch_session.id
+    FOR UPDATE
+  LOOP
+    v_work_session_id := NULL;
+    v_work_start := NULL;
+    v_work_heartbeat := NULL;
+
+    SELECT work_session.id, work_session.start_time, work_session.last_heartbeat_at
+    INTO v_work_session_id, v_work_start, v_work_heartbeat
+    FROM public.work_sessions AS work_session
+    WHERE work_session.user_id = v_valid_user_id
+      AND work_session.end_time IS NULL
+    ORDER BY work_session.start_time DESC, work_session.id DESC
+    LIMIT 1
+    FOR UPDATE;
+
+    IF v_work_session_id IS NOT NULL THEN
+      v_end_time := CASE
+        WHEN v_work_heartbeat IS NOT NULL
+          AND v_work_heartbeat < v_started_at - interval '2 minutes'
+        THEN GREATEST(v_work_heartbeat + interval '1 minute', v_work_start)
+        ELSE GREATEST(v_started_at, v_work_start)
+      END;
+      v_duration := GREATEST(
+        round(extract(epoch FROM (v_end_time - v_work_start)) / 60)::integer,
+        0
+      );
+    ELSE
+      v_end_time := CASE
+        WHEN v_dispatch_session.last_activity_at IS NOT NULL
+          AND v_dispatch_session.last_activity_at < v_started_at - interval '2 minutes'
+        THEN GREATEST(
+          v_dispatch_session.last_activity_at + interval '1 minute',
+          v_dispatch_session.started_at
+        )
+        ELSE GREATEST(v_started_at, v_dispatch_session.started_at)
+      END;
+    END IF;
+
+    UPDATE public.dispatch_sessions
+    SET status = 'offline',
+        ended_at = v_end_time
+    WHERE id = v_dispatch_session.id
+      AND user_id = v_valid_user_id
+      AND status = 'online'
+      AND ended_at IS NULL;
+
+    IF v_work_session_id IS NOT NULL THEN
+      UPDATE public.work_sessions
+      SET end_time = v_end_time,
+          duration_minutes = v_duration
+      WHERE id = v_work_session_id;
+    END IF;
+  END LOOP;
+
+  FOR v_work_session IN
+    SELECT
+      work_session.id,
+      work_session.start_time,
+      work_session.last_heartbeat_at
+    FROM public.work_sessions AS work_session
+    WHERE work_session.user_id = v_valid_user_id
+      AND work_session.end_time IS NULL
+    ORDER BY work_session.start_time, work_session.id
+    FOR UPDATE
+  LOOP
+    v_end_time := CASE
+      WHEN v_work_session.last_heartbeat_at IS NOT NULL
+        AND v_work_session.last_heartbeat_at < v_started_at - interval '2 minutes'
+      THEN GREATEST(v_work_session.last_heartbeat_at + interval '1 minute', v_work_session.start_time)
+      ELSE GREATEST(v_started_at, v_work_session.start_time)
+    END;
+    v_duration := GREATEST(
+      round(extract(epoch FROM (v_end_time - v_work_session.start_time)) / 60)::integer,
+      0
+    );
+
+    UPDATE public.work_sessions
+    SET end_time = v_end_time,
+        duration_minutes = v_duration
+    WHERE id = v_work_session.id;
+  END LOOP;
+
+  INSERT INTO public.dispatch_sessions (
+    user_id,
+    status,
+    started_at,
+    last_activity_at
+  ) VALUES (
+    v_valid_user_id,
+    'online',
+    v_started_at,
+    v_started_at
+  )
+  RETURNING id INTO v_dispatch_session_id;
+
+  SELECT work_session.id
+  INTO v_work_session_id
+  FROM public.work_sessions AS work_session
+  WHERE work_session.user_id = v_valid_user_id
+    AND work_session.end_time IS NULL
+  ORDER BY work_session.start_time DESC, work_session.id DESC
+  LIMIT 1
+  FOR UPDATE;
+
+  IF v_work_session_id IS NULL THEN
+    BEGIN
+      INSERT INTO public.work_sessions (
+        id,
+        user_id,
+        start_time,
+        last_heartbeat_at
+      ) VALUES (
+        v_dispatch_session_id,
+        v_valid_user_id,
+        v_started_at,
+        v_started_at
+      )
+      RETURNING id INTO v_work_session_id;
+    EXCEPTION
+      WHEN unique_violation THEN
+        SELECT work_session.id
+        INTO v_work_session_id
+        FROM public.work_sessions AS work_session
+        WHERE work_session.user_id = v_valid_user_id
+          AND work_session.end_time IS NULL
+        ORDER BY work_session.start_time DESC, work_session.id DESC
+        LIMIT 1
+        FOR UPDATE;
+    END;
+  END IF;
+
+  IF v_work_session_id IS NULL THEN
+    RAISE EXCEPTION 'Failed to create employee work session.';
+  END IF;
+
+  UPDATE public.work_sessions
+  SET last_heartbeat_at = v_started_at
+  WHERE id = v_work_session_id
+    AND user_id = v_valid_user_id
+    AND end_time IS NULL;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'session_id', v_dispatch_session_id,
+    'started_at', v_started_at
+  );
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.stop_employee_dispatch_session_secure(
+  p_user_id uuid,
+  p_session_token uuid,
+  p_tab_id text,
+  p_session_id uuid DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
+AS $function$
+DECLARE
+  v_valid_user_id uuid;
+  v_stopped_at timestamptz := clock_timestamp();
+  v_dispatch_session record;
+  v_work_session record;
+  v_work_session_id uuid;
+  v_work_start timestamptz;
+  v_work_heartbeat timestamptz;
+  v_end_time timestamptz;
+  v_last_end_time timestamptz;
+  v_result_session_id uuid;
+  v_duration integer;
+  v_stopped_count integer := 0;
+  v_work_sessions_ended integer := 0;
+  v_should_end_work boolean := p_session_id IS NULL;
+BEGIN
+  IF p_tab_id IS NULL OR btrim(p_tab_id) = '' THEN
+    RAISE EXCEPTION 'Employee session is invalid or expired.';
+  END IF;
+
+  SELECT u.id
+  INTO v_valid_user_id
+  FROM public.employee_financial_sessions AS financial_session
+  INNER JOIN public.users AS u ON u.id = financial_session.user_id
+  WHERE financial_session.user_id = p_user_id
+    AND financial_session.token_hash = private.hash_financial_token(p_session_token)
+    AND financial_session.revoked_at IS NULL
+    AND financial_session.expires_at > now()
+    AND financial_session.tab_id = p_tab_id
+    AND financial_session.session_marker = u.current_session_token
+    AND u.current_tab_id = p_tab_id
+    AND u.is_active = true
+  FOR UPDATE OF financial_session, u;
+
+  IF v_valid_user_id IS NULL THEN
+    RAISE EXCEPTION 'Employee session is invalid or expired.';
+  END IF;
+
+  FOR v_dispatch_session IN
+    SELECT
+      dispatch_session.id,
+      dispatch_session.started_at,
+      dispatch_session.last_activity_at
+    FROM public.dispatch_sessions AS dispatch_session
+    WHERE dispatch_session.user_id = v_valid_user_id
+      AND dispatch_session.status = 'online'
+      AND dispatch_session.ended_at IS NULL
+      AND (p_session_id IS NULL OR dispatch_session.id = p_session_id)
+    ORDER BY dispatch_session.started_at, dispatch_session.id
+    FOR UPDATE
+  LOOP
+    v_should_end_work := true;
+    v_work_session_id := NULL;
+    v_work_start := NULL;
+    v_work_heartbeat := NULL;
+
+    SELECT work_session.id, work_session.start_time, work_session.last_heartbeat_at
+    INTO v_work_session_id, v_work_start, v_work_heartbeat
+    FROM public.work_sessions AS work_session
+    WHERE work_session.user_id = v_valid_user_id
+      AND work_session.end_time IS NULL
+    ORDER BY work_session.start_time DESC, work_session.id DESC
+    LIMIT 1
+    FOR UPDATE;
+
+    IF v_work_session_id IS NOT NULL THEN
+      v_end_time := CASE
+        WHEN v_work_heartbeat IS NOT NULL
+          AND v_work_heartbeat < v_stopped_at - interval '2 minutes'
+        THEN GREATEST(v_work_heartbeat + interval '1 minute', v_work_start)
+        ELSE GREATEST(v_stopped_at, v_work_start)
+      END;
+      v_duration := GREATEST(
+        round(extract(epoch FROM (v_end_time - v_work_start)) / 60)::integer,
+        0
+      );
+    ELSE
+      v_end_time := CASE
+        WHEN v_dispatch_session.last_activity_at IS NOT NULL
+          AND v_dispatch_session.last_activity_at < v_stopped_at - interval '2 minutes'
+        THEN GREATEST(
+          v_dispatch_session.last_activity_at + interval '1 minute',
+          v_dispatch_session.started_at
+        )
+        ELSE GREATEST(v_stopped_at, v_dispatch_session.started_at)
+      END;
+    END IF;
+
+    UPDATE public.dispatch_sessions
+    SET status = 'offline',
+        ended_at = v_end_time
+    WHERE id = v_dispatch_session.id
+      AND user_id = v_valid_user_id
+      AND status = 'online'
+      AND ended_at IS NULL;
+
+    IF FOUND THEN
+      v_stopped_count := v_stopped_count + 1;
+      v_result_session_id := COALESCE(v_result_session_id, v_dispatch_session.id);
+      v_last_end_time := GREATEST(COALESCE(v_last_end_time, v_end_time), v_end_time);
+    END IF;
+
+    IF v_work_session_id IS NOT NULL THEN
+      UPDATE public.work_sessions
+      SET end_time = v_end_time,
+          duration_minutes = v_duration
+      WHERE id = v_work_session_id;
+
+      IF FOUND THEN
+        v_work_sessions_ended := v_work_sessions_ended + 1;
+      END IF;
+    END IF;
+  END LOOP;
+
+  IF v_should_end_work THEN
+    FOR v_work_session IN
+      SELECT
+        work_session.id,
+        work_session.start_time,
+        work_session.last_heartbeat_at
+      FROM public.work_sessions AS work_session
+      WHERE work_session.user_id = v_valid_user_id
+        AND work_session.end_time IS NULL
+      ORDER BY work_session.start_time, work_session.id
+      FOR UPDATE
+    LOOP
+      v_end_time := CASE
+        WHEN v_work_session.last_heartbeat_at IS NOT NULL
+          AND v_work_session.last_heartbeat_at < v_stopped_at - interval '2 minutes'
+        THEN GREATEST(v_work_session.last_heartbeat_at + interval '1 minute', v_work_session.start_time)
+        ELSE GREATEST(v_stopped_at, v_work_session.start_time)
+      END;
+      v_duration := GREATEST(
+        round(extract(epoch FROM (v_end_time - v_work_session.start_time)) / 60)::integer,
+        0
+      );
+
+      UPDATE public.work_sessions
+      SET end_time = v_end_time,
+          duration_minutes = v_duration
+      WHERE id = v_work_session.id;
+
+      IF FOUND THEN
+        v_work_sessions_ended := v_work_sessions_ended + 1;
+        v_last_end_time := GREATEST(COALESCE(v_last_end_time, v_end_time), v_end_time);
+      END IF;
+    END LOOP;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'session_id', COALESCE(p_session_id, v_result_session_id),
+    'stopped_count', v_stopped_count,
+    'ended_at', v_last_end_time,
+    'work_sessions_ended', v_work_sessions_ended
+  );
+END;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.update_session_heartbeat_secure(
   p_user_id uuid,
   p_session_token uuid,
@@ -482,8 +855,12 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.get_employee_management_snapshot(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.admin_set_employee_verification(uuid, uuid, boolean) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.start_employee_dispatch_session_secure(uuid, uuid, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.stop_employee_dispatch_session_secure(uuid, uuid, text, uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.update_session_heartbeat_secure(uuid, uuid, text, uuid) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.get_employee_management_snapshot(uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_set_employee_verification(uuid, uuid, boolean) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.start_employee_dispatch_session_secure(uuid, uuid, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.stop_employee_dispatch_session_secure(uuid, uuid, text, uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.update_session_heartbeat_secure(uuid, uuid, text, uuid) TO anon, authenticated;

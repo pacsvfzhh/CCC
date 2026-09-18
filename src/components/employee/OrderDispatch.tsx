@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { AUTH_STORAGE_KEY } from '../../lib/auth';
+import { AUTH_STORAGE_KEY, getStoredAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { getTodayStartUTC, getCurrentTimestamp } from '../../lib/dateUtils';
 import { Play, Square, CheckCircle, XCircle, Clock, Package, TrendingUp, AlertTriangle, AlertCircle, Zap, Timer, FileText, ShieldAlert, CheckSquare, ChevronLeft, ChevronRight, Send } from 'lucide-react';
@@ -286,9 +286,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     loadTotalWorkTime();
     checkPendingOrder();
 
-    // Cleanup stale sessions on page load
-    cleanupStaleSessions();
-
     // Refresh total work time every 60 seconds (cron handles stale cleanup globally)
     const workTimeInterval = setInterval(() => {
       loadTotalWorkTime();
@@ -330,29 +327,31 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }, 300000); // Check every 5 minutes
 
     // Handle page close/refresh - stop work session
+    const stopDispatchSessionWithBeacon = () => {
+      const auth = getStoredAuth();
+      const currentSessionId = sessionIdRef.current;
+      if (!sessionActiveRef.current || !currentSessionId || auth?.userType !== 'employee') return;
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseKey) return;
+
+      const payload = JSON.stringify({
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: currentSessionId,
+      });
+      const blob = new Blob([payload], { type: 'application/json' });
+
+      navigator.sendBeacon(
+        `${supabaseUrl}/rest/v1/rpc/stop_employee_dispatch_session_secure?apikey=${supabaseKey}`,
+        blob
+      );
+    };
+
     const handleBeforeUnload = () => {
-      if (sessionActiveRef.current) {
-        const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-        if (auth) {
-          const authData = JSON.parse(auth);
-          const userId = authData?.user?.id;
-
-          if (userId) {
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-            if (supabaseUrl && supabaseKey) {
-              const payload = JSON.stringify({ p_user_id: userId });
-              const blob = new Blob([payload], { type: 'application/json' });
-
-              navigator.sendBeacon(
-                `${supabaseUrl}/rest/v1/rpc/end_work_session_by_user?apikey=${supabaseKey}`,
-                blob
-              );
-            }
-          }
-        }
-      }
+      stopDispatchSessionWithBeacon();
     };
 
     // Handle page visibility change - detect when user switches tabs or minimizes
@@ -363,7 +362,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         pageHiddenAtRef.current = Date.now();
         if (sessionActiveRef.current) {
           // Send heartbeat immediately to mark accurate last-active time
-          sendHeartbeat();
           updateActivity();
         }
       } else {
@@ -382,28 +380,37 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             // We need to end the old session and start a new one to avoid gap inflation
             const restartSession = async () => {
               try {
-                const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-                if (!auth) return;
-                const userId = JSON.parse(auth).user.id;
-
-                // End current work session (will use last_heartbeat_at for accurate end time)
-                await supabase.rpc('end_work_session', { p_user_id: userId });
-
-                // Start a new work session immediately
-                const { data: newWorkSession } = await supabase.rpc('start_work_session', { p_user_id: userId });
-
-                // Re-activate dispatch session if it was marked offline
+                const auth = getStoredAuth();
                 const currentSessionId = sessionIdRef.current;
-                if (currentSessionId) {
-                  await supabase
-                    .from('dispatch_sessions')
-                    .update({ status: 'online', last_activity_at: getCurrentTimestamp() })
-                    .eq('id', currentSessionId);
+                if (auth?.userType !== 'employee' || !currentSessionId) return;
+
+                // End the stale dispatch/work session using its heartbeat-capped time.
+                const { error: stopError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
+                  p_user_id: auth.user.id,
+                  p_session_token: auth.financialSessionToken,
+                  p_tab_id: auth.tabId,
+                  p_session_id: currentSessionId,
+                });
+                if (stopError) throw stopError;
+
+                // Start a new corresponding dispatch/work session immediately.
+                const { data: newSession, error: startError } = await supabase.rpc('start_employee_dispatch_session_secure', {
+                  p_user_id: auth.user.id,
+                  p_session_token: auth.financialSessionToken,
+                  p_tab_id: auth.tabId,
+                });
+                if (startError) throw startError;
+                if (!newSession?.session_id || !newSession.started_at) {
+                  throw new Error('Failed to restart dispatch session.');
                 }
 
-                if (newWorkSession) {
-                  sendHeartbeat();
-                }
+                sessionIdRef.current = newSession.session_id;
+                setSession(previous => ({
+                  ...previous,
+                  sessionId: newSession.session_id,
+                  startedAt: new Date(newSession.started_at),
+                }));
+                sendHeartbeat();
 
                 // Refresh displayed work time
                 loadTotalWorkTime();
@@ -433,25 +440,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     // pagehide is more reliable than beforeunload on mobile (iOS Safari, Android Chrome)
     // Only end session if page won't be restored (e.g., tab close, not just background)
     const handlePageHide = (e: PageTransitionEvent) => {
-      if (!e.persisted && sessionActiveRef.current) {
-        const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-        if (auth) {
-          const authData = JSON.parse(auth);
-          const userId = authData?.user?.id;
-          if (userId) {
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-            if (supabaseUrl && supabaseKey) {
-              const payload = JSON.stringify({ p_user_id: userId });
-              const blob = new Blob([payload], { type: 'application/json' });
-              navigator.sendBeacon(
-                `${supabaseUrl}/rest/v1/rpc/end_work_session_by_user?apikey=${supabaseKey}`,
-                blob
-              );
-            }
-          }
-        }
-      }
+      if (!e.persisted) stopDispatchSessionWithBeacon();
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -746,28 +735,17 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
   };
 
-  const cleanupStaleSessions = async () => {
-    try {
-      console.log('Running cleanup for stale sessions...');
-      const { data, error } = await supabase.rpc('cleanup_all_stale_sessions');
-
-      if (error) {
-        console.error('Failed to cleanup stale sessions:', error);
-      } else {
-        console.log('Stale sessions cleanup result:', data);
-      }
-    } catch (error) {
-      console.error('Error during cleanup:', error);
-    }
-  };
-
   const sendHeartbeat = async () => {
     const currentSessionId = sessionIdRef.current;
-    if (!currentSessionId) return;
+    const auth = getStoredAuth();
+    if (!currentSessionId || auth?.userType !== 'employee') return;
 
     try {
-      const { error } = await supabase.rpc('update_session_heartbeat', {
-        p_session_id: currentSessionId
+      const { error } = await supabase.rpc('update_session_heartbeat_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: currentSessionId,
       });
 
       if (error) {
@@ -807,46 +785,20 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const checkPendingOrder = async () => {
     try {
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      if (!auth) return;
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') return;
 
-      const userId = JSON.parse(auth).user.id;
+      const userId = auth.user.id;
 
-      // First check if there's an active work session
-      const { data: activeWorkSession } = await supabase.rpc('get_active_work_session', {
-        p_user_id: userId
+      // Clean up any prior page's dispatch/work session without running global cleanup.
+      const { error: cleanupError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
+        p_user_id: userId,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: null,
       });
-
-      // Check if there's an active dispatch session
-      const { data: dispatchSession } = await supabase
-        .from('dispatch_sessions')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'online')
-        .maybeSingle();
-
-      // If there's an active work session, clean it up on page load
-      // This handles page refresh/close scenarios where beforeunload didn't complete
-      if (activeWorkSession && activeWorkSession.length > 0) {
-        console.log('🧹 Cleanup: Found stale work session from previous page load. Cleaning up...');
-
-        // End work session
-        await supabase.rpc('end_work_session', {
-          p_user_id: userId
-        });
-        console.log('🧹 Cleanup: Stale work session ended (this is normal after page refresh)');
-
-        // End any orphaned dispatch session
-        if (dispatchSession) {
-          await supabase
-            .from('dispatch_sessions')
-            .update({
-              status: 'offline',
-              ended_at: new Date().toISOString(),
-            })
-            .eq('id', dispatchSession.id);
-          console.log('Dispatch session ended');
-        }
+      if (cleanupError) {
+        console.error('Failed to clean up stale page-load session:', cleanupError);
       }
 
       // Check if there's a pending or accepted order for this user
@@ -1045,14 +997,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const updateActivity = () => {
     lastActivityRef.current = new Date();
-    const currentSessionId = sessionIdRef.current;
-    if (currentSessionId) {
-      supabase
-        .from('dispatch_sessions')
-        .update({ last_activity_at: getCurrentTimestamp() })
-        .eq('id', currentSessionId)
-        .then();
-    }
+    if (sessionIdRef.current) void sendHeartbeat();
   };
 
   const handleStartWork = async () => {
@@ -1108,63 +1053,31 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     try {
       console.log('Starting work session...');
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      if (!auth) {
-        console.error('No auth found in localStorage');
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') {
+        console.error('No employee auth found in session storage');
         setIsTransitioning(false);
         setTransitionType(null);
         setIsProcessing(false);
         return;
       }
 
-      const userId = JSON.parse(auth).user.id;
+      const userId = auth.user.id;
       console.log('User ID:', userId);
 
       // Minimal animation duration - the loading state is shown immediately
       const animationPromise = new Promise(resolve => setTimeout(resolve, isMobile ? 100 : performanceSettings.transitionDuration));
 
-      // OPTIMIZED: Parallel data fetching, sequential cleanup->creation to prevent race conditions
+      // OPTIMIZED: Fetch read-only group data in parallel; the secure RPC handles session replacement atomically.
       console.log('Starting optimized database operations...');
 
       // Reset session ref immediately
       sessionActiveRef.current = false;
 
-      // Step 1: Fetch all data in parallel (read-only operations)
-      const [
-        activeWorkSessionResult,
-        activeDispatchSessionResult,
-        membershipResult,
-        defaultGroupResult
-      ] = await Promise.allSettled([
-        supabase.rpc('get_active_work_session', { p_user_id: userId }),
-        supabase.from('dispatch_sessions').select('id').eq('user_id', userId).eq('status', 'online').maybeSingle(),
+      const [membershipResult, defaultGroupResult] = await Promise.allSettled([
         supabase.from('dispatch_group_members').select('group_id, dispatch_groups(id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode, is_active)').eq('user_id', userId).maybeSingle(),
         supabase.from('dispatch_groups').select('id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode').eq('is_default', true).eq('is_active', true).maybeSingle()
       ]);
-
-      // Step 2: Cleanup old sessions in parallel (if they exist)
-      const cleanupTasks = [];
-
-      if (activeWorkSessionResult.status === 'fulfilled' && (activeWorkSessionResult.value.data?.length ?? 0) > 0) {
-        console.log('Cleaning up previous work session...');
-        cleanupTasks.push(supabase.rpc('end_work_session', { p_user_id: userId }));
-      }
-
-      if (activeDispatchSessionResult.status === 'fulfilled' && activeDispatchSessionResult.value.data) {
-        console.log('Cleaning up previous dispatch session...');
-        cleanupTasks.push(
-          supabase.from('dispatch_sessions')
-            .update({ status: 'offline', ended_at: getCurrentTimestamp() })
-            .eq('id', activeDispatchSessionResult.value.data.id)
-        );
-      }
-
-      if (cleanupTasks.length > 0) {
-        await Promise.all(cleanupTasks);
-        console.log('Cleanup completed');
-        // Small delay to ensure cleanup commits before creating new sessions
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
 
       // Determine group config from parallel results
       let groupConfig: DispatchConfig = config;
@@ -1195,81 +1108,26 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       currentGroupConfigRef.current = groupConfig;
       setConfig(groupConfig);
 
-      // Step 3: Create new sessions with proper error handling
+      // Create one online dispatch session and its corresponding work session atomically.
       console.log('Creating new sessions...');
-
-      // First create work session
-      const { data: workSessionData, error: workSessionError } = await supabase.rpc('start_work_session', { p_user_id: userId });
-
-      if (workSessionError) {
-        console.error('Failed to start work session:', workSessionError);
-        throw workSessionError;
+      const { data: startResult, error: startError } = await supabase.rpc('start_employee_dispatch_session_secure', {
+        p_user_id: userId,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+      });
+      if (startError) {
+        console.error('Failed to start secure dispatch session:', startError);
+        throw startError;
       }
-
-      console.log('Work session created:', workSessionData);
-
-      // Then create dispatch session
-      // The unique index will prevent duplicates, we just need to handle the error gracefully
-      let dispatchData = null;
-      let dispatchError = null;
-
-      const insertResult = await supabase
-        .from('dispatch_sessions')
-        .insert({
-          user_id: userId,
-          status: 'online',
-          started_at: getCurrentTimestamp(),
-          last_activity_at: getCurrentTimestamp(),
-        })
-        .select()
-        .single();
-
-      if (insertResult.error) {
-        // If unique constraint violation, try to fetch the existing online session
-        if (insertResult.error.code === '23505') {
-          console.log('Dispatch session already exists, fetching it...');
-          const fetchResult = await supabase
-            .from('dispatch_sessions')
-            .select()
-            .eq('user_id', userId)
-            .eq('status', 'online')
-            .maybeSingle();
-
-          if (fetchResult.error || !fetchResult.data) {
-            dispatchError = fetchResult.error || new Error('Failed to fetch existing dispatch session');
-          } else {
-            dispatchData = fetchResult.data;
-            console.log('Using existing dispatch session:', dispatchData.id);
-          }
-        } else {
-          dispatchError = insertResult.error;
-        }
-      } else {
-        dispatchData = insertResult.data;
-        console.log('New dispatch session created:', dispatchData.id);
-      }
-
-      // Package results in same format as before for compatibility
-      const dispatchSessionResult = dispatchError
-        ? { status: 'rejected' as const, reason: dispatchError }
-        : { status: 'fulfilled' as const, value: { data: dispatchData, error: null } };
-
-      // Check results
-      if (dispatchSessionResult.status === 'rejected') {
-        console.error('Failed to create dispatch session, cleaning up work session...');
-        await supabase.rpc('end_work_session', { p_user_id: userId });
-        throw dispatchSessionResult.reason;
-      }
-
-      const data = dispatchSessionResult.value.data;
-
-      // Validate data before proceeding
-      if (!data || !data.id) {
-        console.error('Dispatch session creation returned invalid data:', data);
-        await supabase.rpc('end_work_session', { p_user_id: userId });
+      if (!startResult?.session_id || !startResult.started_at) {
+        console.error('Dispatch session creation returned invalid data:', startResult);
         throw new Error('Failed to create dispatch session - no session ID returned');
       }
 
+      const data = {
+        id: startResult.session_id,
+        started_at: startResult.started_at,
+      };
       console.log('Sessions created successfully, session_id:', data.id);
 
       // Load total work time (non-blocking - can happen after UI update)
@@ -1278,7 +1136,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       const newSession = {
         isWorking: true,
         sessionId: data.id,
-        startedAt: new Date(),
+        startedAt: new Date(data.started_at),
       };
 
       // Prepare session data but don't update state yet
@@ -1386,25 +1244,28 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     const animationPromise = !timeout ? new Promise(resolve => setTimeout(resolve, 500)) : Promise.resolve();
 
     try {
-      // Get user ID first
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      const authData = auth ? JSON.parse(auth) : null;
-      const userId = authData?.user?.id;
+      const auth = getStoredAuth();
+      const userId = auth?.userType === 'employee' ? auth.user.id : null;
+      const currentSessionId = sessionIdRef.current || session.sessionId;
 
-      // PARALLEL OPTIMIZATION: Execute all cleanup operations simultaneously
-      const cleanupTasks = [];
+      // PARALLEL OPTIMIZATION: Stop the secure session and cancel pending orders simultaneously.
+      const cleanupTasks: Array<PromiseLike<unknown>> = [];
 
-      // 1. Update dispatch session status
-      if (session.sessionId) {
+      if (auth?.userType === 'employee') {
         cleanupTasks.push(
-          supabase.from('dispatch_sessions')
-            .update({ status: 'offline', ended_at: getCurrentTimestamp() })
-            .eq('id', session.sessionId)
+          supabase.rpc('stop_employee_dispatch_session_secure', {
+            p_user_id: auth.user.id,
+            p_session_token: auth.financialSessionToken,
+            p_tab_id: auth.tabId,
+            p_session_id: currentSessionId,
+          }).then(result => {
+            if (result.error) console.error('Failed to stop secure dispatch session:', result.error);
+            else console.log('Work session ended by user');
+            return result;
+          })
         );
-      }
 
-      // 2. Cancel pending orders
-      if (userId) {
+        // Preserve pending-order cancellation when work stops.
         cleanupTasks.push(
           supabase.from('dispatch_assignments')
             .update({
@@ -1412,21 +1273,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
               completed_at: getCurrentTimestamp(),
               remarks: 'Auto-cancelled: Work session stopped by user',
             })
-            .eq('user_id', userId)
+            .eq('user_id', auth.user.id)
             .eq('status', 'pending')
             .then(result => {
               if (result.data) {
                 console.log(`Cancelled pending orders`);
               }
-              return result;
-            })
-        );
-
-        // 3. End work session
-        cleanupTasks.push(
-          supabase.rpc('end_work_session', { p_user_id: userId })
-            .then(result => {
-              console.log('🛑 Work session ended by user');
               return result;
             })
         );

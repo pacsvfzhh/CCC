@@ -60,10 +60,10 @@ interface EmployeeWithAdmin extends Employee {
   };
   walletBalance?: number;
   verification?: {
-    real_name: string;
-    wallet_address: string;
-    phone: string;
-    email: string;
+    real_name: string | null;
+    wallet_address: string | null;
+    phone: string | null;
+    email: string | null;
   } | null;
   todayOrders: number;
   todayCompletedOrders: number;
@@ -562,8 +562,15 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         schema: 'public',
         table: 'employee_presence_events',
         ...(admin.role === 'secondary_admin' ? { filter: `admin_id=eq.${admin.id}` } : {}),
-      }, () => {
+      }, (payload) => {
+        const userId = String((payload.new as { user_id?: unknown }).user_id || '');
+        const workStatus = (payload.new as { status?: unknown }).status;
         markRealtimeChange();
+        if (userId && (workStatus === 'online' || workStatus === 'offline')) {
+          updateEmployeeGroups(employee => (
+            employee.id === userId ? { ...employee, workStatus } : employee
+          ));
+        }
         scheduleRealtimeReload(800);
       })
       .subscribe((status) => handleRealtimeStatus('employee_presence_events', status));

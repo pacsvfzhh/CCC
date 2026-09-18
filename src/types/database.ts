@@ -2124,10 +2124,10 @@ export interface Database {
             updated_at: string;
             walletBalance: number;
             verification: {
-              real_name: string;
-              wallet_address: string;
-              phone: string;
-              email: string;
+              real_name: string | null;
+              wallet_address: string | null;
+              phone: string | null;
+              email: string | null;
             } | null;
             todayOrders: number;
             todayCompletedOrders: number;
@@ -2362,6 +2362,33 @@ export interface Database {
       update_session_heartbeat: {
         Args: { p_session_id: string };
         Returns: unknown;
+      };
+      start_employee_dispatch_session_secure: {
+        Args: {
+          p_session_token: string;
+          p_tab_id: string;
+          p_user_id: string;
+        };
+        Returns: {
+          success: boolean;
+          session_id: string;
+          started_at: string;
+        };
+      };
+      stop_employee_dispatch_session_secure: {
+        Args: {
+          p_session_id?: string | null;
+          p_session_token: string;
+          p_tab_id: string;
+          p_user_id: string;
+        };
+        Returns: {
+          success: boolean;
+          session_id: string | null;
+          stopped_count: number;
+          ended_at: string | null;
+          work_sessions_ended: number;
+        };
       };
       update_session_heartbeat_secure: {
         Args: {
