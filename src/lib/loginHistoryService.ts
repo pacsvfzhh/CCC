@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { collectLoginDeviceInfo } from './deviceInfo';
+import { collectLoginDeviceInfo, parseLoginDeviceInfo } from './deviceInfo';
 
 export async function getUserIP(): Promise<string> {
   const controller = new AbortController();
@@ -26,11 +26,11 @@ export async function logEmployeeLogin(
   sessionId?: string
 ): Promise<void> {
   try {
+    const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent;
     const [ipAddress, deviceInfo] = await Promise.all([
       getUserIP(),
-      collectLoginDeviceInfo(),
+      collectLoginDeviceInfo().catch(() => parseLoginDeviceInfo(userAgent)),
     ]);
-    const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent;
 
     const { error } = await supabase.rpc('log_employee_login_with_device_info', {
       p_user_id: userId,
@@ -57,11 +57,11 @@ export async function logEmployeeLogout(
   sessionId?: string
 ): Promise<void> {
   try {
+    const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent;
     const [ipAddress, deviceInfo] = await Promise.all([
       getUserIP(),
-      collectLoginDeviceInfo(),
+      collectLoginDeviceInfo().catch(() => parseLoginDeviceInfo(userAgent)),
     ]);
-    const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent;
 
     const { error } = await supabase.rpc('log_employee_logout_with_device_info', {
       p_user_id: userId,
