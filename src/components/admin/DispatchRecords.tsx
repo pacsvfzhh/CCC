@@ -50,6 +50,15 @@ interface DispatchRecordsProps {
   admin: Admin;
 }
 
+function isFreshOnlineSession(session: {
+  status: string;
+  ended_at: string | null;
+  last_activity_at: string | null;
+}) {
+  if (session.status !== 'online' || session.ended_at || !session.last_activity_at) return false;
+  return new Date(session.last_activity_at).getTime() >= Date.now() - 3 * 60 * 1000;
+}
+
 export default function DispatchRecords({ admin }: DispatchRecordsProps) {
   // For super admin: show groups
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
@@ -289,7 +298,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
         let workStatus: 'online' | 'offline' | 'never_started' = 'never_started';
 
         if (sessionData) {
-          if (sessionData.status === 'online' && !sessionData.ended_at) {
+          if (isFreshOnlineSession(sessionData)) {
             workStatus = 'online';
           } else {
             workStatus = 'offline';
@@ -538,7 +547,7 @@ export default function DispatchRecords({ admin }: DispatchRecordsProps) {
       let workStatus: 'online' | 'offline' | 'never_started' = 'never_started';
 
       if (sessionData) {
-        if (sessionData.status === 'online' && !sessionData.ended_at) {
+        if (isFreshOnlineSession(sessionData)) {
           workStatus = 'online';
         } else {
           workStatus = 'offline';

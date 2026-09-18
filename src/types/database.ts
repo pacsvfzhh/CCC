@@ -297,6 +297,8 @@ export interface Database {
           remarks: string | null;
           assignment_id: string | null;
           order_submitted: boolean;
+          dispatch_session_id: string | null;
+          accept_deadline_at: string | null;
         };
         Insert: {
           id?: string;
@@ -309,6 +311,8 @@ export interface Database {
           remarks?: string | null;
           assignment_id?: string | null;
           order_submitted?: boolean;
+          dispatch_session_id?: string | null;
+          accept_deadline_at?: string | null;
         };
         Update: {
           id?: string;
@@ -321,6 +325,8 @@ export interface Database {
           remarks?: string | null;
           assignment_id?: string | null;
           order_submitted?: boolean;
+          dispatch_session_id?: string | null;
+          accept_deadline_at?: string | null;
         };
         Relationships: [
           {
@@ -371,6 +377,7 @@ export interface Database {
           started_at: string | null;
           ended_at: string | null;
           last_activity_at: string | null;
+          consecutive_unaccepted_count: number;
         };
         Insert: {
           id?: string;
@@ -379,6 +386,7 @@ export interface Database {
           started_at?: string | null;
           ended_at?: string | null;
           last_activity_at?: string | null;
+          consecutive_unaccepted_count?: number;
         };
         Update: {
           id?: string;
@@ -387,6 +395,7 @@ export interface Database {
           started_at?: string | null;
           ended_at?: string | null;
           last_activity_at?: string | null;
+          consecutive_unaccepted_count?: number;
         };
         Relationships: [];
       };
@@ -2372,6 +2381,115 @@ export interface Database {
           submitted_timed_out?: number;
           success?: boolean;
           unsubmitted_timed_out?: number;
+        };
+      };
+      assign_next_dispatch_order_secure: {
+        Args: {
+          p_user_id: string;
+          p_session_token: string;
+          p_tab_id: string;
+          p_session_id: string;
+          p_group_id: string;
+          p_dispatch_mode?: string;
+        };
+        Returns: {
+          success?: boolean;
+          message?: string;
+          auto_stopped?: boolean;
+          schedule_next?: boolean;
+          unaccepted_count?: number;
+          assignment?: {
+            id: string;
+            dispatch_order_id: string;
+            status: string;
+            assigned_at: string;
+            order_content: string;
+            dispatch_session_id: string;
+            accept_deadline_at: string;
+          };
+        };
+      };
+      expire_pending_dispatch_assignment_secure: {
+        Args: {
+          p_user_id: string;
+          p_session_token: string;
+          p_tab_id: string;
+          p_session_id: string;
+          p_assignment_id: string;
+        };
+        Returns: {
+          success: boolean;
+          reason: string;
+          assignment_status?: string;
+          accept_deadline_at?: string;
+          schedule_next: boolean;
+          auto_stopped: boolean;
+          unaccepted_count: number;
+        };
+      };
+      accept_dispatch_assignment_secure: {
+        Args: {
+          p_user_id: string;
+          p_session_token: string;
+          p_tab_id: string;
+          p_session_id: string;
+          p_assignment_id: string;
+          p_assignment_code: string;
+        };
+        Returns: {
+          success: boolean;
+          reason?: string;
+          assignment_status?: string;
+          assignment_id?: string;
+          assignment_code?: string;
+          accepted_at?: string;
+          unaccepted_count?: number | null;
+        };
+      };
+      finish_dispatch_assignment_secure: {
+        Args: {
+          p_user_id: string;
+          p_session_token: string;
+          p_tab_id: string;
+          p_assignment_id: string;
+          p_status: string;
+          p_remarks?: string | null;
+        };
+        Returns: { success: boolean; assignment_id: string | null; status: string };
+      };
+      mark_dispatch_assignment_submitted_secure: {
+        Args: {
+          p_user_id: string;
+          p_session_token: string;
+          p_tab_id: string;
+          p_assignment_id: string;
+          p_assignment_code: string;
+        };
+        Returns: boolean;
+      };
+      recover_employee_dispatch_assignment_secure: {
+        Args: { p_user_id: string; p_session_token: string; p_tab_id: string };
+        Returns: {
+          success: boolean;
+          recovered: boolean;
+          session_id?: string;
+          started_at?: string;
+          assignment?: {
+            id: string;
+            dispatch_order_id: string;
+            user_id: string;
+            status: string;
+            assigned_at: string;
+            accepted_at: string | null;
+            completed_at: string | null;
+            remarks: string | null;
+            assignment_id: string | null;
+            order_submitted: boolean;
+            accept_deadline_at: string | null;
+            dispatch_session_id: string;
+            dispatch_orders: { order_content: string };
+            session_timeout_minutes: number;
+          };
         };
       };
       assign_next_dispatch_order: {

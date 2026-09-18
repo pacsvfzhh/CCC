@@ -54,15 +54,17 @@ DECLARE
   v_user_id uuid;
   v_started_at timestamptz;
   v_last_activity_at timestamptz;
+  v_status text;
+  v_ended_at timestamptz;
   v_end_time timestamptz;
 BEGIN
-  SELECT user_id, started_at, last_activity_at
-  INTO v_user_id, v_started_at, v_last_activity_at
+  SELECT user_id, started_at, last_activity_at, status, ended_at
+  INTO v_user_id, v_started_at, v_last_activity_at, v_status, v_ended_at
   FROM public.dispatch_sessions
   WHERE id = p_session_id
   FOR UPDATE;
 
-  IF v_user_id IS NULL THEN
+  IF v_user_id IS NULL OR v_status <> 'online' OR v_ended_at IS NOT NULL THEN
     RETURN;
   END IF;
 
@@ -82,13 +84,21 @@ BEGIN
     AND ended_at IS NULL;
 
   UPDATE public.work_sessions
-  SET end_time = v_end_time,
+  SET end_time = GREATEST(v_end_time, start_time),
       duration_minutes = GREATEST(
-        round(extract(epoch FROM (v_end_time - start_time)) / 60)::integer,
+        round(extract(epoch FROM (GREATEST(v_end_time, start_time) - start_time)) / 60)::integer,
         0
       )
-  WHERE user_id = v_user_id
-    AND end_time IS NULL;
+  WHERE id = (
+    SELECT work_session.id
+    FROM public.work_sessions AS work_session
+    WHERE work_session.user_id = v_user_id
+      AND work_session.end_time IS NULL
+      AND work_session.start_time <= COALESCE(v_last_activity_at, v_started_at) + interval '1 minute'
+    ORDER BY work_session.start_time DESC, work_session.id DESC
+    LIMIT 1
+    FOR UPDATE
+  );
 END;
 $function$;
 
@@ -139,6 +149,24 @@ BEGIN
 
   IF v_session.id IS NULL THEN
     RAISE EXCEPTION 'Employee work session is invalid, offline, or stale.';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.dispatch_groups AS dispatch_group
+    WHERE dispatch_group.id = p_group_id
+      AND dispatch_group.is_active = true
+      AND (
+        dispatch_group.is_default = true
+        OR EXISTS (
+          SELECT 1
+          FROM public.dispatch_group_members AS membership
+          WHERE membership.group_id = dispatch_group.id
+            AND membership.user_id = p_user_id
+        )
+      )
+  ) THEN
+    RAISE EXCEPTION 'Employee is not assigned to this dispatch group.';
   END IF;
 
   IF v_session.consecutive_unaccepted_count >= 5 THEN
@@ -258,6 +286,7 @@ BEGIN
   FROM public.dispatch_assignments
   WHERE id = p_assignment_id
     AND user_id = p_user_id
+    AND dispatch_session_id = p_session_id
   FOR UPDATE;
 
   IF v_assignment.id IS NULL THEN
@@ -344,6 +373,7 @@ SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
 AS $function$
 DECLARE
   v_assignment record;
+  v_success_rate integer;
   v_now timestamptz := clock_timestamp();
 BEGIN
   PERFORM 1
@@ -370,13 +400,20 @@ BEGIN
     RAISE EXCEPTION 'Employee work session is invalid, offline, or stale.';
   END IF;
 
-  SELECT id, status, accept_deadline_at
+  SELECT assignment.id,
+         assignment.status,
+         assignment.accept_deadline_at,
+         dispatch_group.dispatch_success_rate
   INTO v_assignment
-  FROM public.dispatch_assignments
-  WHERE id = p_assignment_id
-    AND user_id = p_user_id
-    AND dispatch_session_id = p_session_id
-  FOR UPDATE;
+  FROM public.dispatch_assignments AS assignment
+  INNER JOIN public.dispatch_group_orders AS dispatch_order
+    ON dispatch_order.id = assignment.dispatch_order_id
+  INNER JOIN public.dispatch_groups AS dispatch_group
+    ON dispatch_group.id = dispatch_order.group_id
+  WHERE assignment.id = p_assignment_id
+    AND assignment.user_id = p_user_id
+    AND assignment.dispatch_session_id = p_session_id
+  FOR UPDATE OF assignment;
 
   IF v_assignment.id IS NULL THEN
     RETURN jsonb_build_object('success', false, 'reason', 'assignment_not_found');
@@ -395,6 +432,23 @@ BEGIN
       'success', false,
       'reason', 'accept_deadline_reached',
       'accept_deadline_at', v_assignment.accept_deadline_at
+    );
+  END IF;
+
+  v_success_rate := LEAST(GREATEST(COALESCE(v_assignment.dispatch_success_rate, 100), 0), 100);
+  IF floor(random() * 100 + 1)::integer > v_success_rate THEN
+    UPDATE public.dispatch_assignments
+    SET status = 'cancelled',
+        completed_at = v_now,
+        remarks = 'Order grab failed based on dispatch group success rate'
+    WHERE id = p_assignment_id
+      AND status = 'pending';
+
+    RETURN jsonb_build_object(
+      'success', false,
+      'reason', 'grab_failed',
+      'assignment_status', 'cancelled',
+      'unaccepted_count', NULL
     );
   END IF;
 
@@ -441,7 +495,7 @@ AS $function$
 DECLARE
   v_updated_id uuid;
 BEGIN
-  IF p_status NOT IN ('completed', 'error', 'timeout') THEN
+  IF p_status NOT IN ('completed', 'error', 'timeout', 'cancelled') THEN
     RAISE EXCEPTION 'Invalid dispatch assignment status.';
   END IF;
 
@@ -469,7 +523,10 @@ BEGIN
       remarks = COALESCE(p_remarks, remarks)
   WHERE id = p_assignment_id
     AND user_id = p_user_id
-    AND status = 'accepted'
+    AND (
+      (p_status = 'cancelled' AND status IN ('pending', 'accepted'))
+      OR (p_status <> 'cancelled' AND status = 'accepted')
+    )
   RETURNING id INTO v_updated_id;
 
   RETURN jsonb_build_object(
@@ -521,6 +578,155 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.recover_employee_dispatch_assignment_secure(
+  p_user_id uuid,
+  p_session_token uuid,
+  p_tab_id text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
+AS $function$
+DECLARE
+  v_candidate record;
+  v_assignment record;
+  v_session jsonb;
+  v_timeout_minutes integer;
+BEGIN
+  PERFORM 1
+  FROM public.employee_financial_sessions AS financial_session
+  INNER JOIN public.users AS employee
+    ON employee.id = financial_session.user_id
+  WHERE financial_session.user_id = p_user_id
+    AND financial_session.token_hash = private.hash_financial_token(p_session_token)
+    AND financial_session.revoked_at IS NULL
+    AND financial_session.expires_at > now()
+    AND financial_session.tab_id = p_tab_id
+    AND financial_session.session_marker = employee.current_session_token
+    AND employee.current_tab_id = p_tab_id
+    AND employee.is_active = true;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Employee session is invalid or expired.';
+  END IF;
+
+  SELECT assignment.id,
+         assignment.accepted_at,
+         dispatch_group.session_timeout_minutes
+  INTO v_candidate
+  FROM public.dispatch_assignments AS assignment
+  INNER JOIN public.dispatch_group_orders AS dispatch_order
+    ON dispatch_order.id = assignment.dispatch_order_id
+  INNER JOIN public.dispatch_groups AS dispatch_group
+    ON dispatch_group.id = dispatch_order.group_id
+  WHERE assignment.user_id = p_user_id
+    AND assignment.status = 'accepted'
+  ORDER BY assignment.accepted_at DESC NULLS LAST, assignment.assigned_at DESC
+  LIMIT 1;
+
+  IF v_candidate.id IS NULL THEN
+    PERFORM public.stop_employee_dispatch_session_secure(
+      p_user_id,
+      p_session_token,
+      p_tab_id,
+      NULL
+    );
+    RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
+  END IF;
+
+  v_timeout_minutes := GREATEST(COALESCE(v_candidate.session_timeout_minutes, 10), 1);
+  IF v_candidate.accepted_at IS NULL
+     OR v_candidate.accepted_at + make_interval(mins => v_timeout_minutes) <= now() THEN
+    UPDATE public.dispatch_assignments
+    SET status = 'timeout',
+        completed_at = clock_timestamp(),
+        remarks = 'Auto-timeout: accepted assignment expired before recovery'
+    WHERE id = v_candidate.id
+      AND user_id = p_user_id
+      AND status = 'accepted';
+
+    PERFORM public.stop_employee_dispatch_session_secure(
+      p_user_id,
+      p_session_token,
+      p_tab_id,
+      NULL
+    );
+    RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
+  END IF;
+
+  v_session := public.start_employee_dispatch_session_secure(
+    p_user_id,
+    p_session_token,
+    p_tab_id
+  );
+
+  SELECT assignment.id,
+         assignment.dispatch_order_id,
+         assignment.user_id,
+         assignment.status,
+         assignment.assigned_at,
+         assignment.accepted_at,
+         assignment.completed_at,
+         assignment.remarks,
+         assignment.assignment_id,
+         assignment.order_submitted,
+         assignment.accept_deadline_at,
+         dispatch_order.order_content,
+         dispatch_group.session_timeout_minutes
+  INTO v_assignment
+  FROM public.dispatch_assignments AS assignment
+  INNER JOIN public.dispatch_group_orders AS dispatch_order
+    ON dispatch_order.id = assignment.dispatch_order_id
+  INNER JOIN public.dispatch_groups AS dispatch_group
+    ON dispatch_group.id = dispatch_order.group_id
+  WHERE assignment.id = v_candidate.id
+    AND assignment.user_id = p_user_id
+    AND assignment.status = 'accepted'
+    AND assignment.accepted_at + make_interval(
+      mins => GREATEST(COALESCE(dispatch_group.session_timeout_minutes, 10), 1)
+    ) > now()
+  FOR UPDATE OF assignment;
+
+  IF v_assignment.id IS NULL THEN
+    PERFORM public.stop_employee_dispatch_session_secure(
+      p_user_id,
+      p_session_token,
+      p_tab_id,
+      NULLIF(v_session->>'session_id', '')::uuid
+    );
+    RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
+  END IF;
+
+  UPDATE public.dispatch_assignments
+  SET dispatch_session_id = NULLIF(v_session->>'session_id', '')::uuid
+  WHERE id = v_assignment.id;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'recovered', true,
+    'session_id', v_session->>'session_id',
+    'started_at', v_session->>'started_at',
+    'assignment', jsonb_build_object(
+      'id', v_assignment.id,
+      'dispatch_order_id', v_assignment.dispatch_order_id,
+      'user_id', v_assignment.user_id,
+      'status', v_assignment.status,
+      'assigned_at', v_assignment.assigned_at,
+      'accepted_at', v_assignment.accepted_at,
+      'completed_at', v_assignment.completed_at,
+      'remarks', v_assignment.remarks,
+      'assignment_id', v_assignment.assignment_id,
+      'order_submitted', v_assignment.order_submitted,
+      'accept_deadline_at', v_assignment.accept_deadline_at,
+      'dispatch_session_id', v_session->>'session_id',
+      'dispatch_orders', jsonb_build_object('order_content', v_assignment.order_content),
+      'session_timeout_minutes', v_assignment.session_timeout_minutes
+    )
+  );
+END;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.reconcile_server_dispatch_lifecycle()
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -546,8 +752,14 @@ BEGIN
       AND assignment.accept_deadline_at IS NOT NULL
       AND assignment.accept_deadline_at <= v_now
     ORDER BY assignment.accept_deadline_at, assignment.id
-    FOR UPDATE SKIP LOCKED
   LOOP
+    IF v_assignment.dispatch_session_id IS NOT NULL THEN
+      PERFORM id
+      FROM public.dispatch_sessions
+      WHERE id = v_assignment.dispatch_session_id
+      FOR UPDATE;
+    END IF;
+
     UPDATE public.dispatch_assignments
     SET status = 'cancelled',
         completed_at = v_now,
@@ -635,6 +847,8 @@ REVOKE ALL ON FUNCTION public.finish_dispatch_assignment_secure(uuid, uuid, text
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.mark_dispatch_assignment_submitted_secure(uuid, uuid, text, uuid, text)
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.recover_employee_dispatch_assignment_secure(uuid, uuid, text)
+  FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.reconcile_server_dispatch_lifecycle()
   FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.assign_next_dispatch_order(uuid, uuid, text)
@@ -652,6 +866,14 @@ GRANT EXECUTE ON FUNCTION public.finish_dispatch_assignment_secure(uuid, uuid, t
   TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_dispatch_assignment_submitted_secure(uuid, uuid, text, uuid, text)
   TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.recover_employee_dispatch_assignment_secure(uuid, uuid, text)
+  TO anon, authenticated;
+
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.dispatch_assignments
+  FROM PUBLIC, anon, authenticated;
+DROP POLICY IF EXISTS "Anyone can insert dispatch assignments" ON public.dispatch_assignments;
+DROP POLICY IF EXISTS "Anyone can update dispatch assignments" ON public.dispatch_assignments;
+DROP POLICY IF EXISTS "Anyone can delete dispatch assignments" ON public.dispatch_assignments;
 
 DO $block$
 BEGIN

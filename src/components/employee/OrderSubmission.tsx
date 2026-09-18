@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { ProductType } from '../../types';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 import { useLanguage } from '../../lib/i18n/context';
+import { getStoredAuth } from '../../lib/auth';
 
 interface OrderSubmissionProps {
   employeeId: string;
@@ -486,13 +487,26 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
 
       if (orderError) throw orderError;
 
-      // Mark assignment as order_submitted
       if (activeAssignment) {
-        await supabase
-          .from('dispatch_assignments')
-          .update({ order_submitted: true })
-          .eq('id', activeAssignment.id)
-          .eq('assignment_id', activeAssignment.assignment_id);
+        const auth = getStoredAuth();
+        if (auth?.userType !== 'employee') {
+          await supabase.from('orders').delete().eq('id', orderData.id);
+          throw new Error('Employee session has expired.');
+        }
+        const { data: markedSubmitted, error: markError } = await supabase.rpc(
+          'mark_dispatch_assignment_submitted_secure',
+          {
+            p_user_id: auth.user.id,
+            p_session_token: auth.financialSessionToken,
+            p_tab_id: auth.tabId,
+            p_assignment_id: activeAssignment.id,
+            p_assignment_code: activeAssignment.assignment_id,
+          },
+        );
+        if (markError || !markedSubmitted) {
+          await supabase.from('orders').delete().eq('id', orderData.id);
+          throw markError || new Error('The dispatch assignment is no longer active.');
+        }
       }
 
       const { error: usageError } = await supabase
