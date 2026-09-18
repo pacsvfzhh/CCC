@@ -88,6 +88,8 @@ const ko = {
     loginNotification: '로그인 알림',
     liveMessage: '실시간 메시지',
     priority: '우선순위',
+    quickCopy: '클릭하여 빠른 복사',
+    copied: '복사됨',
   },
   workSession: { workTime: '근무 시간', startSession: '세션 시작', endSession: '세션 종료', active: '활성', inactive: '비활성' },
   transactions: { title: '거래 내역', noTransactions: '거래 없음', deposit: '입금', withdrawal: '출금', commission: '수수료', adjustment: '조정', all: '전체', credit: '입금', debit: '출금' },

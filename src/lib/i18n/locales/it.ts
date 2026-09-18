@@ -94,6 +94,8 @@ const it = {
     loginNotification: 'Notifica di accesso',
     liveMessage: 'Messaggio in diretta',
     priority: 'Priorità',
+    quickCopy: 'Clicca per copiare',
+    copied: 'Copiato',
   },
   workSession: { workTime: 'Tempo di lavoro', startSession: 'Avvia sessione', endSession: 'Termina sessione', active: 'Attivo', inactive: 'Inattivo' },
   transactions: { title: 'Cronologia transazioni', noTransactions: 'Nessuna transazione', deposit: 'Deposito', withdrawal: 'Prelievo', commission: 'Commissione', adjustment: 'Adeguamento', all: 'Tutti', credit: 'Credito', debit: 'Debito' },

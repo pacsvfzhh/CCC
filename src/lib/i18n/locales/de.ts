@@ -88,6 +88,8 @@ const de = {
     loginNotification: 'Login-Benachrichtigung',
     liveMessage: 'Live-Nachricht',
     priority: 'Priorität',
+    quickCopy: 'Zum Kopieren klicken',
+    copied: 'Kopiert',
   },
   workSession: { workTime: 'Arbeitszeit', startSession: 'Sitzung starten', endSession: 'Sitzung beenden', active: 'Aktiv', inactive: 'Inaktiv' },
   transactions: { title: 'Transaktionsverlauf', noTransactions: 'Keine Transaktionen', deposit: 'Einzahlung', withdrawal: 'Abhebung', commission: 'Provision', adjustment: 'Anpassung', all: 'Alle', credit: 'Gutschrift', debit: 'Belastung' },

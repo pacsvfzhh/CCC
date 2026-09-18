@@ -619,6 +619,8 @@ const hi = {
     loginNotification: 'लॉगिन सूचना',
     liveMessage: 'लाइव संदेश',
     priority: 'प्राथमिकता',
+    quickCopy: 'कॉपी करने के लिए क्लिक करें',
+    copied: 'कॉपी किया गया',
   },
 
   // Work session

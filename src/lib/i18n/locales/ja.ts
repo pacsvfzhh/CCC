@@ -88,6 +88,8 @@ const ja = {
     loginNotification: 'ログイン通知',
     liveMessage: 'リアルタイムメッセージ',
     priority: '優先度',
+    quickCopy: 'クリックしてコピー',
+    copied: 'コピーしました',
   },
   workSession: { workTime: '勤務時間', startSession: 'セッション開始', endSession: 'セッション終了', active: 'アクティブ', inactive: '非アクティブ' },
   transactions: { title: '取引履歴', noTransactions: '取引はありません', deposit: '入金', withdrawal: '出金', commission: '手数料', adjustment: '調整', all: 'すべて', credit: '入金', debit: '出金' },

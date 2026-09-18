@@ -4,8 +4,8 @@ import { X, Bell, Eye, AlertCircle, CheckCircle, Clock, Zap, Shield, Radio, Chev
 import { supabase } from '../../lib/supabase';
 import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
-import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import { useLanguage } from '../../lib/i18n/context';
+import QuickCopyRichContent from './QuickCopyRichContent';
 
 interface MessageCenterProps {
   employee: Employee;
@@ -567,11 +567,11 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                 {/* Top accent line */}
                 <div className="absolute top-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-blue-300 to-transparent rounded-full" />
 
-                <div
+                <QuickCopyRichContent
+                  html={selectedMessage.messages.content}
+                  copyLabel={t.messages.quickCopy}
+                  copiedLabel={t.messages.copied}
                   className="prose prose-sm lg:prose-base max-w-none leading-relaxed [&_a]:!text-blue-600 [&_a]:underline [&_img]:!rounded-xl [&_img]:!shadow-md [&_blockquote]:!border-l-blue-400 [&_blockquote]:!bg-blue-50/50 [&_blockquote]:!p-4 [&_blockquote]:!rounded-r-lg [&_h1]:!text-slate-900 [&_h2]:!text-slate-800 [&_h3]:!text-slate-700 [&_p]:!text-slate-700 [&_li]:!text-slate-700 message-content-dark"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHTML(selectedMessage.messages.content, {
-                    allowedAttributes: ['href', 'src', 'alt', 'title', 'class', 'target', 'rel', 'width', 'height', 'style', 'size']
-                  }) }}
                   style={{ wordBreak: 'break-word', overflowWrap: 'break-word', color: '#1e293b' }}
                 />
               </div>

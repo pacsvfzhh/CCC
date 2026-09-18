@@ -509,6 +509,8 @@ const es = {
     loginNotification: 'Notificación de inicio',
     liveMessage: 'Mensaje en vivo',
     priority: 'Prioridad',
+    quickCopy: 'Haz clic para copiar',
+    copied: 'Copiado',
   },
   workSession: {
     workTime: 'Tiempo de trabajo',

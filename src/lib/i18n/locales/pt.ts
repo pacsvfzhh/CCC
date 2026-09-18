@@ -47,6 +47,8 @@ const pt = {
     loginNotification: 'Notificação de login',
     liveMessage: 'Mensagem ao vivo',
     priority: 'Prioridade',
+    quickCopy: 'Clique para copiar',
+    copied: 'Copiado',
   },
   workSession: { workTime: 'Tempo de trabalho', startSession: 'Iniciar sessao', endSession: 'Encerrar sessao', active: 'Ativo', inactive: 'Inativo' },
   transactions: { title: 'Historico de transacoes', noTransactions: 'Sem transacoes', deposit: 'Deposito', withdrawal: 'Saque', commission: 'Comissao', adjustment: 'Ajuste', all: 'Todos', credit: 'Credito', debit: 'Debito' },

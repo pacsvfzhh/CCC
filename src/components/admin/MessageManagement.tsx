@@ -1649,6 +1649,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   placeholder="Write your message here..."
                   theme="light"
                   adminId=""
+                  enableQuickCopy
                 />
               </div>
             </div>
@@ -1960,6 +1961,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         placeholder="Edit message content..."
                         theme="light"
                         adminId={admin.id}
+                        enableQuickCopy
                       />
                     </div>
                   ) : (
@@ -2300,6 +2302,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                       placeholder="Write your template content here..."
                       theme="light"
                       adminId=""
+                      enableQuickCopy
                     />
                   </div>
                 </div>

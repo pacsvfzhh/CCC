@@ -625,6 +625,8 @@ const en = {
     loginNotification: 'Login Notification',
     liveMessage: 'Live Message',
     priority: 'Priority',
+    quickCopy: 'Click to quick copy',
+    copied: 'Copied',
   },
 
   // Work session

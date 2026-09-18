@@ -46,6 +46,8 @@ const fr = {
     loginNotification: 'Notification de connexion',
     liveMessage: 'Message en direct',
     priority: 'Priorité',
+    quickCopy: 'Cliquer pour copier',
+    copied: 'Copié',
   },
   workSession: { workTime: 'Temps de travail', startSession: 'Demarrer la session', endSession: 'Terminer la session', active: 'Actif', inactive: 'Inactif' },
   transactions: { title: 'Historique des transactions', noTransactions: 'Aucune transaction', deposit: 'Depot', withdrawal: 'Retrait', commission: 'Commission', adjustment: 'Ajustement', all: 'Tous', credit: 'Credit', debit: 'Debit' },

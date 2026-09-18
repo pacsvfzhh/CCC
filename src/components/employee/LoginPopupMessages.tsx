@@ -4,8 +4,8 @@ import { X, AlertTriangle, Bell, Clock, ChevronLeft, ChevronRight } from 'lucide
 import { supabase } from '../../lib/supabase';
 import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
-import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import { useLanguage } from '../../lib/i18n/context';
+import QuickCopyRichContent from './QuickCopyRichContent';
 
 interface LoginPopupMessagesProps {
   employee: Employee;
@@ -263,11 +263,11 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   </div>
 
                   <div className="px-5 py-5">
-                    <div
+                    <QuickCopyRichContent
+                      html={currentMessage.messages.content}
+                      copyLabel={t.messages.quickCopy}
+                      copiedLabel={t.messages.copied}
                       className="prose prose-sm max-w-none leading-relaxed break-words message-content-dark"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHTML(currentMessage.messages.content, {
-                        allowedAttributes: ['href', 'src', 'alt', 'title', 'class', 'target', 'rel', 'width', 'height', 'style', 'size']
-                      }) }}
                       style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
                     />
                   </div>
@@ -402,11 +402,11 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
                   <div className="h-px bg-gradient-to-r from-blue-100 via-slate-200 to-transparent mb-6" />
 
-                  <div
+                  <QuickCopyRichContent
+                    html={currentMessage.messages.content}
+                    copyLabel={t.messages.quickCopy}
+                    copiedLabel={t.messages.copied}
                     className="prose prose-base max-w-none leading-relaxed break-words message-content-dark [&_img]:rounded-xl [&_img]:shadow-md [&_img]:border [&_img]:border-slate-200"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHTML(currentMessage.messages.content, {
-                      allowedAttributes: ['href', 'src', 'alt', 'title', 'class', 'target', 'rel', 'width', 'height', 'style', 'size']
-                    }) }}
                     style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
                   />
                 </div>

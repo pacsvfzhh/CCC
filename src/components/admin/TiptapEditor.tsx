@@ -24,7 +24,8 @@ import {
   AlignCenter,
   AlignRight,
   FileText,
-  Highlighter
+  Highlighter,
+  Copy
 } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 
@@ -121,6 +122,17 @@ const HighlightMark = Mark.create({
   },
 });
 
+const QuickCopyMark = Mark.create({
+  name: 'quickCopy',
+  inclusive: false,
+  parseHTML() {
+    return [{ tag: 'span.message-quick-copy' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes, { class: 'message-quick-copy' }), 0];
+  },
+});
+
 // Custom text size extension for inline formatting
 const TextSize = Mark.create({
   name: 'textSize',
@@ -187,6 +199,7 @@ interface TiptapEditorProps {
   editable?: boolean;
   adminId: string;
   theme?: 'dark' | 'light';
+  enableQuickCopy?: boolean;
 }
 
 export interface TiptapEditorRef {
@@ -202,7 +215,8 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
   placeholder = '開始輸入公告內容……',
   editable = true,
   adminId,
-  theme = 'dark'
+  theme = 'dark',
+  enableQuickCopy = false
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -266,7 +280,8 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       TextStyle,
       Color,
       TextSize,
-      HighlightMark
+      HighlightMark,
+      ...(enableQuickCopy ? [QuickCopyMark] : [])
     ],
     content,
     editable,
@@ -773,6 +788,12 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
           display: block;
           background: rgba(0, 0, 0, 0.3);
         }
+        .ProseMirror .message-quick-copy {
+          border-radius: 0.25rem;
+          background: rgba(14, 165, 233, 0.14);
+          box-shadow: inset 0 -2px 0 rgba(2, 132, 199, 0.75);
+          padding: 0 0.125rem;
+        }
         .tiptap-editor-wrapper {
           flex: 1;
           min-height: 0;
@@ -1082,6 +1103,20 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
                 </>
               )}
             </div>
+
+            {enableQuickCopy && (
+              <MenuButton
+                onClick={() => editor.chain().focus().toggleMark('quickCopy').run()}
+                active={editor.isActive('quickCopy')}
+                disabled={editor.state.selection.empty}
+                title="將選取文字設為快速複製"
+              >
+                <span className="flex items-center gap-1 whitespace-nowrap px-0.5 text-[11px] font-bold">
+                  <Copy className="h-3.5 w-3.5" />
+                  快速複製
+                </span>
+              </MenuButton>
+            )}
 
             <div className={`w-px h-6 mx-1 ${theme === 'light' ? 'bg-slate-200' : 'bg-slate-700'}`} />
 

@@ -560,6 +560,8 @@ const zh = {
     loginNotification: '登录通知',
     liveMessage: '实时消息',
     priority: '优先级',
+    quickCopy: '点击快速复制',
+    copied: '已复制',
   },
   workSession: {
     workTime: '工作时间',
