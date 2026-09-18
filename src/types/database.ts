@@ -1181,6 +1181,42 @@ export interface Database {
         };
         Relationships: [];
       };
+      withdrawal_events: {
+        Row: {
+          user_id: string;
+          admin_id: string | null;
+          event_type: 'INSERT' | 'UPDATE' | 'DELETE';
+          occurred_at: string;
+        };
+        Insert: {
+          user_id: string;
+          admin_id?: string | null;
+          event_type: 'INSERT' | 'UPDATE' | 'DELETE';
+          occurred_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          admin_id?: string | null;
+          event_type?: 'INSERT' | 'UPDATE' | 'DELETE';
+          occurred_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'withdrawal_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'withdrawal_events_admin_id_fkey';
+            columns: ['admin_id'];
+            isOneToOne: false;
+            referencedRelation: 'admins';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       withdrawals: {
         Row: {
           id: string;

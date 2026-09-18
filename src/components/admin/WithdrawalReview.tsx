@@ -278,24 +278,13 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
       .channel('withdrawal-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'withdrawals' },
-        (payload) => {
-          const changedWithdrawal = (payload.new && Object.keys(payload.new).length > 0
-            ? payload.new
-            : payload.old) as { id?: unknown; user_id?: unknown };
-          const userId = typeof changedWithdrawal.user_id === 'string' ? changedWithdrawal.user_id : null;
-          const employeeScope = scopedEmployeeIdsRef.current;
-          if (employeeScope !== null && (!userId || !employeeScope.has(userId))) return;
-
-          if (payload.eventType === 'UPDATE' && payload.new) {
-            setAdminGroups(prev => prev.map(group => ({
-              ...group,
-              withdrawals: group.withdrawals.map(w =>
-                w.id === payload.new.id ? { ...w, ...payload.new } : w
-              ),
-            })));
-            return;
-          }
+        {
+          event: '*',
+          schema: 'public',
+          table: 'withdrawal_events',
+          ...(admin.role === 'secondary_admin' ? { filter: `admin_id=eq.${admin.id}` } : {}),
+        },
+        () => {
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => { void loadWithdrawalsRef.current?.(); }, 800);
         }

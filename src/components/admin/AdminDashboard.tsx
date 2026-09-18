@@ -936,14 +936,13 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       .channel('admin-withdrawals')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'withdrawals' },
-        (payload) => {
-          const changedWithdrawal = (payload.new && Object.keys(payload.new).length > 0
-            ? payload.new
-            : payload.old) as { user_id?: unknown };
-          const userId = typeof changedWithdrawal.user_id === 'string' ? changedWithdrawal.user_id : null;
-          const employeeScope = conversationScopeRef.current.employeeIds;
-          if (employeeScope !== null && (!userId || !employeeScope.has(userId))) return;
+        {
+          event: '*',
+          schema: 'public',
+          table: 'withdrawal_events',
+          ...(admin.role === 'secondary_admin' ? { filter: `admin_id=eq.${admin.id}` } : {}),
+        },
+        () => {
           loadPendingCounts();
         }
       )
@@ -1078,7 +1077,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       autoCleanupService.stop();
       console.log('[Admin Dashboard] Auto cleanup service stopped');
     };
-  }, [loadPendingCounts, loadLockedAccountsCount, admin.id]);
+  }, [loadPendingCounts, loadLockedAccountsCount, admin.id, admin.role]);
 
   const handleChangePassword = async () => {
     setPasswordError(null);

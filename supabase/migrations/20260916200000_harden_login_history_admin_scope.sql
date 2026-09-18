@@ -1,6 +1,8 @@
 CREATE INDEX IF NOT EXISTS idx_employee_login_history_user_action_created_at
   ON public.employee_login_history(user_id, action_type, created_at DESC);
 
+DROP FUNCTION IF EXISTS public.get_employee_login_summary(uuid, text);
+
 CREATE OR REPLACE FUNCTION public.get_employee_login_summary(
   p_admin_id uuid,
   p_search_term text DEFAULT NULL
@@ -247,6 +249,10 @@ BEGIN
   OFFSET v_offset;
 END;
 $function$;
+
+DROP POLICY IF EXISTS "Allow read access for custom auth" ON public.employee_login_history;
+DROP POLICY IF EXISTS "Admins can view all login history" ON public.employee_login_history;
+REVOKE SELECT ON TABLE public.employee_login_history FROM PUBLIC, anon, authenticated;
 
 REVOKE ALL ON FUNCTION public.get_employee_login_summary(uuid, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.get_employee_login_history(uuid, uuid, integer, integer) FROM PUBLIC, anon, authenticated;

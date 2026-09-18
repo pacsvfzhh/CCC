@@ -47,7 +47,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'withdrawals', filter: `user_id=eq.${employeeId}` },
+        { event: '*', schema: 'public', table: 'withdrawal_events', filter: `user_id=eq.${employeeId}` },
         () => {
           void loadTransactionsRef.current?.();
         }

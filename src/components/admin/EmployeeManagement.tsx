@@ -675,11 +675,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
     const withdrawalsSubscription = supabase
       .channel('employee_mgmt_withdrawals')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, (payload) => {
-        if (isVisibleEmployeePayload(payload)) {
-          markRealtimeChange();
-          scheduleRealtimeReload(500);
-        }
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'withdrawal_events',
+        ...(admin.role === 'secondary_admin' ? { filter: `admin_id=eq.${admin.id}` } : {}),
+      }, () => {
+        markRealtimeChange();
+        scheduleRealtimeReload(500);
       })
       .subscribe((status) => handleRealtimeStatus('withdrawals', status));
 
