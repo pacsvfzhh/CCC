@@ -2347,6 +2347,38 @@ export interface Database {
         Args: { p_employee_id: string };
         Returns: number;
       };
+      search_all_employees_for_admin: {
+        Args: {
+          p_admin_session_token: string;
+          p_search_term: string;
+          p_limit?: number;
+        };
+        Returns: Array<{
+          id: string;
+          username: string;
+          employee_id: string;
+          created_at: string;
+          is_active: boolean;
+          is_verified: boolean;
+          created_by: string;
+          remarks: string | null;
+          tags: string[];
+          total_income: number;
+          first_success_order_date: string | null;
+          admin_info: {
+            username: string;
+            role: string;
+          } | null;
+          verification_info: {
+            real_name: string | null;
+            email: string | null;
+            phone: string | null;
+            wallet_address: string | null;
+            status: string;
+            created_at: string;
+          } | null;
+        }>;
+      };
       get_employee_login_summary: {
         Args: { p_admin_id: string; p_search_term?: string | null };
         Returns: Array<{
