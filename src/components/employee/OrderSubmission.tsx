@@ -487,9 +487,23 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
 
       if (orderError) throw orderError;
 
+      const { error: usageError } = await supabase
+        .from('used_order_data')
+        .insert({
+          user_id: employeeId,
+          valid_order_data_id: validData.id,
+          order_id: orderData.id,
+        });
+
+      if (usageError) {
+        await supabase.from('orders').delete().eq('id', orderData.id);
+        throw usageError;
+      }
+
       if (activeAssignment) {
         const auth = getStoredAuth();
         if (auth?.userType !== 'employee') {
+          await supabase.from('used_order_data').delete().eq('order_id', orderData.id);
           await supabase.from('orders').delete().eq('id', orderData.id);
           throw new Error('Employee session has expired.');
         }
@@ -505,22 +519,10 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
           },
         );
         if (markError || !markedSubmitted) {
+          await supabase.from('used_order_data').delete().eq('order_id', orderData.id);
           await supabase.from('orders').delete().eq('id', orderData.id);
           throw markError || new Error('The dispatch assignment is no longer active.');
         }
-      }
-
-      const { error: usageError } = await supabase
-        .from('used_order_data')
-        .insert({
-          user_id: employeeId,
-          valid_order_data_id: validData.id,
-          order_id: orderData.id,
-        });
-
-      if (usageError) {
-        await supabase.from('orders').delete().eq('id', orderData.id);
-        throw usageError;
       }
 
       // Wait for animation to complete (it always takes exactly totalDuration)

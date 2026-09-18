@@ -658,6 +658,7 @@ AS $function$
 DECLARE
   v_candidate record;
   v_assignment record;
+  v_existing_session record;
   v_session jsonb;
   v_timeout_minutes integer;
 BEGIN
@@ -696,13 +697,51 @@ BEGIN
   LIMIT 1;
 
   IF v_candidate.id IS NULL THEN
-    PERFORM public.stop_employee_dispatch_session_secure(
+    SELECT dispatch_session.id,
+           dispatch_session.started_at,
+           dispatch_session.consecutive_unaccepted_count
+    INTO v_existing_session
+    FROM public.dispatch_sessions AS dispatch_session
+    WHERE dispatch_session.user_id = p_user_id
+      AND dispatch_session.last_activity_at >= now() - interval '2 minutes'
+      AND (
+        (
+          dispatch_session.status = 'online'
+          AND dispatch_session.ended_at IS NULL
+        )
+        OR (
+          dispatch_session.status = 'offline'
+          AND dispatch_session.ended_at >= now() - interval '30 seconds'
+        )
+      )
+    ORDER BY dispatch_session.started_at DESC, dispatch_session.id DESC
+    LIMIT 1;
+
+    IF v_existing_session.id IS NULL THEN
+      PERFORM public.stop_employee_dispatch_session_secure(
+        p_user_id,
+        p_session_token,
+        p_tab_id,
+        NULL
+      );
+      RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
+    END IF;
+
+    v_session := public.resume_employee_dispatch_session_secure(
       p_user_id,
       p_session_token,
       p_tab_id,
-      NULL
+      v_existing_session.id
     );
-    RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
+
+    RETURN jsonb_build_object(
+      'success', true,
+      'recovered', true,
+      'session_id', v_session->>'session_id',
+      'started_at', v_session->>'started_at',
+      'unaccepted_count', COALESCE((v_session->>'unaccepted_count')::integer, 0),
+      'assignment', NULL
+    );
   END IF;
 
   IF v_candidate.status = 'pending'

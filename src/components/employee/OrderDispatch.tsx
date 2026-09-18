@@ -973,7 +973,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         },
       );
       if (error) throw error;
-      if (!data?.recovered || !data.assignment || !data.session_id || !data.started_at) return;
+      if (!data?.recovered || !data.session_id || !data.started_at) return;
       if (!componentMountedRef.current) return;
 
       sessionActiveRef.current = true;
@@ -986,11 +986,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         sessionId: data.session_id,
         startedAt: new Date(data.started_at),
       });
-      setCurrentOrder(data.assignment);
-      setShowOrderDetail(true);
       setUnacceptedCount(recoveredUnacceptedCount);
       startHeartbeat();
       void loadTotalWorkTime();
+
+      if (data.assignment) {
+        setCurrentOrder(data.assignment);
+        setShowOrderDetail(true);
+      } else {
+        scheduleNextOrder();
+      }
     } catch (error) {
       console.error('Failed to recover active assignment:', error);
       throw error;
