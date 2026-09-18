@@ -87,7 +87,6 @@ type SummaryFilter = 'today_working' | 'new_today' | 'currently_working';
 
 const AUTO_REFRESH_INTERVAL_MS = 180000;
 const AUTO_REFRESH_RETRY_MS = 5000;
-const EMPLOYEE_PAGE_SIZE = 500;
 
 function RefreshCountdown({ nextRefreshAt }: { nextRefreshAt: number }) {
   const [now, setNow] = useState(() => Date.now());
@@ -166,6 +165,7 @@ interface EmployeeManagementProps {
 export default function EmployeeManagement({ admin, isActive = true, onQuickAction }: EmployeeManagementProps) {
   const [employeeGroups, setEmployeeGroups] = useState<EmployeeGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAdminFilter, setSelectedAdminFilter] = useState<string>('all');
@@ -294,7 +294,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const pendingReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextAutoRefreshAtRef = useRef(Date.now() + AUTO_REFRESH_INTERVAL_MS);
-  const withdrawalDateRefreshAttemptedRef = useRef(false);
   const guardedLoadEmployeesRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
   const realtimeChangeGenerationRef = useRef(0);
   const employeeScopeGenerationRef = useRef(0);
@@ -404,9 +403,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       realtimeChangeGenerationRef.current += 1;
       initialLoadStartedRef.current = false;
       employeeGroupsRef.current = [];
-      withdrawalDateRefreshAttemptedRef.current = false;
       setEmployeeGroups([]);
       setExpandedGroups(new Set());
+      setLoadError(null);
       setLoading(true);
       setStatsLoading(false);
       setIsRefreshing(false);
@@ -467,86 +466,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         return groupsChanged ? nextGroups : prev;
       });
     };
-    let workStatusUpdateTimer: ReturnType<typeof setTimeout> | null = null;
-    const pendingWorkStatusUpdates = new Map<string, 'online' | 'offline'>();
-    const scheduleWorkStatusUpdate = (userId: string, status: 'online' | 'offline') => {
-      pendingWorkStatusUpdates.set(userId, status);
-      if (workStatusUpdateTimer) return;
-
-      workStatusUpdateTimer = setTimeout(() => {
-        workStatusUpdateTimer = null;
-        const hasUpdates = pendingWorkStatusUpdates.size > 0;
-        pendingWorkStatusUpdates.clear();
-        if (!isMountedRef.current || !hasUpdates) return;
-
-        debouncedStatsReload();
-      }, 150);
-    };
-    let workTimeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
-    let workTimeRefreshWindowStartedAt: number | null = null;
-    let workTimeRefreshRunning = false;
-    const pendingWorkTimeUserIds = new Set<string>();
-    const scheduleWorkTimeRefresh = (userId: string) => {
-      pendingWorkTimeUserIds.add(userId);
-      if (workTimeRefreshRunning) return;
-
-      const now = Date.now();
-      workTimeRefreshWindowStartedAt ??= now;
-      if (workTimeRefreshTimer) clearTimeout(workTimeRefreshTimer);
-
-      const elapsed = now - workTimeRefreshWindowStartedAt;
-      const wait = Math.max(0, Math.min(700, 2000 - elapsed));
-      workTimeRefreshTimer = setTimeout(async () => {
-        workTimeRefreshTimer = null;
-        workTimeRefreshWindowStartedAt = null;
-        const userIds = Array.from(pendingWorkTimeUserIds);
-        pendingWorkTimeUserIds.clear();
-        if (userIds.length === 0 || !isMountedRef.current) return;
-
-        workTimeRefreshRunning = true;
-        const requestGeneration = realtimeChangeGenerationRef.current;
-        try {
-          const { data, error } = await supabase.rpc('get_batch_work_time', { p_user_ids: userIds });
-          if (error) {
-            if (isMountedRef.current) debouncedStatsReload();
-            return;
-          }
-          if (!isMountedRef.current) return;
-          if (requestGeneration !== realtimeChangeGenerationRef.current) {
-            userIds.forEach(id => pendingWorkTimeUserIds.add(id));
-            return;
-          }
-
-          const workTimeMap = new Map<string, { total: number; today: number }>();
-          (data || []).forEach((row) => {
-            workTimeMap.set(row.user_id, {
-              total: row.total_work_minutes || 0,
-              today: row.today_work_minutes || 0,
-            });
-          });
-
-          markRealtimeChange();
-          updateEmployeeGroups(employee => {
-            const workTime = workTimeMap.get(employee.id);
-            return workTime
-              ? {
-                  ...employee,
-                  totalWorkMinutes: workTime.total,
-                  todayWorkMinutes: workTime.today,
-                }
-              : employee;
-          });
-        } catch {
-          if (isMountedRef.current) debouncedStatsReload();
-        } finally {
-          workTimeRefreshRunning = false;
-          if (isMountedRef.current && pendingWorkTimeUserIds.size > 0) {
-            const nextUserId = pendingWorkTimeUserIds.values().next().value;
-            if (nextUserId) scheduleWorkTimeRefresh(nextUserId);
-          }
-        }
-      }, wait);
-    };
     const getPayloadUserId = (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => (
       String(payload.new.user_id || payload.old.user_id || '')
     );
@@ -554,10 +473,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       const userId = getPayloadUserId(payload);
       if (!userId) return false;
       return employeeGroupsRef.current.some(group => group.employees.some(employee => employee.id === userId));
-    };
-    const isBusinessWorkSessionChange = (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
-      if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') return true;
-      return payload.new.end_time != null || payload.new.duration_minutes != null;
     };
     const isTodayOrder = (dateString?: string | null) => {
       if (!dateString) return true;
@@ -640,38 +555,18 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       })
       .subscribe((status) => handleRealtimeStatus('verification_requests', status));
 
-    const workSessionsSubscription = supabase
-      .channel('employee_mgmt_work_sessions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_sessions' }, (payload) => {
-        const userId = getPayloadUserId(payload);
-        if (!userId || !isVisibleEmployeePayload(payload) || !isBusinessWorkSessionChange(payload)) return;
-
-        const isEnding = payload.eventType === 'DELETE'
-          || payload.new.end_time != null
-          || payload.new.duration_minutes != null;
-        scheduleWorkStatusUpdate(userId, isEnding ? 'offline' : 'online');
-        scheduleWorkTimeRefresh(userId);
+    const presenceEventsSubscription = supabase
+      .channel('employee_mgmt_presence_events')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'employee_presence_events',
+        ...(admin.role === 'secondary_admin' ? { filter: `admin_id=eq.${admin.id}` } : {}),
+      }, () => {
+        markRealtimeChange();
+        scheduleRealtimeReload(800);
       })
-      .subscribe((status) => handleRealtimeStatus('work_sessions', status));
-
-    const dispatchSessionsSubscription = supabase
-      .channel('employee_mgmt_dispatch_sessions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'dispatch_sessions' }, (payload) => {
-        const userId = getPayloadUserId(payload);
-        if (!userId || !isVisibleEmployeePayload(payload)) return;
-
-        const isStarting = payload.eventType !== 'DELETE'
-          && payload.new.status === 'online'
-          && payload.new.ended_at == null;
-        const isEnding = payload.eventType === 'DELETE'
-          || payload.new.status === 'offline'
-          || payload.new.ended_at != null;
-        if (!isStarting && !isEnding) return;
-
-        scheduleWorkStatusUpdate(userId, isStarting ? 'online' : 'offline');
-        if (isEnding) scheduleWorkTimeRefresh(userId);
-      })
-      .subscribe((status) => handleRealtimeStatus('dispatch_sessions', status));
+      .subscribe((status) => handleRealtimeStatus('employee_presence_events', status));
 
     const withdrawalsSubscription = supabase
       .channel('employee_mgmt_withdrawals')
@@ -860,35 +755,18 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       supabase.removeChannel(adminsSubscription);
       supabase.removeChannel(usersSubscription);
       supabase.removeChannel(verificationRequestsSubscription);
-      supabase.removeChannel(workSessionsSubscription);
-      supabase.removeChannel(dispatchSessionsSubscription);
+      supabase.removeChannel(presenceEventsSubscription);
       supabase.removeChannel(withdrawalsSubscription);
       supabase.removeChannel(walletsSubscription);
       supabase.removeChannel(walletTransactionsSubscription);
       supabase.removeChannel(ordersSubscription);
       if (commissionRefreshTimer) clearTimeout(commissionRefreshTimer);
-      if (workStatusUpdateTimer) clearTimeout(workStatusUpdateTimer);
-      pendingWorkStatusUpdates.clear();
-      if (workTimeRefreshTimer) clearTimeout(workTimeRefreshTimer);
-      pendingWorkTimeUserIds.clear();
       if (resetFeedbackTimeoutRef.current) clearTimeout(resetFeedbackTimeoutRef.current);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (autoRefreshTimerRef.current) clearTimeout(autoRefreshTimerRef.current);
       if (pendingReloadTimerRef.current) clearTimeout(pendingReloadTimerRef.current);
     };
   }, [admin.id, admin.role, isActive, resetAutoRefreshTimer]);
-
-  useEffect(() => {
-    if (loading || statsLoading || employeeGroups.length === 0 || withdrawalDateRefreshAttemptedRef.current) return;
-
-    const hasPendingWithdrawalWithoutDate = employeeGroups.some(group =>
-      group.employees.some(employee => employee.hasPendingWithdrawal && (!employee.pendingWithdrawalDate || !employee.pendingWithdrawals?.length))
-    );
-
-    if (!hasPendingWithdrawalWithoutDate) return;
-    withdrawalDateRefreshAttemptedRef.current = true;
-    void guardedLoadEmployeesRef.current?.(true);
-  }, [employeeGroups, loading, statsLoading]);
 
   const formatTime = useCallback((minutes: number): string => {
     const hours = Math.floor(minutes / 60);
@@ -940,354 +818,87 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const requestScopeGeneration = employeeScopeGenerationRef.current;
     const hasExistingGroups = employeeGroupsRef.current.length > 0;
     const showInitialLoading = !silent && !hasExistingGroups;
-    let hasBaseData = false;
     let committed = false;
 
-    if (showInitialLoading) setLoading(true);
-    else setIsRefreshing(true);
+    if (showInitialLoading) {
+      setLoadError(null);
+      setLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
 
     try {
-      const now = new Date();
-      const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-      const todayISO = todayUTC.toISOString();
-
-      const employeeSelect = 'id, username, employee_id, is_verified, is_active, total_income, first_success_order_date, created_by, remarks, tags, is_pinned, current_session_token, session_created_at, last_heartbeat_at, current_tab_id, created_at, updated_at';
-      const buildEmployeesQuery = (from: number, to: number) => {
-        let query = supabase
-          .from('users')
-          .select(employeeSelect, { count: 'exact' })
-          .order('created_at', { ascending: false })
-          .order('id', { ascending: false })
-          .range(from, to);
-
-        if (admin.role === 'secondary_admin') {
-          query = query.eq('created_by', admin.id);
-        }
-
-        return query;
-      };
-      const employeesQuery = buildEmployeesQuery(0, EMPLOYEE_PAGE_SIZE - 1);
-      let adminsQuery = supabase.from('admins').select('id, username, role, is_pinned');
-      if (admin.role === 'secondary_admin') {
-        adminsQuery = adminsQuery.eq('id', admin.id);
-      } else {
-        adminsQuery = adminsQuery.neq('role', 'emergency_admin');
+      const { data: snapshot, error } = await supabase.rpc('get_employee_management_snapshot', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+      });
+      if (error) throw error;
+      if (!snapshot || !Array.isArray(snapshot.admins) || !Array.isArray(snapshot.employees)) {
+        throw new Error('Employee management snapshot response was invalid.');
       }
 
-      const [employeesResult, adminsResult] = await Promise.all([
-        employeesQuery,
-        adminsQuery,
-      ]);
-
-      if (employeesResult.error) throw employeesResult.error;
-      if (adminsResult.error) throw adminsResult.error;
-
-      let employees = employeesResult.data || [];
-      const employeeTotal = employeesResult.count ?? employees.length;
-      if (employeeTotal > employees.length) {
-        const pageStarts = Array.from(
-          { length: Math.max(0, Math.ceil(employeeTotal / EMPLOYEE_PAGE_SIZE) - 1) },
-          (_, index) => (index + 1) * EMPLOYEE_PAGE_SIZE,
-        );
-        const pageResults = await Promise.all(
-          pageStarts.map(from => buildEmployeesQuery(from, from + EMPLOYEE_PAGE_SIZE - 1)),
-        );
-        const pageError = pageResults.find(result => result.error)?.error;
-        if (pageError) throw pageError;
-        employees = employees.concat(pageResults.flatMap(result => result.data || []));
-      }
-      const admins = adminsResult.data || [];
-      const adminMap = new Map(admins.map((adminInfo) => [adminInfo.id, adminInfo]));
-      const groupedEmployees = employees.filter((emp: Employee) => adminMap.has(emp.created_by));
-      const userIds = groupedEmployees.map((emp: Employee) => emp.id);
-      const previousEmployeesById = new Map(
-        employeeGroupsRef.current.flatMap(group => group.employees.map(employee => [employee.id, employee] as const)),
-      );
+      const adminMap = new Map(snapshot.admins.map(adminInfo => [adminInfo.id, adminInfo]));
       const baseGroups = new Map<string, EmployeeGroup>();
-
-      admins.forEach((adminInfo) => {
+      snapshot.admins.forEach(adminInfo => {
         baseGroups.set(adminInfo.id, {
           admin: adminInfo,
           employees: [],
         });
       });
 
-      groupedEmployees.forEach((emp: Employee) => {
-        const adminInfo = adminMap.get(emp.created_by);
+      snapshot.employees.forEach(employee => {
+        const adminInfo = adminMap.get(employee.created_by);
         if (!adminInfo) return;
 
-        const previousEmployee = previousEmployeesById.get(emp.id);
-        const baseEmployee: EmployeeWithAdmin = previousEmployee
-          ? {
-              ...previousEmployee,
-              ...emp,
-              admin: adminInfo,
-            }
-          : {
-              ...emp,
-              admin: adminInfo,
-              walletBalance: 0,
-              verification: null,
-              todayOrders: 0,
-              todayCompletedOrders: 0,
-              failedOrders: 0,
-              todayCommission: 0,
-              totalWorkMinutes: 0,
-              todayWorkMinutes: 0,
-              workDays: 0,
-              workStatus: 'never_started',
-              totalOrders: 0,
-              accountBalance: 0,
-              hasPendingWithdrawal: false,
-              pendingWithdrawalAmount: 0,
-              pendingWithdrawalDate: null,
-              pendingWithdrawals: [],
-              statsLoaded: false,
-            };
+        const workStatus: EmployeeWithAdmin['workStatus'] = employee.workStatus === 'online'
+          ? 'online'
+          : employee.workStatus === 'offline'
+            ? 'offline'
+            : 'never_started';
+        const pendingWithdrawals = (employee.pendingWithdrawals || []).map(withdrawal => ({
+          id: withdrawal.id,
+          amount: Number(withdrawal.amount) || 0,
+          created_at: withdrawal.created_at,
+        }));
 
-        baseEmployee.statsLoaded = previousEmployee?.statsLoaded ?? false;
-        if (!baseGroups.has(adminInfo.id)) {
-          baseGroups.set(adminInfo.id, {
-            admin: adminInfo,
-            employees: [],
-          });
-        }
-        baseGroups.get(adminInfo.id)!.employees.push(baseEmployee);
+        baseGroups.get(adminInfo.id)?.employees.push({
+          ...employee,
+          admin: adminInfo,
+          walletBalance: Number(employee.walletBalance) || 0,
+          verification: employee.verification || null,
+          todayOrders: Number(employee.todayOrders) || 0,
+          todayCompletedOrders: Number(employee.todayCompletedOrders) || 0,
+          failedOrders: Number(employee.failedOrders) || 0,
+          todayCommission: Number(employee.todayCommission) || 0,
+          totalWorkMinutes: Number(employee.totalWorkMinutes) || 0,
+          todayWorkMinutes: Number(employee.todayWorkMinutes) || 0,
+          workDays: Number(employee.workDays) || 0,
+          workStatus,
+          totalOrders: Number(employee.totalOrders) || 0,
+          accountBalance: Number(employee.accountBalance) || 0,
+          hasPendingWithdrawal: Boolean(employee.hasPendingWithdrawal),
+          pendingWithdrawalAmount: Number(employee.pendingWithdrawalAmount) || 0,
+          pendingWithdrawalDate: employee.pendingWithdrawalDate || null,
+          pendingWithdrawals,
+          statsLoaded: true,
+        });
       });
 
-      const sortGroups = (groups: Map<string, EmployeeGroup>) => Array.from(groups.values())
-        .sort((a, b) => {
-          if (a.admin.role === 'super_admin' && b.admin.role !== 'super_admin') return -1;
-          if (a.admin.role !== 'super_admin' && b.admin.role === 'super_admin') return 1;
-          if (a.admin.role === 'secondary_admin' && b.admin.role === 'secondary_admin') {
-            if (a.admin.is_pinned && !b.admin.is_pinned) return -1;
-            if (!a.admin.is_pinned && b.admin.is_pinned) return 1;
-          }
-          return a.admin.username.localeCompare(b.admin.username);
-        });
-      const baseGroupsArray = sortGroups(baseGroups);
-      if (employees.length !== employeeTotal) {
-        throw new Error('Employee list response was incomplete.');
-      }
+      const groupsArray = Array.from(baseGroups.values()).sort((a, b) => {
+        if (a.admin.role === 'super_admin' && b.admin.role !== 'super_admin') return -1;
+        if (a.admin.role !== 'super_admin' && b.admin.role === 'super_admin') return 1;
+        if (a.admin.role === 'secondary_admin' && b.admin.role === 'secondary_admin') {
+          if (a.admin.is_pinned && !b.admin.is_pinned) return -1;
+          if (!a.admin.is_pinned && b.admin.is_pinned) return 1;
+        }
+        return a.admin.username.localeCompare(b.admin.username);
+      });
+
       const currentEmployeeCount = employeeGroupsRef.current.reduce((sum, group) => sum + group.employees.length, 0);
-      const baseEmployeeCount = baseGroupsArray.reduce((sum, group) => sum + group.employees.length, 0);
-      const hasIncompleteBaseResult = silent
-        && currentEmployeeCount > 0
-        && baseEmployeeCount === 0
-        && employeeTotal > 0;
-
-      if (hasIncompleteBaseResult || !isMountedRef.current) return false;
-      if (requestScopeGeneration !== employeeScopeGenerationRef.current) return false;
-      if (requestRealtimeGeneration !== realtimeChangeGenerationRef.current) {
-        pendingReloadRef.current = true;
-        return false;
-      }
-
-      hasBaseData = true;
-      setEmployeeGroups(baseGroupsArray);
-      setLoading(false);
-      setStatsLoading(true);
-      setExpandedGroups(prev => {
-        if (prev.size === 0) return new Set(baseGroupsArray.slice(0, 1).map(group => group.admin.id));
-        return prev;
-      });
-
-      // Now load all stats in parallel
-      const [
-        walletsResult,
-        verificationsResult,
-        totalOrdersResult,
-        workDaysResult,
-        todayOrdersResult,
-        todayCompletedOrdersResult,
-        failedOrdersResult,
-        todayCommissionResult,
-        workStatusResult,
-        workTimeResult,
-        pendingWithdrawalsResult,
-      ] = await Promise.all([
-        userIds.length > 0
-          ? supabase.from('wallets').select('user_id, available_balance, frozen_balance').in('user_id', userIds)
-          : Promise.resolve({ data: [], error: null }),
-        userIds.length > 0
-          ? supabase.from('verification_requests').select('user_id, real_name, wallet_address, phone, email').eq('status', 'approved').in('user_id', userIds)
-          : Promise.resolve({ data: [], error: null }),
-        supabase.rpc('count_orders_by_user', { user_ids: userIds }),
-        supabase.rpc('count_order_days_by_user', { user_ids: userIds }),
-        supabase.rpc('count_today_orders_by_user', { user_ids: userIds, today_start: todayISO }),
-        supabase.rpc('count_today_completed_orders_by_user', { user_ids: userIds, today_start: todayISO }),
-        supabase.rpc('count_today_valid_data_failed_orders_by_user', { user_ids: userIds, today_start: todayISO }),
-        supabase.rpc('get_today_commission_by_user', { user_ids: userIds }),
-        supabase.rpc('get_batch_work_status', { p_user_ids: userIds }),
-        userIds.length > 0
-          ? supabase.rpc('get_batch_work_time', { p_user_ids: userIds })
-          : Promise.resolve({ data: [], error: null }),
-        userIds.length > 0
-          ? supabase.from('withdrawals').select('id, user_id, amount, created_at').in('user_id', userIds).eq('status', 'pending')
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-
-      const statsError = [
-        walletsResult.error,
-        verificationsResult.error,
-        totalOrdersResult.error,
-        workDaysResult.error,
-        todayOrdersResult.error,
-        todayCompletedOrdersResult.error,
-        failedOrdersResult.error,
-        todayCommissionResult.error,
-        workStatusResult.error,
-        workTimeResult.error,
-        pendingWithdrawalsResult.error,
-      ].find(Boolean);
-      if (statsError) throw statsError;
-      if (userIds.length > 0) {
-        const completeResponseLengths = [
-          walletsResult.data?.length,
-          workDaysResult.data?.length,
-          workStatusResult.data?.length,
-          workTimeResult.data?.length,
-        ];
-        if (completeResponseLengths.some(length => length !== userIds.length)) {
-          throw new Error('Employee statistics response was incomplete.');
-        }
-      }
-
-      // Build maps
-      const walletTotalMap = new Map<string, number>();
-      const walletAvailableMap = new Map<string, number>();
-      walletsResult.data?.forEach((w) => {
-        walletTotalMap.set(w.user_id, (Number(w.available_balance) || 0) + (Number(w.frozen_balance) || 0));
-        walletAvailableMap.set(w.user_id, Number(w.available_balance) || 0);
-      });
-
-      const verificationMap = new Map(
-        verificationsResult.data?.map((v) => [v.user_id, {
-          real_name: v.real_name,
-          wallet_address: v.wallet_address,
-          phone: v.phone,
-          email: v.email
-        }]) || []
-      );
-
-      const totalOrdersMap = new Map<string, number>();
-      if (totalOrdersResult.data) {
-        totalOrdersResult.data.forEach((row) => {
-          totalOrdersMap.set(row.user_id, row.count || 0);
-        });
-      }
-
-      const workDaysMap = new Map<string, number>();
-      if (workDaysResult.data) {
-        workDaysResult.data.forEach((row) => {
-          workDaysMap.set(row.user_id, Number(row.day_count) || 0);
-        });
-      }
-
-      const todayOrdersMap = new Map<string, number>();
-      if (todayOrdersResult.data) {
-        todayOrdersResult.data.forEach((row) => {
-          todayOrdersMap.set(row.user_id, row.count || 0);
-        });
-      }
-
-      const todayCompletedMap = new Map<string, number>();
-      if (todayCompletedOrdersResult.data) {
-        todayCompletedOrdersResult.data.forEach((row) => {
-          todayCompletedMap.set(row.user_id, row.count || 0);
-        });
-      }
-
-      const failedOrdersMap = new Map<string, number>();
-      if (failedOrdersResult.data) {
-        failedOrdersResult.data.forEach((row) => {
-          failedOrdersMap.set(row.user_id, row.count || 0);
-        });
-      }
-
-      const todayCommissionMap = new Map<string, number>();
-      if (todayCommissionResult.data) {
-        todayCommissionResult.data.forEach((row) => {
-          todayCommissionMap.set(row.user_id, Number(row.today_commission) || 0);
-        });
-      }
-
-      const workStatusMap = new Map<string, string>();
-      if (workStatusResult.data) {
-        workStatusResult.data.forEach((row) => {
-          workStatusMap.set(row.user_id, row.work_status);
-        });
-      }
-
-      const workTimeMap = new Map<string, { total: number; today: number }>();
-      if (workTimeResult.data) {
-        workTimeResult.data.forEach((row) => {
-          workTimeMap.set(row.user_id, {
-            total: row.total_work_minutes || 0,
-            today: row.today_work_minutes || 0,
-          });
-        });
-      }
-
-      const pendingWithdrawalMap = new Map<string, PendingWithdrawalRecord[]>();
-      if (pendingWithdrawalsResult.data) {
-        pendingWithdrawalsResult.data.forEach((row) => {
-          const records = pendingWithdrawalMap.get(row.user_id) || [];
-          records.push({
-            id: row.id,
-            amount: Number(row.amount || 0),
-            created_at: row.created_at,
-          });
-          pendingWithdrawalMap.set(row.user_id, records);
-        });
-      }
-      pendingWithdrawalMap.forEach((records) => {
-        records.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      });
-
-      const groups = new Map<string, EmployeeGroup>();
-      baseGroups.forEach((group, adminId) => {
-        groups.set(adminId, {
-          admin: group.admin,
-          employees: group.employees.map((employee) => {
-            const wsRaw = workStatusMap.get(employee.id) || 'never_started';
-            const workStatus: 'online' | 'offline' | 'never_started' =
-              wsRaw === 'online' ? 'online' : wsRaw === 'offline' ? 'offline' : 'never_started';
-            const wt = workTimeMap.get(employee.id);
-            const pendingWithdrawals = pendingWithdrawalMap.get(employee.id) || [];
-
-            return {
-              ...employee,
-              admin: group.admin,
-              walletBalance: walletTotalMap.get(employee.id) || 0,
-              verification: verificationMap.get(employee.id) || null,
-              todayOrders: todayOrdersMap.get(employee.id) || 0,
-              todayCompletedOrders: todayCompletedMap.get(employee.id) || 0,
-              failedOrders: failedOrdersMap.get(employee.id) || 0,
-              todayCommission: todayCommissionMap.get(employee.id) || 0,
-              totalWorkMinutes: wt?.total || 0,
-              todayWorkMinutes: wt?.today || 0,
-              workDays: workDaysMap.get(employee.id) || 0,
-              workStatus,
-              totalOrders: totalOrdersMap.get(employee.id) || 0,
-              accountBalance: walletAvailableMap.get(employee.id) || 0,
-              hasPendingWithdrawal: pendingWithdrawals.length > 0,
-              pendingWithdrawalAmount: pendingWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0),
-              pendingWithdrawalDate: pendingWithdrawals[0]?.created_at || null,
-              pendingWithdrawals,
-              statsLoaded: true,
-            };
-          }),
-        });
-      });
-
-      const groupsArray = sortGroups(groups);
-
       const nextEmployeeCount = groupsArray.reduce((sum, group) => sum + group.employees.length, 0);
       const hasIncompleteSilentResult = silent
         && currentEmployeeCount > 0
         && nextEmployeeCount === 0
-        && employeeTotal > 0;
+        && snapshot.employees.length > 0;
       if (hasIncompleteSilentResult || !isMountedRef.current) return false;
       if (requestScopeGeneration !== employeeScopeGenerationRef.current) return false;
       if (requestRealtimeGeneration !== realtimeChangeGenerationRef.current) {
@@ -1298,6 +909,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       realtimeChangeGenerationRef.current += 1;
       setEmployeeGroups(groupsArray);
       setAdminPinOverrides(new Map());
+      setLoadError(null);
+      setLoading(false);
       setStatsLoading(false);
       committed = true;
       setExpandedGroups(prev => {
@@ -1305,14 +918,24 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         return prev;
       });
     } catch (error) {
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+        return false;
+      }
+
       if (!isSupabaseAbortError(error)) {
         console.error('Error loading employees:', formatSupabaseError(error));
       }
+      if (isMountedRef.current) {
+        setLoadError(hasExistingGroups
+          ? '無法更新員工資料，目前顯示上次載入的內容。'
+          : '無法載入員工資料，請重試。');
+      }
     } finally {
       if (isMountedRef.current) {
-        setLoading(showInitialLoading && !hasBaseData);
+        setLoading(false);
         setStatsLoading(false);
-        if (!showInitialLoading) setIsRefreshing(false);
+        setIsRefreshing(false);
       }
     }
     return committed;
@@ -1439,37 +1062,27 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       nextStatus: newStatus,
       onConfirm: async () => {
         setConfirmDialog(null);
-        let userUpdated = false;
         try {
           setEmployeeGroups(prev => prev.map(g => ({
             ...g,
             employees: g.employees.map(emp => emp.id === employeeId ? { ...emp, is_verified: newStatus } : emp)
           })));
-          const { error: userError } = await supabase.rpc('admin_update_employee_account', {
+          const { error } = await supabase.rpc('admin_set_employee_verification', {
             p_admin_session_token: getAdminFinancialSessionToken(),
             p_user_id: employeeId,
-            p_updates: { is_verified: newStatus },
+            p_is_verified: newStatus,
           });
-          if (userError) throw userError;
-          userUpdated = true;
-          if (!newStatus) {
-            const { error: deleteError } = await supabase.from('verification_requests').delete().eq('user_id', employeeId).eq('status', 'approved');
-            if (deleteError) throw deleteError;
-          }
+          if (error) throw error;
         } catch (error) {
-          if (userUpdated && !newStatus) {
-            const { error: rollbackError } = await supabase.rpc('admin_update_employee_account', {
-              p_admin_session_token: getAdminFinancialSessionToken(),
-              p_user_id: employeeId,
-              p_updates: { is_verified: currentStatus },
-            });
-            if (rollbackError) console.error('Error rolling back verification:', formatSupabaseError(rollbackError));
-          }
-          console.error('Error toggling verification:', formatSupabaseError(error));
           setEmployeeGroups(prev => prev.map(g => ({
             ...g,
             employees: g.employees.map(emp => emp.id === employeeId ? { ...emp, is_verified: currentStatus } : emp)
           })));
+          if (isFinancialAdminSessionError(error)) {
+            void logout(false);
+            return;
+          }
+          console.error('Error toggling verification:', formatSupabaseError(error));
           void guardedLoadEmployeesRef.current?.(true);
         }
       }
@@ -3666,6 +3279,23 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         style={{ scrollbarGutter: 'stable' }}
       >
         {/* Content */}
+        {loadError && employeeGroups.length > 0 && (
+          <div role="status" className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-400/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-100">
+            <span className="flex min-w-0 items-center gap-2">
+              <XCircle className="h-4 w-4 shrink-0 text-amber-300" />
+              <span className="truncate">{loadError}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => void guardedLoadEmployeesRef.current?.(true)}
+              disabled={isRefreshing}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-amber-300/40 bg-amber-500/15 px-2.5 py-1 font-semibold text-amber-50 transition-colors hover:bg-amber-500/25 disabled:cursor-wait disabled:opacity-60"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              重試
+            </button>
+          </div>
+        )}
         {loading ? (
         <div className="flex min-h-[280px] flex-1 flex-col items-center justify-center gap-4 text-center text-slate-400">
           <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 shadow-[0_0_30px_rgba(34,211,238,0.12)]">
@@ -3676,6 +3306,24 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             <p className="text-sm font-semibold text-cyan-100">正在載入員工資料</p>
             <p className="mt-1 text-[11px] text-slate-500">正在取得員工清單，請稍候……</p>
           </div>
+        </div>
+      ) : loadError && employeeGroups.length === 0 ? (
+        <div role="alert" className="flex min-h-[280px] flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-400/30 bg-red-500/10">
+            <XCircle className="h-7 w-7 text-red-300" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-red-100">員工資料載入失敗</p>
+            <p className="mt-1 text-xs text-slate-400">{loadError}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void guardedLoadEmployeesRef.current?.(false)}
+            className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/40 bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-cyan-500"
+          >
+            <RefreshCw className="h-4 w-4" />
+            重試載入
+          </button>
         </div>
       ) : admin.role === 'secondary_admin' ? (
         // ===== SECONDARY ADMIN: flat list =====

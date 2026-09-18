@@ -934,6 +934,42 @@ export interface Database {
           }
         ];
       };
+      employee_presence_events: {
+        Row: {
+          user_id: string;
+          admin_id: string;
+          status: 'online' | 'offline';
+          occurred_at: string;
+        };
+        Insert: {
+          user_id: string;
+          admin_id: string;
+          status: 'online' | 'offline';
+          occurred_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          admin_id?: string;
+          status?: 'online' | 'offline';
+          occurred_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'employee_presence_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employee_presence_events_admin_id_fkey';
+            columns: ['admin_id'];
+            isOneToOne: false;
+            referencedRelation: 'admins';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       admins: {
         Row: {
           id: string;
@@ -2063,6 +2099,62 @@ export interface Database {
         Args: { p_admin_session_token: string; p_updates: Record<string, unknown>; p_user_id: string };
         Returns: Record<string, unknown>;
       };
+      get_employee_management_snapshot: {
+        Args: { p_admin_session_token: string };
+        Returns: {
+          admins: Array<{
+            id: string;
+            username: string;
+            role: string;
+            is_pinned: boolean;
+          }>;
+          employees: Array<{
+            id: string;
+            username: string;
+            employee_id: string;
+            is_verified: boolean;
+            is_active: boolean;
+            total_income: number;
+            first_success_order_date: string | null;
+            created_by: string;
+            remarks: string;
+            tags: string[];
+            is_pinned: boolean;
+            created_at: string;
+            updated_at: string;
+            walletBalance: number;
+            verification: {
+              real_name: string;
+              wallet_address: string;
+              phone: string;
+              email: string;
+            } | null;
+            todayOrders: number;
+            todayCompletedOrders: number;
+            failedOrders: number;
+            todayCommission: number;
+            totalWorkMinutes: number;
+            todayWorkMinutes: number;
+            workDays: number;
+            workStatus: 'online' | 'offline' | 'never_started';
+            totalOrders: number;
+            accountBalance: number;
+            hasPendingWithdrawal: boolean;
+            pendingWithdrawalAmount: number;
+            pendingWithdrawalDate: string | null;
+            pendingWithdrawals: Array<{
+              id: string;
+              amount: number;
+              created_at: string;
+            }>;
+            statsLoaded: true;
+          }>;
+        };
+      };
+      admin_set_employee_verification: {
+        Args: { p_admin_session_token: string; p_is_verified: boolean; p_user_id: string };
+        Returns: boolean;
+      };
       admin_delete_employee_account: {
         Args: { p_admin_session_token: string; p_user_id: string };
         Returns: boolean;
@@ -2270,6 +2362,21 @@ export interface Database {
       update_session_heartbeat: {
         Args: { p_session_id: string };
         Returns: unknown;
+      };
+      update_session_heartbeat_secure: {
+        Args: {
+          p_session_id: string;
+          p_session_token: string;
+          p_tab_id: string;
+          p_user_id: string;
+        };
+        Returns: {
+          success: boolean;
+          session_id: string;
+          user_id: string;
+          heartbeat_at: string;
+          work_sessions_updated: number;
+        };
       };
       get_user_work_time_today: {
         Args: { p_user_id: string };
