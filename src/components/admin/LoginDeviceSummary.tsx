@@ -22,6 +22,13 @@ const osLabels = {
   unknown: '未知作業系統',
 } as const;
 
+const deviceTypeLabels = {
+  phone: '手機',
+  tablet: '平板',
+  desktop: '桌面',
+  unknown: '裝置未知',
+} as const;
+
 const browserLabels = {
   chrome: 'Chrome',
   safari: 'Safari',
@@ -70,10 +77,9 @@ export default function LoginDeviceSummary({
   const auditTextClass = auditTone === 'logout' ? 'text-orange-200/75' : 'text-emerald-200/75';
   const browserToneClass = auditTone === 'logout' ? 'text-orange-200/80' : 'text-emerald-200/80';
   const usePlainDeviceText = inlineUserAgent || plain;
-  const details = [
-    osLabels[info.os_family],
-    ...(!systemOnly ? [formatValue(browserLabels[info.browser_family], info.browser_version)] : []),
-  ];
+  const osText = formatValue(osLabels[info.os_family], info.os_version);
+  const browserText = formatValue(browserLabels[info.browser_family], info.browser_version);
+  const deviceText = `${deviceTypeLabels[info.device_type]} · ${info.device_model || '型號未知'}`;
   const SystemIcon = info.os_family === 'ios' || info.os_family === 'macos'
     ? Apple
     : info.os_family === 'android'
@@ -86,10 +92,10 @@ export default function LoginDeviceSummary({
     return (
       <span
         className={`inline-flex items-center whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${osStyles[info.os_family]}`}
-        title={osLabels[info.os_family]}
-        aria-label={osLabels[info.os_family]}
+        title={osText}
+        aria-label={osText}
       >
-        {osLabels[info.os_family]}
+        {osText}
       </span>
     );
   }
@@ -109,18 +115,21 @@ export default function LoginDeviceSummary({
           ? `inline-flex items-center gap-1 ${osTextStyles[info.os_family]}`
           : `inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${osStyles[info.os_family]}`}>
           <SystemIcon className="h-3 w-3" aria-hidden="true" />
-          {osLabels[info.os_family]}
+          {osText}
         </span>
         {!usePlainDeviceText && <span className="text-slate-600">·</span>}
         <span className={usePlainDeviceText
           ? browserToneClass
           : 'inline-flex items-center rounded-md border border-violet-400/25 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200'}>
-          {formatValue(browserLabels[info.browser_family], info.browser_version)}
+          {browserText}
+        </span>
+        {!usePlainDeviceText && <span className="text-slate-600">·</span>}
+        <span className={usePlainDeviceText
+          ? 'text-slate-400'
+          : 'inline-flex items-center rounded-md border border-slate-500/25 bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-slate-300'}>
+          {deviceText}
         </span>
       </div>
-      {!compact && (
-        <div className="mt-1 text-[10px] text-slate-500">{details.join(' · ')}</div>
-      )}
       {inlineUserAgent && userAgent && !systemOnly ? (
         <p
           className={`min-w-0 max-w-[240px] max-h-[2.6em] overflow-hidden break-all font-mono text-[9px] leading-[1.3em] ${auditTextClass}`}

@@ -7,6 +7,7 @@ export interface LoginDeviceInfo {
   os_family: DeviceOsFamily;
   os_version: string | null;
   device_type: DeviceType;
+  device_model: string | null;
   browser_family: BrowserFamily;
   browser_version: string | null;
   source: DeviceInfoSource;
@@ -18,15 +19,20 @@ interface UserAgentDataLike {
   platform?: string;
   getHighEntropyValues?: (hints: string[]) => Promise<{
     brands?: Array<{ brand: string; version: string }>;
+    fullVersionList?: Array<{ brand: string; version: string }>;
     mobile?: boolean;
+    model?: string;
     platform?: string;
+    platformVersion?: string;
   }>;
 }
 
 interface DeviceParseHints {
   brands?: Array<{ brand: string; version: string }>;
   mobile?: boolean;
+  model?: string;
   platform?: string;
+  platformVersion?: string;
   navigatorPlatform?: string;
   maxTouchPoints?: number;
   screenWidth?: number;
@@ -39,6 +45,15 @@ const BROWSER_FAMILIES: BrowserFamily[] = ['chrome', 'safari', 'edge', 'firefox'
 const INFO_SOURCES: DeviceInfoSource[] = ['client_hints', 'user_agent', 'fallback'];
 
 const firstMatch = (userAgent: string, pattern: RegExp) => userAgent.match(pattern)?.[1] || null;
+
+const normalizeVersion = (value: string | null | undefined) => {
+  const version = value?.trim().replace(/_/g, '.') || '';
+  return version && !/^0(?:\.0)*$/.test(version) ? version : null;
+};
+
+const nonEmptyString = (value: unknown) => typeof value === 'string' && value.trim()
+  ? value.trim()
+  : null;
 
 const isKnownValue = <T extends string>(value: unknown, values: readonly T[]): value is T => (
   typeof value === 'string' && values.includes(value as T)
@@ -57,6 +72,53 @@ const parseOs = (userAgent: string, hints: DeviceParseHints): DeviceOsFamily => 
   if (/Mac OS X/i.test(userAgent) || platform?.startsWith('mac')) return 'macos';
   if (/Linux/i.test(userAgent) || platform?.includes('linux')) return 'linux';
   return 'unknown';
+};
+
+const parseOsVersion = (
+  userAgent: string,
+  osFamily: DeviceOsFamily,
+  hints: DeviceParseHints,
+) => {
+  const platformVersion = normalizeVersion(hints.platformVersion);
+
+  if (osFamily === 'android') {
+    return platformVersion || normalizeVersion(firstMatch(userAgent, /Android\s+([\d.]+)/i));
+  }
+  if (osFamily === 'ios') {
+    return normalizeVersion(firstMatch(userAgent, /(?:CPU(?: iPhone)? OS|iPhone OS)\s+([\d_]+)/i));
+  }
+  if (osFamily === 'windows') {
+    if (platformVersion) {
+      const major = Number.parseInt(platformVersion, 10);
+      if (major >= 13) return '11';
+      if (major > 0) return '10';
+    }
+
+    const ntVersion = firstMatch(userAgent, /Windows NT\s+([\d.]+)/i);
+    return ntVersion ? ({
+      '10.0': '10/11',
+      '6.3': '8.1',
+      '6.2': '8',
+      '6.1': '7',
+      '6.0': 'Vista',
+      '5.1': 'XP',
+    } as Record<string, string>)[ntVersion] || ntVersion : null;
+  }
+  if (osFamily === 'macos') {
+    return platformVersion || normalizeVersion(firstMatch(userAgent, /Mac OS X\s+([\d_]+)/i));
+  }
+  if (osFamily === 'chromeos') {
+    return platformVersion || normalizeVersion(firstMatch(userAgent, /CrOS\s+[^\s)]+\s+([\d.]+)/i));
+  }
+  return null;
+};
+
+const parseDeviceModel = (userAgent: string, osFamily: DeviceOsFamily, hints: DeviceParseHints) => {
+  const hintedModel = nonEmptyString(hints.model);
+  if (hintedModel) return hintedModel;
+  if (osFamily !== 'android') return null;
+
+  return nonEmptyString(firstMatch(userAgent, /;\s*([^;()]+?)\s+Build\/[^;)]+/i));
 };
 
 const parseBrowser = (userAgent: string, hints: DeviceParseHints) => {
@@ -119,8 +181,9 @@ export function parseLoginDeviceInfo(
 
   return {
     os_family: os,
-    os_version: null,
+    os_version: parseOsVersion(normalizedUserAgent, os, hints),
     device_type: parseDeviceType(normalizedUserAgent, os, hints),
+    device_model: parseDeviceModel(normalizedUserAgent, os, hints),
     browser_family: browser.family,
     browser_version: browser.version,
     source: hints.fromClientHints ? 'client_hints' : normalizedUserAgent ? 'user_agent' : 'fallback',
@@ -137,7 +200,12 @@ export async function collectLoginDeviceInfo(): Promise<LoginDeviceInfo> {
   if (userAgentData?.getHighEntropyValues) {
     try {
       highEntropyValues = await userAgentData.getHighEntropyValues([
+        'brands',
+        'fullVersionList',
+        'mobile',
+        'model',
         'platform',
+        'platformVersion',
       ]);
     } catch {
       highEntropyValues = undefined;
@@ -146,9 +214,11 @@ export async function collectLoginDeviceInfo(): Promise<LoginDeviceInfo> {
 
   const hasClientHints = Boolean(userAgentData || highEntropyValues);
   return parseLoginDeviceInfo(navigator.userAgent, {
-    brands: highEntropyValues?.brands || userAgentData?.brands,
+    brands: highEntropyValues?.fullVersionList || highEntropyValues?.brands || userAgentData?.brands,
     mobile: highEntropyValues?.mobile ?? userAgentData?.mobile,
+    model: highEntropyValues?.model,
     platform: highEntropyValues?.platform || userAgentData?.platform,
+    platformVersion: highEntropyValues?.platformVersion,
     navigatorPlatform: navigator.platform,
     maxTouchPoints: navigator.maxTouchPoints,
     screenWidth: typeof window !== 'undefined' ? window.screen.width : undefined,
@@ -170,12 +240,13 @@ export function resolveLoginDeviceInfo(value: unknown, userAgent: string | null 
 
   return {
     os_family: storedOsFamily,
-    os_version: null,
+    os_version: nonEmptyString(stored.os_version) || fallback.os_version,
     device_type: isKnownValue(stored.device_type, DEVICE_TYPES) && stored.device_type !== 'unknown'
       ? stored.device_type
       : fallback.device_type,
+    device_model: nonEmptyString(stored.device_model) || fallback.device_model,
     browser_family: storedBrowserFamily,
-    browser_version: typeof stored.browser_version === 'string' ? stored.browser_version : fallback.browser_version,
+    browser_version: nonEmptyString(stored.browser_version) || fallback.browser_version,
     source: isKnownValue(stored.source, INFO_SOURCES) ? stored.source : fallback.source,
   };
 }
