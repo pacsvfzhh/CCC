@@ -268,6 +268,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const visibilityRestartPromiseRef = useRef<Promise<void> | null>(null);
   const restartSessionRef = useRef<(() => Promise<void>) | null>(null);
   const sendHeartbeatRef = useRef<(() => Promise<void>) | null>(null);
+  const checkPendingOrderRef = useRef<(() => Promise<void>) | null>(null);
 
   // 通知系统
   const showNotification = (notification: Omit<Notification, 'id'>) => {
@@ -298,7 +299,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       .catch(error => {
         console.error('Previous pending-order check failed:', error);
       })
-      .then(() => checkPendingOrder())
+      .then(() => checkPendingOrderRef.current?.())
       .catch(error => {
         console.error('Initial pending-order check failed:', error);
       });
@@ -828,10 +829,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         return;
       }
 
-      const { data: newSession, error: startError } = await supabase.rpc('start_employee_dispatch_session_secure', {
+      const { data: newSession, error: startError } = await supabase.rpc('resume_employee_dispatch_session_secure', {
         p_user_id: auth.user.id,
         p_session_token: auth.financialSessionToken,
         p_tab_id: auth.tabId,
+        p_previous_session_id: oldSessionId,
       });
       if (startError) throw startError;
       if (!newSession?.success || !newSession.session_id || !newSession.started_at) {
@@ -862,6 +864,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
 
       sessionIdRef.current = newSession.session_id;
+      unacceptedCountRef.current = newSession.unaccepted_count;
+      setUnacceptedCount(newSession.unaccepted_count);
       setSession(previous => ({
         ...previous,
         sessionId: newSession.session_id,
@@ -975,7 +979,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       sessionActiveRef.current = true;
       sessionIdRef.current = data.session_id;
       lastActivityRef.current = new Date();
-      unacceptedCountRef.current = 0;
+      const recoveredUnacceptedCount = Number(data.unaccepted_count || 0);
+      unacceptedCountRef.current = recoveredUnacceptedCount;
       setSession({
         isWorking: true,
         sessionId: data.session_id,
@@ -983,7 +988,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       });
       setCurrentOrder(data.assignment);
       setShowOrderDetail(true);
-      setUnacceptedCount(0);
+      setUnacceptedCount(recoveredUnacceptedCount);
       startHeartbeat();
       void loadTotalWorkTime();
     } catch (error) {
@@ -991,6 +996,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       throw error;
     }
   };
+
+  checkPendingOrderRef.current = checkPendingOrder;
 
   const loadConfig = async () => {
     try {
@@ -2167,7 +2174,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
 
       if (!acceptResult?.success) {
-        if (acceptResult?.reason === 'accept_deadline_reached') {
+        if (
+          acceptResult?.reason === 'accept_deadline_reached'
+          || acceptResult?.assignment_status === 'cancelled'
+          || acceptResult?.assignment_status === 'timeout'
+        ) {
           void handleAcceptTimeoutRef.current?.(currentOrder.id);
         }
         setIsAccepting(false);
@@ -2205,26 +2216,19 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       console.error('Failed to accept order:', error);
       setIsAccepting(false);
 
-      // Show error notification
       showNotification({
         type: 'error',
         title: 'Order Accept Failed',
-        message: `Failed to accept order: ${getOrderDispatchErrorMessage(error)}. The order has been skipped and the next order will be dispatched.`,
-        duration: 6000
+        message: `Failed to accept order: ${getOrderDispatchErrorMessage(error)}. Please try again before the acceptance deadline.`,
+        duration: 6000,
       });
 
-      // Clear current order state
-      setCurrentOrder(null);
-      setShowOrderDetail(false);
-      setHasTimeout(false);
-      setShowTimeoutAlert(false);
-
-      // Update activity and reload orders
-      updateActivity();
-      loadTodayOrders();
-
-      // Continue dispatching next order
-      scheduleNextOrder();
+      if (currentOrder.accept_deadline_at) {
+        const remaining = Math.max(0, new Date(currentOrder.accept_deadline_at).getTime() - Date.now());
+        acceptTimeoutRef.current = setTimeout(() => {
+          void handleAcceptTimeoutRef.current?.(currentOrder.id);
+        }, remaining);
+      }
     }
   };
 

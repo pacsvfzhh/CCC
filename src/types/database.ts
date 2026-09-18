@@ -2406,7 +2406,7 @@ export interface Database {
             order_content: string;
             dispatch_session_id: string;
             accept_deadline_at: string;
-          };
+          } | null;
         };
       };
       expire_pending_dispatch_assignment_secure: {
@@ -2464,8 +2464,23 @@ export interface Database {
           p_tab_id: string;
           p_assignment_id: string;
           p_assignment_code: string;
+          p_order_id: string;
         };
         Returns: boolean;
+      };
+      resume_employee_dispatch_session_secure: {
+        Args: {
+          p_user_id: string;
+          p_session_token: string;
+          p_tab_id: string;
+          p_previous_session_id: string;
+        };
+        Returns: {
+          success: boolean;
+          session_id: string;
+          started_at: string;
+          unaccepted_count: number;
+        };
       };
       recover_employee_dispatch_assignment_secure: {
         Args: { p_user_id: string; p_session_token: string; p_tab_id: string };
@@ -2474,6 +2489,7 @@ export interface Database {
           recovered: boolean;
           session_id?: string;
           started_at?: string;
+          unaccepted_count?: number;
           assignment?: {
             id: string;
             dispatch_order_id: string;
@@ -2489,7 +2505,7 @@ export interface Database {
             dispatch_session_id: string;
             dispatch_orders: { order_content: string };
             session_timeout_minutes: number;
-          };
+          } | null;
         };
       };
       assign_next_dispatch_order: {

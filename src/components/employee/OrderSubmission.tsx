@@ -501,6 +501,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
             p_tab_id: auth.tabId,
             p_assignment_id: activeAssignment.id,
             p_assignment_code: activeAssignment.assignment_id,
+            p_order_id: orderData.id,
           },
         );
         if (markError || !markedSubmitted) {

@@ -41,6 +41,10 @@ CREATE INDEX IF NOT EXISTS idx_dispatch_assignments_pending_deadline
 CREATE INDEX IF NOT EXISTS idx_dispatch_assignments_session_status
   ON public.dispatch_assignments (dispatch_session_id, status);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_unique_dispatch_assignment
+  ON public.orders (assignment_id)
+  WHERE assignment_id IS NOT NULL;
+
 CREATE OR REPLACE FUNCTION private.close_dispatch_session_from_system(
   p_session_id uuid,
   p_stopped_at timestamptz
@@ -542,7 +546,8 @@ CREATE OR REPLACE FUNCTION public.mark_dispatch_assignment_submitted_secure(
   p_session_token uuid,
   p_tab_id text,
   p_assignment_id uuid,
-  p_assignment_code text
+  p_assignment_code text,
+  p_order_id uuid
 )
 RETURNS boolean
 LANGUAGE plpgsql
@@ -567,14 +572,76 @@ BEGIN
     RAISE EXCEPTION 'Employee session is invalid or expired.';
   END IF;
 
-  UPDATE public.dispatch_assignments
+  UPDATE public.dispatch_assignments AS assignment
   SET order_submitted = true
-  WHERE id = p_assignment_id
-    AND user_id = p_user_id
-    AND assignment_id = p_assignment_code
-    AND status = 'accepted';
+  WHERE assignment.id = p_assignment_id
+    AND assignment.user_id = p_user_id
+    AND assignment.assignment_id = p_assignment_code
+    AND assignment.status = 'accepted'
+    AND assignment.order_submitted = false
+    AND EXISTS (
+      SELECT 1
+      FROM public.orders AS submitted_order
+      WHERE submitted_order.id = p_order_id
+        AND submitted_order.user_id = p_user_id
+        AND submitted_order.assignment_id = p_assignment_code
+    );
 
   RETURN FOUND;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.resume_employee_dispatch_session_secure(
+  p_user_id uuid,
+  p_session_token uuid,
+  p_tab_id text,
+  p_previous_session_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
+AS $function$
+DECLARE
+  v_count integer := 0;
+  v_session jsonb;
+BEGIN
+  SELECT dispatch_session.consecutive_unaccepted_count
+  INTO v_count
+  FROM public.employee_financial_sessions AS financial_session
+  INNER JOIN public.users AS employee
+    ON employee.id = financial_session.user_id
+  INNER JOIN public.dispatch_sessions AS dispatch_session
+    ON dispatch_session.id = p_previous_session_id
+   AND dispatch_session.user_id = employee.id
+  WHERE financial_session.user_id = p_user_id
+    AND financial_session.token_hash = private.hash_financial_token(p_session_token)
+    AND financial_session.revoked_at IS NULL
+    AND financial_session.expires_at > now()
+    AND financial_session.tab_id = p_tab_id
+    AND financial_session.session_marker = employee.current_session_token
+    AND employee.current_tab_id = p_tab_id
+    AND employee.is_active = true
+  FOR UPDATE OF financial_session, employee, dispatch_session;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Previous employee work session is invalid.';
+  END IF;
+
+  v_session := public.start_employee_dispatch_session_secure(
+    p_user_id,
+    p_session_token,
+    p_tab_id
+  );
+
+  UPDATE public.dispatch_sessions
+  SET consecutive_unaccepted_count = LEAST(GREATEST(COALESCE(v_count, 0), 0), 5)
+  WHERE id = NULLIF(v_session->>'session_id', '')::uuid
+    AND user_id = p_user_id;
+
+  RETURN v_session || jsonb_build_object(
+    'unaccepted_count', LEAST(GREATEST(COALESCE(v_count, 0), 0), 5)
+  );
 END;
 $function$;
 
@@ -612,7 +679,10 @@ BEGIN
   END IF;
 
   SELECT assignment.id,
+         assignment.status,
          assignment.accepted_at,
+         assignment.accept_deadline_at,
+         assignment.dispatch_session_id,
          dispatch_group.session_timeout_minutes
   INTO v_candidate
   FROM public.dispatch_assignments AS assignment
@@ -621,8 +691,8 @@ BEGIN
   INNER JOIN public.dispatch_groups AS dispatch_group
     ON dispatch_group.id = dispatch_order.group_id
   WHERE assignment.user_id = p_user_id
-    AND assignment.status = 'accepted'
-  ORDER BY assignment.accepted_at DESC NULLS LAST, assignment.assigned_at DESC
+    AND assignment.status IN ('pending', 'accepted')
+  ORDER BY assignment.assigned_at DESC
   LIMIT 1;
 
   IF v_candidate.id IS NULL THEN
@@ -635,9 +705,41 @@ BEGIN
     RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
   END IF;
 
+  IF v_candidate.status = 'pending'
+     AND COALESCE(v_candidate.accept_deadline_at, now()) <= now() THEN
+    IF v_candidate.dispatch_session_id IS NOT NULL THEN
+      PERFORM public.expire_pending_dispatch_assignment_secure(
+        p_user_id,
+        p_session_token,
+        p_tab_id,
+        v_candidate.dispatch_session_id,
+        v_candidate.id
+      );
+    ELSE
+      UPDATE public.dispatch_assignments
+      SET status = 'cancelled',
+          completed_at = clock_timestamp(),
+          remarks = 'Auto-cancelled: server accept deadline reached before recovery'
+      WHERE id = v_candidate.id
+        AND user_id = p_user_id
+        AND status = 'pending';
+    END IF;
+
+    PERFORM public.stop_employee_dispatch_session_secure(
+      p_user_id,
+      p_session_token,
+      p_tab_id,
+      NULL
+    );
+    RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
+  END IF;
+
   v_timeout_minutes := GREATEST(COALESCE(v_candidate.session_timeout_minutes, 10), 1);
-  IF v_candidate.accepted_at IS NULL
-     OR v_candidate.accepted_at + make_interval(mins => v_timeout_minutes) <= now() THEN
+  IF v_candidate.status = 'accepted'
+     AND (
+       v_candidate.accepted_at IS NULL
+       OR v_candidate.accepted_at + make_interval(mins => v_timeout_minutes) <= now()
+     ) THEN
     UPDATE public.dispatch_assignments
     SET status = 'timeout',
         completed_at = clock_timestamp(),
@@ -655,11 +757,20 @@ BEGIN
     RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
   END IF;
 
-  v_session := public.start_employee_dispatch_session_secure(
-    p_user_id,
-    p_session_token,
-    p_tab_id
-  );
+  IF v_candidate.dispatch_session_id IS NOT NULL THEN
+    v_session := public.resume_employee_dispatch_session_secure(
+      p_user_id,
+      p_session_token,
+      p_tab_id,
+      v_candidate.dispatch_session_id
+    );
+  ELSE
+    v_session := public.start_employee_dispatch_session_secure(
+      p_user_id,
+      p_session_token,
+      p_tab_id
+    );
+  END IF;
 
   SELECT assignment.id,
          assignment.dispatch_order_id,
@@ -682,10 +793,18 @@ BEGIN
     ON dispatch_group.id = dispatch_order.group_id
   WHERE assignment.id = v_candidate.id
     AND assignment.user_id = p_user_id
-    AND assignment.status = 'accepted'
-    AND assignment.accepted_at + make_interval(
-      mins => GREATEST(COALESCE(dispatch_group.session_timeout_minutes, 10), 1)
-    ) > now()
+    AND (
+      (
+        assignment.status = 'pending'
+        AND assignment.accept_deadline_at > now()
+      )
+      OR (
+        assignment.status = 'accepted'
+        AND assignment.accepted_at + make_interval(
+          mins => GREATEST(COALESCE(dispatch_group.session_timeout_minutes, 10), 1)
+        ) > now()
+      )
+    )
   FOR UPDATE OF assignment;
 
   IF v_assignment.id IS NULL THEN
@@ -707,6 +826,7 @@ BEGIN
     'recovered', true,
     'session_id', v_session->>'session_id',
     'started_at', v_session->>'started_at',
+    'unaccepted_count', COALESCE((v_session->>'unaccepted_count')::integer, 0),
     'assignment', jsonb_build_object(
       'id', v_assignment.id,
       'dispatch_order_id', v_assignment.dispatch_order_id,
@@ -845,7 +965,9 @@ REVOKE ALL ON FUNCTION public.accept_dispatch_assignment_secure(uuid, uuid, text
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.finish_dispatch_assignment_secure(uuid, uuid, text, uuid, text, text)
   FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.mark_dispatch_assignment_submitted_secure(uuid, uuid, text, uuid, text)
+REVOKE ALL ON FUNCTION public.mark_dispatch_assignment_submitted_secure(uuid, uuid, text, uuid, text, uuid)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.resume_employee_dispatch_session_secure(uuid, uuid, text, uuid)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.recover_employee_dispatch_assignment_secure(uuid, uuid, text)
   FROM PUBLIC, anon, authenticated;
@@ -854,6 +976,8 @@ REVOKE ALL ON FUNCTION public.reconcile_server_dispatch_lifecycle()
 REVOKE EXECUTE ON FUNCTION public.assign_next_dispatch_order(uuid, uuid, text)
   FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.auto_recover_stale_pending_orders(integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.auto_cleanup_dispatch_system()
   FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.assign_next_dispatch_order_secure(uuid, uuid, text, uuid, uuid, text)
@@ -864,7 +988,9 @@ GRANT EXECUTE ON FUNCTION public.accept_dispatch_assignment_secure(uuid, uuid, t
   TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.finish_dispatch_assignment_secure(uuid, uuid, text, uuid, text, text)
   TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.mark_dispatch_assignment_submitted_secure(uuid, uuid, text, uuid, text)
+GRANT EXECUTE ON FUNCTION public.mark_dispatch_assignment_submitted_secure(uuid, uuid, text, uuid, text, uuid)
+  TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.resume_employee_dispatch_session_secure(uuid, uuid, text, uuid)
   TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.recover_employee_dispatch_assignment_secure(uuid, uuid, text)
   TO anon, authenticated;
