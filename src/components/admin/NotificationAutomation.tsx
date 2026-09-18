@@ -40,7 +40,7 @@ interface AutomationEmployee {
   is_active: boolean;
 }
 
-type TriggerType = 'total_orders' | 'daily_orders' | 'work_days' | 'commission_amount' | 'consecutive_work_days';
+type TriggerType = 'total_orders' | 'daily_orders' | 'work_days' | 'commission_amount' | 'consecutive_work_days' | 'annual_date';
 type TriggerMode = 'reach_once' | 'recurring';
 type TaskStatus = 'draft' | 'active' | 'paused' | 'archived';
 
@@ -59,6 +59,8 @@ interface AutomationTask {
   threshold_value: number;
   minimum_daily_orders: number | null;
   minimum_daily_work_minutes: number | null;
+  annual_month: number | null;
+  annual_day: number | null;
   recipient_scope: 'all_managed' | 'selected';
   recipient_ids?: string[];
   title_template: string;
@@ -105,6 +107,8 @@ interface TaskForm {
   thresholdValue: string;
   minimumDailyOrders: string;
   minimumDailyWorkMinutes: string;
+  annualMonth: string;
+  annualDay: string;
   recipientScope: 'all_managed' | 'selected';
   recipientIds: string[];
   titleTemplate: string;
@@ -131,6 +135,7 @@ const triggerLabels: Record<TriggerType, string> = {
   work_days: '累計工作天數',
   commission_amount: '累計佣金金額',
   consecutive_work_days: '連續工作達標',
+  annual_date: '每年指定日期',
 };
 
 const statusLabels: Record<TaskStatus, string> = {
@@ -150,6 +155,8 @@ function createDefaultForm(): TaskForm {
     thresholdValue: '100',
     minimumDailyOrders: '10',
     minimumDailyWorkMinutes: '',
+    annualMonth: '1',
+    annualDay: '1',
     recipientScope: 'all_managed',
     recipientIds: [],
     titleTemplate: '',
@@ -174,6 +181,8 @@ function taskToForm(task: AutomationTask): TaskForm {
     thresholdValue: String(task.threshold_value),
     minimumDailyOrders: task.minimum_daily_orders ? String(task.minimum_daily_orders) : '',
     minimumDailyWorkMinutes: task.minimum_daily_work_minutes ? String(task.minimum_daily_work_minutes) : '',
+    annualMonth: task.annual_month ? String(task.annual_month) : '1',
+    annualDay: task.annual_day ? String(task.annual_day) : '1',
     recipientScope: task.recipient_scope,
     recipientIds: task.recipient_ids || [],
     titleTemplate: task.title_template,
@@ -214,6 +223,11 @@ function buildEnglishTemplate(triggerType: TriggerType, rewardEnabled: boolean, 
         title: 'Congratulations on Achieving Your Performance Goal',
         content: `<p>Congratulations, {{employee_name}}! You have worked for {{threshold_value}} consecutive days and completed at least {{minimum_daily_orders}} orders each day.${reward} Thank you for your dedication and keep up the excellent work!</p>`,
       };
+    case 'annual_date':
+      return {
+        title: 'A Special Message for You',
+        content: `<p>Hello, {{employee_name}}! Today is {{annual_month}}/{{annual_day}}, and we would like to share this special message with you.${reward} Thank you for being an important part of our team!</p>`,
+      };
     default:
       return {
         title: 'Congratulations on Your Order Milestone',
@@ -231,6 +245,8 @@ function renderPreview(template: string, form: TaskForm, currency: string) {
   preview = replaceTemplateToken(preview, '{{actual_value}}', form.thresholdValue || '0');
   preview = replaceTemplateToken(preview, '{{threshold_value}}', form.thresholdValue || '0');
   preview = replaceTemplateToken(preview, '{{minimum_daily_orders}}', form.minimumDailyOrders || '0');
+  preview = replaceTemplateToken(preview, '{{annual_month}}', form.annualMonth || '1');
+  preview = replaceTemplateToken(preview, '{{annual_day}}', form.annualDay || '1');
   preview = replaceTemplateToken(preview, '{{bonus_amount}}', Number(form.rewardAmount || 0).toFixed(2));
   return replaceTemplateToken(preview, '{{currency}}', currency);
 }
@@ -241,6 +257,9 @@ function summarizeTask(task: AutomationTask, currency: string) {
     : Number(task.threshold_value).toLocaleString();
   const mode = task.trigger_mode === 'recurring' ? '每達到' : '累計達到';
 
+  if (task.trigger_type === 'annual_date') {
+    return `每年 ${task.annual_month || 1} 月 ${task.annual_day || 1} 日依 UTC 伺服器日期執行一次`;
+  }
   if (task.trigger_type === 'consecutive_work_days') {
     return `${task.trigger_mode === 'recurring' ? '每連續' : '連續'} ${value} 天，且每天至少完成 ${task.minimum_daily_orders || 0} 筆訂單`;
   }
@@ -298,7 +317,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       titleTemplate: template.title,
       contentTemplate: template.content,
     }));
-  }, [form.triggerType, form.triggerMode, form.thresholdValue, form.minimumDailyOrders, form.rewardEnabled, form.rewardAmount, dashboard.currency, templateCustomized, readOnly]);
+  }, [form.triggerType, form.triggerMode, form.thresholdValue, form.minimumDailyOrders, form.annualMonth, form.annualDay, form.rewardEnabled, form.rewardAmount, dashboard.currency, templateCustomized, readOnly]);
 
   const visibleTasks = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -344,9 +363,18 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       notify('error', '請確認英文通知標題與內容');
       return;
     }
-    if (Number(form.thresholdValue) <= 0) {
+    if (form.triggerType !== 'annual_date' && Number(form.thresholdValue) <= 0) {
       notify('error', '觸發數值必須大於零');
       return;
+    }
+    if (form.triggerType === 'annual_date') {
+      const month = Number(form.annualMonth);
+      const day = Number(form.annualDay);
+      const maximumDay = new Date(2000, month, 0).getDate();
+      if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(day) || day < 1 || day > maximumDay) {
+        notify('error', '請選擇有效的月份與日期');
+        return;
+      }
     }
     if (form.rewardEnabled && Number(form.rewardAmount) <= 0) {
       notify('error', '獎金金額必須大於零');
@@ -361,10 +389,12 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         p_name: form.name.trim(),
         p_description: form.description.trim(),
         p_trigger_type: form.triggerType,
-        p_trigger_mode: form.triggerMode,
-        p_threshold_value: Number(form.thresholdValue),
+        p_trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode,
+        p_threshold_value: form.triggerType === 'annual_date' ? 1 : Number(form.thresholdValue),
         p_minimum_daily_orders: form.triggerType === 'consecutive_work_days' ? Number(form.minimumDailyOrders) : null,
         p_minimum_daily_work_minutes: form.minimumDailyWorkMinutes ? Number(form.minimumDailyWorkMinutes) : null,
+        p_annual_month: form.triggerType === 'annual_date' ? Number(form.annualMonth) : null,
+        p_annual_day: form.triggerType === 'annual_date' ? Number(form.annualDay) : null,
         p_recipient_scope: form.recipientScope,
         p_recipient_ids: form.recipientScope === 'selected' ? form.recipientIds : [],
         p_title_template: form.titleTemplate.trim(),
@@ -516,17 +546,37 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                       {Object.entries(triggerLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </select>
                   </label>
-                  <label>
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-400">觸發方式</span>
-                    <select disabled={readOnly} value={form.triggerMode} onChange={event => setForm(previous => ({ ...previous, triggerMode: event.target.value as TriggerMode }))} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-500 disabled:opacity-60">
-                      <option value="reach_once">累計達到一次</option>
-                      <option value="recurring">每達到指定數量</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-400">{form.triggerType === 'commission_amount' ? `目標金額（${dashboard.currency}）` : form.triggerType.includes('work_days') ? '目標天數' : '目標訂單數'}</span>
-                    <input disabled={readOnly} type="number" min={form.triggerType === 'commission_amount' ? '0.01' : '1'} step={form.triggerType === 'commission_amount' ? '0.01' : '1'} value={form.thresholdValue} onChange={event => setForm(previous => ({ ...previous, thresholdValue: event.target.value }))} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-500 disabled:opacity-60" />
-                  </label>
+                  {form.triggerType !== 'annual_date' ? (
+                    <>
+                      <label>
+                        <span className="mb-1.5 block text-xs font-semibold text-slate-400">觸發方式</span>
+                        <select disabled={readOnly} value={form.triggerMode} onChange={event => setForm(previous => ({ ...previous, triggerMode: event.target.value as TriggerMode }))} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-500 disabled:opacity-60">
+                          <option value="reach_once">累計達到一次</option>
+                          <option value="recurring">每達到指定數量</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span className="mb-1.5 block text-xs font-semibold text-slate-400">{form.triggerType === 'commission_amount' ? `目標金額（${dashboard.currency}）` : form.triggerType.includes('work_days') ? '目標天數' : '目標訂單數'}</span>
+                        <input disabled={readOnly} type="number" min={form.triggerType === 'commission_amount' ? '0.01' : '1'} step={form.triggerType === 'commission_amount' ? '0.01' : '1'} value={form.thresholdValue} onChange={event => setForm(previous => ({ ...previous, thresholdValue: event.target.value }))} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-500 disabled:opacity-60" />
+                      </label>
+                    </>
+                  ) : (
+                    <>
+                      <label>
+                        <span className="mb-1.5 block text-xs font-semibold text-slate-400">月份</span>
+                        <select disabled={readOnly} value={form.annualMonth} onChange={event => setForm(previous => ({ ...previous, annualMonth: event.target.value }))} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-500 disabled:opacity-60">
+                          {Array.from({ length: 12 }, (_, index) => index + 1).map(month => <option key={month} value={month}>{month} 月</option>)}
+                        </select>
+                      </label>
+                      <label>
+                        <span className="mb-1.5 block text-xs font-semibold text-slate-400">日期</span>
+                        <input disabled={readOnly} type="number" min="1" max={new Date(2000, Number(form.annualMonth), 0).getDate()} step="1" value={form.annualDay} onChange={event => setForm(previous => ({ ...previous, annualDay: event.target.value }))} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-500 disabled:opacity-60" />
+                      </label>
+                      <div className="sm:col-span-2 rounded-xl border border-violet-500/20 bg-violet-500/10 p-3 text-xs leading-relaxed text-violet-100/80">
+                        系統依 UTC 伺服器日期自動判斷，每年到達所選月日只執行一次，不依賴管理員或員工瀏覽器保持開啟。
+                      </div>
+                    </>
+                  )}
                   {form.triggerType === 'consecutive_work_days' && (
                     <label>
                       <span className="mb-1.5 block text-xs font-semibold text-slate-400">每天至少完成訂單數</span>
@@ -541,7 +591,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                   )}
                 </div>
                 <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-sm text-cyan-100">
-                  {summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0) } as AutomationTask, dashboard.currency)}
+                  {summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}
                 </div>
               </section>
 
@@ -623,7 +673,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">通知內容</span>
                     <textarea disabled={readOnly} rows={6} value={form.contentTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, contentTemplate: event.target.value })); }} className="w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm leading-relaxed text-white outline-none focus:border-cyan-500 disabled:opacity-60" />
                   </label>
-                  <p className="text-[11px] text-slate-500">可用變數：{'{{employee_name}}'}、{'{{threshold_value}}'}、{'{{actual_value}}'}、{'{{minimum_daily_orders}}'}、{'{{bonus_amount}}'}、{'{{currency}}'}</p>
+                  <p className="text-[11px] text-slate-500">可用變數：{'{{employee_name}}'}、{'{{threshold_value}}'}、{'{{actual_value}}'}、{'{{minimum_daily_orders}}'}、{'{{annual_month}}'}、{'{{annual_day}}'}、{'{{bonus_amount}}'}、{'{{currency}}'}</p>
                 </div>
               </section>
             </div>
@@ -655,7 +705,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                   <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-sm leading-7 text-slate-300" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
                   <div className="rounded-xl border border-slate-700/70 bg-slate-950/60 p-3">
                     <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Trigger condition</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-200">{summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0) } as AutomationTask, dashboard.currency)}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-200">{summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}</p>
                   </div>
                   {form.rewardEnabled && (
                     <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3">
