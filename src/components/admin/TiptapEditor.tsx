@@ -150,6 +150,46 @@ const QuickCopyMark = Mark.create({
   },
 });
 
+function removeSelectedQuickCopyGroups(editor: Editor) {
+  const markType = editor.schema.marks.quickCopy;
+  if (!markType) return;
+
+  const { from, to } = editor.state.selection;
+  const selectedGroupIds = new Set<string>();
+  let containsUngroupedMark = false;
+
+  editor.state.doc.nodesBetween(from, to, node => {
+    const mark = node.marks.find(nodeMark => nodeMark.type === markType);
+    if (!mark) return;
+
+    const groupId = typeof mark.attrs.groupId === 'string' ? mark.attrs.groupId : '';
+    if (groupId) {
+      selectedGroupIds.add(groupId);
+    } else {
+      containsUngroupedMark = true;
+    }
+  });
+
+  if (containsUngroupedMark || selectedGroupIds.size === 0) {
+    editor.chain().focus().unsetMark('quickCopy').run();
+    return;
+  }
+
+  const transaction = editor.state.tr;
+  editor.state.doc.descendants((node, position) => {
+    if (!node.isText) return;
+
+    const mark = node.marks.find(nodeMark => (
+      nodeMark.type === markType
+      && selectedGroupIds.has(String(nodeMark.attrs.groupId || ''))
+    ));
+    if (mark) transaction.removeMark(position, position + node.nodeSize, markType);
+  });
+
+  editor.view.dispatch(transaction);
+  editor.commands.focus();
+}
+
 // Custom text size extension for inline formatting
 const TextSize = Mark.create({
   name: 'textSize',
@@ -1124,14 +1164,13 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             {enableQuickCopy && (
               <MenuButton
                 onClick={() => {
-                  const chain = editor.chain().focus();
                   if (editor.isActive('quickCopy')) {
-                    chain.unsetMark('quickCopy').run();
+                    removeSelectedQuickCopyGroups(editor);
                     return;
                   }
 
                   const groupId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-                  chain.setMark('quickCopy', { groupId }).run();
+                  editor.chain().focus().setMark('quickCopy', { groupId }).run();
                 }}
                 active={editor.isActive('quickCopy')}
                 disabled={editor.state.selection.empty}

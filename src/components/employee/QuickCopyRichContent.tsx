@@ -83,7 +83,7 @@ function getGroupText(markers: HTMLElement[], container: HTMLElement) {
 
   markers.forEach(marker => {
     const block = getBlockAncestor(marker, container);
-    if (previousBlock && block !== previousBlock) text += '\n';
+    if (previousBlock && block !== previousBlock) text += '\n\n';
     text += getMarkerText(marker);
     previousBlock = block;
   });
@@ -139,6 +139,7 @@ export default function QuickCopyRichContent({
     const container = containerRef.current;
     if (!container) return;
 
+    container.innerHTML = sanitizedHtml;
     container.querySelectorAll('button.message-quick-copy-button').forEach(button => button.remove());
     collectMarkerGroups(container).forEach((markers, index) => {
       const lastMarker = markers[markers.length - 1];
@@ -151,11 +152,23 @@ export default function QuickCopyRichContent({
       button.setAttribute('aria-live', 'polite');
       setButtonLabel(button, copyLabel);
 
-      const containingLink = lastMarker.closest('a');
-      const insertionTarget = containingLink && container.contains(containingLink)
-        ? containingLink
-        : lastMarker;
-      insertionTarget.insertAdjacentElement('afterend', button);
+      const containingLink = lastMarker.closest<HTMLAnchorElement>('a');
+      if (!containingLink || !container.contains(containingLink)) {
+        lastMarker.insertAdjacentElement('afterend', button);
+        return;
+      }
+
+      const trailingRange = document.createRange();
+      trailingRange.setStartAfter(lastMarker);
+      trailingRange.setEnd(containingLink, containingLink.childNodes.length);
+      const trailingContent = trailingRange.extractContents();
+      containingLink.insertAdjacentElement('afterend', button);
+
+      if (trailingContent.childNodes.length > 0) {
+        const trailingLink = containingLink.cloneNode(false) as HTMLAnchorElement;
+        trailingLink.appendChild(trailingContent);
+        button.insertAdjacentElement('afterend', trailingLink);
+      }
     });
 
     return () => {
