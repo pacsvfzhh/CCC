@@ -195,7 +195,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
   }, [admin.id, admin.role]);
 
   useEffect(() => {
-    if (adminCount === 0) return;
+    if (adminCount === 0 || searchTerm === activeSearchTerm) return;
 
     const timeout = window.setTimeout(() => {
       setSearchLoading(true);
@@ -203,7 +203,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
     }, 250);
 
     return () => window.clearTimeout(timeout);
-  }, [searchTerm, adminCount]);
+  }, [searchTerm, activeSearchTerm, adminCount]);
 
   // Auto-refresh data every 30 seconds (silent refresh, no loading state)
   useEffect(() => {
@@ -516,7 +516,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
         </div>
         <div className="relative w-full min-w-0 sm:max-w-[280px] xl:max-w-[320px]">
           <span className="absolute left-3 top-1/2 flex h-3.5 w-3.5 -translate-y-1/2 items-center justify-center">
-            {searchLoading ? (
+            {searchLoading && !loading ? (
               <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-600" />
             ) : (
               <Search className="h-3.5 w-3.5 text-cyan-700" />
@@ -1028,7 +1028,7 @@ export default function EmployeeLoginHistory({ admin }: EmployeeLoginHistoryProp
             )}
             <div className="relative w-full min-w-0 sm:max-w-[280px] xl:max-w-[320px]">
               <span className="absolute left-3 top-1/2 flex h-3.5 w-3.5 -translate-y-1/2 items-center justify-center">
-            {searchLoading ? (
+            {searchLoading && !loading ? (
               <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-600" />
             ) : (
               <Search className="h-3.5 w-3.5 text-cyan-700" />
