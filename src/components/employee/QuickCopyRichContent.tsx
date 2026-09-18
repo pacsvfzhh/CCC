@@ -24,6 +24,79 @@ const allowedAttributes = [
   'size',
 ];
 
+const quickCopyGroupPrefix = 'message-quick-copy-group-';
+const blockTags = new Set([
+  'ADDRESS',
+  'BLOCKQUOTE',
+  'DIV',
+  'H1',
+  'H2',
+  'H3',
+  'H4',
+  'H5',
+  'H6',
+  'LI',
+  'P',
+  'PRE',
+  'TD',
+  'TH',
+]);
+
+function getMarkerGroupKey(marker: HTMLElement, index: number) {
+  const groupClass = Array.from(marker.classList)
+    .find(className => className.startsWith(quickCopyGroupPrefix));
+  return groupClass || `message-quick-copy-single-${index}`;
+}
+
+function collectMarkerGroups(container: HTMLElement) {
+  const groups = new Map<string, HTMLElement[]>();
+  container.querySelectorAll<HTMLElement>('span.message-quick-copy').forEach((marker, index) => {
+    const key = getMarkerGroupKey(marker, index);
+    const group = groups.get(key);
+    if (group) {
+      group.push(marker);
+    } else {
+      groups.set(key, [marker]);
+    }
+  });
+  return Array.from(groups.values());
+}
+
+function getBlockAncestor(marker: HTMLElement, container: HTMLElement) {
+  let current = marker.parentElement;
+  while (current && current !== container) {
+    if (blockTags.has(current.tagName)) return current;
+    current = current.parentElement;
+  }
+  return container;
+}
+
+function getMarkerText(marker: HTMLElement) {
+  const clone = marker.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll('br').forEach(lineBreak => lineBreak.replaceWith('\n'));
+  return clone.textContent || '';
+}
+
+function getGroupText(markers: HTMLElement[], container: HTMLElement) {
+  let text = '';
+  let previousBlock: HTMLElement | null = null;
+
+  markers.forEach(marker => {
+    const block = getBlockAncestor(marker, container);
+    if (previousBlock && block !== previousBlock) text += '\n';
+    text += getMarkerText(marker);
+    previousBlock = block;
+  });
+
+  return text;
+}
+
+function setButtonLabel(button: HTMLButtonElement, label: string) {
+  button.textContent = label;
+  button.setAttribute('aria-label', label);
+  button.title = label;
+}
+
 async function copyText(text: string) {
   if (navigator.clipboard?.writeText && window.isSecureContext) {
     try {
@@ -67,15 +140,22 @@ export default function QuickCopyRichContent({
     if (!container) return;
 
     container.querySelectorAll('button.message-quick-copy-button').forEach(button => button.remove());
-    container.querySelectorAll<HTMLElement>('span.message-quick-copy').forEach((marker, index) => {
+    collectMarkerGroups(container).forEach((markers, index) => {
+      const lastMarker = markers[markers.length - 1];
+      if (!lastMarker) return;
+
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'message-quick-copy-button';
       button.dataset.quickCopyIndex = String(index);
-      button.textContent = copyLabel;
-      button.setAttribute('aria-label', copyLabel);
-      button.title = copyLabel;
-      marker.insertAdjacentElement('afterend', button);
+      button.setAttribute('aria-live', 'polite');
+      setButtonLabel(button, copyLabel);
+
+      const containingLink = lastMarker.closest('a');
+      const insertionTarget = containingLink && container.contains(containingLink)
+        ? containingLink
+        : lastMarker;
+      insertionTarget.insertAdjacentElement('afterend', button);
     });
 
     return () => {
@@ -94,8 +174,10 @@ export default function QuickCopyRichContent({
     if (!button || !container || !container.contains(button)) return;
 
     const index = Number(button.dataset.quickCopyIndex);
-    const marker = container.querySelectorAll<HTMLElement>('span.message-quick-copy')[index];
-    const text = marker?.textContent;
+    const markers = collectMarkerGroups(container)[index];
+    if (!markers) return;
+
+    const text = getGroupText(markers, container);
     if (!text) return;
 
     event.preventDefault();
@@ -104,13 +186,13 @@ export default function QuickCopyRichContent({
     try {
       await copyText(text);
       container.querySelectorAll<HTMLButtonElement>('button.message-quick-copy-button').forEach(copyButton => {
-        copyButton.textContent = copyLabel;
+        setButtonLabel(copyButton, copyLabel);
       });
-      button.textContent = copiedLabel;
+      setButtonLabel(button, copiedLabel);
 
       if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current);
       resetTimerRef.current = window.setTimeout(() => {
-        if (button.isConnected) button.textContent = copyLabel;
+        if (button.isConnected) setButtonLabel(button, copyLabel);
         resetTimerRef.current = null;
       }, 1800);
     } catch (error) {
@@ -142,6 +224,8 @@ export default function QuickCopyRichContent({
           font-weight: 700;
           line-height: 1rem;
           vertical-align: middle;
+          font-style: normal;
+          text-decoration: none;
           cursor: pointer;
           transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
         }

@@ -122,14 +122,31 @@ const HighlightMark = Mark.create({
   },
 });
 
+const QUICK_COPY_GROUP_CLASS_PREFIX = 'message-quick-copy-group-';
+
 const QuickCopyMark = Mark.create({
   name: 'quickCopy',
   inclusive: false,
+  addAttributes() {
+    return {
+      groupId: {
+        default: null,
+        parseHTML: element => Array.from(element.classList)
+          .find(className => className.startsWith(QUICK_COPY_GROUP_CLASS_PREFIX))
+          ?.slice(QUICK_COPY_GROUP_CLASS_PREFIX.length) || null,
+        renderHTML: attributes => ({
+          class: attributes.groupId
+            ? `message-quick-copy ${QUICK_COPY_GROUP_CLASS_PREFIX}${attributes.groupId}`
+            : 'message-quick-copy',
+        }),
+      },
+    };
+  },
   parseHTML() {
     return [{ tag: 'span.message-quick-copy' }];
   },
   renderHTML({ HTMLAttributes }) {
-    return ['span', mergeAttributes(HTMLAttributes, { class: 'message-quick-copy' }), 0];
+    return ['span', mergeAttributes(HTMLAttributes), 0];
   },
 });
 
@@ -1106,7 +1123,16 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
             {enableQuickCopy && (
               <MenuButton
-                onClick={() => editor.chain().focus().toggleMark('quickCopy').run()}
+                onClick={() => {
+                  const chain = editor.chain().focus();
+                  if (editor.isActive('quickCopy')) {
+                    chain.unsetMark('quickCopy').run();
+                    return;
+                  }
+
+                  const groupId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+                  chain.setMark('quickCopy', { groupId }).run();
+                }}
                 active={editor.isActive('quickCopy')}
                 disabled={editor.state.selection.empty}
                 title="將選取文字設為快速複製"
