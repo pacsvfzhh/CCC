@@ -624,7 +624,7 @@ export default function AccountLockManagement({ admin, isActive }: AccountLockMa
     ? 'bg-violet-200 shadow-[0_0_10px_rgba(221,214,254,0.65)]'
     : 'bg-orange-200 shadow-[0_0_10px_rgba(253,186,116,0.65)]';
 
-  if (loading) {
+  if (loading || (admin.role === 'super_admin' && adminGroupsLoading)) {
     return <AdminPageLoading label="已鎖定" />;
   }
 
