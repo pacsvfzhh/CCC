@@ -28,37 +28,21 @@ import {
   ZoomOut,
   Maximize2,
 } from "lucide-react";
-import { formatSupabaseError, isSupabaseAbortError, supabase } from "../../lib/supabase";
+import {
+  formatSupabaseError,
+  isFinancialAdminSessionError,
+  isSupabaseAbortError,
+  supabase,
+} from "../../lib/supabase";
+import { getAdminFinancialSessionToken, logout } from "../../lib/auth";
 import { Employee } from "../../types";
+import type { Database } from "../../types/database";
 
-interface DailyStats {
-  date: string;
-  totalCommission: number;
-  successCount: number;
-  failureCount: number;
-  totalOrders: number;
-}
-
-interface WalletTransaction {
-  id: string;
-  type: string;
-  amount: number;
-  balance_before: number;
-  balance_after: number;
-  remarks: string;
-  created_at: string;
-  created_by?: string | null;
-  reference_id?: string | null;
-}
-
-interface WithdrawalRecord {
-  id: string;
-  amount: number;
-  status: string;
-  audit_remark: string | null;
-  audited_at: string | null;
-  created_at: string;
-}
+type EmployeeDetailSummary = Database["public"]["Functions"]["get_employee_detail_summary_for_admin"]["Returns"];
+type DailyStats = EmployeeDetailSummary["dailyStats"][number];
+type WalletTransaction = Database["public"]["Functions"]["get_employee_transaction_page_for_admin"]["Returns"]["rows"][number];
+type WithdrawalRecord = Database["public"]["Functions"]["get_employee_withdrawal_page_for_admin"]["Returns"]["rows"][number];
+type VerificationRequest = NonNullable<EmployeeDetailSummary["verification"]>;
 
 const withdrawalStatusConfig: Record<
   string,
@@ -103,24 +87,6 @@ const withdrawalStatusConfig: Record<
     amountClassName: "text-slate-100",
   },
 };
-
-interface VerificationRequest {
-  id: string;
-  user_id: string;
-  real_name: string;
-  wallet_address: string;
-  phone: string;
-  email: string;
-  status: 'pending' | 'approved' | 'rejected';
-  audit_remark: string | null;
-  audited_by: string | null;
-  audited_at: string | null;
-  id_front_url: string | null;
-  id_back_url: string | null;
-  selfie_url: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 interface EmployeeDetailModalProps {
   employee: Employee;
@@ -270,8 +236,8 @@ export default function EmployeeDetailModal({
   const [transactionPage, setTransactionPage] = useState(1);
   const [transactionDateCounts, setTransactionDateCounts] = useState<Record<string, number>>({});
   const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
+  const [withdrawalTotalCount, setWithdrawalTotalCount] = useState<number | null>(null);
   const [verificationData, setVerificationData] = useState<VerificationRequest | null>(null);
-  const [, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"daily" | "transactions" | "withdrawals" | "verification">("daily");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransactionDate, setSelectedTransactionDate] = useState("");
@@ -285,19 +251,24 @@ export default function EmployeeDetailModal({
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [loadingWithdrawals, setLoadingWithdrawals] = useState(true);
   const [loadingVerification, setLoadingVerification] = useState(true);
-  const [ordersLoaded, setOrdersLoaded] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [transactionError, setTransactionError] = useState<string | null>(null);
+  const [transactionDateCountsError, setTransactionDateCountsError] = useState<string | null>(null);
+  const [withdrawalError, setWithdrawalError] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [imageLoading, setImageLoading] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
-  const orderDateByIdRef = useRef<Record<string, string>>({});
   const loadControllerRef = useRef<AbortController | null>(null);
   const transactionDateCountsLoadedRef = useRef(false);
+  const transactionRequestIdRef = useRef(0);
+  const withdrawalRequestIdRef = useRef(0);
   const loadEmployeeDetailsRef = useRef<((signal: AbortSignal) => Promise<void>) | null>(null);
-  const loadTransactionPageRef = useRef<((page: number, date: string, signal?: AbortSignal) => Promise<unknown>) | null>(null);
+  const loadTransactionPageRef = useRef<((page: number, date: string, signal?: AbortSignal) => Promise<void>) | null>(null);
   const loadTransactionDateCountsRef = useRef<((signal?: AbortSignal) => Promise<void>) | null>(null);
+  const loadWithdrawalPageRef = useRef<((page: number, signal?: AbortSignal) => Promise<void>) | null>(null);
   const nextImageRef = useRef<(() => void) | null>(null);
   const prevImageRef = useRef<(() => void) | null>(null);
   const zoomInRef = useRef<(() => void) | null>(null);
@@ -305,12 +276,15 @@ export default function EmployeeDetailModal({
   const resetZoomRef = useRef<(() => void) | null>(null);
   const itemsPerPage = 10;
   const transactionPageSize = 100;
+  const withdrawalPageSize = itemsPerPage;
 
   useEffect(() => {
     const controller = new AbortController();
     loadControllerRef.current?.abort();
     loadControllerRef.current = controller;
     transactionDateCountsLoadedRef.current = false;
+    transactionRequestIdRef.current += 1;
+    withdrawalRequestIdRef.current += 1;
 
     setSelectedTransactionDate("");
     setIsDateFilterOpen(false);
@@ -318,7 +292,6 @@ export default function EmployeeDetailModal({
     setTotalOrderCount(null);
     setFirstOrderDate(null);
     setTotalTipAmount(null);
-    orderDateByIdRef.current = {};
     setTotalManualAdditionAmount(null);
     setTransactions([]);
     setTransactionTotalCount(null);
@@ -326,13 +299,24 @@ export default function EmployeeDetailModal({
     setTransactionDateCounts({});
     setWithdrawalPage(1);
     setWithdrawals([]);
+    setWithdrawalTotalCount(null);
     setVerificationData(null);
-    setLoading(false);
-    setOrdersLoaded(false);
+    setWalletBalance({ available: 0, frozen: 0 });
+    setSummaryError(null);
+    setTransactionError(null);
+    setTransactionDateCountsError(null);
+    setWithdrawalError(null);
+    setLoadingStats(true);
+    setLoadingTransactions(true);
+    setLoadingWithdrawals(true);
+    setLoadingVerification(true);
+    setCurrentPage(1);
     void loadEmployeeDetailsRef.current?.(controller.signal);
 
     return () => {
       controller.abort();
+      transactionRequestIdRef.current += 1;
+      withdrawalRequestIdRef.current += 1;
       if (loadControllerRef.current === controller) {
         loadControllerRef.current = null;
       }
@@ -350,7 +334,6 @@ export default function EmployeeDetailModal({
   useEffect(() => {
     if (
       activeTab !== "transactions" ||
-      !ordersLoaded ||
       transactionDateCountsLoadedRef.current
     ) {
       return;
@@ -358,7 +341,7 @@ export default function EmployeeDetailModal({
 
     transactionDateCountsLoadedRef.current = true;
     void loadTransactionDateCountsRef.current?.(loadControllerRef.current?.signal);
-  }, [activeTab, employee.id, ordersLoaded]);
+  }, [activeTab, employee.id]);
 
   useEffect(() => {
     document.documentElement.style.overflow = 'hidden';
@@ -374,325 +357,167 @@ export default function EmployeeDetailModal({
     date: string,
     signal?: AbortSignal,
   ) => {
+    const requestId = ++transactionRequestIdRef.current;
     setLoadingTransactions(true);
+    setTransactionError(null);
 
-    let query = supabase
-      .from("wallet_transactions")
-      .select("*", { count: "exact" })
-      .eq("user_id", employee.id)
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .rpc("get_employee_transaction_page_for_admin", {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_user_id: employee.id,
+          p_page: page,
+          p_page_size: transactionPageSize,
+          p_activity_date: date || null,
+        })
+        .abortSignal(signal ?? new AbortController().signal);
 
-    if (date) {
-      const start = new Date(`${date}T00:00:00Z`);
-      const end = new Date(start);
-      end.setUTCDate(end.getUTCDate() + 1);
-      const matchingOrderIds = Object.entries(orderDateByIdRef.current)
-        .filter(([, orderDate]) => orderDate === date)
-        .map(([orderId]) => orderId);
-      const nonCommissionFilter = `and(type.neq.commission,created_at.gte.${start.toISOString()},created_at.lt.${end.toISOString()})`;
+      if (signal?.aborted || requestId !== transactionRequestIdRef.current) {
+        return;
+      }
+      if (error) throw error;
+      if (!data) throw new Error("Transaction page response was empty.");
 
-      if (matchingOrderIds.length > 0) {
-        query = query.or(
-          `and(type.eq.commission,reference_id.in.(${matchingOrderIds.join(",")})),${nonCommissionFilter}`,
-        );
-      } else {
-        query = query
-          .neq("type", "commission")
-          .gte("created_at", start.toISOString())
-          .lt("created_at", end.toISOString());
+      setTransactions(data.rows);
+      setTransactionTotalCount(data.total_count);
+    } catch (error: unknown) {
+      if (signal?.aborted || isSupabaseAbortError(error)) return;
+      if (isFinancialAdminSessionError(error)) {
+        setTransactionError("管理員登入已失效，請重新登入。");
+        void logout(false);
+        return;
+      }
+      if (requestId === transactionRequestIdRef.current) {
+        console.error("Transaction page load error:", formatSupabaseError(error));
+        setTransactionError("交易紀錄載入失敗，請重試。");
+      }
+    } finally {
+      if (!signal?.aborted && requestId === transactionRequestIdRef.current) {
+        setLoadingTransactions(false);
       }
     }
-
-    const result = await query
-      .abortSignal(signal ?? new AbortController().signal)
-      .range(
-        (page - 1) * transactionPageSize,
-        page * transactionPageSize - 1,
-      );
-
-    if (signal?.aborted) {
-      return result;
-    }
-
-    if (result.error) {
-      setTransactions([]);
-      setTransactionTotalCount(0);
-      setLoadingTransactions(false);
-      return result;
-    }
-
-    const totalCount = result.count ?? 0;
-    setTransactions(result.data);
-    setTransactionTotalCount(totalCount);
-    setLoadingTransactions(false);
-    return result;
   };
 
   const loadTransactionDateCounts = async (signal?: AbortSignal) => {
-    const pageSize = 1000;
-    let offset = 0;
-    const dateCounts: Record<string, number> = {};
+    setTransactionDateCountsError(null);
 
-    while (true) {
-      const result = await supabase
-        .from("wallet_transactions")
-        .select("id, type, reference_id, created_at")
-        .eq("user_id", employee.id)
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false })
-        .abortSignal(signal ?? new AbortController().signal)
-        .range(offset, offset + pageSize - 1);
+    try {
+      const { data, error } = await supabase
+        .rpc("get_employee_transaction_date_counts_for_admin", {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_user_id: employee.id,
+        })
+        .abortSignal(signal ?? new AbortController().signal);
 
-      if (signal?.aborted) {
+      if (signal?.aborted) return;
+      if (error) throw error;
+
+      setTransactionDateCounts(
+        data.reduce<Record<string, number>>((counts, row) => {
+          counts[row.date] = row.count;
+          return counts;
+        }, {}),
+      );
+    } catch (error: unknown) {
+      if (signal?.aborted || isSupabaseAbortError(error)) return;
+      transactionDateCountsLoadedRef.current = false;
+      if (isFinancialAdminSessionError(error)) {
+        setTransactionDateCountsError("管理員登入已失效，請重新登入。");
+        void logout(false);
         return;
       }
+      console.error("Transaction date counts load error:", formatSupabaseError(error));
+      setTransactionDateCountsError("交易日期載入失敗，請重試。");
+    }
+  };
 
-      if (result.error) {
-        if (!isSupabaseAbortError(result.error)) {
-          console.error(
-            "Transaction date counts load error:",
-            formatSupabaseError(result.error),
-          );
-        }
+  const loadEmployeeSummary = async (signal: AbortSignal) => {
+    setLoadingStats(true);
+    setLoadingVerification(true);
+    setSummaryError(null);
+
+    try {
+      const { data, error } = await supabase
+        .rpc("get_employee_detail_summary_for_admin", {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_user_id: employee.id,
+        })
+        .abortSignal(signal);
+
+      if (signal.aborted) return;
+      if (error) throw error;
+      if (!data) throw new Error("Employee detail summary response was empty.");
+
+      setWalletBalance(data.wallet);
+      setDailyStats(data.dailyStats);
+      setTotalOrderCount(data.totalOrderCount);
+      setFirstOrderDate(data.firstOrderDate);
+      setTotalTipAmount(data.totalTipAmount);
+      setTotalManualAdditionAmount(data.totalManualAdditionAmount);
+      setVerificationData(data.verification);
+    } catch (error: unknown) {
+      if (signal.aborted || isSupabaseAbortError(error)) return;
+      if (isFinancialAdminSessionError(error)) {
+        setSummaryError("管理員登入已失效，請重新登入。");
+        void logout(false);
         return;
       }
+      console.error("Employee detail summary load error:", formatSupabaseError(error));
+      setSummaryError("員工詳情載入失敗，請重試。");
+    } finally {
+      if (!signal.aborted) {
+        setLoadingStats(false);
+        setLoadingVerification(false);
+      }
+    }
+  };
 
-      result.data.forEach((transaction) => {
-        const date =
-          transaction.type === "commission" && transaction.reference_id
-            ? orderDateByIdRef.current[transaction.reference_id] ??
-              formatCalendarDate(transaction.created_at)
-            : formatCalendarDate(transaction.created_at);
-        dateCounts[date] = (dateCounts[date] || 0) + 1;
-      });
+  const loadWithdrawalPage = async (page: number, signal?: AbortSignal) => {
+    const requestId = ++withdrawalRequestIdRef.current;
+    setLoadingWithdrawals(true);
+    setWithdrawalError(null);
 
-      if (result.data.length < pageSize) {
-        setTransactionDateCounts(dateCounts);
+    try {
+      const { data, error } = await supabase
+        .rpc("get_employee_withdrawal_page_for_admin", {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_user_id: employee.id,
+          p_page: page,
+          p_page_size: withdrawalPageSize,
+        })
+        .abortSignal(signal ?? new AbortController().signal);
+
+      if (signal?.aborted || requestId !== withdrawalRequestIdRef.current) {
         return;
       }
+      if (error) throw error;
+      if (!data) throw new Error("Withdrawal page response was empty.");
 
-      offset += pageSize;
+      setWithdrawals(data.rows);
+      setWithdrawalTotalCount(data.total_count);
+    } catch (error: unknown) {
+      if (signal?.aborted || isSupabaseAbortError(error)) return;
+      if (isFinancialAdminSessionError(error)) {
+        setWithdrawalError("管理員登入已失效，請重新登入。");
+        void logout(false);
+        return;
+      }
+      if (requestId === withdrawalRequestIdRef.current) {
+        console.error("Withdrawal page load error:", formatSupabaseError(error));
+        setWithdrawalError("提現紀錄載入失敗，請重試。");
+      }
+    } finally {
+      if (!signal?.aborted && requestId === withdrawalRequestIdRef.current) {
+        setLoadingWithdrawals(false);
+      }
     }
   };
 
   const loadEmployeeDetails = async (signal: AbortSignal) => {
-    try {
-      setLoadingStats(true);
-      setLoadingTransactions(true);
-      setLoadingWithdrawals(true);
-
-      // Load wallet balance first (fastest query)
-      const walletPromise = supabase
-        .from("wallets")
-        .select("available_balance, frozen_balance")
-        .eq("user_id", employee.id)
-        .abortSignal(signal)
-        .maybeSingle()
-        .then((result) => {
-          if (!signal.aborted && !result.error && result.data) {
-            setWalletBalance({
-              available: Number(result.data.available_balance),
-              frozen: Number(result.data.frozen_balance),
-            });
-          }
-          return result;
-        });
-
-      // Load orders and transactions independently
-      const ordersPromise = (async () => {
-        const pageSize = 1000;
-        let offset = 0;
-        const allOrders: Array<{
-          id: string;
-          status: string;
-          commission_amount: number | null;
-          created_at: string;
-        }> = [];
-        while (true) {
-          const result = await supabase
-            .from("orders")
-            .select("id, status, commission_amount, created_at")
-            .eq("user_id", employee.id)
-            .order("created_at", { ascending: false })
-            .order("id", { ascending: false })
-            .abortSignal(signal)
-            .range(offset, offset + pageSize - 1);
-
-          if (signal.aborted) {
-            return result;
-          }
-
-          if (result.error) {
-            setLoadingStats(false);
-            return result;
-          }
-
-          allOrders.push(...result.data);
-          result.data.forEach((order) => {
-            orderDateByIdRef.current[order.id] = formatCalendarDate(order.created_at);
-          });
-
-          if (result.data.length < pageSize) {
-            if (allOrders.length > 0) {
-              const firstOrder = allOrders.reduce((earliest, order) =>
-                new Date(order.created_at).getTime() <
-                new Date(earliest.created_at).getTime()
-                  ? order
-                  : earliest,
-              );
-              setFirstOrderDate(firstOrder.created_at);
-            }
-
-            const dailyStatsMap = new Map<string, DailyStats>();
-            allOrders.forEach((order) => {
-              const date = formatCalendarDate(order.created_at);
-
-              if (!dailyStatsMap.has(date)) {
-                dailyStatsMap.set(date, {
-                  date,
-                  totalCommission: 0,
-                  successCount: 0,
-                  failureCount: 0,
-                  totalOrders: 0,
-                });
-              }
-
-              const stats = dailyStatsMap.get(date)!;
-              stats.totalOrders += 1;
-
-              if (order.status === "success") {
-                stats.successCount += 1;
-                stats.totalCommission += Number(order.commission_amount || 0);
-              } else if (order.status === "failure") {
-                stats.failureCount += 1;
-              }
-            });
-            setDailyStats(Array.from(dailyStatsMap.values()));
-            setTotalOrderCount(allOrders.length);
-            setOrdersLoaded(true);
-            setLoadingStats(false);
-            return result;
-          }
-
-          offset += pageSize;
-        }
-      })();
-
-      const walletSummaryPromise = (async () => {
-        const pageSize = 1000;
-        let offset = 0;
-        let tipTotal = 0;
-        let manualAdditionTotal = 0;
-
-        while (true) {
-          const result = await supabase
-            .from("wallet_transactions")
-            .select("id, type, amount")
-            .eq("user_id", employee.id)
-            .in("type", ["tip", "manual_adjustment"])
-            .order("created_at", { ascending: false })
-            .order("id", { ascending: false })
-            .abortSignal(signal)
-            .range(offset, offset + pageSize - 1);
-
-          if (signal.aborted) {
-            return result;
-          }
-
-          if (result.error) {
-            return result;
-          }
-
-          result.data.forEach((transaction) => {
-            const amount = Number(transaction.amount);
-
-            if (transaction.type === "tip") {
-              tipTotal += amount;
-            } else if (amount > 0) {
-              manualAdditionTotal += amount;
-            }
-          });
-
-          if (result.data.length < pageSize) {
-            setTotalTipAmount(tipTotal);
-            setTotalManualAdditionAmount(manualAdditionTotal);
-            return result;
-          }
-
-          offset += pageSize;
-        }
-      })();
-
-      const withdrawalsPromise = supabase
-        .from("withdrawals")
-        .select("*")
-        .eq("user_id", employee.id)
-        .order("created_at", { ascending: false })
-        .limit(100)
-        .abortSignal(signal)
-        .then((result) => {
-          if (!signal.aborted && !result.error && result.data) {
-            setWithdrawals(result.data);
-          }
-          if (!signal.aborted) {
-            setLoadingWithdrawals(false);
-          }
-          return result;
-        });
-
-      const verificationPromise = supabase
-        .from("verification_requests")
-        .select("*")
-        .eq("user_id", employee.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .abortSignal(signal)
-        .maybeSingle()
-        .then((result) => {
-          if (!signal.aborted && !result.error && result.data) {
-            setVerificationData(result.data);
-          }
-          if (!signal.aborted) {
-            setLoadingVerification(false);
-          }
-          return result;
-        });
-
-      const [walletResult, ordersResult, walletSummaryResult, withdrawalsResult, verificationResult] =
-        await Promise.all([
-          walletPromise,
-          ordersPromise,
-          walletSummaryPromise,
-          withdrawalsPromise,
-          verificationPromise,
-        ]);
-
-      if (signal.aborted) {
-        return;
-      }
-
-      if (walletResult.error && !isSupabaseAbortError(walletResult.error))
-        console.error("Wallet load error:", formatSupabaseError(walletResult.error));
-      if (ordersResult.error && !isSupabaseAbortError(ordersResult.error))
-        console.error("Orders load error:", formatSupabaseError(ordersResult.error));
-      if (walletSummaryResult.error && !isSupabaseAbortError(walletSummaryResult.error))
-        console.error("Wallet summary load error:", formatSupabaseError(walletSummaryResult.error));
-      if (withdrawalsResult.error && !isSupabaseAbortError(withdrawalsResult.error))
-        console.error("Withdrawals load error:", formatSupabaseError(withdrawalsResult.error));
-      if (verificationResult.error && !isSupabaseAbortError(verificationResult.error))
-        console.error("Verification load error:", formatSupabaseError(verificationResult.error));
-    } catch (error) {
-      if (!isSupabaseAbortError(error)) {
-        console.error("Error loading employee details:", formatSupabaseError(error));
-      }
-      if (!signal.aborted) {
-        setLoadingStats(false);
-        setLoadingTransactions(false);
-        setLoadingWithdrawals(false);
-        setLoadingVerification(false);
-      }
-    }
+    await Promise.all([
+      loadEmployeeSummary(signal),
+      loadWithdrawalPage(1, signal),
+    ]);
   };
 
   const openImagePreview = () => {
@@ -731,6 +556,7 @@ export default function EmployeeDetailModal({
   loadEmployeeDetailsRef.current = loadEmployeeDetails;
   loadTransactionPageRef.current = loadTransactionPage;
   loadTransactionDateCountsRef.current = loadTransactionDateCounts;
+  loadWithdrawalPageRef.current = loadWithdrawalPage;
 
   const nextImage = () => {
     if (imagePreview && imagePreview.currentIndex < imagePreview.images.length - 1) {
@@ -833,15 +659,6 @@ export default function EmployeeDetailModal({
       tip: "小費",
     };
     return labels[type] || type;
-  };
-
-  const formatCalendarDate = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return [
-      date.getUTCFullYear(),
-      String(date.getUTCMonth() + 1).padStart(2, "0"),
-      String(date.getUTCDate()).padStart(2, "0"),
-    ].join("-");
   };
 
   const getTransactionStyle = (type: string, amount: number): {
@@ -1215,7 +1032,18 @@ export default function EmployeeDetailModal({
         {/* Content */}
         <div className={`employee-detail-scrollbar employee-detail-scrollbar--${activeTab === "withdrawals" ? "amber" : activeTab === "verification" ? "violet" : "cyan"} min-h-0 flex-1 overflow-y-auto bg-slate-900 ${activeTab === "transactions" || activeTab === "withdrawals" ? "p-0" : "p-4 sm:p-5"}`}>
           <div className={activeTab === "daily" ? "-mx-4 -my-4 min-h-full space-y-0 sm:-mx-5 sm:-my-5" : "hidden"}>
-            {loadingStats ? (
+            {summaryError ? (
+              <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-lg border border-red-300/30 bg-red-950/35 px-3 py-2 text-xs text-red-100 sm:mx-5">
+                <span>{summaryError}</span>
+                <button
+                  type="button"
+                  onClick={() => void loadEmployeeSummary(loadControllerRef.current?.signal ?? new AbortController().signal)}
+                  className="shrink-0 rounded-md border border-red-200/40 bg-red-500/15 px-2.5 py-1 font-bold text-red-100 hover:bg-red-500/30"
+                >
+                  重試
+                </button>
+              </div>
+            ) : loadingStats ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
                 <div className="w-10 h-10 border-4 border-cyan-500/25 border-t-cyan-300 rounded-full animate-spin"></div>
                 <div className="text-slate-400 text-sm">
@@ -1427,6 +1255,33 @@ export default function EmployeeDetailModal({
           <div
             className={activeTab === "transactions" ? "space-y-0" : "hidden"}
           >
+            {transactionError && (
+              <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-lg border border-red-300/30 bg-red-950/35 px-3 py-2 text-xs text-red-100 sm:mx-5">
+                <span>{transactionError}</span>
+                <button
+                  type="button"
+                  onClick={() => void loadTransactionPageRef.current?.(transactionPage, selectedTransactionDate, loadControllerRef.current?.signal)}
+                  className="shrink-0 rounded-md border border-red-200/40 bg-red-500/15 px-2.5 py-1 font-bold text-red-100 hover:bg-red-500/30"
+                >
+                  重試
+                </button>
+              </div>
+            )}
+            {transactionDateCountsError && (
+              <div className="mx-4 mt-2 flex items-center justify-between gap-3 rounded-lg border border-amber-300/30 bg-amber-950/35 px-3 py-2 text-xs text-amber-100 sm:mx-5">
+                <span>{transactionDateCountsError}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    transactionDateCountsLoadedRef.current = true;
+                    void loadTransactionDateCountsRef.current?.(loadControllerRef.current?.signal);
+                  }}
+                  className="shrink-0 rounded-md border border-amber-200/40 bg-amber-500/15 px-2.5 py-1 font-bold text-amber-100 hover:bg-amber-500/30"
+                >
+                  重試
+                </button>
+              </div>
+            )}
             {loadingTransactions && transactions.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
                 <div className="w-10 h-10 border-4 border-cyan-500/25 border-t-cyan-300 rounded-full animate-spin"></div>
@@ -1434,7 +1289,7 @@ export default function EmployeeDetailModal({
                   正在載入交易紀錄……
                 </div>
               </div>
-            ) : transactions.length === 0 ? (
+            ) : transactions.length === 0 && transactionError ? null : transactions.length === 0 ? (
               <div className="flex min-h-[360px] items-center justify-center text-center text-slate-400">
                 沒有可用的交易歷史紀錄
               </div>
@@ -1565,11 +1420,7 @@ export default function EmployeeDetailModal({
                   <div className={`space-y-2.5 transition-opacity ${loadingTransactions ? "opacity-45" : ""}`}>
                     {transactions.map((tx) => {
                       const style = getTransactionStyle(tx.type, Number(tx.amount));
-                      const activityDate =
-                        tx.type === "commission" && tx.reference_id
-                          ? orderDateByIdRef.current[tx.reference_id] ??
-                            formatCalendarDate(tx.created_at)
-                          : formatCalendarDate(tx.created_at);
+                      const activityDate = tx.activity_date;
                       const icon =
                         tx.type === "commission" ? (
                           <TrendingUp className={`h-4 w-4 ${style.icon}`} />
@@ -1645,12 +1496,24 @@ export default function EmployeeDetailModal({
           <div
             className={activeTab === "withdrawals" ? "space-y-0" : "hidden"}
           >
-            {loadingWithdrawals ? (
+            {withdrawalError && (
+              <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-lg border border-red-300/30 bg-red-950/35 px-3 py-2 text-xs text-red-100 sm:mx-5">
+                <span>{withdrawalError}</span>
+                <button
+                  type="button"
+                  onClick={() => void loadWithdrawalPageRef.current?.(withdrawalPage, loadControllerRef.current?.signal)}
+                  className="shrink-0 rounded-md border border-red-200/40 bg-red-500/15 px-2.5 py-1 font-bold text-red-100 hover:bg-red-500/30"
+                >
+                  重試
+                </button>
+              </div>
+            )}
+            {loadingWithdrawals && withdrawals.length === 0 ? (
               <div className="flex h-48 flex-col items-center justify-center gap-3">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-500/25 border-t-amber-300"></div>
                 <div className="text-sm text-slate-400">正在載入提現紀錄……</div>
               </div>
-            ) : withdrawals.length === 0 ? (
+            ) : withdrawals.length === 0 && withdrawalError ? null : withdrawals.length === 0 ? (
               <div className="flex min-h-[360px] items-center justify-center text-center text-slate-400">
                 沒有可用的提現紀錄
               </div>
@@ -1666,7 +1529,7 @@ export default function EmployeeDetailModal({
                       <p className="inline-flex items-center gap-1.5 rounded-md border border-amber-300/30 bg-amber-500/15 px-2 py-0.5">
                         <FileText className="h-3 w-3 text-amber-300" />
                         <span className="text-base font-black leading-none tabular-nums text-amber-50">
-                          {withdrawals.length}
+                          {withdrawalTotalCount === null ? "—" : withdrawalTotalCount.toLocaleString()}
                         </span>
                         <span className="text-[10px] font-bold uppercase tracking-wide text-amber-200">
                           總數
@@ -1674,24 +1537,30 @@ export default function EmployeeDetailModal({
                       </p>
                     </div>
                   </div>
-                  {withdrawals.length > itemsPerPage && (
+                  {(withdrawalTotalCount ?? 0) > withdrawalPageSize && (
                     <PageNavigator
                       page={withdrawalPage}
-                      pageCount={Math.max(1, Math.ceil(withdrawals.length / itemsPerPage))}
-                      onPageChange={setWithdrawalPage}
+                      pageCount={Math.max(1, Math.ceil((withdrawalTotalCount ?? 0) / withdrawalPageSize))}
+                      onPageChange={(page) => {
+                        setWithdrawalPage(page);
+                        void loadWithdrawalPageRef.current?.(page, loadControllerRef.current?.signal);
+                      }}
                       tone="amber"
                     />
                   )}
                 </div>
 
                 <div className="relative px-4 pt-3 sm:px-5">
-                  <div className="space-y-2.5">
-                  {withdrawals
-                    .slice(
-                      (withdrawalPage - 1) * itemsPerPage,
-                      withdrawalPage * itemsPerPage,
-                    )
-                    .map((withdrawal) => {
+                  {loadingWithdrawals && (
+                    <div className="pointer-events-none absolute inset-x-4 top-3 z-10 flex items-center justify-center sm:inset-x-5">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/35 bg-slate-950/90 px-3 py-1.5 text-[11px] font-semibold text-amber-100 shadow-lg shadow-slate-950/40">
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-300/30 border-t-amber-200"></span>
+                        正在載入頁面……
+                      </div>
+                    </div>
+                  )}
+                  <div className={`space-y-2.5 transition-opacity ${loadingWithdrawals ? "opacity-45" : ""}`}>
+                    {withdrawals.map((withdrawal) => {
                       const status = withdrawalStatusConfig[withdrawal.status] ?? {
                         label: withdrawal.status,
                         className: "border-slate-300/55 bg-slate-600/50 text-slate-100",
@@ -1757,7 +1626,18 @@ export default function EmployeeDetailModal({
           <div
             className={activeTab === "verification" ? "space-y-4" : "hidden"}
           >
-            {loadingVerification ? (
+            {summaryError ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-red-300/30 bg-red-950/35 px-3 py-2 text-xs text-red-100">
+                <span>{summaryError}</span>
+                <button
+                  type="button"
+                  onClick={() => void loadEmployeeSummary(loadControllerRef.current?.signal ?? new AbortController().signal)}
+                  className="shrink-0 rounded-md border border-red-200/40 bg-red-500/15 px-2.5 py-1 font-bold text-red-100 hover:bg-red-500/30"
+                >
+                  重試
+                </button>
+              </div>
+            ) : loadingVerification ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
                 <div className="w-10 h-10 border-4 border-cyan-500/25 border-t-cyan-300 rounded-full animate-spin"></div>
                 <div className="text-slate-400 text-sm">

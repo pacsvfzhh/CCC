@@ -2151,6 +2151,93 @@ export interface Database {
           }>;
         };
       };
+      get_employee_detail_summary_for_admin: {
+        Args: { p_admin_session_token: string; p_user_id: string };
+        Returns: {
+          wallet: {
+            available: number;
+            frozen: number;
+          };
+          dailyStats: Array<{
+            date: string;
+            totalCommission: number;
+            successCount: number;
+            failureCount: number;
+            totalOrders: number;
+          }>;
+          totalOrderCount: number;
+          firstOrderDate: string | null;
+          totalTipAmount: number;
+          totalManualAdditionAmount: number;
+          verification: {
+            id: string;
+            user_id: string;
+            real_name: string;
+            wallet_address: string;
+            phone: string;
+            email: string;
+            status: 'pending' | 'approved' | 'rejected';
+            audit_remark: string | null;
+            audited_by: string | null;
+            audited_at: string | null;
+            id_front_url: string | null;
+            id_back_url: string | null;
+            selfie_url: string | null;
+            created_at: string;
+            updated_at: string;
+          } | null;
+        };
+      };
+      get_employee_transaction_page_for_admin: {
+        Args: {
+          p_admin_session_token: string;
+          p_user_id: string;
+          p_page: number;
+          p_page_size: number;
+          p_activity_date?: string | null;
+        };
+        Returns: {
+          rows: Array<{
+            id: string;
+            type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip';
+            amount: number;
+            balance_before: number;
+            balance_after: number;
+            remarks: string;
+            created_at: string;
+            created_by: string | null;
+            reference_id: string | null;
+            activity_date: string;
+          }>;
+          total_count: number;
+        };
+      };
+      get_employee_transaction_date_counts_for_admin: {
+        Args: { p_admin_session_token: string; p_user_id: string };
+        Returns: Array<{
+          date: string;
+          count: number;
+        }>;
+      };
+      get_employee_withdrawal_page_for_admin: {
+        Args: {
+          p_admin_session_token: string;
+          p_user_id: string;
+          p_page: number;
+          p_page_size: number;
+        };
+        Returns: {
+          rows: Array<{
+            id: string;
+            amount: number;
+            status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+            audit_remark: string | null;
+            audited_at: string | null;
+            created_at: string;
+          }>;
+          total_count: number;
+        };
+      };
       admin_set_employee_verification: {
         Args: { p_admin_session_token: string; p_is_verified: boolean; p_user_id: string };
         Returns: boolean;
