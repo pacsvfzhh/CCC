@@ -2399,9 +2399,10 @@ export interface Database {
         };
         Returns: {
           success: boolean;
+          reason: string | null;
           session_id: string;
           user_id: string;
-          heartbeat_at: string;
+          heartbeat_at: string | null;
           work_sessions_updated: number;
         };
       };

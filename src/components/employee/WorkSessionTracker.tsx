@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Square, Clock, Zap, Timer, Radio } from 'lucide-react';
+import { getStoredAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../lib/i18n/context';
 
@@ -61,6 +62,45 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
     return () => clearInterval(interval);
   }, [activeSession]);
 
+  useEffect(() => {
+    const sessionId = activeSession?.session_id;
+    if (!sessionId) return;
+
+    let heartbeatInFlight = false;
+    const sendHeartbeat = async () => {
+      if (heartbeatInFlight || document.hidden) return;
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee' || auth.user.id !== userId) {
+        setActiveSession(null);
+        return;
+      }
+
+      heartbeatInFlight = true;
+      try {
+        const { data, error } = await supabase.rpc('update_session_heartbeat_secure', {
+          p_user_id: userId,
+          p_session_token: auth.financialSessionToken,
+          p_tab_id: auth.tabId,
+          p_session_id: sessionId,
+        });
+        if (error) throw error;
+        if (!data?.success) {
+          console.error('Work session heartbeat rejected:', data?.reason || 'unknown reason');
+          setActiveSession(null);
+          setCurrentDuration(0);
+        }
+      } catch (error) {
+        console.error('Failed to update work session heartbeat:', error);
+      } finally {
+        heartbeatInFlight = false;
+      }
+    };
+
+    const interval = setInterval(() => void sendHeartbeat(), 60000);
+    void sendHeartbeat();
+    return () => clearInterval(interval);
+  }, [activeSession?.session_id, userId]);
+
   const checkActiveSession = async () => {
     try {
       const { data, error } = await supabase.rpc('get_active_work_session', {
@@ -89,8 +129,15 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
     try {
       const minLoadingTime = new Promise(resolve => setTimeout(resolve, 800));
 
-      const dbPromise = supabase.rpc('start_work_session', {
-        p_user_id: userId
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee' || auth.user.id !== userId) {
+        throw new Error('Employee session has expired. Please sign in again.');
+      }
+
+      const dbPromise = supabase.rpc('start_employee_dispatch_session_secure', {
+        p_user_id: userId,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
       });
 
       const [{ data, error }] = await Promise.all([dbPromise, minLoadingTime]);
@@ -100,13 +147,17 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
         throw error;
       }
 
-      if (!data) {
-        console.error('No session ID returned from start_work_session');
+      if (!data?.success || !data.session_id || !data.started_at) {
+        console.error('Invalid response from secure work session start:', data);
         throw new Error('Failed to create work session. Please try again.');
       }
 
-      console.log('Work session started successfully, session_id:', data);
-      await checkActiveSession();
+      console.log('Work session started successfully, session_id:', data.session_id);
+      setActiveSession({
+        session_id: data.session_id,
+        start_time: data.started_at,
+        current_duration_minutes: 0,
+      });
     } catch (error: unknown) {
       console.error('Failed to start work session:', error);
 
@@ -132,13 +183,22 @@ export default function WorkSessionTracker({ userId }: WorkSessionTrackerProps) 
     try {
       const minLoadingTime = new Promise(resolve => setTimeout(resolve, 800));
 
-      const dbPromise = supabase.rpc('end_work_session', {
-        p_user_id: userId
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee' || auth.user.id !== userId) {
+        throw new Error('Employee session has expired. Please sign in again.');
+      }
+
+      const dbPromise = supabase.rpc('stop_employee_dispatch_session_secure', {
+        p_user_id: userId,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: activeSession?.session_id || null,
       });
 
-      const [{ error }] = await Promise.all([dbPromise, minLoadingTime]);
+      const [{ data, error }] = await Promise.all([dbPromise, minLoadingTime]);
 
       if (error) throw error;
+      if (!data?.success) throw new Error('The work session could not be stopped.');
 
       setActiveSession(null);
       setCurrentDuration(0);

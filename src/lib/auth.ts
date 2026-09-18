@@ -140,17 +140,30 @@ export async function logout(isUserInitiated: boolean = true) {
     const financialSessionToken = auth.userType === 'admin'
       ? auth.adminSessionToken
       : auth.financialSessionToken;
-    const operations: Array<PromiseLike<unknown>> = [
-      supabase
-        .rpc('revoke_financial_session', { p_token: financialSessionToken })
-        .then(() => undefined, () => undefined),
-    ];
+    const revokeFinancialSession = () => supabase
+      .rpc('revoke_financial_session', { p_token: financialSessionToken })
+      .then(() => undefined, () => undefined);
+    const operations: Array<PromiseLike<unknown>> = [];
 
     if (auth.userType === 'employee') {
       operations.push(
-        supabase
-          .rpc('end_work_session', { p_user_id: auth.user.id })
-          .then(() => undefined, () => undefined),
+        (async () => {
+          try {
+            const { error } = await supabase.rpc('stop_employee_dispatch_session_secure', {
+              p_user_id: auth.user.id,
+              p_session_token: auth.financialSessionToken,
+              p_tab_id: auth.tabId,
+              p_session_id: null,
+            });
+            if (error) {
+              console.error('Failed to stop employee sessions during logout:', error);
+            }
+          } catch (error) {
+            console.error('Failed to stop employee sessions during logout:', error);
+          } finally {
+            await revokeFinancialSession();
+          }
+        })(),
         logEmployeeLogout(
           auth.user.id,
           auth.user.username,
@@ -158,6 +171,8 @@ export async function logout(isUserInitiated: boolean = true) {
           auth.sessionToken,
         ).catch(() => undefined),
       );
+    } else {
+      operations.push(revokeFinancialSession());
     }
 
     try {

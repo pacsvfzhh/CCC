@@ -260,6 +260,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const handleAcceptTimeoutRef = useRef<((assignmentId: string) => Promise<void>) | null>(null);
   const currentOrderRef = useRef<DispatchAssignment | null>(null);
   const startWorkLockRef = useRef<boolean>(false);
+  const componentMountedRef = useRef(false);
+  const lifecycleGenerationRef = useRef(0);
+  const initialCleanupPromiseRef = useRef<Promise<void> | null>(null);
+  const visibilityRestartPromiseRef = useRef<Promise<void> | null>(null);
+  const restartSessionRef = useRef<(() => Promise<void>) | null>(null);
+  const sendHeartbeatRef = useRef<(() => Promise<void>) | null>(null);
 
   // 通知系统
   const showNotification = (notification: Omit<Notification, 'id'>) => {
@@ -281,10 +287,25 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   };
 
   useEffect(() => {
+    componentMountedRef.current = true;
     loadConfig();
     loadTodayOrders();
     loadTotalWorkTime();
-    checkPendingOrder();
+    const previousInitialCheck = initialCleanupPromiseRef.current;
+    const initialCheckPromise = (previousInitialCheck || Promise.resolve())
+      .catch(error => {
+        console.error('Previous pending-order check failed:', error);
+      })
+      .then(() => checkPendingOrder())
+      .catch(error => {
+        console.error('Initial pending-order check failed:', error);
+      });
+    initialCleanupPromiseRef.current = initialCheckPromise;
+    void initialCheckPromise.finally(() => {
+      if (initialCleanupPromiseRef.current === initialCheckPromise) {
+        initialCleanupPromiseRef.current = null;
+      }
+    });
 
     // Refresh total work time every 60 seconds (cron handles stale cleanup globally)
     const workTimeInterval = setInterval(() => {
@@ -344,10 +365,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       });
       const blob = new Blob([payload], { type: 'application/json' });
 
-      navigator.sendBeacon(
+      const queued = navigator.sendBeacon(
         `${supabaseUrl}/rest/v1/rpc/stop_employee_dispatch_session_secure?apikey=${supabaseKey}`,
         blob
       );
+      if (!queued) {
+        console.error('Failed to queue dispatch-session stop beacon.');
+      }
     };
 
     const handleBeforeUnload = () => {
@@ -361,8 +385,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         setIsPageVisible(false);
         pageHiddenAtRef.current = Date.now();
         if (sessionActiveRef.current) {
-          // Send heartbeat immediately to mark accurate last-active time
-          updateActivity();
+          // Send heartbeat immediately to mark accurate last-active time.
+          lastActivityRef.current = new Date();
+          void sendHeartbeatRef.current?.();
         }
       } else {
         // Page is now visible again
@@ -375,53 +400,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           const gapMinutes = gapMs / 1000 / 60;
 
           if (gapMinutes > 1.5) {
-            // Page was hidden for more than 1.5 minutes
-            // The work session's last_heartbeat_at is from when page went hidden
-            // We need to end the old session and start a new one to avoid gap inflation
-            const restartSession = async () => {
-              try {
-                const auth = getStoredAuth();
-                const currentSessionId = sessionIdRef.current;
-                if (auth?.userType !== 'employee' || !currentSessionId) return;
-
-                // End the stale dispatch/work session using its heartbeat-capped time.
-                const { error: stopError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
-                  p_user_id: auth.user.id,
-                  p_session_token: auth.financialSessionToken,
-                  p_tab_id: auth.tabId,
-                  p_session_id: currentSessionId,
-                });
-                if (stopError) throw stopError;
-
-                // Start a new corresponding dispatch/work session immediately.
-                const { data: newSession, error: startError } = await supabase.rpc('start_employee_dispatch_session_secure', {
-                  p_user_id: auth.user.id,
-                  p_session_token: auth.financialSessionToken,
-                  p_tab_id: auth.tabId,
-                });
-                if (startError) throw startError;
-                if (!newSession?.session_id || !newSession.started_at) {
-                  throw new Error('Failed to restart dispatch session.');
-                }
-
-                sessionIdRef.current = newSession.session_id;
-                setSession(previous => ({
-                  ...previous,
-                  sessionId: newSession.session_id,
-                  startedAt: new Date(newSession.started_at),
-                }));
-                sendHeartbeat();
-
-                // Refresh displayed work time
-                loadTotalWorkTime();
-              } catch (error) {
-                console.error('Failed to restart work session after visibility gap:', error);
-              }
-            };
-            restartSession();
+            // Serialize the stop/start pair so visibility and heartbeat recovery cannot race.
+            void restartSessionRef.current?.();
           } else {
-            // Short gap - just send heartbeat to resume tracking
-            sendHeartbeat();
+            // Short gap - just send heartbeat to resume tracking.
+            void sendHeartbeatRef.current?.();
           }
         }
 
@@ -448,6 +431,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      componentMountedRef.current = false;
+      lifecycleGenerationRef.current += 1;
       if (dispatchTimerRef.current) clearTimeout(dispatchTimerRef.current);
       if (activityTimerRef.current) clearInterval(activityTimerRef.current);
       if (heartbeatTimerRef.current) clearInterval(heartbeatTimerRef.current);
@@ -648,8 +633,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
       if (currentOrder && currentOrder.id) {
         await handleProcessTimeout(currentOrder.id);
-        // End work session after timeout
-        await handleStopWork(false);
+        // End work session after timeout. A failed stop keeps local work active for retry.
+        try {
+          await handleStopWork(false);
+        } catch {
+          return;
+        }
 
         // Show page notification
         showNotification({
@@ -735,26 +724,213 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
   };
 
+  const stopHeartbeat = () => {
+    if (heartbeatTimerRef.current) {
+      clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
+    }
+  };
+
+  const stopLocalWorkingState = (expectedSessionId: string) => {
+    if (sessionIdRef.current !== expectedSessionId) return;
+
+    lifecycleGenerationRef.current += 1;
+    sessionActiveRef.current = false;
+    sessionIdRef.current = null;
+    stopHeartbeat();
+    if (dispatchTimerRef.current) {
+      clearTimeout(dispatchTimerRef.current);
+      dispatchTimerRef.current = null;
+    }
+    if (activityTimerRef.current) {
+      clearInterval(activityTimerRef.current);
+      activityTimerRef.current = null;
+    }
+    if (acceptTimeoutRef.current) {
+      clearTimeout(acceptTimeoutRef.current);
+      acceptTimeoutRef.current = null;
+    }
+    if (processTimeoutRef.current) {
+      clearTimeout(processTimeoutRef.current);
+      processTimeoutRef.current = null;
+    }
+    if (fiveMinuteWarningRef.current) {
+      clearTimeout(fiveMinuteWarningRef.current);
+      fiveMinuteWarningRef.current = null;
+    }
+    if (timeoutCheckRef.current) {
+      clearInterval(timeoutCheckRef.current);
+      timeoutCheckRef.current = null;
+    }
+
+    unacceptedCountRef.current = 0;
+    if (componentMountedRef.current) {
+      setCurrentOrder(null);
+      setShowOrderDetail(false);
+      setSession({ isWorking: false, sessionId: null, startedAt: null });
+      setUnacceptedCount(0);
+      setNextOrderTime(null);
+      setHasTimeout(false);
+      setHasFiveMinuteWarning(false);
+      setShowTimeoutAlert(false);
+      onStatusChange?.(false, false);
+    }
+  };
+
+  const restartSessionAfterLifecycleGap = (): Promise<void> => {
+    if (visibilityRestartPromiseRef.current) {
+      return visibilityRestartPromiseRef.current;
+    }
+
+    const generation = lifecycleGenerationRef.current;
+    let stoppedOldSession = false;
+    const operation = (async () => {
+      if (
+        !componentMountedRef.current ||
+        !sessionActiveRef.current ||
+        document.hidden ||
+        lifecycleGenerationRef.current !== generation
+      ) {
+        return;
+      }
+
+      const auth = getStoredAuth();
+      const oldSessionId = sessionIdRef.current;
+      if (auth?.userType !== 'employee' || !oldSessionId) return;
+
+      const { data: stopResult, error: stopError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: oldSessionId,
+      });
+      if (stopError) throw stopError;
+      if (!stopResult?.success) throw new Error('Failed to stop the stale dispatch session.');
+      stoppedOldSession = true;
+
+      if (
+        !componentMountedRef.current ||
+        !sessionActiveRef.current ||
+        document.hidden ||
+        lifecycleGenerationRef.current !== generation ||
+        sessionIdRef.current !== oldSessionId
+      ) {
+        if (
+          componentMountedRef.current &&
+          lifecycleGenerationRef.current === generation &&
+          sessionIdRef.current === oldSessionId
+        ) {
+          stopLocalWorkingState(oldSessionId);
+        }
+        return;
+      }
+
+      const { data: newSession, error: startError } = await supabase.rpc('start_employee_dispatch_session_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+      });
+      if (startError) throw startError;
+      if (!newSession?.success || !newSession.session_id || !newSession.started_at) {
+        throw new Error('Failed to restart dispatch session.');
+      }
+
+      if (
+        !componentMountedRef.current ||
+        !sessionActiveRef.current ||
+        document.hidden ||
+        lifecycleGenerationRef.current !== generation ||
+        sessionIdRef.current !== oldSessionId
+      ) {
+        try {
+          const { error: cleanupError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
+            p_user_id: auth.user.id,
+            p_session_token: auth.financialSessionToken,
+            p_tab_id: auth.tabId,
+            p_session_id: newSession.session_id,
+          });
+          if (cleanupError) {
+            console.error('Failed to clean up stale visibility-restart session:', cleanupError);
+          }
+        } catch (cleanupError) {
+          console.error('Failed to clean up stale visibility-restart session:', cleanupError);
+        }
+        return;
+      }
+
+      sessionIdRef.current = newSession.session_id;
+      setSession(previous => ({
+        ...previous,
+        sessionId: newSession.session_id,
+        startedAt: new Date(newSession.started_at),
+      }));
+      void sendHeartbeatRef.current?.();
+      void loadTotalWorkTime().catch(error => console.error('Failed to refresh work time:', error));
+    })().catch(error => {
+      console.error('Failed to restart work session after lifecycle gap:', error);
+      const currentSessionId = sessionIdRef.current;
+      const isCurrentLifecycle = componentMountedRef.current && lifecycleGenerationRef.current === generation;
+      if (isCurrentLifecycle) {
+        showNotification({
+          type: 'error',
+          title: 'Session Recovery Failed',
+          message: getOrderDispatchErrorMessage(error),
+          duration: 5000,
+        });
+      }
+      if (stoppedOldSession && currentSessionId && isCurrentLifecycle) {
+        stopLocalWorkingState(currentSessionId);
+      }
+    }).finally(() => {
+      if (visibilityRestartPromiseRef.current === operation) {
+        visibilityRestartPromiseRef.current = null;
+      }
+    });
+
+    visibilityRestartPromiseRef.current = operation;
+    return operation;
+  };
+  restartSessionRef.current = restartSessionAfterLifecycleGap;
+
   const sendHeartbeat = async () => {
     const currentSessionId = sessionIdRef.current;
     const auth = getStoredAuth();
-    if (!currentSessionId || auth?.userType !== 'employee') return;
+    if (
+      !componentMountedRef.current ||
+      !sessionActiveRef.current ||
+      !currentSessionId ||
+      auth?.userType !== 'employee'
+    ) {
+      return;
+    }
 
     try {
-      const { error } = await supabase.rpc('update_session_heartbeat_secure', {
+      const { data, error } = await supabase.rpc('update_session_heartbeat_secure', {
         p_user_id: auth.user.id,
         p_session_token: auth.financialSessionToken,
         p_tab_id: auth.tabId,
         p_session_id: currentSessionId,
       });
 
-      if (error) {
-        console.error('Failed to send heartbeat:', error);
+      if (error) throw error;
+      if (!data?.success) {
+        console.error('Heartbeat rejected:', data?.reason || 'unknown reason');
+        if (
+          componentMountedRef.current &&
+          sessionActiveRef.current &&
+          !document.hidden &&
+          sessionIdRef.current === currentSessionId
+        ) {
+          await restartSessionAfterLifecycleGap();
+        } else if (sessionIdRef.current === currentSessionId) {
+          stopLocalWorkingState(currentSessionId);
+        }
       }
     } catch (error) {
       console.error('Error sending heartbeat:', error);
     }
   };
+  sendHeartbeatRef.current = sendHeartbeat;
 
   const startHeartbeat = () => {
     if (heartbeatTimerRef.current) {
@@ -767,20 +943,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     // Send heartbeat every ~60 seconds (with jitter) to keep session alive
     heartbeatTimerRef.current = setInterval(() => {
-      sendHeartbeat();
+      void sendHeartbeatRef.current?.();
     }, heartbeatInterval);
 
     // Send initial heartbeat with small delay to avoid startup spike
     setTimeout(() => {
-      sendHeartbeat();
+      void sendHeartbeatRef.current?.();
     }, Math.random() * 3000);
-  };
-
-  const stopHeartbeat = () => {
-    if (heartbeatTimerRef.current) {
-      clearInterval(heartbeatTimerRef.current);
-      heartbeatTimerRef.current = null;
-    }
   };
 
   const checkPendingOrder = async () => {
@@ -818,7 +987,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
       if (error) throw error;
 
-      if (data) {
+      if (data && componentMountedRef.current) {
         console.log('Found existing pending/accepted order on page load:', data.id);
         setCurrentOrder(data);
         setShowOrderDetail(true);
@@ -826,6 +995,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
     } catch (error) {
       console.error('Failed to check pending order:', error);
+      throw error;
     }
   };
 
@@ -989,7 +1159,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       const timeSinceLastActivity = (now.getTime() - lastActivityRef.current.getTime()) / 1000 / 60;
 
       if (timeSinceLastActivity >= config.session_timeout_minutes) {
-        handleStopWork(true);
+        void handleStopWork(true).catch(() => {
+          // The handler reports the failure and preserves active state for retry.
+        });
       }
     }, 30000);
   };
@@ -1019,6 +1191,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     console.log('✅ Employee verified - proceeding with work session');
 
+    // Explicit lifecycle operations invalidate any older visibility restart.
+    const startGeneration = lifecycleGenerationRef.current + 1;
+    lifecycleGenerationRef.current = startGeneration;
+    const staleVisibilityRestart = visibilityRestartPromiseRef.current;
+
     // Mobile: Show ripple effect on tap
     console.log('🔍 Device check - isMobile:', isMobile);
     if (isMobile) {
@@ -1037,6 +1214,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     // Use setTimeout instead of await to allow React to render the state change
     setTimeout(async () => {
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
+        startWorkLockRef.current = false;
+        return;
+      }
+
       // Reset press state immediately
       setIsStartButtonPressed(false);
 
@@ -1053,6 +1235,26 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     try {
       console.log('Starting work session...');
+      const initialCleanup = initialCleanupPromiseRef.current;
+      if (initialCleanup) {
+        try {
+          await initialCleanup;
+        } catch (error) {
+          console.error('Initial dispatch cleanup failed before Start:', error);
+        }
+      }
+      if (staleVisibilityRestart) {
+        try {
+          await staleVisibilityRestart;
+        } catch (error) {
+          console.error('Stale visibility restart failed before Start:', error);
+        }
+      }
+
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
+        return;
+      }
+
       const auth = getStoredAuth();
       if (auth?.userType !== 'employee') {
         console.error('No employee auth found in session storage');
@@ -1078,6 +1280,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         supabase.from('dispatch_group_members').select('group_id, dispatch_groups(id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode, is_active)').eq('user_id', userId).maybeSingle(),
         supabase.from('dispatch_groups').select('id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode').eq('is_default', true).eq('is_active', true).maybeSingle()
       ]);
+
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
+        return;
+      }
 
       // Determine group config from parallel results
       let groupConfig: DispatchConfig = config;
@@ -1119,9 +1325,24 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         console.error('Failed to start secure dispatch session:', startError);
         throw startError;
       }
-      if (!startResult?.session_id || !startResult.started_at) {
+      if (!startResult?.success || !startResult.session_id || !startResult.started_at) {
         console.error('Dispatch session creation returned invalid data:', startResult);
         throw new Error('Failed to create dispatch session - no session ID returned');
+      }
+
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
+        try {
+          const { error: cleanupError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
+            p_user_id: userId,
+            p_session_token: auth.financialSessionToken,
+            p_tab_id: auth.tabId,
+            p_session_id: startResult.session_id,
+          });
+          if (cleanupError) console.error('Failed to clean up stale Start session:', cleanupError);
+        } catch (cleanupError) {
+          console.error('Failed to clean up stale Start session:', cleanupError);
+        }
+        return;
       }
 
       const data = {
@@ -1168,6 +1389,22 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       // Wait for animation to complete before updating UI state
       await animationPromise;
 
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
+        try {
+          const { error: cleanupError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
+            p_user_id: userId,
+            p_session_token: auth.financialSessionToken,
+            p_tab_id: auth.tabId,
+            p_session_id: data.id,
+          });
+          if (cleanupError) console.error('Failed to clean up stale animated Start session:', cleanupError);
+        } catch (cleanupError) {
+          console.error('Failed to clean up stale animated Start session:', cleanupError);
+        }
+        stopLocalWorkingState(data.id);
+        return;
+      }
+
       // Now update the session state to trigger UI change
       setSession(newSession);
       setWaitingTime(0);
@@ -1186,6 +1423,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       console.error('Error details:', {
         message: getOrderDispatchErrorMessage(error)
       });
+
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
+        return;
+      }
 
       // User-friendly error message
       const errorMsg = getOrderDispatchErrorMessage(error);
@@ -1216,9 +1457,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       if (heartbeatTimerRef.current) clearTimeout(heartbeatTimerRef.current);
       if (timeoutCheckRef.current) clearTimeout(timeoutCheckRef.current);
     } finally {
-      setIsProcessing(false);
-      setIsTransitioning(false);
-      setTransitionType(null);
+      if (componentMountedRef.current) {
+        setIsProcessing(false);
+        setIsTransitioning(false);
+        setTransitionType(null);
+      }
       // Release lock after a small delay to ensure state updates complete
       setTimeout(() => {
         startWorkLockRef.current = false;
@@ -1229,6 +1472,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const handleStopWork = async (timeout: boolean = false) => {
     if (isProcessing && !timeout) return;
+
+    // Explicit lifecycle operations invalidate any older visibility restart.
+    const stopGeneration = lifecycleGenerationRef.current + 1;
+    lifecycleGenerationRef.current = stopGeneration;
+    const staleVisibilityRestart = visibilityRestartPromiseRef.current;
 
     // Show transition animation (unless auto-stopped by timeout)
     if (!timeout) {
@@ -1244,58 +1492,60 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     const animationPromise = !timeout ? new Promise(resolve => setTimeout(resolve, 500)) : Promise.resolve();
 
     try {
+      if (staleVisibilityRestart) {
+        try {
+          await staleVisibilityRestart;
+        } catch (error) {
+          console.error('Stale visibility restart failed before Stop:', error);
+        }
+      }
+
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== stopGeneration) {
+        return;
+      }
+
       const auth = getStoredAuth();
-      const userId = auth?.userType === 'employee' ? auth.user.id : null;
+      if (auth?.userType !== 'employee') {
+        throw new Error('Employee session has expired. Please sign in again.');
+      }
+
+      const userId = auth.user.id;
       const currentSessionId = sessionIdRef.current || session.sessionId;
 
-      // PARALLEL OPTIMIZATION: Stop the secure session and cancel pending orders simultaneously.
-      const cleanupTasks: Array<PromiseLike<unknown>> = [];
+      // Pending assignment cancellation is independent and remains best-effort.
+      void supabase.from('dispatch_assignments')
+        .update({
+          status: 'cancelled',
+          completed_at: getCurrentTimestamp(),
+          remarks: 'Auto-cancelled: Work session stopped by user',
+        })
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .then(({ error }) => {
+          if (error) console.error('Failed to cancel pending assignments while stopping work:', error);
+        }, error => {
+          console.error('Failed to cancel pending assignments while stopping work:', error);
+        });
 
-      if (auth?.userType === 'employee') {
-        cleanupTasks.push(
-          supabase.rpc('stop_employee_dispatch_session_secure', {
-            p_user_id: auth.user.id,
-            p_session_token: auth.financialSessionToken,
-            p_tab_id: auth.tabId,
-            p_session_id: currentSessionId,
-          }).then(result => {
-            if (result.error) console.error('Failed to stop secure dispatch session:', result.error);
-            else console.log('Work session ended by user');
-            return result;
-          })
-        );
-
-        // Preserve pending-order cancellation when work stops.
-        cleanupTasks.push(
-          supabase.from('dispatch_assignments')
-            .update({
-              status: 'cancelled',
-              completed_at: getCurrentTimestamp(),
-              remarks: 'Auto-cancelled: Work session stopped by user',
-            })
-            .eq('user_id', auth.user.id)
-            .eq('status', 'pending')
-            .then(result => {
-              if (result.data) {
-                console.log(`Cancelled pending orders`);
-              }
-              return result;
-            })
-        );
+      const { data: stopResult, error: stopError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
+        p_user_id: userId,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: currentSessionId,
+      });
+      if (stopError) throw stopError;
+      if (!stopResult?.success) {
+        throw new Error('The work session could not be stopped. Please try again.');
       }
-
-      // Execute all cleanup tasks in parallel
-      await Promise.allSettled(cleanupTasks);
+      console.log('Work session ended by user');
 
       // Load total work time (non-blocking - can happen after UI update)
-      if (userId) {
-        loadTotalWorkTime().catch(err => console.error('Failed to load work time:', err));
-      }
+      void loadTotalWorkTime().catch(err => console.error('Failed to load work time:', err));
 
       // Stop heartbeat
       stopHeartbeat();
 
-      // Clear all timers
+      // Clear all timers only after the server confirms the stop.
       if (dispatchTimerRef.current) {
         clearTimeout(dispatchTimerRef.current);
         dispatchTimerRef.current = null;
@@ -1317,7 +1567,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         timeoutCheckRef.current = null;
       }
 
-      // Prepare to clear state but don't update UI-affecting states yet
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== stopGeneration) {
+        return;
+      }
+
+      // Prepare to clear state but don't update UI-affecting states yet.
       sessionActiveRef.current = false;
       sessionIdRef.current = null;
       unacceptedCountRef.current = 0;
@@ -1349,6 +1603,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         await animationPromise;
         await new Promise(resolve => setTimeout(resolve, 100));
 
+        if (!componentMountedRef.current || lifecycleGenerationRef.current !== stopGeneration) {
+          return;
+        }
+
         // Now update the session state to trigger UI change
         setCurrentOrder(null);
         setShowOrderDetail(false);
@@ -1368,11 +1626,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           onStatusChange(false, false);
         }
 
-        // Reset processing state immediately for better UX
-        setIsProcessing(false);
-        setIsTransitioning(false);
-        setTransitionType(null);
-
         // Mobile: Show success toast for stop work
         if (isMobile) {
           setTimeout(() => {
@@ -1383,11 +1636,20 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
 
       // Reload today's orders in background (non-blocking for better UX)
-      loadTodayOrders().catch(err => console.error('Failed to reload orders:', err));
+      void loadTodayOrders().catch(err => console.error('Failed to reload orders:', err));
     } catch (error: unknown) {
       console.error('Failed to stop work:', error);
-      // Reset processing state even on error
-      if (!timeout) {
+      if (componentMountedRef.current) {
+        showNotification({
+          type: 'error',
+          title: 'Failed to Stop',
+          message: getOrderDispatchErrorMessage(error),
+          duration: 5000,
+        });
+      }
+      throw error;
+    } finally {
+      if (!timeout && componentMountedRef.current) {
         setIsProcessing(false);
         setIsTransitioning(false);
         setTransitionType(null);
@@ -3630,7 +3892,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                 </button>
               ) : (session.isWorking && !(isTransitioning && transitionType === 'end')) || (isTransitioning && transitionType === 'end') ? (
                 <button
-                  onClick={() => handleStopWork(false)}
+                  onClick={() => void handleStopWork(false).catch(() => undefined)}
                   disabled={isProcessing}
                   className={`group/btn relative w-full py-5 px-8 bg-gradient-to-r from-red-500/90 via-red-600/90 to-red-500/90 backdrop-blur-sm border border-red-400/30 rounded-2xl overflow-hidden disabled:cursor-not-allowed shadow-lg shadow-red-900/20 ${
                     performanceSettings.reduceTransitions
@@ -3804,7 +4066,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
                   {/* Stop Button */}
                   <button
-                    onClick={() => handleStopWork(false)}
+                    onClick={() => void handleStopWork(false).catch(() => undefined)}
                     disabled={isProcessing}
                     className={`relative w-full py-4 px-4 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center space-x-2.5 overflow-hidden shadow-lg shadow-red-900/20 ${
                       isProcessing

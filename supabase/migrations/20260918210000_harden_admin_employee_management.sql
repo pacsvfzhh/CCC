@@ -800,6 +800,7 @@ AS $function$
 DECLARE
   v_valid_user_id uuid;
   v_heartbeat_at timestamptz := clock_timestamp();
+  v_work_session_id uuid;
   v_work_sessions_updated integer;
 BEGIN
   IF p_tab_id IS NULL OR btrim(p_tab_id) = '' THEN
@@ -829,6 +830,26 @@ BEGIN
     RAISE EXCEPTION 'Employee session is invalid or expired.';
   END IF;
 
+  SELECT work_session.id
+  INTO v_work_session_id
+  FROM public.work_sessions AS work_session
+  WHERE work_session.user_id = v_valid_user_id
+    AND work_session.end_time IS NULL
+  ORDER BY work_session.start_time DESC, work_session.id DESC
+  LIMIT 1
+  FOR UPDATE;
+
+  IF v_work_session_id IS NULL THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'reason', 'no_open_work_session',
+      'session_id', p_session_id,
+      'user_id', v_valid_user_id,
+      'heartbeat_at', NULL,
+      'work_sessions_updated', 0
+    );
+  END IF;
+
   UPDATE public.dispatch_sessions
   SET last_activity_at = v_heartbeat_at
   WHERE id = p_session_id
@@ -838,13 +859,26 @@ BEGIN
 
   UPDATE public.work_sessions
   SET last_heartbeat_at = v_heartbeat_at
-  WHERE user_id = v_valid_user_id
+  WHERE id = v_work_session_id
+    AND user_id = v_valid_user_id
     AND end_time IS NULL;
 
   GET DIAGNOSTICS v_work_sessions_updated = ROW_COUNT;
 
+  IF v_work_sessions_updated = 0 THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'reason', 'no_open_work_session',
+      'session_id', p_session_id,
+      'user_id', v_valid_user_id,
+      'heartbeat_at', NULL,
+      'work_sessions_updated', 0
+    );
+  END IF;
+
   RETURN jsonb_build_object(
     'success', true,
+    'reason', NULL,
     'session_id', p_session_id,
     'user_id', v_valid_user_id,
     'heartbeat_at', v_heartbeat_at,
@@ -852,6 +886,30 @@ BEGIN
   );
 END;
 $function$;
+
+-- Secure lifecycle functions now own all client-side session writes. Keep table
+-- reads available, but remove every direct client write path and its permissive RLS policy.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.dispatch_sessions FROM PUBLIC, anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.work_sessions FROM PUBLIC, anon, authenticated;
+
+DROP POLICY IF EXISTS "Anyone can insert dispatch sessions" ON public.dispatch_sessions;
+DROP POLICY IF EXISTS "Anyone can update dispatch sessions" ON public.dispatch_sessions;
+DROP POLICY IF EXISTS "Anyone can delete dispatch sessions" ON public.dispatch_sessions;
+DROP POLICY IF EXISTS "Users can create own work sessions" ON public.work_sessions;
+DROP POLICY IF EXISTS "Users can update own work sessions" ON public.work_sessions;
+
+-- Revoke legacy unauthenticated write/lifecycle entry points. Trigger and cron
+-- execution remains intact because the secure and cleanup callers run as definers.
+REVOKE EXECUTE ON FUNCTION public.start_work_session(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.end_work_session(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.end_work_session_by_user(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.update_session_heartbeat(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cleanup_all_stale_sessions() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cleanup_stale_dispatch_sessions() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cleanup_stale_work_sessions_optimized() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cleanup_duplicate_work_sessions() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.auto_cleanup_dispatch_system() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.reconcile_stale_dispatch_assignments(integer, integer) FROM PUBLIC, anon, authenticated;
 
 REVOKE ALL ON FUNCTION public.get_employee_management_snapshot(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.admin_set_employee_verification(uuid, uuid, boolean) FROM PUBLIC, anon, authenticated;
