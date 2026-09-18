@@ -110,7 +110,7 @@ CREATE TABLE public.notification_automation_executions (
   error_message text,
   executed_at timestamptz NOT NULL DEFAULT now(),
   completed_at timestamptz,
-  UNIQUE (task_id, user_id, period_key, stage)
+  UNIQUE (task_id, task_version, user_id, period_key, stage)
 );
 
 CREATE TABLE public.notification_automation_queue (
@@ -760,7 +760,7 @@ BEGIN
       CASE WHEN v_task.reward_enabled THEN v_task.reward_amount ELSE NULL END,
       CASE WHEN v_task.reward_enabled THEN v_currency ELSE NULL END
     )
-    ON CONFLICT (task_id, user_id, period_key, stage) DO NOTHING
+    ON CONFLICT (task_id, task_version, user_id, period_key, stage) DO NOTHING
     RETURNING id INTO v_execution_id;
 
     CONTINUE WHEN v_execution_id IS NULL;

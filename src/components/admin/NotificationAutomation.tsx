@@ -403,14 +403,23 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
     }
   };
 
-  const copyTemplate = async (task: AutomationTask) => {
+  const copyTemplate = async (task: AutomationTask, activate: boolean) => {
     try {
-      const { error } = await supabase.rpc('copy_shared_notification_automation_task', {
+      const { data, error } = await supabase.rpc('copy_shared_notification_automation_task', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_source_task_id: task.id,
       });
       if (error) throw error;
-      notify('success', '已複製為你的獨立草稿，可進一步修改後啟用');
+      const result = data as unknown as { task_id?: string } | null;
+      if (activate && result?.task_id) {
+        const { error: activateError } = await supabase.rpc('set_notification_automation_task_status', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_task_id: result.task_id,
+          p_status: 'active',
+        });
+        if (activateError) throw activateError;
+      }
+      notify('success', activate ? '已直接套用範本，任務只會作用於你的員工' : '已複製為你的獨立草稿，可進一步修改後啟用');
       setView('tasks');
       await loadDashboard();
     } catch (error) {
@@ -784,7 +793,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                   <article key={task.id} className="rounded-2xl border border-violet-500/25 bg-gradient-to-br from-violet-950/50 to-slate-900 p-5">
                     <div className="flex items-start justify-between gap-3"><div><span className="rounded-md bg-violet-400/10 px-2 py-1 text-[10px] font-black text-violet-300">超級管理員範本</span><h3 className="mt-3 font-bold text-white">{task.name}</h3><p className="mt-1 text-xs text-violet-300/50">{task.owner_username} · V{task.version}</p></div>{task.reward_enabled ? <Gift className="h-6 w-6 text-amber-400" /> : <Bell className="h-6 w-6 text-cyan-400" />}</div>
                     <p className="mt-4 rounded-xl border border-white/5 bg-black/20 p-3 text-sm text-slate-300">{summarizeTask(task, dashboard.currency)}</p>
-                    <div className="mt-4 flex gap-2"><button onClick={() => openTask(task, true)} className="flex h-9 flex-1 items-center justify-center gap-2 rounded-xl border border-violet-500/20 bg-violet-500/10 text-xs font-bold text-violet-200">查看詳情<ChevronRight className="h-3.5 w-3.5" /></button><button onClick={() => copyTemplate(task)} className="flex h-9 flex-1 items-center justify-center gap-2 rounded-xl bg-violet-500 text-xs font-bold text-white"><Copy className="h-3.5 w-3.5" />複製後自訂</button></div>
+                    <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => openTask(task, true)} className="flex h-9 items-center justify-center gap-1 rounded-xl border border-violet-500/20 bg-violet-500/10 text-[11px] font-bold text-violet-200">查看<ChevronRight className="h-3.5 w-3.5" /></button><button onClick={() => copyTemplate(task, true)} className="flex h-9 items-center justify-center gap-1 rounded-xl bg-emerald-500/15 text-[11px] font-bold text-emerald-300"><Play className="h-3.5 w-3.5" />直接套用</button><button onClick={() => copyTemplate(task, false)} className="flex h-9 items-center justify-center gap-1 rounded-xl bg-violet-500 text-[11px] font-bold text-white"><Copy className="h-3.5 w-3.5" />複製自訂</button></div>
                   </article>
                 ))}
               </div>

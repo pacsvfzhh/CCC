@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, Lock, ChevronDown } from 'lucide-react';
+import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, Lock, ChevronDown, Gift } from 'lucide-react';
 import { Employee } from '../../types';
 import { AUTH_STORAGE_KEY, logout } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
@@ -49,7 +49,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const [hasNewOrder, setHasNewOrder] = useState(false);
   const [hasOrderTimeout, setHasOrderTimeout] = useState(false);
   const [showMessageToast, setShowMessageToast] = useState(false);
-  const [latestMessage, setLatestMessage] = useState<{ title: string; content: string; priority: string } | null>(null);
+  const [latestMessage, setLatestMessage] = useState<{ title: string; content: string; priority: string; notificationCategory: string; rewardAmount: number | null; rewardCurrency: string | null } | null>(null);
   const [audioContextReady, setAudioContextReady] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showSessionExpired, setShowSessionExpired] = useState(false);
@@ -451,7 +451,10 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           messages!inner (
             title,
             content,
-            priority
+            priority,
+            notification_category,
+            reward_amount,
+            reward_currency
           )
         `)
         .eq('recipient_id', employee.id)
@@ -464,6 +467,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           title: data.messages.title,
           content: data.messages.content,
           priority: data.messages.priority,
+          notificationCategory: data.messages.notification_category,
+          rewardAmount: data.messages.reward_amount,
+          rewardCurrency: data.messages.reward_currency,
         });
         setShowMessageToast(true);
 
@@ -642,9 +648,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                   {showMessageToast && latestMessage && (
                     <div className="absolute top-full right-0 mt-2 w-[min(calc(100vw-2rem),320px)] z-50 animate-slide-in-down" style={{ maxWidth: 'min(calc(100vw - 2rem), 320px)' }}>
                       {/* Arrow */}
-                      <div className="absolute -top-[6px] right-3 w-3 h-3 transform rotate-45 bg-emerald-600 border border-emerald-400/30 border-b-0 border-r-0"></div>
+                      <div className={`absolute -top-[6px] right-3 h-3 w-3 rotate-45 border border-b-0 border-r-0 ${latestMessage.notificationCategory === 'performance_reward' ? 'border-amber-300/40 bg-amber-500' : 'border-emerald-400/30 bg-emerald-600'}`}></div>
 
-                      <div className="relative rounded-2xl overflow-hidden shadow-2xl ring-1 ring-emerald-400/40 border border-emerald-500/20" style={{ background: 'linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%)', WebkitTextSizeAdjust: '100%' }}>
+                      <div className={`relative overflow-hidden rounded-2xl border shadow-2xl ring-1 ${latestMessage.notificationCategory === 'performance_reward' ? 'border-amber-300/30 bg-gradient-to-br from-amber-500 via-yellow-500 to-orange-500 ring-amber-300/50' : 'border-emerald-500/20 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 ring-emerald-400/40'}`} style={{ WebkitTextSizeAdjust: '100%' }}>
                         {/* Decorative patterns - hidden on very narrow screens */}
                         <div className="hidden sm:block absolute top-0 right-0 w-20 h-20 rounded-full bg-teal-300 opacity-15 -translate-y-8 translate-x-6"></div>
                         <div className="hidden sm:block absolute bottom-0 left-0 w-14 h-14 rounded-full bg-emerald-300 opacity-10 translate-y-5 -translate-x-5"></div>
@@ -664,14 +670,14 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                           <div className="flex items-center gap-2 sm:gap-2.5 mb-2 sm:mb-2.5">
                             <div className="relative flex-shrink-0">
                               <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/15 border border-white/20 ring-1 ring-white/10 shadow-inner">
-                                <Bell className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />
+                                {latestMessage.notificationCategory === 'performance_reward' ? <Gift className="h-4.5 w-4.5 text-white" strokeWidth={2.2} /> : <Bell className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />}
                               </div>
                               <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center bg-white shadow-md">
                                 <span className="text-[7px] font-black leading-none text-emerald-600">1</span>
                               </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <span className="text-[9px] font-bold uppercase tracking-[0.12em] block mb-0.5 text-emerald-200">{t.header.newMessage}</span>
+                              <span className={`mb-0.5 block text-[9px] font-bold uppercase tracking-[0.12em] ${latestMessage.notificationCategory === 'performance_reward' ? 'text-amber-50' : 'text-emerald-200'}`}>{latestMessage.notificationCategory === 'performance_reward' ? 'Performance Reward' : t.header.newMessage}</span>
                               <h3 className="font-bold text-[13px] leading-tight truncate text-white">
                                 {latestMessage.title}
                               </h3>
@@ -684,6 +690,13 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                               <X className="w-3.5 h-3.5 text-white/80" strokeWidth={2.5} />
                             </button>
                           </div>
+
+                          {latestMessage.notificationCategory === 'performance_reward' && (
+                            <div className="mb-2.5 ml-[44px] flex items-center justify-between rounded-lg border border-white/20 bg-white/15 px-3 py-2 sm:ml-[46px]">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-white/75">Credited to Wallet</span>
+                              <span className="text-sm font-black text-white">+{Number(latestMessage.rewardAmount || 0).toFixed(2)} {latestMessage.rewardCurrency}</span>
+                            </div>
+                          )}
 
                           {/* Body */}
                           <div className="ml-[44px] sm:ml-[46px] p-2 sm:p-2.5 rounded-lg bg-white/10 border border-white/10 backdrop-blur-sm mb-2.5 sm:mb-3">
@@ -698,7 +711,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                               {latestMessage.priority === 'urgent' ? t.header.urgent :
                                latestMessage.priority === 'high' ? t.header.highPriority : t.header.normal}
                             </span>
-                            <div className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all active:scale-95 hover:scale-105 bg-white text-emerald-700 shadow-md">
+                            <div className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all active:scale-95 hover:scale-105 bg-white shadow-md ${latestMessage.notificationCategory === 'performance_reward' ? 'text-amber-700' : 'text-emerald-700'}`}>
                               <span className="text-[10px] font-bold">{t.header.view}</span>
                               <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                             </div>

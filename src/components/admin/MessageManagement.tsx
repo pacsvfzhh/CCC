@@ -187,6 +187,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
   const composeEditorRef = useRef<TiptapEditorRef>(null);
   const editEditorRef = useRef<TiptapEditorRef>(null);
+  const manualSendOperationRef = useRef<{ id: string; fingerprint: string } | null>(null);
   const tagDropdownRef = useRef<HTMLDivElement>(null);
   const templateDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -713,15 +714,31 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         throw new Error('請輸入有效的績效獎金金額');
       }
 
+      const recipientIds = Array.from(selectedEmployeeIds).sort();
+      const requestFingerprint = JSON.stringify({
+        recipientIds,
+        title: messageForm.title.trim(),
+        content: htmlContent,
+        messageType: messageForm.messageType,
+        priority: messageForm.priority,
+        rewardAmount,
+      });
+      if (manualSendOperationRef.current?.fingerprint !== requestFingerprint) {
+        manualSendOperationRef.current = {
+          id: crypto.randomUUID(),
+          fingerprint: requestFingerprint,
+        };
+      }
+
       const { data, error } = await supabase.rpc('send_admin_message_secure', {
         p_admin_session_token: getAdminFinancialSessionToken(),
-        p_recipient_ids: Array.from(selectedEmployeeIds),
+        p_recipient_ids: recipientIds,
         p_title: messageForm.title.trim(),
         p_content: htmlContent,
         p_message_type: messageForm.messageType,
         p_priority: messageForm.priority,
         p_reward_amount: rewardAmount,
-        p_operation_id: crypto.randomUUID(),
+        p_operation_id: manualSendOperationRef.current.id,
       });
       if (error) throw error;
 
@@ -735,6 +752,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           : `訊息已成功發送給 ${successCount} 名員工`,
       });
 
+      manualSendOperationRef.current = null;
       setMessageForm({ title: '', content: '', messageType: 'realtime', priority: 'normal' });
       setManualRewardEnabled(false);
       setManualRewardAmount('');
