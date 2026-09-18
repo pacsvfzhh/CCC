@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Bell, Eye, AlertCircle, CheckCircle, Clock, Zap, Shield, Radio, ChevronRight, MailOpen, Sparkles } from 'lucide-react';
+import { X, Bell, Eye, AlertCircle, CheckCircle, Clock, Zap, Shield, Radio, ChevronRight, MailOpen, Sparkles, Gift, Wallet } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
@@ -76,6 +76,10 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             content,
             message_type,
             priority,
+            notification_category,
+            reward_amount,
+            reward_currency,
+            automation_execution_id,
             created_at
           )
         `)
@@ -138,7 +142,26 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     }
   };
 
-  const getCardStyle = (priority: string, messageType: string, isUnread: boolean, index: number) => {
+  const getCardStyle = (priority: string, messageType: string, isUnread: boolean, index: number, isReward: boolean) => {
+    if (isReward) {
+      return isUnread
+        ? {
+            card: 'bg-gradient-to-br from-amber-100 via-yellow-50 to-orange-50 ring-2 ring-amber-300 shadow-xl shadow-amber-200/60',
+            iconBg: 'bg-gradient-to-br from-amber-400 via-yellow-400 to-orange-400',
+            iconText: 'text-amber-950',
+            accent: 'from-amber-500 via-yellow-400 to-orange-400',
+            patternColor: 'border-amber-400',
+            dotColor: 'bg-amber-500',
+          }
+        : {
+            card: 'bg-gradient-to-br from-amber-50/90 to-white ring-1 ring-amber-200 shadow-sm',
+            iconBg: 'bg-amber-100',
+            iconText: 'text-amber-600',
+            accent: 'from-amber-300 via-yellow-200 to-orange-200',
+            patternColor: 'border-amber-200',
+            dotColor: 'bg-amber-300',
+          };
+    }
     if (isUnread) {
       if (priority === 'urgent') {
         return {
@@ -362,7 +385,8 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             ) : (
               sortedMessages.map((msg, index) => {
                 const isUnread = !msg.is_read;
-                const style = getCardStyle(msg.messages.priority, msg.messages.message_type, isUnread, index);
+                const isReward = msg.messages.notification_category === 'performance_reward';
+                const style = getCardStyle(msg.messages.priority, msg.messages.message_type, isUnread, index, isReward);
                 return (
                   <div
                     key={msg.id}
@@ -393,7 +417,9 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                         <div className="flex items-start gap-3.5">
                           {/* Priority icon with colored background */}
                           <div className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center shadow-sm ${style.iconBg}`}>
-                            {getPriorityIcon(msg.messages.priority, `w-5 h-5 ${style.iconText}`)}
+                            {isReward
+                              ? <Gift className={`h-5 w-5 ${style.iconText}`} />
+                              : getPriorityIcon(msg.messages.priority, `w-5 h-5 ${style.iconText}`)}
                           </div>
 
                           {/* Content */}
@@ -411,6 +437,17 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                                 {formatRelativeTime(msg.messages.created_at || '')}
                               </span>
                             </div>
+
+                            {isReward && (
+                              <div className="mb-2 flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-200/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-800">
+                                  <Sparkles className="h-3 w-3" /> Performance Reward
+                                </span>
+                                <span className="text-sm font-black text-amber-700">
+                                  +{Number(msg.messages.reward_amount || 0).toFixed(2)} {msg.messages.reward_currency}
+                                </span>
+                              </div>
+                            )}
 
                             {/* Preview */}
                             <p className={`text-sm line-clamp-2 leading-relaxed mb-3 ${
@@ -500,7 +537,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
           >
             {/* Detail Header */}
             <div className="relative flex-shrink-0 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500" />
+              <div className={`absolute inset-0 bg-gradient-to-br ${selectedMessage.messages.notification_category === 'performance_reward' ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-500 to-cyan-500'}`} />
 
               {/* Decorative elements */}
               <div className="absolute top-0 right-0 w-48 h-48 opacity-[0.06]">
@@ -529,7 +566,9 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                 {/* Title section */}
                 <div className="flex items-start gap-3.5">
                   <div className="flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                    {getPriorityIcon(selectedMessage.messages.priority, 'w-5 h-5 text-white')}
+                    {selectedMessage.messages.notification_category === 'performance_reward'
+                      ? <Gift className="h-5 w-5 text-white" />
+                      : getPriorityIcon(selectedMessage.messages.priority, 'w-5 h-5 text-white')}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg lg:text-xl font-bold text-white mb-2 break-words leading-tight">
@@ -549,6 +588,13 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                     </div>
                   </div>
                 </div>
+
+                {selectedMessage.messages.notification_category === 'performance_reward' && (
+                  <div className="mt-4 rounded-2xl border border-white/25 bg-white/15 px-4 py-3 text-center backdrop-blur-sm">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-50/80">Credited to Your Wallet</p>
+                    <p className="mt-1 text-2xl font-black text-white">+{Number(selectedMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{selectedMessage.messages.reward_currency}</span></p>
+                  </div>
+                )}
 
                 {/* Tags */}
                 <div className="flex flex-wrap items-center gap-2 mt-4">
@@ -574,10 +620,22 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                 WebkitOverflowScrolling: 'touch'
               } as React.CSSProperties}
             >
+              {selectedMessage.messages.notification_category === 'performance_reward' && (
+                <div className="mb-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-200">
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-emerald-800">Performance Bonus / 業績獎金</p>
+                    <p className="text-xs text-emerald-600">The reward has already been added to your wallet and Daily Statistics.</p>
+                  </div>
+                </div>
+              )}
+
               {/* Content card */}
-              <div className="relative bg-white rounded-2xl p-5 lg:p-7 ring-1 ring-blue-100 shadow-md shadow-blue-50">
+              <div className={`relative bg-white rounded-2xl p-5 lg:p-7 ring-1 shadow-md ${selectedMessage.messages.notification_category === 'performance_reward' ? 'ring-amber-200 shadow-amber-50' : 'ring-blue-100 shadow-blue-50'}`}>
                 {/* Top accent line */}
-                <div className="absolute top-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-blue-300 to-transparent rounded-full" />
+                <div className={`absolute top-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent to-transparent rounded-full ${selectedMessage.messages.notification_category === 'performance_reward' ? 'via-amber-400' : 'via-blue-300'}`} />
 
                 <QuickCopyRichContent
                   html={selectedMessage.messages.content}

@@ -98,7 +98,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
           .from('wallet_transactions')
           .select('*')
           .eq('user_id', employeeId)
-          .in('type', ['manual_adjustment', 'withdrawal_approved', 'withdrawal_rejected'])
+          .in('type', ['manual_adjustment', 'withdrawal_approved', 'withdrawal_rejected', 'performance_bonus'])
           .order('created_at', { ascending: false })
       ]);
 
@@ -148,6 +148,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       const walletTx = transaction.data as WalletTransaction;
       if (walletTx.type === 'withdrawal_approved') return <CheckCircle className="w-4 h-4" />;
       if (walletTx.type === 'withdrawal_rejected') return <XCircle className="w-4 h-4" />;
+      if (walletTx.type === 'performance_bonus') return <DollarSign className="w-4 h-4" />;
       return walletTx.amount > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />;
     }
   };
@@ -159,6 +160,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       const walletTx = transaction.data as WalletTransaction;
       if (walletTx.type === 'withdrawal_approved') return 'approved';
       if (walletTx.type === 'withdrawal_rejected') return 'rejected';
+      if (walletTx.type === 'performance_bonus') return 'performance_bonus';
       const amount = walletTx.amount;
       return amount > 0 ? 'adjustment_add' : 'adjustment_subtract';
     }
@@ -208,6 +210,13 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
         iconBg: 'bg-orange-500/20',
         dotColor: 'bg-orange-400'
       },
+      performance_bonus: {
+        bg: 'bg-amber-500/10',
+        border: 'border-amber-500/30',
+        text: 'text-amber-400',
+        iconBg: 'bg-amber-500/20',
+        dotColor: 'bg-amber-400'
+      },
     };
 
     return configs[status as keyof typeof configs];
@@ -228,6 +237,7 @@ export default function TransactionHistory({ employeeId }: TransactionHistoryPro
       const walletTx = transaction.data as WalletTransaction;
       if (walletTx.type === 'withdrawal_approved') return 'WITHDRAWAL COMPLETED';
       if (walletTx.type === 'withdrawal_rejected') return 'WITHDRAWAL REFUNDED';
+      if (walletTx.type === 'performance_bonus') return 'PERFORMANCE BONUS';
       const amount = walletTx.amount;
       return amount > 0 ? 'BALANCE ADDED' : 'BALANCE DEDUCTED';
     }

@@ -83,7 +83,7 @@ CREATE TABLE public.notification_automation_progress (
   task_id uuid NOT NULL REFERENCES public.notification_automation_tasks(id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   last_metric numeric NOT NULL DEFAULT 0,
-  last_stage integer NOT NULL DEFAULT 0,
+  last_stage bigint NOT NULL DEFAULT 0,
   last_period_key text NOT NULL DEFAULT 'all_time',
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (task_id, user_id)
@@ -94,9 +94,10 @@ CREATE TABLE public.notification_automation_executions (
   task_id uuid REFERENCES public.notification_automation_tasks(id) ON DELETE SET NULL,
   task_version integer NOT NULL,
   owner_admin_id uuid REFERENCES public.admins(id) ON DELETE SET NULL,
-  user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  user_id uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  employee_username text NOT NULL,
   period_key text NOT NULL,
-  stage integer NOT NULL CHECK (stage > 0),
+  stage bigint NOT NULL CHECK (stage > 0),
   actual_value numeric NOT NULL,
   trigger_snapshot jsonb NOT NULL,
   title_snapshot text NOT NULL,
@@ -350,7 +351,8 @@ BEGIN
     INTO v_metric
     FROM public.orders
     WHERE user_id = p_user_id
-      AND status IN ('success', 'failure');
+      AND status IN ('success', 'failure')
+      AND processed_at < p_now;
   ELSIF p_task.trigger_type = 'daily_orders' THEN
     v_period_key := to_char(p_now AT TIME ZONE 'UTC', 'YYYY-MM-DD');
     SELECT count(*)::numeric
@@ -359,7 +361,10 @@ BEGIN
     WHERE user_id = p_user_id
       AND status IN ('success', 'failure')
       AND processed_at >= date_trunc('day', p_now AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
-      AND processed_at < (date_trunc('day', p_now AT TIME ZONE 'UTC') + interval '1 day') AT TIME ZONE 'UTC';
+      AND processed_at < LEAST(
+        (date_trunc('day', p_now AT TIME ZONE 'UTC') + interval '1 day') AT TIME ZONE 'UTC',
+        p_now
+      );
   ELSIF p_task.trigger_type = 'work_days' THEN
     SELECT count(*)::numeric
     INTO v_metric
@@ -368,6 +373,7 @@ BEGIN
       FROM public.work_sessions
       WHERE user_id = p_user_id
         AND end_time IS NOT NULL
+        AND end_time <= p_now
       GROUP BY (start_time AT TIME ZONE 'UTC')::date
       HAVING sum(COALESCE(
         duration_minutes,
@@ -380,7 +386,8 @@ BEGIN
     INTO v_metric
     FROM public.wallet_transactions
     WHERE user_id = p_user_id
-      AND type = 'commission';
+      AND type = 'commission'
+      AND created_at < p_now;
   ELSE
     CREATE TEMP TABLE IF NOT EXISTS pg_temp.qualified_automation_days (
       day_date date PRIMARY KEY
@@ -395,6 +402,7 @@ BEGIN
       FROM public.orders
       WHERE user_id = p_user_id
         AND status IN ('success', 'failure')
+        AND processed_at < p_now
       GROUP BY (processed_at AT TIME ZONE 'UTC')::date
     ) AS order_day
     WHERE order_day.completed_orders >= p_task.minimum_daily_orders
@@ -403,6 +411,7 @@ BEGIN
         FROM public.work_sessions AS work_session
         WHERE work_session.user_id = p_user_id
           AND work_session.end_time IS NOT NULL
+          AND work_session.end_time <= p_now
           AND (work_session.start_time AT TIME ZONE 'UTC')::date = order_day.day_date
         GROUP BY (work_session.start_time AT TIME ZONE 'UTC')::date
         HAVING sum(COALESCE(work_session.duration_minutes, 0))
@@ -451,7 +460,7 @@ DECLARE
   v_metric_result jsonb;
   v_metric numeric;
   v_period_key text;
-  v_stage integer;
+  v_stage bigint;
 BEGIN
   IF NOT private.automation_task_applies_to_user(p_task, p_user_id) THEN
     RETURN;
@@ -462,7 +471,7 @@ BEGIN
   v_period_key := COALESCE(v_metric_result->>'period_key', 'all_time');
   v_stage := CASE
     WHEN p_task.trigger_mode = 'reach_once' AND v_metric >= p_task.threshold_value THEN 1
-    WHEN p_task.trigger_mode = 'recurring' THEN floor(v_metric / p_task.threshold_value)::integer
+    WHEN p_task.trigger_mode = 'recurring' THEN floor(v_metric / p_task.threshold_value)::bigint
     ELSE 0
   END;
 
@@ -604,9 +613,9 @@ DECLARE
   v_metric_result jsonb;
   v_metric numeric;
   v_period_key text;
-  v_previous_stage integer;
-  v_stage integer;
-  v_target_stage integer;
+  v_previous_stage bigint;
+  v_stage bigint;
+  v_target_stage bigint;
   v_execution_id uuid;
   v_message_id uuid;
   v_recipient_id uuid;
@@ -645,20 +654,20 @@ BEGIN
     FOR UPDATE;
 
     IF NOT FOUND THEN
-      INSERT INTO public.notification_automation_progress (
-        task_id,
-        user_id,
-        last_metric,
-        last_stage,
-        last_period_key
-      ) VALUES (
-        v_task.id,
+      PERFORM private.capture_automation_baseline(
+        v_task,
         p_user_id,
-        0,
-        0,
-        'all_time'
-      )
-      RETURNING * INTO v_progress;
+        LEAST(
+          p_now,
+          COALESCE(v_task.starts_at, v_task.activated_at, p_now)
+        )
+      );
+      SELECT * INTO v_progress
+      FROM public.notification_automation_progress
+      WHERE task_id = v_task.id
+        AND user_id = p_user_id
+      FOR UPDATE;
+      CONTINUE WHEN NOT FOUND;
     END IF;
 
     v_metric_result := private.calculate_automation_metric(v_task, p_user_id, p_now);
@@ -680,7 +689,7 @@ BEGIN
     END;
     v_stage := CASE
       WHEN v_task.trigger_mode = 'reach_once' AND v_metric >= v_task.threshold_value THEN 1
-      WHEN v_task.trigger_mode = 'recurring' THEN floor(v_metric / v_task.threshold_value)::integer
+      WHEN v_task.trigger_mode = 'recurring' THEN floor(v_metric / v_task.threshold_value)::bigint
       ELSE 0
     END;
 
@@ -721,6 +730,7 @@ BEGIN
       task_version,
       owner_admin_id,
       user_id,
+      employee_username,
       period_key,
       stage,
       actual_value,
@@ -734,6 +744,7 @@ BEGIN
       v_task.version,
       v_task.owner_admin_id,
       p_user_id,
+      v_username,
       v_period_key,
       v_target_stage,
       v_metric,
@@ -1030,13 +1041,13 @@ BEGIN
         SELECT to_jsonb(execution.*)
           || jsonb_build_object(
             'task_name', task.name,
-            'employee_username', employee.username,
+            'employee_username', COALESCE(employee.username, execution.employee_username),
             'owner_username', owner.username
           ) AS execution_data
         FROM public.notification_automation_executions AS execution
         JOIN public.notification_automation_tasks AS task ON task.id = execution.task_id
-        JOIN public.users AS employee ON employee.id = execution.user_id
-        JOIN public.admins AS owner ON owner.id = execution.owner_admin_id
+        LEFT JOIN public.users AS employee ON employee.id = execution.user_id
+        LEFT JOIN public.admins AS owner ON owner.id = execution.owner_admin_id
         WHERE execution.owner_admin_id = v_admin_id
           OR v_admin_role = 'super_admin'
         ORDER BY execution.executed_at DESC
@@ -1097,8 +1108,17 @@ BEGIN
   END IF;
   IF p_threshold_value IS NULL
     OR p_threshold_value <= 0
-    OR p_threshold_value::text IN ('NaN', 'Infinity', '-Infinity') THEN
-    RAISE EXCEPTION 'Trigger threshold must be a finite positive number.';
+    OR p_threshold_value > 1000000000000
+    OR p_threshold_value::text IN ('NaN', 'Infinity', '-Infinity')
+    OR (
+      p_trigger_type <> 'commission_amount'
+      AND p_threshold_value <> trunc(p_threshold_value)
+    )
+    OR (
+      p_trigger_type = 'commission_amount'
+      AND p_threshold_value < 0.01
+    ) THEN
+    RAISE EXCEPTION 'Trigger threshold is outside the supported range.';
   END IF;
   IF p_trigger_type = 'consecutive_work_days'
     AND COALESCE(p_minimum_daily_orders, 0) <= 0 THEN
@@ -1269,8 +1289,9 @@ BEGIN
     WHERE id = v_task.id
     RETURNING * INTO v_task;
 
-    FOR v_user_id IN
-      SELECT employee.id
+    IF v_task.starts_at IS NULL OR v_task.starts_at <= clock_timestamp() THEN
+      FOR v_user_id IN
+        SELECT employee.id
       FROM public.users AS employee
       JOIN public.admins AS owner ON owner.id = v_task.owner_admin_id
       WHERE employee.is_active = true
@@ -1292,9 +1313,10 @@ BEGIN
             )
           )
         )
-    LOOP
-      PERFORM private.capture_automation_baseline(v_task, v_user_id);
-    END LOOP;
+      LOOP
+        PERFORM private.capture_automation_baseline(v_task, v_user_id);
+      END LOOP;
+    END IF;
   ELSE
     UPDATE public.notification_automation_tasks
     SET status = p_status,

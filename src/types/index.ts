@@ -64,7 +64,7 @@ export interface Wallet {
 export interface WalletTransaction {
   id: string;
   user_id: string;
-  type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip';
+  type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip' | 'performance_bonus';
   amount: number;
   balance_before: number;
   balance_after: number;
@@ -151,6 +151,10 @@ export interface Message {
   content: string;
   message_type: 'login_popup' | 'realtime';
   priority: 'low' | 'normal' | 'high' | 'urgent';
+  notification_category?: 'standard' | 'performance_reward';
+  reward_amount?: number | null;
+  reward_currency?: string | null;
+  automation_execution_id?: string | null;
   expires_at?: string | null;
   created_at: string | null;
 }

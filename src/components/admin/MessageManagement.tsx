@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
+import { getAdminFinancialSessionToken } from '../../lib/auth';
+import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 import TiptapEditor, { type TiptapEditorRef } from './TiptapEditor';
+import NotificationAutomation from './NotificationAutomation';
 import {
   Send, Users, Bell, AlertCircle, X, Search,
   Check, CheckSquare, Square, Trash2, AlertTriangle,
   Pencil, Save, ChevronDown,
-  Tag, Bookmark, Plus, Clock, Radio, Globe
+  Tag, Bookmark, Plus, Clock, Radio, Globe, Gift, Sparkles
 } from 'lucide-react';
 
 interface AdminGroup {
@@ -135,6 +138,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   });
   const [sending, setSending] = useState(false);
   const [sendProgress, setSendProgress] = useState<{ sent: number; total: number } | null>(null);
+  const [showAutomation, setShowAutomation] = useState(false);
+  const [manualRewardEnabled, setManualRewardEnabled] = useState(false);
+  const [manualRewardAmount, setManualRewardAmount] = useState('');
+  const [showRewardConfirm, setShowRewardConfirm] = useState(false);
+  const currencyUnit = useCurrencyUnit(admin.id);
 
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
   const [selectedMessageDetail, setSelectedMessageDetail] = useState<Message | null>(null);
@@ -681,6 +689,16 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       }
     }
 
+    if (manualRewardEnabled) {
+      const amount = Number(manualRewardAmount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        setNotification({ type: 'error', message: '請輸入有效的績效獎金金額' });
+        return;
+      }
+      setShowRewardConfirm(true);
+      return;
+    }
+
     await sendMessage();
   };
 
@@ -690,60 +708,42 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
     try {
       const htmlContent = composeEditorRef.current?.getContent() || '';
-
-      const { data: message, error: msgError } = await supabase
-        .from('messages')
-        .insert({
-          sender_id: admin.id,
-          sender_username: admin.username,
-          title: messageForm.title.trim(),
-          content: htmlContent,
-          message_type: messageForm.messageType,
-          priority: messageForm.priority
-        })
-        .select()
-        .single();
-
-      if (msgError) throw msgError;
-
-      const recipientIds = Array.from(selectedEmployeeIds);
-      const batchSize = 100;
-      let successCount = 0;
-
-      for (let i = 0; i < recipientIds.length; i += batchSize) {
-        const batch = recipientIds.slice(i, i + batchSize);
-        const recipients = batch.map(recipientId => ({
-          message_id: message.id,
-          recipient_id: recipientId
-        }));
-
-        const { error } = await supabase
-          .from('message_recipients')
-          .insert(recipients);
-
-        if (!error) {
-          successCount += batch.length;
-          setSendProgress({ sent: successCount, total: recipientIds.length });
-        }
-
-        if (i + batchSize < recipientIds.length) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
+      const rewardAmount = manualRewardEnabled ? Number(manualRewardAmount) : null;
+      if (manualRewardEnabled && (!Number.isFinite(rewardAmount) || Number(rewardAmount) <= 0)) {
+        throw new Error('請輸入有效的績效獎金金額');
       }
 
+      const { data, error } = await supabase.rpc('send_admin_message_secure', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_recipient_ids: Array.from(selectedEmployeeIds),
+        p_title: messageForm.title.trim(),
+        p_content: htmlContent,
+        p_message_type: messageForm.messageType,
+        p_priority: messageForm.priority,
+        p_reward_amount: rewardAmount,
+        p_operation_id: crypto.randomUUID(),
+      });
+      if (error) throw error;
+
+      const result = data as { sent_count?: number; total_reward?: number; currency?: string | null } | null;
+      const successCount = Number(result?.sent_count || 0);
+      setSendProgress({ sent: successCount, total: selectedEmployeeIds.size });
       setNotification({
         type: 'success',
-        message: `Message sent successfully to ${successCount} employee${successCount > 1 ? 's' : ''}!`
+        message: manualRewardEnabled
+          ? `已向 ${successCount} 名員工發送通知並發放 ${Number(result?.total_reward || 0).toFixed(2)} ${result?.currency || currencyUnit}`
+          : `訊息已成功發送給 ${successCount} 名員工`,
       });
 
       setMessageForm({ title: '', content: '', messageType: 'realtime', priority: 'normal' });
+      setManualRewardEnabled(false);
+      setManualRewardAmount('');
       composeEditorRef.current?.getEditor()?.commands.clearContent();
       setSelectedEmployeeIds(new Set());
-
       await loadSentMessages();
     } catch (error: unknown) {
       console.error('Error sending message:', formatSupabaseError(error));
-      setNotification({ type: 'error', message: formatSupabaseError(error) || 'Failed to send message' });
+      setNotification({ type: 'error', message: formatSupabaseError(error) || '訊息發送失敗' });
     } finally {
       setSending(false);
       setSendProgress(null);
@@ -1166,8 +1166,43 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const messageTypeTone = getMessageTypeTone(selectedMessageDetail?.message_type || 'realtime');
   const messagePriorityTone = getMessagePriorityTone(selectedMessageDetail?.priority || 'normal');
 
+  if (showAutomation) {
+    return (
+      <NotificationAutomation
+        admin={admin}
+        employees={allEmployeesFlat}
+        onBack={() => setShowAutomation(false)}
+        notify={(type, message) => setNotification({ type, message })}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
+      {showRewardConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-amber-400/30 bg-slate-900 shadow-2xl shadow-amber-950/50">
+            <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/10 p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-amber-950"><Gift className="h-5 w-5" /></div>
+                <div><h3 className="font-bold text-amber-100">確認發放績效獎金</h3><p className="mt-1 text-xs leading-5 text-amber-200/60">獎金會在訊息發送時立即加入員工錢包，不需要員工點擊領取。</p></div>
+              </div>
+            </div>
+            <div className="space-y-3 p-5">
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="rounded-xl bg-slate-950 p-3"><p className="text-[10px] text-slate-500">收件員工</p><p className="mt-1 text-lg font-black text-white">{selectedEmployeeIds.size} 人</p></div>
+                <div className="rounded-xl bg-slate-950 p-3"><p className="text-[10px] text-slate-500">每人獎金</p><p className="mt-1 text-lg font-black text-amber-300">{Number(manualRewardAmount || 0).toFixed(2)} {currencyUnit}</p></div>
+              </div>
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-center"><p className="text-[10px] font-bold uppercase tracking-wider text-amber-300/60">預計發放總額</p><p className="mt-1 text-2xl font-black text-amber-200">{(Number(manualRewardAmount || 0) * selectedEmployeeIds.size).toFixed(2)} {currencyUnit}</p></div>
+            </div>
+            <div className="flex gap-3 border-t border-slate-700 p-4">
+              <button onClick={() => setShowRewardConfirm(false)} className="h-10 flex-1 rounded-xl border border-slate-700 bg-slate-800 text-sm font-bold text-slate-300 hover:bg-slate-700">取消</button>
+              <button onClick={() => { setShowRewardConfirm(false); void sendMessage(); }} className="h-10 flex-1 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-sm font-black text-amber-950 shadow-lg shadow-amber-950/40">確認發放</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Notification */}
       {notification && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-6 py-4 rounded-lg shadow-2xl border backdrop-blur-xl transition-all duration-300 ${
@@ -1210,12 +1245,18 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             {selectedEmployeeIds.size > 0 ? `${selectedEmployeeIds.size} recipient${selectedEmployeeIds.size > 1 ? 's' : ''} selected` : `${totalEmployees} employees total`}
           </span>
         </div>
-        {selectedEmployeeIds.size > 0 && (
-          <button onClick={clearSelection} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-3 text-[11px] font-bold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">
-            <X className="w-3 h-3" />
-            Clear
+        <div className="flex items-center gap-2">
+          {selectedEmployeeIds.size > 0 && (
+            <button onClick={clearSelection} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-3 text-[11px] font-bold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">
+              <X className="w-3 h-3" />
+              Clear
+            </button>
+          )}
+          <button onClick={() => setShowAutomation(true)} className="flex h-8 items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 text-[11px] font-bold text-cyan-200 transition-colors hover:border-cyan-300/50 hover:bg-cyan-500/20">
+            <Sparkles className="h-3.5 w-3.5" />
+            自動化任務
           </button>
-        )}
+        </div>
       </div>
 
       {/* 4-Panel Horizontal Layout */}
@@ -1636,6 +1677,28 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 placeholder="Enter message title..."
                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
+            </div>
+
+            <div className={`shrink-0 rounded-xl border p-3 ${manualRewardEnabled ? 'border-amber-400/40 bg-gradient-to-r from-amber-950/70 to-slate-900' : 'border-slate-700 bg-slate-800/45'}`}>
+              <label className="flex cursor-pointer items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${manualRewardEnabled ? 'bg-amber-400 text-amber-950' : 'bg-slate-700 text-slate-400'}`}>
+                    <Gift className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className={`text-[11px] font-bold ${manualRewardEnabled ? 'text-amber-100' : 'text-slate-300'}`}>發放績效獎金</p>
+                    <p className="text-[9px] text-slate-500">未勾選時只發送一般通知，不會修改錢包</p>
+                  </div>
+                </div>
+                <input type="checkbox" checked={manualRewardEnabled} onChange={event => setManualRewardEnabled(event.target.checked)} className="h-4 w-4 accent-amber-400" />
+              </label>
+              {manualRewardEnabled && (
+                <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <input type="number" min="0.01" step="0.01" value={manualRewardAmount} onChange={event => setManualRewardAmount(event.target.value)} placeholder="每名員工的獎金金額" className="min-w-0 rounded-lg border border-amber-500/30 bg-slate-950 px-3 py-2 text-xs font-bold text-amber-100 outline-none focus:border-amber-400" />
+                  <div className="flex items-center rounded-lg border border-amber-500/20 bg-amber-400/10 px-3 text-xs font-black text-amber-200">{currencyUnit}</div>
+                  <p className="col-span-2 text-[9px] text-amber-200/60">發送後立即入帳。{selectedEmployeeIds.size > 0 && manualRewardAmount ? `預計總額：${(Number(manualRewardAmount) * selectedEmployeeIds.size).toFixed(2)} ${currencyUnit}` : ''}</p>
+                </div>
+              )}
             </div>
 
             {/* TipTap Editor - fills all remaining space */}

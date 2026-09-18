@@ -642,6 +642,10 @@ export interface Database {
           content: string;
           message_type: 'login_popup' | 'realtime';
           priority: 'low' | 'normal' | 'high' | 'urgent';
+          notification_category: 'standard' | 'performance_reward';
+          reward_amount: number | null;
+          reward_currency: string | null;
+          automation_execution_id: string | null;
           expires_at: string | null;
           created_at: string;
         };
@@ -653,6 +657,10 @@ export interface Database {
           content: string;
           message_type: string;
           priority?: string;
+          notification_category?: 'standard' | 'performance_reward';
+          reward_amount?: number | null;
+          reward_currency?: string | null;
+          automation_execution_id?: string | null;
           expires_at?: string | null;
           created_at?: string | null;
         };
@@ -664,6 +672,10 @@ export interface Database {
           content?: string;
           message_type?: string;
           priority?: string;
+          notification_category?: 'standard' | 'performance_reward';
+          reward_amount?: number | null;
+          reward_currency?: string | null;
+          automation_execution_id?: string | null;
           expires_at?: string | null;
           created_at?: string | null;
         };
@@ -1188,7 +1200,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip';
+          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip' | 'performance_bonus';
           amount: number;
           balance_before: number;
           balance_after: number;
@@ -1201,7 +1213,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip';
+          type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip' | 'performance_bonus';
           amount: number;
           balance_before: number;
           balance_after: number;
@@ -2208,7 +2220,7 @@ export interface Database {
         Returns: {
           rows: Array<{
             id: string;
-            type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip';
+            type: 'commission' | 'withdrawal_request' | 'withdrawal_approved' | 'withdrawal_rejected' | 'withdrawal_correction' | 'manual_adjustment' | 'tip' | 'performance_bonus';
             amount: number;
             balance_before: number;
             balance_after: number;
@@ -2870,6 +2882,60 @@ export interface Database {
       batch_delete_dispatch_orders: {
         Args: { p_batch_size?: number; p_group_id: string };
         Returns: number;
+      };
+      get_notification_automation_dashboard: {
+        Args: { p_admin_session_token: string };
+        Returns: Record<string, unknown>;
+      };
+      save_notification_automation_task: {
+        Args: {
+          p_admin_session_token: string;
+          p_task_id: string | null;
+          p_name: string;
+          p_description: string;
+          p_trigger_type: string;
+          p_trigger_mode: string;
+          p_threshold_value: number;
+          p_minimum_daily_orders: number | null;
+          p_minimum_daily_work_minutes: number | null;
+          p_recipient_scope: string;
+          p_recipient_ids: string[];
+          p_title_template: string;
+          p_content_template: string;
+          p_message_type: string;
+          p_priority: string;
+          p_reward_enabled: boolean;
+          p_reward_amount: number | null;
+          p_is_shared_template: boolean;
+          p_starts_at: string | null;
+          p_ends_at: string | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      set_notification_automation_task_status: {
+        Args: {
+          p_admin_session_token: string;
+          p_task_id: string;
+          p_status: string;
+        };
+        Returns: Record<string, unknown>;
+      };
+      copy_shared_notification_automation_task: {
+        Args: { p_admin_session_token: string; p_source_task_id: string };
+        Returns: Record<string, unknown>;
+      };
+      send_admin_message_secure: {
+        Args: {
+          p_admin_session_token: string;
+          p_recipient_ids: string[];
+          p_title: string;
+          p_content: string;
+          p_message_type: string;
+          p_priority: string;
+          p_reward_amount: number | null;
+          p_operation_id: string;
+        };
+        Returns: Record<string, unknown>;
       };
       delete_messages: {
         Args: { message_ids: string[]; requesting_admin_id: string };

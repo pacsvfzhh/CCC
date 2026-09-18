@@ -86,12 +86,12 @@ export default function DailyStatistics({ employeeId }: DailyStatisticsProps) {
           .from('wallet_transactions')
           .select('amount')
           .eq('user_id', employeeId)
-          .eq('type', 'tip'),
+          .in('type', ['tip', 'performance_bonus']),
         supabase
           .from('wallet_transactions')
           .select('amount, created_at')
           .eq('user_id', employeeId)
-          .eq('type', 'tip'),
+          .in('type', ['tip', 'performance_bonus']),
       ]);
 
       if (dailyResult.error) throw dailyResult.error;
