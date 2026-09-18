@@ -82,7 +82,9 @@ const parseOsVersion = (
   const platformVersion = normalizeVersion(hints.platformVersion);
 
   if (osFamily === 'android') {
-    return platformVersion || normalizeVersion(firstMatch(userAgent, /Android\s+([\d.]+)/i));
+    if (platformVersion) return platformVersion;
+    if (/Android\s+10(?:\.0)*;\s*K(?:[;)])/i.test(userAgent)) return null;
+    return normalizeVersion(firstMatch(userAgent, /Android\s+([\d.]+)/i));
   }
   if (osFamily === 'ios') {
     return normalizeVersion(firstMatch(userAgent, /(?:CPU(?: iPhone)? OS|iPhone OS)\s+([\d_]+)/i));
