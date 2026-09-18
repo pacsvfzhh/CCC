@@ -170,21 +170,28 @@ function removeSelectedQuickCopyGroups(editor: Editor) {
     }
   });
 
-  if (containsUngroupedMark || selectedGroupIds.size === 0) {
+  const transaction = editor.state.tr;
+
+  if (containsUngroupedMark) {
+    transaction.removeMark(from, to, markType);
+  }
+
+  if (selectedGroupIds.size > 0) {
+    editor.state.doc.descendants((node, position) => {
+      if (!node.isInline) return;
+
+      const mark = node.marks.find(nodeMark => (
+        nodeMark.type === markType
+        && selectedGroupIds.has(String(nodeMark.attrs.groupId || ''))
+      ));
+      if (mark) transaction.removeMark(position, position + node.nodeSize, markType);
+    });
+  }
+
+  if (!transaction.docChanged) {
     editor.chain().focus().unsetMark('quickCopy').run();
     return;
   }
-
-  const transaction = editor.state.tr;
-  editor.state.doc.descendants((node, position) => {
-    if (!node.isText) return;
-
-    const mark = node.marks.find(nodeMark => (
-      nodeMark.type === markType
-      && selectedGroupIds.has(String(nodeMark.attrs.groupId || ''))
-    ));
-    if (mark) transaction.removeMark(position, position + node.nodeSize, markType);
-  });
 
   editor.view.dispatch(transaction);
   editor.commands.focus();
