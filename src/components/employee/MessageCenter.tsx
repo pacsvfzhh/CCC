@@ -529,7 +529,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             className={`
               relative overflow-hidden flex flex-col pointer-events-auto bg-[#f0f5ff]
               w-full h-full
-              ${isDesktop ? 'lg:w-full lg:h-full' : ''}
+              ${isDesktop ? 'lg:w-full lg:max-w-2xl lg:h-[82vh] lg:rounded-3xl lg:shadow-2xl' : ''}
             `}
             style={{
               animation: isDesktop ? 'fadeIn 0.2s ease-out' : 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
