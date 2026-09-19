@@ -2915,6 +2915,32 @@ export interface Database {
         };
         Returns: Record<string, unknown>;
       };
+      save_notification_automation_task_copy: {
+        Args: {
+          p_admin_session_token: string;
+          p_source_task_id: string;
+          p_task_id: string | null;
+          p_name: string;
+          p_description: string;
+          p_trigger_type: string;
+          p_trigger_mode: string;
+          p_threshold_value: number;
+          p_minimum_daily_orders: number | null;
+          p_minimum_daily_work_minutes: number | null;
+          p_recipient_scope: string;
+          p_recipient_ids: string[];
+          p_title_template: string;
+          p_content_template: string;
+          p_message_type: string;
+          p_priority: string;
+          p_reward_enabled: boolean;
+          p_reward_amount: number | null;
+          p_is_shared_template: boolean;
+          p_starts_at: string | null;
+          p_ends_at: string | null;
+        };
+        Returns: Record<string, unknown>;
+      };
       set_notification_automation_task_status: {
         Args: {
           p_admin_session_token: string;

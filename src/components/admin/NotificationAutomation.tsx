@@ -342,6 +342,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [readOnly, setReadOnly] = useState(false);
   const [form, setForm] = useState<TaskForm>(createDefaultForm());
   const [copiedFromName, setCopiedFromName] = useState<string | null>(null);
+  const [copySourceTaskId, setCopySourceTaskId] = useState<string | null>(null);
   const [templateCustomized, setTemplateCustomized] = useState(false);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<AutomationTask | null>(null);
@@ -426,6 +427,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     next.contentTemplate = template.content;
     setForm(next);
     setCopiedFromName(null);
+    setCopySourceTaskId(null);
     setTemplateCustomized(false);
     setReadOnly(false);
     setEditorOpen(true);
@@ -434,6 +436,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const openTask = (task: AutomationTask, onlyView = false) => {
     setForm(taskToForm(task));
     setCopiedFromName(null);
+    setCopySourceTaskId(null);
     setTemplateCustomized(true);
     setReadOnly(onlyView || task.owner_admin_id !== admin.id);
     setEditorOpen(true);
@@ -471,32 +474,39 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       return;
     }
 
-    const saveSharedTemplate = isSuperAdmin && form.isSharedTemplate;
+    const isTemplateCopy = copySourceTaskId !== null;
+    const saveSharedTemplate = !isTemplateCopy && isSuperAdmin && form.isSharedTemplate;
+    const taskPayload = {
+      p_admin_session_token: getAdminFinancialSessionToken(),
+      p_task_id: form.id,
+      p_name: form.name.trim(),
+      p_description: form.description.trim(),
+      p_trigger_type: form.triggerType,
+      p_trigger_mode: form.triggerMode,
+      p_threshold_value: Number(form.thresholdValue),
+      p_minimum_daily_orders: form.triggerType === 'consecutive_work_days' ? Number(form.minimumDailyOrders) : null,
+      p_minimum_daily_work_minutes: form.minimumDailyWorkMinutes ? Number(form.minimumDailyWorkMinutes) : null,
+      p_recipient_scope: form.recipientScope,
+      p_recipient_ids: form.recipientScope === 'selected' ? form.recipientIds : [],
+      p_title_template: form.titleTemplate.trim(),
+      p_content_template: form.contentTemplate.trim(),
+      p_message_type: form.messageType,
+      p_priority: form.priority,
+      p_reward_enabled: form.rewardEnabled,
+      p_reward_amount: form.rewardEnabled ? Number(form.rewardAmount) : null,
+      p_is_shared_template: isTemplateCopy ? false : form.id ? form.isSharedTemplate : isSuperAdmin,
+      p_starts_at: form.startsAt ? new Date(form.startsAt).toISOString() : null,
+      p_ends_at: form.endsAt ? new Date(form.endsAt).toISOString() : null,
+    };
 
     setSaving(true);
     try {
-      const { error } = await supabase.rpc('save_notification_automation_task', {
-        p_admin_session_token: getAdminFinancialSessionToken(),
-        p_task_id: form.id,
-        p_name: form.name.trim(),
-        p_description: form.description.trim(),
-        p_trigger_type: form.triggerType,
-        p_trigger_mode: form.triggerMode,
-        p_threshold_value: Number(form.thresholdValue),
-        p_minimum_daily_orders: form.triggerType === 'consecutive_work_days' ? Number(form.minimumDailyOrders) : null,
-        p_minimum_daily_work_minutes: form.minimumDailyWorkMinutes ? Number(form.minimumDailyWorkMinutes) : null,
-        p_recipient_scope: form.recipientScope,
-        p_recipient_ids: form.recipientScope === 'selected' ? form.recipientIds : [],
-        p_title_template: form.titleTemplate.trim(),
-        p_content_template: form.contentTemplate.trim(),
-        p_message_type: form.messageType,
-        p_priority: form.priority,
-        p_reward_enabled: form.rewardEnabled,
-        p_reward_amount: form.rewardEnabled ? Number(form.rewardAmount) : null,
-        p_is_shared_template: form.id ? form.isSharedTemplate : isSuperAdmin,
-        p_starts_at: form.startsAt ? new Date(form.startsAt).toISOString() : null,
-        p_ends_at: form.endsAt ? new Date(form.endsAt).toISOString() : null,
-      });
+      const { error } = copySourceTaskId
+        ? await supabase.rpc('save_notification_automation_task_copy', {
+            ...taskPayload,
+            p_source_task_id: copySourceTaskId,
+          })
+        : await supabase.rpc('save_notification_automation_task', taskPayload);
       if (error) throw error;
 
       showNotice(
@@ -509,6 +519,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       );
       setEditorOpen(false);
       setCopiedFromName(null);
+      setCopySourceTaskId(null);
       if (saveSharedTemplate) setView('templates');
       const nextAdminId = isSuperAdmin ? admin.id : selectedAdminId;
       setSelectedAdminId(nextAdminId);
@@ -560,7 +571,25 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   };
 
   const copyTemplate = async (task: AutomationTask, activate: boolean) => {
-    if (activate && dashboard.tasks.some(existing => isSameTemplateCopy(existing, task))) {
+    if (!activate) {
+      setForm({
+        ...taskToForm(task),
+        id: null,
+        name: '',
+        recipientScope: 'all_managed',
+        recipientIds: [],
+        isSharedTemplate: false,
+      });
+      setCopiedFromName(task.name);
+      setCopySourceTaskId(task.id);
+      setTemplateCustomized(true);
+      setReadOnly(false);
+      setView('templates');
+      setEditorOpen(true);
+      return;
+    }
+
+    if (dashboard.tasks.some(existing => isSameTemplateCopy(existing, task))) {
       showNotice('info', '這個管理員範本已經添加到本組任務，不可重複添加。');
       return;
     }
@@ -572,7 +601,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       });
       if (error) throw error;
       const result = data as unknown as { task_id?: string; duplicate?: boolean } | null;
-      if (activate && result?.duplicate) {
+      if (result?.duplicate) {
         showNotice('info', '這個管理員範本已經添加到本組任務，不可重複添加。若要建立不同版本，請使用「複製自訂」並修改內容。');
         return;
       }
@@ -581,38 +610,16 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       const nextAdminId = isSuperAdmin ? admin.id : selectedAdminId;
       setSelectedAdminId(nextAdminId);
 
-      if (activate) {
-        const { error: activateError } = await supabase.rpc('set_notification_automation_task_status', {
-          p_admin_session_token: getAdminFinancialSessionToken(),
-          p_task_id: result.task_id,
-          p_status: 'active',
-        });
-        if (activateError) throw activateError;
-        showNotice('success', '已直接套用管理員範本，任務只會作用於你的員工');
-        setSelectedTemplateIds(new Set());
-        setView('tasks');
-      } else {
-        const copiedTask: AutomationTask = {
-          ...task,
-          id: result.task_id,
-          owner_admin_id: admin.id,
-          owner_username: admin.username,
-          source_task_id: task.id,
-          source_version: task.version,
-          status: 'draft',
-          is_shared_template: false,
-          execution_count: 0,
-          total_rewards: 0,
-          updated_at: new Date().toISOString(),
-        };
-        setForm({ ...taskToForm(copiedTask), name: '' });
-        setCopiedFromName(task.name);
-        setTemplateCustomized(true);
-        setReadOnly(false);
-        setView('templates');
-        setEditorOpen(true);
-      }
+      const { error: activateError } = await supabase.rpc('set_notification_automation_task_status', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_task_id: result.task_id,
+        p_status: 'active',
+      });
+      if (activateError) throw activateError;
 
+      showNotice('success', '已直接套用管理員範本，任務只會作用於你的員工');
+      setSelectedTemplateIds(new Set());
+      setView('tasks');
       setRefreshing(true);
       await loadDashboard(nextAdminId);
     } catch {
@@ -748,7 +755,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         {noticeCard}
         <div className="relative z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/70 px-4 py-3.5 shadow-lg shadow-slate-950/30 sm:px-5">
           <div className="flex items-center gap-3">
-            <button onClick={() => { setCopiedFromName(null); setEditorOpen(false); }} className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-400/40 bg-red-500/15 text-red-300 shadow-sm transition-all duration-200 hover:border-red-300/70 hover:bg-red-500/30 hover:text-red-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+            <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setEditorOpen(false); }} className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-400/40 bg-red-500/15 text-red-300 shadow-sm transition-all duration-200 hover:border-red-300/70 hover:bg-red-500/30 hover:text-red-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div>
