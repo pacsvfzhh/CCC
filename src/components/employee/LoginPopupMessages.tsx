@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, AlertTriangle, Bell, Clock, ChevronRight, Gift, Wallet } from 'lucide-react';
+import { X, Bell, Clock, ChevronRight, Gift, Wallet } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
@@ -17,7 +17,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const { isMobile, isDesktop } = useResponsive();
-  const { t } = useLanguage();
+  const { t, dateLocale } = useLanguage();
   const loadLoginPopupMessagesRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
@@ -148,26 +148,6 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
     onClose();
   };
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'urgent':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-500/10 border border-red-200 rounded-full">
-            <AlertTriangle className="w-3 h-3 text-red-500" />
-            <span className="text-xs font-semibold text-red-600 uppercase">Urgent</span>
-          </span>
-        );
-      case 'high':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-500/10 border border-orange-200 rounded-full">
-            <span className="text-xs font-semibold text-orange-600 uppercase">High</span>
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-
   const useFullscreen = !isDesktop;
 
   const content = (() => {
@@ -196,7 +176,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
       return (
         <>
           <div
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-md"
+            className="fixed inset-0 bg-slate-900/50"
             style={{ zIndex: 10100 }}
           />
           <div
@@ -208,95 +188,89 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
               animation: 'fadeIn 0.2s ease-out'
             }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-blue-50/80 to-white" />
+            <div className="absolute inset-0 bg-[#f0f5ff]" />
 
-            {/* Blue gradient header */}
-            <div
-              className={`relative flex-shrink-0 border-b border-white/20 bg-gradient-to-br px-4 py-3.5 shadow-[0_10px_30px_rgba(15,23,42,0.18)] sm:px-5 sm:py-4 ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-700 to-blue-800'}`}
-              style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
-            >
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.1)_0%,_transparent_60%)]" />
-              <div className="relative flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl border shadow-lg backdrop-blur-sm sm:h-11 sm:w-11 ${isReward ? 'border-amber-900/20 bg-amber-950/10 shadow-amber-950/10' : 'border-white/25 bg-white/15 shadow-blue-950/15'}`}>
-                    {isReward ? <Gift className="h-5 w-5 text-amber-950" /> : <Bell className="w-5 h-5 text-white" />}
-                  </div>
-                  <div>
-                    <h2 className={`text-lg font-bold leading-tight sm:text-xl ${isReward ? 'text-amber-950' : 'text-white'}`}>{isReward ? t.messages.rewardTitle : t.loginPopup.notification}</h2>
-                    <p className={`mt-0 text-xs ${isReward ? 'text-amber-950/70' : 'text-blue-100'}`}>
-                      {currentIndex + 1} {t.loginPopup.of} {messages.length}
-                    </p>
-                  </div>
-                </div>
+            {/* Detail Header */}
+            <div className="relative flex-shrink-0 overflow-hidden">
+              <div className={`absolute inset-0 bg-gradient-to-br ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-500 to-cyan-500'}`} />
+              <div className="absolute top-0 right-0 h-48 w-48 opacity-[0.06]">
+                <div className="absolute top-6 right-6 h-24 w-24 rotate-12 rounded-2xl border-2 border-white" />
+                <div className="absolute top-2 right-28 h-14 w-14 -rotate-6 rounded-xl border-2 border-white" />
+              </div>
+              <div className="absolute bottom-0 left-0 h-24 w-24 -translate-x-1/3 translate-y-1/2 rounded-full bg-white/[0.04]" />
+
+              <div
+                className="relative px-4 pb-3 pt-6 lg:px-6 lg:pb-3 lg:pt-6"
+                style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)' }}
+              >
                 <button
                   onClick={handleClose}
-                  className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors active:scale-95 ${isReward ? 'border-amber-950/25 bg-amber-950/10 text-amber-950 hover:bg-amber-950/20' : 'border-white/25 bg-white/10 text-white hover:bg-white/20'}`}
+                  aria-label={t.messages.close}
+                  className={`notification-panel-close absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 ${isReward ? 'border border-amber-950/20 bg-amber-950/15 text-amber-950 hover:bg-amber-950/25 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="h-5 w-5" strokeWidth={2.5} />
                 </button>
-              </div>
 
-              {/* Page indicator dots */}
-              {messages.length > 1 && (
-                <div className="relative mt-3 flex items-center gap-1">
-                  {messages.map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`h-1 rounded-full transition-all duration-300 ${
-                        idx === currentIndex
-                          ? `w-8 ${isReward ? 'bg-amber-950/80' : 'bg-white'}`
-                          : idx < currentIndex
-                          ? `w-4 ${isReward ? 'bg-amber-950/35' : 'bg-white/50'}`
-                          : `w-4 ${isReward ? 'bg-amber-950/20' : 'bg-white/25'}`
-                      }`}
-                    />
-                  ))}
+                <div className="flex items-start gap-2.5 pr-10">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border backdrop-blur-sm sm:h-10 sm:w-10 ${isReward ? 'border-amber-950/20 bg-amber-950/15 text-amber-950 shadow-sm shadow-amber-950/10' : 'border-white/20 bg-white/15'}`}>
+                    {isReward ? <Gift className="h-5 w-5" strokeWidth={2} /> : <Bell className="h-5 w-5 text-white" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className={`mb-1 break-words text-lg font-bold leading-tight ${isReward ? 'text-amber-950' : 'text-white'}`}>
+                      {currentMessage.messages.title}
+                    </h3>
+                    <div className={`flex flex-wrap items-center gap-2 text-sm font-medium ${isReward ? 'text-amber-950/75' : 'text-blue-100/90'}`}>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className={`h-3.5 w-3.5 ${isReward ? 'text-amber-950/70' : 'text-cyan-200'}`} />
+                        <span>{new Date(currentMessage.messages.created_at || 0).toLocaleDateString(dateLocale, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      </div>
+                      <span className={isReward ? 'text-amber-950/30' : 'text-white/20'}>|</span>
+                      <span>{new Date(currentMessage.messages.created_at || 0).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
                 </div>
-              )}
+
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-10">
+                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${isReward ? 'border-amber-950/25 bg-amber-950/15 text-amber-950' : 'border-white/20 bg-white/15 text-sky-100'}`}>
+                    {t.messages.loginNotification}
+                  </span>
+                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
+                    {currentMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : currentMessage.messages.priority === 'high' ? t.messages.priorityHigh : currentMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Content area */}
-            <div className={`relative flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 via-blue-50/60 to-white ${isReward ? 'reward-notification-scrollbar' : 'scrollbar-thin'}`} style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
-              <div className="px-4 py-5 sm:px-5 sm:py-6">
-                <div className={`overflow-hidden rounded-[1.5rem] border shadow-[0_14px_36px_rgba(15,23,42,0.1)] ${isReward ? 'border-amber-200/90 bg-white/95 shadow-amber-900/10' : 'border-slate-200/80 bg-white/95 shadow-blue-900/10'}`}>
-                  {isReward && (
-                    <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
-                          <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
-                        </div>
-                        <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{currentMessage.messages.reward_currency}</span></p>
-                      </div>
-                      <div className="mt-3 flex items-center gap-2 border-t border-amber-200/80 pt-3">
-                        <Wallet className="h-4 w-4 shrink-0 text-emerald-600" />
-                        <p className="text-xs font-semibold leading-5 text-emerald-700">{t.messages.rewardAddedMessage}</p>
-                      </div>
-                    </div>
-                  )}
-                  <div className={`px-5 py-4 border-b border-slate-100 bg-gradient-to-r ${isReward ? 'from-amber-50/60 to-transparent' : 'from-blue-50/50 to-transparent'}`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="text-lg font-bold text-slate-900 leading-snug break-words">
-                        {currentMessage.messages.title}
-                      </h3>
-                      {getPriorityBadge(currentMessage.messages.priority)}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2.5 text-slate-500">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span className="text-xs">{new Date(currentMessage.messages.created_at || 0).toLocaleString()}</span>
-                    </div>
-                  </div>
+            {/* Detail Content */}
+            <div className="relative flex min-h-0 flex-1 overflow-hidden p-0" style={{ minHeight: 0, WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+              <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden border ${isReward ? 'border-amber-200/90 bg-gradient-to-b from-amber-100 via-orange-50 to-amber-100/75' : 'border-blue-200/80 bg-gradient-to-b from-blue-100/80 via-sky-50 to-blue-100/55'}`}>
+                <div className={`absolute left-6 right-6 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent to-transparent ${isReward ? 'via-amber-400' : 'via-blue-300'}`} />
 
-                  <div className="bg-white/70 px-5 py-5">
-                    <QuickCopyRichContent
-                      html={currentMessage.messages.content}
-                      copyLabel={t.messages.quickCopy}
-                      copiedLabel={t.messages.copied}
-                      className="prose prose-sm max-w-none leading-relaxed break-words message-content-dark"
-                      style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
-                    />
+                {isReward && (
+                  <div className="shrink-0 border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
+                        <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
+                      </div>
+                      <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{currentMessage.messages.reward_currency}</span></p>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 border-t border-amber-200/80 pt-3">
+                      <Wallet className="h-4 w-4 shrink-0 text-emerald-600" />
+                      <p className="text-xs font-semibold leading-5 text-emerald-700">{t.messages.rewardAddedMessage}</p>
+                    </div>
                   </div>
+                )}
+
+                <div className={`min-h-0 flex-1 overflow-y-auto p-4 ${isReward ? 'reward-notification-scrollbar' : 'scrollbar-thin'}`}>
+                  <QuickCopyRichContent
+                    html={currentMessage.messages.content}
+                    copyLabel={t.messages.quickCopy}
+                    copiedLabel={t.messages.copied}
+                    className="prose prose-sm max-w-none leading-relaxed [&_a]:!text-blue-600 [&_a]:underline [&_img]:!rounded-xl [&_img]:!shadow-md [&_blockquote]:!border-l-blue-400 [&_blockquote]:!bg-blue-50/50 [&_blockquote]:!p-4 [&_blockquote]:!rounded-r-lg [&_h1]:!text-slate-900 [&_h2]:!text-slate-800 [&_h3]:!text-slate-700 [&_p]:!text-slate-700 [&_li]:!text-slate-700 message-content-dark"
+                    style={{ wordBreak: 'break-word', overflowWrap: 'break-word', color: '#1e293b' }}
+                  />
                 </div>
               </div>
             </div>
@@ -307,13 +281,18 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
               style={{ paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 16px)' : undefined }}
             >
               <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className={`truncate text-[10px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
-                    {messages.length > 1 ? `${currentIndex + 1} ${t.loginPopup.of} ${messages.length}` : t.loginPopup.notification}
-                  </p>
-                  <p className={`mt-1 truncate text-sm font-semibold ${isReward ? 'text-amber-900' : 'text-slate-700'}`}>
-                    {currentIndex < messages.length - 1 ? t.loginPopup.next : t.loginPopup.gotIt}
-                  </p>
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${isReward ? 'bg-amber-100 text-amber-700 ring-amber-200' : 'bg-blue-50 text-blue-600 ring-blue-200'}`}>
+                    {isReward ? <Gift className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`truncate text-[10px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
+                      {messages.length > 1 ? `${currentIndex + 1} ${t.loginPopup.of} ${messages.length}` : t.loginPopup.notification}
+                    </p>
+                    <p className={`mt-1 truncate text-sm font-semibold ${isReward ? 'text-amber-900' : 'text-slate-700'}`}>
+                      {currentIndex < messages.length - 1 ? t.loginPopup.next : t.loginPopup.gotIt}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <button
@@ -343,14 +322,11 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
     return (
       <>
         <div
-          className="fixed inset-0 bg-slate-950/55 backdrop-blur-md"
+          className="fixed inset-0 bg-slate-900/50"
           style={{ zIndex: 10100 }}
           onClick={handleClose}
         />
 
-        {/* Decorative orbs */}
-        <div className="fixed top-1/3 left-1/3 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-3xl pointer-events-none" style={{ zIndex: 10100 }} />
-        <div className="fixed bottom-1/3 right-1/3 w-[400px] h-[400px] bg-sky-300/10 rounded-full blur-3xl pointer-events-none" style={{ zIndex: 10100 }} />
 
         {/* Modal container */}
         <div
@@ -361,100 +337,84 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
             className="relative w-full max-w-2xl max-h-[85vh] flex flex-col pointer-events-auto"
             style={{ animation: 'fadeIn 0.25s ease-out' }}
           >
-            <div className="relative flex max-h-[85vh] flex-col overflow-hidden rounded-[2rem] border border-white/70 bg-slate-50/95 shadow-[0_28px_80px_rgba(15,23,42,0.24)] ring-1 ring-slate-900/5">
+            <div className="relative overflow-hidden flex flex-col pointer-events-auto bg-[#f0f5ff] w-full h-full lg:w-full lg:max-w-2xl lg:h-[82vh] lg:rounded-3xl lg:shadow-2xl">
 
               {/* Blue gradient header */}
-              <div className={`relative flex-shrink-0 border-b border-white/20 bg-gradient-to-br px-7 py-5 shadow-[0_12px_32px_rgba(15,23,42,0.16)] lg:px-8 ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-700 to-blue-800'}`}>
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.12)_0%,_transparent_50%)]" />
-                <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              <div className="relative flex-shrink-0 overflow-hidden">
+                <div className={`absolute inset-0 bg-gradient-to-br ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-500 to-cyan-500'}`} />
+                <div className="absolute top-0 right-0 h-48 w-48 opacity-[0.06]">
+                  <div className="absolute top-6 right-6 h-24 w-24 rotate-12 rounded-2xl border-2 border-white" />
+                  <div className="absolute top-2 right-28 h-14 w-14 -rotate-6 rounded-xl border-2 border-white" />
+                </div>
+                <div className="absolute bottom-0 left-0 h-24 w-24 -translate-x-1/3 translate-y-1/2 rounded-full bg-white/[0.04]" />
 
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl border shadow-lg sm:h-11 sm:w-11 ${isReward ? 'border-amber-900/20 bg-amber-950/10 shadow-amber-950/10' : 'border-white/25 bg-white/15 shadow-blue-950/15'}`}>
+                <div className="relative px-4 pb-3 pt-6 lg:px-6 lg:pb-3 lg:pt-6">
+                  <div className="flex items-start gap-2.5 pr-10">
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border backdrop-blur-sm sm:h-10 sm:w-10 ${isReward ? 'border-amber-950/20 bg-amber-950/15 text-amber-950 shadow-sm shadow-amber-950/10' : 'border-white/20 bg-white/15'}`}>
                       {isReward ? <Gift className="h-5 w-5 text-amber-950" /> : <Bell className="w-5 w-5 text-white" />}
                     </div>
-                    <div>
-                      <h2 className={`text-xl font-bold leading-tight tracking-tight lg:text-2xl ${isReward ? 'text-amber-950' : 'text-white'}`}>
-                        {isReward ? t.messages.rewardTitle : t.loginPopup.notification}
-                      </h2>
-                      <p className={`mt-0 text-sm ${isReward ? 'text-amber-950/70' : 'text-blue-100'}`}>
-                        {messages.length} {t.loginPopup.newMessages}
-                      </p>
+                    <div className="min-w-0 flex-1">
+                      <h3 className={`mb-1 break-words text-lg font-bold leading-tight lg:text-xl ${isReward ? 'text-amber-950' : 'text-white'}`}>
+                        {currentMessage.messages.title}
+                      </h3>
+                      <div className={`flex flex-wrap items-center gap-2 text-sm font-medium ${isReward ? 'text-amber-950/75' : 'text-blue-100/90'}`}>
+                        <div className="flex items-center gap-1.5">
+                          <Clock className={`h-3.5 w-3.5 ${isReward ? 'text-amber-950/70' : 'text-cyan-200'}`} />
+                          <span>{new Date(currentMessage.messages.created_at || 0).toLocaleDateString(dateLocale, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                        </div>
+                        <span className={isReward ? 'text-amber-950/30' : 'text-white/20'}>|</span>
+                        <span>{new Date(currentMessage.messages.created_at || 0).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
                     </div>
                   </div>
 
                   <button
                     onClick={handleClose}
-                    className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-xl border transition-colors ${isReward ? 'border-amber-950/25 bg-amber-950/10 text-amber-950 hover:bg-amber-950/20' : 'border-white/25 bg-white/10 text-white hover:bg-white/20'}`}
+                    className={`notification-panel-close absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 lg:right-6 lg:top-5 ${isReward ? 'border border-amber-950/20 bg-amber-950/15 text-amber-950 hover:bg-amber-950/25 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
                   >
-                    <X className="w-4 h-4" />
+                    <X className="h-5 w-5" strokeWidth={2.5} />
                   </button>
                 </div>
 
-                {/* Page indicator */}
-                {messages.length > 1 && (
-                  <div className="relative mt-3 flex items-center gap-1">
-                    {messages.map((_, idx) => (
-                      <div
-                        key={idx}
-                        className={`h-1 rounded-full transition-all duration-300 ${
-                        idx === currentIndex
-                          ? `w-8 ${isReward ? 'bg-amber-950/80' : 'bg-white'}`
-                          : idx < currentIndex
-                          ? `w-4 ${isReward ? 'bg-amber-950/35' : 'bg-white/50'}`
-                          : `w-4 ${isReward ? 'bg-amber-950/20' : 'bg-white/25'}`
-                      }`}
-                      />
-                    ))}
-                  </div>
-                )}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-10">
+                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${isReward ? 'border-amber-950/25 bg-amber-950/15 text-amber-950' : 'border-white/20 bg-white/15 text-sky-100'}`}>
+                    {t.messages.loginNotification}
+                  </span>
+                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
+                    {currentMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : currentMessage.messages.priority === 'high' ? t.messages.priorityHigh : currentMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
+                  </span>
+                </div>
               </div>
 
-              {/* Message content area */}
-              <div className={`flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 via-blue-50/50 to-white ${isReward ? 'reward-notification-scrollbar' : 'scrollbar-thin'}`}>
-                <div className="px-8 py-8 lg:px-10 lg:py-9">
-                  <div className="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white/95 shadow-[0_14px_36px_rgba(15,23,42,0.1)] shadow-blue-900/10">
-                    {isReward && (
-                      <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 lg:px-7">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
-                            <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
-                          </div>
-                          <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{currentMessage.messages.reward_currency}</span></p>
+              {/* Detail Content */}
+              <div className="relative flex min-h-0 flex-1 overflow-hidden p-0" style={{ minHeight: 0, WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+                <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden border ${isReward ? 'border-amber-200/90 bg-gradient-to-b from-amber-100 via-orange-50 to-amber-100/75' : 'border-blue-200/80 bg-gradient-to-b from-blue-100/80 via-sky-50 to-blue-100/55'}`}>
+                  <div className={`absolute left-6 right-6 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent to-transparent ${isReward ? 'via-amber-400' : 'via-blue-300'}`} />
+
+                  {isReward && (
+                    <div className="shrink-0 border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 lg:px-7">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
+                          <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
                         </div>
-                        <div className="mt-3 flex items-center gap-2 border-t border-amber-200/80 pt-3">
-                          <Wallet className="h-4 w-4 shrink-0 text-emerald-600" />
-                          <p className="text-xs font-semibold leading-5 text-emerald-700">{t.messages.rewardAddedMessage}</p>
-                        </div>
+                        <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{currentMessage.messages.reward_currency}</span></p>
                       </div>
-                    )}
-                    <div className={`px-5 py-4 lg:px-7 ${isReward ? 'bg-gradient-to-r from-amber-50/60 to-transparent' : 'bg-white'}`}>
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-xl font-bold leading-snug text-slate-900 break-words">
-                            {currentMessage.messages.title}
-                          </h3>
-                          <div className="mt-2.5 flex items-center gap-2">
-                            <Clock className="h-3.5 w-3.5 text-slate-400" />
-                            <span className="text-sm text-slate-500">
-                              {new Date(currentMessage.messages.created_at || 0).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                        {getPriorityBadge(currentMessage.messages.priority)}
+                      <div className="mt-3 flex items-center gap-2 border-t border-amber-200/80 pt-3">
+                        <Wallet className="h-4 w-4 shrink-0 text-emerald-600" />
+                        <p className="text-xs font-semibold leading-5 text-emerald-700">{t.messages.rewardAddedMessage}</p>
                       </div>
-                      <div className={`mt-4 h-px bg-gradient-to-r from-transparent to-transparent ${isReward ? 'via-orange-200' : 'via-slate-200'}`} />
                     </div>
-                    <div className="bg-white/70 px-5 py-5 lg:px-7">
-                      <QuickCopyRichContent
-                        html={currentMessage.messages.content}
-                        copyLabel={t.messages.quickCopy}
-                        copiedLabel={t.messages.copied}
-                        className="prose prose-base max-w-none leading-relaxed break-words message-content-dark [&_img]:rounded-xl [&_img]:shadow-md [&_img]:border [&_img]:border-slate-200"
-                        style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
-                      />
-                    </div>
+                  )}
+
+                  <div className={`min-h-0 flex-1 overflow-y-auto p-4 lg:p-5 ${isReward ? 'reward-notification-scrollbar' : 'scrollbar-thin'}`}>
+                    <QuickCopyRichContent
+                      html={currentMessage.messages.content}
+                      copyLabel={t.messages.quickCopy}
+                      copiedLabel={t.messages.copied}
+                      className="prose prose-sm lg:prose-base max-w-none leading-relaxed [&_a]:!text-blue-600 [&_a]:underline [&_img]:!rounded-xl [&_img]:!shadow-md [&_blockquote]:!border-l-blue-400 [&_blockquote]:!bg-blue-50/50 [&_blockquote]:!p-4 [&_blockquote]:!rounded-r-lg [&_h1]:!text-slate-900 [&_h2]:!text-slate-800 [&_h3]:!text-slate-700 [&_p]:!text-slate-700 [&_li]:!text-slate-700 message-content-dark"
+                      style={{ wordBreak: 'break-word', overflowWrap: 'break-word', color: '#1e293b' }}
+                    />
                   </div>
                 </div>
               </div>
@@ -462,7 +422,11 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
               {/* Footer */}
               <div className={`flex-shrink-0 border-t px-8 py-5 shadow-[0_-10px_24px_rgba(15,23,42,0.08)] ${isReward ? 'border-amber-200/80 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50' : 'border-slate-200/70 bg-gradient-to-r from-white via-slate-50/95 to-blue-50/60'}`}>
                 <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${isReward ? 'bg-amber-100 text-amber-700 ring-amber-200' : 'bg-blue-50 text-blue-600 ring-blue-200'}`}>
+                    {isReward ? <Gift className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                  </div>
+                  <div className="min-w-0">
                     <p className={`truncate text-[10px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
                       {messages.length > 1 ? `${currentIndex + 1} ${t.loginPopup.of} ${messages.length}` : t.loginPopup.notification}
                     </p>
@@ -470,6 +434,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                       {currentIndex < messages.length - 1 ? t.loginPopup.next : t.loginPopup.gotIt}
                     </p>
                   </div>
+                </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <button
                       onClick={handleClose}
