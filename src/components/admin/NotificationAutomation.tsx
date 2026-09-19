@@ -145,6 +145,7 @@ type AutomationNoticeType = 'success' | 'error' | 'info';
 
 interface AutomationNotice {
   type: AutomationNoticeType;
+  title?: string;
   message: string;
 }
 
@@ -337,8 +338,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const loadRef = useRef<(() => Promise<void>) | null>(null);
   const dashboardRequestIdRef = useRef(0);
 
-  const showNotice = (type: AutomationNoticeType, message: string) => {
-    setNotice({ type, message });
+  const showNotice = (type: AutomationNoticeType, message: string, title?: string) => {
+    setNotice({ type, message, title });
   };
 
   const loadDashboard = async (ownerAdminId = selectedAdminId) => {
@@ -526,7 +527,13 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         p_status: status,
       });
       if (error) throw error;
-      showNotice('success', status === 'active' ? '任務已啟用，現有進度已設為基準' : status === 'paused' ? '任務已暫停' : '任務狀態已更新');
+      if (status === 'active') {
+        showNotice('success', '現有進度已設為基準，後續達標將從新基準開始計算。', '任務啟用成功');
+      } else if (status === 'paused') {
+        showNotice('success', '此任務已停止執行，可隨時再次啟用。', '任務已暫停');
+      } else {
+        showNotice('success', '任務狀態已完成更新。', '狀態更新成功');
+      }
       setRefreshing(true);
       await loadDashboard();
     } catch {
@@ -668,28 +675,30 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   };
 
   const noticeCard = notice && createPortal(
-    <div className="pointer-events-none fixed inset-x-0 top-4 z-[150] flex justify-center px-4 sm:justify-end" role={notice.type === 'error' ? 'alert' : 'status'}>
-      <div className={`pointer-events-auto flex w-full max-w-md items-start gap-3 overflow-hidden rounded-2xl border p-3.5 shadow-2xl backdrop-blur-xl ${
+    <div className="pointer-events-none fixed inset-x-0 top-5 z-[150] flex justify-center px-4 sm:justify-end sm:px-6" role={notice.type === 'error' ? 'alert' : 'status'}>
+      <div className={`pointer-events-auto relative flex w-full max-w-sm items-start gap-3.5 overflow-hidden rounded-2xl border bg-slate-950/95 p-4 pl-5 shadow-2xl backdrop-blur-xl before:absolute before:inset-y-0 before:left-0 before:w-1.5 ${
         notice.type === 'success'
-          ? 'border-emerald-300/35 bg-gradient-to-r from-emerald-950/95 to-teal-950/95 text-emerald-50 shadow-emerald-950/50'
+          ? 'border-emerald-300/30 shadow-emerald-950/55 before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-500 before:to-teal-700'
           : notice.type === 'error'
-            ? 'border-red-300/35 bg-gradient-to-r from-red-950/95 to-rose-950/95 text-red-50 shadow-red-950/50'
-            : 'border-amber-300/35 bg-gradient-to-r from-amber-950/95 to-slate-950/95 text-amber-50 shadow-amber-950/50'
+            ? 'border-rose-300/30 shadow-rose-950/55 before:bg-gradient-to-b before:from-rose-300 before:via-rose-500 before:to-red-700'
+            : 'border-amber-300/30 shadow-amber-950/55 before:bg-gradient-to-b before:from-amber-300 before:via-amber-500 before:to-orange-700'
       }`}>
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-lg ring-1 ring-inset ${
           notice.type === 'success'
-            ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300'
+            ? 'border-emerald-300/35 bg-gradient-to-br from-emerald-400/30 to-emerald-950 text-emerald-200 shadow-emerald-950/50 ring-emerald-200/10'
             : notice.type === 'error'
-              ? 'border-red-300/25 bg-red-400/15 text-red-300'
-              : 'border-amber-300/25 bg-amber-400/15 text-amber-300'
+              ? 'border-rose-300/35 bg-gradient-to-br from-rose-400/30 to-rose-950 text-rose-200 shadow-rose-950/50 ring-rose-200/10'
+              : 'border-amber-300/35 bg-gradient-to-br from-amber-400/30 to-amber-950 text-amber-200 shadow-amber-950/50 ring-amber-200/10'
         }`}>
-          {notice.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : notice.type === 'error' ? <AlertCircle className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+          {notice.type === 'success' ? <CheckCircle2 className="h-6 w-6" /> : notice.type === 'error' ? <AlertCircle className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
         </span>
         <div className="min-w-0 flex-1 pt-0.5">
-          <p className="text-xs font-black tracking-wide">{notice.type === 'success' ? '操作成功' : notice.type === 'error' ? '操作未完成' : '操作提示'}</p>
-          <p className="mt-1 text-xs font-medium leading-5 opacity-80">{notice.message}</p>
+          <p className={`text-sm font-black tracking-wide ${notice.type === 'success' ? 'text-emerald-100' : notice.type === 'error' ? 'text-rose-100' : 'text-amber-100'}`}>
+            {notice.title || (notice.type === 'success' ? '操作成功' : notice.type === 'error' ? '操作未完成' : '操作提示')}
+          </p>
+          <p className="mt-1.5 text-xs font-medium leading-5 text-slate-300">{notice.message}</p>
         </div>
-        <button type="button" onClick={() => setNotice(null)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/55 transition-colors hover:bg-white/10 hover:text-white" aria-label="關閉提示">
+        <button type="button" onClick={() => setNotice(null)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" aria-label="關閉提示">
           <X className="h-4 w-4" />
         </button>
       </div>
