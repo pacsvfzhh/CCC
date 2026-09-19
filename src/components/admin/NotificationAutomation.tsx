@@ -1127,19 +1127,19 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             ) : (
               <div className="space-y-2 p-2 sm:p-3">
                 {orderedTasks.map(task => (
-                  <article key={task.id} className={`group relative grid gap-3 overflow-hidden rounded-xl border border-l-4 px-3 py-2.5 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[minmax(170px,.75fr)_minmax(520px,2.5fr)_auto] lg:items-center ${task.status === 'active' ? 'border-emerald-300/20 border-l-emerald-400 bg-gradient-to-br from-emerald-950/45 via-slate-900 to-slate-950 shadow-lg shadow-emerald-950/20 hover:border-emerald-200/35' : 'border-slate-600/60 border-l-slate-500 bg-gradient-to-br from-slate-800/80 via-slate-900 to-slate-950 shadow-lg shadow-slate-950/20 hover:border-slate-500'}`}>
+                  <article key={task.id} className={`group relative grid gap-3 overflow-hidden rounded-xl border border-l-4 px-3 py-2.5 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[minmax(170px,.75fr)_minmax(520px,2.5fr)_auto] lg:items-center ${task.status === 'active' ? 'border-emerald-300/20 border-l-emerald-400 bg-gradient-to-br from-emerald-950/45 via-slate-900 to-slate-950 shadow-lg shadow-emerald-950/20 hover:border-emerald-200/35' : 'border-slate-700/70 border-l-slate-700 bg-gradient-to-br from-slate-950 via-slate-950 to-black shadow-lg shadow-black/35 hover:border-slate-600'}`}>
                     <div className="min-w-0">
                       <div className="flex items-start gap-2">
-                        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300' : 'border-slate-500/60 bg-slate-700/60 text-slate-300'}`}>
+                        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
                           {task.reward_enabled ? <Gift className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
                         </span>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="truncate text-sm font-black text-white">{task.name}</h3>
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : 'border-slate-500/50 bg-slate-700/70 text-slate-300'}`}>{statusLabels[task.status]}</span>
-                            {task.reward_enabled && <span className="rounded-full border border-slate-500/50 bg-slate-700/70 px-2 py-0.5 text-[10px] font-black text-slate-300">獎勵</span>}
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : 'border-slate-700/70 bg-slate-950/85 text-slate-400'}`}>{statusLabels[task.status]}</span>
+                            {task.reward_enabled && <span className="rounded-full border border-slate-700/70 bg-slate-950/85 px-2 py-0.5 text-[10px] font-black text-slate-400">獎勵</span>}
                           </div>
-                          <p className={`mt-0.5 flex flex-wrap items-center gap-1 text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-300/75'}`}>
+                          <p className={`mt-0.5 flex flex-wrap items-center gap-1 text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-500/90'}`}>
                             <span>{task.owner_username}</span>
                             {task.is_shared_template && <><span className="opacity-50">·</span><span className="font-bold">共享範本</span></>}
                             {task.source_task_id && <><span className="opacity-50">·</span><span>由範本複製</span></>}
@@ -1147,22 +1147,22 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         </div>
                       </div>
                     </div>
-                    <div className="min-w-0 overflow-hidden rounded-lg border border-slate-600/60 bg-slate-950/45 px-2 py-1.5 sm:grid sm:grid-cols-[2.2fr_1.2fr_1fr_1fr] sm:divide-x sm:divide-slate-700/70">
+                    <div className={`min-w-0 overflow-hidden rounded-lg border px-2 py-1.5 sm:grid sm:grid-cols-[2.2fr_1.2fr_1fr_1fr] sm:divide-x ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-950/30 sm:divide-emerald-300/15' : 'border-slate-700/80 bg-black/40 sm:divide-slate-800/90'}`}>
                       <div className="min-w-0 px-2 sm:col-span-1">
-                        <p className="text-[9px] font-black tracking-wider text-cyan-300/80">{triggerLabels[task.trigger_type]}</p>
-                        <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-200" title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
+                        <p className={`text-[9px] font-black tracking-wider ${task.status === 'active' ? 'text-cyan-300/80' : 'text-slate-500'}`}>{triggerLabels[task.trigger_type]}</p>
+                        <p className={`mt-0.5 truncate text-[11px] font-semibold ${task.status === 'active' ? 'text-slate-200' : 'text-slate-400'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
                       </div>
                       <div className="min-w-0 px-2">
-                        <p className="text-[9px] font-black tracking-wider text-blue-200/65">適用範圍</p>
-                        <p className="mt-0.5 truncate text-[11px] font-bold text-blue-100">{task.recipient_scope === 'selected' ? `指定 ${task.recipient_ids?.length || 0} 人` : '全部可管理員工'}</p>
+                        <p className={`text-[9px] font-black tracking-wider ${task.status === 'active' ? 'text-blue-200/65' : 'text-slate-500'}`}>適用範圍</p>
+                        <p className={`mt-0.5 truncate text-[11px] font-bold ${task.status === 'active' ? 'text-blue-100' : 'text-slate-400'}`}>{task.recipient_scope === 'selected' ? `指定 ${task.recipient_ids?.length || 0} 人` : '全部可管理員工'}</p>
                       </div>
                       <div className="min-w-0 px-2">
-                        <p className="text-[9px] font-black tracking-wider text-violet-200/65">執行次數</p>
-                        <p className="mt-0.5 text-sm font-black tabular-nums text-violet-100">{task.execution_count || 0}</p>
+                        <p className={`text-[9px] font-black tracking-wider ${task.status === 'active' ? 'text-violet-200/65' : 'text-slate-500'}`}>執行次數</p>
+                        <p className={`mt-0.5 text-sm font-black tabular-nums ${task.status === 'active' ? 'text-violet-100' : 'text-slate-300'}`}>{task.execution_count || 0}</p>
                       </div>
                       <div className="min-w-0 px-2">
-                        <p className="text-[9px] font-black tracking-wider text-amber-200/65">每次獎金</p>
-                        <p className="mt-0.5 truncate text-[11px] font-black text-amber-100">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</p>
+                        <p className={`text-[9px] font-black tracking-wider ${task.status === 'active' ? 'text-amber-200/65' : 'text-slate-500'}`}>每次獎金</p>
+                        <p className={`mt-0.5 truncate text-[11px] font-black ${task.status === 'active' ? 'text-amber-100' : 'text-slate-300'}`}>{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 lg:justify-end">
