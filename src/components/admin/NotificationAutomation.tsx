@@ -1143,7 +1143,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         </div>
                       </div>
                     </div>
-                    <div className="min-w-0 overflow-hidden rounded-lg border border-slate-600/60 bg-slate-950/45 px-2 py-1.5 sm:grid sm:grid-cols-4 sm:divide-x sm:divide-slate-700/70">
+                    <div className="min-w-0 overflow-hidden rounded-lg border border-slate-600/60 bg-slate-950/45 px-2 py-1.5 sm:grid sm:grid-cols-[2fr_1.2fr_0.8fr_0.5fr] sm:divide-x sm:divide-slate-700/70">
                       <div className="min-w-0 px-2 sm:col-span-1">
                         <p className="text-[9px] font-black tracking-wider text-cyan-300/80">{triggerLabels[task.trigger_type]}</p>
                         <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-200" title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
