@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, AlertTriangle, Bell, Clock, ChevronLeft, ChevronRight, Gift, Wallet } from 'lucide-react';
+import { X, AlertTriangle, Bell, Clock, ChevronRight, Gift, Wallet } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
@@ -130,12 +130,6 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
     }
   };
 
-  const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
   const handleClose = async () => {
     for (const msg of messages) {
       try {
@@ -202,7 +196,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
       return (
         <>
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-md"
             style={{ zIndex: 10100 }}
           />
           <div
@@ -214,17 +208,17 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
               animation: 'fadeIn 0.2s ease-out'
             }}
           >
-            <div className="absolute inset-0 bg-[#f0f5ff]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-blue-50/80 to-white" />
 
             {/* Blue gradient header */}
             <div
-              className={`relative flex-shrink-0 bg-gradient-to-br px-4 py-3 shadow-lg sm:px-5 sm:py-3.5 ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-700 to-blue-800'}`}
+              className={`relative flex-shrink-0 border-b border-white/20 bg-gradient-to-br px-4 py-3.5 shadow-[0_10px_30px_rgba(15,23,42,0.18)] sm:px-5 sm:py-4 ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-700 to-blue-800'}`}
               style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
             >
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.1)_0%,_transparent_60%)]" />
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg border backdrop-blur-sm sm:h-10 sm:w-10 ${isReward ? 'border-amber-900/15 bg-amber-950/10' : 'border-white/20 bg-white/15'}`}>
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl border shadow-lg backdrop-blur-sm sm:h-11 sm:w-11 ${isReward ? 'border-amber-900/20 bg-amber-950/10 shadow-amber-950/10' : 'border-white/25 bg-white/15 shadow-blue-950/15'}`}>
                     {isReward ? <Gift className="h-5 w-5 text-amber-950" /> : <Bell className="w-5 h-5 text-white" />}
                   </div>
                   <div>
@@ -236,7 +230,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                 </div>
                 <button
                   onClick={handleClose}
-                  className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 ${isReward ? 'bg-amber-950/10 text-amber-950 hover:bg-amber-950/15' : 'bg-white/15 text-white hover:bg-white/25'}`}
+                  className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors active:scale-95 ${isReward ? 'border-amber-950/25 bg-amber-950/10 text-amber-950 hover:bg-amber-950/20' : 'border-white/25 bg-white/10 text-white hover:bg-white/20'}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   <X className="w-4 h-4" />
@@ -263,9 +257,9 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
             </div>
 
             {/* Content area */}
-            <div className={`relative flex-1 overflow-y-auto ${isReward ? 'reward-notification-scrollbar' : 'scrollbar-thin'}`} style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
-              <div className="px-5 py-5">
-                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm shadow-blue-900/5 overflow-hidden">
+            <div className={`relative flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 via-blue-50/60 to-white ${isReward ? 'reward-notification-scrollbar' : 'scrollbar-thin'}`} style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+              <div className="px-4 py-5 sm:px-5 sm:py-6">
+                <div className={`overflow-hidden rounded-[1.5rem] border shadow-[0_14px_36px_rgba(15,23,42,0.1)] ${isReward ? 'border-amber-200/90 bg-white/95 shadow-amber-900/10' : 'border-slate-200/80 bg-white/95 shadow-blue-900/10'}`}>
                   {isReward && (
                     <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4">
                       <div className="flex items-center justify-between gap-3">
@@ -294,7 +288,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                     </div>
                   </div>
 
-                  <div className="px-5 py-5">
+                  <div className="bg-white/70 px-5 py-5">
                     <QuickCopyRichContent
                       html={currentMessage.messages.content}
                       copyLabel={t.messages.quickCopy}
@@ -308,35 +302,37 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
             </div>
 
             {/* Footer with navigation */}
-            <div className="relative flex-shrink-0 px-5 py-4 bg-white border-t border-slate-200/80 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]"
+            <div
+              className={`relative flex-shrink-0 border-t px-5 py-4 shadow-[0_-10px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm ${isReward ? 'border-amber-200/80 bg-amber-50/90 shadow-amber-900/10' : 'border-slate-200/70 bg-white/95'}`}
               style={{ paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 16px)' : undefined }}
             >
-              {messages.length > 1 ? (
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate text-[10px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
+                    {messages.length > 1 ? `${currentIndex + 1} ${t.loginPopup.of} ${messages.length}` : t.loginPopup.notification}
+                  </p>
+                  <p className={`mt-1 truncate text-sm font-semibold ${isReward ? 'text-amber-900' : 'text-slate-700'}`}>
+                    {currentIndex < messages.length - 1 ? t.loginPopup.next : t.loginPopup.gotIt}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
                   <button
-                    onClick={handlePrevious}
-                    disabled={currentIndex === 0}
-                    className="flex-1 min-h-[44px] h-12 flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium disabled:opacity-40 disabled:cursor-not-allowed active:bg-slate-50 transition-colors"
+                    onClick={handleClose}
+                    aria-label={t.messages.close}
+                    title={t.messages.close}
+                    className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-xl border transition-colors active:scale-95 ${isReward ? 'border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
                   >
-                    <ChevronLeft className="w-4 h-4" />
-                    <span>{t.loginPopup.prev}</span>
+                    <X className="h-4 w-4" strokeWidth={2.5} />
                   </button>
                   <button
                     onClick={handleNext}
-                    className={`flex-[2] min-h-[44px] h-12 flex items-center justify-center gap-1.5 rounded-xl font-semibold transition-all ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 active:from-amber-600 active:via-yellow-600 active:to-orange-600' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-blue-500/25 active:from-blue-700 active:to-blue-800'}`}
+                    className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 active:from-amber-600 active:via-yellow-600 active:to-orange-600' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/25 active:from-blue-700 active:to-blue-800'}`}
                   >
-                    <span>{currentIndex < messages.length - 1 ? t.loginPopup.next : t.loginPopup.done}</span>
-                    <ChevronRight className="w-4 h-4" />
+                    <span>{messages.length > 1 && currentIndex < messages.length - 1 ? t.loginPopup.next : messages.length > 1 ? t.loginPopup.done : t.loginPopup.gotIt}</span>
+                    <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
-              ) : (
-                <button
-                  onClick={handleClose}
-                  className={`w-full min-h-[44px] h-12 flex items-center justify-center gap-2 rounded-xl font-semibold transition-all ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 active:from-amber-600 active:via-yellow-600 active:to-orange-600' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-blue-500/25 active:from-blue-700 active:to-blue-800'}`}
-                >
-                  <span>{t.loginPopup.gotIt}</span>
-                </button>
-              )}
+              </div>
             </div>
           </div>
         </>
@@ -347,7 +343,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
     return (
       <>
         <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-950/55 backdrop-blur-md"
           style={{ zIndex: 10100 }}
           onClick={handleClose}
         />
@@ -365,16 +361,16 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
             className="relative w-full max-w-2xl max-h-[85vh] flex flex-col pointer-events-auto"
             style={{ animation: 'fadeIn 0.25s ease-out' }}
           >
-            <div className="relative bg-white rounded-3xl shadow-2xl shadow-blue-900/15 border border-slate-200/60 overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="relative flex max-h-[85vh] flex-col overflow-hidden rounded-[2rem] border border-white/70 bg-slate-50/95 shadow-[0_28px_80px_rgba(15,23,42,0.24)] ring-1 ring-slate-900/5">
 
               {/* Blue gradient header */}
-              <div className={`relative flex-shrink-0 bg-gradient-to-br px-6 py-4 lg:px-7 ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-700 to-blue-800'}`}>
+              <div className={`relative flex-shrink-0 border-b border-white/20 bg-gradient-to-br px-7 py-5 shadow-[0_12px_32px_rgba(15,23,42,0.16)] lg:px-8 ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-700 to-blue-800'}`}>
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.12)_0%,_transparent_50%)]" />
                 <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
                 <div className="relative flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-xl border shadow-lg sm:h-10 sm:w-10 ${isReward ? 'border-amber-900/15 bg-amber-950/10' : 'border-white/20 bg-white/15 shadow-blue-900/20'}`}>
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl border shadow-lg sm:h-11 sm:w-11 ${isReward ? 'border-amber-900/20 bg-amber-950/10 shadow-amber-950/10' : 'border-white/25 bg-white/15 shadow-blue-950/15'}`}>
                       {isReward ? <Gift className="h-5 w-5 text-amber-950" /> : <Bell className="w-5 w-5 text-white" />}
                     </div>
                     <div>
@@ -389,7 +385,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
                   <button
                     onClick={handleClose}
-                    className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isReward ? 'bg-amber-950/10 text-amber-950 hover:bg-amber-950/15' : 'bg-white/15 text-white hover:bg-white/25'}`}
+                    className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-xl border transition-colors ${isReward ? 'border-amber-950/25 bg-amber-950/10 text-amber-950 hover:bg-amber-950/20' : 'border-white/25 bg-white/10 text-white hover:bg-white/20'}`}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -415,9 +411,9 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
               </div>
 
               {/* Message content area */}
-              <div className={`flex-1 overflow-y-auto ${isReward ? 'reward-notification-scrollbar' : 'scrollbar-thin'}`}>
-                <div className="px-8 py-7">
-                  <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-blue-900/5">
+              <div className={`flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 via-blue-50/50 to-white ${isReward ? 'reward-notification-scrollbar' : 'scrollbar-thin'}`}>
+                <div className="px-8 py-8 lg:px-10 lg:py-9">
+                  <div className="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white/95 shadow-[0_14px_36px_rgba(15,23,42,0.1)] shadow-blue-900/10">
                     {isReward && (
                       <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 lg:px-7">
                         <div className="flex items-center justify-between gap-3">
@@ -450,7 +446,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                       </div>
                       <div className={`mt-4 h-px bg-gradient-to-r from-transparent to-transparent ${isReward ? 'via-orange-200' : 'via-slate-200'}`} />
                     </div>
-                    <div className="px-5 py-5 lg:px-7">
+                    <div className="bg-white/70 px-5 py-5 lg:px-7">
                       <QuickCopyRichContent
                         html={currentMessage.messages.content}
                         copyLabel={t.messages.quickCopy}
@@ -464,39 +460,33 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
               </div>
 
               {/* Footer */}
-              <div className="flex-shrink-0 px-8 py-5 border-t border-slate-100 bg-gradient-to-r from-slate-50/80 to-blue-50/30">
-                <div className="flex items-center justify-between">
-                  {messages.length > 1 ? (
-                    <>
-                      <button
-                        onClick={handlePrevious}
-                        disabled={currentIndex === 0}
-                        className="min-h-[44px] flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        <span>{t.loginPopup.prev}</span>
-                      </button>
-
-                      <span className="text-sm text-slate-400 font-medium">
-                        {currentIndex + 1} {t.loginPopup.of} {messages.length}
-                      </span>
-
-                      <button
-                        onClick={handleNext}
-                        className={`min-h-[44px] flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600 hover:shadow-lg hover:shadow-amber-500/35' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:shadow-blue-500/30'}`}
-                      >
-                        <span>{currentIndex < messages.length - 1 ? t.loginPopup.next : t.loginPopup.done}</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </>
-                  ) : (
+              <div className={`flex-shrink-0 border-t px-8 py-5 shadow-[0_-10px_24px_rgba(15,23,42,0.08)] ${isReward ? 'border-amber-200/80 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50' : 'border-slate-200/70 bg-gradient-to-r from-white via-slate-50/95 to-blue-50/60'}`}>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <p className={`truncate text-[10px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
+                      {messages.length > 1 ? `${currentIndex + 1} ${t.loginPopup.of} ${messages.length}` : t.loginPopup.notification}
+                    </p>
+                    <p className={`mt-1 truncate text-sm font-semibold ${isReward ? 'text-amber-900' : 'text-slate-700'}`}>
+                      {currentIndex < messages.length - 1 ? t.loginPopup.next : t.loginPopup.gotIt}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
                     <button
                       onClick={handleClose}
-                      className={`w-full min-h-[44px] flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600 hover:shadow-lg hover:shadow-amber-500/35' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:shadow-blue-500/30'}`}
+                      aria-label={t.messages.close}
+                      title={t.messages.close}
+                      className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-xl border transition-colors active:scale-95 ${isReward ? 'border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
                     >
-                      <span>{t.loginPopup.gotIt}</span>
+                      <X className="h-4 w-4" strokeWidth={2.5} />
                     </button>
-                  )}
+                    <button
+                      onClick={handleNext}
+                      className={`flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600 hover:shadow-lg hover:shadow-amber-500/35' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:shadow-blue-500/30'}`}
+                    >
+                      <span>{messages.length > 1 && currentIndex < messages.length - 1 ? t.loginPopup.next : messages.length > 1 ? t.loginPopup.done : t.loginPopup.gotIt}</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
