@@ -1054,15 +1054,15 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   <div className="dark-panel-scroll min-h-0 min-w-0 flex-1 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-slate-300" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
                   <div className="grid min-w-0 shrink-0 gap-2 sm:grid-cols-2">
                     <div className="min-w-0 rounded-lg border border-slate-700/70 bg-slate-950/60 p-2">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Trigger condition</p>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">觸發條件</p>
                       <p className="mt-0.5 truncate text-xs font-semibold text-slate-200">{summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}</p>
                     </div>
                     {form.rewardEnabled && (
                       <div className="flex min-w-0 items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2">
                         <Wallet className="h-4 w-4 shrink-0 text-emerald-400" />
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-bold text-emerald-200">Performance Bonus / 業績獎金</p>
-                          <p className="truncate text-[10px] text-emerald-300/60">Wallet and Daily Statistics updated automatically</p>
+                          <p className="truncate text-xs font-bold text-emerald-200">績效獎金</p>
+                          <p className="truncate text-[10px] text-emerald-300/60">錢包與每日統計將自動更新</p>
                         </div>
                       </div>
                     )}
