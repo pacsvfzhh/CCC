@@ -742,6 +742,9 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
   const selectedTemplate = dashboard.shared_templates.find(task => task.id === selectedTemplateId);
   const selectedAdmin = dashboard.admin_groups.find(group => group.id === selectedAdminId);
+  const taskTabLabel = isSuperAdmin
+    ? selectedAdmin ? `${selectedAdmin.username} 的任務` : '全部管理員任務'
+    : '我的任務';
 
   const selectAdminGroup = (nextAdminId: string) => {
     setSelectedAdminId(nextAdminId);
@@ -825,11 +828,11 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700/70 bg-slate-900/95 px-3 py-2.5 shadow-sm">
             <div className="flex gap-1 rounded-xl border border-slate-700/70 bg-slate-950/70 p-1 shadow-inner">
               {[
-                { id: 'tasks' as const, label: '我的任務', icon: Settings2 },
+                { id: 'tasks' as const, label: taskTabLabel, icon: Settings2 },
                 { id: 'templates' as const, label: '管理員範本', icon: Copy },
                 { id: 'executions' as const, label: '執行記錄', icon: History },
               ].map(tab => (
-                <button key={tab.id} onClick={() => setView(tab.id)} className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${view === tab.id ? 'bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 shadow-md shadow-cyan-950/40 after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-200' : 'text-slate-400 hover:bg-slate-800 hover:text-cyan-100'}`}><tab.icon className="h-4 w-4" />{tab.label}</button>
+                <button title={tab.label} key={tab.id} onClick={() => setView(tab.id)} className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${tab.id === 'tasks' ? 'w-44 justify-center' : ''} ${view === tab.id ? 'bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 shadow-md shadow-cyan-950/40 after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-200' : 'text-slate-400 hover:bg-slate-800 hover:text-cyan-100'}`}><tab.icon className="h-4 w-4 shrink-0" /><span className="truncate">{tab.label}</span></button>
               ))}
             </div>
             {view === 'tasks' && (
