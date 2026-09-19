@@ -481,18 +481,18 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
     const previewContent = renderPreview(form.contentTemplate, form, dashboard.currency);
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
-        <div className="z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-700/70 bg-slate-900 px-4 py-3 sm:px-5">
+        <div className="relative z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/70 px-4 py-3.5 shadow-lg shadow-slate-950/30 sm:px-5">
           <div className="flex items-center gap-3">
-            <button onClick={() => setEditorOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white">
+            <button onClick={() => setEditorOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-600/80 bg-slate-800/90 text-slate-300 shadow-sm transition-all duration-200 hover:border-cyan-400/60 hover:bg-slate-700 hover:text-cyan-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div>
-              <h2 className="font-bold text-white">{readOnly ? '查看超級管理員範本' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2>
-              <p className="text-xs text-slate-500">通知內容使用英文，管理介面使用繁體中文</p>
+              <h2 className="text-base font-black tracking-tight text-white sm:text-lg">{readOnly ? '查看超級管理員範本' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2>
+              <p className="mt-0.5 text-xs font-medium text-slate-400">通知內容使用英文，管理介面使用繁體中文</p>
             </div>
           </div>
           {!readOnly && (
-            <button disabled={saving} onClick={saveTask} className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 text-sm font-bold text-white shadow-lg shadow-cyan-950/40 disabled:opacity-50">
+            <button disabled={saving} onClick={saveTask} className="inline-flex h-9 items-center gap-2 rounded-xl border border-cyan-300/30 bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 px-4 text-sm font-black text-white shadow-lg shadow-cyan-950/50 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-cyan-500/20 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:brightness-100">
               {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               儲存為草稿
             </button>
@@ -503,26 +503,26 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
           <div className="grid h-full w-full items-start overflow-y-auto bg-slate-900 xl:grid-cols-[minmax(0,1fr)_400px]">
             <div className="min-w-0 px-4 sm:px-5 xl:border-r xl:border-slate-700/70">
               <section className="border-b border-slate-700/60 py-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <Settings2 className="h-5 w-5 text-cyan-400" />
-                  <h3 className="font-bold text-white">基本設定</h3>
+                <div className="mb-3 flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-blue-500/10 text-cyan-300 ring-1 ring-cyan-400/20"><Settings2 className="h-4 w-4" /></div>
+                  <h3 className="font-black tracking-tight text-white">基本設定</h3>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="sm:col-span-2">
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">任務名稱</span>
-                    <input disabled={readOnly} value={form.name} onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500" placeholder="例如：100 筆訂單鼓勵通知" />
+                    <input disabled={readOnly} value={form.name} onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" placeholder="例如：100 筆訂單鼓勵通知" />
                   </label>
                   <label className="sm:col-span-2">
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">任務說明</span>
-                    <input disabled={readOnly} value={form.description} onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500" placeholder="供管理員查看的內部說明" />
+                    <input disabled={readOnly} value={form.description} onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" placeholder="供管理員查看的內部說明" />
                   </label>
                   <label>
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">開始時間（選填）</span>
-                    <input disabled={readOnly} type="datetime-local" value={form.startsAt} onChange={event => setForm(previous => ({ ...previous, startsAt: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500" />
+                    <input disabled={readOnly} type="datetime-local" value={form.startsAt} onChange={event => setForm(previous => ({ ...previous, startsAt: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
                   <label>
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">結束時間（選填）</span>
-                    <input disabled={readOnly} type="datetime-local" value={form.endsAt} onChange={event => setForm(previous => ({ ...previous, endsAt: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500" />
+                    <input disabled={readOnly} type="datetime-local" value={form.endsAt} onChange={event => setForm(previous => ({ ...previous, endsAt: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
                   {isSuperAdmin && (
                     <label className="sm:col-span-2 flex cursor-pointer items-center justify-between rounded-xl border border-violet-500/25 bg-violet-500/10 p-3">
@@ -530,21 +530,21 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                         <p className="text-sm font-bold text-violet-200">提供給二級管理員選用</p>
                         <p className="text-xs text-violet-300/60">共享範本不會直接觸發，二級管理員複製後獨立使用</p>
                       </div>
-                      <input disabled={readOnly} type="checkbox" checked={form.isSharedTemplate} onChange={event => setForm(previous => ({ ...previous, isSharedTemplate: event.target.checked }))} className="h-4 w-4 bg-white accent-violet-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
+                      <input disabled={readOnly} type="checkbox" checked={form.isSharedTemplate} onChange={event => setForm(previous => ({ ...previous, isSharedTemplate: event.target.checked }))} className="h-4 w-4 rounded bg-white accent-violet-500 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
                     </label>
                   )}
                 </div>
               </section>
 
               <section className="border-b border-slate-700/60 py-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <Target className="h-5 w-5 text-cyan-400" />
-                  <h3 className="font-bold text-white">觸發條件</h3>
+                <div className="mb-3 flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-blue-500/10 text-cyan-300 ring-1 ring-cyan-400/20"><Target className="h-4 w-4" /></div>
+                  <h3 className="font-black tracking-tight text-white">觸發條件</h3>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label>
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">條件類型</span>
-                    <select disabled={readOnly} value={form.triggerType} onChange={event => { setTemplateCustomized(false); setForm(previous => ({ ...previous, triggerType: event.target.value as TriggerType })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
+                    <select disabled={readOnly} value={form.triggerType} onChange={event => { setTemplateCustomized(false); setForm(previous => ({ ...previous, triggerType: event.target.value as TriggerType })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300">
                       {Object.entries(triggerLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </select>
                   </label>
@@ -552,27 +552,27 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                     <>
                       <label>
                         <span className="mb-1.5 block text-xs font-semibold text-slate-400">觸發方式</span>
-                        <select disabled={readOnly} value={form.triggerMode} onChange={event => setForm(previous => ({ ...previous, triggerMode: event.target.value as TriggerMode }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
+                        <select disabled={readOnly} value={form.triggerMode} onChange={event => setForm(previous => ({ ...previous, triggerMode: event.target.value as TriggerMode }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300">
                           <option value="reach_once">累計達到一次</option>
                           <option value="recurring">每達到指定數量</option>
                         </select>
                       </label>
                       <label>
                         <span className="mb-1.5 block text-xs font-semibold text-slate-400">{form.triggerType === 'commission_amount' ? `目標金額（${dashboard.currency}）` : form.triggerType.includes('work_days') ? '目標天數' : '目標訂單數'}</span>
-                        <input disabled={readOnly} type="number" min={form.triggerType === 'commission_amount' ? '0.01' : '1'} step={form.triggerType === 'commission_amount' ? '0.01' : '1'} value={form.thresholdValue} onChange={event => setForm(previous => ({ ...previous, thresholdValue: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500" />
+                        <input disabled={readOnly} type="number" min={form.triggerType === 'commission_amount' ? '0.01' : '1'} step={form.triggerType === 'commission_amount' ? '0.01' : '1'} value={form.thresholdValue} onChange={event => setForm(previous => ({ ...previous, thresholdValue: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                       </label>
                     </>
                   ) : (
                     <>
                       <label>
                         <span className="mb-1.5 block text-xs font-semibold text-slate-400">月份</span>
-                        <select disabled={readOnly} value={form.annualMonth} onChange={event => setForm(previous => ({ ...previous, annualMonth: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
+                        <select disabled={readOnly} value={form.annualMonth} onChange={event => setForm(previous => ({ ...previous, annualMonth: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300">
                           {Array.from({ length: 12 }, (_, index) => index + 1).map(month => <option key={month} value={month}>{month} 月</option>)}
                         </select>
                       </label>
                       <label>
                         <span className="mb-1.5 block text-xs font-semibold text-slate-400">日期</span>
-                        <input disabled={readOnly} type="number" min="1" max={new Date(2000, Number(form.annualMonth), 0).getDate()} step="1" value={form.annualDay} onChange={event => setForm(previous => ({ ...previous, annualDay: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500" />
+                        <input disabled={readOnly} type="number" min="1" max={new Date(2000, Number(form.annualMonth), 0).getDate()} step="1" value={form.annualDay} onChange={event => setForm(previous => ({ ...previous, annualDay: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                       </label>
                       <div className="sm:col-span-2 rounded-xl border border-violet-500/20 bg-violet-500/10 p-3 text-xs leading-relaxed text-violet-100/80">
                         系統依 UTC 伺服器日期自動判斷，每年到達所選月日只執行一次，不依賴管理員或員工瀏覽器保持開啟。
@@ -582,13 +582,13 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                   {form.triggerType === 'consecutive_work_days' && (
                     <label>
                       <span className="mb-1.5 block text-xs font-semibold text-slate-400">每天至少完成訂單數</span>
-                      <input disabled={readOnly} type="number" min="1" step="1" value={form.minimumDailyOrders} onChange={event => setForm(previous => ({ ...previous, minimumDailyOrders: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500" />
+                      <input disabled={readOnly} type="number" min="1" step="1" value={form.minimumDailyOrders} onChange={event => setForm(previous => ({ ...previous, minimumDailyOrders: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                     </label>
                   )}
                   {(form.triggerType === 'work_days' || form.triggerType === 'consecutive_work_days') && (
                     <label>
                       <span className="mb-1.5 block text-xs font-semibold text-slate-400">每天至少工作分鐘（選填）</span>
-                      <input disabled={readOnly} type="number" min="1" step="1" value={form.minimumDailyWorkMinutes} onChange={event => setForm(previous => ({ ...previous, minimumDailyWorkMinutes: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500" />
+                      <input disabled={readOnly} type="number" min="1" step="1" value={form.minimumDailyWorkMinutes} onChange={event => setForm(previous => ({ ...previous, minimumDailyWorkMinutes: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                     </label>
                   )}
                 </div>
@@ -598,9 +598,9 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
               </section>
 
               <section className="border-b border-slate-700/60 py-4">
-                <label className="flex cursor-pointer items-center justify-between gap-4">
+                <label className={`flex cursor-pointer items-center justify-between gap-4 rounded-xl border px-3 py-3 transition-all duration-200 ${form.rewardEnabled ? 'border-amber-400/20 bg-gradient-to-r from-amber-500/10 to-transparent' : 'border-slate-700/60 bg-gradient-to-r from-slate-800/50 to-transparent hover:border-slate-600'}`}>
                   <div className="flex items-center gap-3">
-                    <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${form.rewardEnabled ? 'bg-amber-400 text-amber-950 shadow-lg shadow-amber-900/40' : 'bg-slate-800 text-slate-500'}`}>
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-xl ring-1 transition-all duration-200 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950 shadow-lg shadow-amber-900/40 ring-amber-200/30' : 'bg-slate-800 text-slate-500 ring-slate-700'}`}>
                       <Gift className="h-5 w-5" />
                     </div>
                     <div>
@@ -608,13 +608,13 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                       <p className="text-xs text-slate-500">不勾選時只發送一般通知，不會修改錢包</p>
                     </div>
                   </div>
-                  <input disabled={readOnly} type="checkbox" checked={form.rewardEnabled} onChange={event => { setTemplateCustomized(false); setForm(previous => ({ ...previous, rewardEnabled: event.target.checked })); }} className="h-5 w-5 bg-white accent-amber-400 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
+                  <input disabled={readOnly} type="checkbox" checked={form.rewardEnabled} onChange={event => { setTemplateCustomized(false); setForm(previous => ({ ...previous, rewardEnabled: event.target.checked })); }} className="h-5 w-5 rounded bg-white accent-amber-400 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
                 </label>
                 {form.rewardEnabled && (
                   <div className="mt-5 grid gap-4 sm:grid-cols-2">
                     <label>
                       <span className="mb-1.5 block text-xs font-semibold text-amber-200/70">每次獎金</span>
-                      <input disabled={readOnly} type="number" min="0.01" step="0.01" value={form.rewardAmount} onChange={event => setForm(previous => ({ ...previous, rewardAmount: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500" />
+                      <input disabled={readOnly} type="number" min="0.01" step="0.01" value={form.rewardAmount} onChange={event => setForm(previous => ({ ...previous, rewardAmount: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-900 shadow-sm outline-none transition-all duration-200 hover:border-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                     </label>
                     <div>
                       <span className="mb-1.5 block text-xs font-semibold text-amber-200/70">網站計量貨幣</span>
@@ -628,13 +628,13 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
               </section>
 
               <section className="border-b border-slate-700/60 py-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <Users className="h-5 w-5 text-cyan-400" />
-                  <h3 className="font-bold text-white">適用員工</h3>
+                <div className="mb-3 flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-blue-500/10 text-cyan-300 ring-1 ring-cyan-400/20"><Users className="h-4 w-4" /></div>
+                  <h3 className="font-black tracking-tight text-white">適用員工</h3>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {(['all_managed', 'selected'] as const).map(scope => (
-                    <button key={scope} disabled={readOnly} onClick={() => setForm(previous => ({ ...previous, recipientScope: scope }))} className={`rounded-xl border p-3 text-left ${form.recipientScope === scope ? 'border-cyan-400 bg-cyan-500/10 text-cyan-100' : 'border-slate-700 bg-slate-950 text-slate-400'} disabled:opacity-60`}>
+                    <button key={scope} disabled={readOnly} onClick={() => setForm(previous => ({ ...previous, recipientScope: scope }))} className={`rounded-xl border p-3 text-left transition-all duration-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${form.recipientScope === scope ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/15 to-blue-500/5 text-cyan-100 shadow-md shadow-cyan-950/30' : 'border-slate-700 bg-slate-950/80 text-slate-400 hover:border-slate-600 hover:bg-slate-800/70 hover:text-slate-200'} disabled:cursor-not-allowed disabled:opacity-60`}>
                       <p className="text-sm font-bold">{scope === 'all_managed' ? '全部可管理員工' : '指定員工'}</p>
                       <p className="mt-1 text-xs opacity-60">{scope === 'all_managed' ? '自動包含你權限範圍內的員工' : '只對下方勾選的員工生效'}</p>
                     </button>
@@ -643,12 +643,12 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                 {form.recipientScope === 'selected' && (
                   <div className="mt-3 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 p-2">
                     {employees.map(employee => (
-                      <label key={employee.id} className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 hover:bg-white">
+                      <label key={employee.id} className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 transition-all duration-200 hover:bg-white hover:shadow-sm">
                         <div>
                           <p className="text-sm font-semibold text-slate-900">{employee.username}</p>
                           <p className="text-[11px] text-slate-500">{employee.employee_id}</p>
                         </div>
-                        <input disabled={readOnly} type="checkbox" checked={form.recipientIds.includes(employee.id)} onChange={event => setForm(previous => ({ ...previous, recipientIds: event.target.checked ? [...previous.recipientIds, employee.id] : previous.recipientIds.filter(id => id !== employee.id) }))} className="h-4 w-4 bg-white accent-cyan-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
+                        <input disabled={readOnly} type="checkbox" checked={form.recipientIds.includes(employee.id)} onChange={event => setForm(previous => ({ ...previous, recipientIds: event.target.checked ? [...previous.recipientIds, employee.id] : previous.recipientIds.filter(id => id !== employee.id) }))} className="h-4 w-4 rounded bg-white accent-cyan-500 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
                       </label>
                     ))}
                   </div>
@@ -657,23 +657,23 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
               <section className="border-b border-slate-700/60 py-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-cyan-400" />
+                  <div className="flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-blue-500/10 text-cyan-300 ring-1 ring-cyan-400/20"><FileText className="h-4 w-4" /></div>
                     <div>
-                      <h3 className="font-bold text-white">英文通知內容</h3>
+                      <h3 className="font-black tracking-tight text-white">英文通知內容</h3>
                       <p className="text-xs text-slate-500">可以直接修改，動態變數會在發送時替換</p>
                     </div>
                   </div>
-                  {!readOnly && <button onClick={regenerateTemplate} className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 hover:bg-cyan-500/20">重新產生內容</button>}
+                  {!readOnly && <button onClick={regenerateTemplate} className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70">重新產生內容</button>}
                 </div>
                 <div className="space-y-4">
                   <label>
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">通知標題</span>
-                    <input disabled={readOnly} value={form.titleTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, titleTemplate: event.target.value })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500" />
+                    <input disabled={readOnly} value={form.titleTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, titleTemplate: event.target.value })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
                   <label>
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">通知內容</span>
-                    <textarea disabled={readOnly} rows={6} value={form.contentTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, contentTemplate: event.target.value })); }} className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500" />
+                    <textarea disabled={readOnly} rows={6} value={form.contentTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, contentTemplate: event.target.value })); }} className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 shadow-sm outline-none transition-all duration-200 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
                   <p className="text-[11px] text-slate-500">可用變數：{'{{employee_name}}'}、{'{{threshold_value}}'}、{'{{actual_value}}'}、{'{{minimum_daily_orders}}'}、{'{{annual_month}}'}、{'{{annual_day}}'}、{'{{bonus_amount}}'}、{'{{currency}}'}</p>
                 </div>
@@ -731,60 +731,60 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
-      <div className="shrink-0 border-b border-slate-700/70 bg-slate-900 px-4 py-3 sm:px-5">
+      <div className="relative shrink-0 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/80 px-4 py-4 shadow-lg shadow-slate-950/30 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"><ArrowLeft className="h-4 w-4" /></button>
+            <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-600/80 bg-slate-800/90 text-slate-300 shadow-sm transition-all duration-200 hover:border-cyan-400/60 hover:bg-slate-700 hover:text-cyan-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"><ArrowLeft className="h-4 w-4" /></button>
             <div>
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-cyan-400" />
-                <h2 className="font-bold text-white">自動化任務</h2>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400/20 to-blue-500/10 text-cyan-300 ring-1 ring-cyan-300/20 shadow-inner"><Sparkles className="h-5 w-5" /></div>
+                <h2 className="text-lg font-black tracking-tight text-white sm:text-xl">自動化任務</h2>
               </div>
-              <p className="text-xs text-slate-500">根據員工表現自動發送通知，並可選擇發放績效獎金</p>
+              <p className="mt-0.5 text-xs font-medium text-slate-400">根據員工表現自動發送通知，並可選擇發放績效獎金</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => { setRefreshing(true); void loadDashboard(); }} className="flex h-9 items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-3 text-xs font-bold text-slate-300 hover:bg-slate-700"><RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />重新整理</button>
-            <button onClick={openNewTask} className="flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 text-xs font-bold text-white shadow-lg shadow-cyan-950/40"><Plus className="h-4 w-4" />新增自動化任務</button>
+            <button onClick={() => { setRefreshing(true); void loadDashboard(); }} disabled={refreshing} className="flex h-9 items-center gap-2 rounded-xl border border-slate-600/80 bg-slate-800/90 px-3 text-xs font-bold text-slate-200 shadow-sm transition-all duration-200 hover:border-cyan-400/60 hover:bg-slate-700 hover:text-cyan-200 hover:shadow-cyan-950/30 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-wait disabled:opacity-60"><RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />重新整理</button>
+            <button onClick={openNewTask} className="flex h-9 items-center gap-2 rounded-xl border border-cyan-300/30 bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 px-4 text-xs font-black text-white shadow-lg shadow-cyan-950/50 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-cyan-500/20 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"><Plus className="h-4 w-4" />新增自動化任務</button>
           </div>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden bg-slate-900">
         <div className="flex h-full w-full flex-col overflow-hidden bg-slate-900">
-          <div className="flex shrink-0 divide-x divide-slate-700/70 overflow-x-auto border-b border-slate-700/70">
+          <div className="flex shrink-0 divide-x divide-slate-700/60 overflow-x-auto border-b border-slate-700/70 bg-slate-950/35 shadow-inner">
             {[
-              { label: '任務總數', value: taskStats.total, icon: Settings2, iconClass: 'text-cyan-400' },
-              { label: '已啟用', value: taskStats.active, icon: Play, iconClass: 'text-emerald-400' },
-              { label: '獎勵任務', value: taskStats.rewards, icon: Gift, iconClass: 'text-amber-400' },
-              { label: '成功執行', value: taskStats.executions, icon: CheckCircle2, iconClass: 'text-violet-400' },
+              { label: '任務總數', value: taskStats.total, icon: Settings2, iconClass: 'text-cyan-300', iconBg: 'bg-cyan-500/15 ring-cyan-400/20', surface: 'hover:bg-cyan-500/[0.07]' },
+              { label: '已啟用', value: taskStats.active, icon: Play, iconClass: 'text-emerald-300', iconBg: 'bg-emerald-500/15 ring-emerald-400/20', surface: 'hover:bg-emerald-500/[0.07]' },
+              { label: '獎勵任務', value: taskStats.rewards, icon: Gift, iconClass: 'text-amber-300', iconBg: 'bg-amber-500/15 ring-amber-400/20', surface: 'hover:bg-amber-500/[0.07]' },
+              { label: '成功執行', value: taskStats.executions, icon: CheckCircle2, iconClass: 'text-violet-300', iconBg: 'bg-violet-500/15 ring-violet-400/20', surface: 'hover:bg-violet-500/[0.07]' },
             ].map(item => (
-              <div key={item.label} className="flex min-w-[145px] flex-1 items-center gap-3 px-4 py-2.5">
-                <item.icon className={`h-4 w-4 ${item.iconClass}`} />
-                <p className="text-xs font-semibold text-slate-500">{item.label}</p>
-                <p className="ml-auto text-lg font-black text-white">{item.value}</p>
+              <div key={item.label} className={`group flex min-w-[155px] flex-1 items-center gap-3 px-4 py-3 transition-all duration-200 ${item.surface}`}>
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 transition-all duration-200 group-hover:scale-105 ${item.iconBg}`}><item.icon className={`h-4 w-4 ${item.iconClass}`} /></div>
+                <p className="text-xs font-semibold text-slate-400">{item.label}</p>
+                <p className="ml-auto text-xl font-black tabular-nums tracking-tight text-white">{item.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700/70 px-3 py-2">
-            <div className="flex gap-1">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700/70 bg-slate-900/95 px-3 py-2.5 shadow-sm">
+            <div className="flex gap-1 rounded-xl border border-slate-700/70 bg-slate-950/70 p-1 shadow-inner">
               {[
                 { id: 'tasks' as const, label: '我的任務', icon: Settings2 },
                 ...(!isSuperAdmin ? [{ id: 'templates' as const, label: '超級管理員範本', icon: Copy }] : []),
                 { id: 'executions' as const, label: '執行記錄', icon: History },
               ].map(tab => (
-                <button key={tab.id} onClick={() => setView(tab.id)} className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold ${view === tab.id ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><tab.icon className="h-4 w-4" />{tab.label}</button>
+                <button key={tab.id} onClick={() => setView(tab.id)} className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${view === tab.id ? 'bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 shadow-md shadow-cyan-950/40 after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-200' : 'text-slate-400 hover:bg-slate-800 hover:text-cyan-100'}`}><tab.icon className="h-4 w-4" />{tab.label}</button>
               ))}
             </div>
             {view === 'tasks' && (
               <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜尋任務或管理員" className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20" />
+                <input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜尋任務或管理員" className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs font-medium text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25" />
               </div>
             )}
             {view === 'templates' && (
-              <button disabled={!selectedTemplate} onClick={() => selectedTemplate && void copyTemplate(selectedTemplate, true)} className="flex h-9 items-center gap-2 rounded-lg bg-emerald-500 px-4 text-xs font-black text-emerald-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500">
+              <button disabled={!selectedTemplate} onClick={() => selectedTemplate && void copyTemplate(selectedTemplate, true)} className="flex h-9 items-center gap-2 rounded-lg border border-emerald-300/30 bg-gradient-to-r from-emerald-400 to-emerald-500 px-4 text-xs font-black text-emerald-950 shadow-md shadow-emerald-950/30 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-slate-700 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:brightness-100">
                 <Play className="h-4 w-4" />套用所選範本
               </button>
             )}
@@ -793,20 +793,20 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
           <div className="min-h-0 flex-1 overflow-y-auto">
           {view === 'tasks' && (
             visibleTasks.length === 0 ? (
-              <div className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-400"><Bell className="h-7 w-7" /></div>
+              <div className="relative flex min-h-full flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.10),transparent_42%)] px-6 py-16 text-center before:absolute before:inset-0 before:bg-[linear-gradient(rgba(148,163,184,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.025)_1px,transparent_1px)] before:bg-[size:28px_28px]">
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/20 to-blue-500/10 text-cyan-300 shadow-xl shadow-cyan-950/40 ring-1 ring-cyan-300/10"><Bell className="h-8 w-8" /></div>
                 <p className="mt-4 text-base font-bold text-slate-200">尚未建立自動化任務</p>
                 <p className="mt-1 max-w-md text-sm text-slate-500">建立第一個任務，設定觸發條件、通知內容及可選的績效獎金；新任務會先儲存為草稿。</p>
-                <button onClick={openNewTask} className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-cyan-500 px-5 text-sm font-black text-slate-950 hover:bg-cyan-400"><Plus className="h-4 w-4" />建立第一個任務</button>
+                <button onClick={openNewTask} className="relative mt-5 inline-flex h-10 items-center gap-2 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-cyan-400 to-blue-500 px-5 text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/40 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"><Plus className="h-4 w-4" />建立第一個任務</button>
               </div>
             ) : (
-              <div className="divide-y divide-slate-800">
+              <div className="divide-y divide-slate-800/80">
                 {visibleTasks.map(task => (
-                  <article key={task.id} className={`grid gap-3 border-l-2 px-4 py-3 transition hover:bg-slate-800/35 lg:grid-cols-[minmax(210px,1fr)_minmax(260px,1.35fr)_minmax(130px,.55fr)_minmax(180px,.75fr)_auto] lg:items-center ${task.reward_enabled ? 'border-l-amber-400' : task.is_shared_template ? 'border-l-violet-400' : 'border-l-cyan-400'}`}>
+                  <article key={task.id} className={`group grid gap-3 border-l-[3px] px-4 py-3.5 transition-all duration-200 odd:bg-slate-950/20 even:bg-slate-800/15 hover:relative hover:z-[1] hover:-translate-y-px hover:bg-slate-800/55 hover:shadow-lg hover:shadow-cyan-950/15 lg:grid-cols-[minmax(210px,1fr)_minmax(260px,1.35fr)_minmax(130px,.55fr)_minmax(180px,.75fr)_auto] lg:items-center ${task.reward_enabled ? 'border-l-amber-400' : task.is_shared_template ? 'border-l-violet-400' : task.status === 'active' ? 'border-l-emerald-400' : task.status === 'paused' ? 'border-l-amber-400' : 'border-l-cyan-400'}`}>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="truncate text-sm font-bold text-white">{task.name}</h3>
-                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${task.status === 'active' ? 'bg-emerald-500/15 text-emerald-300' : task.status === 'paused' ? 'bg-amber-500/15 text-amber-300' : 'bg-slate-700 text-slate-300'}`}>{statusLabels[task.status]}</span>
+                        <span className={`rounded-md border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-400/20 bg-emerald-500/15 text-emerald-300' : task.status === 'paused' ? 'border-amber-400/20 bg-amber-500/15 text-amber-300' : 'border-slate-600/70 bg-slate-700/80 text-slate-300'}`}>{statusLabels[task.status]}</span>
                       </div>
                       <p className="mt-1 text-[11px] text-slate-500">{task.owner_username} · V{task.version}{task.is_shared_template ? ' · 共享範本' : ''}{task.source_task_id ? ' · 由範本複製' : ''}</p>
                     </div>
@@ -823,11 +823,11 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                       <div><p className="text-[10px] text-slate-500">每次獎金</p><p className="text-sm font-bold text-amber-300">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</p></div>
                     </div>
                     <div className="flex items-center gap-2 lg:justify-end">
-                      <button onClick={() => openTask(task)} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-bold text-slate-300 hover:bg-slate-700"><Edit3 className="h-3.5 w-3.5" />編輯</button>
+                      <button onClick={() => openTask(task)} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 hover:text-cyan-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"><Edit3 className="h-3.5 w-3.5" />編輯</button>
                       {task.status !== 'active' ? (
-                        <button onClick={() => changeStatus(task, 'active')} className="flex h-8 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 text-xs font-bold text-emerald-300 hover:bg-emerald-500/25"><Play className="h-3.5 w-3.5" />{task.is_shared_template ? '發佈範本' : '啟用'}</button>
+                        <button onClick={() => changeStatus(task, 'active')} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-emerald-400/25 bg-emerald-500/15 px-3 text-xs font-bold text-emerald-300 transition-all duration-200 hover:border-emerald-300/40 hover:bg-emerald-500/25 hover:text-emerald-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70"><Play className="h-3.5 w-3.5" />{task.is_shared_template ? '發佈範本' : '啟用'}</button>
                       ) : (
-                        <button onClick={() => changeStatus(task, 'paused')} className="flex h-8 items-center justify-center gap-1.5 rounded-lg bg-amber-500/15 px-3 text-xs font-bold text-amber-300 hover:bg-amber-500/25"><Pause className="h-3.5 w-3.5" />暫停</button>
+                        <button onClick={() => changeStatus(task, 'paused')} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-amber-400/25 bg-amber-500/15 px-3 text-xs font-bold text-amber-300 transition-all duration-200 hover:border-amber-300/40 hover:bg-amber-500/25 hover:text-amber-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"><Pause className="h-3.5 w-3.5" />暫停</button>
                       )}
                     </div>
                   </article>
@@ -838,15 +838,15 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
           {view === 'templates' && (
             dashboard.shared_templates.length === 0 ? (
-              <div className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400"><Copy className="h-7 w-7" /></div><p className="mt-4 font-bold text-slate-300">目前沒有可用的超級管理員範本</p><p className="mt-1 text-sm text-slate-500">超級管理員發佈共享範本後，可在這裡勾選並直接套用。</p></div>
+              <div className="relative flex min-h-full flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.10),transparent_42%)] px-6 py-16 text-center before:absolute before:inset-0 before:bg-[linear-gradient(rgba(148,163,184,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.025)_1px,transparent_1px)] before:bg-[size:28px_28px]"><div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/20 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 text-violet-300 shadow-xl shadow-violet-950/40"><Copy className="h-8 w-8" /></div><p className="mt-4 font-bold text-slate-300">目前沒有可用的超級管理員範本</p><p className="mt-1 text-sm text-slate-500">超級管理員發佈共享範本後，可在這裡勾選並直接套用。</p></div>
             ) : (
-              <div className="divide-y divide-slate-800">
+              <div className="divide-y divide-slate-800/80">
                 {dashboard.shared_templates.map(task => {
                   const selected = selectedTemplateId === task.id;
                   return (
-                    <article key={task.id} className={`grid gap-3 border-l-2 px-4 py-3 transition lg:grid-cols-[auto_minmax(210px,1fr)_minmax(280px,1.45fr)_minmax(170px,.7fr)_auto] lg:items-center ${selected ? 'border-l-violet-300 bg-violet-500/10' : 'border-l-violet-600 hover:bg-slate-800/35'}`}>
+                    <article key={task.id} className={`group grid gap-3 border-l-[3px] px-4 py-3.5 transition-all duration-200 lg:grid-cols-[auto_minmax(210px,1fr)_minmax(280px,1.45fr)_minmax(170px,.7fr)_auto] lg:items-center ${selected ? 'border-l-violet-300 bg-gradient-to-r from-violet-500/15 to-violet-500/[0.04] shadow-[inset_0_0_0_1px_rgba(167,139,250,0.12)]' : 'border-l-violet-600 odd:bg-slate-950/20 even:bg-slate-800/15 hover:-translate-y-px hover:bg-slate-800/55 hover:shadow-lg hover:shadow-violet-950/15'}`}>
                       <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-violet-200">
-                        <input type="checkbox" checked={selected} onChange={event => setSelectedTemplateId(event.target.checked ? task.id : null)} className="h-4 w-4 rounded border-slate-300 bg-white accent-violet-500" />
+                        <input type="checkbox" checked={selected} onChange={event => setSelectedTemplateId(event.target.checked ? task.id : null)} className="h-4 w-4 cursor-pointer rounded border-slate-300 bg-white accent-violet-500 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900" />
                         選取
                       </label>
                       <div className="min-w-0">
@@ -865,8 +865,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                         <p className="mt-0.5 text-xs font-bold text-slate-200">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'} · {task.recipient_scope === 'selected' ? `${task.recipient_ids?.length || 0} 人` : '全部員工'}</p>
                       </div>
                       <div className="flex items-center gap-2 lg:justify-end">
-                        <button onClick={() => openTask(task, true)} className="flex h-8 items-center justify-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 text-xs font-bold text-violet-200">查看<ChevronRight className="h-3.5 w-3.5" /></button>
-                        <button onClick={() => copyTemplate(task, false)} className="flex h-8 items-center justify-center gap-1 rounded-lg bg-slate-800 px-3 text-xs font-bold text-slate-200 hover:bg-slate-700"><Copy className="h-3.5 w-3.5" />複製自訂</button>
+                        <button onClick={() => openTask(task, true)} className="flex h-8 items-center justify-center gap-1 rounded-lg border border-violet-400/35 bg-violet-500/10 px-3 text-xs font-bold text-violet-200 transition-all duration-200 hover:border-violet-300/50 hover:bg-violet-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70">查看<ChevronRight className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => copyTemplate(task, false)} className="flex h-8 items-center justify-center gap-1 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 text-xs font-bold text-blue-200 transition-all duration-200 hover:border-blue-300/50 hover:bg-blue-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70"><Copy className="h-3.5 w-3.5" />複製自訂</button>
                       </div>
                     </article>
                   );
@@ -883,7 +883,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                   <thead className="bg-slate-950/70 text-slate-500"><tr><th className="px-5 py-3">任務</th><th className="px-4 py-3">員工</th><th className="px-4 py-3">階段</th><th className="px-4 py-3">實際數值</th><th className="px-4 py-3">獎金</th><th className="px-4 py-3">狀態</th><th className="px-5 py-3 text-right">執行時間</th></tr></thead>
                   <tbody className="divide-y divide-slate-800">
                     {dashboard.executions.map(execution => (
-                      <tr key={execution.id} className="text-slate-300"><td className="px-5 py-3 font-semibold text-white">{execution.task_name}</td><td className="px-4 py-3">{execution.employee_username}</td><td className="px-4 py-3">第 {execution.stage} 階段</td><td className="px-4 py-3">{Number(execution.actual_value).toLocaleString()}</td><td className="px-4 py-3 font-bold text-amber-300">{execution.reward_amount ? `${Number(execution.reward_amount).toFixed(2)} ${execution.reward_currency}` : '—'}</td><td className="px-4 py-3"><span className={`rounded-md px-2 py-1 font-bold ${execution.status === 'succeeded' ? 'bg-emerald-500/10 text-emerald-300' : execution.status === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-blue-500/10 text-blue-300'}`}>{execution.status === 'succeeded' ? '成功' : execution.status === 'failed' ? '失敗' : '處理中'}</span></td><td className="px-5 py-3 text-right text-slate-500">{new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(execution.executed_at))}</td></tr>
+                      <tr key={execution.id} className="text-slate-300 transition-all duration-200 odd:bg-slate-950/15 hover:bg-slate-800/60"><td className="px-5 py-3 font-semibold text-white">{execution.task_name}</td><td className="px-4 py-3">{execution.employee_username}</td><td className="px-4 py-3">第 {execution.stage} 階段</td><td className="px-4 py-3">{Number(execution.actual_value).toLocaleString()}</td><td className="px-4 py-3 font-bold text-amber-300">{execution.reward_amount ? `${Number(execution.reward_amount).toFixed(2)} ${execution.reward_currency}` : '—'}</td><td className="px-4 py-3"><span className={`rounded-md px-2 py-1 font-bold ${execution.status === 'succeeded' ? 'bg-emerald-500/10 text-emerald-300' : execution.status === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-blue-500/10 text-blue-300'}`}>{execution.status === 'succeeded' ? '成功' : execution.status === 'failed' ? '失敗' : '處理中'}</span></td><td className="px-5 py-3 text-right text-slate-500">{new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(execution.executed_at))}</td></tr>
                     ))}
                   </tbody>
                 </table>
