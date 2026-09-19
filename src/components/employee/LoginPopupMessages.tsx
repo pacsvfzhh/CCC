@@ -228,7 +228,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                     {isReward ? <Gift className="h-5 w-5 text-white" /> : <Bell className="w-5 h-5 text-white" />}
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white">{isReward ? 'Performance Reward' : t.loginPopup.notification}</h2>
+                    <h2 className="text-lg font-bold text-white">{isReward ? t.messages.rewardTitle : t.loginPopup.notification}</h2>
                     <p className="text-blue-100 text-xs mt-0.5">
                       {currentIndex + 1} {t.loginPopup.of} {messages.length}
                     </p>
@@ -268,7 +268,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                 <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm shadow-blue-900/5 overflow-hidden">
                   {isReward && (
                     <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-5 text-center">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">Credited to Your Wallet</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">{t.messages.rewardWalletLabel}</p>
                       <p className="mt-1 text-3xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-lg">{currentMessage.messages.reward_currency}</span></p>
                     </div>
                   )}
@@ -289,7 +289,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                     {isReward && (
                       <div className="mb-4 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                         <Wallet className="h-5 w-5 shrink-0 text-emerald-600" />
-                        <p className="text-xs font-semibold text-emerald-700">Your performance bonus has already been added to your wallet and Daily Statistics.</p>
+                        <p className="text-xs font-semibold text-emerald-700">{t.messages.rewardAddedMessage}</p>
                       </div>
                     )}
                     <QuickCopyRichContent
@@ -376,7 +376,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-white tracking-tight">
-                        {isReward ? 'Performance Reward' : t.loginPopup.notification}
+                        {isReward ? t.messages.rewardTitle : t.loginPopup.notification}
                       </h2>
                       <p className="text-blue-100 text-sm mt-0.5">
                         {messages.length} {t.loginPopup.newMessages}
@@ -417,8 +417,8 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   {isReward && (
                     <div className="mb-6 grid gap-3 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 sm:grid-cols-[1fr_auto] sm:items-center">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">Credited to Your Wallet</p>
-                        <p className="mt-1 text-sm font-semibold text-amber-800">Performance Bonus / 業績獎金</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">{t.messages.rewardWalletLabel}</p>
+                        <p className="mt-1 text-sm font-semibold text-amber-800">{t.messages.rewardBonusLabel}</p>
                       </div>
                       <p className="text-3xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-lg">{currentMessage.messages.reward_currency}</span></p>
                     </div>
@@ -443,7 +443,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   {isReward && (
                     <div className="mb-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                       <Wallet className="h-5 w-5 shrink-0 text-emerald-600" />
-                      <p className="text-sm font-semibold text-emerald-700">The reward has already been added to your wallet and Daily Statistics.</p>
+                      <p className="text-sm font-semibold text-emerald-700">{t.messages.rewardAddedMessage}</p>
                     </div>
                   )}
                   <QuickCopyRichContent

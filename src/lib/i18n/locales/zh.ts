@@ -562,6 +562,10 @@ const zh = {
     priority: '优先级',
     quickCopy: '点击快速复制',
     copied: '已复制',
+    rewardTitle: '绩效奖励',
+    rewardWalletLabel: '已入账至您的钱包',
+    rewardBonusLabel: '绩效奖金',
+    rewardAddedMessage: '奖励已添加至您的钱包和每日统计。',
   },
   workSession: {
     workTime: '工作时间',

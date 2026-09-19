@@ -31,6 +31,7 @@ import {
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
+import { useLanguage } from '../../lib/i18n/context';
 import AdminPageLoading from './AdminPageLoading';
 
 interface AdminIdentity {
@@ -313,6 +314,7 @@ function summarizeTask(task: AutomationTask, currency: string) {
 }
 
 export default function NotificationAutomation({ admin, employees, onBack }: Props) {
+  const { t } = useLanguage();
   const isSuperAdmin = admin.role === 'super_admin' || Boolean(admin.is_super_admin);
   const [dashboard, setDashboard] = useState<AutomationDashboard>({ currency: 'USDC', admin_groups: [], tasks: [], shared_templates: [], executions: [] });
   const [loading, setLoading] = useState(true);
@@ -865,7 +867,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 {form.rewardEnabled ? <Gift className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
               </div>
               <div className="min-w-0">
-                <h2 id="employee-notification-preview-title" className="truncate text-lg font-bold tracking-tight text-white">{form.rewardEnabled ? 'Performance Reward' : 'Achievement Notice'}</h2>
+                <h2 id="employee-notification-preview-title" className="truncate text-lg font-bold tracking-tight text-white">{form.rewardEnabled ? t.messages.rewardTitle : 'Achievement Notice'}</h2>
                 <p className="mt-0.5 text-xs font-semibold text-white/75">員工端通知預覽</p>
               </div>
             </div>
@@ -878,7 +880,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-blue-900/5">
               {form.rewardEnabled && (
                 <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 sm:px-6">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">Credited to Your Wallet</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">{t.messages.rewardWalletLabel}</p>
                   <p className="mt-1 text-3xl font-black text-amber-700">+{Number(form.rewardAmount || 0).toFixed(2)} <span className="text-lg">{dashboard.currency}</span></p>
                 </div>
               )}
@@ -890,7 +892,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 {form.rewardEnabled && (
                   <div className="mb-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                     <Wallet className="h-5 w-5 shrink-0 text-emerald-600" />
-                    <p className="text-sm font-semibold leading-5 text-emerald-700">The reward has already been added to your wallet and Daily Statistics.</p>
+                    <p className="text-sm font-semibold leading-5 text-emerald-700">{t.messages.rewardAddedMessage}</p>
                   </div>
                 )}
                 <div className="message-content-dark text-sm leading-7 text-slate-700" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />

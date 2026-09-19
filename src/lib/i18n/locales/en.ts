@@ -627,6 +627,10 @@ const en = {
     priority: 'Priority',
     quickCopy: 'Click to quick copy',
     copied: 'Copied',
+    rewardTitle: 'Performance Reward',
+    rewardWalletLabel: 'Credited to Your Wallet',
+    rewardBonusLabel: 'Performance Bonus',
+    rewardAddedMessage: 'The reward has already been added to your wallet and Daily Statistics.',
   },
 
   // Work session

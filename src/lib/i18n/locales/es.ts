@@ -511,6 +511,10 @@ const es = {
     priority: 'Prioridad',
     quickCopy: 'Haz clic para copiar',
     copied: 'Copiado',
+    rewardTitle: 'Recompensa por rendimiento',
+    rewardWalletLabel: 'Acreditado en tu billetera',
+    rewardBonusLabel: 'Bono por rendimiento',
+    rewardAddedMessage: 'La recompensa ya se ha añadido a tu billetera y a las estadísticas diarias.',
   },
   workSession: {
     workTime: 'Tiempo de trabajo',

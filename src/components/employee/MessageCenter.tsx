@@ -441,7 +441,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                             {isReward && (
                               <div className="mb-2 flex flex-wrap items-center gap-2">
                                 <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-200/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-800">
-                                  <Sparkles className="h-3 w-3" /> Performance Reward
+                                  <Sparkles className="h-3 w-3" /> {t.messages.rewardTitle}
                                 </span>
                                 <span className="text-sm font-black text-amber-700">
                                   +{Number(msg.messages.reward_amount || 0).toFixed(2)} {msg.messages.reward_currency}
@@ -591,7 +591,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
 
                 {selectedMessage.messages.notification_category === 'performance_reward' && (
                   <div className="mt-4 rounded-2xl border border-white/25 bg-white/15 px-4 py-3 text-center backdrop-blur-sm">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-50/80">Credited to Your Wallet</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-50/80">{t.messages.rewardWalletLabel}</p>
                     <p className="mt-1 text-2xl font-black text-white">+{Number(selectedMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{selectedMessage.messages.reward_currency}</span></p>
                   </div>
                 )}
@@ -626,8 +626,8 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                     <Wallet className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-emerald-800">Performance Bonus / 業績獎金</p>
-                    <p className="text-xs text-emerald-600">The reward has already been added to your wallet and Daily Statistics.</p>
+                    <p className="text-sm font-bold text-emerald-800">{t.messages.rewardBonusLabel}</p>
+                    <p className="text-xs text-emerald-600">{t.messages.rewardAddedMessage}</p>
                   </div>
                 </div>
               )}

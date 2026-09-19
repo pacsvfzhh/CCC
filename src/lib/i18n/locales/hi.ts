@@ -621,6 +621,10 @@ const hi = {
     priority: 'प्राथमिकता',
     quickCopy: 'कॉपी करने के लिए क्लिक करें',
     copied: 'कॉपी किया गया',
+    rewardTitle: 'प्रदर्शन पुरस्कार',
+    rewardWalletLabel: 'आपके वॉलेट में जमा',
+    rewardBonusLabel: 'प्रदर्शन बोनस',
+    rewardAddedMessage: 'पुरस्कार पहले ही आपके वॉलेट और दैनिक आँकड़ों में जोड़ दिया गया है।',
   },
 
   // Work session
