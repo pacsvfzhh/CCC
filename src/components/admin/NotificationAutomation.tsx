@@ -1160,11 +1160,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           <p className={`truncate text-[10px] font-black tracking-wide ${task.status === 'active' ? 'text-cyan-300/80' : 'text-slate-500'}`}>{triggerLabels[task.trigger_type]}</p>
                           <p className={`mt-0.5 truncate text-[11px] font-semibold ${task.status === 'active' ? 'text-slate-200' : 'text-slate-400'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
                         </div>
-                        <div className="min-w-0 px-2 py-2.5">
-                          <p className={`truncate text-[11px] font-bold ${task.status === 'active' ? 'text-blue-100' : 'text-slate-400'}`}>{task.recipient_scope === 'selected' ? `指定 ${task.recipient_ids?.length || 0} 人` : '全部可管理員工'}</p>
+                        <div className={`min-w-0 px-2 py-2.5 ${task.status === 'active' ? 'bg-sky-500/10' : 'bg-transparent'}`}>
+                          <p className={`truncate text-[11px] font-bold ${task.status === 'active' ? 'text-sky-200' : 'text-slate-400'}`}>{task.recipient_scope === 'selected' ? `指定 ${task.recipient_ids?.length || 0} 人` : '全部可管理員工'}</p>
                         </div>
-                        <div className="px-2 py-2.5">
-                          <p className={`text-sm font-black tabular-nums ${task.status === 'active' ? 'text-violet-100' : 'text-slate-300'}`}>{task.execution_count || 0}</p>
+                        <div className={`px-2 py-2.5 ${task.status === 'active' ? 'bg-violet-500/10' : 'bg-transparent'}`}>
+                          <p className={`text-sm font-black tabular-nums ${task.status === 'active' ? 'text-violet-200' : 'text-slate-300'}`}>{task.execution_count || 0}</p>
                         </div>
                         <div className="min-w-0 px-2 py-2.5">
                           <p className={`truncate text-[11px] font-black ${task.status === 'active' ? 'text-amber-100' : 'text-slate-300'}`}>{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</p>
