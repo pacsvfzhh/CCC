@@ -1143,7 +1143,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                             <span>{task.owner_username}</span>
                             <span className="opacity-50">·</span>
                             <span title="版本號會在任務編輯儲存後遞增">版本 {task.version}</span>
-                            {task.is_shared_template && <><span className="opacity-50">·</span><span className="rounded-full border border-current/25 bg-current/10 px-1.5 py-0.5 font-bold">共享範本</span></>}
+                            {task.is_shared_template && <><span className="opacity-50">·</span><span className="font-bold">共享範本</span></>}
                             {task.source_task_id && <><span className="opacity-50">·</span><span>由範本複製</span></>}
                           </p>
                         </div>
