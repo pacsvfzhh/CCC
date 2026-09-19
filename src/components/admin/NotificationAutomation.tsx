@@ -768,7 +768,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         <div className="min-h-0 flex-1 overflow-hidden bg-slate-900">
           <div className="grid h-full min-h-0 w-full grid-cols-1 overflow-hidden border border-slate-700/70 bg-slate-950/45 xl:grid-cols-2 xl:grid-rows-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
             <div className="contents">
-              <div className="order-1 min-h-0 overflow-y-auto p-3 xl:border-r xl:border-slate-700/70">
+              <div className="min-h-0 overflow-y-auto p-3 xl:row-span-2 xl:border-r xl:border-slate-700/70">
               <section>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="sm:col-span-2">
@@ -835,11 +835,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   {summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}
                 </div>
               </section>
-              </div>
 
-              <div className="order-3 min-h-0 overflow-y-auto p-3 xl:border-r xl:border-slate-700/70">
+              <div className="p-3">
                 <div className="mb-2 flex items-center gap-2 border-l-2 border-amber-400 pl-2"><Gift className="h-4 w-4 text-amber-300" /><h3 className="text-sm font-black text-white">績效獎金與適用員工</h3></div>
-              <section>
+                <section>
                 <label className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-2.5 py-2 transition-all duration-200 ${form.rewardEnabled ? 'border-amber-400/20 bg-gradient-to-r from-amber-500/10 to-transparent' : 'border-slate-700/60 bg-gradient-to-r from-slate-800/50 to-transparent hover:border-slate-600'}`}>
                   <div className="flex items-center gap-3">
                     <div className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 transition-all duration-200 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950 shadow-lg shadow-amber-900/40 ring-amber-200/30' : 'bg-slate-800 text-slate-500 ring-slate-700'}`}>
@@ -891,8 +890,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 )}
               </section>
               </div>
+              </div>
 
-              <section className="order-2 flex min-h-0 flex-col border-b border-slate-700/70 p-3">
+              <div className="min-h-0 overflow-hidden xl:row-span-2 xl:grid xl:grid-rows-[minmax(0,0.6fr)_minmax(0,0.4fr)] xl:border-l xl:border-slate-700/70">
+              <section className="flex min-h-0 flex-col border-b border-slate-700/70 p-3">
                 <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
                     <FileText className="h-4 w-4 text-cyan-300" />
@@ -917,8 +918,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               </section>
             </div>
 
-            <aside className="order-4 min-h-0 overflow-hidden p-3">
-              <div className={`flex h-full min-h-0 flex-col overflow-hidden rounded-xl border shadow-xl ${form.rewardEnabled ? 'border-amber-400/30 bg-gradient-to-b from-amber-950 via-slate-900 to-slate-950 shadow-amber-950/40' : 'border-cyan-500/20 bg-gradient-to-b from-cyan-950 via-slate-900 to-slate-950 shadow-cyan-950/40'}`}>
+            <aside className="min-h-0 overflow-hidden border-t border-slate-700/70 p-3 xl:border-t-0">
+              <div className={`flex h-full min-h-0 flex-col overflow-hidden ${form.rewardEnabled ? 'border-amber-400/30 bg-gradient-to-b from-amber-950 via-slate-900 to-slate-950 shadow-amber-950/40' : 'border-cyan-500/20 bg-gradient-to-b from-cyan-950 via-slate-900 to-slate-950 shadow-cyan-950/40'}`}>
                 <div className={`shrink-0 p-3 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-400/20 to-orange-500/5' : 'bg-gradient-to-br from-cyan-400/15 to-blue-500/5'}`}>
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
@@ -958,6 +959,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 </div>
               </div>
             </aside>
+              </div>
           </div>
         </div>
       </div>
