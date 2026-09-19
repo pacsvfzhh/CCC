@@ -26,6 +26,7 @@ import {
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
+import AdminPageLoading from './AdminPageLoading';
 
 interface AdminIdentity {
   id: string;
@@ -260,6 +261,38 @@ function renderPreview(template: string, form: TaskForm, currency: string) {
   return replaceTemplateToken(preview, '{{currency}}', currency);
 }
 
+function AutomationSectionLoading({ view }: { view: 'tasks' | 'templates' | 'executions' }) {
+  if (view === 'executions') {
+    return (
+      <div className="min-h-full animate-pulse" aria-label="正在載入執行記錄">
+        <div className="h-8 bg-gradient-to-r from-blue-900 via-cyan-900 to-blue-950" />
+        <div className="divide-y divide-slate-800/80">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="grid grid-cols-[1.4fr_1fr_.7fr_.8fr_.8fr_.7fr_1fr] gap-4 px-5 py-4">
+              {Array.from({ length: 7 }, (__, cellIndex) => <div key={cellIndex} className="h-3 rounded-full bg-slate-700/70" />)}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const accent = view === 'templates' ? 'bg-violet-400/25' : 'bg-cyan-400/25';
+  return (
+    <div className="min-h-full animate-pulse divide-y divide-slate-800/80" aria-label={view === 'templates' ? '正在載入管理員範本' : '正在載入自動化任務'}>
+      {Array.from({ length: 5 }, (_, index) => (
+        <div key={index} className="grid gap-4 border-l-[3px] border-slate-700 px-4 py-4 lg:grid-cols-[minmax(210px,1fr)_minmax(260px,1.35fr)_minmax(130px,.55fr)_minmax(180px,.75fr)_100px] lg:items-center">
+          <div className="space-y-2"><div className={`h-3.5 w-2/3 rounded-full ${accent}`} /><div className="h-2.5 w-1/2 rounded-full bg-slate-700/60" /></div>
+          <div className="space-y-2"><div className="h-2.5 w-1/3 rounded-full bg-slate-700/60" /><div className="h-3 w-5/6 rounded-full bg-slate-700/75" /></div>
+          <div className="space-y-2"><div className="h-2.5 w-1/2 rounded-full bg-slate-700/60" /><div className="h-3 w-3/4 rounded-full bg-slate-700/75" /></div>
+          <div className="flex gap-3"><div className="h-8 w-16 rounded-lg bg-slate-700/65" /><div className="h-8 w-16 rounded-lg bg-slate-700/65" /></div>
+          <div className="h-8 rounded-lg bg-slate-700/70" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function summarizeTask(task: AutomationTask, currency: string) {
   const value = task.trigger_type === 'commission_amount'
     ? `${Number(task.threshold_value).toLocaleString()} ${currency}`
@@ -414,6 +447,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       if (error) throw error;
       notify('success', form.id ? '任務已更新並重設為草稿' : '自動化任務已儲存為草稿');
       setEditorOpen(false);
+      setRefreshing(true);
       await loadDashboard();
     } catch (error) {
       notify('error', formatSupabaseError(error) || '儲存任務失敗');
@@ -431,6 +465,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       });
       if (error) throw error;
       notify('success', status === 'active' ? '任務已啟用，現有進度已設為基準' : status === 'paused' ? '任務已暫停' : '任務狀態已更新');
+      setRefreshing(true);
       await loadDashboard();
     } catch (error) {
       notify('error', formatSupabaseError(error) || '更新任務狀態失敗');
@@ -456,6 +491,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       notify('success', activate ? '已直接套用管理員範本，任務只會作用於你的員工' : '已將管理員範本複製為你的獨立草稿，可進一步修改後啟用');
       if (activate) setSelectedTemplateId(null);
       setView('tasks');
+      setRefreshing(true);
       await loadDashboard();
     } catch (error) {
       notify('error', formatSupabaseError(error) || '套用管理員範本失敗');
@@ -470,11 +506,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-slate-950">
-        <div className="text-center">
-          <RefreshCw className="mx-auto h-8 w-8 animate-spin text-cyan-400" />
-          <p className="mt-3 text-sm font-semibold text-slate-300">正在載入自動化任務</p>
-        </div>
+      <div className="flex min-h-0 flex-1 bg-slate-950">
+        <AdminPageLoading label="自動化任務" />
       </div>
     );
   }
@@ -779,7 +812,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                   <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-slate-950/40 shadow-inner ${item.color}`}><item.icon className="h-4 w-4" /></div>
                   <div className="min-w-0 flex-1">
                     <p className="whitespace-nowrap text-[10px] font-bold tracking-wide text-slate-100">{item.label}</p>
-                    <p className={`mt-0.5 whitespace-nowrap text-lg font-black tabular-nums leading-5 ${item.color}`}>{item.value}</p>
+                    <p className={`mt-0.5 flex h-5 items-center whitespace-nowrap text-lg font-black tabular-nums leading-5 ${item.color}`}>{refreshing ? <span className="h-3.5 w-10 animate-pulse rounded-full bg-current opacity-25" /> : item.value}</p>
                   </div>
                 </div>
               ))}
@@ -842,6 +875,10 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
+          {refreshing ? (
+            <AutomationSectionLoading view={view} />
+          ) : (
+          <>
           {view === 'tasks' && (
             dashboard.tasks.length === 0 ? (
               <div className="relative flex min-h-full flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.10),transparent_42%)] px-6 py-16 text-center">
@@ -951,6 +988,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                 )}
               </div>
             </div>
+          )}
+          </>
           )}
           </div>
         </div>
