@@ -1230,6 +1230,39 @@ button .animate-bell-ring.keep-animation,
     height: 8px;
   }
 
+  .reward-notification-scrollbar {
+    scrollbar-color: rgba(217, 119, 6, 0.78) rgba(120, 53, 15, 0.18);
+    scrollbar-width: thin;
+  }
+
+  .reward-notification-scrollbar::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+
+  .reward-notification-scrollbar::-webkit-scrollbar-track {
+    background: linear-gradient(180deg, rgba(120, 53, 15, 0.2), rgba(154, 52, 18, 0.12));
+    border: 1px solid rgba(245, 158, 11, 0.28);
+    border-radius: 999px;
+  }
+
+  .reward-notification-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(251, 191, 36, 0.9), rgba(217, 119, 6, 0.82));
+    border: 2px solid rgba(120, 53, 15, 0.24);
+    border-radius: 999px;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.28);
+  }
+
+  .reward-notification-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(253, 224, 71, 0.98), rgba(234, 88, 12, 0.9));
+    border-color: rgba(120, 53, 15, 0.34);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.48);
+  }
+
+  .reward-notification-scrollbar::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 1), rgba(194, 65, 12, 0.95));
+  }
+
   .scrollbar-manager {
     scrollbar-color: rgba(45, 212, 191, 0.78) rgba(6, 78, 59, 0.38);
     scrollbar-width: thin;

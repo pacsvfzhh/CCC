@@ -629,7 +629,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                   </div>
                 )}
 
-                <div className={`min-h-0 flex-1 overflow-y-auto p-4 lg:p-5 scrollbar-thin ${selectedMessage.messages.notification_category === 'performance_reward' ? 'scrollbar-track-amber-950/30 scrollbar-thumb-amber-500/40 hover:scrollbar-thumb-amber-400/60' : ''}`}>
+                <div className={`min-h-0 flex-1 overflow-y-auto p-4 lg:p-5 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'reward-notification-scrollbar' : 'scrollbar-thin'}`}>
                   <QuickCopyRichContent
                     html={selectedMessage.messages.content}
                     copyLabel={t.messages.quickCopy}
@@ -669,7 +669,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                 </div>
                 <button
                   onClick={() => setSelectedMessage(null)}
-                  className="min-h-[44px] px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white rounded-xl font-semibold text-sm transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                  className={`min-h-[44px] px-6 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-lg shadow-amber-500/25 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600' : 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-cyan-600'}`}
                 >
                   {t.messages.close}
                 </button>
