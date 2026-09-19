@@ -351,6 +351,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
   const openNewTask = () => {
     const next = createDefaultForm();
+    next.isSharedTemplate = isSuperAdmin;
     const template = buildEnglishTemplate(next.triggerType, next.rewardEnabled, next.rewardAmount);
     next.titleTemplate = template.title;
     next.contentTemplate = template.content;
@@ -419,7 +420,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         p_priority: form.priority,
         p_reward_enabled: form.rewardEnabled,
         p_reward_amount: form.rewardEnabled ? Number(form.rewardAmount) : null,
-        p_is_shared_template: form.isSharedTemplate,
+        p_is_shared_template: form.id ? form.isSharedTemplate : isSuperAdmin,
         p_starts_at: form.startsAt ? new Date(form.startsAt).toISOString() : null,
         p_ends_at: form.endsAt ? new Date(form.endsAt).toISOString() : null,
       });
@@ -533,20 +534,9 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">任務說明</span>
                     <input disabled={readOnly} value={form.description} onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" placeholder="供管理員查看的內部說明" />
                   </label>
-                  <label>
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-400">開始時間（選填）</span>
-                    <input disabled={readOnly} type="datetime-local" value={form.startsAt} onChange={event => setForm(previous => ({ ...previous, startsAt: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
-                  </label>
-                  <label>
+                  <label className="sm:col-span-2">
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">結束時間（選填）</span>
                     <input disabled={readOnly} type="datetime-local" value={form.endsAt} onChange={event => setForm(previous => ({ ...previous, endsAt: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
-                  </label>
-                  <label className="sm:col-span-2 flex cursor-pointer items-center justify-between rounded-xl border border-violet-500/25 bg-violet-500/10 p-3">
-                    <div>
-                      <p className="text-sm font-bold text-violet-200">提供給所有管理員選用</p>
-                      <p className="text-xs text-violet-300/60">共享範本不會直接觸發，其他管理員複製後會在自己的管理範圍內獨立使用</p>
-                    </div>
-                    <input disabled={readOnly} type="checkbox" checked={form.isSharedTemplate} onChange={event => setForm(previous => ({ ...previous, isSharedTemplate: event.target.checked }))} className="h-4 w-4 rounded bg-white accent-violet-500 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
                   </label>
                 </div>
               </section>
