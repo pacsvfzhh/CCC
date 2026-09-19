@@ -185,44 +185,55 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
       }
       if (messageType === 'realtime') {
         return {
-          card: 'bg-gradient-to-br from-teal-100 via-teal-50 to-cyan-50 ring-2 ring-teal-300 shadow-lg shadow-teal-200/60',
-          iconBg: 'bg-gradient-to-br from-teal-500 to-cyan-500',
-          iconText: 'text-white',
-          accent: 'from-teal-500 via-cyan-400 to-blue-400',
-          patternColor: 'border-teal-300',
-          dotColor: 'bg-teal-500',
-        };
-      }
-      // Default unread (login or normal)
-      const variants = [
-        {
           card: 'bg-gradient-to-br from-blue-100 via-blue-50 to-sky-50 ring-2 ring-blue-300 shadow-lg shadow-blue-200/60',
           iconBg: 'bg-gradient-to-br from-blue-500 to-sky-500',
           iconText: 'text-white',
           accent: 'from-blue-500 via-sky-400 to-cyan-400',
           patternColor: 'border-blue-300',
           dotColor: 'bg-blue-500',
+        };
+      }
+      // Login notifications use a distinct cyan treatment.
+      const variants = [
+        {
+          card: 'bg-gradient-to-br from-cyan-100 via-cyan-50 to-sky-50 ring-2 ring-cyan-300 shadow-lg shadow-cyan-200/60',
+          iconBg: 'bg-gradient-to-br from-cyan-500 to-sky-500',
+          iconText: 'text-white',
+          accent: 'from-cyan-500 via-sky-400 to-blue-400',
+          patternColor: 'border-cyan-300',
+          dotColor: 'bg-cyan-500',
         },
         {
-          card: 'bg-gradient-to-br from-blue-100 via-sky-50 to-cyan-50 ring-2 ring-blue-300 shadow-lg shadow-blue-200/60',
-          iconBg: 'bg-gradient-to-br from-blue-600 to-sky-500',
+          card: 'bg-gradient-to-br from-cyan-100 via-sky-50 to-blue-50 ring-2 ring-cyan-300 shadow-lg shadow-cyan-200/60',
+          iconBg: 'bg-gradient-to-br from-cyan-600 to-blue-500',
           iconText: 'text-white',
-          accent: 'from-blue-600 via-sky-400 to-cyan-400',
-          patternColor: 'border-blue-300',
-          dotColor: 'bg-blue-600',
+          accent: 'from-cyan-600 via-sky-400 to-blue-400',
+          patternColor: 'border-cyan-300',
+          dotColor: 'bg-cyan-600',
         },
       ];
       return variants[index % 2];
     }
 
-    // Read messages - muted, clearly different from unread
+    // Read messages retain a softer type-specific color treatment.
+    if (messageType === 'realtime') {
+      return {
+        card: 'bg-gradient-to-br from-blue-50/90 via-white to-sky-50 ring-1 ring-blue-200 shadow-sm',
+        iconBg: 'bg-blue-100',
+        iconText: 'text-blue-600',
+        accent: 'from-blue-500 via-sky-400 to-cyan-400',
+        patternColor: 'border-blue-200',
+        dotColor: 'bg-blue-300',
+      };
+    }
+
     return {
-      card: 'bg-white/80 ring-1 ring-slate-200/60 shadow-sm',
-      iconBg: 'bg-slate-100',
-      iconText: 'text-slate-400',
-      accent: 'from-slate-200 via-slate-200 to-slate-100',
-      patternColor: 'border-slate-200',
-      dotColor: 'bg-slate-300',
+      card: 'bg-gradient-to-br from-cyan-50/90 via-white to-sky-50 ring-1 ring-cyan-200 shadow-sm',
+      iconBg: 'bg-cyan-100',
+      iconText: 'text-cyan-600',
+      accent: 'from-cyan-500 via-sky-400 to-blue-400',
+      patternColor: 'border-cyan-200',
+      dotColor: 'bg-cyan-300',
     };
   };
 
