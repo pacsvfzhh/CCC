@@ -559,7 +559,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                   className={`notification-panel-close absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 lg:right-6 lg:top-5 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border border-amber-950/20 bg-amber-950/15 text-amber-950 hover:bg-amber-950/25 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
-                  <X className="h-4 w-4" strokeWidth={2.5} />
+                  <X className="h-5 w-5" strokeWidth={2.5} />
                 </button>
 
                 {/* Title section */}
