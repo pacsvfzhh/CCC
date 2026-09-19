@@ -1143,17 +1143,17 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   </div>
                   <div>
                     {orderedTasks.map((task, index) => (
-                      <div key={task.id} className={`group relative grid grid-cols-[48px_minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-b border-l-2 border-l-transparent px-3 transition-colors duration-200 before:absolute before:left-0 before:content-[''] ${task.status === 'active' ? 'border-b-orange-900/50 bg-orange-950/35 hover:bg-orange-950/50 before:inset-y-1.5 before:w-2 before:rounded-r-full before:bg-gradient-to-b before:from-amber-300 before:via-orange-500 before:to-orange-700 before:shadow-[0_0_16px_rgba(249,115,22,0.62)]' : 'border-b-slate-800/80 bg-slate-950/55 hover:bg-slate-900/80 before:inset-y-2 before:w-1 before:rounded-r-full before:bg-slate-700/80'}`}>
+                      <div key={task.id} className={`group relative grid grid-cols-[48px_minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-b border-l-2 border-l-transparent px-3 transition-colors duration-200 before:absolute before:left-0 before:content-[''] ${task.status === 'active' ? 'border-b-orange-800/60 bg-gradient-to-r from-amber-950/70 via-orange-950/55 to-orange-950/30 hover:from-amber-950/85 hover:via-orange-950/70 before:inset-y-1.5 before:w-2 before:rounded-r-full before:bg-gradient-to-b before:from-yellow-200 before:via-amber-400 before:to-orange-600 before:shadow-[0_0_18px_rgba(251,146,60,0.72)]' : 'border-b-slate-800/80 bg-slate-950/55 hover:bg-slate-900/80 before:inset-y-2 before:w-1 before:rounded-r-full before:bg-slate-700/80'}`}>
                         <div className={`flex items-center justify-center px-2 py-2.5 text-xs font-black tabular-nums ${task.status === 'active' ? 'text-amber-300' : 'text-slate-600'}`}>{index + 1}</div>
                         <div className="min-w-0 px-2 py-2.5">
                           <div className="flex min-w-0 items-center gap-2.5">
-                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-amber-300/45 bg-gradient-to-br from-amber-400/35 via-orange-600/25 to-orange-950 text-amber-100 shadow-[0_0_18px_rgba(249,115,22,0.24)] ring-1 ring-inset ring-amber-200/15' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
-                              {task.reward_enabled ? <Gift className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-amber-100/70 bg-gradient-to-br from-yellow-200 via-amber-400 to-orange-500 text-orange-950 shadow-[0_0_20px_rgba(251,191,36,0.42)] ring-1 ring-inset ring-white/35' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
+                              {task.reward_enabled ? <Gift className="h-5 w-5 stroke-[2.5]" /> : <Bell className="h-5 w-5 stroke-[2.5]" />}
                             </span>
                             <div className="min-w-0">
                               <div className="flex min-w-0 items-center gap-2">
-                                <h3 className="truncate text-sm font-black text-white" title={task.name}>{task.name}</h3>
-                                <span className={`shrink-0 text-[10px] font-black ${task.status === 'active' ? 'text-amber-200' : 'text-slate-500'}`}>{statusLabels[task.status]}</span>
+                                <h3 className={`truncate text-sm font-black ${task.status === 'active' ? 'text-amber-50' : 'text-white'}`} title={task.name}>{task.name}</h3>
+                                <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black ${task.status === 'active' ? 'border-amber-300/30 bg-orange-500/15 text-amber-100' : 'border-slate-700/70 bg-slate-900/70 text-slate-500'}`}>{statusLabels[task.status]}</span>
                               </div>
                               <p className={`mt-0.5 truncate text-[10px] ${task.status === 'active' ? 'text-orange-200/80' : 'text-slate-500/90'}`} title={task.owner_username}>
                                 {task.owner_username}
@@ -1164,14 +1164,14 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           </div>
                         </div>
                         <div className="min-w-0 px-2 py-2.5">
-                          <p className={`truncate text-[10px] font-black tracking-wide ${task.status === 'active' ? 'text-cyan-300/80' : 'text-slate-500'}`}>{triggerLabels[task.trigger_type]}</p>
-                          <p className={`mt-0.5 truncate text-[11px] font-semibold ${task.status === 'active' ? 'text-slate-200' : 'text-slate-400'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
+                          <p className={`truncate text-[10px] font-black tracking-wide ${task.status === 'active' ? 'text-amber-200/90' : 'text-slate-500'}`}>{triggerLabels[task.trigger_type]}</p>
+                          <p className={`mt-0.5 truncate text-[11px] font-semibold ${task.status === 'active' ? 'text-orange-100' : 'text-slate-400'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
                         </div>
                         <div className="min-w-0 px-2 py-2.5">
-                          <p className={`truncate text-[11px] font-bold ${task.status === 'active' ? 'text-sky-200' : 'text-slate-400'}`}>{task.recipient_scope === 'selected' ? `指定 ${task.recipient_ids?.length || 0} 人` : '全部可管理員工'}</p>
+                          <p className={`truncate text-[11px] font-bold ${task.status === 'active' ? 'text-yellow-200' : 'text-slate-400'}`}>{task.recipient_scope === 'selected' ? `指定 ${task.recipient_ids?.length || 0} 人` : '全部可管理員工'}</p>
                         </div>
                         <div className="px-2 py-2.5">
-                          <p className={`text-sm font-black tabular-nums ${task.status === 'active' ? 'text-violet-200' : 'text-slate-300'}`}>{task.execution_count || 0}</p>
+                          <p className={`text-sm font-black tabular-nums ${task.status === 'active' ? 'text-orange-200' : 'text-slate-300'}`}>{task.execution_count || 0}</p>
                         </div>
                         <div className="min-w-0 px-2 py-2.5">
                           <p className={`truncate text-[11px] font-black ${task.status === 'active' ? 'text-amber-100' : 'text-slate-300'}`}>{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</p>
