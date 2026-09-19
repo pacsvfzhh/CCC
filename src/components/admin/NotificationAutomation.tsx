@@ -827,16 +827,16 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
               <button
                 disabled={!selectedTemplate}
                 onClick={() => selectedTemplate && void copyTemplate(selectedTemplate, true)}
-                className={`group relative flex h-11 min-w-[224px] items-center gap-2.5 overflow-hidden rounded-xl border px-2.5 pr-3 text-left outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${selectedTemplate ? 'border-emerald-200/35 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500 text-emerald-950 shadow-[0_8px_24px_rgba(5,150,105,0.24)] hover:-translate-y-0.5 hover:border-white/50 hover:shadow-[0_10px_28px_rgba(5,150,105,0.34)] active:translate-y-0 active:scale-[0.98]' : 'cursor-not-allowed border-slate-600/50 bg-gradient-to-r from-slate-800 to-slate-700/80 text-slate-500 shadow-inner'}`}
+                className={`group relative flex h-11 min-w-[224px] items-center gap-2.5 overflow-hidden rounded-xl border px-2.5 pr-3 text-left outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${selectedTemplate ? 'border-emerald-200/45 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 text-white shadow-[0_8px_24px_rgba(5,150,105,0.28)] hover:-translate-y-0.5 hover:border-white/50 hover:shadow-[0_10px_28px_rgba(5,150,105,0.34)] active:translate-y-0 active:scale-[0.98]' : 'cursor-not-allowed border-slate-600/50 bg-gradient-to-r from-slate-800 to-slate-700/80 text-slate-500 shadow-inner'}`}
               >
-                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors ${selectedTemplate ? 'border-white/25 bg-white/20 text-emerald-950 group-hover:bg-white/30' : 'border-slate-600 bg-slate-900/50 text-slate-600'}`}>
+                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors ${selectedTemplate ? 'border-white/35 bg-white/20 text-white group-hover:bg-white/30' : 'border-slate-600 bg-slate-900/50 text-slate-600'}`}>
                   <Play className="h-3.5 w-3.5 fill-current" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[11px] font-black leading-4">套用所選範本</span>
-                  <span className={`block max-w-[145px] truncate text-[9px] font-bold leading-3 ${selectedTemplate ? 'text-emerald-950/65' : 'text-slate-600'}`}>{selectedTemplate ? selectedTemplate.name : '請先勾選一個範本'}</span>
+                  <span className={`block max-w-[145px] truncate text-[9px] font-bold leading-3 ${selectedTemplate ? 'text-white' : 'text-slate-600'}`}>{selectedTemplate ? selectedTemplate.name : '請先勾選一個範本'}</span>
                 </span>
-                <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${selectedTemplate ? 'text-emerald-950/70 group-hover:translate-x-0.5' : 'text-slate-600'}`} />
+                <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${selectedTemplate ? 'text-white group-hover:translate-x-0.5' : 'text-slate-600'}`} />
               </button>
             )}
           </div>
