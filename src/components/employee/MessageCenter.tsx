@@ -547,9 +547,9 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/[0.04] rounded-full translate-y-1/2 -translate-x-1/3" />
 
               <div
-                className="relative px-4 pb-2 pt-1.5 lg:px-6 lg:pb-2.5 lg:pt-2"
+                className="relative px-4 pb-3 pt-3 lg:px-6 lg:pb-3 lg:pt-3"
                 style={{
-                  paddingTop: !isDesktop ? 'calc(env(safe-area-inset-top, 0px) + 4px)' : undefined
+                  paddingTop: !isDesktop ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : undefined
                 }}
               >
                 {/* Close button */}
