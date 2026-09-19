@@ -837,7 +837,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                 <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/20 to-blue-500/10 text-cyan-300 shadow-xl shadow-cyan-950/40 ring-1 ring-cyan-300/10"><Bell className="h-8 w-8" /></div>
                 <p className="mt-4 text-base font-bold text-slate-200">尚未建立自動化任務</p>
                 <p className="mt-1 max-w-md text-sm text-slate-500">建立第一個任務，設定觸發條件、通知內容及可選的績效獎金；新任務會先儲存為草稿。</p>
-                <button onClick={openNewTask} className="relative mt-5 inline-flex h-10 items-center gap-2 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-cyan-400 to-blue-500 px-5 text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/40 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"><Plus className="h-4 w-4" />建立第一個任務</button>
+                <button onClick={openNewTask} className="relative mt-5 inline-flex h-10 items-center gap-2 rounded-lg border border-blue-300/25 bg-gradient-to-r from-blue-500 to-indigo-500 px-5 text-sm font-black text-white transition-colors duration-200 hover:from-blue-400 hover:to-indigo-400 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70"><Plus className="h-4 w-4" />建立第一個任務</button>
               </div>
             ) : (
               <div className="divide-y divide-slate-800/80">
