@@ -165,7 +165,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     if (isUnread) {
       if (priority === 'urgent') {
         return {
-          card: 'bg-gradient-to-br from-rose-100 via-rose-50 to-orange-50 ring-2 ring-rose-300 shadow-lg shadow-rose-200/60',
+          card: 'bg-gradient-to-br from-rose-100 via-rose-50 to-orange-50 ring-2 ring-rose-300 shadow-xl shadow-rose-300/70',
           iconBg: 'bg-gradient-to-br from-rose-500 to-orange-500',
           iconText: 'text-white',
           accent: 'from-rose-500 via-red-400 to-orange-400',
@@ -175,7 +175,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
       }
       if (priority === 'high') {
         return {
-          card: 'bg-gradient-to-br from-amber-100 via-amber-50 to-yellow-50 ring-2 ring-amber-300 shadow-lg shadow-amber-200/60',
+          card: 'bg-gradient-to-br from-amber-100 via-amber-50 to-yellow-50 ring-2 ring-amber-300 shadow-xl shadow-amber-300/70',
           iconBg: 'bg-gradient-to-br from-amber-500 to-yellow-500',
           iconText: 'text-white',
           accent: 'from-amber-500 via-yellow-400 to-orange-300',
@@ -185,7 +185,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
       }
       if (messageType === 'realtime') {
         return {
-          card: 'bg-gradient-to-br from-blue-100 via-blue-50 to-sky-50 ring-2 ring-blue-300 shadow-lg shadow-blue-200/60',
+          card: 'bg-gradient-to-br from-blue-100 via-blue-50 to-sky-50 ring-2 ring-blue-300 shadow-xl shadow-blue-300/70',
           iconBg: 'bg-gradient-to-br from-blue-500 to-sky-500',
           iconText: 'text-white',
           accent: 'from-blue-500 via-sky-400 to-cyan-400',
@@ -196,7 +196,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
       // Login notifications use a distinct cyan treatment.
       const variants = [
         {
-          card: 'bg-gradient-to-br from-cyan-100 via-cyan-50 to-sky-50 ring-2 ring-cyan-300 shadow-lg shadow-cyan-200/60',
+          card: 'bg-gradient-to-br from-cyan-100 via-cyan-50 to-sky-50 ring-2 ring-cyan-300 shadow-xl shadow-cyan-300/70',
           iconBg: 'bg-gradient-to-br from-cyan-500 to-sky-500',
           iconText: 'text-white',
           accent: 'from-cyan-500 via-sky-400 to-blue-400',
@@ -204,7 +204,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
           dotColor: 'bg-cyan-500',
         },
         {
-          card: 'bg-gradient-to-br from-cyan-100 via-sky-50 to-blue-50 ring-2 ring-cyan-300 shadow-lg shadow-cyan-200/60',
+          card: 'bg-gradient-to-br from-cyan-100 via-sky-50 to-blue-50 ring-2 ring-cyan-300 shadow-xl shadow-cyan-300/70',
           iconBg: 'bg-gradient-to-br from-cyan-600 to-blue-500',
           iconText: 'text-white',
           accent: 'from-cyan-600 via-sky-400 to-blue-400',
@@ -407,7 +407,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                     style={{ animationDelay: `${index * 0.04}s` }}
                   >
                     {/* Card */}
-                    <div className={`relative rounded-2xl overflow-hidden border msg-force-transition hover:-translate-y-0.5 hover:shadow-xl ${isUnread ? 'border-white/70 shadow-2xl shadow-slate-300/30' : 'border-slate-200/85 opacity-[0.86] saturate-[0.8] hover:opacity-100 hover:saturate-100'} ${style.card}`}>
+                    <div className={`relative rounded-2xl overflow-hidden border msg-force-transition hover:-translate-y-0.5 hover:shadow-xl ${isUnread ? 'border-2 border-white shadow-[0_10px_30px_rgba(37,99,235,0.28)] ring-offset-2 ring-offset-[#f0f5ff] brightness-[1.03]' : 'border-slate-200/85 opacity-[0.86] saturate-[0.8] hover:opacity-100 hover:saturate-100'} ${style.card}`}>
                       {/* Left accent bar */}
                       <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${style.accent} rounded-l-2xl`} />
 
@@ -421,7 +421,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                       {/* Color accent corner block for unread */}
                       {isUnread && (
                         <div className="absolute top-0 right-0 w-20 h-20 overflow-hidden pointer-events-none">
-                          <div className={`absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-bl ${style.accent} opacity-[0.12] rounded-full`} />
+                          <div className={`absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-bl ${style.accent} opacity-[0.2] rounded-full`} />
                         </div>
                       )}
 
@@ -439,7 +439,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                             {/* Title row */}
                             <div className="flex items-start justify-between gap-2 mb-1.5">
                               <h3 className={`font-semibold text-[15px] leading-snug line-clamp-1 ${
-                                isUnread ? 'text-slate-900' : 'text-slate-700'
+                                isUnread ? 'font-bold text-slate-900' : 'text-slate-700'
                               }`}>
                                 {msg.messages.title}
                               </h3>
@@ -509,8 +509,8 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                           {isUnread && (
                             <div className="absolute top-4 right-4">
                               <div className="relative">
-                                <div className={`w-2.5 h-2.5 ${style.dotColor} rounded-full`} />
-                                <div className={`absolute inset-0 w-2.5 h-2.5 ${style.dotColor} rounded-full msg-anim-ping opacity-75`} />
+                                <div className={`w-3 h-3 ${style.dotColor} rounded-full ring-2 ring-white/80`} />
+                                <div className={`absolute inset-0 w-3 h-3 ${style.dotColor} rounded-full ring-2 ring-white/80 msg-anim-ping opacity-75`} />
                               </div>
                             </div>
                           )}
