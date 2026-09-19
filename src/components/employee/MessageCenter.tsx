@@ -547,25 +547,23 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/[0.04] rounded-full translate-y-1/2 -translate-x-1/3" />
 
               <div
-                className="relative px-4 py-2.5 lg:px-6 lg:py-3"
+                className="relative px-4 pb-2 pt-1.5 lg:px-6 lg:pb-2.5 lg:pt-2"
                 style={{
-                  paddingTop: !isDesktop ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : undefined
+                  paddingTop: !isDesktop ? 'calc(env(safe-area-inset-top, 0px) + 4px)' : undefined
                 }}
               >
                 {/* Close button */}
-                <div className="mb-1.5 flex items-center justify-end">
-                  <button
-                    onClick={() => setSelectedMessage(null)}
-                    aria-label={t.messages.close}
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border border-amber-950/20 bg-amber-950/15 text-amber-950 hover:bg-amber-950/25 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                  >
-                    <X className="h-4 w-4" strokeWidth={2.5} />
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSelectedMessage(null)}
+                  aria-label={t.messages.close}
+                  className={`absolute right-4 top-1.5 z-10 flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 lg:right-6 lg:top-2 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border border-amber-950/20 bg-amber-950/15 text-amber-950 hover:bg-amber-950/25 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <X className="h-4 w-4" strokeWidth={2.5} />
+                </button>
 
                 {/* Title section */}
-                <div className="flex items-start gap-2.5">
+                <div className="flex items-start gap-2.5 pr-10">
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border backdrop-blur-sm sm:h-10 sm:w-10 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-950/20 bg-amber-950/15 text-amber-950 shadow-sm shadow-amber-950/10' : 'border-white/20 bg-white/15'}`}>
                     {selectedMessage.messages.notification_category === 'performance_reward'
                       ? <Gift className="h-5 w-5" strokeWidth={2} />
@@ -591,7 +589,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                 </div>
 
                 {/* Tags */}
-                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-10">
                   <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-950/25 bg-amber-950/15 text-amber-950' : selectedMessage.messages.message_type === 'login_popup' ? 'border-white/20 bg-white/15 text-sky-100' : 'border-white/20 bg-white/15 text-cyan-100'}`}>
                     {selectedMessage.messages.message_type === 'login_popup' ? t.messages.loginNotification : t.messages.liveMessage}
                   </span>
