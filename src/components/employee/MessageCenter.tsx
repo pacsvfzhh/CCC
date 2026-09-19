@@ -154,7 +154,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             dotColor: 'bg-amber-500',
           }
         : {
-            card: 'bg-gradient-to-br from-amber-50/55 via-slate-50/70 to-white/60 ring-1 ring-amber-100/80 shadow-none',
+            card: 'bg-gradient-to-br from-amber-50/85 via-yellow-50/75 to-orange-50/65 ring-1 ring-amber-200/90 shadow-sm shadow-amber-100/40',
             iconBg: 'bg-amber-100',
             iconText: 'text-amber-600',
             accent: 'from-amber-300 via-yellow-200 to-orange-200',
@@ -218,7 +218,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     // Read messages retain a softer type-specific color treatment.
     if (messageType === 'realtime') {
       return {
-        card: 'bg-gradient-to-br from-slate-100/75 via-blue-50/45 to-white/55 ring-1 ring-slate-200/80 shadow-none',
+        card: 'bg-gradient-to-br from-blue-50/80 via-white/90 to-sky-50/70 ring-1 ring-blue-200/80 shadow-sm shadow-blue-100/40',
         iconBg: 'bg-blue-100',
         iconText: 'text-blue-600',
         accent: 'from-blue-500 via-sky-400 to-cyan-400',
@@ -228,7 +228,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     }
 
     return {
-      card: 'bg-gradient-to-br from-slate-100/75 via-cyan-50/45 to-white/55 ring-1 ring-slate-200/80 shadow-none',
+      card: 'bg-gradient-to-br from-cyan-50/80 via-white/90 to-sky-50/70 ring-1 ring-cyan-200/80 shadow-sm shadow-cyan-100/40',
       iconBg: 'bg-cyan-100',
       iconText: 'text-cyan-600',
       accent: 'from-cyan-500 via-sky-400 to-blue-400',
@@ -407,7 +407,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                     style={{ animationDelay: `${index * 0.04}s` }}
                   >
                     {/* Card */}
-                    <div className={`relative rounded-2xl overflow-hidden border msg-force-transition hover:-translate-y-0.5 hover:shadow-xl ${isUnread ? 'border-white/70 shadow-2xl shadow-slate-300/30' : 'border-slate-200/70 opacity-[0.72] saturate-[0.55] hover:opacity-100 hover:saturate-100'} ${style.card}`}>
+                    <div className={`relative rounded-2xl overflow-hidden border msg-force-transition hover:-translate-y-0.5 hover:shadow-xl ${isUnread ? 'border-white/70 shadow-2xl shadow-slate-300/30' : 'border-slate-200/85 opacity-[0.86] saturate-[0.8] hover:opacity-100 hover:saturate-100'} ${style.card}`}>
                       {/* Left accent bar */}
                       <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${style.accent} rounded-l-2xl`} />
 
@@ -439,12 +439,12 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                             {/* Title row */}
                             <div className="flex items-start justify-between gap-2 mb-1.5">
                               <h3 className={`font-semibold text-[15px] leading-snug line-clamp-1 ${
-                                isUnread ? 'text-slate-900' : 'text-slate-600'
+                                isUnread ? 'text-slate-900' : 'text-slate-700'
                               }`}>
                                 {msg.messages.title}
                               </h3>
                               <span className={`text-[11px] font-medium whitespace-nowrap flex-shrink-0 mt-0.5 ${
-                                isUnread ? 'text-blue-600' : 'text-slate-400'
+                                isUnread ? 'text-blue-600' : 'text-slate-500'
                               }`}>
                                 {formatRelativeTime(msg.messages.created_at || '')}
                               </span>
@@ -463,7 +463,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
 
                             {/* Preview */}
                             <p className={`text-sm line-clamp-2 leading-relaxed mb-3 ${
-                              isUnread ? 'text-slate-600' : 'text-slate-400'
+                              isUnread ? 'text-slate-600' : 'text-slate-500'
                             }`}>
                               {msg.messages.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()}
                             </p>
@@ -490,7 +490,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                               </div>
                               <div className="flex items-center gap-1.5">
                                 {msg.is_read ? (
-                                  <div className="flex items-center gap-1.5 text-slate-400">
+                                  <div className="flex items-center gap-1.5 text-slate-500">
                                     <Eye className="w-3.5 h-3.5" />
                                     <span className="text-[10px] font-medium uppercase tracking-wide">{t.messages.read}</span>
                                   </div>
