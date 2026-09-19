@@ -604,19 +604,19 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
 
             {/* Detail Content */}
             <div
-              className="relative flex-1 overflow-y-auto p-0"
+              className="relative flex min-h-0 flex-1 overflow-hidden p-0"
               style={{
                 minHeight: 0,
                 WebkitOverflowScrolling: 'touch'
               } as React.CSSProperties}
             >
               {/* Content card */}
-              <div className="relative overflow-hidden bg-white">
+              <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
                 {/* Top accent line */}
                 <div className={`absolute left-6 right-6 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent to-transparent ${selectedMessage.messages.notification_category === 'performance_reward' ? 'via-amber-400' : 'via-blue-300'}`} />
 
                 {selectedMessage.messages.notification_category === 'performance_reward' && (
-                  <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 lg:px-7">
+                  <div className="shrink-0 border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 lg:px-7">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
@@ -631,7 +631,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                   </div>
                 )}
 
-                <div className="p-4 lg:p-5">
+                <div className={`min-h-0 flex-1 overflow-y-auto p-4 lg:p-5 scrollbar-thin ${selectedMessage.messages.notification_category === 'performance_reward' ? 'scrollbar-track-amber-950/30 scrollbar-thumb-amber-500/40 hover:scrollbar-thumb-amber-400/60' : ''}`}>
                   <QuickCopyRichContent
                     html={selectedMessage.messages.content}
                     copyLabel={t.messages.quickCopy}
