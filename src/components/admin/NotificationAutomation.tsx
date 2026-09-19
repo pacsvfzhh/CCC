@@ -1198,13 +1198,14 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               <div className="relative flex h-full min-h-[280px] flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.10),transparent_42%)] px-6 py-16 text-center before:absolute before:inset-0 before:bg-[linear-gradient(rgba(148,163,184,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.025)_1px,transparent_1px)] before:bg-[size:28px_28px]"><div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/20 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 text-violet-300 shadow-xl shadow-violet-950/40"><Copy className="h-8 w-8" /></div><p className="mt-4 font-bold text-slate-300">目前沒有可用的管理員範本</p><p className="mt-1 text-sm text-slate-500">管理員發佈共享範本後，可在這裡勾選並直接套用。</p></div>
             ) : (
               <div className="overflow-x-auto">
-                <div className="min-w-[1040px]">
-                  <div className="grid grid-cols-[48px_48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_96px] border-l-2 border-l-transparent bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 px-3 text-[10px] font-black tracking-wider text-white shadow-md shadow-blue-950/40">
+                <div className="min-w-[1180px]">
+                  <div className="grid grid-cols-[48px_48px_minmax(250px,1.35fr)_minmax(210px,1.05fr)_minmax(120px,.6fr)_minmax(150px,.75fr)_minmax(140px,.7fr)_96px] border-l-2 border-l-transparent bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 px-3 text-[10px] font-black tracking-wider text-white shadow-md shadow-blue-950/40">
                     <div className="px-2 py-2 text-center">序號</div>
                     <div className="px-2 py-2 text-center">選取</div>
                     <div className="px-2 py-2 pl-[54px]">管理員範本</div>
                     <div className="px-2 py-2">觸發條件</div>
-                    <div className="px-2 py-2">獎勵</div>
+                    <div className="px-2 py-2">通知類型</div>
+                    <div className="px-2 py-2">獎金</div>
                     <div className="px-2 py-2">適用範圍</div>
                     <div className="px-2 py-2 text-right">操作</div>
                   </div>
@@ -1215,7 +1216,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       const rewardAmount = Number(task.reward_amount || 0);
                       const hasReward = task.reward_enabled || rewardAmount > 0;
                       return (
-                        <div key={task.id} className={`group relative grid grid-cols-[48px_48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_96px] border-b border-l-2 border-l-transparent px-3 transition-colors duration-200 before:absolute before:left-0 before:content-[''] ${alreadyAdded ? 'border-b-emerald-900/50 bg-emerald-950/35 hover:bg-emerald-950/50 before:inset-y-1.5 before:w-2 before:rounded-r-full before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-500 before:to-teal-700 before:shadow-[0_0_16px_rgba(16,185,129,0.65)]' : `border-b-slate-800/80 bg-slate-950/55 hover:bg-slate-900/80 before:inset-y-2 before:w-1 before:rounded-r-full before:bg-slate-700/80 ${selected ? 'ring-1 ring-inset ring-violet-400/45' : ''}`}`}>
+                        <div key={task.id} className={`group relative grid grid-cols-[48px_48px_minmax(250px,1.35fr)_minmax(210px,1.05fr)_minmax(120px,.6fr)_minmax(150px,.75fr)_minmax(140px,.7fr)_96px] border-b border-l-2 border-l-transparent px-3 transition-colors duration-200 before:absolute before:left-0 before:content-[''] ${alreadyAdded ? 'border-b-emerald-900/50 bg-emerald-950/35 hover:bg-emerald-950/50 before:inset-y-1.5 before:w-2 before:rounded-r-full before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-500 before:to-teal-700 before:shadow-[0_0_16px_rgba(16,185,129,0.65)]' : `border-b-slate-800/80 bg-slate-950/55 hover:bg-slate-900/80 before:inset-y-2 before:w-1 before:rounded-r-full before:bg-slate-700/80 ${selected ? 'ring-1 ring-inset ring-violet-400/45' : ''}`}`}>
                           <div className={`flex items-center justify-center px-2 py-2.5 text-xs font-black tabular-nums ${alreadyAdded ? 'text-emerald-300' : 'text-slate-600'}`}>{index + 1}</div>
                           <label className={`flex items-center justify-center px-2 py-2.5 ${alreadyAdded ? 'cursor-not-allowed' : 'cursor-pointer'}`} aria-label={alreadyAdded ? `範本 ${task.name} 已添加，不可重複選取` : `${selected ? '取消選取' : '選取'}範本 ${task.name}`} title={alreadyAdded ? '此範本已添加到目前管理員組' : undefined}>
                             <input
@@ -1261,13 +1262,19 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                             <p className={`mt-0.5 truncate text-[11px] font-semibold ${alreadyAdded ? 'text-slate-200' : 'text-slate-400'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
+                            <p className={`flex items-center gap-1 truncate text-[11px] font-bold ${alreadyAdded ? 'text-cyan-100' : 'text-slate-400'}`}>
+                              <Bell className="h-3.5 w-3.5 shrink-0" />
+                              {task.message_type === 'login_popup' ? '登入彈窗' : '即時通知'}
+                            </p>
+                          </div>
+                          <div className="min-w-0 px-2 py-2.5">
                             {hasReward ? (
                               <>
-                                <p className={`flex items-center gap-1 text-[9px] font-black tracking-wide ${alreadyAdded ? 'text-amber-200/80' : 'text-slate-500'}`}><Gift className="h-3 w-3" />獎勵金額</p>
+                                <p className={`flex items-center gap-1 text-[9px] font-black tracking-wide ${alreadyAdded ? 'text-amber-200/80' : 'text-slate-500'}`}><Gift className="h-3 w-3" />每次獎金</p>
                                 <p className={`mt-0.5 truncate text-sm font-black tabular-nums ${alreadyAdded ? 'text-amber-100' : 'text-slate-200'}`} title={`${rewardAmount.toFixed(2)} ${dashboard.currency}`}>{rewardAmount.toFixed(2)} {dashboard.currency}</p>
                               </>
                             ) : (
-                              <p className={`text-[11px] font-bold ${alreadyAdded ? 'text-slate-200' : 'text-slate-400'}`}>一般通知</p>
+                              <p className={`text-[11px] font-bold ${alreadyAdded ? 'text-slate-200' : 'text-slate-400'}`}>無獎金</p>
                             )}
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
