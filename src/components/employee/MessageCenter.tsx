@@ -320,8 +320,8 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
               </button>
             </div>
 
-            {/* Filter tabs - underline style */}
-            <div className="relative mt-2 border-b border-white/15">
+            {/* Filter tabs */}
+            <div className="relative mt-3 grid grid-cols-2 gap-1.5 rounded-2xl border border-white/15 bg-slate-950/10 p-1.5 sm:grid-cols-4 sm:gap-1.5 sm:rounded-xl md:gap-2 md:p-2 lg:mt-4 lg:rounded-xl lg:p-1.5">
               {[
                 { id: 'all', label: t.messages.title },
                 { id: 'unread', label: t.messages.unread },
@@ -333,16 +333,17 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                   <button
                     key={f.id}
                     onClick={() => setFilter(f.id as typeof filter)}
-                    className={`msg-force-transition relative flex-1 pb-1.5 text-[11px] transition-all duration-200 ${
+                    aria-pressed={isActive}
+                    className={`msg-force-transition relative flex min-w-0 min-h-[42px] items-center justify-center overflow-hidden rounded-xl px-2 py-2 text-center text-[11px] leading-tight transition-all duration-200 sm:min-h-[44px] md:min-h-[48px] md:text-xs lg:min-h-[40px] lg:px-3 ${
                       isActive
-                        ? 'text-white font-semibold'
-                        : 'text-white/50 font-medium'
+                        ? 'bg-white/20 font-bold text-white shadow-sm ring-1 ring-white/30'
+                        : 'font-medium text-white/65 hover:bg-white/10 hover:text-white'
                     }`}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <span className="truncate">{f.label}</span>
+                    <span className="block max-w-full truncate">{f.label}</span>
                     {isActive && (
-                      <span className="absolute bottom-0 left-1/2 h-[2px] w-5 -translate-x-1/2 rounded-full bg-white" />
+                      <span className="absolute bottom-1 left-1/2 h-0.5 w-7 -translate-x-1/2 rounded-full bg-white/90 md:bottom-1.5" />
                     )}
                   </button>
                 );
