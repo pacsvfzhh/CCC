@@ -905,7 +905,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                         </div>
 
                         {/* Label */}
-                        <span className="relative z-10 text-sm truncate">
+                        <span className="relative z-10 text-sm md:text-base truncate">
                           {tab.label}
                         </span>
                       </button>
