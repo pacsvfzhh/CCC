@@ -142,11 +142,13 @@ interface Props {
 }
 
 type AutomationNoticeType = 'success' | 'error' | 'info';
+type AutomationNoticeVariant = 'activated' | 'paused';
 
 interface AutomationNotice {
   type: AutomationNoticeType;
   title?: string;
   message: string;
+  variant?: AutomationNoticeVariant;
 }
 
 const triggerLabels: Record<TriggerType, string> = {
@@ -338,8 +340,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const loadRef = useRef<(() => Promise<void>) | null>(null);
   const dashboardRequestIdRef = useRef(0);
 
-  const showNotice = (type: AutomationNoticeType, message: string, title?: string) => {
-    setNotice({ type, message, title });
+  const showNotice = (type: AutomationNoticeType, message: string, title?: string, variant?: AutomationNoticeVariant) => {
+    setNotice({ type, message, title, variant });
   };
 
   const loadDashboard = async (ownerAdminId = selectedAdminId) => {
@@ -528,9 +530,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       });
       if (error) throw error;
       if (status === 'active') {
-        showNotice('success', '現有進度已設為基準，後續達標將從新基準開始計算。', '任務啟用成功');
+        showNotice('success', '現有進度已設為基準，後續達標將從新基準開始計算。', '任務啟用成功', 'activated');
       } else if (status === 'paused') {
-        showNotice('success', '此任務已停止執行，可隨時再次啟用。', '任務已暫停');
+        showNotice('success', '此任務已停止執行，可隨時再次啟用。', '任務已暫停', 'paused');
       } else {
         showNotice('success', '任務狀態已完成更新。', '狀態更新成功');
       }
@@ -676,29 +678,27 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   const noticeCard = notice && createPortal(
     <div className="pointer-events-none fixed inset-x-0 top-5 z-[150] flex justify-center px-4 sm:justify-end sm:px-6" role={notice.type === 'error' ? 'alert' : 'status'}>
-      <div className={`pointer-events-auto relative flex w-full max-w-sm items-start gap-3.5 overflow-hidden rounded-2xl border bg-slate-950/95 p-4 pl-5 shadow-2xl backdrop-blur-xl before:absolute before:inset-y-0 before:left-0 before:w-1.5 ${
-        notice.type === 'success'
-          ? 'border-emerald-300/30 shadow-emerald-950/55 before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-500 before:to-teal-700'
-          : notice.type === 'error'
-            ? 'border-rose-300/30 shadow-rose-950/55 before:bg-gradient-to-b before:from-rose-300 before:via-rose-500 before:to-red-700'
-            : 'border-amber-300/30 shadow-amber-950/55 before:bg-gradient-to-b before:from-amber-300 before:via-amber-500 before:to-orange-700'
+      <div className={`pointer-events-auto relative flex w-full max-w-sm items-start gap-3.5 overflow-hidden rounded-2xl border p-4 shadow-2xl before:absolute before:-right-8 before:-top-10 before:h-28 before:w-28 before:rounded-full before:bg-white/10 after:absolute after:-bottom-12 after:right-16 after:h-24 after:w-24 after:rounded-full after:bg-white/[0.07] ${
+        notice.variant === 'activated'
+          ? 'border-emerald-100/60 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 shadow-teal-900/40'
+          : notice.variant === 'paused'
+            ? 'border-amber-100/60 bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 shadow-orange-900/40'
+            : notice.type === 'success'
+              ? 'border-sky-100/60 bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-700 shadow-blue-900/40'
+              : notice.type === 'error'
+                ? 'border-rose-100/60 bg-gradient-to-br from-rose-500 via-red-600 to-pink-700 shadow-rose-900/40'
+                : 'border-amber-100/60 bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-600 shadow-orange-900/40'
       }`}>
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-lg ring-1 ring-inset ${
-          notice.type === 'success'
-            ? 'border-emerald-300/35 bg-gradient-to-br from-emerald-400/30 to-emerald-950 text-emerald-200 shadow-emerald-950/50 ring-emerald-200/10'
-            : notice.type === 'error'
-              ? 'border-rose-300/35 bg-gradient-to-br from-rose-400/30 to-rose-950 text-rose-200 shadow-rose-950/50 ring-rose-200/10'
-              : 'border-amber-300/35 bg-gradient-to-br from-amber-400/30 to-amber-950 text-amber-200 shadow-amber-950/50 ring-amber-200/10'
-        }`}>
-          {notice.type === 'success' ? <CheckCircle2 className="h-6 w-6" /> : notice.type === 'error' ? <AlertCircle className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
+        <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/35 bg-white/20 text-white shadow-lg shadow-black/15 ring-1 ring-inset ring-white/15">
+          {notice.variant === 'activated' ? <Play className="h-5 w-5 fill-current" /> : notice.variant === 'paused' ? <Pause className="h-5 w-5 fill-current" /> : notice.type === 'success' ? <CheckCircle2 className="h-6 w-6" /> : notice.type === 'error' ? <AlertCircle className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
         </span>
-        <div className="min-w-0 flex-1 pt-0.5">
-          <p className={`text-sm font-black tracking-wide ${notice.type === 'success' ? 'text-emerald-100' : notice.type === 'error' ? 'text-rose-100' : 'text-amber-100'}`}>
+        <div className="relative z-10 min-w-0 flex-1 pt-0.5 text-white">
+          <p className="text-sm font-black tracking-wide">
             {notice.title || (notice.type === 'success' ? '操作成功' : notice.type === 'error' ? '操作未完成' : '操作提示')}
           </p>
-          <p className="mt-1.5 text-xs font-medium leading-5 text-slate-300">{notice.message}</p>
+          <p className="mt-1.5 text-xs font-semibold leading-5 text-white/90">{notice.message}</p>
         </div>
-        <button type="button" onClick={() => setNotice(null)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" aria-label="關閉提示">
+        <button type="button" onClick={() => setNotice(null)} className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label="關閉提示">
           <X className="h-4 w-4" />
         </button>
       </div>
