@@ -1197,8 +1197,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       const selected = selectedTemplateIds.has(task.id);
                       const alreadyAdded = dashboard.tasks.some(existing => isTemplateAdded(existing, task));
                       return (
-                        <div key={task.id} className={`group grid grid-cols-[48px_48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_96px] border-b border-slate-800/80 border-l-2 px-3 transition-colors duration-200 ${selected ? 'border-l-violet-300 bg-violet-950/45 hover:bg-violet-950/60' : task.status === 'active' ? 'border-l-emerald-700 bg-emerald-950/25 hover:bg-emerald-950/40' : 'border-l-slate-800 bg-slate-950/55 hover:bg-slate-900/80'}`}>
-                          <div className={`flex items-center justify-center px-2 py-2.5 text-xs font-black tabular-nums ${selected ? 'text-violet-200' : task.status === 'active' ? 'text-emerald-300' : 'text-slate-600'}`}>{index + 1}</div>
+                        <div key={task.id} className={`group grid grid-cols-[48px_48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_96px] border-b border-l-2 px-3 transition-colors duration-200 ${alreadyAdded ? `border-b-orange-900/40 border-l-orange-400 bg-gradient-to-r from-amber-950/70 via-orange-950/45 to-slate-950/60 hover:from-amber-950/85 hover:via-orange-950/60 ${selected ? 'ring-1 ring-inset ring-amber-300/45' : ''}` : `border-b-violet-900/40 border-l-violet-500 bg-gradient-to-r from-violet-950/55 via-purple-950/35 to-slate-950/60 hover:from-violet-950/70 hover:via-purple-950/50 ${selected ? 'ring-1 ring-inset ring-violet-300/45' : ''}`}`}>
+                          <div className={`flex items-center justify-center px-2 py-2.5 text-xs font-black tabular-nums ${alreadyAdded ? 'text-amber-300' : 'text-violet-300'}`}>{index + 1}</div>
                           <label className="flex cursor-pointer items-center justify-center px-2 py-2.5" aria-label={`${selected ? '取消選取' : '選取'}範本 ${task.name}`}>
                             <input
                               type="checkbox"
@@ -1211,25 +1211,25 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               })}
                               className="peer sr-only"
                             />
-                            <span className="flex h-5 w-5 items-center justify-center rounded-md border border-violet-300/35 bg-slate-950/70 text-transparent shadow-inner transition-all duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-violet-300/70 peer-checked:border-violet-200 peer-checked:bg-violet-500 peer-checked:text-white peer-checked:shadow-violet-950/40">
+                            <span className={`flex h-5 w-5 items-center justify-center rounded-md border bg-slate-950/70 text-transparent shadow-inner transition-all duration-150 peer-focus-visible:ring-2 peer-checked:text-white ${alreadyAdded ? 'border-amber-300/40 peer-focus-visible:ring-amber-300/70 peer-checked:border-amber-200 peer-checked:bg-orange-500 peer-checked:shadow-orange-950/40' : 'border-violet-300/40 peer-focus-visible:ring-violet-300/70 peer-checked:border-violet-200 peer-checked:bg-violet-500 peer-checked:shadow-violet-950/40'}`}>
                               <CheckCircle2 className="h-3.5 w-3.5" />
                             </span>
                           </label>
                           <div className="min-w-0 px-2 py-2.5">
                             <div className="flex min-w-0 items-center gap-2.5">
-                              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${selected ? 'border-violet-300/35 bg-violet-950/70 text-violet-200' : task.status === 'active' ? 'border-emerald-300/25 bg-emerald-950/70 text-emerald-300' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
+                              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${alreadyAdded ? 'border-amber-300/40 bg-orange-950/70 text-amber-200' : 'border-violet-300/40 bg-violet-950/70 text-violet-200'}`}>
                                 {task.reward_enabled ? <Gift className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                               </span>
                               <div className="min-w-0">
                                 <div className="flex min-w-0 items-center gap-2">
                                   <h3 className="truncate text-sm font-black text-white" title={task.name}>{task.name}</h3>
                                   {alreadyAdded && (
-                                    <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-black text-emerald-200">
+                                    <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-black text-amber-200">
                                       <CheckCircle2 className="h-3.5 w-3.5" />已添加
                                     </span>
                                   )}
                                 </div>
-                                <p className={`mt-0.5 truncate text-[10px] ${selected ? 'text-violet-200/80' : task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-500/90'}`} title={task.owner_username}>
+                                <p className={`mt-0.5 truncate text-[10px] ${alreadyAdded ? 'text-orange-200/80' : 'text-violet-200/80'}`} title={task.owner_username}>
                                   <ShieldCheck className="mr-1 inline h-3 w-3" />範本提供者
                                   <span className="px-1 opacity-50">·</span>
                                   <span className="font-bold">{task.owner_username}</span>
@@ -1238,14 +1238,14 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                             </div>
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
-                            <p className={`truncate text-[10px] font-black tracking-wide ${selected ? 'text-violet-200/80' : task.status === 'active' ? 'text-violet-200/80' : 'text-slate-500'}`}>{triggerLabels[task.trigger_type]}</p>
-                            <p className={`mt-0.5 truncate text-[11px] font-semibold ${selected ? 'text-violet-100' : task.status === 'active' ? 'text-slate-200' : 'text-slate-400'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
+                            <p className={`truncate text-[10px] font-black tracking-wide ${alreadyAdded ? 'text-amber-200/80' : 'text-violet-200/80'}`}>{triggerLabels[task.trigger_type]}</p>
+                            <p className={`mt-0.5 truncate text-[11px] font-semibold ${alreadyAdded ? 'text-orange-100' : 'text-violet-100'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
-                            <p className={`truncate text-[11px] font-black ${selected ? 'text-violet-100' : task.status === 'active' ? 'text-amber-100' : 'text-slate-300'}`}>{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'}</p>
+                            <p className={`truncate text-[11px] font-black ${alreadyAdded ? 'text-amber-100' : 'text-violet-100'}`}>{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'}</p>
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
-                            <p className={`truncate text-[11px] font-bold ${selected ? 'text-violet-100' : task.status === 'active' ? 'text-blue-100' : 'text-slate-400'}`}>{task.recipient_scope === 'selected' ? '指定範圍' : '全部員工'}</p>
+                            <p className={`truncate text-[11px] font-bold ${alreadyAdded ? 'text-orange-100' : 'text-violet-100'}`}>{task.recipient_scope === 'selected' ? '指定範圍' : '全部員工'}</p>
                           </div>
                           <div className="flex items-center justify-end gap-1.5 px-2 py-2.5">
                             <button onClick={() => openTask(task, true)} className="flex h-7 items-center justify-center rounded-md border border-violet-400/35 bg-violet-500/10 px-2 text-[11px] font-bold text-violet-200 transition-colors hover:border-violet-300/50 hover:bg-violet-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70" aria-label={`查看範本 ${task.name}`}><ChevronRight className="h-3.5 w-3.5" /></button>
