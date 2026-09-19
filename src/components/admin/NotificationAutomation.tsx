@@ -491,20 +491,50 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         p_source_task_id: task.id,
       });
       if (error) throw error;
-      const result = data as unknown as { task_id?: string } | null;
-      if (activate && result?.task_id) {
+      const result = data as unknown as { task_id?: string; duplicate?: boolean } | null;
+      if (result?.duplicate) {
+        showNotice('info', '這個管理員範本已經添加到本組任務，不可重複添加。若要建立不同版本，請先使用「複製自訂」並修改內容。');
+        return;
+      }
+      if (!result?.task_id) throw new Error('Template copy did not return a task id.');
+
+      const nextAdminId = isSuperAdmin ? admin.id : selectedAdminId;
+      setSelectedAdminId(nextAdminId);
+
+      if (activate) {
         const { error: activateError } = await supabase.rpc('set_notification_automation_task_status', {
           p_admin_session_token: getAdminFinancialSessionToken(),
           p_task_id: result.task_id,
           p_status: 'active',
         });
         if (activateError) throw activateError;
+        showNotice('success', '已直接套用管理員範本，任務只會作用於你的員工');
+        setSelectedTemplateId(null);
+        setView('tasks');
+      } else {
+        const copiedTask: AutomationTask = {
+          ...task,
+          id: result.task_id,
+          owner_admin_id: admin.id,
+          owner_username: admin.username,
+          source_task_id: task.id,
+          source_version: task.version,
+          status: 'draft',
+          is_shared_template: false,
+          execution_count: 0,
+          total_rewards: 0,
+          updated_at: new Date().toISOString(),
+        };
+        setForm(taskToForm(copiedTask));
+        setTemplateCustomized(true);
+        setReadOnly(false);
+        setView('templates');
+        setEditorOpen(true);
+        showNotice('info', '已複製為本組的獨立草稿，請修改內容後儲存；未修改時再次套用會提示重複。');
       }
-      showNotice('success', activate ? '已直接套用管理員範本，任務只會作用於你的員工' : '已將管理員範本複製為你的獨立草稿，可進一步修改後啟用');
-      if (activate) setSelectedTemplateId(null);
-      setView('tasks');
+
       setRefreshing(true);
-      await loadDashboard();
+      await loadDashboard(nextAdminId);
     } catch {
       showNotice('error', '無法套用管理員範本，請重新選擇後再試。');
     }
