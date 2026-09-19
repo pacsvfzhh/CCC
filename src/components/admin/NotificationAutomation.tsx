@@ -768,7 +768,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         <div className="min-h-0 flex-1 overflow-hidden bg-slate-900">
           <div className="grid h-full min-h-0 w-full grid-cols-1 overflow-hidden border border-slate-700/70 bg-slate-950/45 xl:grid-cols-2 xl:grid-rows-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
             <div className="contents">
-              <div className="order-1 min-h-0 overflow-y-auto border-b border-slate-700/70 p-3 xl:border-r">
+              <div className="order-1 min-h-0 overflow-y-auto p-3 xl:border-r xl:border-slate-700/70">
               <section>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="sm:col-span-2">
@@ -837,7 +837,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               </section>
               </div>
 
-              <div className="order-3 min-h-0 overflow-y-auto border-b border-slate-700/70 p-3">
+              <div className="order-3 min-h-0 overflow-y-auto p-3 xl:border-r xl:border-slate-700/70">
                 <div className="mb-2 flex items-center gap-2 border-l-2 border-amber-400 pl-2"><Gift className="h-4 w-4 text-amber-300" /><h3 className="text-sm font-black text-white">績效獎金與適用員工</h3></div>
               <section>
                 <label className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-2.5 py-2 transition-all duration-200 ${form.rewardEnabled ? 'border-amber-400/20 bg-gradient-to-r from-amber-500/10 to-transparent' : 'border-slate-700/60 bg-gradient-to-r from-slate-800/50 to-transparent hover:border-slate-600'}`}>
@@ -892,7 +892,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               </section>
               </div>
 
-              <section className="order-2 flex min-h-0 flex-col p-3 xl:border-r xl:border-slate-700/70">
+              <section className="order-2 flex min-h-0 flex-col border-b border-slate-700/70 p-3">
                 <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
                     <FileText className="h-4 w-4 text-cyan-300" />
