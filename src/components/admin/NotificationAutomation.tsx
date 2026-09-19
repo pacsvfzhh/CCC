@@ -231,26 +231,8 @@ function taskToForm(task: AutomationTask): TaskForm {
   };
 }
 
-function isSameTemplateCopy(existing: AutomationTask, source: AutomationTask) {
-  if (existing.id === source.id) return true;
-
-  return existing.source_task_id === source.id
-    && existing.name === source.name
-    && existing.description === source.description
-    && existing.trigger_type === source.trigger_type
-    && existing.trigger_mode === source.trigger_mode
-    && Number(existing.threshold_value) === Number(source.threshold_value)
-    && existing.minimum_daily_orders === source.minimum_daily_orders
-    && existing.minimum_daily_work_minutes === source.minimum_daily_work_minutes
-    && existing.recipient_scope === 'all_managed'
-    && existing.title_template === source.title_template
-    && existing.content_template === source.content_template
-    && existing.message_type === source.message_type
-    && existing.priority === source.priority
-    && existing.reward_enabled === source.reward_enabled
-    && existing.reward_amount === source.reward_amount
-    && existing.starts_at === source.starts_at
-    && existing.ends_at === source.ends_at;
+function isTemplateAdded(existing: AutomationTask, source: AutomationTask) {
+  return existing.source_task_id === source.id;
 }
 
 function buildEnglishTemplate(triggerType: TriggerType, rewardEnabled: boolean, rewardAmount: string) {
@@ -589,7 +571,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       return;
     }
 
-    if (dashboard.tasks.some(existing => isSameTemplateCopy(existing, task))) {
+    if (dashboard.tasks.some(existing => isTemplateAdded(existing, task))) {
       showNotice('info', '這個管理員範本已經添加到本組任務，不可重複添加。');
       return;
     }
@@ -629,7 +611,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   const applySelectedTemplates = async (templates: AutomationTask[]) => {
     const duplicateTemplates = templates.filter(template =>
-      dashboard.tasks.some(existing => isSameTemplateCopy(existing, template)),
+      dashboard.tasks.some(existing => isTemplateAdded(existing, template)),
     );
 
     if (duplicateTemplates.length > 0) {
@@ -1213,7 +1195,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   <div>
                     {orderedSharedTemplates.map((task, index) => {
                       const selected = selectedTemplateIds.has(task.id);
-                      const alreadyAdded = dashboard.tasks.some(existing => isSameTemplateCopy(existing, task));
+                      const alreadyAdded = dashboard.tasks.some(existing => isTemplateAdded(existing, task));
                       return (
                         <div key={task.id} className={`group grid grid-cols-[48px_48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_96px] border-b border-slate-800/80 border-l-2 px-3 transition-colors duration-200 ${selected ? 'border-l-violet-300 bg-violet-950/45 hover:bg-violet-950/60' : task.status === 'active' ? 'border-l-emerald-700 bg-emerald-950/25 hover:bg-emerald-950/40' : 'border-l-slate-800 bg-slate-950/55 hover:bg-slate-900/80'}`}>
                           <div className={`flex items-center justify-center px-2 py-2.5 text-xs font-black tabular-nums ${selected ? 'text-violet-200' : task.status === 'active' ? 'text-emerald-300' : 'text-slate-600'}`}>{index + 1}</div>
@@ -1241,11 +1223,16 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               <div className="min-w-0">
                                 <div className="flex min-w-0 items-center gap-2">
                                   <h3 className="truncate text-sm font-black text-white" title={task.name}>{task.name}</h3>
-                                  <span className={`shrink-0 text-[10px] font-black ${selected ? 'text-violet-200' : task.status === 'active' ? 'text-emerald-200' : 'text-slate-500'}`}>{statusLabels[task.status]}</span>
+                                  {alreadyAdded && (
+                                    <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-black text-emerald-200">
+                                      <CheckCircle2 className="h-3.5 w-3.5" />已添加
+                                    </span>
+                                  )}
                                 </div>
-                                <p className={`mt-0.5 truncate text-[10px] ${selected ? 'text-violet-200/80' : task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-500/90'}`}>
+                                <p className={`mt-0.5 truncate text-[10px] ${selected ? 'text-violet-200/80' : task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-500/90'}`} title={task.owner_username}>
                                   <ShieldCheck className="mr-1 inline h-3 w-3" />範本提供者
-                                  {alreadyAdded && <><span className="px-1 opacity-50">·</span><span className="font-bold text-rose-200">已添加</span></>}
+                                  <span className="px-1 opacity-50">·</span>
+                                  <span className="font-bold">{task.owner_username}</span>
                                 </p>
                               </div>
                             </div>
