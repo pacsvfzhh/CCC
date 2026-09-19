@@ -553,11 +553,11 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                 }}
               >
                 {/* Close button */}
-                <div className="mb-2 flex items-center justify-end">
+                <div className="mb-1.5 flex items-center justify-end">
                   <button
                     onClick={() => setSelectedMessage(null)}
                     aria-label={t.messages.close}
-                    className={`flex items-center justify-center rounded-xl backdrop-blur-sm transition-all hover:bg-white/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'h-9 w-9 border border-amber-950/10 bg-white/20 text-amber-950 shadow-md shadow-amber-950/10 hover:shadow-lg focus-visible:ring-amber-950/30' : 'h-8 w-8 bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border border-amber-950/20 bg-amber-100/35 text-amber-950 shadow-sm shadow-amber-950/10 hover:bg-amber-200/55 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     <X className="h-4 w-4" strokeWidth={2.5} />
@@ -565,55 +565,41 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                 </div>
 
                 {/* Title section */}
-                <div className="flex items-start gap-3">
-                  <div className={`relative flex shrink-0 items-center justify-center backdrop-blur-sm ${selectedMessage.messages.notification_category === 'performance_reward' ? 'h-12 w-12 rounded-2xl border border-amber-950/15 bg-white/20 text-amber-950 shadow-lg shadow-amber-950/10' : 'h-9 w-9 rounded-lg border border-white/20 bg-white/15 sm:h-10 sm:w-10'}`}>
+                <div className="flex items-start gap-2.5">
+                  <div className={`relative flex shrink-0 items-center justify-center backdrop-blur-sm ${selectedMessage.messages.notification_category === 'performance_reward' ? 'h-9 w-9 rounded-xl border border-amber-950/20 bg-amber-200/55 text-amber-950 shadow-md shadow-amber-950/10 sm:h-10 sm:w-10' : 'h-9 w-9 rounded-lg border border-white/20 bg-white/15 sm:h-10 sm:w-10'}`}>
                     {selectedMessage.messages.notification_category === 'performance_reward' ? (
                       <>
-                        <div className="absolute inset-1 rounded-xl border border-white/25" />
-                        <Gift className="relative h-6 w-6" strokeWidth={1.8} />
-                        <Sparkles className="absolute -right-1 -top-1 h-3.5 w-3.5 text-amber-950/75" strokeWidth={2.2} />
+                        <Gift className="relative h-5 w-5" strokeWidth={2} />
+                        <Sparkles className="absolute -right-1 -top-1 h-3 w-3 text-amber-950/75" strokeWidth={2.5} />
                       </>
                     ) : getPriorityIcon(selectedMessage.messages.priority, 'h-5 w-5 text-white')}
                   </div>
                   <div className="min-w-0 flex-1">
-                    {selectedMessage.messages.notification_category === 'performance_reward' && (
-                      <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-amber-950/65">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-950/55" />
-                        <span>{t.messages.rewardTitle}</span>
-                      </div>
-                    )}
-                    <h3 className={`break-words leading-tight ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-xl font-extrabold tracking-tight text-amber-950 lg:text-2xl' : 'text-lg font-bold text-white lg:text-xl'}`}>
+                    <h3 className={`mb-1 break-words leading-tight ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-lg font-extrabold tracking-tight text-amber-950 lg:text-xl' : 'text-lg font-bold text-white lg:text-xl'}`}>
                       {selectedMessage.messages.title}
                     </h3>
-                    {selectedMessage.messages.notification_category === 'performance_reward' ? (
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-amber-950/75">
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-950/10 bg-white/20 px-2.5 py-1 shadow-sm shadow-amber-950/5">
-                          <Clock className="h-3.5 w-3.5 text-amber-950/70" />
+                    <div className={`flex flex-wrap items-center gap-2 text-sm font-semibold ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950/80' : 'text-blue-100/90'}`}>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className={`h-3.5 w-3.5 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950/75' : 'text-cyan-200'}`} />
+                        <span>
                           {new Date(selectedMessage.messages.created_at || 0).toLocaleDateString(dateLocale, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-950/10 bg-white/20 px-2.5 py-1 shadow-sm shadow-amber-950/5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-950/45" />
-                          {new Date(selectedMessage.messages.created_at || 0).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}
-                        </span>
                       </div>
-                    ) : (
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm font-medium text-blue-100/90">
-                        <Clock className="h-3.5 w-3.5 text-cyan-200" />
-                        <span>{new Date(selectedMessage.messages.created_at || 0).toLocaleDateString(dateLocale, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                        <span className="text-white/20">|</span>
-                        <span>{new Date(selectedMessage.messages.created_at || 0).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                    )}
+                      <span className={selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950/40' : 'text-white/20'}>•</span>
+                      <span>
+                        {new Date(selectedMessage.messages.created_at || 0).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Tags */}
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'rounded-full border-amber-950/10 bg-white/20 text-amber-950/80 shadow-sm shadow-amber-950/5' : `rounded-md ${selectedMessage.messages.message_type === 'login_popup' ? 'border-white/20 bg-white/15 text-sky-100' : 'border-white/20 bg-white/15 text-cyan-100'}`}`}>
-                    {selectedMessage.messages.notification_category === 'performance_reward' && <Radio className="h-3 w-3" />}
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  <span className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'rounded-full border-amber-950/25 bg-amber-950/20 text-amber-950 shadow-sm shadow-amber-950/10' : `rounded-md ${selectedMessage.messages.message_type === 'login_popup' ? 'border-white/20 bg-white/15 text-sky-100' : 'border-white/20 bg-white/15 text-cyan-100'}`}`}>
+                    {selectedMessage.messages.notification_category === 'performance_reward' && <Sparkles className="h-3 w-3" />}
                     {selectedMessage.messages.message_type === 'login_popup' ? t.messages.loginNotification : t.messages.liveMessage}
                   </span>
-                  <span className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'rounded-full border-amber-950/10 bg-white/20 text-amber-950/80 shadow-sm shadow-amber-950/5' : 'rounded-md border-white/15 bg-white/15 text-white'}`}>
+                  <span className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'rounded-full border-orange-700/30 bg-orange-700/30 text-orange-950 shadow-sm shadow-orange-950/10' : 'rounded-md border-white/15 bg-white/15 text-white'}`}>
                     {selectedMessage.messages.notification_category === 'performance_reward' && <CheckCircle className="h-3 w-3" />}
                     {selectedMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : selectedMessage.messages.priority === 'high' ? t.messages.priorityHigh : selectedMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
                   </span>
