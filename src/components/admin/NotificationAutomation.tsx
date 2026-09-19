@@ -741,18 +741,18 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                 <h2 className="text-lg font-black tracking-tight text-white sm:text-xl">自動化任務</h2>
               </div>
             </div>
-            <div className="flex max-w-full overflow-x-auto rounded-xl border border-slate-500/70 bg-slate-950/70 shadow-lg shadow-slate-950/40">
+            <div className="flex max-w-full overflow-x-auto rounded-xl border border-cyan-300/25 bg-gradient-to-b from-slate-800/90 to-slate-950/90 shadow-[0_8px_24px_rgba(2,8,23,0.45)] ring-1 ring-inset ring-white/[0.06]">
               {[
                 { label: '任務總數', value: taskStats.total, icon: Settings2, color: 'text-cyan-200', surface: 'bg-cyan-500/15 border-cyan-400/20' },
                 { label: '已啟用', value: taskStats.active, icon: Play, color: 'text-emerald-200', surface: 'bg-emerald-500/15 border-emerald-400/20' },
                 { label: '獎勵任務', value: taskStats.rewards, icon: Gift, color: 'text-amber-200', surface: 'bg-amber-500/15 border-amber-400/20' },
                 { label: '成功執行', value: taskStats.executions, icon: CheckCircle2, color: 'text-violet-200', surface: 'bg-violet-500/15 border-violet-400/20' },
               ].map(item => (
-                <div key={item.label} className={`flex min-h-[58px] min-w-[128px] items-center gap-2.5 border-r px-3.5 py-2 last:border-r-0 ${item.surface}`}>
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-950/35 ${item.color}`}><item.icon className="h-4 w-4" /></div>
-                  <div className="min-w-0">
-                    <p className="whitespace-nowrap text-xs font-bold text-slate-100">{item.label}</p>
-                    <p className={`mt-0.5 text-xl font-black tabular-nums leading-5 ${item.color}`}>{item.value}</p>
+                <div key={item.label} className={`flex min-h-[58px] min-w-[156px] items-center gap-3 border-r px-4 py-2 last:border-r-0 ${item.surface}`}>
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-slate-950/40 shadow-inner ${item.color}`}><item.icon className="h-4 w-4" /></div>
+                  <div className="min-w-0 flex-1">
+                    <p className="whitespace-nowrap text-[10px] font-bold tracking-wide text-slate-100">{item.label}</p>
+                    <p className={`mt-0.5 whitespace-nowrap text-lg font-black tabular-nums leading-5 ${item.color}`}>{item.value}</p>
                   </div>
                 </div>
               ))}
