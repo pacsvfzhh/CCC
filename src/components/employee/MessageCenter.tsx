@@ -529,7 +529,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             className={`
               relative overflow-hidden flex flex-col pointer-events-auto bg-[#f0f5ff]
               w-full h-full
-              ${isDesktop ? 'lg:w-full lg:max-w-2xl lg:h-[82vh] lg:rounded-3xl lg:shadow-2xl' : ''}
+              ${isDesktop ? 'lg:w-full lg:h-full' : ''}
             `}
             style={{
               animation: isDesktop ? 'fadeIn 0.2s ease-out' : 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
@@ -604,14 +604,14 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
 
             {/* Detail Content */}
             <div
-              className="relative flex-1 p-5 lg:p-8 overflow-y-auto"
+              className="relative flex-1 overflow-y-auto p-0"
               style={{
                 minHeight: 0,
                 WebkitOverflowScrolling: 'touch'
               } as React.CSSProperties}
             >
               {/* Content card */}
-              <div className={`relative overflow-hidden rounded-2xl bg-white ring-1 shadow-md ${selectedMessage.messages.notification_category === 'performance_reward' ? 'ring-amber-200 shadow-amber-50' : 'ring-blue-100 shadow-blue-50'}`}>
+              <div className="relative overflow-hidden bg-white">
                 {/* Top accent line */}
                 <div className={`absolute left-6 right-6 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent to-transparent ${selectedMessage.messages.notification_category === 'performance_reward' ? 'via-amber-400' : 'via-blue-300'}`} />
 
