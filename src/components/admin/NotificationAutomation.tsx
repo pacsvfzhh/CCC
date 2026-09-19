@@ -744,11 +744,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         {noticeCard}
         <div className="relative z-10 flex h-11 shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-cyan-200/35 bg-gradient-to-r from-blue-900 via-cyan-800 to-blue-950 px-3 shadow-lg shadow-blue-950/60">
           <div className="flex min-w-0 items-center gap-2">
-            <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setEditorOpen(false); }} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-400/40 bg-red-500/15 text-red-300 transition-colors hover:border-red-300/70 hover:bg-red-500/30 hover:text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70">
+            <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setEditorOpen(false); }} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-200/70 bg-red-600 text-white shadow-md shadow-red-950/35 transition-colors hover:border-white hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/80">
               <ArrowLeft className="h-3.5 w-3.5" />
             </button>
-            <h2 className="truncate text-sm font-black tracking-tight text-white">{readOnly ? '查看管理員範本' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2>
-            <span className="hidden text-[10px] font-medium text-slate-500 md:inline">英文通知 · 繁中設定</span>
+            <h2 className="truncate text-base font-black tracking-tight text-white drop-shadow-sm">{readOnly ? '查看管理員範本' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2>
+            <span className="hidden text-[10px] font-bold text-cyan-100/90 drop-shadow-sm md:inline">英文通知 · 繁中設定</span>
           </div>
           {copiedFromName && (
             <div className="flex min-w-0 items-center gap-1.5 rounded-lg border border-amber-300/25 bg-amber-400/10 px-2 py-1 text-[10px] text-amber-100">
