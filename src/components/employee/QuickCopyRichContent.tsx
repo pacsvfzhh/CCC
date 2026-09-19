@@ -224,8 +224,8 @@ export default function QuickCopyRichContent({
         }
         .quick-copy-rich-content .message-quick-copy-button {
           display: inline-flex;
-          width: 9.5rem;
-          min-width: 9.5rem;
+          width: 12rem;
+          min-width: 12rem;
           height: 2.25rem;
           min-height: 2.25rem;
           align-items: center;
