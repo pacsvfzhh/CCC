@@ -893,7 +893,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               </section>
               </div>
 
-              <div className="min-h-0 overflow-hidden xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:grid xl:grid-rows-[minmax(0,0.6fr)_minmax(0,0.4fr)] xl:border-l xl:border-slate-700/70">
+              <div className="min-h-0 overflow-hidden xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:grid xl:grid-rows-[minmax(0,0.5fr)_minmax(0,0.5fr)] xl:border-l xl:border-slate-700/70">
               <section className="flex min-h-0 flex-col border-b border-slate-700/70 p-3">
                 <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
