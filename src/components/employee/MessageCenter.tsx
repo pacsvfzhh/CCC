@@ -321,7 +321,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             </div>
 
             {/* Filter tabs */}
-            <div className="relative mt-3 grid grid-cols-1 gap-1.5 rounded-2xl border border-white/15 bg-slate-950/10 p-1.5 sm:grid-cols-4 sm:gap-1.5 sm:rounded-xl md:gap-2 md:p-2 lg:mt-4 lg:rounded-xl lg:p-1.5">
+            <div className="relative mt-3 grid grid-cols-4 gap-1 rounded-2xl border border-white/15 bg-slate-950/10 p-1.5 sm:gap-1.5 sm:rounded-xl md:gap-2 md:p-2 lg:mt-4 lg:rounded-xl lg:p-1.5">
               {[
                 { id: 'all', label: t.messages.title },
                 { id: 'unread', label: t.messages.unread },
@@ -334,7 +334,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                     key={f.id}
                     onClick={() => setFilter(f.id as typeof filter)}
                     aria-pressed={isActive}
-                    className={`msg-force-transition relative flex min-w-0 min-h-[42px] items-center justify-center overflow-hidden rounded-xl px-2 py-2 text-center text-[11px] leading-tight transition-all duration-200 sm:min-h-[44px] md:min-h-[48px] md:text-xs lg:min-h-[40px] lg:px-3 ${
+                    className={`msg-force-transition relative flex min-w-0 min-h-[40px] items-center justify-center overflow-hidden rounded-xl px-1 py-1.5 text-center text-[10px] leading-tight transition-all duration-200 sm:min-h-[44px] sm:px-2 sm:py-2 sm:text-[11px] md:min-h-[48px] md:text-xs lg:min-h-[40px] lg:px-3 ${
                       isActive
                         ? 'bg-white/20 font-bold text-white shadow-sm ring-1 ring-white/30'
                         : 'font-medium text-white/65 hover:bg-white/10 hover:text-white'
