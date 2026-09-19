@@ -300,8 +300,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedAdminId, setSelectedAdminId] = useState('all');
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
-  const [adminMenuPosition, setAdminMenuPosition] = useState({ top: 0, left: 0, width: 260 });
-  const adminMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const [adminMenuPosition, setAdminMenuPosition] = useState({ top: 0, left: 0, width: 244 });
+  const adminMenuAnchorRef = useRef<HTMLDivElement>(null);
   const loadRef = useRef<(() => Promise<void>) | null>(null);
 
   const loadDashboard = async (ownerAdminId = selectedAdminId) => {
@@ -752,12 +752,12 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
   };
 
   const toggleAdminMenu = () => {
-    if (!adminMenuOpen && adminMenuButtonRef.current) {
-      const bounds = adminMenuButtonRef.current.getBoundingClientRect();
-      const width = Math.min(280, window.innerWidth - 24);
+    if (!adminMenuOpen && adminMenuAnchorRef.current) {
+      const bounds = adminMenuAnchorRef.current.getBoundingClientRect();
+      const width = Math.min(bounds.width, window.innerWidth - 24);
       setAdminMenuPosition({
-        top: bounds.bottom + 8,
-        left: Math.max(12, Math.min(bounds.right - width, window.innerWidth - width - 12)),
+        top: bounds.bottom + 6,
+        left: Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12)),
         width,
       });
     }
@@ -793,12 +793,11 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                 </div>
               ))}
               {isSuperAdmin && (
-                <div className="flex min-h-[58px] min-w-[244px] items-center gap-3 border-l border-sky-300/25 bg-gradient-to-br from-sky-500/20 via-blue-500/15 to-indigo-500/20 px-4 py-2">
+                <div ref={adminMenuAnchorRef} className="flex min-h-[58px] min-w-[244px] items-center gap-3 border-l border-sky-300/25 bg-gradient-to-br from-sky-500/20 via-blue-500/15 to-indigo-500/20 px-4 py-2">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-200/20 bg-gradient-to-br from-sky-300 to-blue-500 text-blue-950 shadow-lg shadow-blue-950/40"><SlidersHorizontal className="h-4 w-4" /></div>
                   <div className="min-w-0 flex-1">
                     <span className="block whitespace-nowrap text-[9px] font-black uppercase tracking-[0.12em] text-sky-100/70">管理員分組</span>
                     <button
-                      ref={adminMenuButtonRef}
                       type="button"
                       disabled={refreshing}
                       onClick={toggleAdminMenu}
@@ -959,28 +958,28 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         <div
           role="listbox"
           aria-label="管理員分組"
-          className="fixed overflow-hidden rounded-2xl border border-sky-300/25 bg-slate-950/95 p-1.5 shadow-[0_24px_70px_rgba(2,8,23,0.72)] ring-1 ring-inset ring-white/[0.07] backdrop-blur-xl"
+          className="fixed overflow-hidden rounded-xl border border-sky-300/25 bg-slate-950/95 p-1 shadow-[0_18px_45px_rgba(2,8,23,0.68)] ring-1 ring-inset ring-white/[0.07] backdrop-blur-xl"
           style={{ top: adminMenuPosition.top, left: adminMenuPosition.left, width: adminMenuPosition.width }}
           onMouseDown={event => event.stopPropagation()}
         >
-          <div className="border-b border-slate-700/70 px-3 py-2.5">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-sky-300">選擇管理員分組</p>
-            <p className="mt-0.5 text-[11px] text-slate-500">統計與下方資料將同步切換</p>
+          <div className="border-b border-slate-700/70 px-2.5 py-2">
+            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-sky-300">選擇管理員分組</p>
+            <p className="mt-0.5 text-[9px] text-slate-500">統計與下方資料同步切換</p>
           </div>
-          <div className="max-h-72 overflow-y-auto py-1">
-            <button type="button" role="option" aria-selected={selectedAdminId === 'all'} onClick={() => selectAdminGroup('all')} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 ${selectedAdminId === 'all' ? 'bg-gradient-to-r from-sky-500/25 to-blue-500/15 text-white ring-1 ring-inset ring-sky-300/25' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}>
-              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${selectedAdminId === 'all' ? 'bg-sky-400 text-sky-950' : 'bg-slate-800 text-sky-300'}`}><Users className="h-4 w-4" /></span>
-              <span className="min-w-0 flex-1"><span className="block text-xs font-black">全部管理員</span><span className="block text-[10px] text-slate-500">查看所有分組的整體資料</span></span>
+          <div className="max-h-56 overflow-y-auto py-0.5">
+            <button type="button" role="option" aria-selected={selectedAdminId === 'all'} onClick={() => selectAdminGroup('all')} className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-all duration-150 ${selectedAdminId === 'all' ? 'bg-gradient-to-r from-sky-500/25 to-blue-500/15 text-white ring-1 ring-inset ring-sky-300/25' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${selectedAdminId === 'all' ? 'bg-sky-400 text-sky-950' : 'bg-slate-800 text-sky-300'}`}><Users className="h-4 w-4" /></span>
+              <span className="min-w-0 flex-1"><span className="block text-[11px] font-black">全部管理員</span><span className="block text-[9px] text-slate-500">查看所有分組的整體資料</span></span>
               {selectedAdminId === 'all' && <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-300" />}
             </button>
             {dashboard.admin_groups.map(group => {
               const selected = selectedAdminId === group.id;
               const current = group.id === admin.id;
               return (
-                <button key={group.id} type="button" role="option" aria-selected={selected} onClick={() => selectAdminGroup(group.id)} className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 ${selected ? 'bg-gradient-to-r from-sky-500/25 to-blue-500/15 text-white ring-1 ring-inset ring-sky-300/25' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}>
-                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-black uppercase ${selected ? 'bg-gradient-to-br from-sky-300 to-blue-500 text-blue-950' : 'bg-slate-800 text-sky-300'}`}>{group.username.slice(0, 1)}</span>
-                  <span className="min-w-0 flex-1"><span className="block truncate text-xs font-black">{group.username}</span><span className="block text-[10px] text-slate-500">{current ? '目前登入帳戶' : group.role === 'super_admin' ? '超級管理員' : '管理員分組'}</span></span>
-                  {current && <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-2 py-0.5 text-[9px] font-black text-amber-200">目前</span>}
+                <button key={group.id} type="button" role="option" aria-selected={selected} onClick={() => selectAdminGroup(group.id)} className={`mt-0.5 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-all duration-150 ${selected ? 'bg-gradient-to-r from-sky-500/25 to-blue-500/15 text-white ring-1 ring-inset ring-sky-300/25' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}>
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-black uppercase ${selected ? 'bg-gradient-to-br from-sky-300 to-blue-500 text-blue-950' : 'bg-slate-800 text-sky-300'}`}>{group.username.slice(0, 1)}</span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-black">{group.username}</span><span className="block text-[9px] text-slate-500">{current ? '目前登入帳戶' : group.role === 'super_admin' ? '超級管理員' : '管理員分組'}</span></span>
+                  {current && <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-1.5 py-0.5 text-[8px] font-black text-amber-200">目前</span>}
                   {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-300" />}
                 </button>
               );
