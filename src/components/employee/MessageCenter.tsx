@@ -154,7 +154,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             dotColor: 'bg-amber-500',
           }
         : {
-            card: 'bg-gradient-to-br from-amber-50/90 to-white ring-1 ring-amber-200 shadow-sm',
+            card: 'bg-gradient-to-br from-amber-50/55 via-slate-50/70 to-white/60 ring-1 ring-amber-100/80 shadow-none',
             iconBg: 'bg-amber-100',
             iconText: 'text-amber-600',
             accent: 'from-amber-300 via-yellow-200 to-orange-200',
@@ -218,7 +218,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     // Read messages retain a softer type-specific color treatment.
     if (messageType === 'realtime') {
       return {
-        card: 'bg-gradient-to-br from-blue-50/90 via-white to-sky-50 ring-1 ring-blue-200 shadow-sm',
+        card: 'bg-gradient-to-br from-slate-100/75 via-blue-50/45 to-white/55 ring-1 ring-slate-200/80 shadow-none',
         iconBg: 'bg-blue-100',
         iconText: 'text-blue-600',
         accent: 'from-blue-500 via-sky-400 to-cyan-400',
@@ -228,7 +228,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     }
 
     return {
-      card: 'bg-gradient-to-br from-cyan-50/90 via-white to-sky-50 ring-1 ring-cyan-200 shadow-sm',
+      card: 'bg-gradient-to-br from-slate-100/75 via-cyan-50/45 to-white/55 ring-1 ring-slate-200/80 shadow-none',
       iconBg: 'bg-cyan-100',
       iconText: 'text-cyan-600',
       accent: 'from-cyan-500 via-sky-400 to-blue-400',
@@ -407,7 +407,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                     style={{ animationDelay: `${index * 0.04}s` }}
                   >
                     {/* Card */}
-                    <div className={`relative rounded-2xl overflow-hidden border msg-force-transition hover:-translate-y-0.5 hover:shadow-xl ${isUnread ? 'border-white/70 shadow-2xl shadow-slate-300/30' : 'border-slate-200/80 opacity-[0.88]'} ${style.card}`}>
+                    <div className={`relative rounded-2xl overflow-hidden border msg-force-transition hover:-translate-y-0.5 hover:shadow-xl ${isUnread ? 'border-white/70 shadow-2xl shadow-slate-300/30' : 'border-slate-200/70 opacity-[0.72] saturate-[0.55] hover:opacity-100 hover:saturate-100'} ${style.card}`}>
                       {/* Left accent bar */}
                       <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${style.accent} rounded-l-2xl`} />
 
