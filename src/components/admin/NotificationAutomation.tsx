@@ -325,7 +325,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [form, setForm] = useState<TaskForm>(createDefaultForm());
   const [copiedFromName, setCopiedFromName] = useState<string | null>(null);
   const [templateCustomized, setTemplateCustomized] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<string>>(new Set());
   const [selectedAdminId, setSelectedAdminId] = useState(admin.id);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [adminMenuPosition, setAdminMenuPosition] = useState({ top: 0, left: 0, width: 244 });
@@ -538,7 +538,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         });
         if (activateError) throw activateError;
         showNotice('success', '已直接套用管理員範本，任務只會作用於你的員工');
-        setSelectedTemplateId(null);
+        setSelectedTemplateIds(new Set());
         setView('tasks');
       } else {
         const copiedTask: AutomationTask = {
@@ -565,6 +565,54 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       setRefreshing(true);
       await loadDashboard(nextAdminId);
     } catch {
+      showNotice('error', '無法套用管理員範本，請重新選擇後再試。');
+    }
+  };
+
+  const applySelectedTemplates = async (templates: AutomationTask[]) => {
+    const duplicateTemplates = templates.filter(template =>
+      dashboard.tasks.some(existing => isSameTemplateCopy(existing, template)),
+    );
+
+    if (duplicateTemplates.length > 0) {
+      const names = duplicateTemplates.map(template => `「${template.name}」`).join('、');
+      showNotice('info', `以下管理員範本已經添加到本組任務：${names}。請先取消勾選這些範本，才能套用其他範本。`);
+      return;
+    }
+
+    const nextAdminId = isSuperAdmin ? admin.id : selectedAdminId;
+    setSelectedAdminId(nextAdminId);
+    setRefreshing(true);
+
+    try {
+      for (const template of templates) {
+        const { data, error } = await supabase.rpc('copy_shared_notification_automation_task', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_source_task_id: template.id,
+        });
+        if (error) throw error;
+
+        const result = data as unknown as { task_id?: string; duplicate?: boolean } | null;
+        if (result?.duplicate) {
+          showNotice('info', `管理員範本「${template.name}」已經添加到本組任務，請取消勾選後再試。`);
+          return;
+        }
+        if (!result?.task_id) throw new Error('Template copy did not return a task id.');
+
+        const { error: activateError } = await supabase.rpc('set_notification_automation_task_status', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_task_id: result.task_id,
+          p_status: 'active',
+        });
+        if (activateError) throw activateError;
+      }
+
+      setSelectedTemplateIds(new Set());
+      setView('tasks');
+      showNotice('success', `已套用 ${templates.length} 個管理員範本，任務只會作用於你的員工`);
+      await loadDashboard(nextAdminId);
+    } catch {
+      setRefreshing(false);
       showNotice('error', '無法套用管理員範本，請重新選擇後再試。');
     }
   };
@@ -860,7 +908,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     );
   }
 
-  const selectedTemplate = dashboard.shared_templates.find(task => task.id === selectedTemplateId);
+  const selectedTemplates = dashboard.shared_templates.filter(task => selectedTemplateIds.has(task.id));
   const selectedAdmin = dashboard.admin_groups.find(group => group.id === selectedAdminId);
   const taskTabLabel = isSuperAdmin
     ? `${selectedAdmin?.username || admin.username} 的任務`
@@ -868,7 +916,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   const selectAdminGroup = (nextAdminId: string) => {
     setSelectedAdminId(nextAdminId);
-    setSelectedTemplateId(null);
+    setSelectedTemplateIds(new Set());
     setAdminMenuOpen(false);
     setRefreshing(true);
     void loadDashboard(nextAdminId);
@@ -963,24 +1011,24 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             {view === 'templates' && (
               <button
                 type="button"
-                aria-disabled={!selectedTemplate}
+                aria-disabled={selectedTemplates.length === 0}
                 onClick={() => {
-                  if (selectedTemplate) {
-                    void copyTemplate(selectedTemplate, true);
+                  if (selectedTemplates.length > 0) {
+                    void applySelectedTemplates(selectedTemplates);
                     return;
                   }
-                  showNotice('info', '請先勾選一個管理員範本，再點擊「套用所選範本」。');
+                  showNotice('info', '請先勾選一個或多個管理員範本，再點擊「套用所選範本」。');
                 }}
-                className={`group relative flex h-11 min-w-[224px] items-center gap-2.5 overflow-hidden rounded-xl border px-2.5 pr-3 text-left outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${selectedTemplate ? 'border-emerald-200/45 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 text-white shadow-[0_8px_24px_rgba(5,150,105,0.28)] hover:-translate-y-0.5 hover:border-white/50 hover:shadow-[0_10px_28px_rgba(5,150,105,0.34)] active:translate-y-0 active:scale-[0.98]' : 'cursor-pointer border-amber-300/20 bg-gradient-to-r from-slate-800 to-slate-700/80 text-slate-300 shadow-inner hover:border-amber-300/40 hover:from-slate-700 hover:to-amber-950/50 hover:text-amber-100'}`}
+                className={`group relative flex h-11 min-w-[224px] items-center gap-2.5 overflow-hidden rounded-xl border px-2.5 pr-3 text-left outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${selectedTemplates.length > 0 ? 'border-emerald-200/45 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 text-white shadow-[0_8px_24px_rgba(5,150,105,0.28)] hover:-translate-y-0.5 hover:border-white/50 hover:shadow-[0_10px_28px_rgba(5,150,105,0.34)] active:translate-y-0 active:scale-[0.98]' : 'cursor-pointer border-amber-300/20 bg-gradient-to-r from-slate-800 to-slate-700/80 text-slate-300 shadow-inner hover:border-amber-300/40 hover:from-slate-700 hover:to-amber-950/50 hover:text-amber-100'}`}
               >
-                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors ${selectedTemplate ? 'border-white/35 bg-white/20 text-white group-hover:bg-white/30' : 'border-slate-600 bg-slate-900/50 text-slate-600'}`}>
+                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors ${selectedTemplates.length > 0 ? 'border-white/35 bg-white/20 text-white group-hover:bg-white/30' : 'border-slate-600 bg-slate-900/50 text-slate-600'}`}>
                   <Play className="h-3.5 w-3.5 fill-current" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[11px] font-black leading-4">套用所選範本</span>
-                  <span className={`block max-w-[145px] truncate text-[9px] font-bold leading-3 ${selectedTemplate ? 'text-white' : 'text-amber-200/70'}`}>{selectedTemplate ? selectedTemplate.name : '請先選擇管理員範本'}</span>
+                  <span className={`block max-w-[145px] truncate text-[9px] font-bold leading-3 ${selectedTemplates.length > 0 ? 'text-white' : 'text-amber-200/70'}`}>{selectedTemplates.length > 0 ? `已選取 ${selectedTemplates.length} 個範本` : '請先選擇管理員範本'}</span>
                 </span>
-                <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${selectedTemplate ? 'text-white group-hover:translate-x-0.5' : 'text-slate-600'}`} />
+                <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${selectedTemplates.length > 0 ? 'text-white group-hover:translate-x-0.5' : 'text-slate-600'}`} />
               </button>
             )}
           </div>
@@ -1039,15 +1087,27 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             ) : (
               <div className="divide-y divide-slate-800/80">
                 {dashboard.shared_templates.map(task => {
-                  const selected = selectedTemplateId === task.id;
+                  const selected = selectedTemplateIds.has(task.id);
+                  const alreadyAdded = dashboard.tasks.some(existing => isSameTemplateCopy(existing, task));
                   return (
-                    <article key={task.id} className={`group grid gap-3 border-l-[3px] px-4 py-3.5 transition-all duration-200 lg:grid-cols-[auto_minmax(210px,1fr)_minmax(280px,1.45fr)_minmax(170px,.7fr)_auto] lg:items-center ${selected ? 'border-l-violet-300 bg-gradient-to-r from-violet-500/15 to-violet-500/[0.04] shadow-[inset_0_0_0_1px_rgba(167,139,250,0.12)]' : 'border-l-violet-600 odd:bg-slate-950/20 even:bg-slate-800/15 hover:-translate-y-px hover:bg-slate-800/55 hover:shadow-lg hover:shadow-violet-950/15'}`}>
+                    <article key={task.id} className={`group grid gap-3 border-l-[3px] px-4 py-3.5 transition-all duration-200 lg:grid-cols-[auto_minmax(210px,1fr)_minmax(280px,1.45fr)_minmax(170px,.7fr)_auto] lg:items-center ${selected ? 'border-l-violet-300 bg-gradient-to-r from-violet-500/15 to-violet-500/[0.04] shadow-[inset_0_0_0_1px_rgba(167,139,250,0.12)]' : alreadyAdded ? 'border-l-rose-400 bg-rose-500/[0.06]' : 'border-l-violet-600 odd:bg-slate-950/20 even:bg-slate-800/15 hover:-translate-y-px hover:bg-slate-800/55 hover:shadow-lg hover:shadow-violet-950/15'}`}>
                       <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-violet-200">
-                        <input type="checkbox" checked={selected} onChange={event => setSelectedTemplateId(event.target.checked ? task.id : null)} className="peer sr-only" />
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={event => setSelectedTemplateIds(previous => {
+                            const next = new Set(previous);
+                            if (event.target.checked) next.add(task.id);
+                            else next.delete(task.id);
+                            return next;
+                          })}
+                          className="peer sr-only"
+                        />
                         <span className="flex h-5 w-5 items-center justify-center rounded-md border border-violet-300/35 bg-slate-950/70 text-transparent shadow-inner transition-all duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-violet-300/70 peer-checked:border-violet-300 peer-checked:bg-violet-500 peer-checked:text-white peer-checked:shadow-violet-950/40">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                         </span>
                         <span>{selected ? '已選取' : '選取'}</span>
+                        {alreadyAdded && <span className="rounded-full border border-rose-300/30 bg-rose-400/10 px-1.5 py-0.5 text-[9px] font-black text-rose-200">已添加</span>}
                       </label>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
