@@ -1049,15 +1049,15 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     </div>
                   </div>
                 </div>
-                <div className="min-h-0 min-w-0 flex-1 space-y-2 overflow-y-auto p-3 pr-4">
-                  <h3 className="truncate text-base font-bold leading-snug text-white" title={previewTitle}>{previewTitle || 'Notification title'}</h3>
-                  <div className="max-h-24 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-slate-300" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
-                  <div className="rounded-lg border border-slate-700/70 bg-slate-950/60 p-2">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden p-3 pr-4">
+                  <h3 className="shrink-0 truncate text-base font-bold leading-snug text-white" title={previewTitle}>{previewTitle || 'Notification title'}</h3>
+                  <div className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-slate-300" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
+                  <div className="shrink-0 rounded-lg border border-slate-700/70 bg-slate-950/60 p-2">
                     <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Trigger condition</p>
                     <p className="mt-0.5 truncate text-xs font-semibold text-slate-200">{summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}</p>
                   </div>
                   {form.rewardEnabled && (
-                    <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2">
+                    <div className="flex shrink-0 items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2">
                       <Wallet className="h-4 w-4 text-emerald-400" />
                       <div>
                         <p className="text-xs font-bold text-emerald-200">Performance Bonus / 業績獎金</p>
