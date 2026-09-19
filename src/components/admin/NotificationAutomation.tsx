@@ -262,33 +262,16 @@ function renderPreview(template: string, form: TaskForm, currency: string) {
 }
 
 function AutomationSectionLoading({ view }: { view: 'tasks' | 'templates' | 'executions' }) {
-  if (view === 'executions') {
-    return (
-      <div className="min-h-full animate-pulse" aria-label="正在載入執行記錄">
-        <div className="h-8 bg-gradient-to-r from-blue-900 via-cyan-900 to-blue-950" />
-        <div className="divide-y divide-slate-800/80">
-          {Array.from({ length: 6 }, (_, index) => (
-            <div key={index} className="grid grid-cols-[1.4fr_1fr_.7fr_.8fr_.8fr_.7fr_1fr] gap-4 px-5 py-4">
-              {Array.from({ length: 7 }, (__, cellIndex) => <div key={cellIndex} className="h-3 rounded-full bg-slate-700/70" />)}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const accent = view === 'templates' ? 'bg-violet-400/25' : 'bg-cyan-400/25';
+  const label = view === 'templates' ? '正在同步管理員範本' : view === 'executions' ? '正在同步執行記錄' : '正在同步自動化任務';
   return (
-    <div className="min-h-full animate-pulse divide-y divide-slate-800/80" aria-label={view === 'templates' ? '正在載入管理員範本' : '正在載入自動化任務'}>
-      {Array.from({ length: 5 }, (_, index) => (
-        <div key={index} className="grid gap-4 border-l-[3px] border-slate-700 px-4 py-4 lg:grid-cols-[minmax(210px,1fr)_minmax(260px,1.35fr)_minmax(130px,.55fr)_minmax(180px,.75fr)_100px] lg:items-center">
-          <div className="space-y-2"><div className={`h-3.5 w-2/3 rounded-full ${accent}`} /><div className="h-2.5 w-1/2 rounded-full bg-slate-700/60" /></div>
-          <div className="space-y-2"><div className="h-2.5 w-1/3 rounded-full bg-slate-700/60" /><div className="h-3 w-5/6 rounded-full bg-slate-700/75" /></div>
-          <div className="space-y-2"><div className="h-2.5 w-1/2 rounded-full bg-slate-700/60" /><div className="h-3 w-3/4 rounded-full bg-slate-700/75" /></div>
-          <div className="flex gap-3"><div className="h-8 w-16 rounded-lg bg-slate-700/65" /><div className="h-8 w-16 rounded-lg bg-slate-700/65" /></div>
-          <div className="h-8 rounded-lg bg-slate-700/70" />
-        </div>
-      ))}
+    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-950/20 backdrop-blur-[1px]" aria-label={label}>
+      <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-slate-800">
+        <span className="block h-full w-1/3 animate-pulse bg-gradient-to-r from-transparent via-cyan-300 to-transparent" />
+      </div>
+      <div className="flex items-center gap-2.5 rounded-xl border border-cyan-300/25 bg-slate-950/90 px-3.5 py-2.5 text-cyan-100 shadow-xl shadow-slate-950/50 ring-1 ring-inset ring-white/[0.05]">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-300/25 border-t-cyan-300" />
+        <span className="text-xs font-bold">{label}</span>
+      </div>
     </div>
   );
 }
@@ -874,10 +857,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
             )}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
-          {refreshing ? (
-            <AutomationSectionLoading view={view} />
-          ) : (
+          <div className="relative min-h-0 flex-1 overflow-y-auto">
+          <div className={`min-h-full transition-opacity duration-200 ${refreshing ? 'pointer-events-none opacity-55' : 'opacity-100'}`}>
           <>
           {view === 'tasks' && (
             dashboard.tasks.length === 0 ? (
@@ -990,7 +971,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
             </div>
           )}
           </>
-          )}
+          </div>
+          {refreshing && <AutomationSectionLoading view={view} />}
           </div>
         </div>
       </div>
