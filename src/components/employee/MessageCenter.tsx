@@ -321,7 +321,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             </div>
 
             {/* Filter tabs */}
-            <div className="relative mt-3 grid grid-cols-2 gap-1.5 rounded-2xl border border-white/15 bg-slate-950/10 p-1.5 sm:grid-cols-4 sm:gap-1.5 sm:rounded-xl md:gap-2 md:p-2 lg:mt-4 lg:rounded-xl lg:p-1.5">
+            <div className="relative mt-3 grid grid-cols-1 gap-1.5 rounded-2xl border border-white/15 bg-slate-950/10 p-1.5 sm:grid-cols-4 sm:gap-1.5 sm:rounded-xl md:gap-2 md:p-2 lg:mt-4 lg:rounded-xl lg:p-1.5">
               {[
                 { id: 'all', label: t.messages.title },
                 { id: 'unread', label: t.messages.unread },
