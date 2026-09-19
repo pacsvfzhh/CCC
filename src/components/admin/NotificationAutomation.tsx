@@ -976,8 +976,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   return (
                     <article key={task.id} className={`group grid gap-3 border-l-[3px] px-4 py-3.5 transition-all duration-200 lg:grid-cols-[auto_minmax(210px,1fr)_minmax(280px,1.45fr)_minmax(170px,.7fr)_auto] lg:items-center ${selected ? 'border-l-violet-300 bg-gradient-to-r from-violet-500/15 to-violet-500/[0.04] shadow-[inset_0_0_0_1px_rgba(167,139,250,0.12)]' : 'border-l-violet-600 odd:bg-slate-950/20 even:bg-slate-800/15 hover:-translate-y-px hover:bg-slate-800/55 hover:shadow-lg hover:shadow-violet-950/15'}`}>
                       <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-violet-200">
-                        <input type="checkbox" checked={selected} onChange={event => setSelectedTemplateId(event.target.checked ? task.id : null)} className="h-4 w-4 cursor-pointer rounded border-slate-300 bg-white accent-violet-500 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900" />
-                        選取
+                        <input type="checkbox" checked={selected} onChange={event => setSelectedTemplateId(event.target.checked ? task.id : null)} className="peer sr-only" />
+                        <span className="flex h-5 w-5 items-center justify-center rounded-md border border-violet-300/35 bg-slate-950/70 text-transparent shadow-inner transition-all duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-violet-300/70 peer-checked:border-violet-300 peer-checked:bg-violet-500 peer-checked:text-white peer-checked:shadow-violet-950/40">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        </span>
+                        <span>{selected ? '已選取' : '選取'}</span>
                       </label>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
