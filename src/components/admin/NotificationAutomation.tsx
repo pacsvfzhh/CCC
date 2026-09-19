@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ArrowLeft,
   Bell,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Copy,
   Edit3,
@@ -297,6 +299,9 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
   const [templateCustomized, setTemplateCustomized] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedAdminId, setSelectedAdminId] = useState('all');
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [adminMenuPosition, setAdminMenuPosition] = useState({ top: 0, left: 0, width: 260 });
+  const adminMenuButtonRef = useRef<HTMLButtonElement>(null);
   const loadRef = useRef<(() => Promise<void>) | null>(null);
 
   const loadDashboard = async (ownerAdminId = selectedAdminId) => {
@@ -736,8 +741,31 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
   }
 
   const selectedTemplate = dashboard.shared_templates.find(task => task.id === selectedTemplateId);
+  const selectedAdmin = dashboard.admin_groups.find(group => group.id === selectedAdminId);
+
+  const selectAdminGroup = (nextAdminId: string) => {
+    setSelectedAdminId(nextAdminId);
+    setSelectedTemplateId(null);
+    setAdminMenuOpen(false);
+    setRefreshing(true);
+    void loadDashboard(nextAdminId);
+  };
+
+  const toggleAdminMenu = () => {
+    if (!adminMenuOpen && adminMenuButtonRef.current) {
+      const bounds = adminMenuButtonRef.current.getBoundingClientRect();
+      const width = Math.min(280, window.innerWidth - 24);
+      setAdminMenuPosition({
+        top: bounds.bottom + 8,
+        left: Math.max(12, Math.min(bounds.right - width, window.innerWidth - width - 12)),
+        width,
+      });
+    }
+    setAdminMenuOpen(previous => !previous);
+  };
 
   return (
+    <>
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
       <div className="relative shrink-0 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/80 px-4 py-4 shadow-lg shadow-slate-950/30 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -765,29 +793,24 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                 </div>
               ))}
               {isSuperAdmin && (
-                <label className="flex min-h-[58px] min-w-[230px] items-center gap-3 border-l border-fuchsia-400/20 bg-fuchsia-500/15 px-4 py-2">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-slate-950/40 text-fuchsia-200 shadow-inner"><SlidersHorizontal className="h-4 w-4" /></div>
+                <div className="flex min-h-[58px] min-w-[244px] items-center gap-3 border-l border-sky-300/25 bg-gradient-to-br from-sky-500/20 via-blue-500/15 to-indigo-500/20 px-4 py-2">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-200/20 bg-gradient-to-br from-sky-300 to-blue-500 text-blue-950 shadow-lg shadow-blue-950/40"><SlidersHorizontal className="h-4 w-4" /></div>
                   <div className="min-w-0 flex-1">
-                    <span className="block whitespace-nowrap text-[10px] font-bold tracking-wide text-slate-100">管理員分組</span>
-                    <select
-                      value={selectedAdminId}
+                    <span className="block whitespace-nowrap text-[9px] font-black uppercase tracking-[0.12em] text-sky-100/70">管理員分組</span>
+                    <button
+                      ref={adminMenuButtonRef}
+                      type="button"
                       disabled={refreshing}
-                      onChange={event => {
-                        const nextAdminId = event.target.value;
-                        setSelectedAdminId(nextAdminId);
-                        setSelectedTemplateId(null);
-                        setRefreshing(true);
-                        void loadDashboard(nextAdminId);
-                      }}
-                      className="mt-0.5 h-6 w-full max-w-[170px] rounded-md border border-fuchsia-300/25 bg-slate-950/70 px-2 text-[11px] font-bold text-fuchsia-100 outline-none transition focus:border-fuchsia-300 focus:ring-1 focus:ring-fuchsia-300/40 disabled:cursor-wait disabled:opacity-60"
+                      onClick={toggleAdminMenu}
+                      aria-haspopup="listbox"
+                      aria-expanded={adminMenuOpen}
+                      className={`mt-0.5 flex h-7 w-full items-center justify-between gap-2 rounded-lg border px-2.5 text-left text-[11px] font-black outline-none transition-all duration-200 ${adminMenuOpen ? 'border-sky-300/60 bg-sky-300/15 text-white ring-2 ring-sky-300/20' : 'border-sky-200/20 bg-slate-950/45 text-sky-50 hover:border-sky-300/45 hover:bg-sky-400/10'} disabled:cursor-wait disabled:opacity-60`}
                     >
-                      <option value="all">全部管理員</option>
-                      {dashboard.admin_groups.map(group => (
-                        <option key={group.id} value={group.id}>{group.username}{group.id === admin.id ? '（目前帳戶）' : ''}</option>
-                      ))}
-                    </select>
+                      <span className="truncate">{selectedAdmin ? selectedAdmin.username : '全部管理員'}</span>
+                      <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-sky-200 transition-transform duration-200 ${adminMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
                   </div>
-                </label>
+                </div>
               )}
             </div>
           </div>
@@ -931,5 +954,42 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         </div>
       </div>
     </div>
+    {isSuperAdmin && adminMenuOpen && createPortal(
+      <div className="fixed inset-0 z-[100]" onMouseDown={() => setAdminMenuOpen(false)}>
+        <div
+          role="listbox"
+          aria-label="管理員分組"
+          className="fixed overflow-hidden rounded-2xl border border-sky-300/25 bg-slate-950/95 p-1.5 shadow-[0_24px_70px_rgba(2,8,23,0.72)] ring-1 ring-inset ring-white/[0.07] backdrop-blur-xl"
+          style={{ top: adminMenuPosition.top, left: adminMenuPosition.left, width: adminMenuPosition.width }}
+          onMouseDown={event => event.stopPropagation()}
+        >
+          <div className="border-b border-slate-700/70 px-3 py-2.5">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-sky-300">選擇管理員分組</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">統計與下方資料將同步切換</p>
+          </div>
+          <div className="max-h-72 overflow-y-auto py-1">
+            <button type="button" role="option" aria-selected={selectedAdminId === 'all'} onClick={() => selectAdminGroup('all')} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 ${selectedAdminId === 'all' ? 'bg-gradient-to-r from-sky-500/25 to-blue-500/15 text-white ring-1 ring-inset ring-sky-300/25' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}>
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${selectedAdminId === 'all' ? 'bg-sky-400 text-sky-950' : 'bg-slate-800 text-sky-300'}`}><Users className="h-4 w-4" /></span>
+              <span className="min-w-0 flex-1"><span className="block text-xs font-black">全部管理員</span><span className="block text-[10px] text-slate-500">查看所有分組的整體資料</span></span>
+              {selectedAdminId === 'all' && <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-300" />}
+            </button>
+            {dashboard.admin_groups.map(group => {
+              const selected = selectedAdminId === group.id;
+              const current = group.id === admin.id;
+              return (
+                <button key={group.id} type="button" role="option" aria-selected={selected} onClick={() => selectAdminGroup(group.id)} className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 ${selected ? 'bg-gradient-to-r from-sky-500/25 to-blue-500/15 text-white ring-1 ring-inset ring-sky-300/25' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}>
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-black uppercase ${selected ? 'bg-gradient-to-br from-sky-300 to-blue-500 text-blue-950' : 'bg-slate-800 text-sky-300'}`}>{group.username.slice(0, 1)}</span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-xs font-black">{group.username}</span><span className="block text-[10px] text-slate-500">{current ? '目前登入帳戶' : group.role === 'super_admin' ? '超級管理員' : '管理員分組'}</span></span>
+                  {current && <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-2 py-0.5 text-[9px] font-black text-amber-200">目前</span>}
+                  {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-300" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>,
+      document.body,
+    )}
+    </>
   );
 }
