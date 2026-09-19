@@ -557,7 +557,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                   <button
                     onClick={() => setSelectedMessage(null)}
                     aria-label={t.messages.close}
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border border-amber-950/20 bg-amber-100/35 text-amber-950 shadow-sm shadow-amber-950/10 hover:bg-amber-200/55 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border border-amber-950/20 bg-amber-950/15 text-amber-950 hover:bg-amber-950/25 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     <X className="h-4 w-4" strokeWidth={2.5} />
@@ -566,26 +566,23 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
 
                 {/* Title section */}
                 <div className="flex items-start gap-2.5">
-                  <div className={`relative flex shrink-0 items-center justify-center backdrop-blur-sm ${selectedMessage.messages.notification_category === 'performance_reward' ? 'h-9 w-9 rounded-xl border border-amber-950/20 bg-amber-200/55 text-amber-950 shadow-md shadow-amber-950/10 sm:h-10 sm:w-10' : 'h-9 w-9 rounded-lg border border-white/20 bg-white/15 sm:h-10 sm:w-10'}`}>
-                    {selectedMessage.messages.notification_category === 'performance_reward' ? (
-                      <>
-                        <Gift className="relative h-5 w-5" strokeWidth={2} />
-                        <Sparkles className="absolute -right-1 -top-1 h-3 w-3 text-amber-950/75" strokeWidth={2.5} />
-                      </>
-                    ) : getPriorityIcon(selectedMessage.messages.priority, 'h-5 w-5 text-white')}
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border backdrop-blur-sm sm:h-10 sm:w-10 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-950/20 bg-amber-950/15 text-amber-950 shadow-sm shadow-amber-950/10' : 'border-white/20 bg-white/15'}`}>
+                    {selectedMessage.messages.notification_category === 'performance_reward'
+                      ? <Gift className="h-5 w-5" strokeWidth={2} />
+                      : getPriorityIcon(selectedMessage.messages.priority, 'h-5 w-5 text-white')}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className={`mb-1 break-words leading-tight ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-lg font-extrabold tracking-tight text-amber-950 lg:text-xl' : 'text-lg font-bold text-white lg:text-xl'}`}>
+                    <h3 className={`mb-1 break-words text-lg font-bold leading-tight lg:text-xl ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950' : 'text-white'}`}>
                       {selectedMessage.messages.title}
                     </h3>
-                    <div className={`flex flex-wrap items-center gap-2 text-sm font-semibold ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950/80' : 'text-blue-100/90'}`}>
+                    <div className={`flex flex-wrap items-center gap-2 text-sm font-medium ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950/75' : 'text-blue-100/90'}`}>
                       <div className="flex items-center gap-1.5">
-                        <Clock className={`h-3.5 w-3.5 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950/75' : 'text-cyan-200'}`} />
+                        <Clock className={`h-3.5 w-3.5 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950/70' : 'text-cyan-200'}`} />
                         <span>
                           {new Date(selectedMessage.messages.created_at || 0).toLocaleDateString(dateLocale, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
                       </div>
-                      <span className={selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950/40' : 'text-white/20'}>•</span>
+                      <span className={selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950/30' : 'text-white/20'}>|</span>
                       <span>
                         {new Date(selectedMessage.messages.created_at || 0).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}
                       </span>
@@ -595,12 +592,10 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
 
                 {/* Tags */}
                 <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                  <span className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'rounded-full border-amber-950/25 bg-amber-950/20 text-amber-950 shadow-sm shadow-amber-950/10' : `rounded-md ${selectedMessage.messages.message_type === 'login_popup' ? 'border-white/20 bg-white/15 text-sky-100' : 'border-white/20 bg-white/15 text-cyan-100'}`}`}>
-                    {selectedMessage.messages.notification_category === 'performance_reward' && <Sparkles className="h-3 w-3" />}
+                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-950/25 bg-amber-950/15 text-amber-950' : selectedMessage.messages.message_type === 'login_popup' ? 'border-white/20 bg-white/15 text-sky-100' : 'border-white/20 bg-white/15 text-cyan-100'}`}>
                     {selectedMessage.messages.message_type === 'login_popup' ? t.messages.loginNotification : t.messages.liveMessage}
                   </span>
-                  <span className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'rounded-full border-orange-700/30 bg-orange-700/30 text-orange-950 shadow-sm shadow-orange-950/10' : 'rounded-md border-white/15 bg-white/15 text-white'}`}>
-                    {selectedMessage.messages.notification_category === 'performance_reward' && <CheckCircle className="h-3 w-3" />}
+                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
                     {selectedMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : selectedMessage.messages.priority === 'high' ? t.messages.priorityHigh : selectedMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
                   </span>
                 </div>
