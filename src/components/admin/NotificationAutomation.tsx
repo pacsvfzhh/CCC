@@ -499,8 +499,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
           )}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
-          <div className="mx-auto grid h-full max-w-[1500px] items-start overflow-y-auto rounded-xl border border-slate-700/70 bg-slate-900 shadow-xl xl:grid-cols-[minmax(0,1fr)_390px]">
+        <div className="min-h-0 flex-1 overflow-hidden bg-slate-900">
+          <div className="grid h-full w-full items-start overflow-y-auto bg-slate-900 xl:grid-cols-[minmax(0,1fr)_400px]">
             <div className="min-w-0 px-4 sm:px-5 xl:border-r xl:border-slate-700/70">
               <section className="border-b border-slate-700/60 py-4">
                 <div className="mb-3 flex items-center gap-2">
@@ -680,7 +680,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
               </section>
             </div>
 
-            <aside className="p-4 xl:sticky xl:top-0 xl:self-start">
+            <aside className="border-t border-slate-700/70 p-4 xl:sticky xl:top-0 xl:self-start xl:border-t-0">
               <div className={`overflow-hidden rounded-xl border shadow-xl ${form.rewardEnabled ? 'border-amber-400/30 bg-gradient-to-b from-amber-950 via-slate-900 to-slate-950 shadow-amber-950/40' : 'border-cyan-500/20 bg-gradient-to-b from-cyan-950 via-slate-900 to-slate-950 shadow-cyan-950/40'}`}>
                 <div className={`p-4 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-400/20 to-orange-500/5' : 'bg-gradient-to-br from-cyan-400/15 to-blue-500/5'}`}>
                   <div className="flex items-center justify-between gap-3">
@@ -750,8 +750,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
-        <div className="mx-auto flex h-full max-w-[1600px] flex-col overflow-hidden rounded-xl border border-slate-700/70 bg-slate-900 shadow-xl">
+      <div className="min-h-0 flex-1 overflow-hidden bg-slate-900">
+        <div className="flex h-full w-full flex-col overflow-hidden bg-slate-900">
           <div className="flex shrink-0 divide-x divide-slate-700/70 overflow-x-auto border-b border-slate-700/70">
             {[
               { label: '任務總數', value: taskStats.total, icon: Settings2, iconClass: 'text-cyan-400' },
@@ -793,10 +793,11 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
           <div className="min-h-0 flex-1 overflow-y-auto">
           {view === 'tasks' && (
             visibleTasks.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-900/50 py-20 text-center">
-                <Bell className="mx-auto h-10 w-10 text-slate-600" />
-                <p className="mt-4 font-bold text-slate-300">尚未建立自動化任務</p>
-                <p className="mt-1 text-sm text-slate-600">新增任務後預設為草稿，不會立即發送通知或獎金</p>
+              <div className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-400"><Bell className="h-7 w-7" /></div>
+                <p className="mt-4 text-base font-bold text-slate-200">尚未建立自動化任務</p>
+                <p className="mt-1 max-w-md text-sm text-slate-500">建立第一個任務，設定觸發條件、通知內容及可選的績效獎金；新任務會先儲存為草稿。</p>
+                <button onClick={openNewTask} className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-cyan-500 px-5 text-sm font-black text-slate-950 hover:bg-cyan-400"><Plus className="h-4 w-4" />建立第一個任務</button>
               </div>
             ) : (
               <div className="divide-y divide-slate-800">
@@ -837,7 +838,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
           {view === 'templates' && (
             dashboard.shared_templates.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-violet-500/20 bg-violet-500/5 py-20 text-center"><Copy className="mx-auto h-10 w-10 text-violet-500" /><p className="mt-4 font-bold text-slate-300">目前沒有可用的超級管理員範本</p></div>
+              <div className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400"><Copy className="h-7 w-7" /></div><p className="mt-4 font-bold text-slate-300">目前沒有可用的超級管理員範本</p><p className="mt-1 text-sm text-slate-500">超級管理員發佈共享範本後，可在這裡勾選並直接套用。</p></div>
             ) : (
               <div className="divide-y divide-slate-800">
                 {dashboard.shared_templates.map(task => {
@@ -875,7 +876,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
           )}
 
           {view === 'executions' && (
-            <div className="overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/80">
+            <div className="min-h-full bg-slate-900">
               <div className="border-b border-slate-700/70 px-5 py-4"><h3 className="font-bold text-white">最近執行記錄</h3><p className="text-xs text-slate-500">保留實際條件、通知、獎金和幣種快照</p></div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[850px] text-left text-xs">
