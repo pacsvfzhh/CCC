@@ -186,7 +186,14 @@ const fetchWithXhrFallback: typeof fetch = async (input, init) => {
       xhr.getAllResponseHeaders().trim().split(/[\\r\\n]+/).forEach(line => {
         const separator = line.indexOf(':');
         if (separator > 0) {
-          responseHeaders.set(line.slice(0, separator).trim(), line.slice(separator + 1).trim());
+          try {
+            responseHeaders.append(
+              line.slice(0, separator).trim(),
+              line.slice(separator + 1).trim(),
+            );
+          } catch {
+            return;
+          }
         }
       });
       resolve(new Response(xhr.responseText, {
