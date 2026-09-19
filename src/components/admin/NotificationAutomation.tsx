@@ -1122,13 +1122,13 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       <div><p className="text-[10px] text-slate-500">每次獎金</p><p className="text-sm font-bold text-amber-300">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</p></div>
                     </div>
                     <div className="flex items-center gap-2 lg:justify-end">
+                      <button onClick={() => setDeleteTarget(task)} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-rose-400/25 bg-rose-500/10 px-3 text-xs font-bold text-rose-300 transition-all duration-200 hover:border-rose-300/50 hover:bg-rose-500/20 hover:text-rose-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70" aria-label={`刪除任務 ${task.name}`}><Trash2 className="h-3.5 w-3.5" />刪除</button>
                       <button onClick={() => openTask(task)} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 hover:text-cyan-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"><Edit3 className="h-3.5 w-3.5" />編輯</button>
                       {task.status !== 'active' ? (
                         <button onClick={() => changeStatus(task, 'active')} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-emerald-400/25 bg-emerald-500/15 px-3 text-xs font-bold text-emerald-300 transition-all duration-200 hover:border-emerald-300/40 hover:bg-emerald-500/25 hover:text-emerald-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70"><Play className="h-3.5 w-3.5" />啟用</button>
                       ) : (
                         <button onClick={() => changeStatus(task, 'paused')} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-amber-400/25 bg-amber-500/15 px-3 text-xs font-bold text-amber-300 transition-all duration-200 hover:border-amber-300/40 hover:bg-amber-500/25 hover:text-amber-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"><Pause className="h-3.5 w-3.5" />暫停</button>
                       )}
-                      <button onClick={() => setDeleteTarget(task)} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-rose-400/25 bg-rose-500/10 px-3 text-xs font-bold text-rose-300 transition-all duration-200 hover:border-rose-300/50 hover:bg-rose-500/20 hover:text-rose-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70" aria-label={`刪除任務 ${task.name}`}><Trash2 className="h-3.5 w-3.5" />刪除</button>
                     </div>
                   </article>
                 ))}
