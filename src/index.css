@@ -696,6 +696,37 @@ body {
   }
 }
 
+.message-center-filter-tab {
+  box-sizing: border-box;
+  width: 100%;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 4px 5px !important;
+}
+
+@media (min-width: 640px) {
+  .message-center-filter-tab {
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 8px !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .message-center-filter-tab {
+    height: 48px !important;
+    min-height: 48px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .message-center-filter-tab {
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 8px 12px !important;
+  }
+}
+
 /* High DPI Screens (Retina, Super Retina) */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
   /* Use sharper borders */

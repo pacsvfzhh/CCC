@@ -325,7 +325,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
               {[
                 { id: 'all', label: t.messages.title },
                 { id: 'unread', label: t.messages.unread },
-                { id: 'login', label: t.messages.notification },
+                { id: 'login', label: t.messages.typeLogin },
                 { id: 'realtime', label: t.messages.typeLive }
               ].map(f => {
                 const isActive = filter === f.id;
@@ -334,7 +334,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                     key={f.id}
                     onClick={() => setFilter(f.id as typeof filter)}
                     aria-pressed={isActive}
-                    className={`msg-force-transition relative flex min-w-0 min-h-[40px] items-center justify-center overflow-hidden rounded-xl px-1 py-1.5 text-center text-[10px] leading-tight transition-all duration-200 sm:min-h-[44px] sm:px-2 sm:py-2 sm:text-[11px] md:min-h-[48px] md:text-xs lg:min-h-[40px] lg:px-3 ${
+                    className={`message-center-filter-tab msg-force-transition relative flex min-w-0 items-center justify-center overflow-hidden rounded-xl text-center text-[10px] leading-tight transition-all duration-200 sm:text-[11px] md:text-xs lg:px-3 ${
                       isActive
                         ? 'bg-white/20 font-bold text-white shadow-sm ring-1 ring-white/30'
                         : 'font-medium text-white/65 hover:bg-white/10 hover:text-white'
