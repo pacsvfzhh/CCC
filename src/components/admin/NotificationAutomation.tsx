@@ -264,7 +264,7 @@ function renderPreview(template: string, form: TaskForm, currency: string) {
 function AutomationSectionLoading({ view }: { view: 'tasks' | 'templates' | 'executions' }) {
   const label = view === 'templates' ? '正在同步管理員範本' : view === 'executions' ? '正在同步執行記錄' : '正在同步自動化任務';
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-950/20 backdrop-blur-[1px]" aria-label={label}>
+    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center" aria-label={label}>
       <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-slate-800">
         <span className="block h-full w-1/3 animate-pulse bg-gradient-to-r from-transparent via-cyan-300 to-transparent" />
       </div>
@@ -317,20 +317,28 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
   const [adminMenuPosition, setAdminMenuPosition] = useState({ top: 0, left: 0, width: 244 });
   const adminMenuAnchorRef = useRef<HTMLDivElement>(null);
   const loadRef = useRef<(() => Promise<void>) | null>(null);
+  const dashboardRequestIdRef = useRef(0);
 
   const loadDashboard = async (ownerAdminId = selectedAdminId) => {
+    const requestId = ++dashboardRequestIdRef.current;
+
     try {
       const { data, error } = await supabase.rpc('get_notification_automation_dashboard', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_owner_admin_id: isSuperAdmin && ownerAdminId !== 'all' ? ownerAdminId : null,
       });
       if (error) throw error;
+      if (requestId !== dashboardRequestIdRef.current) return;
       setDashboard((data || { currency: 'USDC', admin_groups: [], tasks: [], shared_templates: [], executions: [] }) as unknown as AutomationDashboard);
     } catch (error) {
-      notify('error', formatSupabaseError(error) || '無法載入自動化任務');
+      if (requestId === dashboardRequestIdRef.current) {
+        notify('error', formatSupabaseError(error) || '無法載入自動化任務');
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === dashboardRequestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
   loadRef.current = loadDashboard;
@@ -795,7 +803,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                   <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-slate-950/40 shadow-inner ${item.color}`}><item.icon className="h-4 w-4" /></div>
                   <div className="min-w-0 flex-1">
                     <p className="whitespace-nowrap text-[10px] font-bold tracking-wide text-slate-100">{item.label}</p>
-                    <p className={`mt-0.5 flex h-5 items-center whitespace-nowrap text-lg font-black tabular-nums leading-5 ${item.color}`}>{refreshing ? <span className="h-3.5 w-10 animate-pulse rounded-full bg-current opacity-25" /> : item.value}</p>
+                    <p className={`mt-0.5 flex h-5 items-center whitespace-nowrap text-lg font-black tabular-nums leading-5 ${item.color}`}>{item.value}</p>
                   </div>
                 </div>
               ))}
@@ -857,12 +865,12 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
             )}
           </div>
 
-          <div className="relative min-h-0 flex-1 overflow-y-auto">
-          <div className={`min-h-full transition-opacity duration-200 ${refreshing ? 'pointer-events-none opacity-55' : 'opacity-100'}`}>
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+          <div className={`h-full overflow-y-auto transition-opacity duration-300 ${refreshing ? 'pointer-events-none opacity-90' : 'opacity-100'}`}>
           <>
           {view === 'tasks' && (
             dashboard.tasks.length === 0 ? (
-              <div className="relative flex min-h-full flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.10),transparent_42%)] px-6 py-16 text-center">
+              <div className="relative flex h-full min-h-[280px] flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.10),transparent_42%)] px-6 py-16 text-center">
                 <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/20 to-blue-500/10 text-cyan-300 shadow-xl shadow-cyan-950/40 ring-1 ring-cyan-300/10"><Bell className="h-8 w-8" /></div>
                 <p className="mt-4 text-base font-bold text-slate-200">尚未建立自動化任務</p>
                 <p className="mt-1 max-w-md text-sm text-slate-500">建立第一個任務，設定觸發條件、通知內容及可選的績效獎金；新任務會先儲存為草稿。</p>
@@ -907,7 +915,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
           {view === 'templates' && (
             dashboard.shared_templates.length === 0 ? (
-              <div className="relative flex min-h-full flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.10),transparent_42%)] px-6 py-16 text-center before:absolute before:inset-0 before:bg-[linear-gradient(rgba(148,163,184,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.025)_1px,transparent_1px)] before:bg-[size:28px_28px]"><div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/20 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 text-violet-300 shadow-xl shadow-violet-950/40"><Copy className="h-8 w-8" /></div><p className="mt-4 font-bold text-slate-300">目前沒有可用的管理員範本</p><p className="mt-1 text-sm text-slate-500">管理員發佈共享範本後，可在這裡勾選並直接套用。</p></div>
+              <div className="relative flex h-full min-h-[280px] flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.10),transparent_42%)] px-6 py-16 text-center before:absolute before:inset-0 before:bg-[linear-gradient(rgba(148,163,184,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.025)_1px,transparent_1px)] before:bg-[size:28px_28px]"><div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/20 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 text-violet-300 shadow-xl shadow-violet-950/40"><Copy className="h-8 w-8" /></div><p className="mt-4 font-bold text-slate-300">目前沒有可用的管理員範本</p><p className="mt-1 text-sm text-slate-500">管理員發佈共享範本後，可在這裡勾選並直接套用。</p></div>
             ) : (
               <div className="divide-y divide-slate-800/80">
                 {dashboard.shared_templates.map(task => {
@@ -948,7 +956,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
           )}
 
           {view === 'executions' && (
-            <div className="flex min-h-full flex-col bg-slate-900">
+            <div className="flex h-full min-h-[280px] flex-col bg-slate-900">
               <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
                 <table className="w-full min-w-[850px] text-left text-xs">
                   <thead className="bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 text-white shadow-md shadow-blue-950/40"><tr><th className="px-5 py-2 font-black">任務</th><th className="px-4 py-2 font-black">員工</th><th className="px-4 py-2 font-black">階段</th><th className="px-4 py-2 font-black">實際數值</th><th className="px-4 py-2 font-black">獎金</th><th className="px-4 py-2 font-black">狀態</th><th className="px-5 py-2 text-right font-black">執行時間</th></tr></thead>
