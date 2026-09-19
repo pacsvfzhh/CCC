@@ -299,14 +299,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <button
-                    onClick={handleClose}
-                    aria-label={t.messages.close}
-                    title={t.messages.close}
-                    className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-xl border transition-colors active:scale-95 ${isReward ? 'border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
-                  >
-                    <X className="h-4 w-4" strokeWidth={2.5} />
-                  </button>
+                  
                   <button
                     onClick={handleNext}
                     className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 active:from-amber-600 active:via-yellow-600 active:to-orange-600' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/25 active:from-blue-700 active:to-blue-800'}`}
@@ -444,14 +437,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   </div>
                 </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <button
-                      onClick={handleClose}
-                      aria-label={t.messages.close}
-                      title={t.messages.close}
-                      className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-xl border transition-colors active:scale-95 ${isReward ? 'border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
-                    >
-                      <X className="h-4 w-4" strokeWidth={2.5} />
-                    </button>
+                    
                     <button
                       onClick={handleNext}
                       className={`flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600 hover:shadow-lg hover:shadow-amber-500/35' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:shadow-blue-500/30'}`}
