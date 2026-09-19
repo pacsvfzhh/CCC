@@ -305,7 +305,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [form, setForm] = useState<TaskForm>(createDefaultForm());
   const [templateCustomized, setTemplateCustomized] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-  const [selectedAdminId, setSelectedAdminId] = useState('all');
+  const [selectedAdminId, setSelectedAdminId] = useState(admin.id);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [adminMenuPosition, setAdminMenuPosition] = useState({ top: 0, left: 0, width: 244 });
   const [notice, setNotice] = useState<AutomationNotice | null>(null);
@@ -323,7 +323,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     try {
       const { data, error } = await supabase.rpc('get_notification_automation_dashboard', {
         p_admin_session_token: getAdminFinancialSessionToken(),
-        p_owner_admin_id: isSuperAdmin && ownerAdminId !== 'all' ? ownerAdminId : null,
+        p_owner_admin_id: isSuperAdmin ? ownerAdminId : null,
       });
       if (error) throw error;
       if (requestId !== dashboardRequestIdRef.current) return;
@@ -796,7 +796,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const selectedTemplate = dashboard.shared_templates.find(task => task.id === selectedTemplateId);
   const selectedAdmin = dashboard.admin_groups.find(group => group.id === selectedAdminId);
   const taskTabLabel = isSuperAdmin
-    ? selectedAdmin ? `${selectedAdmin.username} 的任務` : '全部管理員任務'
+    ? `${selectedAdmin?.username || admin.username} 的任務`
     : '我的任務';
 
   const selectAdminGroup = (nextAdminId: string) => {
@@ -862,7 +862,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       aria-expanded={adminMenuOpen}
                       className={`mt-0.5 flex h-7 w-full items-center justify-between gap-2 rounded-lg border px-2.5 text-left text-[11px] font-black outline-none transition-all duration-200 ${adminMenuOpen ? 'border-sky-300/60 bg-sky-300/15 text-white ring-2 ring-sky-300/20' : 'border-sky-200/20 bg-slate-950/45 text-sky-50 hover:border-sky-300/45 hover:bg-sky-400/10'} disabled:cursor-wait disabled:opacity-60`}
                     >
-                      <span className="truncate">{selectedAdmin ? selectedAdmin.username : '全部管理員'}</span>
+                      <span className="truncate">{selectedAdmin?.username || admin.username}</span>
                       {refreshing ? (
                         <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin text-sky-200" />
                       ) : (
@@ -1050,11 +1050,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
           onMouseDown={event => event.stopPropagation()}
         >
           <div className="relative max-h-48 overflow-y-auto py-0.5 [scrollbar-color:rgba(125,211,252,0.65)_rgba(15,23,42,0.35)] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-sky-300/60 [&::-webkit-scrollbar-track]:bg-slate-950/30 [&::-webkit-scrollbar]:w-1.5">
-            <button type="button" role="option" aria-selected={selectedAdminId === 'all'} onClick={() => selectAdminGroup('all')} className={`group flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition-all duration-150 ${selectedAdminId === 'all' ? 'border-sky-300/25 bg-gradient-to-r from-sky-500/25 via-blue-500/15 to-indigo-500/10 text-white shadow-inner ring-1 ring-inset ring-sky-300/30' : 'border-transparent bg-slate-950/10 text-slate-300 hover:border-white/15 hover:bg-gradient-to-r hover:from-slate-600/45 hover:to-slate-700/35 hover:text-white hover:shadow-[0_4px_12px_rgba(2,8,23,0.22)]'}`}>
-              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all duration-150 ${selectedAdminId === 'all' ? 'bg-gradient-to-br from-sky-300 to-blue-500 text-blue-950 shadow-sm shadow-sky-950/40' : 'border border-slate-700 bg-slate-800/90 text-sky-300 group-hover:border-slate-400/50 group-hover:bg-slate-600 group-hover:text-white'}`}><Users className="h-4 w-4" /></span>
-              <span className="min-w-0 flex-1 truncate text-[11px] font-black">全部管理員</span>
-              {selectedAdminId === 'all' && <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-300" />}
-            </button>
             {dashboard.admin_groups.map(group => {
               const selected = selectedAdminId === group.id;
               const current = group.id === admin.id;
