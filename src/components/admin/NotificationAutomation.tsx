@@ -915,7 +915,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   </label>
                   <label className="flex min-h-0 flex-1 flex-col">
                     <span className="mb-1 block text-xs font-semibold text-slate-400">通知內容</span>
-                    <textarea disabled={readOnly} rows={3} value={form.contentTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, contentTemplate: event.target.value })); }} className="min-h-16 w-full flex-1 resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 shadow-sm outline-none transition-all duration-200 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
+                    <textarea disabled={readOnly} rows={3} value={form.contentTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, contentTemplate: event.target.value })); }} className="dark-panel-scroll min-h-16 w-full flex-1 resize-none overflow-y-auto rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 shadow-sm outline-none transition-all duration-200 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
                 </div>
               </section>
