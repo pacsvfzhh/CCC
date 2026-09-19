@@ -97,6 +97,10 @@ function setButtonLabel(button: HTMLButtonElement, label: string) {
   button.title = label;
 }
 
+function setButtonCopiedState(button: HTMLButtonElement, copied: boolean) {
+  button.classList.toggle('is-copied', copied);
+}
+
 async function copyText(text: string) {
   if (navigator.clipboard?.writeText && window.isSecureContext) {
     try {
@@ -196,12 +200,17 @@ export default function QuickCopyRichContent({
       await copyText(text);
       container.querySelectorAll<HTMLButtonElement>('button.message-quick-copy-button').forEach(copyButton => {
         setButtonLabel(copyButton, copyLabel);
+        setButtonCopiedState(copyButton, false);
       });
       setButtonLabel(button, copiedLabel);
+      setButtonCopiedState(button, true);
 
       if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current);
       resetTimerRef.current = window.setTimeout(() => {
-        if (button.isConnected) setButtonLabel(button, copyLabel);
+        if (button.isConnected) {
+          setButtonLabel(button, copyLabel);
+          setButtonCopiedState(button, false);
+        }
         resetTimerRef.current = null;
       }, 1800);
     } catch (error) {
@@ -253,6 +262,17 @@ export default function QuickCopyRichContent({
           background: linear-gradient(135deg, rgb(224 242 254) 0%, rgb(186 230 253) 52%, rgb(165 243 252) 100%);
           color: rgb(3 105 161);
           box-shadow: 0 6px 14px rgba(14, 116, 144, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
+        .quick-copy-rich-content .message-quick-copy-button.is-copied {
+          border-color: rgba(16, 185, 129, 0.55);
+          background: linear-gradient(135deg, rgb(236 253 245) 0%, rgb(209 250 229) 52%, rgb(167 243 208) 100%);
+          color: rgb(4 120 87);
+          box-shadow: 0 6px 14px rgba(5, 150, 105, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
+        .quick-copy-rich-content .message-quick-copy-button.is-copied:hover {
+          border-color: rgba(5, 150, 105, 0.7);
+          background: linear-gradient(135deg, rgb(209 250 229) 0%, rgb(167 243 208) 52%, rgb(110 231 183) 100%);
+          color: rgb(4 120 87);
         }
         .quick-copy-rich-content .message-quick-copy-button:active {
           transform: translateY(1px) scale(0.98);
