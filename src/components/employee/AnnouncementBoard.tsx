@@ -173,7 +173,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
       'green': '#4ade80',
       'yellow': '#facc15',
       'purple': '#c084fc',
-      'slate': '#94a3b8',
+      'slate': '#64748b',
     };
 
     const categoryInfo = announcement.category ? categories.get(announcement.category) : null;
@@ -1465,11 +1465,11 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
               {/* Render announcements - duplicate for carousel when enabled */}
               {(carouselEnabled && announcements.length > 1 && !isTabletDevice ? [...announcements, ...announcements] : announcements).map((announcement, index) => {
                 const cardColorVariants = [
-                  { gradient: 'from-blue-50 via-white to-sky-50', ring: 'ring-blue-200/80', accent: 'from-blue-500 via-sky-400 to-cyan-400', iconBg: 'bg-gradient-to-br from-blue-500 to-sky-500', patternColor: 'border-blue-200', hoverShadow: 'hover:shadow-blue-100/60' },
-                  { gradient: 'from-sky-50 via-white to-cyan-50', ring: 'ring-sky-200/80', accent: 'from-sky-500 via-cyan-400 to-teal-400', iconBg: 'bg-gradient-to-br from-sky-500 to-cyan-500', patternColor: 'border-sky-200', hoverShadow: 'hover:shadow-sky-100/60' },
-                  { gradient: 'from-cyan-50 via-white to-blue-50', ring: 'ring-cyan-200/80', accent: 'from-cyan-500 via-blue-400 to-sky-400', iconBg: 'bg-gradient-to-br from-cyan-500 to-blue-500', patternColor: 'border-cyan-200', hoverShadow: 'hover:shadow-cyan-100/60' },
+                  { gradient: 'from-blue-100/60 via-white to-sky-50', ring: 'ring-blue-200/90', accent: 'from-blue-500 via-sky-400 to-cyan-400', iconBg: 'bg-gradient-to-br from-blue-500 to-sky-500', patternColor: 'border-blue-200', hoverShadow: 'hover:shadow-blue-100/60' },
+                  { gradient: 'from-sky-100/60 via-white to-cyan-50', ring: 'ring-sky-200/90', accent: 'from-sky-500 via-cyan-400 to-teal-400', iconBg: 'bg-gradient-to-br from-sky-500 to-cyan-500', patternColor: 'border-sky-200', hoverShadow: 'hover:shadow-sky-100/60' },
+                  { gradient: 'from-cyan-100/60 via-white to-blue-50', ring: 'ring-cyan-200/90', accent: 'from-cyan-500 via-blue-400 to-sky-400', iconBg: 'bg-gradient-to-br from-cyan-500 to-blue-500', patternColor: 'border-cyan-200', hoverShadow: 'hover:shadow-cyan-100/60' },
                 ];
-                const pinnedStyle = { gradient: 'from-amber-50 via-white to-orange-50', ring: 'ring-amber-200/80', accent: 'from-amber-500 via-orange-400 to-yellow-400', iconBg: 'bg-gradient-to-br from-amber-500 to-orange-500', patternColor: 'border-amber-200', hoverShadow: 'hover:shadow-amber-100/60' };
+                const pinnedStyle = { gradient: 'from-amber-100/60 via-white to-orange-50', ring: 'ring-amber-300/80', accent: 'from-amber-500 via-orange-400 to-yellow-400', iconBg: 'bg-gradient-to-br from-amber-500 to-orange-500', patternColor: 'border-amber-200', hoverShadow: 'hover:shadow-amber-100/60' };
                 const cardStyle = announcement.is_pinned ? pinnedStyle : cardColorVariants[index % cardColorVariants.length];
                 const CategoryIcon = getCategoryIcon(announcement);
                 const categoryColor = getCategoryColor(announcement);
@@ -1551,10 +1551,10 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                               <span
                                 className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ring-1"
                                 style={{
-                                  backgroundColor: `${categoryColor}20`,
+                                  backgroundColor: `${categoryColor}28`,
                                   color: categoryColor,
-                                  borderColor: `${categoryColor}50`,
-                                  boxShadow: `0 0 0 1px ${categoryColor}25`
+                                  borderColor: `${categoryColor}60`,
+                                  boxShadow: `0 0 0 1px ${categoryColor}30`
                                 }}
                               >
                                 {translateCategory(announcement.category)}
