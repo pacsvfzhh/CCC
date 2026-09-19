@@ -1139,7 +1139,13 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : task.status === 'paused' ? 'border-amber-300/25 bg-amber-400/15 text-amber-200' : task.status === 'archived' ? 'border-slate-500/50 bg-slate-700/70 text-slate-300' : 'border-cyan-300/20 bg-cyan-400/10 text-cyan-200'}`}>{statusLabels[task.status]}</span>
                             {task.reward_enabled && <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-2 py-0.5 text-[10px] font-black text-amber-200">獎勵</span>}
                           </div>
-                          <p className="mt-0.5 text-[10px] text-slate-400">{task.owner_username} · V{task.version}{task.is_shared_template ? ' · 共享範本' : ''}{task.source_task_id ? ' · 由範本複製' : ''}</p>
+                          <p className={`mt-0.5 flex flex-wrap items-center gap-1 text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : task.status === 'paused' ? 'text-amber-200/80' : task.status === 'archived' ? 'text-slate-300/75' : task.is_shared_template ? 'text-violet-200/80' : 'text-cyan-200/75'}`}>
+                            <span>{task.owner_username}</span>
+                            <span className="opacity-50">·</span>
+                            <span title="版本號會在任務編輯儲存後遞增">版本 {task.version}</span>
+                            {task.is_shared_template && <><span className="opacity-50">·</span><span className="rounded-full border border-current/25 bg-current/10 px-1.5 py-0.5 font-bold">共享範本</span></>}
+                            {task.source_task_id && <><span className="opacity-50">·</span><span>由範本複製</span></>}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1214,9 +1220,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               <h3 className="truncate text-sm font-black text-white">{task.name}</h3>
                               <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : task.status === 'paused' ? 'border-amber-300/25 bg-amber-400/15 text-amber-200' : 'border-violet-300/20 bg-violet-400/10 text-violet-200'}`}>{statusLabels[task.status]}</span>
                             </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-violet-200/70">
-                              <span className="inline-flex items-center gap-1 rounded-md border border-violet-400/20 bg-violet-500/10 px-1.5 py-0.5 font-semibold text-violet-100"><ShieldCheck className="h-3 w-3" />範本提供者</span>
-                              <span>{task.owner_username} · V{task.version}</span>
+                            <div className={`mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : task.status === 'paused' ? 'text-amber-200/80' : 'text-violet-200/75'}`}>
+                              <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-semibold ${task.status === 'active' ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100' : task.status === 'paused' ? 'border-amber-300/20 bg-amber-400/10 text-amber-100' : 'border-violet-300/20 bg-violet-400/10 text-violet-100'}`}><ShieldCheck className="h-3 w-3" />範本提供者</span>
+                              <span>·</span>
+                              <span title="版本號會在任務編輯儲存後遞增">版本 {task.version}</span>
                             </div>
                           </div>
                         </div>
