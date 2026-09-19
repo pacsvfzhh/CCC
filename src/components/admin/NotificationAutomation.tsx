@@ -303,6 +303,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [editorOpen, setEditorOpen] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
   const [form, setForm] = useState<TaskForm>(createDefaultForm());
+  const [copiedFromName, setCopiedFromName] = useState<string | null>(null);
   const [templateCustomized, setTemplateCustomized] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedAdminId, setSelectedAdminId] = useState(admin.id);
@@ -375,6 +376,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     next.titleTemplate = template.title;
     next.contentTemplate = template.content;
     setForm(next);
+    setCopiedFromName(null);
     setTemplateCustomized(false);
     setReadOnly(false);
     setEditorOpen(true);
@@ -382,6 +384,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   const openTask = (task: AutomationTask, onlyView = false) => {
     setForm(taskToForm(task));
+    setCopiedFromName(null);
     setTemplateCustomized(true);
     setReadOnly(onlyView || task.owner_admin_id !== admin.id);
     setEditorOpen(true);
@@ -456,6 +459,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             : '自動化任務已儲存為草稿',
       );
       setEditorOpen(false);
+      setCopiedFromName(null);
       if (saveSharedTemplate) setView('templates');
       const nextAdminId = isSuperAdmin ? admin.id : selectedAdminId;
       setSelectedAdminId(nextAdminId);
@@ -525,7 +529,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
           total_rewards: 0,
           updated_at: new Date().toISOString(),
         };
-        setForm(taskToForm(copiedTask));
+        setForm({ ...taskToForm(copiedTask), name: '' });
+        setCopiedFromName(task.name);
         setTemplateCustomized(true);
         setReadOnly(false);
         setView('templates');
@@ -592,7 +597,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         {noticeCard}
         <div className="relative z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/70 px-4 py-3.5 shadow-lg shadow-slate-950/30 sm:px-5">
           <div className="flex items-center gap-3">
-            <button onClick={() => setEditorOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-400/40 bg-red-500/15 text-red-300 shadow-sm transition-all duration-200 hover:border-red-300/70 hover:bg-red-500/30 hover:text-red-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+            <button onClick={() => { setCopiedFromName(null); setEditorOpen(false); }} className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-400/40 bg-red-500/15 text-red-300 shadow-sm transition-all duration-200 hover:border-red-300/70 hover:bg-red-500/30 hover:text-red-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div>
@@ -600,6 +605,14 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               <p className="mt-0.5 text-xs font-medium text-slate-400">通知內容使用英文，管理介面使用繁體中文</p>
             </div>
           </div>
+          {copiedFromName && (
+            <div className="flex min-w-0 items-center gap-2 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-100 shadow-inner">
+              <Copy className="h-3.5 w-3.5 shrink-0 text-amber-300" />
+              <span className="shrink-0 font-semibold text-amber-200/80">原任務名稱</span>
+              <span className="max-w-[220px] truncate font-black text-white" title={copiedFromName}>{copiedFromName}</span>
+              <span className="hidden text-amber-200/70 sm:inline">請重新設定名稱後儲存</span>
+            </div>
+          )}
           {!readOnly && (
             <button disabled={saving} onClick={saveTask} className="inline-flex h-9 items-center gap-2 rounded-xl border border-cyan-300/30 bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 px-4 text-sm font-black text-white shadow-lg shadow-cyan-950/50 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-cyan-500/20 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:brightness-100">
               {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
@@ -619,7 +632,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="sm:col-span-2">
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">任務名稱</span>
-                    <input disabled={readOnly} value={form.name} onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" placeholder="例如：100 筆訂單鼓勵通知" />
+                    <input disabled={readOnly} value={form.name} onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" placeholder={copiedFromName ? '請輸入新的任務名稱' : '例如：100 筆訂單鼓勵通知'} />
                   </label>
                   <label className="sm:col-span-2">
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">任務說明</span>
