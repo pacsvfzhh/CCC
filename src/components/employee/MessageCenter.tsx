@@ -422,7 +422,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                       {isUnread && (
                         <>
                           <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-br from-white/25 via-transparent to-transparent" />
-                          <div className={`pointer-events-none absolute inset-0 z-0 bg-gradient-to-br ${style.accent} opacity-[0.14]`} />
+                          <div className={`pointer-events-none absolute inset-0 z-0 bg-gradient-to-br ${style.accent} opacity-[0.24]`} />
                           <div className="absolute top-0 right-0 z-0 h-20 w-20 overflow-hidden pointer-events-none">
                             <div className={`absolute -top-10 -right-10 h-20 w-20 bg-gradient-to-bl ${style.accent} opacity-[0.28] rounded-full`} />
                           </div>
