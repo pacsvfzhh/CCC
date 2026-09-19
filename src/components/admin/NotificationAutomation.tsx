@@ -1127,16 +1127,16 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             ) : (
               <div className="space-y-2 p-2 sm:p-3">
                 {orderedTasks.map(task => (
-                  <article key={task.id} className={`group relative grid gap-3 overflow-hidden rounded-xl border border-l-4 px-3 py-2.5 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[minmax(170px,.75fr)_minmax(520px,2.5fr)_auto] lg:items-center ${task.status === 'active' ? 'border-emerald-300/20 border-l-emerald-400 bg-gradient-to-br from-emerald-950/45 via-slate-900 to-slate-950 shadow-lg shadow-emerald-950/20 hover:border-emerald-200/35' : 'border-slate-700/70 border-l-slate-700 bg-gradient-to-br from-slate-950 via-slate-950 to-black shadow-lg shadow-black/35 hover:border-slate-600'}`}>
+                  <article key={task.id} className={`group relative grid gap-3 overflow-hidden rounded-xl border border-l-4 px-3 py-2.5 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[minmax(170px,.75fr)_minmax(520px,2.5fr)_auto] lg:items-center ${task.status === 'active' ? 'border-emerald-300/25 border-l-emerald-500 bg-gradient-to-br from-emerald-950/75 via-emerald-950/55 to-slate-950 shadow-lg shadow-emerald-950/35 hover:border-emerald-200/40' : 'border-slate-700/70 border-l-slate-700 bg-gradient-to-br from-slate-950 via-slate-950 to-black shadow-lg shadow-black/35 hover:border-slate-600'}`}>
                     <div className="min-w-0">
                       <div className="flex items-start gap-2">
-                        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
+                        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-emerald-300/30 bg-emerald-950/70 text-emerald-300' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
                           {task.reward_enabled ? <Gift className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
                         </span>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="truncate text-sm font-black text-white">{task.name}</h3>
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : 'border-slate-700/70 bg-slate-950/85 text-slate-400'}`}>{statusLabels[task.status]}</span>
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/30 bg-emerald-950/70 text-emerald-200' : 'border-slate-700/70 bg-slate-950/85 text-slate-400'}`}>{statusLabels[task.status]}</span>
                             {task.reward_enabled && <span className="rounded-full border border-slate-700/70 bg-slate-950/85 px-2 py-0.5 text-[10px] font-black text-slate-400">獎勵</span>}
                           </div>
                           <p className={`mt-0.5 flex flex-wrap items-center gap-1 text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-500/90'}`}>
@@ -1147,7 +1147,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         </div>
                       </div>
                     </div>
-                    <div className={`min-w-0 overflow-hidden rounded-lg border px-2 py-1.5 sm:grid sm:grid-cols-[2.2fr_1.2fr_1fr_1fr] sm:divide-x ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-950/30 sm:divide-emerald-300/15' : 'border-slate-700/80 bg-black/40 sm:divide-slate-800/90'}`}>
+                    <div className={`min-w-0 overflow-hidden rounded-lg border px-2 py-1.5 sm:grid sm:grid-cols-[2.2fr_1.2fr_1fr_1fr] sm:divide-x ${task.status === 'active' ? 'border-emerald-300/30 bg-emerald-950/55 sm:divide-emerald-300/20' : 'border-slate-700/80 bg-black/40 sm:divide-slate-800/90'}`}>
                       <div className="min-w-0 px-2 sm:col-span-1">
                         <p className={`text-[9px] font-black tracking-wider ${task.status === 'active' ? 'text-cyan-300/80' : 'text-slate-500'}`}>{triggerLabels[task.trigger_type]}</p>
                         <p className={`mt-0.5 truncate text-[11px] font-semibold ${task.status === 'active' ? 'text-slate-200' : 'text-slate-400'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
