@@ -1035,7 +1035,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       </div>
                       <div>
                         <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${form.rewardEnabled ? 'text-amber-300' : 'text-cyan-300'}`}>{form.rewardEnabled ? 'Performance Reward' : 'Achievement Notice'}</span>
-                        <p className="text-[10px] text-slate-400">員工端預覽</p>
+                        <p className="mt-0.5 text-xs font-semibold text-cyan-100/90">員工端預覽</p>
                       </div>
                     </div>
                     <ShieldCheck className="h-4 w-4 text-emerald-400" />
