@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Copy,
   Edit3,
+  Eye,
   FileText,
   Gift,
   History,
@@ -332,6 +333,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [adminMenuPosition, setAdminMenuPosition] = useState({ top: 0, left: 0, width: 244 });
   const [notice, setNotice] = useState<AutomationNotice | null>(null);
   const [variableHelpOpen, setVariableHelpOpen] = useState(false);
+  const [employeePreviewOpen, setEmployeePreviewOpen] = useState(false);
   const adminMenuAnchorRef = useRef<HTMLDivElement>(null);
   const loadRef = useRef<(() => Promise<void>) | null>(null);
   const dashboardRequestIdRef = useRef(0);
@@ -416,6 +418,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     setTemplateCustomized(false);
     setReadOnly(false);
     setVariableHelpOpen(false);
+    setEmployeePreviewOpen(false);
     setEditorOpen(true);
   };
 
@@ -426,6 +429,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     setTemplateCustomized(true);
     setReadOnly(onlyView || task.owner_admin_id !== admin.id);
     setVariableHelpOpen(false);
+    setEmployeePreviewOpen(false);
     setEditorOpen(true);
   };
 
@@ -506,6 +510,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       );
       setEditorOpen(false);
       setVariableHelpOpen(false);
+      setEmployeePreviewOpen(false);
       setCopiedFromName(null);
       setCopySourceTaskId(null);
       if (saveSharedTemplate) setView('templates');
@@ -840,13 +845,74 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   if (editorOpen) {
     const previewTitle = renderPreview(form.titleTemplate, form, dashboard.currency);
     const previewContent = renderPreview(form.contentTemplate, form, dashboard.currency);
+    const employeePreviewDialog = employeePreviewOpen && createPortal(
+      <div
+        className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm"
+        role="presentation"
+        onMouseDown={() => setEmployeePreviewOpen(false)}
+      >
+        <div
+          className="pointer-events-auto flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-2xl shadow-blue-900/20"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="employee-notification-preview-title"
+          onMouseDown={event => event.stopPropagation()}
+        >
+          <div className={`relative flex shrink-0 items-center justify-between px-6 py-5 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-500 via-yellow-500 to-orange-500' : 'bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800'}`}>
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.14)_0%,_transparent_60%)]" />
+            <div className="relative flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-white shadow-lg">
+                {form.rewardEnabled ? <Gift className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+              </div>
+              <div className="min-w-0">
+                <h2 id="employee-notification-preview-title" className="truncate text-lg font-bold tracking-tight text-white">{form.rewardEnabled ? 'Performance Reward' : 'Achievement Notice'}</h2>
+                <p className="mt-0.5 text-xs font-semibold text-white/75">員工端通知預覽</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => setEmployeePreviewOpen(false)} className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80" aria-label="關閉員工端預覽">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6">
+            <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-blue-900/5">
+              {form.rewardEnabled && (
+                <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 sm:px-6">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">Credited to Your Wallet</p>
+                  <p className="mt-1 text-3xl font-black text-amber-700">+{Number(form.rewardAmount || 0).toFixed(2)} <span className="text-lg">{dashboard.currency}</span></p>
+                </div>
+              )}
+              <div className={`border-b border-slate-100 px-5 py-5 sm:px-6 ${form.rewardEnabled ? 'bg-gradient-to-r from-amber-50/60 to-transparent' : 'bg-gradient-to-r from-blue-50/50 to-transparent'}`}>
+                <h3 className="break-words text-xl font-bold leading-snug text-slate-900">{previewTitle || 'Notification title'}</h3>
+                <div className={`mt-4 h-px bg-gradient-to-r to-transparent ${form.rewardEnabled ? 'from-amber-200 via-orange-200' : 'from-blue-100 via-slate-200'}`} />
+              </div>
+              <div className="px-5 py-5 sm:px-6">
+                {form.rewardEnabled && (
+                  <div className="mb-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                    <Wallet className="h-5 w-5 shrink-0 text-emerald-600" />
+                    <p className="text-sm font-semibold leading-5 text-emerald-700">The reward has already been added to your wallet and Daily Statistics.</p>
+                  </div>
+                )}
+                <div className="message-content-dark text-sm leading-7 text-slate-700" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 justify-end border-t border-slate-200 bg-gradient-to-r from-slate-50/80 to-blue-50/30 px-6 py-4">
+            <button type="button" onClick={() => setEmployeePreviewOpen(false)} className="min-h-10 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition-all hover:from-blue-700 hover:to-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70">關閉預覽</button>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
         {noticeCard}
         {variableHelpDialog}
+        {employeePreviewDialog}
         <div className="relative z-10 flex h-11 shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-cyan-300/25 bg-gradient-to-r from-blue-950 via-cyan-900 to-blue-950 px-3 shadow-lg shadow-blue-950/70">
           <div className="flex min-w-0 items-center gap-2">
-            <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setVariableHelpOpen(false); setEditorOpen(false); }} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-200/70 bg-red-600 text-white shadow-md shadow-red-950/35 transition-colors hover:border-white hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/80">
+            <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setVariableHelpOpen(false); setEmployeePreviewOpen(false); setEditorOpen(false); }} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-200/70 bg-red-600 text-white shadow-md shadow-red-950/35 transition-colors hover:border-white hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/80">
               <ArrowLeft className="h-3.5 w-3.5" />
             </button>
             <h2 className="truncate text-base font-black tracking-tight text-white drop-shadow-sm">{readOnly ? '查看管理員範本' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2>
@@ -995,8 +1061,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               </section>
               </div>
 
-              <div className="min-h-0 overflow-hidden xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:grid xl:grid-rows-[minmax(0,0.5fr)_minmax(0,0.5fr)] xl:border-l xl:border-slate-700/70">
-              <section className="flex min-h-0 flex-col overflow-hidden border-b border-slate-700/70 p-3">
+              <div className="min-h-0 overflow-hidden xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:border-l xl:border-slate-700/70">
+              <section className="flex h-full min-h-0 flex-col overflow-hidden p-3">
                 <div className="mb-2 flex min-h-0 shrink-0 flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
                     <FileText className="h-4 w-4 shrink-0 text-cyan-300" />
@@ -1006,6 +1072,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
+                    <button type="button" onClick={() => setEmployeePreviewOpen(true)} aria-haspopup="dialog" aria-expanded={employeePreviewOpen} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-blue-300/35 bg-blue-500/15 px-2.5 text-[11px] font-bold text-blue-100 transition-colors hover:border-blue-200/70 hover:bg-blue-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70">
+                      <Eye className="h-3.5 w-3.5" />
+                      員工端預覽
+                    </button>
                     <button type="button" onClick={() => setVariableHelpOpen(true)} aria-haspopup="dialog" aria-expanded={variableHelpOpen} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 text-[11px] font-bold text-cyan-200 transition-colors hover:border-cyan-200/60 hover:bg-cyan-500/20 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70">
                       <Info className="h-3.5 w-3.5" />
                       變數說明
@@ -1025,51 +1095,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 </div>
               </section>
 
-            <aside className="min-h-0 min-w-0 overflow-hidden border-t border-slate-700/70 p-0 xl:border-t-0">
-              <div className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden ${form.rewardEnabled ? 'border-amber-400/30 bg-gradient-to-b from-amber-950 via-slate-900 to-slate-950 shadow-amber-950/40' : 'border-cyan-500/20 bg-gradient-to-b from-cyan-950 via-slate-900 to-slate-950 shadow-cyan-950/40'}`}>
-                <div className={`shrink-0 p-3 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-400/20 to-orange-500/5' : 'bg-gradient-to-br from-cyan-400/15 to-blue-500/5'}`}>
-                  <div className="flex min-w-0 items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${form.rewardEnabled ? 'bg-amber-400 text-amber-950' : 'bg-cyan-500 text-white'}`}>
-                        {form.rewardEnabled ? <Gift className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
-                      </div>
-                      <div className="min-w-0">
-                        <span className={`block truncate text-[10px] font-black uppercase tracking-[0.18em] ${form.rewardEnabled ? 'text-amber-300' : 'text-cyan-300'}`}>{form.rewardEnabled ? 'Performance Reward' : 'Achievement Notice'}</span>
-                        <p className="mt-0.5 text-xs font-semibold text-cyan-100/90">員工端預覽</p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {form.rewardEnabled && (
-                        <div className="flex items-center gap-2 rounded-lg border border-amber-300/20 bg-amber-400/10 px-2.5 py-1">
-                          <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-300/75">Wallet bonus</p>
-                          <p className="text-sm font-black tabular-nums text-amber-200">+{Number(form.rewardAmount || 0).toFixed(2)} <span className="text-[10px]">{dashboard.currency}</span></p>
-                        </div>
-                      )}
-                      <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-400" />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden p-3 pr-4">
-                  <h3 className="shrink-0 truncate text-base font-bold leading-snug text-white" title={previewTitle}>{previewTitle || 'Notification title'}</h3>
-                  <div className="dark-panel-scroll min-h-0 min-w-0 flex-1 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-slate-300" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
-                  <div className="grid min-w-0 shrink-0 gap-2 sm:grid-cols-2">
-                    <div className="min-w-0 rounded-lg border border-slate-700/70 bg-slate-950/60 p-2">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">觸發條件</p>
-                      <p className="mt-0.5 truncate text-xs font-semibold text-slate-200">{summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}</p>
-                    </div>
-                    {form.rewardEnabled && (
-                      <div className="flex min-w-0 items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2">
-                        <Wallet className="h-4 w-4 shrink-0 text-emerald-400" />
-                        <div className="min-w-0">
-                          <p className="truncate text-xs font-bold text-emerald-200">績效獎金</p>
-                          <p className="truncate text-[10px] text-emerald-300/60">錢包與每日統計將自動更新</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </aside>
               </div>
               </div>
           </div>
