@@ -1133,8 +1133,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <div className="min-w-[1040px]">
-                  <div className="grid grid-cols-[minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-l-2 border-l-transparent bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 px-3 text-[10px] font-black tracking-wider text-white shadow-md shadow-blue-950/40">
+                <div className="min-w-[1100px]">
+                  <div className="grid grid-cols-[48px_minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-l-2 border-l-transparent bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 px-3 text-[10px] font-black tracking-wider text-white shadow-md shadow-blue-950/40">
+                    <div className="px-2 py-2 text-center">序號</div>
                     <div className="px-2 py-2 pl-[54px]">任務</div>
                     <div className="px-2 py-2">觸發條件</div>
                     <div className="px-2 py-2">適用範圍</div>
@@ -1143,8 +1144,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <div className="px-2 py-2 text-right">操作</div>
                   </div>
                   <div>
-                    {orderedTasks.map(task => (
-                      <div key={task.id} className={`group relative grid grid-cols-[minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-b border-l-2 border-l-transparent border-slate-800/80 px-3 transition-colors duration-200 before:absolute before:left-0 before:content-[''] ${task.status === 'active' ? 'bg-emerald-950/35 hover:bg-emerald-950/50 before:inset-y-1.5 before:w-2 before:rounded-r-full before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-500 before:to-teal-700 before:shadow-[0_0_16px_rgba(16,185,129,0.65)]' : 'bg-slate-950/55 hover:bg-slate-900/80 before:inset-y-2 before:w-1 before:rounded-r-full before:bg-slate-700/80'}`}>
+                    {orderedTasks.map((task, index) => (
+                      <div key={task.id} className={`group relative grid grid-cols-[48px_minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-b border-l-2 border-l-transparent border-slate-800/80 px-3 transition-colors duration-200 before:absolute before:left-0 before:content-[''] ${task.status === 'active' ? 'bg-emerald-950/35 hover:bg-emerald-950/50 before:inset-y-1.5 before:w-2 before:rounded-r-full before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-500 before:to-teal-700 before:shadow-[0_0_16px_rgba(16,185,129,0.65)]' : 'bg-slate-950/55 hover:bg-slate-900/80 before:inset-y-2 before:w-1 before:rounded-r-full before:bg-slate-700/80'}`}>
+                        <div className={`flex items-center justify-center px-2 py-2.5 text-xs font-black tabular-nums ${task.status === 'active' ? 'text-emerald-300' : 'text-slate-600'}`}>{index + 1}</div>
                         <div className="min-w-0 px-2 py-2.5">
                           <div className="flex min-w-0 items-center gap-2.5">
                             <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-emerald-300/40 bg-gradient-to-br from-emerald-400/30 via-emerald-700/25 to-emerald-950 text-emerald-200 shadow-[0_0_18px_rgba(16,185,129,0.22)] ring-1 ring-inset ring-emerald-300/15' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
@@ -1199,7 +1201,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             ) : (
               <div className="overflow-x-auto">
                 <div className="min-w-[1040px]">
-                  <div className="grid grid-cols-[48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_auto] border-l-2 border-l-transparent bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 px-3 text-[10px] font-black tracking-wider text-white shadow-md shadow-blue-950/40">
+                  <div className="grid grid-cols-[48px_48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_96px] border-l-2 border-l-transparent bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 px-3 text-[10px] font-black tracking-wider text-white shadow-md shadow-blue-950/40">
+                    <div className="px-2 py-2 text-center">序號</div>
                     <div className="px-2 py-2 text-center">選取</div>
                     <div className="px-2 py-2 pl-[46px]">管理員範本</div>
                     <div className="px-2 py-2">觸發條件</div>
@@ -1208,11 +1211,12 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <div className="px-2 py-2 text-right">操作</div>
                   </div>
                   <div>
-                    {orderedSharedTemplates.map(task => {
+                    {orderedSharedTemplates.map((task, index) => {
                       const selected = selectedTemplateIds.has(task.id);
                       const alreadyAdded = dashboard.tasks.some(existing => isSameTemplateCopy(existing, task));
                       return (
-                        <div key={task.id} className={`group grid grid-cols-[48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_auto] border-b border-slate-800/80 border-l-2 px-3 transition-colors duration-200 ${selected ? 'border-l-violet-300 bg-violet-950/45 hover:bg-violet-950/60' : task.status === 'active' ? 'border-l-emerald-700 bg-emerald-950/25 hover:bg-emerald-950/40' : 'border-l-slate-800 bg-slate-950/55 hover:bg-slate-900/80'}`}>
+                        <div key={task.id} className={`group grid grid-cols-[48px_48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_96px] border-b border-slate-800/80 border-l-2 px-3 transition-colors duration-200 ${selected ? 'border-l-violet-300 bg-violet-950/45 hover:bg-violet-950/60' : task.status === 'active' ? 'border-l-emerald-700 bg-emerald-950/25 hover:bg-emerald-950/40' : 'border-l-slate-800 bg-slate-950/55 hover:bg-slate-900/80'}`}>
+                          <div className={`flex items-center justify-center px-2 py-2.5 text-xs font-black tabular-nums ${selected ? 'text-violet-200' : task.status === 'active' ? 'text-emerald-300' : 'text-slate-600'}`}>{index + 1}</div>
                           <label className="flex cursor-pointer items-center justify-center px-2 py-2.5" aria-label={`${selected ? '取消選取' : '選取'}範本 ${task.name}`}>
                             <input
                               type="checkbox"
@@ -1273,10 +1277,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             <div className="flex h-full min-h-[280px] flex-col bg-slate-900">
               <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
                 <table className="w-full min-w-[850px] text-left text-xs">
-                  <thead className="bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 text-white shadow-md shadow-blue-950/40"><tr><th className="px-5 py-2 font-black">任務</th><th className="px-4 py-2 font-black">員工</th><th className="px-4 py-2 font-black">階段</th><th className="px-4 py-2 font-black">實際數值</th><th className="px-4 py-2 font-black">獎金</th><th className="px-4 py-2 font-black">狀態</th><th className="px-5 py-2 text-right font-black">執行時間</th></tr></thead>
+                  <thead className="bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 text-white shadow-md shadow-blue-950/40"><tr><th className="w-16 px-4 py-2 text-center font-black">序號</th><th className="px-5 py-2 font-black">任務</th><th className="px-4 py-2 font-black">員工</th><th className="px-4 py-2 font-black">階段</th><th className="px-4 py-2 font-black">實際數值</th><th className="px-4 py-2 font-black">獎金</th><th className="px-4 py-2 font-black">狀態</th><th className="px-5 py-2 text-right font-black">執行時間</th></tr></thead>
                   <tbody className="divide-y divide-slate-800">
-                    {dashboard.executions.map(execution => (
-                      <tr key={execution.id} className="text-slate-300 transition-all duration-200 odd:bg-slate-950/15 hover:bg-slate-800/60"><td className="px-5 py-3 font-semibold text-white">{execution.task_name}</td><td className="px-4 py-3">{execution.employee_username}</td><td className="px-4 py-3">第 {execution.stage} 階段</td><td className="px-4 py-3">{Number(execution.actual_value).toLocaleString()}</td><td className="px-4 py-3 font-bold text-amber-300">{execution.reward_amount ? `${Number(execution.reward_amount).toFixed(2)} ${execution.reward_currency}` : '—'}</td><td className="px-4 py-3"><span className={`rounded-md px-2 py-1 font-bold ${execution.status === 'succeeded' ? 'bg-emerald-500/10 text-emerald-300' : execution.status === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-blue-500/10 text-blue-300'}`}>{execution.status === 'succeeded' ? '成功' : execution.status === 'failed' ? '失敗' : '處理中'}</span></td><td className="px-5 py-3 text-right text-slate-500">{new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(execution.executed_at))}</td></tr>
+                    {dashboard.executions.map((execution, index) => (
+                      <tr key={execution.id} className="text-slate-300 transition-all duration-200 odd:bg-slate-950/15 hover:bg-slate-800/60"><td className="w-16 px-4 py-3 text-center font-black tabular-nums text-cyan-300">{index + 1}</td><td className="px-5 py-3 font-semibold text-white">{execution.task_name}</td><td className="px-4 py-3">{execution.employee_username}</td><td className="px-4 py-3">第 {execution.stage} 階段</td><td className="px-4 py-3">{Number(execution.actual_value).toLocaleString()}</td><td className="px-4 py-3 font-bold text-amber-300">{execution.reward_amount ? `${Number(execution.reward_amount).toFixed(2)} ${execution.reward_currency}` : '—'}</td><td className="px-4 py-3"><span className={`rounded-md px-2 py-1 font-bold ${execution.status === 'succeeded' ? 'bg-emerald-500/10 text-emerald-300' : execution.status === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-blue-500/10 text-blue-300'}`}>{execution.status === 'succeeded' ? '成功' : execution.status === 'failed' ? '失敗' : '處理中'}</span></td><td className="px-5 py-3 text-right text-slate-500">{new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(execution.executed_at))}</td></tr>
                     ))}
                   </tbody>
                 </table>
