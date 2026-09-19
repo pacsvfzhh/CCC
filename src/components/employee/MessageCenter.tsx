@@ -154,11 +154,11 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             dotColor: 'bg-amber-500',
           }
         : {
-            card: 'bg-gradient-to-br from-amber-50/85 via-yellow-50/75 to-orange-50/65 ring-1 ring-amber-200/90 shadow-sm shadow-amber-100/40',
-            iconBg: 'bg-amber-100',
-            iconText: 'text-amber-600',
-            accent: 'from-amber-300 via-yellow-200 to-orange-200',
-            patternColor: 'border-amber-200',
+            card: 'bg-gradient-to-br from-amber-50/55 via-yellow-50/45 to-orange-50/40 ring-1 ring-slate-200/80 shadow-sm shadow-slate-200/30',
+            iconBg: 'bg-amber-50',
+            iconText: 'text-amber-500',
+            accent: 'from-amber-300/70 via-yellow-200/70 to-orange-200/70',
+            patternColor: 'border-amber-100',
             dotColor: 'bg-amber-300',
           };
     }
@@ -218,21 +218,21 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     // Read messages retain a softer type-specific color treatment.
     if (messageType === 'realtime') {
       return {
-        card: 'bg-gradient-to-br from-blue-50/80 via-white/90 to-sky-50/70 ring-1 ring-blue-200/80 shadow-sm shadow-blue-100/40',
-        iconBg: 'bg-blue-100',
-        iconText: 'text-blue-600',
-        accent: 'from-blue-500 via-sky-400 to-cyan-400',
-        patternColor: 'border-blue-200',
+        card: 'bg-gradient-to-br from-blue-50/55 via-white/85 to-sky-50/45 ring-1 ring-slate-200/80 shadow-sm shadow-slate-200/30',
+        iconBg: 'bg-blue-50',
+        iconText: 'text-blue-400',
+        accent: 'from-blue-300/70 via-sky-200/70 to-cyan-200/70',
+        patternColor: 'border-blue-100',
         dotColor: 'bg-blue-300',
       };
     }
 
     return {
-      card: 'bg-gradient-to-br from-cyan-50/80 via-white/90 to-sky-50/70 ring-1 ring-cyan-200/80 shadow-sm shadow-cyan-100/40',
-      iconBg: 'bg-cyan-100',
-      iconText: 'text-cyan-600',
-      accent: 'from-cyan-500 via-sky-400 to-blue-400',
-      patternColor: 'border-cyan-200',
+      card: 'bg-gradient-to-br from-cyan-50/55 via-white/85 to-sky-50/45 ring-1 ring-slate-200/80 shadow-sm shadow-slate-200/30',
+      iconBg: 'bg-cyan-50',
+      iconText: 'text-cyan-400',
+      accent: 'from-cyan-300/70 via-sky-200/70 to-blue-200/70',
+      patternColor: 'border-cyan-100',
       dotColor: 'bg-cyan-300',
     };
   };
