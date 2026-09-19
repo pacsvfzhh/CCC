@@ -261,21 +261,6 @@ function renderPreview(template: string, form: TaskForm, currency: string) {
   return replaceTemplateToken(preview, '{{currency}}', currency);
 }
 
-function AutomationSectionLoading({ view }: { view: 'tasks' | 'templates' | 'executions' }) {
-  const label = view === 'templates' ? '正在同步管理員範本' : view === 'executions' ? '正在同步執行記錄' : '正在同步自動化任務';
-  return (
-    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center" aria-label={label}>
-      <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-slate-800">
-        <span className="block h-full w-1/3 animate-pulse bg-gradient-to-r from-transparent via-cyan-300 to-transparent" />
-      </div>
-      <div className="flex items-center gap-2.5 rounded-xl border border-cyan-300/25 bg-slate-950/90 px-3.5 py-2.5 text-cyan-100 shadow-xl shadow-slate-950/50 ring-1 ring-inset ring-white/[0.05]">
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-300/25 border-t-cyan-300" />
-        <span className="text-xs font-bold">{label}</span>
-      </div>
-    </div>
-  );
-}
-
 function summarizeTask(task: AutomationTask, currency: string) {
   const value = task.trigger_type === 'commission_amount'
     ? `${Number(task.threshold_value).toLocaleString()} ${currency}`
@@ -821,7 +806,11 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                       className={`mt-0.5 flex h-7 w-full items-center justify-between gap-2 rounded-lg border px-2.5 text-left text-[11px] font-black outline-none transition-all duration-200 ${adminMenuOpen ? 'border-sky-300/60 bg-sky-300/15 text-white ring-2 ring-sky-300/20' : 'border-sky-200/20 bg-slate-950/45 text-sky-50 hover:border-sky-300/45 hover:bg-sky-400/10'} disabled:cursor-wait disabled:opacity-60`}
                     >
                       <span className="truncate">{selectedAdmin ? selectedAdmin.username : '全部管理員'}</span>
-                      <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-sky-200 transition-transform duration-200 ${adminMenuOpen ? 'rotate-180' : ''}`} />
+                      {refreshing ? (
+                        <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin text-sky-200" />
+                      ) : (
+                        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-sky-200 transition-transform duration-200 ${adminMenuOpen ? 'rotate-180' : ''}`} />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -844,7 +833,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                 { id: 'templates' as const, label: '管理員範本', icon: Copy },
                 { id: 'executions' as const, label: '執行記錄', icon: History },
               ].map(tab => (
-                <button title={tab.label} key={tab.id} onClick={() => setView(tab.id)} className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${tab.id === 'tasks' ? 'w-44 justify-center' : ''} ${view === tab.id ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-md shadow-cyan-950/40 after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-200' : 'text-slate-400 hover:bg-slate-800 hover:text-cyan-100'}`}><tab.icon className="h-4 w-4 shrink-0" /><span className="truncate">{tab.label}</span></button>
+                <button title={tab.label} key={tab.id} onClick={() => setView(tab.id)} className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${tab.id === 'tasks' ? 'w-44 justify-center' : ''} ${view === tab.id ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-md shadow-cyan-950/40' : 'text-slate-400 hover:bg-slate-800 hover:text-cyan-100'}`}><tab.icon className="h-4 w-4 shrink-0" /><span className="truncate">{tab.label}</span></button>
               ))}
             </div>
             {view === 'templates' && (
@@ -980,7 +969,6 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
           )}
           </>
           </div>
-          {refreshing && <AutomationSectionLoading view={view} />}
           </div>
         </div>
       </div>
