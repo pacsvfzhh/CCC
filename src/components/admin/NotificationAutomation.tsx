@@ -483,7 +483,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
         <div className="relative z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/70 px-4 py-3.5 shadow-lg shadow-slate-950/30 sm:px-5">
           <div className="flex items-center gap-3">
-            <button onClick={() => setEditorOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-600/80 bg-slate-800/90 text-slate-300 shadow-sm transition-all duration-200 hover:border-cyan-400/60 hover:bg-slate-700 hover:text-cyan-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+            <button onClick={() => setEditorOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-400/40 bg-red-500/15 text-red-300 shadow-sm transition-all duration-200 hover:border-red-300/70 hover:bg-red-500/30 hover:text-red-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div>
@@ -734,13 +734,12 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       <div className="relative shrink-0 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/80 px-4 py-4 shadow-lg shadow-slate-950/30 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-600/80 bg-slate-800/90 text-slate-300 shadow-sm transition-all duration-200 hover:border-cyan-400/60 hover:bg-slate-700 hover:text-cyan-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"><ArrowLeft className="h-4 w-4" /></button>
+            <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-400/40 bg-red-500/15 text-red-300 shadow-sm transition-all duration-200 hover:border-red-300/70 hover:bg-red-500/30 hover:text-red-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"><ArrowLeft className="h-4 w-4" /></button>
             <div>
               <div className="flex items-center gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400/20 to-blue-500/10 text-cyan-300 ring-1 ring-cyan-300/20 shadow-inner"><Sparkles className="h-5 w-5" /></div>
                 <h2 className="text-lg font-black tracking-tight text-white sm:text-xl">自動化任務</h2>
               </div>
-              <p className="mt-0.5 text-xs font-medium text-slate-400">根據員工表現自動發送通知，並可選擇發放績效獎金</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
