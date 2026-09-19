@@ -17,6 +17,7 @@ import {
   Plus,
   RefreshCw,
   Settings2,
+  Trash2,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
@@ -326,6 +327,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [copiedFromName, setCopiedFromName] = useState<string | null>(null);
   const [templateCustomized, setTemplateCustomized] = useState(false);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<string>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<AutomationTask | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [selectedAdminId, setSelectedAdminId] = useState(admin.id);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [adminMenuPosition, setAdminMenuPosition] = useState({ top: 0, left: 0, width: 244 });
@@ -508,6 +511,28 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     }
   };
 
+  const deleteTask = async () => {
+    if (!deleteTarget) return;
+
+    setDeletingTaskId(deleteTarget.id);
+    try {
+      const { error } = await supabase.rpc('delete_notification_automation_task', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_task_id: deleteTarget.id,
+      });
+      if (error) throw error;
+
+      setDeleteTarget(null);
+      setRefreshing(true);
+      showNotice('success', `任務「${deleteTarget.name}」已刪除`);
+      await loadDashboard();
+    } catch {
+      showNotice('error', '無法刪除任務，請稍後再試。');
+    } finally {
+      setDeletingTaskId(null);
+    }
+  };
+
   const copyTemplate = async (task: AutomationTask, activate: boolean) => {
     if (activate && dashboard.tasks.some(existing => isSameTemplateCopy(existing, task))) {
       showNotice('info', '這個管理員範本已經添加到本組任務，不可重複添加。');
@@ -648,6 +673,34 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         <button type="button" onClick={() => setNotice(null)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/55 transition-colors hover:bg-white/10 hover:text-white" aria-label="關閉提示">
           <X className="h-4 w-4" />
         </button>
+      </div>
+    </div>,
+    document.body,
+  );
+
+  const deleteDialog = deleteTarget && createPortal(
+    <div className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm" role="presentation">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-rose-300/25 bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl shadow-rose-950/40" role="dialog" aria-modal="true" aria-labelledby="delete-task-title">
+        <div className="flex items-start gap-3 border-b border-rose-300/15 bg-rose-500/[0.08] px-5 py-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-300/25 bg-rose-400/15 text-rose-300">
+            <Trash2 className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 id="delete-task-title" className="text-sm font-black text-white">刪除自動化任務？</h2>
+            <p className="mt-1 text-xs leading-5 text-rose-100/70">刪除後將無法在本組任務中恢復，請確認是否繼續。</p>
+          </div>
+        </div>
+        <div className="px-5 py-4">
+          <p className="truncate rounded-xl border border-slate-700/80 bg-slate-950/70 px-3 py-2.5 text-sm font-bold text-slate-100" title={deleteTarget.name}>{deleteTarget.name}</p>
+          <p className="mt-2 text-xs leading-5 text-slate-500">這只會刪除目前選取的任務，不會影響其他管理員的任務。</p>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-slate-800/80 px-5 py-3">
+          <button type="button" onClick={() => setDeleteTarget(null)} disabled={deletingTaskId !== null} className="h-9 rounded-lg border border-slate-600/80 bg-slate-800 px-4 text-xs font-bold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">取消</button>
+          <button type="button" onClick={() => void deleteTask()} disabled={deletingTaskId !== null} className="flex h-9 items-center gap-2 rounded-lg border border-rose-300/30 bg-gradient-to-r from-rose-600 to-red-700 px-4 text-xs font-black text-white shadow-lg shadow-rose-950/40 transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60">
+            {deletingTaskId ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            {deletingTaskId ? '刪除中……' : '確認刪除'}
+          </button>
+        </div>
       </div>
     </div>,
     document.body,
@@ -938,6 +991,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   return (
     <>
     {noticeCard}
+    {deleteDialog}
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
       <div className="relative shrink-0 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/80 px-4 py-4 shadow-lg shadow-slate-950/30 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1074,6 +1128,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       ) : (
                         <button onClick={() => changeStatus(task, 'paused')} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-amber-400/25 bg-amber-500/15 px-3 text-xs font-bold text-amber-300 transition-all duration-200 hover:border-amber-300/40 hover:bg-amber-500/25 hover:text-amber-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"><Pause className="h-3.5 w-3.5" />暫停</button>
                       )}
+                      <button onClick={() => setDeleteTarget(task)} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-rose-400/25 bg-rose-500/10 px-3 text-xs font-bold text-rose-300 transition-all duration-200 hover:border-rose-300/50 hover:bg-rose-500/20 hover:text-rose-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70" aria-label={`刪除任務 ${task.name}`}><Trash2 className="h-3.5 w-3.5" />刪除</button>
                     </div>
                   </article>
                 ))}

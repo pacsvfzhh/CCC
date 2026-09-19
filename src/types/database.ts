@@ -2923,6 +2923,13 @@ export interface Database {
         };
         Returns: Record<string, unknown>;
       };
+      delete_notification_automation_task: {
+        Args: {
+          p_admin_session_token: string;
+          p_task_id: string;
+        };
+        Returns: Record<string, unknown>;
+      };
       copy_shared_notification_automation_task: {
         Args: { p_admin_session_token: string; p_source_task_id: string };
         Returns: Record<string, unknown>;
