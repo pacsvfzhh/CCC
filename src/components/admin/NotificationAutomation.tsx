@@ -1028,24 +1028,26 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             <aside className="min-h-0 min-w-0 overflow-hidden border-t border-slate-700/70 p-0 xl:border-t-0">
               <div className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden ${form.rewardEnabled ? 'border-amber-400/30 bg-gradient-to-b from-amber-950 via-slate-900 to-slate-950 shadow-amber-950/40' : 'border-cyan-500/20 bg-gradient-to-b from-cyan-950 via-slate-900 to-slate-950 shadow-cyan-950/40'}`}>
                 <div className={`shrink-0 p-3 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-400/20 to-orange-500/5' : 'bg-gradient-to-br from-cyan-400/15 to-blue-500/5'}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${form.rewardEnabled ? 'bg-amber-400 text-amber-950' : 'bg-cyan-500 text-white'}`}>
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${form.rewardEnabled ? 'bg-amber-400 text-amber-950' : 'bg-cyan-500 text-white'}`}>
                         {form.rewardEnabled ? <Gift className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
                       </div>
-                      <div>
-                        <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${form.rewardEnabled ? 'text-amber-300' : 'text-cyan-300'}`}>{form.rewardEnabled ? 'Performance Reward' : 'Achievement Notice'}</span>
+                      <div className="min-w-0">
+                        <span className={`block truncate text-[10px] font-black uppercase tracking-[0.18em] ${form.rewardEnabled ? 'text-amber-300' : 'text-cyan-300'}`}>{form.rewardEnabled ? 'Performance Reward' : 'Achievement Notice'}</span>
                         <p className="mt-0.5 text-xs font-semibold text-cyan-100/90">員工端預覽</p>
                       </div>
                     </div>
-                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                  </div>
-                  {form.rewardEnabled && (
-                    <div className="mt-2 flex items-center justify-between rounded-lg border border-amber-300/20 bg-amber-400/10 px-3 py-1.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-300/70">Wallet bonus</p>
-                      <p className="text-lg font-black text-amber-200">+{Number(form.rewardAmount || 0).toFixed(2)} <span className="text-xs">{dashboard.currency}</span></p>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {form.rewardEnabled && (
+                        <div className="flex items-center gap-2 rounded-lg border border-amber-300/20 bg-amber-400/10 px-2.5 py-1">
+                          <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-300/75">Wallet bonus</p>
+                          <p className="text-sm font-black tabular-nums text-amber-200">+{Number(form.rewardAmount || 0).toFixed(2)} <span className="text-[10px]">{dashboard.currency}</span></p>
+                        </div>
+                      )}
+                      <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-400" />
                     </div>
-                  )}
+                  </div>
                 </div>
                 <div className="min-h-0 min-w-0 flex-1 space-y-2 overflow-y-auto p-3 pr-4">
                   <h3 className="truncate text-base font-bold leading-snug text-white" title={previewTitle}>{previewTitle || 'Notification title'}</h3>
