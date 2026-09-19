@@ -1127,22 +1127,20 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             ) : (
               <div className="space-y-2 p-2 sm:p-3">
                 {orderedTasks.map(task => (
-                  <article key={task.id} className={`group relative grid gap-3 overflow-hidden rounded-xl border border-l-4 px-3 py-2.5 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[minmax(170px,.75fr)_minmax(520px,2.5fr)_auto] lg:items-center ${task.status === 'active' ? 'border-emerald-300/20 border-l-emerald-400 bg-gradient-to-br from-emerald-950/45 via-slate-900 to-slate-950 shadow-lg shadow-emerald-950/20 hover:border-emerald-200/35' : task.status === 'paused' ? 'border-amber-300/20 border-l-amber-400 bg-gradient-to-br from-amber-950/35 via-slate-900 to-slate-950 shadow-lg shadow-amber-950/15 hover:border-amber-200/35' : task.status === 'archived' ? 'border-slate-600/60 border-l-slate-500 bg-slate-900/80 hover:border-slate-500' : task.is_shared_template ? 'border-violet-300/20 border-l-violet-400 bg-gradient-to-br from-violet-950/35 via-slate-900 to-slate-950 shadow-lg shadow-violet-950/15 hover:border-violet-200/35' : 'border-cyan-300/20 border-l-cyan-400 bg-gradient-to-br from-cyan-950/30 via-slate-900 to-slate-950 shadow-lg shadow-cyan-950/15 hover:border-cyan-200/35'}`}>
+                  <article key={task.id} className={`group relative grid gap-3 overflow-hidden rounded-xl border border-l-4 px-3 py-2.5 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[minmax(170px,.75fr)_minmax(520px,2.5fr)_auto] lg:items-center ${task.status === 'active' ? 'border-emerald-300/20 border-l-emerald-400 bg-gradient-to-br from-emerald-950/45 via-slate-900 to-slate-950 shadow-lg shadow-emerald-950/20 hover:border-emerald-200/35' : 'border-slate-600/60 border-l-slate-500 bg-gradient-to-br from-slate-800/80 via-slate-900 to-slate-950 shadow-lg shadow-slate-950/20 hover:border-slate-500'}`}>
                     <div className="min-w-0">
                       <div className="flex items-start gap-2">
-                        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300' : task.status === 'paused' ? 'border-amber-300/25 bg-amber-400/15 text-amber-300' : task.is_shared_template ? 'border-violet-300/25 bg-violet-400/15 text-violet-300' : 'border-cyan-300/25 bg-cyan-400/15 text-cyan-300'}`}>
+                        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300' : 'border-slate-500/60 bg-slate-700/60 text-slate-300'}`}>
                           {task.reward_enabled ? <Gift className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
                         </span>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="truncate text-sm font-black text-white">{task.name}</h3>
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : task.status === 'paused' ? 'border-amber-300/25 bg-amber-400/15 text-amber-200' : task.status === 'archived' ? 'border-slate-500/50 bg-slate-700/70 text-slate-300' : 'border-cyan-300/20 bg-cyan-400/10 text-cyan-200'}`}>{statusLabels[task.status]}</span>
-                            {task.reward_enabled && <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-2 py-0.5 text-[10px] font-black text-amber-200">獎勵</span>}
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : 'border-slate-500/50 bg-slate-700/70 text-slate-300'}`}>{statusLabels[task.status]}</span>
+                            {task.reward_enabled && <span className="rounded-full border border-slate-500/50 bg-slate-700/70 px-2 py-0.5 text-[10px] font-black text-slate-300">獎勵</span>}
                           </div>
-                          <p className={`mt-0.5 flex flex-wrap items-center gap-1 text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : task.status === 'paused' ? 'text-amber-200/80' : task.status === 'archived' ? 'text-slate-300/75' : task.is_shared_template ? 'text-violet-200/80' : 'text-cyan-200/75'}`}>
+                          <p className={`mt-0.5 flex flex-wrap items-center gap-1 text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-300/75'}`}>
                             <span>{task.owner_username}</span>
-                            <span className="opacity-50">·</span>
-                            <span title="版本號會在任務編輯儲存後遞增">版本 {task.version}</span>
                             {task.is_shared_template && <><span className="opacity-50">·</span><span className="font-bold">共享範本</span></>}
                             {task.source_task_id && <><span className="opacity-50">·</span><span>由範本複製</span></>}
                           </p>
@@ -1191,7 +1189,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   const selected = selectedTemplateIds.has(task.id);
                   const alreadyAdded = dashboard.tasks.some(existing => isSameTemplateCopy(existing, task));
                   return (
-                    <article key={task.id} className={`group relative grid gap-3 overflow-hidden rounded-xl border border-l-4 px-3 py-2.5 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[auto_minmax(210px,1fr)_minmax(420px,1.8fr)_auto] lg:items-center ${selected ? 'border-violet-200/40 border-l-violet-300 bg-gradient-to-br from-violet-500/20 via-violet-950/30 to-slate-950 shadow-lg shadow-violet-950/25' : alreadyAdded ? 'border-rose-300/25 border-l-rose-400 bg-gradient-to-br from-rose-950/35 via-slate-900 to-slate-950 shadow-lg shadow-rose-950/15 hover:border-rose-200/40' : task.status === 'active' ? 'border-emerald-300/20 border-l-emerald-400 bg-gradient-to-br from-emerald-950/35 via-slate-900 to-slate-950 shadow-lg shadow-emerald-950/15 hover:border-emerald-200/35' : task.status === 'paused' ? 'border-amber-300/20 border-l-amber-400 bg-gradient-to-br from-amber-950/30 via-slate-900 to-slate-950 shadow-lg shadow-amber-950/15 hover:border-amber-200/35' : 'border-violet-300/20 border-l-violet-500 bg-gradient-to-br from-violet-950/30 via-slate-900 to-slate-950 shadow-lg shadow-violet-950/15 hover:border-violet-200/35'}`}>
+                    <article key={task.id} className={`group relative grid gap-3 overflow-hidden rounded-xl border border-l-4 px-3 py-2.5 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[auto_minmax(210px,1fr)_minmax(420px,1.8fr)_auto] lg:items-center ${selected ? 'border-violet-200/40 border-l-violet-300 bg-gradient-to-br from-violet-500/20 via-violet-950/30 to-slate-950 shadow-lg shadow-violet-950/25' : task.status === 'active' ? 'border-emerald-300/20 border-l-emerald-400 bg-gradient-to-br from-emerald-950/35 via-slate-900 to-slate-950 shadow-lg shadow-emerald-950/15 hover:border-emerald-200/35' : 'border-slate-600/60 border-l-slate-500 bg-gradient-to-br from-slate-800/80 via-slate-900 to-slate-950 shadow-lg shadow-slate-950/20 hover:border-slate-500'}`}>
                       <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-violet-100">
                         <input
                           type="checkbox"
@@ -1212,18 +1210,16 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       </label>
                       <div className="min-w-0">
                         <div className="flex items-start gap-3">
-                          <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${alreadyAdded ? 'border-rose-300/25 bg-rose-400/15 text-rose-300' : task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300' : task.status === 'paused' ? 'border-amber-300/25 bg-amber-400/15 text-amber-300' : 'border-violet-300/25 bg-violet-400/15 text-violet-300'}`}>
+                          <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300' : 'border-slate-500/60 bg-slate-700/60 text-slate-300'}`}>
                             {task.reward_enabled ? <Gift className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                           </span>
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <h3 className="truncate text-sm font-black text-white">{task.name}</h3>
-                              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : task.status === 'paused' ? 'border-amber-300/25 bg-amber-400/15 text-amber-200' : 'border-violet-300/20 bg-violet-400/10 text-violet-200'}`}>{statusLabels[task.status]}</span>
+                              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : 'border-slate-500/50 bg-slate-700/70 text-slate-300'}`}>{statusLabels[task.status]}</span>
                             </div>
-                            <div className={`mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : task.status === 'paused' ? 'text-amber-200/80' : 'text-violet-200/75'}`}>
-                              <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-semibold ${task.status === 'active' ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100' : task.status === 'paused' ? 'border-amber-300/20 bg-amber-400/10 text-amber-100' : 'border-violet-300/20 bg-violet-400/10 text-violet-100'}`}><ShieldCheck className="h-3 w-3" />範本提供者</span>
-                              <span>·</span>
-                              <span title="版本號會在任務編輯儲存後遞增">版本 {task.version}</span>
+                            <div className={`mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-300/75'}`}>
+                              <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-semibold ${task.status === 'active' ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100' : 'border-slate-500/50 bg-slate-700/60 text-slate-300'}`}><ShieldCheck className="h-3 w-3" />範本提供者</span>
                             </div>
                           </div>
                         </div>
