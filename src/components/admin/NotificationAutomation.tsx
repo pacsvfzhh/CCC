@@ -12,6 +12,7 @@ import {
   FileText,
   Gift,
   History,
+  Info,
   Pause,
   Play,
   Plus,
@@ -330,6 +331,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [adminMenuPosition, setAdminMenuPosition] = useState({ top: 0, left: 0, width: 244 });
   const [notice, setNotice] = useState<AutomationNotice | null>(null);
+  const [variableHelpOpen, setVariableHelpOpen] = useState(false);
   const adminMenuAnchorRef = useRef<HTMLDivElement>(null);
   const loadRef = useRef<(() => Promise<void>) | null>(null);
   const dashboardRequestIdRef = useRef(0);
@@ -413,6 +415,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     setCopySourceTaskId(null);
     setTemplateCustomized(false);
     setReadOnly(false);
+    setVariableHelpOpen(false);
     setEditorOpen(true);
   };
 
@@ -422,6 +425,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     setCopySourceTaskId(null);
     setTemplateCustomized(true);
     setReadOnly(onlyView || task.owner_admin_id !== admin.id);
+    setVariableHelpOpen(false);
     setEditorOpen(true);
   };
 
@@ -501,6 +505,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             : '自動化任務已儲存為草稿',
       );
       setEditorOpen(false);
+      setVariableHelpOpen(false);
       setCopiedFromName(null);
       setCopySourceTaskId(null);
       if (saveSharedTemplate) setView('templates');
@@ -728,6 +733,102 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     document.body,
   );
 
+  const variableHelpDialog = variableHelpOpen && createPortal(
+    <div
+      className="fixed inset-0 z-[170] flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm"
+      role="presentation"
+      onMouseDown={() => setVariableHelpOpen(false)}
+    >
+      <div
+        className="flex max-h-[calc(100vh-48px)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 shadow-2xl shadow-cyan-950/40"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="notification-variable-help-title"
+        onMouseDown={event => event.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-start gap-3 border-b border-cyan-300/20 bg-gradient-to-r from-blue-950 via-cyan-950 to-blue-950 px-5 py-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-200/30 bg-cyan-400/15 text-cyan-200 shadow-lg shadow-cyan-950/30">
+            <Info className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 id="notification-variable-help-title" className="text-base font-black tracking-tight text-white">英文通知變數說明</h2>
+            <p className="mt-1 text-xs leading-5 text-cyan-100/70">這些欄位會在通知發送時，自動替換成當次任務的實際資料。</p>
+          </div>
+          <button type="button" onClick={() => setVariableHelpOpen(false)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70" aria-label="關閉變數說明">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto p-5">
+          <div className="rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] p-4">
+            <h3 className="text-sm font-black text-cyan-100">使用方式</h3>
+            <div className="mt-2 space-y-1.5 text-xs leading-5 text-slate-300">
+              <p>1. 將下方任一變數完整複製到「通知標題」或「通知內容」中，格式必須保留兩側的雙大括號，例如 <code className="rounded bg-slate-950/70 px-1.5 py-0.5 font-mono text-cyan-200">{'{{employee_name}}'}</code>。</p>
+              <p>2. 儲存任務後，系統會在通知真正發送給員工時替換變數；編輯器中的預覽只會使用示範資料，例如員工名稱 Emily。</p>
+              <p>3. 變數名稱區分拼字與底線，請不要改成單大括號、加入空格、翻譯名稱或刪除底線。無法套用的變數會保留原文字，不會影響任務執行。</p>
+              <p>4. 變數可以和一般英文文字、數字及貨幣單位一起使用；建議在變數前後保留適當空格，讓員工收到的句子容易閱讀。</p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-slate-700/80 bg-slate-900/70 p-3">
+              <code className="font-mono text-xs font-bold text-cyan-200">{'{{employee_name}}'}</code>
+              <p className="mt-2 text-xs font-bold text-slate-200">員工名稱</p>
+              <p className="mt-1 text-[11px] leading-5 text-slate-400">替換為實際收到通知的員工姓名，用來製作個人化稱呼。這是最適合放在 Congratulations、Hello 或 Thanks 後面的變數。</p>
+              <p className="mt-2 rounded-lg border border-slate-700/70 bg-slate-950/70 px-2.5 py-2 text-[11px] leading-5 text-slate-300">範例：Congratulations, <span className="font-bold text-cyan-200">{'{{employee_name}}'}</span>!</p>
+            </div>
+
+            <div className="rounded-xl border border-slate-700/80 bg-slate-900/70 p-3">
+              <code className="font-mono text-xs font-bold text-cyan-200">{'{{threshold_value}}'}</code>
+              <p className="mt-2 text-xs font-bold text-slate-200">任務目標值</p>
+              <p className="mt-1 text-[11px] leading-5 text-slate-400">替換為任務設定的達標門檻，例如 100 筆訂單、10 個工作日或 500 USDC。它表示「目標是多少」，不是員工實際完成的數值。</p>
+              <p className="mt-2 rounded-lg border border-slate-700/70 bg-slate-950/70 px-2.5 py-2 text-[11px] leading-5 text-slate-300">範例：Your target was <span className="font-bold text-cyan-200">{'{{threshold_value}}'}</span> orders.</p>
+            </div>
+
+            <div className="rounded-xl border border-slate-700/80 bg-slate-900/70 p-3">
+              <code className="font-mono text-xs font-bold text-cyan-200">{'{{actual_value}}'}</code>
+              <p className="mt-2 text-xs font-bold text-slate-200">實際達成值</p>
+              <p className="mt-1 text-[11px] leading-5 text-slate-400">替換為本次任務被觸發時記錄的實際數值，適合用來告訴員工「這次實際完成了多少」。它可能高於任務目標值。</p>
+              <p className="mt-2 rounded-lg border border-slate-700/70 bg-slate-950/70 px-2.5 py-2 text-[11px] leading-5 text-slate-300">範例：You completed <span className="font-bold text-cyan-200">{'{{actual_value}}'}</span> orders.</p>
+            </div>
+
+            <div className="rounded-xl border border-slate-700/80 bg-slate-900/70 p-3">
+              <code className="font-mono text-xs font-bold text-cyan-200">{'{{minimum_daily_orders}}'}</code>
+              <p className="mt-2 text-xs font-bold text-slate-200">每日最低訂單數</p>
+              <p className="mt-1 text-[11px] leading-5 text-slate-400">只適用於「連續工作達標」任務，替換為每天必須完成的最低訂單數。其他觸發條件沒有這項設定，不建議在其他任務中使用。</p>
+              <p className="mt-2 rounded-lg border border-slate-700/70 bg-slate-950/70 px-2.5 py-2 text-[11px] leading-5 text-slate-300">範例：at least <span className="font-bold text-cyan-200">{'{{minimum_daily_orders}}'}</span> orders every day.</p>
+            </div>
+
+            <div className="rounded-xl border border-slate-700/80 bg-slate-900/70 p-3">
+              <code className="font-mono text-xs font-bold text-cyan-200">{'{{annual_month}}'} / {'{{annual_day}}'}</code>
+              <p className="mt-2 text-xs font-bold text-slate-200">年度指定日期</p>
+              <p className="mt-1 text-[11px] leading-5 text-slate-400">分別替換為任務設定的月份與日期，例如 5 月 20 日。適合用於生日、週年或年度提醒文字；兩個變數可以一起使用。</p>
+              <p className="mt-2 rounded-lg border border-slate-700/70 bg-slate-950/70 px-2.5 py-2 text-[11px] leading-5 text-slate-300">範例：Today is <span className="font-bold text-cyan-200">{'{{annual_month}}'}</span>/<span className="font-bold text-cyan-200">{'{{annual_day}}'}</span>.</p>
+            </div>
+
+            <div className="rounded-xl border border-slate-700/80 bg-slate-900/70 p-3">
+              <code className="font-mono text-xs font-bold text-cyan-200">{'{{bonus_amount}}'} / {'{{currency}}'}</code>
+              <p className="mt-2 text-xs font-bold text-slate-200">獎金金額與貨幣</p>
+              <p className="mt-1 text-[11px] leading-5 text-slate-400">前者替換為本次績效獎金數字，後者替換為網站目前使用的貨幣代碼，例如 USDC。只有啟用獎金的任務才建議使用這組變數。</p>
+              <p className="mt-2 rounded-lg border border-slate-700/70 bg-slate-950/70 px-2.5 py-2 text-[11px] leading-5 text-slate-300">範例：You received <span className="font-bold text-cyan-200">{'{{bonus_amount}}'} {'{{currency}}'}</span>.</p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-400/[0.07] p-4">
+            <h3 className="text-sm font-black text-amber-100">完整通知範例</h3>
+            <p className="mt-2 text-xs leading-5 text-slate-300">Congratulations, <span className="font-bold text-cyan-200">{'{{employee_name}}'}</span>! You completed <span className="font-bold text-cyan-200">{'{{actual_value}}'}</span> orders and reached your target of <span className="font-bold text-cyan-200">{'{{threshold_value}}'}</span>. A bonus of <span className="font-bold text-cyan-200">{'{{bonus_amount}}'} {'{{currency}}'}</span> has been added to your wallet.</p>
+            <p className="mt-2 text-[11px] leading-5 text-amber-100/70">發送時，系統會把變數換成該名員工與該次任務的實際資料；請保留英文句子的基本結構，再依需求調整前後文字。</p>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 justify-end border-t border-slate-800/80 px-5 py-3">
+          <button type="button" onClick={() => setVariableHelpOpen(false)} className="h-9 rounded-lg border border-cyan-300/30 bg-cyan-500/15 px-4 text-xs font-black text-cyan-100 transition-colors hover:border-cyan-200/60 hover:bg-cyan-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70">了解，關閉說明</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+
   if (loading) {
     return (
       <div className="flex min-h-0 flex-1 bg-slate-950">
@@ -742,9 +843,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
         {noticeCard}
+        {variableHelpDialog}
         <div className="relative z-10 flex h-11 shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-cyan-300/25 bg-gradient-to-r from-blue-950 via-cyan-900 to-blue-950 px-3 shadow-lg shadow-blue-950/70">
           <div className="flex min-w-0 items-center gap-2">
-            <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setEditorOpen(false); }} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-200/70 bg-red-600 text-white shadow-md shadow-red-950/35 transition-colors hover:border-white hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/80">
+            <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setVariableHelpOpen(false); setEditorOpen(false); }} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-200/70 bg-red-600 text-white shadow-md shadow-red-950/35 transition-colors hover:border-white hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/80">
               <ArrowLeft className="h-3.5 w-3.5" />
             </button>
             <h2 className="truncate text-base font-black tracking-tight text-white drop-shadow-sm">{readOnly ? '查看管理員範本' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2>
@@ -903,8 +1005,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       <p className="text-[10px] text-slate-500">動態變數會在發送時替換</p>
                     </div>
                   </div>
-                  <div className="flex min-w-0 flex-1 items-start justify-end gap-2">
-                    <p className="min-w-0 max-w-[360px] break-words text-right text-[9px] leading-4 text-slate-500" title="可用變數">可用變數：{'{{employee_name}}'}、{'{{threshold_value}}'}、{'{{actual_value}}'}、{'{{minimum_daily_orders}}'}、{'{{annual_month}}'}、{'{{annual_day}}'}、{'{{bonus_amount}}'}、{'{{currency}}'}</p>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button type="button" onClick={() => setVariableHelpOpen(true)} aria-haspopup="dialog" aria-expanded={variableHelpOpen} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 text-[11px] font-bold text-cyan-200 transition-colors hover:border-cyan-200/60 hover:bg-cyan-500/20 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70">
+                      <Info className="h-3.5 w-3.5" />
+                      變數說明
+                    </button>
                     {!readOnly && <button onClick={regenerateTemplate} className="shrink-0 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70">重新產生內容</button>}
                   </div>
                 </div>
