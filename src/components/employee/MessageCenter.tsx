@@ -420,12 +420,16 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
 
                       {/* Color accent corner block for unread */}
                       {isUnread && (
-                        <div className="absolute top-0 right-0 w-20 h-20 overflow-hidden pointer-events-none">
-                          <div className={`absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-bl ${style.accent} opacity-[0.2] rounded-full`} />
-                        </div>
+                        <>
+                          <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-br from-white/25 via-transparent to-transparent" />
+                          <div className={`pointer-events-none absolute inset-0 z-0 bg-gradient-to-br ${style.accent} opacity-[0.14]`} />
+                          <div className="absolute top-0 right-0 z-0 h-20 w-20 overflow-hidden pointer-events-none">
+                            <div className={`absolute -top-10 -right-10 h-20 w-20 bg-gradient-to-bl ${style.accent} opacity-[0.28] rounded-full`} />
+                          </div>
+                        </>
                       )}
 
-                      <div className="relative p-4 lg:p-5 pl-5 lg:pl-6">
+                      <div className="relative z-10 p-4 lg:p-5 pl-5 lg:pl-6">
                         <div className="flex items-start gap-3.5">
                           {/* Priority icon with colored background */}
                           <div className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center shadow-sm ${style.iconBg}`}>
