@@ -2,13 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, AlertTriangle, CheckCircle, Info, RefreshCw, Save, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { Admin } from '../../types';
 import { autoCleanupService, CleanupSchedule } from '../../services/autoCleanupService';
+import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { safeToLocaleString } from '../../lib/safeUtils';
-
-interface HistoryDataManagementProps {
-  admin: Admin;
-}
 
 interface CleanupConfig {
   category: string;
@@ -44,7 +40,7 @@ interface CleanupResult {
   message: string;
 }
 
-export default function HistoryDataManagement({ admin }: HistoryDataManagementProps) {
+export default function HistoryDataManagement() {
   const [configs, setConfigs] = useState<CleanupConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -229,9 +225,9 @@ export default function HistoryDataManagement({ admin }: HistoryDataManagementPr
       setShowPreviewModal(false);
 
       const { data, error } = await supabase.rpc('execute_cleanup', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
         p_table_name: selectedTable.table_name,
-        p_days_to_keep: 0,
-        p_admin_id: admin.id
+        p_days_to_keep: 0
       });
 
       if (error) throw error;

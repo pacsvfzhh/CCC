@@ -6,6 +6,7 @@
  */
 
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../lib/supabase';
+import { getAdminFinancialSessionToken } from '../lib/auth';
 
 export interface CleanupSchedule {
   table_name: string;
@@ -348,9 +349,9 @@ class AutoCleanupService {
       const startTime = Date.now();
 
       const { data, error } = await supabase.rpc('execute_cleanup', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
         p_table_name: config.table_name,
-        p_days_to_keep: config.days_to_keep,
-        p_admin_id: this.adminId
+        p_days_to_keep: config.days_to_keep
       });
 
       const executionTime = Date.now() - startTime;
@@ -504,9 +505,9 @@ class AutoCleanupService {
       const startTime = Date.now();
 
       const { data, error } = await supabase.rpc('execute_cleanup', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
         p_table_name: tableName,
-        p_days_to_keep: daysToKeep,
-        p_admin_id: this.adminId
+        p_days_to_keep: daysToKeep
       });
 
       const executionTime = Date.now() - startTime;

@@ -2850,7 +2850,7 @@ export interface Database {
       };
       execute_cleanup: {
         Args: {
-          p_admin_id?: string;
+          p_admin_session_token: string;
           p_days_to_keep: number;
           p_table_name: string;
         };
