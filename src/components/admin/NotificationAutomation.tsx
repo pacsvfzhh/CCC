@@ -1205,7 +1205,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <div className="px-2 py-2 pl-[54px]">管理員範本</div>
                     <div className="px-2 py-2">觸發條件</div>
                     <div className="px-2 py-2">通知類型</div>
-                    <div className="px-2 py-2">獎金</div>
+                    <div className="px-2 py-2 text-amber-200">獎金</div>
                     <div className="px-2 py-2">適用範圍</div>
                     <div className="px-2 py-2 text-right">操作</div>
                   </div>
@@ -1270,11 +1270,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           <div className="min-w-0 px-2 py-2.5">
                             {hasReward ? (
                               <>
-                                <p className={`flex items-center gap-1 text-[9px] font-black tracking-wide ${alreadyAdded ? 'text-amber-200/80' : 'text-slate-500'}`}><Gift className="h-3 w-3" />每次獎金</p>
-                                <p className={`mt-0.5 truncate text-sm font-black tabular-nums ${alreadyAdded ? 'text-amber-100' : 'text-slate-200'}`} title={`${rewardAmount.toFixed(2)} ${dashboard.currency}`}>{rewardAmount.toFixed(2)} {dashboard.currency}</p>
+                                <p className="flex items-center gap-1 text-[9px] font-black tracking-wide text-amber-300/80"><Gift className="h-3 w-3" />每次獎金</p>
+                                <p className="mt-0.5 truncate text-sm font-black tabular-nums text-amber-200" title={`${rewardAmount.toFixed(2)} ${dashboard.currency}`}>{rewardAmount.toFixed(2)} {dashboard.currency}</p>
                               </>
                             ) : (
-                              <p className={`text-[11px] font-bold ${alreadyAdded ? 'text-slate-200' : 'text-slate-400'}`}>無獎金</p>
+                              <p className="text-[11px] font-bold text-amber-300/70">無獎金</p>
                             )}
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
