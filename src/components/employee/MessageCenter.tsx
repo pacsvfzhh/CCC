@@ -152,6 +152,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             accent: 'from-amber-500 via-yellow-400 to-orange-400',
             patternColor: 'border-amber-400',
             dotColor: 'bg-amber-500',
+            titleColor: 'text-amber-950',
           }
         : {
             card: 'bg-gradient-to-br from-amber-50/55 via-yellow-50/45 to-orange-50/40 ring-1 ring-slate-200/80 shadow-sm shadow-slate-200/30',
@@ -160,6 +161,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             accent: 'from-amber-300/70 via-yellow-200/70 to-orange-200/70',
             patternColor: 'border-amber-100',
             dotColor: 'bg-amber-300',
+            titleColor: 'text-amber-800',
           };
     }
     if (isUnread) {
@@ -171,6 +173,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
           accent: 'from-rose-500 via-red-400 to-orange-400',
           patternColor: 'border-rose-300',
           dotColor: 'bg-rose-500',
+          titleColor: 'text-rose-900',
         };
       }
       if (priority === 'high') {
@@ -181,6 +184,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
           accent: 'from-amber-500 via-yellow-400 to-orange-300',
           patternColor: 'border-amber-300',
           dotColor: 'bg-amber-500',
+          titleColor: 'text-amber-900',
         };
       }
       if (messageType === 'realtime') {
@@ -191,6 +195,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
           accent: 'from-blue-500 via-sky-400 to-cyan-400',
           patternColor: 'border-blue-300',
           dotColor: 'bg-blue-500',
+          titleColor: 'text-blue-900',
         };
       }
       // Login notifications use a distinct cyan treatment.
@@ -202,6 +207,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
           accent: 'from-cyan-500 via-sky-400 to-blue-400',
           patternColor: 'border-cyan-300',
           dotColor: 'bg-cyan-500',
+          titleColor: 'text-cyan-950',
         },
         {
           card: 'bg-gradient-to-br from-cyan-100 via-sky-50 to-blue-50 ring-2 ring-cyan-300 shadow-xl shadow-cyan-300/70',
@@ -210,6 +216,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
           accent: 'from-cyan-600 via-sky-400 to-blue-400',
           patternColor: 'border-cyan-300',
           dotColor: 'bg-cyan-600',
+          titleColor: 'text-cyan-950',
         },
       ];
       return variants[index % 2];
@@ -224,6 +231,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
         accent: 'from-blue-300/70 via-sky-200/70 to-cyan-200/70',
         patternColor: 'border-blue-100',
         dotColor: 'bg-blue-300',
+        titleColor: 'text-blue-700',
       };
     }
 
@@ -234,6 +242,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
       accent: 'from-cyan-300/70 via-sky-200/70 to-blue-200/70',
       patternColor: 'border-cyan-100',
       dotColor: 'bg-cyan-300',
+      titleColor: 'text-cyan-700',
     };
   };
 
@@ -442,9 +451,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                           <div className="flex-1 min-w-0">
                             {/* Title row */}
                             <div className="flex items-start justify-between gap-2 mb-1.5">
-                              <h3 className={`font-semibold text-[15px] leading-snug line-clamp-1 ${
-                                isUnread ? 'font-bold text-slate-900' : 'text-slate-700'
-                              }`}>
+                              <h3 className={`font-semibold text-[15px] leading-snug line-clamp-1 ${isUnread ? 'font-bold' : ''} ${style.titleColor}`}>
                                 {msg.messages.title}
                               </h3>
                               <span className={`text-[11px] font-medium whitespace-nowrap flex-shrink-0 mt-0.5 ${
