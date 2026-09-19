@@ -1186,7 +1186,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   <div className="grid grid-cols-[48px_48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_96px] border-l-2 border-l-transparent bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 px-3 text-[10px] font-black tracking-wider text-white shadow-md shadow-blue-950/40">
                     <div className="px-2 py-2 text-center">序號</div>
                     <div className="px-2 py-2 text-center">選取</div>
-                    <div className="px-2 py-2 pl-[46px]">管理員範本</div>
+                    <div className="px-2 py-2 pl-[54px]">管理員範本</div>
                     <div className="px-2 py-2">觸發條件</div>
                     <div className="px-2 py-2">獎勵</div>
                     <div className="px-2 py-2">適用範圍</div>
@@ -1197,7 +1197,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       const selected = selectedTemplateIds.has(task.id);
                       const alreadyAdded = dashboard.tasks.some(existing => isTemplateAdded(existing, task));
                       return (
-                        <div key={task.id} className={`group grid grid-cols-[48px_48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_96px] border-b border-l-2 px-3 transition-colors duration-200 ${alreadyAdded ? `border-b-orange-900/40 border-l-orange-400 bg-gradient-to-r from-amber-950/70 via-orange-950/45 to-slate-950/60 hover:from-amber-950/85 hover:via-orange-950/60 ${selected ? 'ring-1 ring-inset ring-amber-300/45' : ''}` : `border-b-violet-900/40 border-l-violet-500 bg-gradient-to-r from-violet-950/55 via-purple-950/35 to-slate-950/60 hover:from-violet-950/70 hover:via-purple-950/50 ${selected ? 'ring-1 ring-inset ring-violet-300/45' : ''}`}`}>
+                        <div key={task.id} className={`group relative grid grid-cols-[48px_48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_96px] border-b border-l-2 border-l-transparent px-3 transition-colors duration-200 before:absolute before:left-0 before:content-[''] ${alreadyAdded ? `border-b-orange-900/50 bg-orange-950/35 hover:bg-orange-950/50 before:inset-y-1.5 before:w-2 before:rounded-r-full before:bg-gradient-to-b before:from-amber-300 before:via-orange-500 before:to-orange-700 before:shadow-[0_0_16px_rgba(249,115,22,0.62)] ${selected ? 'ring-1 ring-inset ring-amber-300/50' : ''}` : `border-b-violet-950/70 bg-slate-950/60 hover:bg-violet-950/30 before:inset-y-2 before:w-1 before:rounded-r-full before:bg-violet-600/90 ${selected ? 'ring-1 ring-inset ring-violet-400/45' : ''}`}`}>
                           <div className={`flex items-center justify-center px-2 py-2.5 text-xs font-black tabular-nums ${alreadyAdded ? 'text-amber-300' : 'text-violet-300'}`}>{index + 1}</div>
                           <label className="flex cursor-pointer items-center justify-center px-2 py-2.5" aria-label={`${selected ? '取消選取' : '選取'}範本 ${task.name}`}>
                             <input
@@ -1217,19 +1217,19 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           </label>
                           <div className="min-w-0 px-2 py-2.5">
                             <div className="flex min-w-0 items-center gap-2.5">
-                              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${alreadyAdded ? 'border-amber-300/40 bg-orange-950/70 text-amber-200' : 'border-violet-300/40 bg-violet-950/70 text-violet-200'}`}>
+                              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${alreadyAdded ? 'border-amber-300/45 bg-gradient-to-br from-amber-400/35 via-orange-600/25 to-orange-950 text-amber-100 shadow-[0_0_18px_rgba(249,115,22,0.24)] ring-1 ring-inset ring-amber-200/15' : 'border-violet-700/70 bg-slate-900/90 text-violet-400'}`}>
                                 {task.reward_enabled ? <Gift className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                               </span>
                               <div className="min-w-0">
                                 <div className="flex min-w-0 items-center gap-2">
                                   <h3 className="truncate text-sm font-black text-white" title={task.name}>{task.name}</h3>
                                   {alreadyAdded && (
-                                    <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-black text-amber-200">
+                                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-300/30 bg-orange-500/15 px-2 py-0.5 text-[10px] font-black text-amber-100 shadow-sm shadow-orange-950/40">
                                       <CheckCircle2 className="h-3.5 w-3.5" />已添加
                                     </span>
                                   )}
                                 </div>
-                                <p className={`mt-0.5 truncate text-[10px] ${alreadyAdded ? 'text-orange-200/80' : 'text-violet-200/80'}`} title={task.owner_username}>
+                                <p className={`mt-0.5 truncate text-[10px] ${alreadyAdded ? 'text-orange-200/80' : 'text-violet-300/70'}`} title={task.owner_username}>
                                   <ShieldCheck className="mr-1 inline h-3 w-3" />範本提供者
                                   <span className="px-1 opacity-50">·</span>
                                   <span className="font-bold">{task.owner_username}</span>
@@ -1238,14 +1238,14 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                             </div>
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
-                            <p className={`truncate text-[10px] font-black tracking-wide ${alreadyAdded ? 'text-amber-200/80' : 'text-violet-200/80'}`}>{triggerLabels[task.trigger_type]}</p>
-                            <p className={`mt-0.5 truncate text-[11px] font-semibold ${alreadyAdded ? 'text-orange-100' : 'text-violet-100'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
+                            <p className={`truncate text-[10px] font-black tracking-wide ${alreadyAdded ? 'text-amber-200/80' : 'text-violet-300/75'}`}>{triggerLabels[task.trigger_type]}</p>
+                            <p className={`mt-0.5 truncate text-[11px] font-semibold ${alreadyAdded ? 'text-orange-100' : 'text-slate-300'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
-                            <p className={`truncate text-[11px] font-black ${alreadyAdded ? 'text-amber-100' : 'text-violet-100'}`}>{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'}</p>
+                            <p className={`truncate text-[11px] font-black ${alreadyAdded ? 'text-amber-100' : 'text-violet-200'}`}>{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'}</p>
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
-                            <p className={`truncate text-[11px] font-bold ${alreadyAdded ? 'text-orange-100' : 'text-violet-100'}`}>{task.recipient_scope === 'selected' ? '指定範圍' : '全部員工'}</p>
+                            <p className={`truncate text-[11px] font-bold ${alreadyAdded ? 'text-orange-100' : 'text-slate-300'}`}>{task.recipient_scope === 'selected' ? '指定範圍' : '全部員工'}</p>
                           </div>
                           <div className="flex items-center justify-end gap-1.5 px-2 py-2.5">
                             <button onClick={() => openTask(task, true)} className="flex h-7 items-center justify-center rounded-md border border-violet-400/35 bg-violet-500/10 px-2 text-[11px] font-bold text-violet-200 transition-colors hover:border-violet-300/50 hover:bg-violet-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70" aria-label={`查看範本 ${task.name}`}><ChevronRight className="h-3.5 w-3.5" /></button>
