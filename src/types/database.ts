@@ -2884,7 +2884,10 @@ export interface Database {
         Returns: number;
       };
       get_notification_automation_dashboard: {
-        Args: { p_admin_session_token: string };
+        Args: {
+          p_admin_session_token: string;
+          p_owner_admin_id?: string | null;
+        };
         Returns: Record<string, unknown>;
       };
       save_notification_automation_task: {

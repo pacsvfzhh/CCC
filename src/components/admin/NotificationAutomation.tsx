@@ -16,6 +16,7 @@ import {
   Search,
   Settings2,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Target,
   Users,
@@ -91,8 +92,15 @@ interface AutomationExecution {
   error_message: string | null;
 }
 
+interface AutomationAdminGroup {
+  id: string;
+  username: string;
+  role: string;
+}
+
 interface AutomationDashboard {
   currency: string;
+  admin_groups: AutomationAdminGroup[];
   tasks: AutomationTask[];
   shared_templates: AutomationTask[];
   executions: AutomationExecution[];
@@ -276,7 +284,8 @@ function summarizeTask(task: AutomationTask, currency: string) {
 }
 
 export default function NotificationAutomation({ admin, employees, onBack, notify }: Props) {
-  const [dashboard, setDashboard] = useState<AutomationDashboard>({ currency: 'USDC', tasks: [], shared_templates: [], executions: [] });
+  const isSuperAdmin = admin.role === 'super_admin' || Boolean(admin.is_super_admin);
+  const [dashboard, setDashboard] = useState<AutomationDashboard>({ currency: 'USDC', admin_groups: [], tasks: [], shared_templates: [], executions: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -287,15 +296,17 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
   const [form, setForm] = useState<TaskForm>(createDefaultForm());
   const [templateCustomized, setTemplateCustomized] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [selectedAdminId, setSelectedAdminId] = useState('all');
   const loadRef = useRef<(() => Promise<void>) | null>(null);
 
-  const loadDashboard = async () => {
+  const loadDashboard = async (ownerAdminId = selectedAdminId) => {
     try {
       const { data, error } = await supabase.rpc('get_notification_automation_dashboard', {
         p_admin_session_token: getAdminFinancialSessionToken(),
+        p_owner_admin_id: isSuperAdmin && ownerAdminId !== 'all' ? ownerAdminId : null,
       });
       if (error) throw error;
-      setDashboard((data || { currency: 'USDC', tasks: [], shared_templates: [], executions: [] }) as unknown as AutomationDashboard);
+      setDashboard((data || { currency: 'USDC', admin_groups: [], tasks: [], shared_templates: [], executions: [] }) as unknown as AutomationDashboard);
     } catch (error) {
       notify('error', formatSupabaseError(error) || '無法載入自動化任務');
     } finally {
@@ -753,6 +764,31 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                   </div>
                 </div>
               ))}
+              {isSuperAdmin && (
+                <label className="flex min-h-[58px] min-w-[230px] items-center gap-3 border-l border-fuchsia-400/20 bg-fuchsia-500/15 px-4 py-2">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-slate-950/40 text-fuchsia-200 shadow-inner"><SlidersHorizontal className="h-4 w-4" /></div>
+                  <div className="min-w-0 flex-1">
+                    <span className="block whitespace-nowrap text-[10px] font-bold tracking-wide text-slate-100">管理員分組</span>
+                    <select
+                      value={selectedAdminId}
+                      disabled={refreshing}
+                      onChange={event => {
+                        const nextAdminId = event.target.value;
+                        setSelectedAdminId(nextAdminId);
+                        setSelectedTemplateId(null);
+                        setRefreshing(true);
+                        void loadDashboard(nextAdminId);
+                      }}
+                      className="mt-0.5 h-6 w-full max-w-[170px] rounded-md border border-fuchsia-300/25 bg-slate-950/70 px-2 text-[11px] font-bold text-fuchsia-100 outline-none transition focus:border-fuchsia-300 focus:ring-1 focus:ring-fuchsia-300/40 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      <option value="all">全部管理員</option>
+                      {dashboard.admin_groups.map(group => (
+                        <option key={group.id} value={group.id}>{group.username}{group.id === admin.id ? '（目前帳戶）' : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </label>
+              )}
             </div>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
