@@ -215,6 +215,26 @@ function taskToForm(task: AutomationTask): TaskForm {
   };
 }
 
+function isSameTemplateCopy(existing: AutomationTask, source: AutomationTask) {
+  return existing.source_task_id === source.id
+    && existing.name === source.name
+    && existing.description === source.description
+    && existing.trigger_type === source.trigger_type
+    && existing.trigger_mode === source.trigger_mode
+    && Number(existing.threshold_value) === Number(source.threshold_value)
+    && existing.minimum_daily_orders === source.minimum_daily_orders
+    && existing.minimum_daily_work_minutes === source.minimum_daily_work_minutes
+    && existing.recipient_scope === 'all_managed'
+    && existing.title_template === source.title_template
+    && existing.content_template === source.content_template
+    && existing.message_type === source.message_type
+    && existing.priority === source.priority
+    && existing.reward_enabled === source.reward_enabled
+    && existing.reward_amount === source.reward_amount
+    && existing.starts_at === source.starts_at
+    && existing.ends_at === source.ends_at;
+}
+
 function buildEnglishTemplate(triggerType: TriggerType, rewardEnabled: boolean, rewardAmount: string) {
   const reward = rewardEnabled && rewardAmount
     ? ` A performance bonus of {{bonus_amount}} {{currency}} has been credited to your wallet.`
@@ -489,6 +509,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   };
 
   const copyTemplate = async (task: AutomationTask, activate: boolean) => {
+    if (activate && dashboard.tasks.some(existing => isSameTemplateCopy(existing, task))) {
+      showNotice('info', '這個管理員範本已經添加到本組任務，不可重複添加。');
+      return;
+    }
+
     try {
       const { data, error } = await supabase.rpc('copy_shared_notification_automation_task', {
         p_admin_session_token: getAdminFinancialSessionToken(),
