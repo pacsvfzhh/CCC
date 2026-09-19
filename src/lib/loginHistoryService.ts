@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { formatSupabaseError, supabase } from './supabase';
 import { collectLoginDeviceInfo, parseLoginDeviceInfo } from './deviceInfo';
 
 export async function getUserIP(): Promise<string> {
@@ -12,7 +12,7 @@ export async function getUserIP(): Promise<string> {
     const data = await response.json();
     return data.ip || 'Unknown';
   } catch (error) {
-    console.error('Error getting IP address:', error);
+    console.error('Error getting IP address:', formatSupabaseError(error));
     return 'Unknown';
   } finally {
     window.clearTimeout(timeout);
@@ -32,7 +32,7 @@ export async function logEmployeeLogin(
       collectLoginDeviceInfo().catch(() => parseLoginDeviceInfo(userAgent)),
     ]);
 
-    const { error } = await supabase.rpc('log_employee_login_with_device_info', {
+    const { error: structuredError } = await supabase.rpc('log_employee_login_with_device_info', {
       p_user_id: userId,
       p_username: username,
       p_employee_id: employeeId,
@@ -42,11 +42,25 @@ export async function logEmployeeLogin(
       p_device_info: deviceInfo,
     });
 
-    if (error) {
-      console.error('Error logging employee login:', error);
+    if (!structuredError) return;
+
+    const { error: fallbackError } = await supabase.rpc('log_employee_login', {
+      p_user_id: userId,
+      p_username: username,
+      p_employee_id: employeeId,
+      p_ip_address: ipAddress,
+      p_user_agent: userAgent,
+      p_session_id: sessionId || null,
+    });
+
+    if (fallbackError) {
+      console.error(
+        'Error logging employee login:',
+        `${formatSupabaseError(fallbackError)} (structured RPC: ${formatSupabaseError(structuredError)})`,
+      );
     }
   } catch (error) {
-    console.error('Error in logEmployeeLogin:', error);
+    console.error('Error in logEmployeeLogin:', formatSupabaseError(error));
   }
 }
 
@@ -63,7 +77,7 @@ export async function logEmployeeLogout(
       collectLoginDeviceInfo().catch(() => parseLoginDeviceInfo(userAgent)),
     ]);
 
-    const { error } = await supabase.rpc('log_employee_logout_with_device_info', {
+    const { error: structuredError } = await supabase.rpc('log_employee_logout_with_device_info', {
       p_user_id: userId,
       p_username: username,
       p_employee_id: employeeId,
@@ -73,10 +87,24 @@ export async function logEmployeeLogout(
       p_device_info: deviceInfo,
     });
 
-    if (error) {
-      console.error('Error logging employee logout:', error);
+    if (!structuredError) return;
+
+    const { error: fallbackError } = await supabase.rpc('log_employee_logout', {
+      p_user_id: userId,
+      p_username: username,
+      p_employee_id: employeeId,
+      p_ip_address: ipAddress,
+      p_user_agent: userAgent,
+      p_session_id: sessionId || null,
+    });
+
+    if (fallbackError) {
+      console.error(
+        'Error logging employee logout:',
+        `${formatSupabaseError(fallbackError)} (structured RPC: ${formatSupabaseError(structuredError)})`,
+      );
     }
   } catch (error) {
-    console.error('Error in logEmployeeLogout:', error);
+    console.error('Error in logEmployeeLogout:', formatSupabaseError(error));
   }
 }
