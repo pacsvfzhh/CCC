@@ -860,18 +860,18 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
           aria-labelledby="employee-notification-preview-title"
           onMouseDown={event => event.stopPropagation()}
         >
-          <div className={`relative flex shrink-0 items-center justify-between px-6 py-5 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-500 via-yellow-500 to-orange-500' : 'bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800'}`}>
+          <div className={`relative flex shrink-0 items-center justify-between px-5 py-4 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-500 via-yellow-500 to-orange-500' : 'bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800'}`}>
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.14)_0%,_transparent_60%)]" />
             <div className="relative flex min-w-0 items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-white shadow-lg">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-lg ${form.rewardEnabled ? 'border-amber-900/15 bg-amber-950/10 text-amber-950' : 'border-white/20 bg-white/15 text-white'}`}>
                 {form.rewardEnabled ? <Gift className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
               </div>
               <div className="min-w-0">
-                <h2 id="employee-notification-preview-title" className="truncate text-lg font-bold tracking-tight text-white">{form.rewardEnabled ? t.messages.rewardTitle : 'Achievement Notice'}</h2>
-                <p className="mt-0.5 text-xs font-semibold text-white/75">員工端通知預覽</p>
+                <h2 id="employee-notification-preview-title" className={`truncate text-xl font-bold tracking-tight ${form.rewardEnabled ? 'text-amber-950' : 'text-white'}`}>{form.rewardEnabled ? t.messages.rewardTitle : 'Achievement Notice'}</h2>
+                <p className={`mt-0.5 text-sm font-semibold ${form.rewardEnabled ? 'text-amber-950/70' : 'text-white/75'}`}>員工端通知預覽</p>
               </div>
             </div>
-            <button type="button" onClick={() => setEmployeePreviewOpen(false)} className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80" aria-label="關閉員工端預覽">
+            <button type="button" onClick={() => setEmployeePreviewOpen(false)} className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${form.rewardEnabled ? 'bg-amber-950/10 text-amber-950 hover:bg-amber-950/15' : 'bg-white/15 text-white hover:bg-white/25'}`} aria-label="關閉員工端預覽">
               <X className="h-4 w-4" />
             </button>
           </div>

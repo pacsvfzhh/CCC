@@ -287,13 +287,13 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
           <div className="absolute top-4 left-2/3 w-1.5 h-1.5 bg-white/20 rounded-full" />
 
           <div
-            className="relative px-5 py-5 lg:px-7 lg:py-6"
-            style={{ paddingTop: !isDesktop ? 'calc(env(safe-area-inset-top, 0px) + 20px)' : undefined }}
+            className="relative px-4 py-3 lg:px-5 lg:py-4"
+            style={{ paddingTop: !isDesktop ? 'calc(env(safe-area-inset-top, 0px) + 12px)' : undefined }}
           >
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="flex items-center gap-3">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
                 <div className="relative flex-shrink-0">
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-lg shadow-blue-900/20">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/25 bg-white/15 shadow-lg backdrop-blur-sm sm:h-10 sm:w-10">
                     <Bell className="w-5 h-5 text-white" />
                   </div>
                   {unreadCount > 0 && (
@@ -303,17 +303,17 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-xl lg:text-2xl font-bold text-white tracking-tight">
+                  <h2 className="text-xl font-bold tracking-tight text-white lg:text-2xl">
                     {t.messages.title}
                   </h2>
-                  <p className="text-sm text-blue-100/90 mt-0.5 font-medium">
+                  <p className="mt-0.5 text-sm font-medium text-blue-100/90">
                     {unreadCount > 0 ? `${unreadCount} ${t.messages.newMessages}` : t.messages.gotIt}
                   </p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors text-white active:scale-95"
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25 active:scale-95"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <X className="w-4 h-4" strokeWidth={2.5} />
@@ -321,7 +321,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             </div>
 
             {/* Filter tabs - underline style */}
-            <div className="relative flex mt-3 border-b border-white/15">
+            <div className="relative mt-2 border-b border-white/15">
               {[
                 { id: 'all', label: t.messages.title },
                 { id: 'unread', label: t.messages.unread },
@@ -333,7 +333,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                   <button
                     key={f.id}
                     onClick={() => setFilter(f.id as typeof filter)}
-                    className={`msg-force-transition flex-1 pb-2 text-[12px] transition-all duration-200 relative ${
+                    className={`msg-force-transition relative flex-1 pb-1.5 text-[11px] transition-all duration-200 ${
                       isActive
                         ? 'text-white font-semibold'
                         : 'text-white/50 font-medium'
@@ -342,7 +342,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                   >
                     <span className="truncate">{f.label}</span>
                     {isActive && (
-                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-white" />
+                      <span className="absolute bottom-0 left-1/2 h-[2px] w-5 -translate-x-1/2 rounded-full bg-white" />
                     )}
                   </button>
                 );
@@ -547,16 +547,16 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/[0.04] rounded-full translate-y-1/2 -translate-x-1/3" />
 
               <div
-                className="relative px-5 py-3 lg:px-7 lg:py-4"
+                className="relative px-4 py-2.5 lg:px-6 lg:py-3"
                 style={{
-                  paddingTop: !isDesktop ? 'calc(env(safe-area-inset-top, 0px) + 12px)' : undefined
+                  paddingTop: !isDesktop ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : undefined
                 }}
               >
                 {/* Close button */}
-                <div className="flex items-center justify-end mb-2">
+                <div className="mb-1.5 flex items-center justify-end">
                   <button
                     onClick={() => setSelectedMessage(null)}
-                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors text-white active:scale-95"
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors hover:bg-white/25 active:scale-95 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'bg-amber-950/10 text-amber-950 hover:bg-amber-950/15' : 'bg-white/15 text-white'}`}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     <X className="w-4 h-4" strokeWidth={2.5} />
@@ -564,24 +564,24 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                 </div>
 
                 {/* Title section */}
-                <div className="flex items-start gap-3.5">
-                  <div className="flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                <div className="flex items-start gap-2.5">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border backdrop-blur-sm sm:h-10 sm:w-10 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-900/15 bg-amber-950/10' : 'border-white/20 bg-white/15'}`}>
                     {selectedMessage.messages.notification_category === 'performance_reward'
-                      ? <Gift className="h-5 w-5 text-white" />
+                      ? <Gift className="h-5 w-5 text-amber-950" />
                       : getPriorityIcon(selectedMessage.messages.priority, 'w-5 h-5 text-white')}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg lg:text-xl font-bold text-white mb-2 break-words leading-tight">
+                    <h3 className={`mb-1 break-words text-lg font-bold leading-tight lg:text-xl ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950' : 'text-white'}`}>
                       {selectedMessage.messages.title}
                     </h3>
-                    <div className="flex flex-wrap items-center gap-3 text-sm text-blue-100/90 font-medium">
+                    <div className={`flex flex-wrap items-center gap-2 text-sm font-medium ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950/70' : 'text-blue-100/90'}`}>
                       <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-cyan-200" />
+                        <Clock className={`h-3.5 w-3.5 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-900/70' : 'text-cyan-200'}`} />
                         <span>
                           {new Date(selectedMessage.messages.created_at || 0).toLocaleDateString(dateLocale, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
                       </div>
-                      <span className="text-white/20">|</span>
+                      <span className={selectedMessage.messages.notification_category === 'performance_reward' ? 'text-amber-950/25' : 'text-white/20'}>|</span>
                       <span>
                         {new Date(selectedMessage.messages.created_at || 0).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}
                       </span>
@@ -590,15 +590,11 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                 </div>
 
                 {/* Tags */}
-                <div className="flex flex-wrap items-center gap-2 mt-4">
-                  <span className={`text-[10px] lg:text-[11px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider bg-white/15 border border-white/20 ${
-                    selectedMessage.messages.message_type === 'login_popup'
-                      ? 'text-sky-100'
-                      : 'text-cyan-100'
-                  }`}>
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-900/15 bg-amber-950/10 text-amber-950/80' : selectedMessage.messages.message_type === 'login_popup' ? 'border-white/20 bg-white/15 text-sky-100' : 'border-white/20 bg-white/15 text-cyan-100'}`}>
                     {selectedMessage.messages.message_type === 'login_popup' ? t.messages.loginNotification : t.messages.liveMessage}
                   </span>
-                  <span className="text-[10px] lg:text-[11px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider bg-white/15 text-white border border-white/20">
+                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-900/15 bg-amber-950/10 text-amber-950/80' : 'border-white/15 bg-white/15 text-white'}`}>
                     {selectedMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : selectedMessage.messages.priority === 'high' ? t.messages.priorityHigh : selectedMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
                   </span>
                 </div>

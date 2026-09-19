@@ -218,25 +218,25 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
             {/* Blue gradient header */}
             <div
-              className={`relative flex-shrink-0 bg-gradient-to-br px-5 py-5 shadow-lg ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-700 to-blue-800'}`}
-              style={{ paddingTop: isMobile ? 'calc(env(safe-area-inset-top, 0px) + 20px)' : undefined }}
+              className={`relative flex-shrink-0 bg-gradient-to-br px-4 py-3 shadow-lg sm:px-5 sm:py-3.5 ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-700 to-blue-800'}`}
+              style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
             >
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.1)_0%,_transparent_60%)]" />
               <div className="relative flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
-                    {isReward ? <Gift className="h-5 w-5 text-white" /> : <Bell className="w-5 h-5 text-white" />}
+                <div className="flex items-center gap-2.5">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg border backdrop-blur-sm sm:h-10 sm:w-10 ${isReward ? 'border-amber-900/15 bg-amber-950/10' : 'border-white/20 bg-white/15'}`}>
+                    {isReward ? <Gift className="h-5 w-5 text-amber-950" /> : <Bell className="w-5 h-5 text-white" />}
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white">{isReward ? t.messages.rewardTitle : t.loginPopup.notification}</h2>
-                    <p className="text-blue-100 text-xs mt-0.5">
+                    <h2 className={`text-lg font-bold leading-tight sm:text-xl ${isReward ? 'text-amber-950' : 'text-white'}`}>{isReward ? t.messages.rewardTitle : t.loginPopup.notification}</h2>
+                    <p className={`mt-0 text-xs ${isReward ? 'text-amber-950/70' : 'text-blue-100'}`}>
                       {currentIndex + 1} {t.loginPopup.of} {messages.length}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={handleClose}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors text-white active:scale-95"
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 ${isReward ? 'bg-amber-950/10 text-amber-950 hover:bg-amber-950/15' : 'bg-white/15 text-white hover:bg-white/25'}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   <X className="w-4 h-4" />
@@ -245,16 +245,16 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
               {/* Page indicator dots */}
               {messages.length > 1 && (
-                <div className="relative flex items-center gap-1.5 mt-4">
+                <div className="relative mt-3 flex items-center gap-1">
                   {messages.map((_, idx) => (
                     <div
                       key={idx}
                       className={`h-1 rounded-full transition-all duration-300 ${
                         idx === currentIndex
-                          ? 'w-8 bg-white'
+                          ? `w-8 ${isReward ? 'bg-amber-950/80' : 'bg-white'}`
                           : idx < currentIndex
-                          ? 'w-4 bg-white/50'
-                          : 'w-4 bg-white/25'
+                          ? `w-4 ${isReward ? 'bg-amber-950/35' : 'bg-white/50'}`
+                          : `w-4 ${isReward ? 'bg-amber-950/20' : 'bg-white/25'}`
                       }`}
                     />
                   ))}
@@ -368,20 +368,20 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
             <div className="relative bg-white rounded-3xl shadow-2xl shadow-blue-900/15 border border-slate-200/60 overflow-hidden flex flex-col max-h-[85vh]">
 
               {/* Blue gradient header */}
-              <div className={`relative flex-shrink-0 bg-gradient-to-br px-8 py-7 ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-700 to-blue-800'}`}>
+              <div className={`relative flex-shrink-0 bg-gradient-to-br px-6 py-4 lg:px-7 ${isReward ? 'from-amber-500 via-yellow-500 to-orange-500' : 'from-blue-600 via-blue-700 to-blue-800'}`}>
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.12)_0%,_transparent_50%)]" />
                 <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
                 <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 sm:w-11 sm:h-11 bg-white/15 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-lg shadow-blue-900/20">
-                      {isReward ? <Gift className="h-5 w-5 text-white" /> : <Bell className="w-5 h-5 text-white" />}
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-xl border shadow-lg sm:h-10 sm:w-10 ${isReward ? 'border-amber-900/15 bg-amber-950/10' : 'border-white/20 bg-white/15 shadow-blue-900/20'}`}>
+                      {isReward ? <Gift className="h-5 w-5 text-amber-950" /> : <Bell className="w-5 w-5 text-white" />}
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-white tracking-tight">
+                      <h2 className={`text-xl font-bold leading-tight tracking-tight lg:text-2xl ${isReward ? 'text-amber-950' : 'text-white'}`}>
                         {isReward ? t.messages.rewardTitle : t.loginPopup.notification}
                       </h2>
-                      <p className="text-blue-100 text-sm mt-0.5">
+                      <p className={`mt-0 text-sm ${isReward ? 'text-amber-950/70' : 'text-blue-100'}`}>
                         {messages.length} {t.loginPopup.newMessages}
                       </p>
                     </div>
@@ -389,7 +389,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
                   <button
                     onClick={handleClose}
-                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors text-white"
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isReward ? 'bg-amber-950/10 text-amber-950 hover:bg-amber-950/15' : 'bg-white/15 text-white hover:bg-white/25'}`}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -397,17 +397,17 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
                 {/* Page indicator */}
                 {messages.length > 1 && (
-                  <div className="relative flex items-center gap-1.5 mt-5">
+                  <div className="relative mt-3 flex items-center gap-1">
                     {messages.map((_, idx) => (
                       <div
                         key={idx}
                         className={`h-1 rounded-full transition-all duration-300 ${
-                          idx === currentIndex
-                            ? 'w-8 bg-white'
-                            : idx < currentIndex
-                            ? 'w-4 bg-white/50'
-                            : 'w-4 bg-white/25'
-                        }`}
+                        idx === currentIndex
+                          ? `w-8 ${isReward ? 'bg-amber-950/80' : 'bg-white'}`
+                          : idx < currentIndex
+                          ? `w-4 ${isReward ? 'bg-amber-950/35' : 'bg-white/50'}`
+                          : `w-4 ${isReward ? 'bg-amber-950/20' : 'bg-white/25'}`
+                      }`}
                       />
                     ))}
                   </div>
