@@ -217,6 +217,8 @@ function taskToForm(task: AutomationTask): TaskForm {
 }
 
 function isSameTemplateCopy(existing: AutomationTask, source: AutomationTask) {
+  if (existing.id === source.id) return true;
+
   return existing.source_task_id === source.id
     && existing.name === source.name
     && existing.description === source.description
