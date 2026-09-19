@@ -742,26 +742,23 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
         {noticeCard}
-        <div className="relative z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/70 px-4 py-3.5 shadow-lg shadow-slate-950/30 sm:px-5">
-          <div className="flex items-center gap-3">
-            <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setEditorOpen(false); }} className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-400/40 bg-red-500/15 text-red-300 shadow-sm transition-all duration-200 hover:border-red-300/70 hover:bg-red-500/30 hover:text-red-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
-              <ArrowLeft className="h-4 w-4" />
+        <div className="relative z-10 flex h-11 shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/70 px-3 shadow-lg shadow-slate-950/30">
+          <div className="flex min-w-0 items-center gap-2">
+            <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setEditorOpen(false); }} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-400/40 bg-red-500/15 text-red-300 transition-colors hover:border-red-300/70 hover:bg-red-500/30 hover:text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70">
+              <ArrowLeft className="h-3.5 w-3.5" />
             </button>
-            <div>
-              <h2 className="text-base font-black tracking-tight text-white sm:text-lg">{readOnly ? '查看管理員範本' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2>
-              <p className="mt-0.5 text-xs font-medium text-slate-400">通知內容使用英文，管理介面使用繁體中文</p>
-            </div>
+            <h2 className="truncate text-sm font-black tracking-tight text-white">{readOnly ? '查看管理員範本' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2>
+            <span className="hidden text-[10px] font-medium text-slate-500 md:inline">英文通知 · 繁中設定</span>
           </div>
           {copiedFromName && (
-            <div className="flex min-w-0 items-center gap-2 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-100 shadow-inner">
+            <div className="flex min-w-0 items-center gap-1.5 rounded-lg border border-amber-300/25 bg-amber-400/10 px-2 py-1 text-[10px] text-amber-100">
               <Copy className="h-3.5 w-3.5 shrink-0 text-amber-300" />
               <span className="shrink-0 font-semibold text-amber-200/80">原任務名稱</span>
               <span className="max-w-[220px] truncate font-black text-white" title={copiedFromName}>{copiedFromName}</span>
-              <span className="hidden text-amber-200/70 sm:inline">請重新設定名稱後儲存</span>
             </div>
           )}
           {!readOnly && (
-            <button disabled={saving} onClick={saveTask} className="inline-flex h-9 items-center gap-2 rounded-xl border border-cyan-300/30 bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 px-4 text-sm font-black text-white shadow-lg shadow-cyan-950/50 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-cyan-500/20 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:brightness-100">
+            <button disabled={saving} onClick={saveTask} className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-cyan-500 to-blue-600 px-3 text-xs font-black text-white shadow-md shadow-cyan-950/40 transition-colors hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50">
               {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               {isSuperAdmin && form.isSharedTemplate ? '儲存管理員範本' : '儲存為草稿'}
             </button>
@@ -769,12 +766,13 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         </div>
 
         <div className="min-h-0 flex-1 overflow-hidden bg-slate-900">
-          <div className="grid h-full w-full items-start overflow-y-auto bg-slate-900 xl:grid-cols-[minmax(0,1fr)_400px]">
-            <div className="min-w-0 px-4 sm:px-5 xl:border-r xl:border-slate-700/70">
-              <section className="border-b border-slate-700/60 py-4">
-                <div className="mb-3 flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-blue-500/10 text-cyan-300 ring-1 ring-cyan-400/20"><Settings2 className="h-4 w-4" /></div>
-                  <h3 className="font-black tracking-tight text-white">基本設定</h3>
+          <div className="grid h-full min-h-0 w-full grid-cols-1 gap-2 overflow-hidden bg-slate-900 p-2 xl:grid-cols-2 xl:grid-rows-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+            <div className="contents">
+              <div className="min-h-0 overflow-y-auto rounded-xl border border-slate-700/70 bg-slate-950/45 p-3">
+              <section>
+                <div className="mb-2 flex items-center gap-2 border-l-2 border-cyan-400 pl-2">
+                  <Settings2 className="h-4 w-4 text-cyan-300" />
+                  <h3 className="text-sm font-black tracking-tight text-white">基本設定與觸發條件</h3>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="sm:col-span-2">
@@ -784,11 +782,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 </div>
               </section>
 
-              <section className="border-b border-slate-700/60 py-4">
-                <div className="mb-3 flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-blue-500/10 text-cyan-300 ring-1 ring-cyan-400/20"><Target className="h-4 w-4" /></div>
-                  <h3 className="font-black tracking-tight text-white">觸發條件</h3>
-                </div>
+              <section className="mt-3 border-t border-slate-700/60 pt-2.5">
+                <div className="mb-2 flex items-center gap-1.5 text-xs font-black text-cyan-200"><Target className="h-3.5 w-3.5" />觸發條件</div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label>
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">條件類型</span>
@@ -840,26 +835,29 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     </label>
                   )}
                 </div>
-                <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-sm text-cyan-100">
+                <div className="mt-2 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1.5 text-xs text-cyan-100">
                   {summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}
                 </div>
               </section>
+              </div>
 
-              <section className="border-b border-slate-700/60 py-4">
-                <label className={`flex cursor-pointer items-center justify-between gap-4 rounded-xl border px-3 py-3 transition-all duration-200 ${form.rewardEnabled ? 'border-amber-400/20 bg-gradient-to-r from-amber-500/10 to-transparent' : 'border-slate-700/60 bg-gradient-to-r from-slate-800/50 to-transparent hover:border-slate-600'}`}>
+              <div className="min-h-0 overflow-y-auto rounded-xl border border-slate-700/70 bg-slate-950/45 p-3">
+                <div className="mb-2 flex items-center gap-2 border-l-2 border-amber-400 pl-2"><Gift className="h-4 w-4 text-amber-300" /><h3 className="text-sm font-black text-white">績效獎金與適用員工</h3></div>
+              <section>
+                <label className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-2.5 py-2 transition-all duration-200 ${form.rewardEnabled ? 'border-amber-400/20 bg-gradient-to-r from-amber-500/10 to-transparent' : 'border-slate-700/60 bg-gradient-to-r from-slate-800/50 to-transparent hover:border-slate-600'}`}>
                   <div className="flex items-center gap-3">
-                    <div className={`flex h-11 w-11 items-center justify-center rounded-xl ring-1 transition-all duration-200 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950 shadow-lg shadow-amber-900/40 ring-amber-200/30' : 'bg-slate-800 text-slate-500 ring-slate-700'}`}>
-                      <Gift className="h-5 w-5" />
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 transition-all duration-200 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950 shadow-lg shadow-amber-900/40 ring-amber-200/30' : 'bg-slate-800 text-slate-500 ring-slate-700'}`}>
+                      <Gift className="h-4 w-4" />
                     </div>
                     <div>
-                      <h3 className={form.rewardEnabled ? 'font-bold text-amber-100' : 'font-bold text-white'}>發放績效獎金</h3>
-                      <p className="text-xs text-slate-500">不勾選時只發送一般通知，不會修改錢包</p>
+                      <h3 className={form.rewardEnabled ? 'text-xs font-bold text-amber-100' : 'text-xs font-bold text-white'}>發放績效獎金</h3>
+                      <p className="text-[10px] text-slate-500">關閉時只發送一般通知</p>
                     </div>
                   </div>
                   <input disabled={readOnly} type="checkbox" checked={form.rewardEnabled} onChange={event => { setTemplateCustomized(false); setForm(previous => ({ ...previous, rewardEnabled: event.target.checked })); }} className="h-5 w-5 rounded bg-white accent-amber-400 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
                 </label>
                 {form.rewardEnabled && (
-                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     <label>
                       <span className="mb-1.5 block text-xs font-semibold text-amber-200/70">每次獎金</span>
                       <input disabled={readOnly} type="number" min="0.01" step="0.01" value={form.rewardAmount} onChange={event => setForm(previous => ({ ...previous, rewardAmount: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-900 shadow-sm outline-none transition-all duration-200 hover:border-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
@@ -868,28 +866,22 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       <span className="mb-1.5 block text-xs font-semibold text-amber-200/70">網站計量貨幣</span>
                       <div className="flex h-[42px] items-center rounded-xl border border-amber-500/20 bg-amber-400/10 px-3 font-black text-amber-200">{dashboard.currency}</div>
                     </div>
-                    <div className="sm:col-span-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-100/80">
-                      達標後獎金會立即寫入員工錢包、資金流水及 Daily Breakdown 的 Tips，不需要員工點擊通知領取。
-                    </div>
                   </div>
                 )}
               </section>
 
-              <section className="border-b border-slate-700/60 py-4">
-                <div className="mb-3 flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-blue-500/10 text-cyan-300 ring-1 ring-cyan-400/20"><Users className="h-4 w-4" /></div>
-                  <h3 className="font-black tracking-tight text-white">適用員工</h3>
-                </div>
+              <section className="mt-3 border-t border-slate-700/60 pt-2.5">
+                <div className="mb-2 flex items-center gap-1.5 text-xs font-black text-cyan-200"><Users className="h-3.5 w-3.5" />適用員工</div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {(['all_managed', 'selected'] as const).map(scope => (
-                    <button key={scope} disabled={readOnly} onClick={() => setForm(previous => ({ ...previous, recipientScope: scope }))} className={`rounded-xl border p-3 text-left transition-all duration-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${form.recipientScope === scope ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/15 to-blue-500/5 text-cyan-100 shadow-md shadow-cyan-950/30' : 'border-slate-700 bg-slate-950/80 text-slate-400 hover:border-slate-600 hover:bg-slate-800/70 hover:text-slate-200'} disabled:cursor-not-allowed disabled:opacity-60`}>
+                    <button key={scope} disabled={readOnly} onClick={() => setForm(previous => ({ ...previous, recipientScope: scope }))} className={`rounded-lg border px-2.5 py-2 text-left transition-all duration-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${form.recipientScope === scope ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/15 to-blue-500/5 text-cyan-100 shadow-md shadow-cyan-950/30' : 'border-slate-700 bg-slate-950/80 text-slate-400 hover:border-slate-600 hover:bg-slate-800/70 hover:text-slate-200'} disabled:cursor-not-allowed disabled:opacity-60`}>
                       <p className="text-sm font-bold">{scope === 'all_managed' ? '全部可管理員工' : '指定員工'}</p>
-                      <p className="mt-1 text-xs opacity-60">{scope === 'all_managed' ? '自動包含你權限範圍內的員工' : '只對下方勾選的員工生效'}</p>
+                      <p className="mt-0.5 text-[10px] opacity-60">{scope === 'all_managed' ? '自動包含你權限範圍內的員工' : '只對下方勾選的員工生效'}</p>
                     </button>
                   ))}
                 </div>
                 {form.recipientScope === 'selected' && (
-                  <div className="mt-3 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 p-2">
+                  <div className="mt-2 max-h-28 space-y-0.5 overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 p-1.5">
                     {employees.map(employee => (
                       <label key={employee.id} className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 transition-all duration-200 hover:bg-white hover:shadow-sm">
                         <div>
@@ -902,67 +894,68 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   </div>
                 )}
               </section>
+              </div>
 
-              <section className="border-b border-slate-700/60 py-4">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <section className="flex min-h-0 flex-col rounded-xl border border-slate-700/70 bg-slate-950/45 p-3">
+                <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-blue-500/10 text-cyan-300 ring-1 ring-cyan-400/20"><FileText className="h-4 w-4" /></div>
+                    <FileText className="h-4 w-4 text-cyan-300" />
                     <div>
-                      <h3 className="font-black tracking-tight text-white">英文通知內容</h3>
-                      <p className="text-xs text-slate-500">可以直接修改，動態變數會在發送時替換</p>
+                      <h3 className="text-sm font-black tracking-tight text-white">英文通知內容</h3>
+                      <p className="text-[10px] text-slate-500">動態變數會在發送時替換</p>
                     </div>
                   </div>
                   {!readOnly && <button onClick={regenerateTemplate} className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70">重新產生內容</button>}
                 </div>
-                <div className="space-y-4">
+                <div className="flex min-h-0 flex-1 flex-col gap-2">
                   <label>
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">通知標題</span>
                     <input disabled={readOnly} value={form.titleTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, titleTemplate: event.target.value })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
-                  <label>
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-400">通知內容</span>
-                    <textarea disabled={readOnly} rows={6} value={form.contentTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, contentTemplate: event.target.value })); }} className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 shadow-sm outline-none transition-all duration-200 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
+                  <label className="flex min-h-0 flex-1 flex-col">
+                    <span className="mb-1 block text-xs font-semibold text-slate-400">通知內容</span>
+                    <textarea disabled={readOnly} rows={3} value={form.contentTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, contentTemplate: event.target.value })); }} className="min-h-16 w-full flex-1 resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 shadow-sm outline-none transition-all duration-200 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
-                  <p className="text-[11px] text-slate-500">可用變數：{'{{employee_name}}'}、{'{{threshold_value}}'}、{'{{actual_value}}'}、{'{{minimum_daily_orders}}'}、{'{{annual_month}}'}、{'{{annual_day}}'}、{'{{bonus_amount}}'}、{'{{currency}}'}</p>
+                  <p className="truncate text-[10px] text-slate-500" title="可用變數">可用變數：{'{{employee_name}}'}、{'{{threshold_value}}'}、{'{{actual_value}}'}、{'{{minimum_daily_orders}}'}、{'{{annual_month}}'}、{'{{annual_day}}'}、{'{{bonus_amount}}'}、{'{{currency}}'}</p>
                 </div>
               </section>
             </div>
 
-            <aside className="border-t border-slate-700/70 p-4 xl:sticky xl:top-0 xl:self-start xl:border-t-0">
-              <div className={`overflow-hidden rounded-xl border shadow-xl ${form.rewardEnabled ? 'border-amber-400/30 bg-gradient-to-b from-amber-950 via-slate-900 to-slate-950 shadow-amber-950/40' : 'border-cyan-500/20 bg-gradient-to-b from-cyan-950 via-slate-900 to-slate-950 shadow-cyan-950/40'}`}>
-                <div className={`p-4 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-400/20 to-orange-500/5' : 'bg-gradient-to-br from-cyan-400/15 to-blue-500/5'}`}>
+            <aside className="min-h-0 overflow-hidden rounded-xl border border-slate-700/70 bg-slate-950/45 p-3">
+              <div className={`flex h-full min-h-0 flex-col overflow-hidden rounded-xl border shadow-xl ${form.rewardEnabled ? 'border-amber-400/30 bg-gradient-to-b from-amber-950 via-slate-900 to-slate-950 shadow-amber-950/40' : 'border-cyan-500/20 bg-gradient-to-b from-cyan-950 via-slate-900 to-slate-950 shadow-cyan-950/40'}`}>
+                <div className={`shrink-0 p-3 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-400/20 to-orange-500/5' : 'bg-gradient-to-br from-cyan-400/15 to-blue-500/5'}`}>
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${form.rewardEnabled ? 'bg-amber-400 text-amber-950' : 'bg-cyan-500 text-white'}`}>
-                        {form.rewardEnabled ? <Gift className="h-6 w-6" /> : <Bell className="h-6 w-6" />}
+                    <div className="flex items-center gap-2">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${form.rewardEnabled ? 'bg-amber-400 text-amber-950' : 'bg-cyan-500 text-white'}`}>
+                        {form.rewardEnabled ? <Gift className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
                       </div>
                       <div>
                         <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${form.rewardEnabled ? 'text-amber-300' : 'text-cyan-300'}`}>{form.rewardEnabled ? 'Performance Reward' : 'Achievement Notice'}</span>
-                        <p className="mt-1 text-xs text-slate-400">員工端通知預覽</p>
+                        <p className="text-[10px] text-slate-400">員工端預覽</p>
                       </div>
                     </div>
-                    <ShieldCheck className="h-5 w-5 text-emerald-400" />
+                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
                   </div>
                   {form.rewardEnabled && (
-                    <div className="mt-6 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4 text-center">
-                      <p className="text-xs font-semibold uppercase tracking-widest text-amber-300/70">Credited to Your Wallet</p>
-                      <p className="mt-1 text-3xl font-black text-amber-200">+{Number(form.rewardAmount || 0).toFixed(2)} <span className="text-lg">{dashboard.currency}</span></p>
+                    <div className="mt-2 flex items-center justify-between rounded-lg border border-amber-300/20 bg-amber-400/10 px-3 py-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-300/70">Wallet bonus</p>
+                      <p className="text-lg font-black text-amber-200">+{Number(form.rewardAmount || 0).toFixed(2)} <span className="text-xs">{dashboard.currency}</span></p>
                     </div>
                   )}
                 </div>
-                <div className="space-y-3 p-4">
-                  <h3 className="text-xl font-bold leading-snug text-white">{previewTitle || 'Notification title'}</h3>
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-sm leading-7 text-slate-300" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
-                  <div className="rounded-xl border border-slate-700/70 bg-slate-950/60 p-3">
+                <div className="min-h-0 flex-1 space-y-2 overflow-hidden p-3">
+                  <h3 className="truncate text-base font-bold leading-snug text-white" title={previewTitle}>{previewTitle || 'Notification title'}</h3>
+                  <div className="max-h-24 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-slate-300" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
+                  <div className="rounded-lg border border-slate-700/70 bg-slate-950/60 p-2">
                     <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Trigger condition</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-200">{summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}</p>
+                    <p className="mt-0.5 truncate text-xs font-semibold text-slate-200">{summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}</p>
                   </div>
                   {form.rewardEnabled && (
-                    <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3">
-                      <Wallet className="h-5 w-5 text-emerald-400" />
+                    <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2">
+                      <Wallet className="h-4 w-4 text-emerald-400" />
                       <div>
                         <p className="text-xs font-bold text-emerald-200">Performance Bonus / 業績獎金</p>
-                        <p className="text-[11px] text-emerald-300/60">Wallet and Daily Statistics updated automatically</p>
+                        <p className="truncate text-[10px] text-emerald-300/60">Wallet and Daily Statistics updated automatically</p>
                       </div>
                     </div>
                   )}
