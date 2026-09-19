@@ -756,8 +756,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       const bounds = adminMenuAnchorRef.current.getBoundingClientRect();
       const width = Math.min(bounds.width, window.innerWidth - 24);
       setAdminMenuPosition({
-        top: bounds.bottom + 6,
-        left: Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12)),
+        top: bounds.bottom + 4,
+        left: bounds.left,
         width,
       });
     }
@@ -958,17 +958,20 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         <div
           role="listbox"
           aria-label="管理員分組"
-          className="fixed overflow-hidden rounded-xl border border-sky-300/25 bg-slate-950/95 p-1 shadow-[0_18px_45px_rgba(2,8,23,0.68)] ring-1 ring-inset ring-white/[0.07] backdrop-blur-xl"
+          className="fixed overflow-hidden rounded-xl border border-sky-300/35 bg-[linear-gradient(145deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] p-1 shadow-[0_18px_50px_rgba(2,8,23,0.75),0_0_24px_rgba(14,165,233,0.12)] ring-1 ring-inset ring-white/[0.08] backdrop-blur-xl before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-sky-300/80 before:to-transparent"
           style={{ top: adminMenuPosition.top, left: adminMenuPosition.left, width: adminMenuPosition.width }}
           onMouseDown={event => event.stopPropagation()}
         >
-          <div className="border-b border-slate-700/70 px-2.5 py-2">
-            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-sky-300">選擇管理員分組</p>
-            <p className="mt-0.5 text-[9px] text-slate-500">統計與下方資料同步切換</p>
+          <div className="relative flex items-center gap-2 border-b border-sky-300/10 bg-gradient-to-r from-sky-500/10 to-blue-500/5 px-2.5 py-2">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-sky-300/20 bg-sky-400/10 text-sky-300"><SlidersHorizontal className="h-3 w-3" /></span>
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.14em] text-sky-200">選擇管理員分組</p>
+              <p className="mt-0.5 text-[9px] text-slate-500">統計與下方資料同步切換</p>
+            </div>
           </div>
           <div className="max-h-56 overflow-y-auto py-0.5">
-            <button type="button" role="option" aria-selected={selectedAdminId === 'all'} onClick={() => selectAdminGroup('all')} className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-all duration-150 ${selectedAdminId === 'all' ? 'bg-gradient-to-r from-sky-500/25 to-blue-500/15 text-white ring-1 ring-inset ring-sky-300/25' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}>
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${selectedAdminId === 'all' ? 'bg-sky-400 text-sky-950' : 'bg-slate-800 text-sky-300'}`}><Users className="h-4 w-4" /></span>
+            <button type="button" role="option" aria-selected={selectedAdminId === 'all'} onClick={() => selectAdminGroup('all')} className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-all duration-150 ${selectedAdminId === 'all' ? 'bg-gradient-to-r from-sky-500/25 via-blue-500/15 to-indigo-500/10 text-white shadow-inner ring-1 ring-inset ring-sky-300/30' : 'text-slate-300 hover:bg-gradient-to-r hover:from-slate-800/90 hover:to-sky-950/40 hover:text-white'}`}>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${selectedAdminId === 'all' ? 'bg-gradient-to-br from-sky-300 to-blue-500 text-blue-950 shadow-sm shadow-sky-950/40' : 'border border-slate-700 bg-slate-800/90 text-sky-300'}`}><Users className="h-4 w-4" /></span>
               <span className="min-w-0 flex-1"><span className="block text-[11px] font-black">全部管理員</span><span className="block text-[9px] text-slate-500">查看所有分組的整體資料</span></span>
               {selectedAdminId === 'all' && <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-300" />}
             </button>
@@ -976,8 +979,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
               const selected = selectedAdminId === group.id;
               const current = group.id === admin.id;
               return (
-                <button key={group.id} type="button" role="option" aria-selected={selected} onClick={() => selectAdminGroup(group.id)} className={`mt-0.5 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-all duration-150 ${selected ? 'bg-gradient-to-r from-sky-500/25 to-blue-500/15 text-white ring-1 ring-inset ring-sky-300/25' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'}`}>
-                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-black uppercase ${selected ? 'bg-gradient-to-br from-sky-300 to-blue-500 text-blue-950' : 'bg-slate-800 text-sky-300'}`}>{group.username.slice(0, 1)}</span>
+                <button key={group.id} type="button" role="option" aria-selected={selected} onClick={() => selectAdminGroup(group.id)} className={`mt-0.5 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-all duration-150 ${selected ? 'bg-gradient-to-r from-sky-500/25 via-blue-500/15 to-indigo-500/10 text-white shadow-inner ring-1 ring-inset ring-sky-300/30' : 'text-slate-300 hover:bg-gradient-to-r hover:from-slate-800/90 hover:to-sky-950/40 hover:text-white'}`}>
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-black uppercase ${selected ? 'bg-gradient-to-br from-sky-300 to-blue-500 text-blue-950 shadow-sm shadow-sky-950/40' : 'border border-slate-700 bg-slate-800/90 text-sky-300'}`}>{group.username.slice(0, 1)}</span>
                   <span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-black">{group.username}</span><span className="block text-[9px] text-slate-500">{current ? '目前登入帳戶' : group.role === 'super_admin' ? '超級管理員' : '管理員分組'}</span></span>
                   {current && <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-1.5 py-0.5 text-[8px] font-black text-amber-200">目前</span>}
                   {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-300" />}
