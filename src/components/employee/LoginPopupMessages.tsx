@@ -200,8 +200,8 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
               <div className="absolute bottom-0 left-0 h-24 w-24 -translate-x-1/3 translate-y-1/2 rounded-full bg-white/[0.04]" />
 
               <div
-                className="relative px-4 pb-3 pt-7 lg:px-6 lg:pb-3 lg:pt-7"
-                style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)' }}
+                className="relative px-4 pb-2 pt-5 lg:px-6 lg:pb-2 lg:pt-5"
+                style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)' }}
               >
                 <button
                   onClick={handleClose}
@@ -212,7 +212,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   <X className="h-5 w-5" strokeWidth={2.5} />
                 </button>
 
-                <div className="mb-3 flex items-center gap-2 pr-10">
+                <div className="mb-2 flex items-center gap-2 pr-10">
                   <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${isReward ? 'bg-amber-950/70' : 'bg-cyan-200'}`} />
                   <p className={`text-sm font-black uppercase tracking-[0.16em] ${isReward ? 'text-amber-950/80' : 'text-cyan-100'}`}>
                     {t.messages.loginNotification}
@@ -238,7 +238,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   </div>
                 </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-10">
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 pr-10">
                   <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
                     {currentMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : currentMessage.messages.priority === 'high' ? t.messages.priorityHigh : currentMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
                   </span>
@@ -352,8 +352,8 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                 </div>
                 <div className="absolute bottom-0 left-0 h-24 w-24 -translate-x-1/3 translate-y-1/2 rounded-full bg-white/[0.04]" />
 
-                <div className="relative px-4 pb-3 pt-7 lg:px-6 lg:pb-3 lg:pt-7">
-                  <div className="mb-3 flex items-center gap-2 pr-10">
+                <div className="relative px-4 pb-2 pt-5 lg:px-6 lg:pb-2 lg:pt-5">
+                  <div className="mb-2 flex items-center gap-2 pr-10">
                     <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${isReward ? 'bg-amber-950/70' : 'bg-cyan-200'}`} />
                     <p className={`text-sm font-black uppercase tracking-[0.16em] ${isReward ? 'text-amber-950/80' : 'text-cyan-100'}`}>
                       {t.messages.loginNotification}
@@ -387,7 +387,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   </button>
                 </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-10">
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 pr-10">
                   <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${isReward ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
                     {currentMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : currentMessage.messages.priority === 'high' ? t.messages.priorityHigh : currentMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}
                   </span>
