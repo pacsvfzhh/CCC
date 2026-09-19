@@ -1051,7 +1051,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden p-3 pr-4">
                   <h3 className="shrink-0 truncate text-base font-bold leading-snug text-white" title={previewTitle}>{previewTitle || 'Notification title'}</h3>
-                  <div className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-slate-300" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
+                  <div className="dark-panel-scroll min-h-0 min-w-0 flex-1 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-slate-300" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
                   <div className="shrink-0 rounded-lg border border-slate-700/70 bg-slate-950/60 p-2">
                     <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Trigger condition</p>
                     <p className="mt-0.5 truncate text-xs font-semibold text-slate-200">{summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}</p>
