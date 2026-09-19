@@ -770,10 +770,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             <div className="contents">
               <div className="min-h-0 overflow-y-auto rounded-xl border border-slate-700/70 bg-slate-950/45 p-3">
               <section>
-                <div className="mb-2 flex items-center gap-2 border-l-2 border-cyan-400 pl-2">
-                  <Settings2 className="h-4 w-4 text-cyan-300" />
-                  <h3 className="text-sm font-black tracking-tight text-white">基本設定與觸發條件</h3>
-                </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="sm:col-span-2">
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">任務名稱</span>
