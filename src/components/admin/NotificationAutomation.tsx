@@ -1128,7 +1128,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               <div className="overflow-x-auto">
                 <div className="min-w-[1040px]">
                   <div className="grid grid-cols-[minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_auto] border-y border-l-2 border-l-transparent border-slate-700/70 bg-slate-950/90 px-3 text-[10px] font-black tracking-wider text-slate-500">
-                    <div className="px-2 py-2">任務</div>
+                    <div className="px-2 py-2 pl-[46px]">任務</div>
                     <div className="px-2 py-2">觸發條件</div>
                     <div className="px-2 py-2">適用範圍</div>
                     <div className="px-2 py-2">執行次數</div>
@@ -1194,7 +1194,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 <div className="min-w-[1040px]">
                   <div className="grid grid-cols-[48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_auto] border-y border-l-2 border-l-transparent border-slate-700/70 bg-slate-950/90 px-3 text-[10px] font-black tracking-wider text-slate-500">
                     <div className="px-2 py-2 text-center">選取</div>
-                    <div className="px-2 py-2">管理員範本</div>
+                    <div className="px-2 py-2 pl-[46px]">管理員範本</div>
                     <div className="px-2 py-2">觸發條件</div>
                     <div className="px-2 py-2">獎勵</div>
                     <div className="px-2 py-2">適用範圍</div>
