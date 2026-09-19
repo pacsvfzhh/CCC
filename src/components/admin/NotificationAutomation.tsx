@@ -989,7 +989,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     );
   }
 
-  const selectedTemplates = orderedSharedTemplates.filter(task => selectedTemplateIds.has(task.id));
+  const selectedTemplates = orderedSharedTemplates.filter(task =>
+    selectedTemplateIds.has(task.id)
+    && !dashboard.tasks.some(existing => isTemplateAdded(existing, task)),
+  );
   const selectedAdmin = dashboard.admin_groups.find(group => group.id === selectedAdminId);
   const taskTabLabel = isSuperAdmin
     ? `${selectedAdmin?.username || admin.username} 的任務`
@@ -1207,15 +1210,18 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   </div>
                   <div>
                     {orderedSharedTemplates.map((task, index) => {
-                      const selected = selectedTemplateIds.has(task.id);
                       const alreadyAdded = dashboard.tasks.some(existing => isTemplateAdded(existing, task));
+                      const selected = alreadyAdded || selectedTemplateIds.has(task.id);
+                      const rewardAmount = Number(task.reward_amount || 0);
+                      const hasReward = task.reward_enabled || rewardAmount > 0;
                       return (
                         <div key={task.id} className={`group relative grid grid-cols-[48px_48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_96px] border-b border-l-2 border-l-transparent px-3 transition-colors duration-200 before:absolute before:left-0 before:content-[''] ${alreadyAdded ? `border-b-emerald-900/50 bg-emerald-950/35 hover:bg-emerald-950/50 before:inset-y-1.5 before:w-2 before:rounded-r-full before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-500 before:to-teal-700 before:shadow-[0_0_16px_rgba(16,185,129,0.65)] ${selected ? 'ring-1 ring-inset ring-emerald-300/50' : ''}` : `border-b-slate-800/80 bg-slate-950/55 hover:bg-slate-900/80 before:inset-y-2 before:w-1 before:rounded-r-full before:bg-slate-700/80 ${selected ? 'ring-1 ring-inset ring-violet-400/45' : ''}`}`}>
                           <div className={`flex items-center justify-center px-2 py-2.5 text-xs font-black tabular-nums ${alreadyAdded ? 'text-emerald-300' : 'text-slate-600'}`}>{index + 1}</div>
-                          <label className="flex cursor-pointer items-center justify-center px-2 py-2.5" aria-label={`${selected ? '取消選取' : '選取'}範本 ${task.name}`}>
+                          <label className={`flex items-center justify-center px-2 py-2.5 ${alreadyAdded ? 'cursor-not-allowed' : 'cursor-pointer'}`} aria-label={alreadyAdded ? `範本 ${task.name} 已添加，不可重複選取` : `${selected ? '取消選取' : '選取'}範本 ${task.name}`} title={alreadyAdded ? '此範本已添加到目前管理員組' : undefined}>
                             <input
                               type="checkbox"
                               checked={selected}
+                              disabled={alreadyAdded}
                               onChange={event => setSelectedTemplateIds(previous => {
                                 const next = new Set(previous);
                                 if (event.target.checked) next.add(task.id);
@@ -1231,7 +1237,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           <div className="min-w-0 px-2 py-2.5">
                             <div className="flex min-w-0 items-center gap-2.5">
                               <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${alreadyAdded ? 'border-emerald-300/40 bg-gradient-to-br from-emerald-400/30 via-emerald-700/25 to-emerald-950 text-emerald-200 shadow-[0_0_18px_rgba(16,185,129,0.22)] ring-1 ring-inset ring-emerald-300/15' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
-                                {task.reward_enabled ? <Gift className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                                {hasReward ? <Gift className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                               </span>
                               <div className="min-w-0">
                                 <div className="flex min-w-0 items-center gap-2">
@@ -1255,7 +1261,14 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                             <p className={`mt-0.5 truncate text-[11px] font-semibold ${alreadyAdded ? 'text-slate-200' : 'text-slate-400'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
-                            <p className={`truncate text-[11px] font-black ${alreadyAdded ? 'text-amber-100' : 'text-slate-300'}`}>{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'}</p>
+                            {hasReward ? (
+                              <>
+                                <p className={`flex items-center gap-1 text-[9px] font-black tracking-wide ${alreadyAdded ? 'text-amber-200/80' : 'text-slate-500'}`}><Gift className="h-3 w-3" />獎勵金額</p>
+                                <p className={`mt-0.5 truncate text-sm font-black tabular-nums ${alreadyAdded ? 'text-amber-100' : 'text-slate-200'}`} title={`${rewardAmount.toFixed(2)} ${dashboard.currency}`}>{rewardAmount.toFixed(2)} {dashboard.currency}</p>
+                              </>
+                            ) : (
+                              <p className={`text-[11px] font-bold ${alreadyAdded ? 'text-slate-200' : 'text-slate-400'}`}>一般通知</p>
+                            )}
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
                             <p className={`truncate text-[11px] font-bold ${alreadyAdded ? 'text-slate-200' : 'text-slate-400'}`}>{task.recipient_scope === 'selected' ? '指定範圍' : '全部員工'}</p>
