@@ -267,9 +267,18 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
               <div className="px-5 py-5">
                 <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm shadow-blue-900/5 overflow-hidden">
                   {isReward && (
-                    <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-5 text-center">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">{t.messages.rewardWalletLabel}</p>
-                      <p className="mt-1 text-3xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-lg">{currentMessage.messages.reward_currency}</span></p>
+                    <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
+                          <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
+                        </div>
+                        <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{currentMessage.messages.reward_currency}</span></p>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2 border-t border-amber-200/80 pt-3">
+                        <Wallet className="h-4 w-4 shrink-0 text-emerald-600" />
+                        <p className="text-xs font-semibold leading-5 text-emerald-700">{t.messages.rewardAddedMessage}</p>
+                      </div>
                     </div>
                   )}
                   <div className={`px-5 py-4 border-b border-slate-100 bg-gradient-to-r ${isReward ? 'from-amber-50/60 to-transparent' : 'from-blue-50/50 to-transparent'}`}>
@@ -286,12 +295,6 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   </div>
 
                   <div className="px-5 py-5">
-                    {isReward && (
-                      <div className="mb-4 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                        <Wallet className="h-5 w-5 shrink-0 text-emerald-600" />
-                        <p className="text-xs font-semibold text-emerald-700">{t.messages.rewardAddedMessage}</p>
-                      </div>
-                    )}
                     <QuickCopyRichContent
                       html={currentMessage.messages.content}
                       copyLabel={t.messages.quickCopy}
@@ -414,45 +417,49 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
               {/* Message content area */}
               <div className="flex-1 overflow-y-auto">
                 <div className="px-8 py-7">
-                  {isReward && (
-                    <div className="mb-6 grid gap-3 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 sm:grid-cols-[1fr_auto] sm:items-center">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">{t.messages.rewardWalletLabel}</p>
-                        <p className="mt-1 text-sm font-semibold text-amber-800">{t.messages.rewardBonusLabel}</p>
+                  <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-blue-900/5">
+                    {isReward && (
+                      <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 lg:px-7">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
+                            <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
+                          </div>
+                          <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{currentMessage.messages.reward_currency}</span></p>
+                        </div>
+                        <div className="mt-3 flex items-center gap-2 border-t border-amber-200/80 pt-3">
+                          <Wallet className="h-4 w-4 shrink-0 text-emerald-600" />
+                          <p className="text-xs font-semibold leading-5 text-emerald-700">{t.messages.rewardAddedMessage}</p>
+                        </div>
                       </div>
-                      <p className="text-3xl font-black text-amber-700">+{Number(currentMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-lg">{currentMessage.messages.reward_currency}</span></p>
-                    </div>
-                  )}
-                  <div className="flex items-start justify-between gap-4 mb-5">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-xl font-bold text-slate-900 leading-snug break-words">
-                        {currentMessage.messages.title}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-2.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="text-sm text-slate-500">
-                          {new Date(currentMessage.messages.created_at || 0).toLocaleString()}
-                        </span>
+                    )}
+                    <div className={`px-5 py-4 lg:px-7 ${isReward ? 'bg-gradient-to-r from-amber-50/60 to-transparent' : 'bg-white'}`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-xl font-bold leading-snug text-slate-900 break-words">
+                            {currentMessage.messages.title}
+                          </h3>
+                          <div className="mt-2.5 flex items-center gap-2">
+                            <Clock className="h-3.5 w-3.5 text-slate-400" />
+                            <span className="text-sm text-slate-500">
+                              {new Date(currentMessage.messages.created_at || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        {getPriorityBadge(currentMessage.messages.priority)}
                       </div>
+                      <div className={`mt-4 h-px bg-gradient-to-r from-transparent to-transparent ${isReward ? 'via-orange-200' : 'via-slate-200'}`} />
                     </div>
-                    {getPriorityBadge(currentMessage.messages.priority)}
+                    <div className="px-5 py-5 lg:px-7">
+                      <QuickCopyRichContent
+                        html={currentMessage.messages.content}
+                        copyLabel={t.messages.quickCopy}
+                        copiedLabel={t.messages.copied}
+                        className="prose prose-base max-w-none leading-relaxed break-words message-content-dark [&_img]:rounded-xl [&_img]:shadow-md [&_img]:border [&_img]:border-slate-200"
+                        style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
+                      />
+                    </div>
                   </div>
-
-                  <div className={`h-px bg-gradient-to-r to-transparent mb-6 ${isReward ? 'from-amber-200 via-orange-200' : 'from-blue-100 via-slate-200'}`} />
-
-                  {isReward && (
-                    <div className="mb-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                      <Wallet className="h-5 w-5 shrink-0 text-emerald-600" />
-                      <p className="text-sm font-semibold text-emerald-700">{t.messages.rewardAddedMessage}</p>
-                    </div>
-                  )}
-                  <QuickCopyRichContent
-                    html={currentMessage.messages.content}
-                    copyLabel={t.messages.quickCopy}
-                    copiedLabel={t.messages.copied}
-                    className="prose prose-base max-w-none leading-relaxed break-words message-content-dark [&_img]:rounded-xl [&_img]:shadow-md [&_img]:border [&_img]:border-slate-200"
-                    style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
-                  />
                 </div>
               </div>
 

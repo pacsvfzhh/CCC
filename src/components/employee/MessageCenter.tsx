@@ -589,13 +589,6 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                   </div>
                 </div>
 
-                {selectedMessage.messages.notification_category === 'performance_reward' && (
-                  <div className="mt-4 rounded-2xl border border-white/25 bg-white/15 px-4 py-3 text-center backdrop-blur-sm">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-50/80">{t.messages.rewardWalletLabel}</p>
-                    <p className="mt-1 text-2xl font-black text-white">+{Number(selectedMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{selectedMessage.messages.reward_currency}</span></p>
-                  </div>
-                )}
-
                 {/* Tags */}
                 <div className="flex flex-wrap items-center gap-2 mt-4">
                   <span className={`text-[10px] lg:text-[11px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider bg-white/15 border border-white/20 ${
@@ -620,30 +613,36 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                 WebkitOverflowScrolling: 'touch'
               } as React.CSSProperties}
             >
-              {selectedMessage.messages.notification_category === 'performance_reward' && (
-                <div className="mb-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-200">
-                    <Wallet className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-emerald-800">{t.messages.rewardBonusLabel}</p>
-                    <p className="text-xs text-emerald-600">{t.messages.rewardAddedMessage}</p>
-                  </div>
-                </div>
-              )}
-
               {/* Content card */}
-              <div className={`relative bg-white rounded-2xl p-5 lg:p-7 ring-1 shadow-md ${selectedMessage.messages.notification_category === 'performance_reward' ? 'ring-amber-200 shadow-amber-50' : 'ring-blue-100 shadow-blue-50'}`}>
+              <div className={`relative overflow-hidden rounded-2xl bg-white ring-1 shadow-md ${selectedMessage.messages.notification_category === 'performance_reward' ? 'ring-amber-200 shadow-amber-50' : 'ring-blue-100 shadow-blue-50'}`}>
                 {/* Top accent line */}
-                <div className={`absolute top-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent to-transparent rounded-full ${selectedMessage.messages.notification_category === 'performance_reward' ? 'via-amber-400' : 'via-blue-300'}`} />
+                <div className={`absolute left-6 right-6 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent to-transparent ${selectedMessage.messages.notification_category === 'performance_reward' ? 'via-amber-400' : 'via-blue-300'}`} />
 
-                <QuickCopyRichContent
-                  html={selectedMessage.messages.content}
-                  copyLabel={t.messages.quickCopy}
-                  copiedLabel={t.messages.copied}
-                  className="prose prose-sm lg:prose-base max-w-none leading-relaxed [&_a]:!text-blue-600 [&_a]:underline [&_img]:!rounded-xl [&_img]:!shadow-md [&_blockquote]:!border-l-blue-400 [&_blockquote]:!bg-blue-50/50 [&_blockquote]:!p-4 [&_blockquote]:!rounded-r-lg [&_h1]:!text-slate-900 [&_h2]:!text-slate-800 [&_h3]:!text-slate-700 [&_p]:!text-slate-700 [&_li]:!text-slate-700 message-content-dark"
-                  style={{ wordBreak: 'break-word', overflowWrap: 'break-word', color: '#1e293b' }}
-                />
+                {selectedMessage.messages.notification_category === 'performance_reward' && (
+                  <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 lg:px-7">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
+                        <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
+                      </div>
+                      <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(selectedMessage.messages.reward_amount || 0).toFixed(2)} <span className="text-base">{selectedMessage.messages.reward_currency}</span></p>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 border-t border-amber-200/80 pt-3">
+                      <Wallet className="h-4 w-4 shrink-0 text-emerald-600" />
+                      <p className="text-xs font-semibold leading-5 text-emerald-700">{t.messages.rewardAddedMessage}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-5 lg:p-7">
+                  <QuickCopyRichContent
+                    html={selectedMessage.messages.content}
+                    copyLabel={t.messages.quickCopy}
+                    copiedLabel={t.messages.copied}
+                    className="prose prose-sm lg:prose-base max-w-none leading-relaxed [&_a]:!text-blue-600 [&_a]:underline [&_img]:!rounded-xl [&_img]:!shadow-md [&_blockquote]:!border-l-blue-400 [&_blockquote]:!bg-blue-50/50 [&_blockquote]:!p-4 [&_blockquote]:!rounded-r-lg [&_h1]:!text-slate-900 [&_h2]:!text-slate-800 [&_h3]:!text-slate-700 [&_p]:!text-slate-700 [&_li]:!text-slate-700 message-content-dark"
+                    style={{ wordBreak: 'break-word', overflowWrap: 'break-word', color: '#1e293b' }}
+                  />
+                </div>
               </div>
             </div>
 
