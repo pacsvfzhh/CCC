@@ -547,16 +547,16 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/[0.04] rounded-full translate-y-1/2 -translate-x-1/3" />
 
               <div
-                className="relative px-4 pb-3 pt-5 lg:px-6 lg:pb-3 lg:pt-5"
+                className="relative px-4 pb-3 pt-6 lg:px-6 lg:pb-3 lg:pt-6"
                 style={{
-                  paddingTop: !isDesktop ? 'calc(env(safe-area-inset-top, 0px) + 16px)' : undefined
+                  paddingTop: !isDesktop ? 'calc(env(safe-area-inset-top, 0px) + 20px)' : undefined
                 }}
               >
                 {/* Close button */}
                 <button
                   onClick={() => setSelectedMessage(null)}
                   aria-label={t.messages.close}
-                  className={`absolute right-4 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 lg:right-6 lg:top-4 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border border-amber-950/20 bg-amber-950/15 text-amber-950 hover:bg-amber-950/25 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
+                  className={`absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 lg:right-6 lg:top-5 ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border border-amber-950/20 bg-amber-950/15 text-amber-950 hover:bg-amber-950/25 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   <X className="h-4 w-4" strokeWidth={2.5} />
