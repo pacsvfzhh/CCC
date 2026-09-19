@@ -288,7 +288,6 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
   const [templateCustomized, setTemplateCustomized] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const loadRef = useRef<(() => Promise<void>) | null>(null);
-  const isSuperAdmin = admin.role === 'super_admin' || Boolean(admin.is_super_admin);
 
   const loadDashboard = async () => {
     try {
@@ -404,7 +403,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         p_priority: form.priority,
         p_reward_enabled: form.rewardEnabled,
         p_reward_amount: form.rewardEnabled ? Number(form.rewardAmount) : null,
-        p_is_shared_template: isSuperAdmin && form.isSharedTemplate,
+        p_is_shared_template: form.isSharedTemplate,
         p_starts_at: form.startsAt ? new Date(form.startsAt).toISOString() : null,
         p_ends_at: form.endsAt ? new Date(form.endsAt).toISOString() : null,
       });
@@ -450,12 +449,12 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         });
         if (activateError) throw activateError;
       }
-      notify('success', activate ? '已直接套用範本，任務只會作用於你的員工' : '已複製為你的獨立草稿，可進一步修改後啟用');
+      notify('success', activate ? '已直接套用管理員範本，任務只會作用於你的員工' : '已將管理員範本複製為你的獨立草稿，可進一步修改後啟用');
       if (activate) setSelectedTemplateId(null);
       setView('tasks');
       await loadDashboard();
     } catch (error) {
-      notify('error', formatSupabaseError(error) || '套用範本失敗');
+      notify('error', formatSupabaseError(error) || '套用管理員範本失敗');
     }
   };
 
@@ -487,7 +486,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div>
-              <h2 className="text-base font-black tracking-tight text-white sm:text-lg">{readOnly ? '查看超級管理員範本' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2>
+              <h2 className="text-base font-black tracking-tight text-white sm:text-lg">{readOnly ? '查看管理員範本' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2>
               <p className="mt-0.5 text-xs font-medium text-slate-400">通知內容使用英文，管理介面使用繁體中文</p>
             </div>
           </div>
@@ -524,15 +523,13 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">結束時間（選填）</span>
                     <input disabled={readOnly} type="datetime-local" value={form.endsAt} onChange={event => setForm(previous => ({ ...previous, endsAt: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
-                  {isSuperAdmin && (
-                    <label className="sm:col-span-2 flex cursor-pointer items-center justify-between rounded-xl border border-violet-500/25 bg-violet-500/10 p-3">
-                      <div>
-                        <p className="text-sm font-bold text-violet-200">提供給二級管理員選用</p>
-                        <p className="text-xs text-violet-300/60">共享範本不會直接觸發，二級管理員複製後獨立使用</p>
-                      </div>
-                      <input disabled={readOnly} type="checkbox" checked={form.isSharedTemplate} onChange={event => setForm(previous => ({ ...previous, isSharedTemplate: event.target.checked }))} className="h-4 w-4 rounded bg-white accent-violet-500 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
-                    </label>
-                  )}
+                  <label className="sm:col-span-2 flex cursor-pointer items-center justify-between rounded-xl border border-violet-500/25 bg-violet-500/10 p-3">
+                    <div>
+                      <p className="text-sm font-bold text-violet-200">提供給所有管理員選用</p>
+                      <p className="text-xs text-violet-300/60">共享範本不會直接觸發，其他管理員複製後會在自己的管理範圍內獨立使用</p>
+                    </div>
+                    <input disabled={readOnly} type="checkbox" checked={form.isSharedTemplate} onChange={event => setForm(previous => ({ ...previous, isSharedTemplate: event.target.checked }))} className="h-4 w-4 rounded bg-white accent-violet-500 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
+                  </label>
                 </div>
               </section>
 
@@ -771,7 +768,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
             <div className="flex gap-1 rounded-xl border border-slate-700/70 bg-slate-950/70 p-1 shadow-inner">
               {[
                 { id: 'tasks' as const, label: '我的任務', icon: Settings2 },
-                ...(!isSuperAdmin ? [{ id: 'templates' as const, label: '超級管理員範本', icon: Copy }] : []),
+                { id: 'templates' as const, label: '管理員範本', icon: Copy },
                 { id: 'executions' as const, label: '執行記錄', icon: History },
               ].map(tab => (
                 <button key={tab.id} onClick={() => setView(tab.id)} className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${view === tab.id ? 'bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 shadow-md shadow-cyan-950/40 after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-200' : 'text-slate-400 hover:bg-slate-800 hover:text-cyan-100'}`}><tab.icon className="h-4 w-4" />{tab.label}</button>
@@ -838,7 +835,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
           {view === 'templates' && (
             dashboard.shared_templates.length === 0 ? (
-              <div className="relative flex min-h-full flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.10),transparent_42%)] px-6 py-16 text-center before:absolute before:inset-0 before:bg-[linear-gradient(rgba(148,163,184,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.025)_1px,transparent_1px)] before:bg-[size:28px_28px]"><div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/20 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 text-violet-300 shadow-xl shadow-violet-950/40"><Copy className="h-8 w-8" /></div><p className="mt-4 font-bold text-slate-300">目前沒有可用的超級管理員範本</p><p className="mt-1 text-sm text-slate-500">超級管理員發佈共享範本後，可在這裡勾選並直接套用。</p></div>
+              <div className="relative flex min-h-full flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.10),transparent_42%)] px-6 py-16 text-center before:absolute before:inset-0 before:bg-[linear-gradient(rgba(148,163,184,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.025)_1px,transparent_1px)] before:bg-[size:28px_28px]"><div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/20 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 text-violet-300 shadow-xl shadow-violet-950/40"><Copy className="h-8 w-8" /></div><p className="mt-4 font-bold text-slate-300">目前沒有可用的管理員範本</p><p className="mt-1 text-sm text-slate-500">管理員發佈共享範本後，可在這裡勾選並直接套用。</p></div>
             ) : (
               <div className="divide-y divide-slate-800/80">
                 {dashboard.shared_templates.map(task => {
@@ -854,7 +851,10 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                           {task.reward_enabled ? <Gift className="h-4 w-4 shrink-0 text-amber-400" /> : <Bell className="h-4 w-4 shrink-0 text-cyan-400" />}
                           <h3 className="truncate text-sm font-bold text-white">{task.name}</h3>
                         </div>
-                        <p className="mt-1 text-[11px] text-violet-300/60">{task.owner_username} · V{task.version}</p>
+                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-violet-300/70">
+                          <span className="inline-flex items-center gap-1 rounded-md border border-violet-400/20 bg-violet-500/10 px-1.5 py-0.5 font-semibold text-violet-200"><ShieldCheck className="h-3 w-3" />範本提供者</span>
+                          <span>{task.owner_username} · V{task.version}</span>
+                        </div>
                       </div>
                       <div>
                         <p className="text-[10px] font-black tracking-wider text-slate-500">{triggerLabels[task.trigger_type]}</p>
@@ -862,7 +862,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                       </div>
                       <div>
                         <p className="text-[10px] text-slate-500">獎勵與範圍</p>
-                        <p className="mt-0.5 text-xs font-bold text-slate-200">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'} · {task.recipient_scope === 'selected' ? `${task.recipient_ids?.length || 0} 人` : '全部員工'}</p>
+                        <p className="mt-0.5 text-xs font-bold text-slate-200">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'} · {task.recipient_scope === 'selected' ? '指定範圍' : '全部員工'}</p>
                       </div>
                       <div className="flex items-center gap-2 lg:justify-end">
                         <button onClick={() => openTask(task, true)} className="flex h-8 items-center justify-center gap-1 rounded-lg border border-violet-400/35 bg-violet-500/10 px-3 text-xs font-bold text-violet-200 transition-all duration-200 hover:border-violet-300/50 hover:bg-violet-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70">查看<ChevronRight className="h-3.5 w-3.5" /></button>
