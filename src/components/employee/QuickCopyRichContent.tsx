@@ -223,37 +223,43 @@ export default function QuickCopyRichContent({
           contain-intrinsic-size: auto 1.5rem;
         }
         .quick-copy-rich-content .message-quick-copy-button {
-          display: flex;
-          width: fit-content;
-          min-height: 1.75rem;
+          display: inline-flex;
+          width: 9.5rem;
+          min-width: 9.5rem;
+          height: 2.25rem;
+          min-height: 2.25rem;
           align-items: center;
           justify-content: center;
           margin: 0.375rem 0 0.25rem;
-          border: 1px solid rgb(125 211 252);
-          border-radius: 0.5rem;
-          background: rgb(240 249 255);
-          padding: 0.25rem 0.625rem;
-          color: rgb(3 105 161);
+          border: 1px solid rgba(14, 165, 233, 0.35);
+          border-radius: 0.75rem;
+          background: linear-gradient(135deg, rgb(239 246 255) 0%, rgb(224 242 254) 52%, rgb(207 250 254) 100%);
+          padding: 0 0.75rem;
+          color: rgb(7 89 133);
           font-size: 0.75rem;
-          font-weight: 700;
+          font-weight: 800;
+          letter-spacing: 0.01em;
           line-height: 1rem;
+          white-space: nowrap;
           vertical-align: middle;
           font-style: normal;
           text-decoration: none;
           cursor: pointer;
-          transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
+          box-shadow: 0 4px 10px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+          transition: background 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
         }
         .quick-copy-rich-content .message-quick-copy-button:hover {
-          border-color: rgb(14 165 233);
-          background: rgb(224 242 254);
-          color: rgb(7 89 133);
+          border-color: rgba(14, 165, 233, 0.65);
+          background: linear-gradient(135deg, rgb(224 242 254) 0%, rgb(186 230 253) 52%, rgb(165 243 252) 100%);
+          color: rgb(3 105 161);
+          box-shadow: 0 6px 14px rgba(14, 116, 144, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9);
         }
         .quick-copy-rich-content .message-quick-copy-button:active {
-          transform: scale(0.97);
+          transform: translateY(1px) scale(0.98);
         }
         .quick-copy-rich-content .message-quick-copy-button:focus-visible {
           outline: 2px solid rgb(14 165 233);
-          outline-offset: 2px;
+          outline-offset: 3px;
         }
       `}</style>
       <div
