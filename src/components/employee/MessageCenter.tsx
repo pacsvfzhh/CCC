@@ -407,7 +407,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                     style={{ animationDelay: `${index * 0.04}s` }}
                   >
                     {/* Card */}
-                    <div className={`relative rounded-2xl overflow-hidden msg-force-transition hover:-translate-y-0.5 hover:shadow-xl ${style.card}`}>
+                    <div className={`relative rounded-2xl overflow-hidden border msg-force-transition hover:-translate-y-0.5 hover:shadow-xl ${isUnread ? 'border-white/70 shadow-2xl shadow-slate-300/30' : 'border-slate-200/80 opacity-[0.88]'} ${style.card}`}>
                       {/* Left accent bar */}
                       <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${style.accent} rounded-l-2xl`} />
 
@@ -490,13 +490,14 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                               </div>
                               <div className="flex items-center gap-1.5">
                                 {msg.is_read ? (
-                                  <div className="flex items-center gap-1 text-slate-400">
+                                  <div className="flex items-center gap-1.5 text-slate-400">
                                     <Eye className="w-3.5 h-3.5" />
-                                    <span className="text-[10px] font-medium hidden sm:inline">{t.messages.read}</span>
+                                    <span className="text-[10px] font-medium uppercase tracking-wide">{t.messages.read}</span>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1 text-blue-600 group-hover:text-blue-700">
-                                    <span className="text-[10px] font-bold hidden sm:inline">{t.messages.close}</span>
+                                  <div className="flex items-center gap-1.5 text-blue-600 group-hover:text-blue-700">
+                                    <span className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.14)]" />
+                                    <span className="text-[10px] font-black uppercase tracking-wide">{t.messages.unread}</span>
                                     <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                                   </div>
                                 )}
