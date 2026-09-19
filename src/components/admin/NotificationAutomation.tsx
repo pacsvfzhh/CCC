@@ -1010,7 +1010,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       <Info className="h-3.5 w-3.5" />
                       變數說明
                     </button>
-                    {!readOnly && <button onClick={regenerateTemplate} className="shrink-0 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70">重新產生內容</button>}
+                    {!readOnly && <button onClick={regenerateTemplate} className="shrink-0 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70">套用預設範本</button>}
                   </div>
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
