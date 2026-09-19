@@ -164,6 +164,21 @@ const statusLabels: Record<TaskStatus, string> = {
   archived: '已結束',
 };
 
+const statusSortOrder: Record<TaskStatus, number> = {
+  active: 0,
+  paused: 1,
+  draft: 2,
+  archived: 3,
+};
+
+function compareAutomationTasks(left: AutomationTask, right: AutomationTask) {
+  const statusDifference = statusSortOrder[left.status] - statusSortOrder[right.status];
+  if (statusDifference !== 0) return statusDifference;
+
+  const updatedDifference = right.updated_at.localeCompare(left.updated_at);
+  return updatedDifference || left.name.localeCompare(right.name, 'zh-Hant');
+}
+
 function createDefaultForm(): TaskForm {
   return {
     id: null,
@@ -393,6 +408,15 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     rewards: dashboard.tasks.filter(task => task.reward_enabled).length,
     executions: dashboard.executions.filter(execution => execution.status === 'succeeded').length,
   }), [dashboard]);
+
+  const orderedTasks = useMemo(
+    () => [...dashboard.tasks].sort(compareAutomationTasks),
+    [dashboard.tasks],
+  );
+  const orderedSharedTemplates = useMemo(
+    () => [...dashboard.shared_templates].sort(compareAutomationTasks),
+    [dashboard.shared_templates],
+  );
 
   const openNewTask = () => {
     const next = createDefaultForm();
@@ -963,7 +987,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     );
   }
 
-  const selectedTemplates = dashboard.shared_templates.filter(task => selectedTemplateIds.has(task.id));
+  const selectedTemplates = orderedSharedTemplates.filter(task => selectedTemplateIds.has(task.id));
   const selectedAdmin = dashboard.admin_groups.find(group => group.id === selectedAdminId);
   const taskTabLabel = isSuperAdmin
     ? `${selectedAdmin?.username || admin.username} 的任務`
@@ -1101,27 +1125,35 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 <button onClick={openNewTask} className="relative mt-5 inline-flex h-10 items-center gap-2 rounded-lg border border-blue-300/25 bg-gradient-to-r from-blue-500 to-indigo-500 px-5 text-sm font-black text-white transition-colors duration-200 hover:from-blue-400 hover:to-indigo-400 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70"><Plus className="h-4 w-4" />建立第一個任務</button>
               </div>
             ) : (
-              <div className="divide-y divide-slate-800/80">
-                {dashboard.tasks.map(task => (
-                  <article key={task.id} className={`group grid gap-3 border-l-[3px] px-4 py-3.5 transition-all duration-200 odd:bg-slate-950/20 even:bg-slate-800/15 hover:relative hover:z-[1] hover:-translate-y-px hover:bg-slate-800/55 hover:shadow-lg hover:shadow-cyan-950/15 lg:grid-cols-[minmax(210px,1fr)_minmax(260px,1.35fr)_minmax(130px,.55fr)_minmax(180px,.75fr)_auto] lg:items-center ${task.reward_enabled ? 'border-l-amber-400' : task.is_shared_template ? 'border-l-violet-400' : task.status === 'active' ? 'border-l-emerald-400' : task.status === 'paused' ? 'border-l-amber-400' : 'border-l-cyan-400'}`}>
+              <div className="space-y-3 p-3 sm:p-4">
+                {orderedTasks.map(task => (
+                  <article key={task.id} className={`group relative grid gap-4 overflow-hidden rounded-2xl border border-l-4 px-4 py-4 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[minmax(220px,1fr)_minmax(260px,1.35fr)_minmax(130px,.55fr)_minmax(180px,.75fr)_auto] lg:items-center ${task.status === 'active' ? 'border-emerald-300/20 border-l-emerald-400 bg-gradient-to-br from-emerald-950/45 via-slate-900 to-slate-950 shadow-lg shadow-emerald-950/20 hover:border-emerald-200/35' : task.status === 'paused' ? 'border-amber-300/20 border-l-amber-400 bg-gradient-to-br from-amber-950/35 via-slate-900 to-slate-950 shadow-lg shadow-amber-950/15 hover:border-amber-200/35' : task.status === 'archived' ? 'border-slate-600/60 border-l-slate-500 bg-slate-900/80 hover:border-slate-500' : task.is_shared_template ? 'border-violet-300/20 border-l-violet-400 bg-gradient-to-br from-violet-950/35 via-slate-900 to-slate-950 shadow-lg shadow-violet-950/15 hover:border-violet-200/35' : 'border-cyan-300/20 border-l-cyan-400 bg-gradient-to-br from-cyan-950/30 via-slate-900 to-slate-950 shadow-lg shadow-cyan-950/15 hover:border-cyan-200/35'}`}>
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-sm font-bold text-white">{task.name}</h3>
-                        <span className={`rounded-md border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-400/20 bg-emerald-500/15 text-emerald-300' : task.status === 'paused' ? 'border-amber-400/20 bg-amber-500/15 text-amber-300' : 'border-slate-600/70 bg-slate-700/80 text-slate-300'}`}>{statusLabels[task.status]}</span>
+                      <div className="flex items-start gap-3">
+                        <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300' : task.status === 'paused' ? 'border-amber-300/25 bg-amber-400/15 text-amber-300' : task.is_shared_template ? 'border-violet-300/25 bg-violet-400/15 text-violet-300' : 'border-cyan-300/25 bg-cyan-400/15 text-cyan-300'}`}>
+                          {task.reward_enabled ? <Gift className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="truncate text-sm font-black text-white">{task.name}</h3>
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : task.status === 'paused' ? 'border-amber-300/25 bg-amber-400/15 text-amber-200' : task.status === 'archived' ? 'border-slate-500/50 bg-slate-700/70 text-slate-300' : 'border-cyan-300/20 bg-cyan-400/10 text-cyan-200'}`}>{statusLabels[task.status]}</span>
+                            {task.reward_enabled && <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-2 py-0.5 text-[10px] font-black text-amber-200">獎勵</span>}
+                          </div>
+                          <p className="mt-1 text-[11px] text-slate-400">{task.owner_username} · V{task.version}{task.is_shared_template ? ' · 共享範本' : ''}{task.source_task_id ? ' · 由範本複製' : ''}</p>
+                        </div>
                       </div>
-                      <p className="mt-1 text-[11px] text-slate-500">{task.owner_username} · V{task.version}{task.is_shared_template ? ' · 共享範本' : ''}{task.source_task_id ? ' · 由範本複製' : ''}</p>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-black tracking-wider text-slate-500">{triggerLabels[task.trigger_type]}</p>
-                      <p className="mt-0.5 text-xs font-medium leading-5 text-slate-200">{summarizeTask(task, dashboard.currency)}</p>
+                    <div className="min-w-0 rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2.5">
+                      <p className="text-[10px] font-black tracking-wider text-cyan-300/80">{triggerLabels[task.trigger_type]}</p>
+                      <p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{summarizeTask(task, dashboard.currency)}</p>
                     </div>
-                    <div>
-                      <p className="text-[10px] text-slate-500">適用範圍</p>
-                      <p className="mt-0.5 text-xs font-bold text-white">{task.recipient_scope === 'selected' ? `指定 ${task.recipient_ids?.length || 0} 人` : '全部可管理員工'}</p>
+                    <div className="rounded-xl border border-blue-300/15 bg-blue-400/[0.06] px-3 py-2.5">
+                      <p className="text-[10px] font-black tracking-wider text-blue-200/65">適用範圍</p>
+                      <p className="mt-1 text-xs font-bold text-blue-100">{task.recipient_scope === 'selected' ? `指定 ${task.recipient_ids?.length || 0} 人` : '全部可管理員工'}</p>
                     </div>
-                    <div className="flex gap-5">
-                      <div><p className="text-[10px] text-slate-500">執行次數</p><p className="text-sm font-bold text-white">{task.execution_count || 0}</p></div>
-                      <div><p className="text-[10px] text-slate-500">每次獎金</p><p className="text-sm font-bold text-amber-300">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</p></div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-xl border border-violet-300/15 bg-violet-400/[0.06] px-3 py-2.5"><p className="text-[10px] font-black tracking-wider text-violet-200/65">執行次數</p><p className="mt-1 text-sm font-black tabular-nums text-violet-100">{task.execution_count || 0}</p></div>
+                      <div className="rounded-xl border border-amber-300/15 bg-amber-400/[0.06] px-3 py-2.5"><p className="text-[10px] font-black tracking-wider text-amber-200/65">每次獎金</p><p className="mt-1 text-sm font-black text-amber-100">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</p></div>
                     </div>
                     <div className="flex items-center gap-2 lg:justify-end">
                       <button onClick={() => setDeleteTarget(task)} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-rose-400/25 bg-rose-500/10 px-3 text-xs font-bold text-rose-300 transition-all duration-200 hover:border-rose-300/50 hover:bg-rose-500/20 hover:text-rose-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70" aria-label={`刪除任務 ${task.name}`}><Trash2 className="h-3.5 w-3.5" />刪除</button>
@@ -1142,13 +1174,13 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             dashboard.shared_templates.length === 0 ? (
               <div className="relative flex h-full min-h-[280px] flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.10),transparent_42%)] px-6 py-16 text-center before:absolute before:inset-0 before:bg-[linear-gradient(rgba(148,163,184,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.025)_1px,transparent_1px)] before:bg-[size:28px_28px]"><div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/20 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 text-violet-300 shadow-xl shadow-violet-950/40"><Copy className="h-8 w-8" /></div><p className="mt-4 font-bold text-slate-300">目前沒有可用的管理員範本</p><p className="mt-1 text-sm text-slate-500">管理員發佈共享範本後，可在這裡勾選並直接套用。</p></div>
             ) : (
-              <div className="divide-y divide-slate-800/80">
-                {dashboard.shared_templates.map(task => {
+              <div className="space-y-3 p-3 sm:p-4">
+                {orderedSharedTemplates.map(task => {
                   const selected = selectedTemplateIds.has(task.id);
                   const alreadyAdded = dashboard.tasks.some(existing => isSameTemplateCopy(existing, task));
                   return (
-                    <article key={task.id} className={`group grid gap-3 border-l-[3px] px-4 py-3.5 transition-all duration-200 lg:grid-cols-[auto_minmax(210px,1fr)_minmax(280px,1.45fr)_minmax(170px,.7fr)_auto] lg:items-center ${selected ? 'border-l-violet-300 bg-gradient-to-r from-violet-500/15 to-violet-500/[0.04] shadow-[inset_0_0_0_1px_rgba(167,139,250,0.12)]' : alreadyAdded ? 'border-l-rose-400 bg-rose-500/[0.06]' : 'border-l-violet-600 odd:bg-slate-950/20 even:bg-slate-800/15 hover:-translate-y-px hover:bg-slate-800/55 hover:shadow-lg hover:shadow-violet-950/15'}`}>
-                      <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-violet-200">
+                    <article key={task.id} className={`group relative grid gap-4 overflow-hidden rounded-2xl border border-l-4 px-4 py-4 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[auto_minmax(220px,1fr)_minmax(280px,1.45fr)_minmax(170px,.7fr)_auto] lg:items-center ${selected ? 'border-violet-200/40 border-l-violet-300 bg-gradient-to-br from-violet-500/20 via-violet-950/30 to-slate-950 shadow-lg shadow-violet-950/25' : alreadyAdded ? 'border-rose-300/25 border-l-rose-400 bg-gradient-to-br from-rose-950/35 via-slate-900 to-slate-950 shadow-lg shadow-rose-950/15 hover:border-rose-200/40' : task.status === 'active' ? 'border-emerald-300/20 border-l-emerald-400 bg-gradient-to-br from-emerald-950/35 via-slate-900 to-slate-950 shadow-lg shadow-emerald-950/15 hover:border-emerald-200/35' : task.status === 'paused' ? 'border-amber-300/20 border-l-amber-400 bg-gradient-to-br from-amber-950/30 via-slate-900 to-slate-950 shadow-lg shadow-amber-950/15 hover:border-amber-200/35' : 'border-violet-300/20 border-l-violet-500 bg-gradient-to-br from-violet-950/30 via-slate-900 to-slate-950 shadow-lg shadow-violet-950/15 hover:border-violet-200/35'}`}>
+                      <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-violet-100">
                         <input
                           type="checkbox"
                           checked={selected}
@@ -1160,29 +1192,36 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           })}
                           className="peer sr-only"
                         />
-                        <span className="flex h-5 w-5 items-center justify-center rounded-md border border-violet-300/35 bg-slate-950/70 text-transparent shadow-inner transition-all duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-violet-300/70 peer-checked:border-violet-300 peer-checked:bg-violet-500 peer-checked:text-white peer-checked:shadow-violet-950/40">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-violet-300/35 bg-slate-950/70 text-transparent shadow-inner transition-all duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-violet-300/70 peer-checked:border-violet-200 peer-checked:bg-violet-500 peer-checked:text-white peer-checked:shadow-violet-950/40">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                         </span>
-                        <span>{selected ? '已選取' : '選取'}</span>
-                        {alreadyAdded && <span className="rounded-full border border-rose-300/30 bg-rose-400/10 px-1.5 py-0.5 text-[9px] font-black text-rose-200">已添加</span>}
+                        <span className="hidden sm:inline">{selected ? '已選取' : '選取'}</span>
+                        {alreadyAdded && <span className="rounded-full border border-rose-300/30 bg-rose-400/10 px-2 py-0.5 text-[9px] font-black text-rose-200">已添加</span>}
                       </label>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          {task.reward_enabled ? <Gift className="h-4 w-4 shrink-0 text-amber-400" /> : <Bell className="h-4 w-4 shrink-0 text-cyan-400" />}
-                          <h3 className="truncate text-sm font-bold text-white">{task.name}</h3>
-                        </div>
-                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-violet-300/70">
-                          <span className="inline-flex items-center gap-1 rounded-md border border-violet-400/20 bg-violet-500/10 px-1.5 py-0.5 font-semibold text-violet-200"><ShieldCheck className="h-3 w-3" />範本提供者</span>
-                          <span>{task.owner_username} · V{task.version}</span>
+                        <div className="flex items-start gap-3">
+                          <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${alreadyAdded ? 'border-rose-300/25 bg-rose-400/15 text-rose-300' : task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300' : task.status === 'paused' ? 'border-amber-300/25 bg-amber-400/15 text-amber-300' : 'border-violet-300/25 bg-violet-400/15 text-violet-300'}`}>
+                            {task.reward_enabled ? <Gift className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="truncate text-sm font-black text-white">{task.name}</h3>
+                              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : task.status === 'paused' ? 'border-amber-300/25 bg-amber-400/15 text-amber-200' : 'border-violet-300/20 bg-violet-400/10 text-violet-200'}`}>{statusLabels[task.status]}</span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-violet-200/70">
+                              <span className="inline-flex items-center gap-1 rounded-md border border-violet-400/20 bg-violet-500/10 px-1.5 py-0.5 font-semibold text-violet-100"><ShieldCheck className="h-3 w-3" />範本提供者</span>
+                              <span>{task.owner_username} · V{task.version}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <p className="text-[10px] font-black tracking-wider text-slate-500">{triggerLabels[task.trigger_type]}</p>
-                        <p className="mt-0.5 text-xs leading-5 text-slate-300">{summarizeTask(task, dashboard.currency)}</p>
+                      <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2.5">
+                        <p className="text-[10px] font-black tracking-wider text-violet-200/80">{triggerLabels[task.trigger_type]}</p>
+                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{summarizeTask(task, dashboard.currency)}</p>
                       </div>
-                      <div>
-                        <p className="text-[10px] text-slate-500">獎勵與範圍</p>
-                        <p className="mt-0.5 text-xs font-bold text-slate-200">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'} · {task.recipient_scope === 'selected' ? '指定範圍' : '全部員工'}</p>
+                      <div className="rounded-xl border border-amber-300/15 bg-amber-400/[0.06] px-3 py-2.5">
+                        <p className="text-[10px] font-black tracking-wider text-amber-200/65">獎勵與範圍</p>
+                        <p className="mt-1 text-xs font-bold text-amber-100">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'} · {task.recipient_scope === 'selected' ? '指定範圍' : '全部員工'}</p>
                       </div>
                       <div className="flex items-center gap-2 lg:justify-end">
                         <button onClick={() => openTask(task, true)} className="flex h-8 items-center justify-center gap-1 rounded-lg border border-violet-400/35 bg-violet-500/10 px-3 text-xs font-bold text-violet-200 transition-all duration-200 hover:border-violet-300/50 hover:bg-violet-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70">查看<ChevronRight className="h-3.5 w-3.5" /></button>
