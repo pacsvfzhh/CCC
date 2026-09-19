@@ -631,7 +631,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                   </div>
                 )}
 
-                <div className="p-5 lg:p-7">
+                <div className="p-4 lg:p-5">
                   <QuickCopyRichContent
                     html={selectedMessage.messages.content}
                     copyLabel={t.messages.quickCopy}
