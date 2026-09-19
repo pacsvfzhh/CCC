@@ -742,7 +742,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
         {noticeCard}
-        <div className="relative z-10 flex h-11 shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/70 px-3 shadow-lg shadow-slate-950/30">
+        <div className="relative z-10 flex h-11 shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-cyan-200/35 bg-gradient-to-r from-blue-900 via-cyan-800 to-blue-950 px-3 shadow-lg shadow-blue-950/60">
           <div className="flex min-w-0 items-center gap-2">
             <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setEditorOpen(false); }} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-400/40 bg-red-500/15 text-red-300 transition-colors hover:border-red-300/70 hover:bg-red-500/30 hover:text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70">
               <ArrowLeft className="h-3.5 w-3.5" />
