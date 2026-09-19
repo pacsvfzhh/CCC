@@ -400,9 +400,11 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       return;
     }
 
+    const publishSharedTemplate = isSuperAdmin && form.isSharedTemplate;
+
     setSaving(true);
     try {
-      const { error } = await supabase.rpc('save_notification_automation_task', {
+      const { data, error } = await supabase.rpc('save_notification_automation_task', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_task_id: form.id,
         p_name: form.name.trim(),
@@ -425,8 +427,29 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         p_ends_at: form.endsAt ? new Date(form.endsAt).toISOString() : null,
       });
       if (error) throw error;
-      notify('success', form.id ? '任務已更新並重設為草稿' : '自動化任務已儲存為草稿');
+
+      if (publishSharedTemplate) {
+        const result = data as unknown as { task_id?: string } | null;
+        if (!result?.task_id) throw new Error('儲存成功，但無法取得範本編號');
+        setForm(previous => ({ ...previous, id: result.task_id || previous.id }));
+        const { error: publishError } = await supabase.rpc('set_notification_automation_task_status', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_task_id: result.task_id,
+          p_status: 'active',
+        });
+        if (publishError) throw publishError;
+      }
+
+      notify(
+        'success',
+        publishSharedTemplate
+          ? '管理員範本已儲存並發佈'
+          : form.id
+            ? '任務已更新並重設為草稿'
+            : '自動化任務已儲存為草稿',
+      );
       setEditorOpen(false);
+      if (publishSharedTemplate) setView('templates');
       const nextAdminId = isSuperAdmin ? admin.id : selectedAdminId;
       setSelectedAdminId(nextAdminId);
       setRefreshing(true);
@@ -512,7 +535,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
           {!readOnly && (
             <button disabled={saving} onClick={saveTask} className="inline-flex h-9 items-center gap-2 rounded-xl border border-cyan-300/30 bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 px-4 text-sm font-black text-white shadow-lg shadow-cyan-950/50 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-cyan-500/20 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:brightness-100">
               {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              儲存為草稿
+              {isSuperAdmin && form.isSharedTemplate ? '儲存並發佈範本' : '儲存為草稿'}
             </button>
           )}
         </div>
