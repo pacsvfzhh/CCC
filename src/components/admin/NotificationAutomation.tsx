@@ -1127,7 +1127,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             ) : (
               <div className="overflow-x-auto">
                 <div className="min-w-[1040px]">
-                  <div className="grid grid-cols-[minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_auto] border-y border-l-2 border-l-transparent border-slate-700/70 bg-slate-950/90 px-3 text-[10px] font-black tracking-wider text-slate-500">
+                  <div className="grid grid-cols-[minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-y border-l-2 border-l-transparent border-slate-700/70 bg-slate-950/90 px-3 text-[10px] font-black tracking-wider text-slate-500">
                     <div className="px-2 py-2 pl-[46px]">任務</div>
                     <div className="px-2 py-2">觸發條件</div>
                     <div className="px-2 py-2">適用範圍</div>
@@ -1137,7 +1137,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   </div>
                   <div>
                     {orderedTasks.map(task => (
-                      <div key={task.id} className={`group grid grid-cols-[minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_auto] border-b border-slate-800/80 border-l-2 px-3 transition-colors duration-200 ${task.status === 'active' ? 'border-l-emerald-500 bg-emerald-950/35 hover:bg-emerald-950/50' : 'border-l-slate-800 bg-slate-950/55 hover:bg-slate-900/80'}`}>
+                      <div key={task.id} className={`group grid grid-cols-[minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-b border-slate-800/80 border-l-2 px-3 transition-colors duration-200 ${task.status === 'active' ? 'border-l-emerald-500 bg-emerald-950/35 hover:bg-emerald-950/50' : 'border-l-slate-800 bg-slate-950/55 hover:bg-slate-900/80'}`}>
                         <div className="min-w-0 px-2 py-2.5">
                           <div className="flex min-w-0 items-center gap-2.5">
                             <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${task.status === 'active' ? 'border-emerald-300/30 bg-emerald-950/70 text-emerald-300' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
