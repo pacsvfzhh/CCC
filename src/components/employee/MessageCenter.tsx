@@ -611,7 +611,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
               } as React.CSSProperties}
             >
               {/* Content card */}
-              <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+              <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden ${selectedMessage.messages.notification_category === 'performance_reward' ? 'bg-gradient-to-b from-amber-50/90 via-orange-50/55 to-amber-50/35' : 'bg-gradient-to-b from-blue-50/80 via-sky-50/45 to-blue-50/30'}`}>
                 {/* Top accent line */}
                 <div className={`absolute left-6 right-6 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent to-transparent ${selectedMessage.messages.notification_category === 'performance_reward' ? 'via-amber-400' : 'via-blue-300'}`} />
 
