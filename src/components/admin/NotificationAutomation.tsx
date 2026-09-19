@@ -930,8 +930,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
           )}
 
           {view === 'executions' && (
-            <div className="min-h-full bg-slate-900">
-              <div className="overflow-x-auto">
+            <div className="flex min-h-full flex-col bg-slate-900">
+              <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
                 <table className="w-full min-w-[850px] text-left text-xs">
                   <thead className="bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 text-white shadow-md shadow-blue-950/40"><tr><th className="px-5 py-2 font-black">任務</th><th className="px-4 py-2 font-black">員工</th><th className="px-4 py-2 font-black">階段</th><th className="px-4 py-2 font-black">實際數值</th><th className="px-4 py-2 font-black">獎金</th><th className="px-4 py-2 font-black">狀態</th><th className="px-5 py-2 text-right font-black">執行時間</th></tr></thead>
                   <tbody className="divide-y divide-slate-800">
@@ -940,7 +940,15 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                     ))}
                   </tbody>
                 </table>
-                {dashboard.executions.length === 0 && <div className="py-16 text-center text-sm text-slate-600">尚無執行記錄</div>}
+                {dashboard.executions.length === 0 && (
+                  <div className="flex min-h-[280px] flex-1 flex-col items-center justify-center px-6 py-10 text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-400/20 bg-gradient-to-br from-blue-500/15 to-cyan-500/10 text-cyan-300 shadow-lg shadow-blue-950/30 ring-1 ring-inset ring-white/[0.04]">
+                      <History className="h-6 w-6" />
+                    </div>
+                    <p className="mt-3 text-sm font-black text-slate-200">尚無執行記錄</p>
+                    <p className="mt-1 text-xs text-slate-500">任務成功觸發後，執行資料會顯示在這裡</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
