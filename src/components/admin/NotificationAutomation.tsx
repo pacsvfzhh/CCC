@@ -535,12 +535,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         setReadOnly(false);
         setView('templates');
         setEditorOpen(true);
-        showNotice(
-          'info',
-          result.duplicate
-            ? '這個複製自訂草稿已經存在，已打開編輯面板；請重新設定名稱並修改內容後儲存。'
-            : '已複製為本組的獨立草稿，請修改內容後儲存；未修改時再次套用會提示重複。',
-        );
       }
 
       setRefreshing(true);
