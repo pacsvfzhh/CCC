@@ -1191,7 +1191,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           admin={admin}
           employees={allEmployeesFlat}
           onBack={() => setShowAutomation(false)}
-          notify={(type, message) => setNotification({ type, message })}
         />
         {notification && (
           <div className={`fixed right-4 top-4 z-[120] flex items-center gap-3 rounded-lg border px-6 py-4 shadow-2xl backdrop-blur-xl transition-all duration-300 ${

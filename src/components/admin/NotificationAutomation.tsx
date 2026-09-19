@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  AlertCircle,
   ArrowLeft,
   Bell,
   CheckCircle2,
@@ -22,9 +23,10 @@ import {
   Target,
   Users,
   Wallet,
+  X,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
-import { formatSupabaseError, supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import AdminPageLoading from './AdminPageLoading';
 
@@ -136,7 +138,13 @@ interface Props {
   admin: AdminIdentity;
   employees: AutomationEmployee[];
   onBack: () => void;
-  notify: (type: 'success' | 'error', message: string) => void;
+}
+
+type AutomationNoticeType = 'success' | 'error' | 'info';
+
+interface AutomationNotice {
+  type: AutomationNoticeType;
+  message: string;
 }
 
 const triggerLabels: Record<TriggerType, string> = {
@@ -285,7 +293,7 @@ function summarizeTask(task: AutomationTask, currency: string) {
   return `${mode} ${value} 筆成功或失敗訂單`;
 }
 
-export default function NotificationAutomation({ admin, employees, onBack, notify }: Props) {
+export default function NotificationAutomation({ admin, employees, onBack }: Props) {
   const isSuperAdmin = admin.role === 'super_admin' || Boolean(admin.is_super_admin);
   const [dashboard, setDashboard] = useState<AutomationDashboard>({ currency: 'USDC', admin_groups: [], tasks: [], shared_templates: [], executions: [] });
   const [loading, setLoading] = useState(true);
@@ -300,9 +308,14 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
   const [selectedAdminId, setSelectedAdminId] = useState('all');
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [adminMenuPosition, setAdminMenuPosition] = useState({ top: 0, left: 0, width: 244 });
+  const [notice, setNotice] = useState<AutomationNotice | null>(null);
   const adminMenuAnchorRef = useRef<HTMLDivElement>(null);
   const loadRef = useRef<(() => Promise<void>) | null>(null);
   const dashboardRequestIdRef = useRef(0);
+
+  const showNotice = (type: AutomationNoticeType, message: string) => {
+    setNotice({ type, message });
+  };
 
   const loadDashboard = async (ownerAdminId = selectedAdminId) => {
     const requestId = ++dashboardRequestIdRef.current;
@@ -315,9 +328,9 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       if (error) throw error;
       if (requestId !== dashboardRequestIdRef.current) return;
       setDashboard((data || { currency: 'USDC', admin_groups: [], tasks: [], shared_templates: [], executions: [] }) as unknown as AutomationDashboard);
-    } catch (error) {
+    } catch {
       if (requestId === dashboardRequestIdRef.current) {
-        notify('error', formatSupabaseError(error) || '無法載入自動化任務');
+        showNotice('error', '無法載入自動化任務資料，請稍後再試。');
       }
     } finally {
       if (requestId === dashboardRequestIdRef.current) {
@@ -331,6 +344,12 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
   useEffect(() => {
     void loadRef.current?.();
   }, []);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(null), 4500);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
 
   useEffect(() => {
     if (templateCustomized || readOnly) return;
@@ -370,15 +389,15 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
   const saveTask = async () => {
     if (!form.name.trim()) {
-      notify('error', '請輸入任務名稱');
+      showNotice('error', '請輸入任務名稱');
       return;
     }
     if (!form.titleTemplate.trim() || !form.contentTemplate.trim()) {
-      notify('error', '請確認英文通知標題與內容');
+      showNotice('error', '請確認英文通知標題與內容');
       return;
     }
     if (form.triggerType !== 'annual_date' && Number(form.thresholdValue) <= 0) {
-      notify('error', '觸發數值必須大於零');
+      showNotice('error', '觸發數值必須大於零');
       return;
     }
     if (form.triggerType === 'annual_date') {
@@ -386,17 +405,17 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       const day = Number(form.annualDay);
       const maximumDay = new Date(2000, month, 0).getDate();
       if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(day) || day < 1 || day > maximumDay) {
-        notify('error', '請選擇有效的月份與日期');
+        showNotice('error', '請選擇有效的月份與日期');
         return;
       }
     }
     if (form.rewardEnabled && Number(form.rewardAmount) <= 0) {
-      notify('error', '獎金金額必須大於零');
+      showNotice('error', '獎金金額必須大於零');
       return;
     }
 
     if (form.triggerType === 'annual_date') {
-      notify('error', '每年指定日期任務目前尚未啟用，請先選擇其他條件類型');
+      showNotice('error', '每年指定日期任務目前尚未啟用，請先選擇其他條件類型');
       return;
     }
 
@@ -428,7 +447,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       });
       if (error) throw error;
 
-      notify(
+      showNotice(
         'success',
         saveSharedTemplate
           ? '管理員範本已儲存'
@@ -442,8 +461,8 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       setSelectedAdminId(nextAdminId);
       setRefreshing(true);
       await loadDashboard(nextAdminId);
-    } catch (error) {
-      notify('error', formatSupabaseError(error) || '儲存任務失敗');
+    } catch {
+      showNotice('error', '自動化任務儲存失敗，請確認設定後再試。');
     } finally {
       setSaving(false);
     }
@@ -457,11 +476,11 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         p_status: status,
       });
       if (error) throw error;
-      notify('success', status === 'active' ? '任務已啟用，現有進度已設為基準' : status === 'paused' ? '任務已暫停' : '任務狀態已更新');
+      showNotice('success', status === 'active' ? '任務已啟用，現有進度已設為基準' : status === 'paused' ? '任務已暫停' : '任務狀態已更新');
       setRefreshing(true);
       await loadDashboard();
-    } catch (error) {
-      notify('error', formatSupabaseError(error) || '更新任務狀態失敗');
+    } catch {
+      showNotice('error', '無法更新任務狀態，請稍後再試。');
     }
   };
 
@@ -481,13 +500,13 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         });
         if (activateError) throw activateError;
       }
-      notify('success', activate ? '已直接套用管理員範本，任務只會作用於你的員工' : '已將管理員範本複製為你的獨立草稿，可進一步修改後啟用');
+      showNotice('success', activate ? '已直接套用管理員範本，任務只會作用於你的員工' : '已將管理員範本複製為你的獨立草稿，可進一步修改後啟用');
       if (activate) setSelectedTemplateId(null);
       setView('tasks');
       setRefreshing(true);
       await loadDashboard();
-    } catch (error) {
-      notify('error', formatSupabaseError(error) || '套用管理員範本失敗');
+    } catch {
+      showNotice('error', '無法套用管理員範本，請重新選擇後再試。');
     }
   };
 
@@ -496,6 +515,36 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
     setForm(previous => ({ ...previous, titleTemplate: template.title, contentTemplate: template.content }));
     setTemplateCustomized(false);
   };
+
+  const noticeCard = notice && createPortal(
+    <div className="pointer-events-none fixed inset-x-0 top-4 z-[150] flex justify-center px-4 sm:justify-end" role={notice.type === 'error' ? 'alert' : 'status'}>
+      <div className={`pointer-events-auto flex w-full max-w-md items-start gap-3 overflow-hidden rounded-2xl border p-3.5 shadow-2xl backdrop-blur-xl ${
+        notice.type === 'success'
+          ? 'border-emerald-300/35 bg-gradient-to-r from-emerald-950/95 to-teal-950/95 text-emerald-50 shadow-emerald-950/50'
+          : notice.type === 'error'
+            ? 'border-red-300/35 bg-gradient-to-r from-red-950/95 to-rose-950/95 text-red-50 shadow-red-950/50'
+            : 'border-amber-300/35 bg-gradient-to-r from-amber-950/95 to-slate-950/95 text-amber-50 shadow-amber-950/50'
+      }`}>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${
+          notice.type === 'success'
+            ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300'
+            : notice.type === 'error'
+              ? 'border-red-300/25 bg-red-400/15 text-red-300'
+              : 'border-amber-300/25 bg-amber-400/15 text-amber-300'
+        }`}>
+          {notice.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : notice.type === 'error' ? <AlertCircle className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+        </span>
+        <div className="min-w-0 flex-1 pt-0.5">
+          <p className="text-xs font-black tracking-wide">{notice.type === 'success' ? '操作成功' : notice.type === 'error' ? '操作未完成' : '操作提示'}</p>
+          <p className="mt-1 text-xs font-medium leading-5 opacity-80">{notice.message}</p>
+        </div>
+        <button type="button" onClick={() => setNotice(null)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/55 transition-colors hover:bg-white/10 hover:text-white" aria-label="關閉提示">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>,
+    document.body,
+  );
 
   if (loading) {
     return (
@@ -510,6 +559,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
     const previewContent = renderPreview(form.contentTemplate, form, dashboard.currency);
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
+        {noticeCard}
         <div className="relative z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/70 px-4 py-3.5 shadow-lg shadow-slate-950/30 sm:px-5">
           <div className="flex items-center gap-3">
             <button onClick={() => setEditorOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-400/40 bg-red-500/15 text-red-300 shadow-sm transition-all duration-200 hover:border-red-300/70 hover:bg-red-500/30 hover:text-red-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
@@ -772,6 +822,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
   return (
     <>
+    {noticeCard}
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
       <div className="relative shrink-0 overflow-hidden border-b border-cyan-400/20 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/80 px-4 py-4 shadow-lg shadow-slate-950/30 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -844,16 +895,23 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
             </div>
             {view === 'templates' && (
               <button
-                disabled={!selectedTemplate}
-                onClick={() => selectedTemplate && void copyTemplate(selectedTemplate, true)}
-                className={`group relative flex h-11 min-w-[224px] items-center gap-2.5 overflow-hidden rounded-xl border px-2.5 pr-3 text-left outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${selectedTemplate ? 'border-emerald-200/45 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 text-white shadow-[0_8px_24px_rgba(5,150,105,0.28)] hover:-translate-y-0.5 hover:border-white/50 hover:shadow-[0_10px_28px_rgba(5,150,105,0.34)] active:translate-y-0 active:scale-[0.98]' : 'cursor-not-allowed border-slate-600/50 bg-gradient-to-r from-slate-800 to-slate-700/80 text-slate-500 shadow-inner'}`}
+                type="button"
+                aria-disabled={!selectedTemplate}
+                onClick={() => {
+                  if (selectedTemplate) {
+                    void copyTemplate(selectedTemplate, true);
+                    return;
+                  }
+                  showNotice('info', '請先勾選一個管理員範本，再點擊「套用所選範本」。');
+                }}
+                className={`group relative flex h-11 min-w-[224px] items-center gap-2.5 overflow-hidden rounded-xl border px-2.5 pr-3 text-left outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${selectedTemplate ? 'border-emerald-200/45 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 text-white shadow-[0_8px_24px_rgba(5,150,105,0.28)] hover:-translate-y-0.5 hover:border-white/50 hover:shadow-[0_10px_28px_rgba(5,150,105,0.34)] active:translate-y-0 active:scale-[0.98]' : 'cursor-pointer border-amber-300/20 bg-gradient-to-r from-slate-800 to-slate-700/80 text-slate-300 shadow-inner hover:border-amber-300/40 hover:from-slate-700 hover:to-amber-950/50 hover:text-amber-100'}`}
               >
                 <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors ${selectedTemplate ? 'border-white/35 bg-white/20 text-white group-hover:bg-white/30' : 'border-slate-600 bg-slate-900/50 text-slate-600'}`}>
                   <Play className="h-3.5 w-3.5 fill-current" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[11px] font-black leading-4">套用所選範本</span>
-                  <span className={`block max-w-[145px] truncate text-[9px] font-bold leading-3 ${selectedTemplate ? 'text-white' : 'text-slate-600'}`}>{selectedTemplate ? selectedTemplate.name : '請先勾選一個範本'}</span>
+                  <span className={`block max-w-[145px] truncate text-[9px] font-bold leading-3 ${selectedTemplate ? 'text-white' : 'text-amber-200/70'}`}>{selectedTemplate ? selectedTemplate.name : '請先選擇管理員範本'}</span>
                 </span>
                 <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${selectedTemplate ? 'text-white group-hover:translate-x-0.5' : 'text-slate-600'}`} />
               </button>
