@@ -895,18 +895,21 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
               <div className="min-h-0 overflow-hidden xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:grid xl:grid-rows-[minmax(0,0.5fr)_minmax(0,0.5fr)] xl:border-l xl:border-slate-700/70">
               <section className="flex min-h-0 flex-col overflow-hidden border-b border-slate-700/70 p-3">
-                <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
-                    <FileText className="h-4 w-4 text-cyan-300" />
-                    <div>
+                <div className="mb-2 flex min-h-0 shrink-0 flex-wrap items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
+                    <FileText className="h-4 w-4 shrink-0 text-cyan-300" />
+                    <div className="min-w-0">
                       <h3 className="text-sm font-black tracking-tight text-white">英文通知內容</h3>
                       <p className="text-[10px] text-slate-500">動態變數會在發送時替換</p>
                     </div>
                   </div>
-                  {!readOnly && <button onClick={regenerateTemplate} className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70">重新產生內容</button>}
+                  <div className="flex min-w-0 flex-1 items-start justify-end gap-2">
+                    <p className="min-w-0 max-w-[360px] break-words text-right text-[9px] leading-4 text-slate-500" title="可用變數">可用變數：{'{{employee_name}}'}、{'{{threshold_value}}'}、{'{{actual_value}}'}、{'{{minimum_daily_orders}}'}、{'{{annual_month}}'}、{'{{annual_day}}'}、{'{{bonus_amount}}'}、{'{{currency}}'}</p>
+                    {!readOnly && <button onClick={regenerateTemplate} className="shrink-0 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70">重新產生內容</button>}
+                  </div>
                 </div>
-                <div className="min-h-0 min-w-0 flex-1 space-y-2 overflow-y-auto pr-1">
-                  <label>
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+                  <label className="shrink-0">
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">通知標題</span>
                     <input disabled={readOnly} value={form.titleTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, titleTemplate: event.target.value })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
@@ -914,7 +917,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <span className="mb-1 block text-xs font-semibold text-slate-400">通知內容</span>
                     <textarea disabled={readOnly} rows={3} value={form.contentTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, contentTemplate: event.target.value })); }} className="min-h-16 w-full flex-1 resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 shadow-sm outline-none transition-all duration-200 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
-                  <p className="truncate text-[10px] text-slate-500" title="可用變數">可用變數：{'{{employee_name}}'}、{'{{threshold_value}}'}、{'{{actual_value}}'}、{'{{minimum_daily_orders}}'}、{'{{annual_month}}'}、{'{{annual_day}}'}、{'{{bonus_amount}}'}、{'{{currency}}'}</p>
                 </div>
               </section>
 
