@@ -894,7 +894,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               </div>
 
               <div className="min-h-0 overflow-hidden xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:grid xl:grid-rows-[minmax(0,0.5fr)_minmax(0,0.5fr)] xl:border-l xl:border-slate-700/70">
-              <section className="flex min-h-0 flex-col border-b border-slate-700/70 p-3">
+              <section className="flex min-h-0 flex-col overflow-hidden border-b border-slate-700/70 p-3">
                 <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 border-l-2 border-cyan-400 pl-2.5">
                     <FileText className="h-4 w-4 text-cyan-300" />
@@ -905,7 +905,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   </div>
                   {!readOnly && <button onClick={regenerateTemplate} className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70">重新產生內容</button>}
                 </div>
-                <div className="flex min-h-0 flex-1 flex-col gap-2">
+                <div className="min-h-0 min-w-0 flex-1 space-y-2 overflow-y-auto pr-1">
                   <label>
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">通知標題</span>
                     <input disabled={readOnly} value={form.titleTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, titleTemplate: event.target.value })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
@@ -918,8 +918,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 </div>
               </section>
 
-            <aside className="min-h-0 overflow-hidden border-t border-slate-700/70 p-3 xl:border-t-0">
-              <div className={`flex h-full min-h-0 flex-col overflow-hidden ${form.rewardEnabled ? 'border-amber-400/30 bg-gradient-to-b from-amber-950 via-slate-900 to-slate-950 shadow-amber-950/40' : 'border-cyan-500/20 bg-gradient-to-b from-cyan-950 via-slate-900 to-slate-950 shadow-cyan-950/40'}`}>
+            <aside className="min-h-0 min-w-0 overflow-hidden border-t border-slate-700/70 p-3 xl:border-t-0">
+              <div className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden ${form.rewardEnabled ? 'border-amber-400/30 bg-gradient-to-b from-amber-950 via-slate-900 to-slate-950 shadow-amber-950/40' : 'border-cyan-500/20 bg-gradient-to-b from-cyan-950 via-slate-900 to-slate-950 shadow-cyan-950/40'}`}>
                 <div className={`shrink-0 p-3 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-400/20 to-orange-500/5' : 'bg-gradient-to-br from-cyan-400/15 to-blue-500/5'}`}>
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
@@ -940,7 +940,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     </div>
                   )}
                 </div>
-                <div className="min-h-0 flex-1 space-y-2 overflow-hidden p-3">
+                <div className="min-h-0 min-w-0 flex-1 space-y-2 overflow-y-auto p-3 pr-4">
                   <h3 className="truncate text-base font-bold leading-snug text-white" title={previewTitle}>{previewTitle || 'Notification title'}</h3>
                   <div className="max-h-24 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-slate-300" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
                   <div className="rounded-lg border border-slate-700/70 bg-slate-950/60 p-2">
