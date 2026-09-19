@@ -1125,57 +1125,63 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 <button onClick={openNewTask} className="relative mt-5 inline-flex h-10 items-center gap-2 rounded-lg border border-blue-300/25 bg-gradient-to-r from-blue-500 to-indigo-500 px-5 text-sm font-black text-white transition-colors duration-200 hover:from-blue-400 hover:to-indigo-400 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70"><Plus className="h-4 w-4" />建立第一個任務</button>
               </div>
             ) : (
-              <div className="space-y-2 p-2 sm:p-3">
-                {orderedTasks.map(task => (
-                  <article key={task.id} className={`group relative grid gap-3 overflow-hidden rounded-xl border border-l-4 px-3 py-2.5 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[minmax(170px,.75fr)_minmax(520px,2.5fr)_auto] lg:items-center ${task.status === 'active' ? 'border-emerald-300/25 border-l-emerald-500 bg-gradient-to-br from-emerald-950/75 via-emerald-950/55 to-slate-950 shadow-lg shadow-emerald-950/35 hover:border-emerald-200/40' : 'border-slate-700/70 border-l-slate-700 bg-gradient-to-br from-slate-950 via-slate-950 to-black shadow-lg shadow-black/35 hover:border-slate-600'}`}>
-                    <div className="min-w-0">
-                      <div className="flex items-start gap-2">
-                        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-emerald-300/30 bg-emerald-950/70 text-emerald-300' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
-                          {task.reward_enabled ? <Gift className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="truncate text-sm font-black text-white">{task.name}</h3>
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/30 bg-emerald-950/70 text-emerald-200' : 'border-slate-700/70 bg-slate-950/85 text-slate-400'}`}>{statusLabels[task.status]}</span>
-                            {task.reward_enabled && <span className="rounded-full border border-slate-700/70 bg-slate-950/85 px-2 py-0.5 text-[10px] font-black text-slate-400">獎勵</span>}
+              <div className="overflow-x-auto">
+                <div className="min-w-[1040px]">
+                  <div className="grid grid-cols-[minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_auto] border-y border-slate-700/70 bg-slate-950/90 px-3 text-[10px] font-black tracking-wider text-slate-500">
+                    <div className="px-2 py-2">任務</div>
+                    <div className="px-2 py-2">觸發條件</div>
+                    <div className="px-2 py-2">適用範圍</div>
+                    <div className="px-2 py-2">執行次數</div>
+                    <div className="px-2 py-2">每次獎金</div>
+                    <div className="px-2 py-2 text-right">操作</div>
+                  </div>
+                  <div>
+                    {orderedTasks.map(task => (
+                      <div key={task.id} className={`group grid grid-cols-[minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_auto] border-b border-slate-800/80 border-l-2 px-3 transition-colors duration-200 ${task.status === 'active' ? 'border-l-emerald-500 bg-emerald-950/35 hover:bg-emerald-950/50' : 'border-l-slate-800 bg-slate-950/55 hover:bg-slate-900/80'}`}>
+                        <div className="min-w-0 px-2 py-2.5">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${task.status === 'active' ? 'border-emerald-300/30 bg-emerald-950/70 text-emerald-300' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
+                              {task.reward_enabled ? <Gift className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <h3 className="truncate text-sm font-black text-white" title={task.name}>{task.name}</h3>
+                                <span className={`shrink-0 text-[10px] font-black ${task.status === 'active' ? 'text-emerald-200' : 'text-slate-500'}`}>{statusLabels[task.status]}</span>
+                              </div>
+                              <p className={`mt-0.5 truncate text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-500/90'}`} title={task.owner_username}>
+                                {task.owner_username}
+                                {task.is_shared_template && <><span className="px-1 opacity-50">·</span><span className="font-bold">共享範本</span></>}
+                                {task.source_task_id && <><span className="px-1 opacity-50">·</span><span>由範本複製</span></>}
+                              </p>
+                            </div>
                           </div>
-                          <p className={`mt-0.5 flex flex-wrap items-center gap-1 text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-500/90'}`}>
-                            <span>{task.owner_username}</span>
-                            {task.is_shared_template && <><span className="opacity-50">·</span><span className="font-bold">共享範本</span></>}
-                            {task.source_task_id && <><span className="opacity-50">·</span><span>由範本複製</span></>}
-                          </p>
+                        </div>
+                        <div className="min-w-0 px-2 py-2.5">
+                          <p className={`truncate text-[10px] font-black tracking-wide ${task.status === 'active' ? 'text-cyan-300/80' : 'text-slate-500'}`}>{triggerLabels[task.trigger_type]}</p>
+                          <p className={`mt-0.5 truncate text-[11px] font-semibold ${task.status === 'active' ? 'text-slate-200' : 'text-slate-400'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
+                        </div>
+                        <div className="min-w-0 px-2 py-2.5">
+                          <p className={`truncate text-[11px] font-bold ${task.status === 'active' ? 'text-blue-100' : 'text-slate-400'}`}>{task.recipient_scope === 'selected' ? `指定 ${task.recipient_ids?.length || 0} 人` : '全部可管理員工'}</p>
+                        </div>
+                        <div className="px-2 py-2.5">
+                          <p className={`text-sm font-black tabular-nums ${task.status === 'active' ? 'text-violet-100' : 'text-slate-300'}`}>{task.execution_count || 0}</p>
+                        </div>
+                        <div className="min-w-0 px-2 py-2.5">
+                          <p className={`truncate text-[11px] font-black ${task.status === 'active' ? 'text-amber-100' : 'text-slate-300'}`}>{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</p>
+                        </div>
+                        <div className="flex items-center justify-end gap-1.5 px-2 py-2.5">
+                          <button onClick={() => setDeleteTarget(task)} className="flex h-7 items-center justify-center rounded-md border border-rose-400/25 bg-rose-500/10 px-2 text-[11px] font-bold text-rose-300 transition-colors hover:border-rose-300/50 hover:bg-rose-500/20 hover:text-rose-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70" aria-label={`刪除任務 ${task.name}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => openTask(task)} className="flex h-7 items-center justify-center rounded-md border border-cyan-400/30 bg-cyan-500/10 px-2 text-[11px] font-bold text-cyan-200 transition-colors hover:border-cyan-300/50 hover:bg-cyan-500/20 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70" aria-label={`編輯任務 ${task.name}`}><Edit3 className="h-3.5 w-3.5" /></button>
+                          {task.status !== 'active' ? (
+                            <button onClick={() => changeStatus(task, 'active')} className="flex h-7 items-center justify-center rounded-md border border-emerald-400/25 bg-emerald-500/15 px-2 text-[11px] font-bold text-emerald-300 transition-colors hover:border-emerald-300/40 hover:bg-emerald-500/25 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70" aria-label={`啟用任務 ${task.name}`}><Play className="h-3.5 w-3.5" /></button>
+                          ) : (
+                            <button onClick={() => changeStatus(task, 'paused')} className="flex h-7 items-center justify-center rounded-md border border-amber-400/25 bg-amber-500/15 px-2 text-[11px] font-bold text-amber-300 transition-colors hover:border-amber-300/40 hover:bg-amber-500/25 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70" aria-label={`暫停任務 ${task.name}`}><Pause className="h-3.5 w-3.5" /></button>
+                          )}
                         </div>
                       </div>
-                    </div>
-                    <div className={`min-w-0 overflow-hidden rounded-lg border px-2 py-1.5 sm:grid sm:grid-cols-[2.2fr_1.2fr_1fr_1fr] sm:divide-x ${task.status === 'active' ? 'border-emerald-300/30 bg-emerald-950/55 sm:divide-emerald-300/20' : 'border-slate-700/80 bg-black/40 sm:divide-slate-800/90'}`}>
-                      <div className="min-w-0 px-2 sm:col-span-1">
-                        <p className={`text-[9px] font-black tracking-wider ${task.status === 'active' ? 'text-cyan-300/80' : 'text-slate-500'}`}>{triggerLabels[task.trigger_type]}</p>
-                        <p className={`mt-0.5 truncate text-[11px] font-semibold ${task.status === 'active' ? 'text-slate-200' : 'text-slate-400'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
-                      </div>
-                      <div className="min-w-0 px-2">
-                        <p className={`text-[9px] font-black tracking-wider ${task.status === 'active' ? 'text-blue-200/65' : 'text-slate-500'}`}>適用範圍</p>
-                        <p className={`mt-0.5 truncate text-[11px] font-bold ${task.status === 'active' ? 'text-blue-100' : 'text-slate-400'}`}>{task.recipient_scope === 'selected' ? `指定 ${task.recipient_ids?.length || 0} 人` : '全部可管理員工'}</p>
-                      </div>
-                      <div className="min-w-0 px-2">
-                        <p className={`text-[9px] font-black tracking-wider ${task.status === 'active' ? 'text-violet-200/65' : 'text-slate-500'}`}>執行次數</p>
-                        <p className={`mt-0.5 text-sm font-black tabular-nums ${task.status === 'active' ? 'text-violet-100' : 'text-slate-300'}`}>{task.execution_count || 0}</p>
-                      </div>
-                      <div className="min-w-0 px-2">
-                        <p className={`text-[9px] font-black tracking-wider ${task.status === 'active' ? 'text-amber-200/65' : 'text-slate-500'}`}>每次獎金</p>
-                        <p className={`mt-0.5 truncate text-[11px] font-black ${task.status === 'active' ? 'text-amber-100' : 'text-slate-300'}`}>{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 lg:justify-end">
-                      <button onClick={() => setDeleteTarget(task)} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-rose-400/25 bg-rose-500/10 px-3 text-xs font-bold text-rose-300 transition-all duration-200 hover:border-rose-300/50 hover:bg-rose-500/20 hover:text-rose-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70" aria-label={`刪除任務 ${task.name}`}><Trash2 className="h-3.5 w-3.5" />刪除</button>
-                      <button onClick={() => openTask(task)} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 hover:text-cyan-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"><Edit3 className="h-3.5 w-3.5" />編輯</button>
-                      {task.status !== 'active' ? (
-                        <button onClick={() => changeStatus(task, 'active')} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-emerald-400/25 bg-emerald-500/15 px-3 text-xs font-bold text-emerald-300 transition-all duration-200 hover:border-emerald-300/40 hover:bg-emerald-500/25 hover:text-emerald-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70"><Play className="h-3.5 w-3.5" />啟用</button>
-                      ) : (
-                        <button onClick={() => changeStatus(task, 'paused')} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-amber-400/25 bg-amber-500/15 px-3 text-xs font-bold text-amber-300 transition-all duration-200 hover:border-amber-300/40 hover:bg-amber-500/25 hover:text-amber-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"><Pause className="h-3.5 w-3.5" />暫停</button>
-                      )}
-                    </div>
-                  </article>
-                ))}
+                    ))}
+                  </div>
+                </div>
               </div>
             )
           )}
@@ -1184,67 +1190,74 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             dashboard.shared_templates.length === 0 ? (
               <div className="relative flex h-full min-h-[280px] flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.10),transparent_42%)] px-6 py-16 text-center before:absolute before:inset-0 before:bg-[linear-gradient(rgba(148,163,184,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.025)_1px,transparent_1px)] before:bg-[size:28px_28px]"><div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/20 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 text-violet-300 shadow-xl shadow-violet-950/40"><Copy className="h-8 w-8" /></div><p className="mt-4 font-bold text-slate-300">目前沒有可用的管理員範本</p><p className="mt-1 text-sm text-slate-500">管理員發佈共享範本後，可在這裡勾選並直接套用。</p></div>
             ) : (
-              <div className="space-y-2 p-2 sm:p-3">
-                {orderedSharedTemplates.map(task => {
-                  const selected = selectedTemplateIds.has(task.id);
-                  const alreadyAdded = dashboard.tasks.some(existing => isSameTemplateCopy(existing, task));
-                  return (
-                    <article key={task.id} className={`group relative grid gap-3 overflow-hidden rounded-xl border border-l-4 px-3 py-2.5 transition-all duration-200 hover:-translate-y-px hover:shadow-xl lg:grid-cols-[auto_minmax(210px,1fr)_minmax(420px,1.8fr)_auto] lg:items-center ${selected ? 'border-violet-200/40 border-l-violet-300 bg-gradient-to-br from-violet-500/20 via-violet-950/30 to-slate-950 shadow-lg shadow-violet-950/25' : task.status === 'active' ? 'border-emerald-300/20 border-l-emerald-400 bg-gradient-to-br from-emerald-950/35 via-slate-900 to-slate-950 shadow-lg shadow-emerald-950/15 hover:border-emerald-200/35' : 'border-slate-600/60 border-l-slate-500 bg-gradient-to-br from-slate-800/80 via-slate-900 to-slate-950 shadow-lg shadow-slate-950/20 hover:border-slate-500'}`}>
-                      <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-violet-100">
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={event => setSelectedTemplateIds(previous => {
-                            const next = new Set(previous);
-                            if (event.target.checked) next.add(task.id);
-                            else next.delete(task.id);
-                            return next;
-                          })}
-                          className="peer sr-only"
-                        />
-                        <span className="flex h-5 w-5 items-center justify-center rounded-md border border-violet-300/35 bg-slate-950/70 text-transparent shadow-inner transition-all duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-violet-300/70 peer-checked:border-violet-200 peer-checked:bg-violet-500 peer-checked:text-white peer-checked:shadow-violet-950/40">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        </span>
-                        <span className="hidden sm:inline">{selected ? '已選取' : '選取'}</span>
-                        {alreadyAdded && <span className="rounded-full border border-rose-300/30 bg-rose-400/10 px-2 py-0.5 text-[9px] font-black text-rose-200">已添加</span>}
-                      </label>
-                      <div className="min-w-0">
-                        <div className="flex items-start gap-3">
-                          <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-300' : 'border-slate-500/60 bg-slate-700/60 text-slate-300'}`}>
-                            {task.reward_enabled ? <Gift className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                          </span>
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="truncate text-sm font-black text-white">{task.name}</h3>
-                              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wide ${task.status === 'active' ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : 'border-slate-500/50 bg-slate-700/70 text-slate-300'}`}>{statusLabels[task.status]}</span>
-                            </div>
-                            <div className={`mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] ${task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-300/75'}`}>
-                              <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-semibold ${task.status === 'active' ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100' : 'border-slate-500/50 bg-slate-700/60 text-slate-300'}`}><ShieldCheck className="h-3 w-3" />範本提供者</span>
+              <div className="overflow-x-auto">
+                <div className="min-w-[1040px]">
+                  <div className="grid grid-cols-[48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_auto] border-y border-slate-700/70 bg-slate-950/90 px-3 text-[10px] font-black tracking-wider text-slate-500">
+                    <div className="px-2 py-2 text-center">選取</div>
+                    <div className="px-2 py-2">管理員範本</div>
+                    <div className="px-2 py-2">觸發條件</div>
+                    <div className="px-2 py-2">獎勵</div>
+                    <div className="px-2 py-2">適用範圍</div>
+                    <div className="px-2 py-2 text-right">操作</div>
+                  </div>
+                  <div>
+                    {orderedSharedTemplates.map(task => {
+                      const selected = selectedTemplateIds.has(task.id);
+                      const alreadyAdded = dashboard.tasks.some(existing => isSameTemplateCopy(existing, task));
+                      return (
+                        <div key={task.id} className={`group grid grid-cols-[48px_minmax(260px,1.4fr)_minmax(220px,1.1fr)_minmax(160px,.8fr)_minmax(150px,.75fr)_auto] border-b border-slate-800/80 border-l-2 px-3 transition-colors duration-200 ${selected ? 'border-l-violet-300 bg-violet-950/45 hover:bg-violet-950/60' : task.status === 'active' ? 'border-l-emerald-700 bg-emerald-950/25 hover:bg-emerald-950/40' : 'border-l-slate-800 bg-slate-950/55 hover:bg-slate-900/80'}`}>
+                          <label className="flex cursor-pointer items-center justify-center px-2 py-2.5" aria-label={`${selected ? '取消選取' : '選取'}範本 ${task.name}`}>
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={event => setSelectedTemplateIds(previous => {
+                                const next = new Set(previous);
+                                if (event.target.checked) next.add(task.id);
+                                else next.delete(task.id);
+                                return next;
+                              })}
+                              className="peer sr-only"
+                            />
+                            <span className="flex h-5 w-5 items-center justify-center rounded-md border border-violet-300/35 bg-slate-950/70 text-transparent shadow-inner transition-all duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-violet-300/70 peer-checked:border-violet-200 peer-checked:bg-violet-500 peer-checked:text-white peer-checked:shadow-violet-950/40">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            </span>
+                          </label>
+                          <div className="min-w-0 px-2 py-2.5">
+                            <div className="flex min-w-0 items-center gap-2.5">
+                              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${selected ? 'border-violet-300/35 bg-violet-950/70 text-violet-200' : task.status === 'active' ? 'border-emerald-300/25 bg-emerald-950/70 text-emerald-300' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
+                                {task.reward_enabled ? <Gift className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <h3 className="truncate text-sm font-black text-white" title={task.name}>{task.name}</h3>
+                                  <span className={`shrink-0 text-[10px] font-black ${selected ? 'text-violet-200' : task.status === 'active' ? 'text-emerald-200' : 'text-slate-500'}`}>{statusLabels[task.status]}</span>
+                                </div>
+                                <p className={`mt-0.5 truncate text-[10px] ${selected ? 'text-violet-200/80' : task.status === 'active' ? 'text-emerald-200/80' : 'text-slate-500/90'}`}>
+                                  <ShieldCheck className="mr-1 inline h-3 w-3" />範本提供者
+                                  {alreadyAdded && <><span className="px-1 opacity-50">·</span><span className="font-bold text-rose-200">已添加</span></>}
+                                </p>
+                              </div>
                             </div>
                           </div>
+                          <div className="min-w-0 px-2 py-2.5">
+                            <p className={`truncate text-[10px] font-black tracking-wide ${selected ? 'text-violet-200/80' : task.status === 'active' ? 'text-violet-200/80' : 'text-slate-500'}`}>{triggerLabels[task.trigger_type]}</p>
+                            <p className={`mt-0.5 truncate text-[11px] font-semibold ${selected ? 'text-violet-100' : task.status === 'active' ? 'text-slate-200' : 'text-slate-400'}`} title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
+                          </div>
+                          <div className="min-w-0 px-2 py-2.5">
+                            <p className={`truncate text-[11px] font-black ${selected ? 'text-violet-100' : task.status === 'active' ? 'text-amber-100' : 'text-slate-300'}`}>{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'}</p>
+                          </div>
+                          <div className="min-w-0 px-2 py-2.5">
+                            <p className={`truncate text-[11px] font-bold ${selected ? 'text-violet-100' : task.status === 'active' ? 'text-blue-100' : 'text-slate-400'}`}>{task.recipient_scope === 'selected' ? '指定範圍' : '全部員工'}</p>
+                          </div>
+                          <div className="flex items-center justify-end gap-1.5 px-2 py-2.5">
+                            <button onClick={() => openTask(task, true)} className="flex h-7 items-center justify-center rounded-md border border-violet-400/35 bg-violet-500/10 px-2 text-[11px] font-bold text-violet-200 transition-colors hover:border-violet-300/50 hover:bg-violet-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70" aria-label={`查看範本 ${task.name}`}><ChevronRight className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => copyTemplate(task, false)} className="flex h-7 items-center justify-center rounded-md border border-blue-400/30 bg-blue-500/10 px-2 text-[11px] font-bold text-blue-200 transition-colors hover:border-blue-300/50 hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70" aria-label={`複製自訂範本 ${task.name}`}><Copy className="h-3.5 w-3.5" /></button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="min-w-0 overflow-hidden rounded-lg border border-violet-300/20 bg-slate-950/45 px-2 py-1.5 sm:grid sm:grid-cols-[1.4fr_1fr_1fr] sm:divide-x sm:divide-violet-300/15">
-                        <div className="min-w-0 px-2">
-                          <p className="text-[9px] font-black tracking-wider text-violet-200/80">{triggerLabels[task.trigger_type]}</p>
-                          <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-200" title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p>
-                        </div>
-                        <div className="min-w-0 px-2">
-                          <p className="text-[9px] font-black tracking-wider text-amber-200/65">獎勵</p>
-                          <p className="mt-0.5 truncate text-[11px] font-black text-amber-100">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '一般通知'}</p>
-                        </div>
-                        <div className="min-w-0 px-2">
-                          <p className="text-[9px] font-black tracking-wider text-blue-200/65">適用範圍</p>
-                          <p className="mt-0.5 truncate text-[11px] font-bold text-blue-100">{task.recipient_scope === 'selected' ? '指定範圍' : '全部員工'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 lg:justify-end">
-                        <button onClick={() => openTask(task, true)} className="flex h-8 items-center justify-center gap-1 rounded-lg border border-violet-400/35 bg-violet-500/10 px-3 text-xs font-bold text-violet-200 transition-all duration-200 hover:border-violet-300/50 hover:bg-violet-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70">查看<ChevronRight className="h-3.5 w-3.5" /></button>
-                        <button onClick={() => copyTemplate(task, false)} className="flex h-8 items-center justify-center gap-1 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 text-xs font-bold text-blue-200 transition-all duration-200 hover:border-blue-300/50 hover:bg-blue-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70"><Copy className="h-3.5 w-3.5" />複製自訂</button>
-                      </div>
-                    </article>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )
           )}
