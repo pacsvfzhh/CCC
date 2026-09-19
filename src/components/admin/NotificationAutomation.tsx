@@ -114,7 +114,6 @@ interface AutomationDashboard {
 interface TaskForm {
   id: string | null;
   name: string;
-  description: string;
   triggerType: TriggerType;
   triggerMode: TriggerMode;
   thresholdValue: string;
@@ -132,7 +131,6 @@ interface TaskForm {
   rewardAmount: string;
   isSharedTemplate: boolean;
   startsAt: string;
-  endsAt: string;
 }
 
 interface Props {
@@ -186,7 +184,6 @@ function createDefaultForm(): TaskForm {
   return {
     id: null,
     name: '',
-    description: '',
     triggerType: 'total_orders',
     triggerMode: 'reach_once',
     thresholdValue: '100',
@@ -204,7 +201,6 @@ function createDefaultForm(): TaskForm {
     rewardAmount: '',
     isSharedTemplate: false,
     startsAt: '',
-    endsAt: '',
   };
 }
 
@@ -212,7 +208,6 @@ function taskToForm(task: AutomationTask): TaskForm {
   return {
     id: task.id,
     name: task.name,
-    description: task.description || '',
     triggerType: task.trigger_type,
     triggerMode: task.trigger_mode,
     thresholdValue: String(task.threshold_value),
@@ -230,7 +225,6 @@ function taskToForm(task: AutomationTask): TaskForm {
     rewardAmount: task.reward_amount ? String(task.reward_amount) : '',
     isSharedTemplate: task.is_shared_template,
     startsAt: task.starts_at ? task.starts_at.slice(0, 16) : '',
-    endsAt: task.ends_at ? task.ends_at.slice(0, 16) : '',
   };
 }
 
@@ -469,7 +463,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       p_admin_session_token: getAdminFinancialSessionToken(),
       p_task_id: form.id,
       p_name: form.name.trim(),
-      p_description: form.description.trim(),
+      p_description: '',
       p_trigger_type: form.triggerType,
       p_trigger_mode: form.triggerMode,
       p_threshold_value: Number(form.thresholdValue),
@@ -485,7 +479,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       p_reward_amount: form.rewardEnabled ? Number(form.rewardAmount) : null,
       p_is_shared_template: isTemplateCopy ? false : form.id ? form.isSharedTemplate : isSuperAdmin,
       p_starts_at: form.startsAt ? new Date(form.startsAt).toISOString() : null,
-      p_ends_at: form.endsAt ? new Date(form.endsAt).toISOString() : null,
+      p_ends_at: null,
     };
 
     setSaving(true);
@@ -786,14 +780,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   <label className="sm:col-span-2">
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">任務名稱</span>
                     <input disabled={readOnly} value={form.name} onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" placeholder={copiedFromName ? '請輸入新的任務名稱' : '例如：100 筆訂單鼓勵通知'} />
-                  </label>
-                  <label className="sm:col-span-2">
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-400">任務說明</span>
-                    <input disabled={readOnly} value={form.description} onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" placeholder="供管理員查看的內部說明" />
-                  </label>
-                  <label className="sm:col-span-2">
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-400">結束時間（選填）</span>
-                    <input disabled={readOnly} type="datetime-local" value={form.endsAt} onChange={event => setForm(previous => ({ ...previous, endsAt: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
                 </div>
               </section>
