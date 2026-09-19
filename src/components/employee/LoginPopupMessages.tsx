@@ -236,7 +236,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                 </div>
                 <button
                   onClick={handleClose}
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 ${isReward ? 'bg-amber-950/10 text-amber-950 hover:bg-amber-950/15' : 'bg-white/15 text-white hover:bg-white/25'}`}
+                  className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 ${isReward ? 'bg-amber-950/10 text-amber-950 hover:bg-amber-950/15' : 'bg-white/15 text-white hover:bg-white/25'}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   <X className="w-4 h-4" />
@@ -389,7 +389,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
                   <button
                     onClick={handleClose}
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isReward ? 'bg-amber-950/10 text-amber-950 hover:bg-amber-950/15' : 'bg-white/15 text-white hover:bg-white/25'}`}
+                    className={`notification-panel-close flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isReward ? 'bg-amber-950/10 text-amber-950 hover:bg-amber-950/15' : 'bg-white/15 text-white hover:bg-white/25'}`}
                   >
                     <X className="w-4 h-4" />
                   </button>

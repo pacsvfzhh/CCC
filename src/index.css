@@ -361,6 +361,26 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+.notification-panel-close {
+  box-sizing: border-box;
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  flex: 0 0 40px;
+  padding: 0 !important;
+}
+
+@media (pointer: coarse) {
+  .notification-panel-close {
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    flex-basis: 44px;
+  }
+}
+
 input, select, textarea {
   -webkit-appearance: none;
   -moz-appearance: none;
