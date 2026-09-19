@@ -1147,7 +1147,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         <div className={`flex items-center justify-center px-2 py-2.5 text-xs font-black tabular-nums ${task.status === 'active' ? 'text-amber-300' : 'text-slate-600'}`}>{index + 1}</div>
                         <div className="min-w-0 px-2 py-2.5">
                           <div className="flex min-w-0 items-center gap-2.5">
-                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-amber-100/70 bg-gradient-to-br from-yellow-200 via-amber-400 to-orange-500 text-orange-950 shadow-[0_0_20px_rgba(251,191,36,0.42)] ring-1 ring-inset ring-white/35' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-amber-300/35 bg-gradient-to-br from-amber-500/30 via-orange-700/25 to-orange-950/80 text-amber-200 shadow-[0_0_14px_rgba(249,115,22,0.20)] ring-1 ring-inset ring-amber-200/10' : 'border-slate-700/80 bg-slate-900/90 text-slate-500'}`}>
                               {task.reward_enabled ? <Gift className="h-5 w-5 stroke-[2.5]" /> : <Bell className="h-5 w-5 stroke-[2.5]" />}
                             </span>
                             <div className="min-w-0">
