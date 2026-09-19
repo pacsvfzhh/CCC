@@ -1478,7 +1478,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                 <div
                   key={`${announcement.id}-${index}`}
                   onClick={() => handleAnnouncementClick(announcement)}
-                  className={`group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.98] hover:-translate-y-0.5 hover:shadow-xl bg-gradient-to-br ${cardStyle.gradient} ring-1 ${cardStyle.ring} shadow-sm ${cardStyle.hoverShadow}`}
+                  className={`group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.98] hover:-translate-y-0.5 hover:shadow-xl bg-gradient-to-br ${cardStyle.gradient} ring-1 ${cardStyle.ring} shadow-md shadow-slate-200/40 ${cardStyle.hoverShadow}`}
                   style={{
                     ...(isTabletDevice ? {
                       animation: showDesktopEffects && index < announcements.length ? `fadeInUp 0.4s ease-out ${(index % announcements.length) * 0.05}s both` : 'none',
@@ -1539,7 +1539,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                         {/* Bottom meta row */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-white/80 ring-1 ring-blue-100 text-blue-600">
+                            <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-white/90 ring-1 ring-blue-200/80 text-blue-700">
                               <Calendar className="w-3 h-3" />
                               {new Date(announcement.publish_at).toLocaleDateString(dateLocale, {
                                 month: 'short',
@@ -1551,10 +1551,10 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                               <span
                                 className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ring-1"
                                 style={{
-                                  backgroundColor: `${categoryColor}15`,
+                                  backgroundColor: `${categoryColor}20`,
                                   color: categoryColor,
-                                  borderColor: `${categoryColor}40`,
-                                  boxShadow: `0 0 0 1px ${categoryColor}30`
+                                  borderColor: `${categoryColor}50`,
+                                  boxShadow: `0 0 0 1px ${categoryColor}25`
                                 }}
                               >
                                 {translateCategory(announcement.category)}
