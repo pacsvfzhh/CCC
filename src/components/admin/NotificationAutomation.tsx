@@ -25,13 +25,12 @@ import {
   Sparkles,
   Target,
   Users,
-  Wallet,
   X,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
-import { sanitizeHTML } from '../../lib/sanitizeHTML';
-import { useLanguage } from '../../lib/i18n/context';
+import { useResponsive } from '../../lib/useResponsive';
+import EmployeeNotificationDetailPanel from '../employee/EmployeeNotificationDetailPanel';
 import AdminPageLoading from './AdminPageLoading';
 
 interface AdminIdentity {
@@ -314,7 +313,7 @@ function summarizeTask(task: AutomationTask, currency: string) {
 }
 
 export default function NotificationAutomation({ admin, employees, onBack }: Props) {
-  const { t } = useLanguage();
+  const { isDesktop } = useResponsive();
   const isSuperAdmin = admin.role === 'super_admin' || Boolean(admin.is_super_admin);
   const [dashboard, setDashboard] = useState<AutomationDashboard>({ currency: 'USDC', admin_groups: [], tasks: [], shared_templates: [], executions: [] });
   const [loading, setLoading] = useState(true);
@@ -849,63 +848,28 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     const previewContent = renderPreview(form.contentTemplate, form, dashboard.currency);
     const employeePreviewDialog = employeePreviewOpen && createPortal(
       <div
-        className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm"
+        className={`fixed inset-0 z-[180] flex items-center justify-center bg-slate-900/45 backdrop-blur-sm ${isDesktop ? 'p-4' : ''}`}
         role="presentation"
         onMouseDown={() => setEmployeePreviewOpen(false)}
       >
         <div
-          className="pointer-events-auto flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-2xl shadow-blue-900/20"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="employee-notification-preview-title"
+          className={`pointer-events-auto flex w-full max-w-2xl flex-col overflow-hidden ${isDesktop ? 'h-[82vh] max-h-[88vh] rounded-3xl shadow-2xl shadow-blue-900/20' : 'h-full'}`}
           onMouseDown={event => event.stopPropagation()}
         >
-          <div className={`relative flex shrink-0 items-center justify-between px-5 py-4 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-500 via-yellow-500 to-orange-500' : 'bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800'}`}>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.14)_0%,_transparent_60%)]" />
-            <div className="relative flex min-w-0 items-center gap-3">
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-lg ${form.rewardEnabled ? 'border-amber-900/15 bg-amber-950/10 text-amber-950' : 'border-white/20 bg-white/15 text-white'}`}>
-                {form.rewardEnabled ? <Gift className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
-              </div>
-              <div className="min-w-0">
-                <h2 id="employee-notification-preview-title" className={`truncate text-xl font-bold tracking-tight ${form.rewardEnabled ? 'text-amber-950' : 'text-white'}`}>{form.rewardEnabled ? t.messages.rewardTitle : 'Achievement Notice'}</h2>
-                <p className={`mt-0.5 text-sm font-semibold ${form.rewardEnabled ? 'text-amber-950/70' : 'text-white/75'}`}>員工端通知預覽</p>
-              </div>
-            </div>
-            <button type="button" onClick={() => setEmployeePreviewOpen(false)} className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${form.rewardEnabled ? 'bg-amber-950/10 text-amber-950 hover:bg-amber-950/15' : 'bg-white/15 text-white hover:bg-white/25'}`} aria-label="關閉員工端預覽">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6">
-            <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-blue-900/5">
-              {form.rewardEnabled && (
-                <div className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 sm:px-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-black text-amber-800">{t.messages.rewardBonusLabel}</p>
-                      <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t.messages.rewardWalletLabel}</p>
-                    </div>
-                    <p className="shrink-0 text-2xl font-black text-amber-700">+{Number(form.rewardAmount || 0).toFixed(2)} <span className="text-base">{dashboard.currency}</span></p>
-                  </div>
-                  <div className="mt-3 flex items-center gap-2 border-t border-amber-200/80 pt-3">
-                    <Wallet className="h-4 w-4 shrink-0 text-emerald-600" />
-                    <p className="text-xs font-semibold leading-5 text-emerald-700">{t.messages.rewardAddedMessage}</p>
-                  </div>
-                </div>
-              )}
-              <div className={`border-b border-slate-100 px-5 py-5 sm:px-6 ${form.rewardEnabled ? 'bg-gradient-to-r from-amber-50/60 to-transparent' : 'bg-gradient-to-r from-blue-50/50 to-transparent'}`}>
-                <h3 className="break-words text-xl font-bold leading-snug text-slate-900">{previewTitle || 'Notification title'}</h3>
-                <div className={`mt-4 h-px bg-gradient-to-r to-transparent ${form.rewardEnabled ? 'from-amber-200 via-orange-200' : 'from-blue-100 via-slate-200'}`} />
-              </div>
-              <div className="px-5 py-5 sm:px-6">
-                <div className="message-content-dark text-sm leading-7 text-slate-700" dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex shrink-0 justify-end border-t border-slate-200 bg-gradient-to-r from-slate-50/80 to-blue-50/30 px-6 py-4">
-            <button type="button" onClick={() => setEmployeePreviewOpen(false)} className="min-h-10 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition-all hover:from-blue-700 hover:to-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70">關閉預覽</button>
-          </div>
+          <EmployeeNotificationDetailPanel
+            message={{
+              title: previewTitle || 'Notification title',
+              content: previewContent,
+              message_type: form.messageType,
+              priority: form.priority,
+              notification_category: form.rewardEnabled ? 'performance_reward' : null,
+              reward_amount: form.rewardEnabled ? Number(form.rewardAmount || 0) : null,
+              reward_currency: dashboard.currency,
+              created_at: new Date().toISOString(),
+              is_read: false,
+            }}
+            onClose={() => setEmployeePreviewOpen(false)}
+          />
         </div>
       </div>,
       document.body,
