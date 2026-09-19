@@ -496,8 +496,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       });
       if (error) throw error;
       const result = data as unknown as { task_id?: string; duplicate?: boolean } | null;
-      if (result?.duplicate) {
-        showNotice('info', '這個管理員範本已經添加到本組任務，不可重複添加。若要建立不同版本，請先使用「複製自訂」並修改內容。');
+      if (activate && result?.duplicate) {
+        showNotice('info', '這個管理員範本已經添加到本組任務，不可重複添加。若要建立不同版本，請使用「複製自訂」並修改內容。');
         return;
       }
       if (!result?.task_id) throw new Error('Template copy did not return a task id.');
@@ -535,7 +535,12 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         setReadOnly(false);
         setView('templates');
         setEditorOpen(true);
-        showNotice('info', '已複製為本組的獨立草稿，請修改內容後儲存；未修改時再次套用會提示重複。');
+        showNotice(
+          'info',
+          result.duplicate
+            ? '這個複製自訂草稿已經存在，已打開編輯面板；請重新設定名稱並修改內容後儲存。'
+            : '已複製為本組的獨立草稿，請修改內容後儲存；未修改時再次套用會提示重複。',
+        );
       }
 
       setRefreshing(true);
