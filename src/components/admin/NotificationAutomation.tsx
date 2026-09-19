@@ -394,6 +394,11 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       return;
     }
 
+    if (form.triggerType === 'annual_date') {
+      notify('error', '每年指定日期任務目前尚未啟用，請先選擇其他條件類型');
+      return;
+    }
+
     setSaving(true);
     try {
       const { error } = await supabase.rpc('save_notification_automation_task', {
@@ -402,12 +407,10 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
         p_name: form.name.trim(),
         p_description: form.description.trim(),
         p_trigger_type: form.triggerType,
-        p_trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode,
-        p_threshold_value: form.triggerType === 'annual_date' ? 1 : Number(form.thresholdValue),
+        p_trigger_mode: form.triggerMode,
+        p_threshold_value: Number(form.thresholdValue),
         p_minimum_daily_orders: form.triggerType === 'consecutive_work_days' ? Number(form.minimumDailyOrders) : null,
         p_minimum_daily_work_minutes: form.minimumDailyWorkMinutes ? Number(form.minimumDailyWorkMinutes) : null,
-        p_annual_month: form.triggerType === 'annual_date' ? Number(form.annualMonth) : null,
-        p_annual_day: form.triggerType === 'annual_date' ? Number(form.annualDay) : null,
         p_recipient_scope: form.recipientScope,
         p_recipient_ids: form.recipientScope === 'selected' ? form.recipientIds : [],
         p_title_template: form.titleTemplate.trim(),
@@ -423,8 +426,10 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       if (error) throw error;
       notify('success', form.id ? '任務已更新並重設為草稿' : '自動化任務已儲存為草稿');
       setEditorOpen(false);
+      const nextAdminId = isSuperAdmin ? admin.id : selectedAdminId;
+      setSelectedAdminId(nextAdminId);
       setRefreshing(true);
-      await loadDashboard();
+      await loadDashboard(nextAdminId);
     } catch (error) {
       notify('error', formatSupabaseError(error) || '儲存任務失敗');
     } finally {

@@ -1186,12 +1186,27 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
   if (showAutomation) {
     return (
-      <NotificationAutomation
-        admin={admin}
-        employees={allEmployeesFlat}
-        onBack={() => setShowAutomation(false)}
-        notify={(type, message) => setNotification({ type, message })}
-      />
+      <>
+        <NotificationAutomation
+          admin={admin}
+          employees={allEmployeesFlat}
+          onBack={() => setShowAutomation(false)}
+          notify={(type, message) => setNotification({ type, message })}
+        />
+        {notification && (
+          <div className={`fixed right-4 top-4 z-[120] flex items-center gap-3 rounded-lg border px-6 py-4 shadow-2xl backdrop-blur-xl transition-all duration-300 ${
+            notification.type === 'success'
+              ? 'border-green-500/50 bg-green-900/90 text-green-100'
+              : 'border-red-500/50 bg-red-900/90 text-red-100'
+          }`}>
+            {notification.type === 'success' ? <Bell className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+            <span className="font-medium">{notification.message}</span>
+            <button onClick={() => setNotification(null)} className="ml-2 text-white/60 transition-colors hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </>
     );
   }
 

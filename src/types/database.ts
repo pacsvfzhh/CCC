@@ -2901,8 +2901,6 @@ export interface Database {
           p_threshold_value: number;
           p_minimum_daily_orders: number | null;
           p_minimum_daily_work_minutes: number | null;
-          p_annual_month: number | null;
-          p_annual_day: number | null;
           p_recipient_scope: string;
           p_recipient_ids: string[];
           p_title_template: string;
