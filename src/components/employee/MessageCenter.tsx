@@ -313,7 +313,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
               </div>
               <button
                 onClick={onClose}
-                className="notification-panel-close flex h-8 w-8 items-center justify-center rounded-lg border border-white/35 bg-white/25 text-white shadow-sm shadow-blue-900/20 backdrop-blur-sm transition-colors hover:bg-white/35 active:scale-95"
+                className="notification-panel-close flex h-8 w-8 items-center justify-center rounded-lg border-2 border-white/70 bg-white/10 text-white shadow-sm shadow-blue-900/25 backdrop-blur-sm transition-colors hover:bg-white/20 active:scale-95"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <X className="w-5 h-5" strokeWidth={2.5} />
