@@ -742,7 +742,23 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex overflow-hidden rounded-xl border border-slate-600/60 bg-slate-950/55 shadow-inner shadow-slate-950/50">
+              {[
+                { label: '任務總數', value: taskStats.total, icon: Settings2, color: 'text-cyan-300', surface: 'bg-cyan-500/10 border-cyan-400/15' },
+                { label: '已啟用', value: taskStats.active, icon: Play, color: 'text-emerald-300', surface: 'bg-emerald-500/10 border-emerald-400/15' },
+                { label: '獎勵任務', value: taskStats.rewards, icon: Gift, color: 'text-amber-300', surface: 'bg-amber-500/10 border-amber-400/15' },
+                { label: '成功執行', value: taskStats.executions, icon: CheckCircle2, color: 'text-violet-300', surface: 'bg-violet-500/10 border-violet-400/15' },
+              ].map(item => (
+                <div key={item.label} className={`flex min-w-[105px] items-center gap-2 border-r px-2.5 py-1.5 last:border-r-0 ${item.surface}`}>
+                  <item.icon className={`h-3.5 w-3.5 shrink-0 ${item.color}`} />
+                  <div className="min-w-0">
+                    <p className="whitespace-nowrap text-[9px] font-bold text-slate-500">{item.label}</p>
+                    <p className={`text-sm font-black tabular-nums leading-4 ${item.color}`}>{item.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
             <button onClick={() => { setRefreshing(true); void loadDashboard(); }} disabled={refreshing} className="flex h-9 items-center gap-2 rounded-xl border border-slate-600/80 bg-slate-800/90 px-3 text-xs font-bold text-slate-200 shadow-sm transition-all duration-200 hover:border-cyan-400/60 hover:bg-slate-700 hover:text-cyan-200 hover:shadow-cyan-950/30 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-wait disabled:opacity-60"><RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />重新整理</button>
             <button onClick={openNewTask} className="flex h-9 items-center gap-2 rounded-xl border border-cyan-300/30 bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 px-4 text-xs font-black text-white shadow-lg shadow-cyan-950/50 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-cyan-500/20 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"><Plus className="h-4 w-4" />新增自動化任務</button>
           </div>
@@ -751,21 +767,6 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
       <div className="min-h-0 flex-1 overflow-hidden bg-slate-900">
         <div className="flex h-full w-full flex-col overflow-hidden bg-slate-900">
-          <div className="flex shrink-0 divide-x divide-slate-700/60 overflow-x-auto border-b border-slate-700/70 bg-slate-950/35 shadow-inner">
-            {[
-              { label: '任務總數', value: taskStats.total, icon: Settings2, iconClass: 'text-cyan-300', iconBg: 'bg-cyan-500/15 ring-cyan-400/20', surface: 'hover:bg-cyan-500/[0.07]' },
-              { label: '已啟用', value: taskStats.active, icon: Play, iconClass: 'text-emerald-300', iconBg: 'bg-emerald-500/15 ring-emerald-400/20', surface: 'hover:bg-emerald-500/[0.07]' },
-              { label: '獎勵任務', value: taskStats.rewards, icon: Gift, iconClass: 'text-amber-300', iconBg: 'bg-amber-500/15 ring-amber-400/20', surface: 'hover:bg-amber-500/[0.07]' },
-              { label: '成功執行', value: taskStats.executions, icon: CheckCircle2, iconClass: 'text-violet-300', iconBg: 'bg-violet-500/15 ring-violet-400/20', surface: 'hover:bg-violet-500/[0.07]' },
-            ].map(item => (
-              <div key={item.label} className={`group flex min-w-[155px] flex-1 items-center gap-3 px-4 py-3 transition-all duration-200 ${item.surface}`}>
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 transition-all duration-200 group-hover:scale-105 ${item.iconBg}`}><item.icon className={`h-4 w-4 ${item.iconClass}`} /></div>
-                <p className="text-xs font-semibold text-slate-400">{item.label}</p>
-                <p className="ml-auto text-xl font-black tabular-nums tracking-tight text-white">{item.value}</p>
-              </div>
-            ))}
-          </div>
-
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700/70 bg-slate-900/95 px-3 py-2.5 shadow-sm">
             <div className="flex gap-1 rounded-xl border border-slate-700/70 bg-slate-950/70 p-1 shadow-inner">
               {[
