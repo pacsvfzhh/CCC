@@ -15,7 +15,6 @@ import {
   Play,
   Plus,
   RefreshCw,
-  Search,
   Settings2,
   ShieldCheck,
   SlidersHorizontal,
@@ -292,7 +291,6 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState<'tasks' | 'templates' | 'executions'>('tasks');
-  const [search, setSearch] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
   const [form, setForm] = useState<TaskForm>(createDefaultForm());
@@ -334,16 +332,6 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
       contentTemplate: template.content,
     }));
   }, [form.triggerType, form.triggerMode, form.thresholdValue, form.minimumDailyOrders, form.annualMonth, form.annualDay, form.rewardEnabled, form.rewardAmount, dashboard.currency, templateCustomized, readOnly]);
-
-  const visibleTasks = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return dashboard.tasks;
-    return dashboard.tasks.filter(task =>
-      task.name.toLowerCase().includes(query)
-      || task.owner_username.toLowerCase().includes(query)
-      || triggerLabels[task.trigger_type].toLowerCase().includes(query)
-    );
-  }, [dashboard.tasks, search]);
 
   const taskStats = useMemo(() => ({
     total: dashboard.tasks.length,
@@ -835,12 +823,6 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
                 <button title={tab.label} key={tab.id} onClick={() => setView(tab.id)} className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${tab.id === 'tasks' ? 'w-44 justify-center' : ''} ${view === tab.id ? 'bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 shadow-md shadow-cyan-950/40 after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-200' : 'text-slate-400 hover:bg-slate-800 hover:text-cyan-100'}`}><tab.icon className="h-4 w-4 shrink-0" /><span className="truncate">{tab.label}</span></button>
               ))}
             </div>
-            {view === 'tasks' && (
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <input value={search} onChange={event => setSearch(event.target.value)} placeholder="搜尋任務或管理員" className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs font-medium text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25" />
-              </div>
-            )}
             {view === 'templates' && (
               <button disabled={!selectedTemplate} onClick={() => selectedTemplate && void copyTemplate(selectedTemplate, true)} className="flex h-9 items-center gap-2 rounded-lg border border-emerald-300/30 bg-gradient-to-r from-emerald-400 to-emerald-500 px-4 text-xs font-black text-emerald-950 shadow-md shadow-emerald-950/30 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-slate-700 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:brightness-100">
                 <Play className="h-4 w-4" />套用所選範本
@@ -850,7 +832,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
 
           <div className="min-h-0 flex-1 overflow-y-auto">
           {view === 'tasks' && (
-            visibleTasks.length === 0 ? (
+            dashboard.tasks.length === 0 ? (
               <div className="relative flex min-h-full flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.10),transparent_42%)] px-6 py-16 text-center before:absolute before:inset-0 before:bg-[linear-gradient(rgba(148,163,184,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.025)_1px,transparent_1px)] before:bg-[size:28px_28px]">
                 <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/20 to-blue-500/10 text-cyan-300 shadow-xl shadow-cyan-950/40 ring-1 ring-cyan-300/10"><Bell className="h-8 w-8" /></div>
                 <p className="mt-4 text-base font-bold text-slate-200">尚未建立自動化任務</p>
@@ -859,7 +841,7 @@ export default function NotificationAutomation({ admin, employees, onBack, notif
               </div>
             ) : (
               <div className="divide-y divide-slate-800/80">
-                {visibleTasks.map(task => (
+                {dashboard.tasks.map(task => (
                   <article key={task.id} className={`group grid gap-3 border-l-[3px] px-4 py-3.5 transition-all duration-200 odd:bg-slate-950/20 even:bg-slate-800/15 hover:relative hover:z-[1] hover:-translate-y-px hover:bg-slate-800/55 hover:shadow-lg hover:shadow-cyan-950/15 lg:grid-cols-[minmax(210px,1fr)_minmax(260px,1.35fr)_minmax(130px,.55fr)_minmax(180px,.75fr)_auto] lg:items-center ${task.reward_enabled ? 'border-l-amber-400' : task.is_shared_template ? 'border-l-violet-400' : task.status === 'active' ? 'border-l-emerald-400' : task.status === 'paused' ? 'border-l-amber-400' : 'border-l-cyan-400'}`}>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
