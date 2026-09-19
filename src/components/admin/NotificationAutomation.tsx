@@ -1025,7 +1025,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 </div>
               </section>
 
-            <aside className="min-h-0 min-w-0 overflow-hidden border-t border-slate-700/70 p-3 xl:border-t-0">
+            <aside className="min-h-0 min-w-0 overflow-hidden border-t border-slate-700/70 p-0 xl:border-t-0">
               <div className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden ${form.rewardEnabled ? 'border-amber-400/30 bg-gradient-to-b from-amber-950 via-slate-900 to-slate-950 shadow-amber-950/40' : 'border-cyan-500/20 bg-gradient-to-b from-cyan-950 via-slate-900 to-slate-950 shadow-cyan-950/40'}`}>
                 <div className={`shrink-0 p-3 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-400/20 to-orange-500/5' : 'bg-gradient-to-br from-cyan-400/15 to-blue-500/5'}`}>
                   <div className="flex items-center justify-between gap-3">
