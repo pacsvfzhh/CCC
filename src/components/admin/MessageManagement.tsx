@@ -1676,58 +1676,94 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 <div className="relative">
                   <button
                     onClick={() => { setShowTemplateDropdown(!showTemplateDropdown); }}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[11px] font-bold transition-colors duration-200 ${
+                    className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[11px] font-bold transition-all duration-200 ${
                       showTemplateDropdown
-                        ? 'bg-teal-600 text-white border-teal-500 shadow-sm'
-                        : 'bg-slate-800 text-teal-300 border-teal-800/80 hover:bg-teal-950/80 hover:border-teal-700'
+                        ? 'border-emerald-300/70 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white shadow-[0_0_18px_rgba(20,184,166,0.28)]'
+                        : 'border-emerald-700/70 bg-gradient-to-r from-emerald-950/70 via-teal-950/60 to-slate-900 text-emerald-200 hover:border-emerald-400/70 hover:from-emerald-900/80 hover:to-teal-950/80'
                     }`}>
                     <Bookmark className="w-3.5 h-3.5" />
                     Templates
                     {templates.length > 0 && (
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${showTemplateDropdown ? 'bg-white/20 text-white' : 'bg-teal-500/20 text-teal-300'}`}>{templates.length}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-black ${showTemplateDropdown ? 'bg-white/20 text-white' : 'bg-emerald-400/15 text-emerald-300'}`}>{templates.length}</span>
                     )}
                     <ChevronDown className={`w-3 h-3 transition-transform ${showTemplateDropdown ? 'rotate-180' : ''}`} />
                   </button>
 
                   {showTemplateDropdown && (
-                    <div className="absolute top-full right-0 mt-1.5 bg-slate-800 border border-slate-600/80 rounded-xl shadow-2xl z-50 w-72 overflow-hidden">
-                      <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-700/80 bg-slate-800/80">
-                        <span className="text-[11px] text-slate-300 font-bold">Message Templates</span>
+                    <div className="absolute right-0 top-full z-50 mt-2 w-[22rem] overflow-hidden rounded-2xl border border-emerald-300/25 bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 shadow-[0_18px_45px_rgba(2,44,34,0.55)]">
+                      <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-emerald-400/15 blur-3xl" />
+                      <div className="pointer-events-none absolute -bottom-16 -left-8 h-32 w-32 rounded-full bg-teal-400/10 blur-3xl" />
+                      <div className="relative flex items-center justify-between border-b border-emerald-200/15 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent px-3.5 py-3">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-emerald-200/25 bg-emerald-400/15 text-emerald-200 shadow-inner shadow-white/10">
+                            <Bookmark className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-black tracking-wide text-emerald-50">Message Templates</p>
+                            <p className="text-[9px] font-medium text-emerald-200/60">快速套用已保存的通知内容</p>
+                          </div>
+                        </div>
                         <button
+                          type="button"
                           onClick={() => { setShowTemplateDropdown(false); setShowSaveTemplateModal(true); setEditingTemplateId(null); setNewTemplateName(''); setTemplateEditorContent(composeEditorRef.current?.getContent() || ''); setTemplateFormTitle(messageForm.title); }}
-                          className="flex items-center gap-1 px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm">
-                          <Plus className="w-3 h-3" /> New Template
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200/35 bg-gradient-to-r from-emerald-500 to-teal-500 px-2.5 py-1.5 text-[10px] font-black text-white shadow-sm shadow-emerald-950/30 transition-all hover:border-emerald-100/70 hover:from-emerald-400 hover:to-teal-400"
+                        >
+                          <Plus className="h-3 w-3" /> New Template
                         </button>
                       </div>
                       {templates.length === 0 ? (
-                        <div className="px-3 py-6 text-center">
-                          <Bookmark className="w-6 h-6 text-slate-600 mx-auto mb-2" />
-                          <p className="text-[11px] text-slate-500">No templates yet</p>
-                          <p className="text-[10px] text-slate-600 mt-0.5">Click "New Template" to create one</p>
+                        <div className="relative px-3 py-8 text-center">
+                          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300/70">
+                            <Bookmark className="h-5 w-5" />
+                          </div>
+                          <p className="text-[11px] font-bold text-emerald-100/80">No templates yet</p>
+                          <p className="mt-1 text-[10px] text-emerald-200/45">Click “New Template” to create one</p>
                         </div>
                       ) : (
-                        <div className="max-h-72 overflow-y-auto scrollbar-dark p-2 space-y-1.5">
+                        <div className="relative max-h-80 space-y-2 overflow-y-auto p-2.5 scrollbar-dark">
                           {templates.map(tpl => (
                             <div key={tpl.id}
                               onClick={() => applyTemplate(tpl)}
-                              className="bg-slate-700/40 rounded-lg p-2.5 hover:bg-slate-700/70 cursor-pointer transition-all group border border-slate-600/30 hover:border-slate-500/50">
-                              <div className="flex items-start gap-2.5">
-                                <div className="p-1.5 bg-teal-500/10 rounded-md flex-shrink-0 mt-0.5">
-                                  <Bookmark className="w-3 h-3 text-teal-400" />
+                              className="group relative cursor-pointer overflow-hidden rounded-xl border border-emerald-300/15 bg-gradient-to-br from-emerald-900/45 via-slate-900/80 to-teal-950/35 p-2.5 shadow-[0_8px_20px_rgba(2,44,34,0.2)] transition-all hover:-translate-y-0.5 hover:border-emerald-300/50 hover:from-emerald-800/55 hover:to-teal-900/45 hover:shadow-[0_10px_24px_rgba(16,185,129,0.16)]"
+                            >
+                              <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-300 via-teal-400 to-cyan-400 opacity-70" />
+                              <div className="flex items-start gap-2.5 pl-1">
+                                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-emerald-200/20 bg-gradient-to-br from-emerald-400/25 to-teal-500/10 text-emerald-200 shadow-inner shadow-white/10">
+                                  <Bookmark className="h-3.5 w-3.5" />
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-[11px] font-bold text-white truncate">{tpl.name}</div>
-                                  {tpl.title && <div className="text-[10px] text-slate-400 truncate mt-0.5">{tpl.title}</div>}
-                                </div>
-                                <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={(e) => { e.stopPropagation(); setShowTemplateDropdown(false); setShowSaveTemplateModal(true); startEditTemplate(tpl); }}
-                                    className="p-1 hover:bg-blue-500/20 rounded-md text-slate-500 hover:text-blue-400 transition-all">
-                                    <Pencil className="w-3 h-3" />
-                                  </button>
-                                  <button onClick={(e) => deleteTemplate(tpl.id, e)}
-                                    className="p-1 hover:bg-red-500/20 rounded-md text-slate-500 hover:text-red-400 transition-all">
-                                    <X className="w-3 h-3" />
-                                  </button>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0 truncate text-[11px] font-black text-white">{tpl.name}</div>
+                                    <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setShowTemplateDropdown(false); setShowSaveTemplateModal(true); startEditTemplate(tpl); }}
+                                        aria-label={`Edit ${tpl.name}`}
+                                        title="Edit template"
+                                        className="rounded-md p-1 text-emerald-200/60 transition-colors hover:bg-blue-400/20 hover:text-blue-200"
+                                      >
+                                        <Pencil className="h-3 w-3" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => deleteTemplate(tpl.id, e)}
+                                        aria-label={`Delete ${tpl.name}`}
+                                        title="Delete template"
+                                        className="rounded-md p-1 text-emerald-200/60 transition-colors hover:bg-red-400/20 hover:text-red-200"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {tpl.title && <div className="mt-0.5 truncate text-[10px] font-medium text-emerald-100/65">{tpl.title}</div>}
+                                  <div className="mt-2 flex items-center gap-1.5">
+                                    <span className={`rounded-md border px-1.5 py-0.5 text-[8px] font-bold ${getPriorityColor(tpl.priority as Message['priority'])}`}>
+                                      {(tpl.priority || 'normal').charAt(0).toUpperCase() + (tpl.priority || 'normal').slice(1)}
+                                    </span>
+                                    <span className="rounded-md border border-teal-300/20 bg-teal-400/10 px-1.5 py-0.5 text-[8px] font-bold text-teal-200">
+                                      {getNotificationDeliveryLabel(tpl.delivery_mode)}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
