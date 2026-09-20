@@ -1634,15 +1634,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               className="shrink-0"
             />
 
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <div className="flex shrink-0 flex-nowrap items-center gap-2">
               {/* Priority selector */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Priority</span>
                 <div className="flex gap-1">
-                  {(['low', 'normal', 'high', 'urgent'] as const).map((priority) => {
+                  {(['normal', 'high', 'urgent'] as const).map((priority) => {
                     const isActive = messageForm.priority === priority;
                     const config: Record<string, { activeBg: string; activeBorder: string; activeShadow: string; inactiveBg: string; inactiveText: string; inactiveBorder: string; hoverBg: string; hoverBorder: string; dot: string }> = {
-                      low:    { activeBg: 'bg-slate-600', activeBorder: 'border-slate-400', activeShadow: 'shadow-slate-600/30', inactiveBg: 'bg-slate-800/60', inactiveText: 'text-slate-400', inactiveBorder: 'border-slate-600/50', hoverBg: 'hover:bg-slate-700/60', hoverBorder: 'hover:border-slate-500/60', dot: 'bg-slate-400' },
                       normal: { activeBg: 'bg-emerald-600', activeBorder: 'border-emerald-400', activeShadow: 'shadow-emerald-600/30', inactiveBg: 'bg-emerald-950/30', inactiveText: 'text-emerald-400', inactiveBorder: 'border-emerald-500/30', hoverBg: 'hover:bg-emerald-900/40', hoverBorder: 'hover:border-emerald-500/50', dot: 'bg-emerald-400' },
                       high:   { activeBg: 'bg-amber-600', activeBorder: 'border-amber-400', activeShadow: 'shadow-amber-600/30', inactiveBg: 'bg-amber-950/30', inactiveText: 'text-amber-400', inactiveBorder: 'border-amber-500/30', hoverBg: 'hover:bg-amber-900/40', hoverBorder: 'hover:border-amber-500/50', dot: 'bg-amber-400' },
                       urgent: { activeBg: 'bg-red-600', activeBorder: 'border-red-400', activeShadow: 'shadow-red-600/30', inactiveBg: 'bg-red-950/30', inactiveText: 'text-red-400', inactiveBorder: 'border-red-500/30', hoverBg: 'hover:bg-red-900/40', hoverBorder: 'hover:border-red-500/50', dot: 'bg-red-400' },
@@ -1651,7 +1650,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     return (
                       <button key={priority}
                         onClick={() => setMessageForm({ ...messageForm, priority })}
-                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-bold capitalize transition-colors duration-200 ${
+                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-[11px] font-bold capitalize transition-colors duration-200 ${
                           isActive
                             ? `${c.activeBg} text-white ${c.activeBorder} shadow-sm`
                             : `${c.inactiveBg} ${c.inactiveText} ${c.inactiveBorder} ${c.hoverBg} ${c.hoverBorder}`
@@ -1665,7 +1664,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               </div>
 
               {/* Template button */}
-              <div className="flex items-center gap-1 ml-auto" ref={templateDropdownRef}>
+              <div className="ml-auto flex shrink-0 items-center gap-1" ref={templateDropdownRef}>
                 <button
                   type="button"
                   onClick={() => {
