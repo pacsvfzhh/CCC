@@ -1269,33 +1269,52 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               </div>
 
               <div className="mt-3 border-t border-slate-700/60 pt-3">
-                <div className="mb-2 flex items-center gap-2 border-l-2 border-amber-400 pl-2"><Gift className="h-4 w-4 text-amber-300" /><h3 className="text-sm font-black text-white">績效獎金與適用員工</h3></div>
                 <section>
-                <label className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-2.5 py-2 transition-all duration-200 ${form.rewardEnabled ? 'border-amber-400/20 bg-gradient-to-r from-amber-500/10 to-transparent' : 'border-slate-700/60 bg-gradient-to-r from-slate-800/50 to-transparent hover:border-slate-600'}`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 transition-all duration-200 ${form.rewardEnabled ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950 shadow-lg shadow-amber-900/40 ring-amber-200/30' : 'bg-slate-800 text-slate-500 ring-slate-700'}`}>
-                      <Gift className="h-4 w-4" />
+                  <div className={`mb-2 flex items-center justify-between gap-2 border-l-2 pl-2 ${form.rewardEnabled ? 'border-amber-300' : 'border-slate-600'}`}>
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <Gift className={`h-4 w-4 shrink-0 ${form.rewardEnabled ? 'text-amber-300' : 'text-slate-500'}`} />
+                      <div className="min-w-0 shrink-0">
+                        <h3 className={`whitespace-nowrap ${form.rewardEnabled ? 'text-sm font-black text-amber-100' : 'text-sm font-black text-white'}`}>績效獎金與適用員工</h3>
+                        <p className="text-[10px] text-slate-500">{form.rewardEnabled ? '已啟用，通知會附帶績效獎金' : '關閉時只發送一般通知'}</p>
+                      </div>
+                      {form.rewardEnabled && (
+                        <div className="flex min-w-0 shrink items-center gap-1.5 border-l border-amber-300/20 pl-2">
+                          <label className="flex shrink-0 items-center gap-1.5">
+                            <span className="text-[10px] font-semibold text-amber-200/70">每次獎金</span>
+                            <input
+                              disabled={readOnly}
+                              type="number"
+                              min="0.01"
+                              step="0.01"
+                              value={form.rewardAmount}
+                              onChange={event => setForm(previous => ({ ...previous, rewardAmount: event.target.value }))}
+                              aria-label="每次獎金"
+                              className="h-8 w-20 rounded-lg border border-slate-300 bg-white px-2 text-sm font-bold text-slate-900 shadow-sm outline-none transition-colors hover:border-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300"
+                            />
+                          </label>
+                          <span className="inline-flex h-8 shrink-0 items-center rounded-lg border border-amber-500/20 bg-amber-400/10 px-2 text-[11px] font-black text-amber-200" title="網站計量貨幣">
+                            {dashboard.currency}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <h3 className={form.rewardEnabled ? 'text-xs font-bold text-amber-100' : 'text-xs font-bold text-white'}>發放績效獎金</h3>
-                      <p className="text-[10px] text-slate-500">關閉時只發送一般通知</p>
-                    </div>
+                    <button
+                      type="button"
+                      disabled={readOnly}
+                      aria-pressed={form.rewardEnabled}
+                      onClick={() => {
+                        setTemplateCustomized(false);
+                        setForm(previous => ({ ...previous, rewardEnabled: !previous.rewardEnabled }));
+                      }}
+                      className="group inline-flex shrink-0 items-center gap-2 rounded-lg border border-transparent px-1.5 py-1 transition-colors hover:border-amber-300/25 hover:bg-amber-400/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <span className={`text-[10px] font-black ${form.rewardEnabled ? 'text-amber-200' : 'text-slate-500'}`}>{form.rewardEnabled ? '已啟用' : '未啟用'}</span>
+                      <span className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors ${form.rewardEnabled ? 'border-amber-200/70 bg-gradient-to-r from-amber-300 to-orange-500 shadow-sm shadow-amber-900/40' : 'border-slate-600 bg-slate-800'}`}>
+                        <span className={`h-4 w-4 rounded-full bg-white shadow-md transition-transform ${form.rewardEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </span>
+                    </button>
                   </div>
-                  <input disabled={readOnly} type="checkbox" checked={form.rewardEnabled} onChange={event => { setTemplateCustomized(false); setForm(previous => ({ ...previous, rewardEnabled: event.target.checked })); }} className="h-5 w-5 rounded bg-white accent-amber-400 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
-                </label>
-                {form.rewardEnabled && (
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    <label>
-                      <span className="mb-1.5 block text-xs font-semibold text-amber-200/70">每次獎金</span>
-                      <input disabled={readOnly} type="number" min="0.01" step="0.01" value={form.rewardAmount} onChange={event => setForm(previous => ({ ...previous, rewardAmount: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-900 shadow-sm outline-none transition-all duration-200 hover:border-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
-                    </label>
-                    <div>
-                      <span className="mb-1.5 block text-xs font-semibold text-amber-200/70">網站計量貨幣</span>
-                      <div className="flex h-[42px] items-center rounded-xl border border-amber-500/20 bg-amber-400/10 px-3 font-black text-amber-200">{dashboard.currency}</div>
-                    </div>
-                  </div>
-                )}
-              </section>
+                </section>
 
               <section className="mt-3 border-t border-slate-700/60 pt-2.5">
                 <div className="mb-2 flex items-center gap-1.5 text-xs font-black text-cyan-200"><Users className="h-3.5 w-3.5" />適用員工</div>
