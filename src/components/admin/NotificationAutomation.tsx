@@ -936,7 +936,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         onMouseDown={() => setEmployeePickerOpen(false)}
       >
         <div
-          className="flex max-h-[calc(100vh-32px)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.35rem] border border-cyan-300/25 bg-slate-950/95 shadow-[0_24px_80px_rgba(2,8,23,0.72),0_0_40px_rgba(8,145,178,0.12)] ring-1 ring-inset ring-white/[0.04]"
+          className="flex max-h-[calc(100vh-32px)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.35rem] border border-cyan-300/25 bg-gradient-to-br from-slate-900 via-blue-950/95 to-cyan-950/85 shadow-[0_24px_80px_rgba(2,8,23,0.72),0_0_40px_rgba(8,145,178,0.18)] ring-1 ring-inset ring-white/[0.08]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="automation-employee-picker-title"
@@ -957,20 +957,20 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 dark-panel-scroll">
-            <div className="rounded-2xl border border-slate-700/80 bg-slate-900/75 p-2 shadow-inner shadow-slate-950/40">
+          <div className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-br from-blue-950/35 via-slate-900/35 to-cyan-950/30 p-4 sm:p-5 dark-panel-scroll">
+            <div className="rounded-2xl border border-cyan-200/20 bg-gradient-to-r from-slate-800/90 via-blue-900/70 to-cyan-950/75 p-2 shadow-inner shadow-blue-950/40">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-300/80" />
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-700" />
                 <input
                   autoFocus
                   type="search"
                   value={employeePickerSearch}
                   onChange={event => setEmployeePickerSearch(event.target.value)}
                   placeholder="搜尋員工帳號或員工 ID"
-                  className="w-full rounded-xl border border-slate-700/80 bg-slate-950/80 py-3 pl-10 pr-10 text-sm text-white outline-none transition-all placeholder:text-slate-500 hover:border-slate-600 focus:border-cyan-400 focus:bg-slate-950 focus:ring-2 focus:ring-cyan-400/20"
+                  className="w-full rounded-xl border border-cyan-100/80 bg-slate-50 py-3 pl-10 pr-10 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-500 shadow-sm shadow-blue-950/20 hover:border-cyan-200 hover:bg-white focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-400/30"
                 />
                 {employeePickerSearch && (
-                  <button type="button" onClick={() => setEmployeePickerSearch('')} className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-800 hover:text-white" aria-label="清除搜尋">
+                  <button type="button" onClick={() => setEmployeePickerSearch('')} className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900" aria-label="清除搜尋">
                     <X className="h-3.5 w-3.5" />
                   </button>
                 )}
@@ -1094,7 +1094,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-800/80 bg-slate-950/70 px-5 py-3.5">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-cyan-300/15 bg-gradient-to-r from-slate-900/95 via-blue-950/90 to-cyan-950/80 px-5 py-3.5">
             <div className="min-w-0">
               <p className="text-xs font-bold text-slate-300">已暫存 {pendingRecipientIds.length} 名員工</p>
               <p className="mt-0.5 text-[10px] text-slate-500">保存後會套用到目前任務</p>
