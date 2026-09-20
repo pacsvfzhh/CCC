@@ -314,13 +314,19 @@ function summarizeTask(task: AutomationTask, currency: string) {
     return '新員工帳戶第一次登入時發送一次通知';
   }
   if (task.trigger_type === 'consecutive_work_days') {
-    return `${task.trigger_mode === 'recurring' ? '每連續' : '連續'} ${value} 天，且每天至少完成 ${task.minimum_daily_orders || 0} 筆訂單`;
+    const workMinutes = task.minimum_daily_work_minutes && task.minimum_daily_work_minutes > 0
+      ? `，且每天至少工作 ${task.minimum_daily_work_minutes} 分鐘`
+      : '';
+    return `${task.trigger_mode === 'recurring' ? '每連續' : '連續'} ${value} 天，每天至少完成 ${task.minimum_daily_orders || 0} 筆訂單${workMinutes}`;
   }
   if (task.trigger_type === 'daily_orders') {
     return `每天${mode} ${value} 筆成功或失敗訂單`;
   }
   if (task.trigger_type === 'work_days') {
-    return `${mode} ${value} 個有效工作日，每天至少完成 ${task.minimum_daily_orders || 0} 筆訂單`;
+    const workMinutes = task.minimum_daily_work_minutes && task.minimum_daily_work_minutes > 0
+      ? `，且每天至少工作 ${task.minimum_daily_work_minutes} 分鐘`
+      : '';
+    return `${mode} ${value} 個有效工作日，每天至少完成 ${task.minimum_daily_orders || 0} 筆訂單${workMinutes}`;
   }
   if (task.trigger_type === 'commission_amount') {
     return `${mode} ${value} 佣金`;
@@ -1278,7 +1284,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   )}
                 </div>
                 <div className="mt-auto shrink-0 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1.5 text-xs text-cyan-100">
-                  {summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}
+                  {summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), minimum_daily_work_minutes: form.minimumDailyWorkMinutes ? Number(form.minimumDailyWorkMinutes) : null, annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}
                 </div>
               </section>
 
