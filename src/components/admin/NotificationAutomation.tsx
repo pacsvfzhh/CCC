@@ -1026,6 +1026,12 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     </button>
                   </div>
                 </div>
+                <div className="grid grid-cols-[1.75rem_minmax(0,1.25fr)_minmax(0,1fr)_auto] items-center gap-2 border-b border-slate-700/70 bg-slate-950/35 px-3 py-1.5 text-[9px] font-black tracking-wide text-slate-500">
+                  <span aria-hidden="true" />
+                  <span>員工帳號</span>
+                  <span>員工 ID</span>
+                  <span>狀態</span>
+                </div>
                 {employeePickerResults.length === 0 ? (
                   <div className="px-4 py-10 text-center text-sm text-slate-500">找不到符合的員工帳號或 ID</div>
                 ) : (
@@ -1049,7 +1055,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               togglePendingEmployee(employee.id);
                             }
                           }}
-                          className={`group flex cursor-pointer items-center gap-2.5 border-l-2 px-3 py-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-l-cyan-300 bg-cyan-500/10' : 'border-l-transparent hover:bg-slate-800/60'}`}
+                          className={`group grid cursor-pointer grid-cols-[1.75rem_minmax(0,1.25fr)_minmax(0,1fr)_auto] items-center gap-2 border-l-2 px-3 py-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-l-cyan-300 bg-cyan-500/10' : 'border-l-transparent hover:bg-slate-800/60'}`}
                         >
                           <input
                             type="checkbox"
@@ -1062,11 +1068,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-400/70 ${selected ? 'border-cyan-200 bg-cyan-500 text-white shadow-[0_0_12px_rgba(34,211,238,0.45)]' : 'border-slate-600 bg-slate-950/80 text-transparent group-hover:border-slate-500'}`}>
                             <CheckCircle2 className="h-3.5 w-3.5" />
                           </span>
-                          <span className="min-w-0 flex-1">
-                            <span className={`block truncate text-sm font-black ${selected ? 'text-cyan-50' : 'text-slate-200'}`}>{employee.username}</span>
-                            <span className="mt-0.5 block truncate text-[11px] text-slate-500">員工 ID：<span className="font-semibold text-slate-400">{employee.employee_id}</span></span>
-                          </span>
-                          {employee.is_active ? <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-black text-emerald-300">啟用</span> : <span className="shrink-0 rounded-full border border-slate-600 bg-slate-800 px-2 py-1 text-[10px] font-black text-slate-500">停用</span>}
+                          <span className={`min-w-0 truncate text-xs font-black ${selected ? 'text-cyan-50' : 'text-slate-200'}`}>{employee.username}</span>
+                          <span className="min-w-0 truncate text-[11px] font-semibold text-slate-400">{employee.employee_id}</span>
+                          {employee.is_active ? <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-black text-emerald-300">啟用</span> : <span className="shrink-0 rounded-full border border-rose-300/20 bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-black text-rose-300">停用</span>}
                         </div>
                       );
                     })}
@@ -1084,6 +1088,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <CheckCircle2 className="h-3.5 w-3.5" />{pendingRecipientIds.length} 名
                   </span>
                 </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_1.75rem] items-center gap-2 border-b border-cyan-300/15 bg-slate-950/25 px-3 py-1.5 text-[9px] font-black tracking-wide text-cyan-300/55">
+                  <span>員工帳號</span>
+                  <span>員工 ID</span>
+                  <span className="text-center">操作</span>
+                </div>
                 {pendingSelectedEmployees.length === 0 ? (
                   <div className="flex min-h-[210px] flex-col items-center justify-center px-4 py-8 text-center">
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.07] text-cyan-300/60">
@@ -1095,12 +1104,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 ) : (
                   <div className="max-h-[min(52vh,420px)] divide-y divide-cyan-300/10 overflow-y-auto bg-slate-950/20 dark-panel-scroll">
                     {pendingSelectedEmployees.map(employee => (
-                      <div key={employee.id} className="group flex items-center gap-2 border-l-2 border-l-transparent px-3 py-1.5 transition-colors hover:border-l-cyan-300 hover:bg-cyan-950/25">
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-black text-cyan-50">{employee.username}</p>
-                          <p className="mt-0.5 truncate text-[10px] text-slate-500">員工 ID：{employee.employee_id}</p>
-                        </div>
-                        <button type="button" onClick={() => togglePendingEmployee(employee.id)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-transparent text-slate-500 transition-colors hover:border-rose-300/20 hover:bg-rose-500/15 hover:text-rose-300" aria-label={`移除 ${employee.username}`}>
+                      <div key={employee.id} className="group grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_1.75rem] items-center gap-2 border-l-2 border-l-transparent px-3 py-1.5 transition-colors hover:border-l-cyan-300 hover:bg-cyan-950/25">
+                        <span className="min-w-0 truncate text-xs font-black text-cyan-50">{employee.username}</span>
+                        <span className="min-w-0 truncate text-[11px] font-semibold text-slate-400">{employee.employee_id}</span>
+                        <button type="button" onClick={() => togglePendingEmployee(employee.id)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-transparent text-slate-500 transition-colors hover:border-rose-300/20 hover:bg-rose-500/15 hover:text-rose-300" aria-label={`移除 ${employee.username}`}>
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
