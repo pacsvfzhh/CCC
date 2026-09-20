@@ -8,6 +8,7 @@ interface QuickCopyRichContentProps {
   copiedLabel: string;
   className?: string;
   style?: CSSProperties;
+  interactive?: boolean;
 }
 
 const allowedAttributes = [
@@ -131,6 +132,7 @@ export default function QuickCopyRichContent({
   copiedLabel,
   className = '',
   style,
+  interactive = true,
 }: QuickCopyRichContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const resetTimerRef = useRef<number | null>(null);
@@ -148,6 +150,8 @@ export default function QuickCopyRichContent({
       image.decoding = 'async';
     });
     container.querySelectorAll('button.message-quick-copy-button').forEach(button => button.remove());
+    if (!interactive) return;
+
     const insertionAnchors = new Map<HTMLElement, Element>();
     collectMarkerGroups(container).forEach((markers, index) => {
       const lastMarker = markers[markers.length - 1];
@@ -174,7 +178,7 @@ export default function QuickCopyRichContent({
     return () => {
       container.querySelectorAll('button.message-quick-copy-button').forEach(button => button.remove());
     };
-  }, [copyLabel, sanitizedHtml]);
+  }, [copyLabel, interactive, sanitizedHtml]);
 
   useEffect(() => () => {
     if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current);
@@ -286,7 +290,7 @@ export default function QuickCopyRichContent({
         ref={containerRef}
         className={`quick-copy-rich-content ${className}`}
         dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-        onClick={handleClick}
+        onClick={interactive ? handleClick : undefined}
         style={style}
       />
     </>

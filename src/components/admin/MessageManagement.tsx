@@ -34,6 +34,7 @@ interface Employee {
   tags: string[];
   remarks: string;
   is_pinned: boolean;
+  message_read_at?: string | null;
 }
 
 interface Message {
@@ -820,11 +821,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       const messageIds = (data || []).map(msg => msg.id);
       sentMessageIdsRef.current = new Set(messageIds);
 
-      let allRecipients: Array<{ message_id: string; recipient_id: string; is_read: boolean | null }> = [];
+      let allRecipients: Array<{ message_id: string; recipient_id: string; is_read: boolean | null; read_at: string | null }> = [];
       if (messageIds.length > 0 && (admin.role !== 'secondary_admin' || scopedEmployeeIdsRef.current.size > 0)) {
         let recipientsQuery = supabase
           .from('message_recipients')
-          .select('message_id, recipient_id, is_read')
+          .select('message_id, recipient_id, is_read, read_at')
           .in('message_id', messageIds);
         if (admin.role === 'secondary_admin') {
           recipientsQuery = recipientsQuery.in('recipient_id', Array.from(scopedEmployeeIdsRef.current));
@@ -867,8 +868,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         const employee = recipientEmployeeMap.get(recipient.recipient_id);
         if (employee) {
           const details = recipientDetailsByMessage.get(recipient.message_id)!;
-          if (recipient.is_read) details.read.push(employee as Employee);
-          else details.unread.push(employee as Employee);
+          const recipientEmployee = { ...employee, message_read_at: recipient.read_at } as Employee;
+          if (recipient.is_read) details.read.push(recipientEmployee);
+          else details.unread.push(recipientEmployee);
         }
 
         const stats = statsByMessage.get(recipient.message_id)!;
@@ -912,7 +914,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     try {
       let recipientsQuery = supabase
         .from('message_recipients')
-        .select('recipient_id, is_read')
+        .select('recipient_id, is_read, read_at')
         .eq('message_id', messageId);
       if (admin.role === 'secondary_admin') {
         const scopedEmployeeIds = Array.from(scopedEmployeeIdsRef.current);
@@ -959,8 +961,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       recipients?.forEach(r => {
         const emp = employeeMap.get(r.recipient_id);
         if (emp) {
-          if (r.is_read) read.push(emp as Employee);
-          else unread.push(emp as Employee);
+          const recipientEmployee = { ...emp, message_read_at: r.read_at } as Employee;
+          if (r.is_read) read.push(recipientEmployee);
+          else unread.push(recipientEmployee);
         }
       });
 
@@ -2164,6 +2167,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
                     <EmployeeNotificationDetailPanel
                       embedded
+                      readOnlyPreview
                       message={{
                         title: selectedMessageDetail.title,
                         content: selectedMessageDetail.content,
@@ -2374,9 +2378,16 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                           <p className={`truncate text-xs font-bold ${isRead ? 'text-emerald-50' : 'text-slate-400'}`}>{employee.username}</p>
                                           <p className={`truncate font-mono text-[9px] ${isRead ? 'text-emerald-300/70' : 'text-slate-600'}`}>{employee.employee_id}</p>
                                         </div>
-                                        <span className={`shrink-0 text-[9px] font-black uppercase tracking-wide ${isRead ? 'text-emerald-300' : 'text-slate-500'}`}>
-                                          {isRead ? 'Read' : 'Unread'}
-                                        </span>
+                                        <div className="shrink-0 text-right">
+                                          <span className={`block text-[9px] font-black uppercase tracking-wide ${isRead ? 'text-emerald-300' : 'text-slate-500'}`}>
+                                            {isRead ? 'Read' : 'Unread'}
+                                          </span>
+                                          {isRead && (
+                                            <span className="mt-0.5 block whitespace-nowrap text-[8px] font-semibold text-emerald-200/70" title={employee.message_read_at ? formatMessageDateTime(employee.message_read_at) : undefined}>
+                                              {employee.message_read_at ? formatMessageDateTime(employee.message_read_at) : 'Time unavailable'}
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
                                     );
                                   })}
