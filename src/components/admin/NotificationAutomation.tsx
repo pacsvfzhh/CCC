@@ -322,7 +322,7 @@ function summarizeTask(task: AutomationTask, currency: string) {
 export default function NotificationAutomation({ admin, employees, onBack }: Props) {
   const { isDesktop } = useResponsive();
   const isSuperAdmin = admin.role === 'super_admin' || Boolean(admin.is_super_admin);
-  const [dashboard, setDashboard] = useState<AutomationDashboard>({ currency: 'USDC', admin_groups: [], tasks: [], shared_templates: [], executions: [] });
+  const [dashboard, setDashboard] = useState<AutomationDashboard>({ currency: 'USDT', admin_groups: [], tasks: [], shared_templates: [], executions: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -364,7 +364,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       });
       if (error) throw error;
       if (requestId !== dashboardRequestIdRef.current) return;
-      setDashboard((data || { currency: 'USDC', admin_groups: [], tasks: [], shared_templates: [], executions: [] }) as unknown as AutomationDashboard);
+      setDashboard((data || { currency: 'USDT', admin_groups: [], tasks: [], shared_templates: [], executions: [] }) as unknown as AutomationDashboard);
     } catch {
       if (requestId === dashboardRequestIdRef.current) {
         showNotice('error', '無法載入自動化任務資料，請稍後再試。');
