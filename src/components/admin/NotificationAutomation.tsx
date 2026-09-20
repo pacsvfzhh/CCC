@@ -33,6 +33,7 @@ import { supabase } from '../../lib/supabase';
 import { useResponsive } from '../../lib/useResponsive';
 import EmployeeNotificationDetailPanel from '../employee/EmployeeNotificationDetailPanel';
 import AdminPageLoading from './AdminPageLoading';
+import TiptapEditor from './TiptapEditor';
 
 interface AdminIdentity {
   id: string;
@@ -1421,10 +1422,23 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">通知標題</span>
                     <input disabled={readOnly} value={form.titleTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, titleTemplate: event.target.value })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                   </label>
-                  <label className="flex min-h-0 flex-1 flex-col">
-                    <span className="mb-1 block text-xs font-semibold text-slate-400">通知內容</span>
-                    <textarea disabled={readOnly} rows={3} value={form.contentTemplate} onChange={event => { setTemplateCustomized(true); setForm(previous => ({ ...previous, contentTemplate: event.target.value })); }} className="dark-panel-scroll min-h-16 w-full flex-1 resize-none overflow-y-auto rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 shadow-sm outline-none transition-all duration-200 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
-                  </label>
+                  <div className="flex min-h-0 flex-1 flex-col">
+                    <span className="mb-1 block shrink-0 text-xs font-semibold text-slate-400">通知內容</span>
+                    <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm [&>div]:h-full [&>div]:flex [&>div]:flex-col">
+                      <TiptapEditor
+                        content={form.contentTemplate}
+                        onChange={content => {
+                          setTemplateCustomized(true);
+                          setForm(previous => ({ ...previous, contentTemplate: content }));
+                        }}
+                        placeholder="Write your notification content here..."
+                        editable={!readOnly}
+                        adminId={admin.id}
+                        theme="light"
+                        enableQuickCopy
+                      />
+                    </div>
+                  </div>
                 </div>
               </section>
               </div>
