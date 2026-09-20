@@ -1819,7 +1819,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         </div>
 
         {/* Panel 4: Sent Messages */}
-        <div className="flex w-72 flex-shrink-0 flex-col border-l border-slate-700/60 bg-slate-900/95">
+        <div className="flex min-h-0 w-72 flex-shrink-0 flex-col border-l border-slate-700/60 bg-slate-900/95">
           {/* Header */}
           <div className="space-y-1.5 border-b border-slate-700/60 bg-slate-800/45 px-3 py-2.5">
             <div className="flex items-center justify-between">
@@ -1937,7 +1937,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           </div>
 
           {/* Message List */}
-          <div className="flex-1 space-y-1 overflow-y-auto p-1.5 scrollbar-dark">
+          <div className="min-h-0 flex-1 space-y-1 overflow-y-auto border-b border-slate-700/60 p-1.5 scrollbar-dark">
             {messagesLoading ? (
               <div className="text-center py-10 text-slate-500 text-xs">Loading...</div>
             ) : sentMessages.length === 0 ? (
