@@ -1189,28 +1189,28 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <p className="text-[10px] text-slate-500">設定任務名稱、觸發條件、獎金與適用員工</p>
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-wrap items-center gap-1.5 rounded-xl border border-slate-700/70 bg-slate-950/55 px-2 py-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Bell className="h-3.5 w-3.5 text-cyan-300" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">通知類型</span>
+                <div className="flex min-h-[52px] shrink-0 flex-wrap items-center gap-2 rounded-2xl border border-cyan-300/25 bg-gradient-to-r from-cyan-500/[0.1] via-slate-950/75 to-violet-500/[0.1] px-3 py-2 shadow-lg shadow-slate-950/25">
+                  <div className="flex items-center gap-2 rounded-xl border border-slate-700/70 bg-slate-900/75 px-2.5 py-1.5">
+                    <Bell className="h-4 w-4 text-cyan-300" />
+                    <span className="text-[11px] font-black tracking-[0.08em] text-slate-200">通知類型</span>
                   </div>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                     <button
                       type="button"
                       disabled={readOnly}
                       onClick={() => setForm(previous => ({ ...previous, messageType: 'realtime' }))}
-                      className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold transition-colors duration-200 ${form.messageType === 'realtime' ? 'border-blue-500 bg-blue-600 text-white shadow-sm' : 'border-blue-800/80 bg-slate-800 text-blue-300 hover:border-blue-700 hover:bg-blue-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
+                      className={`flex min-h-9 min-w-[7rem] items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-black transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/80 ${form.messageType === 'realtime' ? 'border-blue-200/90 bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-[0_0_18px_rgba(14,165,233,0.28)]' : 'border-blue-700/80 bg-slate-900/80 text-blue-200 hover:border-blue-400/80 hover:bg-blue-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
                     >
-                      <Bell className="h-3 w-3" />
+                      <Bell className="h-3.5 w-3.5" />
                       {messageTypeLabels.realtime}
                     </button>
                     <button
                       type="button"
                       disabled={readOnly}
                       onClick={() => setForm(previous => ({ ...previous, messageType: 'login_popup' }))}
-                      className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold transition-colors duration-200 ${form.messageType === 'login_popup' ? 'border-violet-500 bg-violet-600 text-white shadow-sm' : 'border-violet-800/80 bg-slate-800 text-violet-300 hover:border-violet-700 hover:bg-violet-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
+                      className={`flex min-h-9 min-w-[7rem] items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-black transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/80 ${form.messageType === 'login_popup' ? 'border-violet-200/90 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-[0_0_18px_rgba(139,92,246,0.28)]' : 'border-violet-700/80 bg-slate-900/80 text-violet-200 hover:border-violet-400/80 hover:bg-violet-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
                     >
-                      <AlertCircle className="h-3 w-3" />
+                      <AlertCircle className="h-3.5 w-3.5" />
                       {messageTypeLabels.login_popup}
                     </button>
                   </div>
