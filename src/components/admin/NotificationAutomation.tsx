@@ -1216,9 +1216,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 </div>
               </section>
 
-              <section className="mt-3 border-t border-slate-700/60 pt-2.5">
-                <div className="mb-2 flex items-center gap-1.5 text-xs font-black text-cyan-200"><Target className="h-3.5 w-3.5" />觸發條件</div>
-                <div className="grid gap-3 sm:grid-cols-3">
+              <section className="mt-3 flex h-[360px] min-h-[360px] shrink-0 flex-col border-t border-slate-700/60 pt-2.5 sm:h-[220px] sm:min-h-[220px]">
+                <div className="mb-2 flex shrink-0 items-center gap-1.5 text-xs font-black text-cyan-200"><Target className="h-3.5 w-3.5" />觸發條件</div>
+                <div className="grid min-h-0 flex-1 content-start gap-3 sm:grid-cols-3">
                   <label>
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">條件類型</span>
                     <select disabled={readOnly} value={form.triggerType} onChange={event => { const triggerType = event.target.value as TriggerType; setTemplateCustomized(false); setForm(previous => ({ ...previous, triggerType, triggerMode: triggerType === 'first_login' ? 'reach_once' : previous.triggerMode, thresholdValue: triggerType === 'first_login' ? '1' : previous.thresholdValue })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300">
@@ -1273,7 +1273,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     </label>
                   )}
                 </div>
-                <div className="mt-2 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1.5 text-xs text-cyan-100">
+                <div className="mt-auto shrink-0 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1.5 text-xs text-cyan-100">
                   {summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}
                 </div>
               </section>
