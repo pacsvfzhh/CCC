@@ -1163,11 +1163,39 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         <div className="min-h-0 flex-1 overflow-hidden bg-slate-900">
           <div className="grid h-full min-h-0 w-full grid-cols-1 overflow-hidden border border-slate-700/70 bg-slate-950/45 xl:grid-cols-2">
             <div className="min-h-0 overflow-y-auto rounded-2xl border border-slate-700/70 bg-slate-900/55 p-3 shadow-inner shadow-slate-950/30 xl:col-start-1 xl:row-start-1 xl:border-r">
-              <div className="mb-3 flex items-center gap-2 border-l-2 border-cyan-400 pl-2.5">
-                <Settings2 className="h-4 w-4 text-cyan-300" />
-                <div>
-                  <h3 className="text-sm font-black tracking-tight text-white">任務設定</h3>
-                  <p className="text-[10px] text-slate-500">設定任務名稱、觸發條件、獎金與適用員工</p>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-l-2 border-cyan-400 pl-2.5">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Settings2 className="h-4 w-4 shrink-0 text-cyan-300" />
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-black tracking-tight text-white">任務設定</h3>
+                    <p className="text-[10px] text-slate-500">設定任務名稱、觸發條件、獎金與適用員工</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-1.5 rounded-xl border border-slate-700/70 bg-slate-950/55 px-2 py-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Bell className="h-3.5 w-3.5 text-cyan-300" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">通知類型</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      disabled={readOnly}
+                      onClick={() => setForm(previous => ({ ...previous, messageType: 'realtime' }))}
+                      className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold transition-colors duration-200 ${form.messageType === 'realtime' ? 'border-blue-500 bg-blue-600 text-white shadow-sm' : 'border-blue-800/80 bg-slate-800 text-blue-300 hover:border-blue-700 hover:bg-blue-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      <Bell className="h-3 w-3" />
+                      {messageTypeLabels.realtime}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={readOnly}
+                      onClick={() => setForm(previous => ({ ...previous, messageType: 'login_popup' }))}
+                      className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold transition-colors duration-200 ${form.messageType === 'login_popup' ? 'border-violet-500 bg-violet-600 text-white shadow-sm' : 'border-violet-800/80 bg-slate-800 text-violet-300 hover:border-violet-700 hover:bg-violet-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      <AlertCircle className="h-3 w-3" />
+                      {messageTypeLabels.login_popup}
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="min-h-0">
@@ -1345,32 +1373,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       變數說明
                     </button>
                     {!readOnly && <button onClick={regenerateTemplate} className="shrink-0 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70">套用預設範本</button>}
-                  </div>
-                </div>
-                <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-700/70 bg-slate-950/55 px-2.5 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <Bell className="h-3.5 w-3.5 text-cyan-300" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">通知類型</span>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      disabled={readOnly}
-                      onClick={() => setForm(previous => ({ ...previous, messageType: 'realtime' }))}
-                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-colors duration-200 ${form.messageType === 'realtime' ? 'border-blue-500 bg-blue-600 text-white shadow-sm' : 'border-blue-800/80 bg-slate-800 text-blue-300 hover:border-blue-700 hover:bg-blue-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
-                    >
-                      <Bell className="h-3.5 w-3.5" />
-                      {messageTypeLabels.realtime}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={readOnly}
-                      onClick={() => setForm(previous => ({ ...previous, messageType: 'login_popup' }))}
-                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-colors duration-200 ${form.messageType === 'login_popup' ? 'border-violet-500 bg-violet-600 text-white shadow-sm' : 'border-violet-800/80 bg-slate-800 text-violet-300 hover:border-violet-700 hover:bg-violet-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
-                    >
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      {messageTypeLabels.login_popup}
-                    </button>
                   </div>
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
