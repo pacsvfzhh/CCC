@@ -1812,46 +1812,71 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         <div className="flex min-h-0 w-72 flex-shrink-0 flex-col border-l border-slate-700/60 bg-slate-900/95">
           {/* Header */}
           <div className="space-y-1.5 border-b border-slate-700/60 bg-slate-800/45 px-3 py-2.5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-200">Sent messages</h3>
-              {selectedAdminManualMessages.length > 0 && !selectionMode && (
-                <div className="flex items-center gap-1">
-                  <button onClick={enterSelectionMode}
-                    className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-400 transition-colors hover:border-blue-700 hover:bg-blue-950/70 hover:text-blue-200" title="Select messages">
-                    <CheckSquare className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={() => { setDeleteMode('all'); setShowDeleteConfirm(true); }}
-                    className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-400 transition-colors hover:border-red-700 hover:bg-red-950/70 hover:text-red-200" title="Clear all messages">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="min-w-0 truncate text-[11px] font-bold uppercase tracking-[0.16em] text-slate-200">Sent messages</h3>
+              {selectedAdminManualMessages.length > 0 && (
+                selectionMode ? (
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={toggleSelectAll}
+                      title={selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 ? 'Deselect all' : 'Select all'}
+                      aria-label={selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 ? 'Deselect all messages' : 'Select all messages'}
+                      className={`flex h-7 w-7 items-center justify-center rounded-md border transition-colors ${
+                        selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 && filteredMessages.every(message => selectedMessageIds.has(message.id))
+                          ? 'border-cyan-300/60 bg-cyan-500/25 text-cyan-100 hover:bg-cyan-500/35'
+                          : 'border-blue-400/40 bg-blue-500/15 text-blue-200 hover:border-blue-300/70 hover:bg-blue-500/25'
+                      }`}
+                    >
+                      {selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 && filteredMessages.every(message => selectedMessageIds.has(message.id))
+                        ? <CheckSquare className="h-3.5 w-3.5" />
+                        : <Square className="h-3.5 w-3.5" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setDeleteMode('selected'); setShowDeleteConfirm(true); }}
+                      disabled={selectedMessageIds.size === 0}
+                      title={selectedMessageIds.size > 0 ? `Delete ${selectedMessageIds.size} selected messages` : 'Select messages to delete'}
+                      aria-label="Delete selected messages"
+                      className="relative flex h-7 min-w-7 items-center justify-center rounded-md border border-red-400/40 bg-red-500/15 px-1.5 text-red-200 transition-colors hover:border-red-300/70 hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-35"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {selectedMessageIds.size > 0 && <span className="ml-1 text-[8px] font-black">{selectedMessageIds.size}</span>}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={exitSelectionMode}
+                      title="Cancel selection"
+                      aria-label="Cancel message selection"
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-amber-400/40 bg-amber-500/15 text-amber-200 transition-colors hover:border-amber-300/70 hover:bg-amber-500/25"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={enterSelectionMode}
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-blue-400/40 bg-blue-500/15 text-blue-200 transition-colors hover:border-blue-300/70 hover:bg-blue-500/25"
+                      title="Select messages"
+                      aria-label="Select messages"
+                    >
+                      <CheckSquare className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setDeleteMode('all'); setShowDeleteConfirm(true); }}
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-red-400/40 bg-red-500/15 text-red-200 transition-colors hover:border-red-300/70 hover:bg-red-500/25"
+                      title="Clear all manually sent messages"
+                      aria-label="Clear all manually sent messages"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )
               )}
             </div>
-            {selectionMode && (
-              <div className="flex items-center gap-1">
-                <button onClick={toggleSelectAll}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-all ${
-                    selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 && filteredMessages.every(m => selectedMessageIds.has(m.id))
-                      ? 'bg-blue-600/30 text-blue-300'
-                      : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white'
-                  }`}>
-                  {selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 && filteredMessages.every(m => selectedMessageIds.has(m.id))
-                    ? <><CheckSquare className="w-3.5 h-3.5" /> Deselect</>
-                    : <><Square className="w-3.5 h-3.5" /> All</>
-                  }
-                </button>
-                {selectedMessageIds.size > 0 && (
-                  <button onClick={() => { setDeleteMode('selected'); setShowDeleteConfirm(true); }}
-                    className="flex items-center gap-1 px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-[10px] font-semibold rounded-md transition-all">
-                    <Trash2 className="w-3.5 h-3.5" /> Delete {selectedMessageIds.size}
-                  </button>
-                )}
-                <button onClick={exitSelectionMode}
-                  className="ml-auto flex items-center gap-1 px-2 py-1 hover:bg-white/10 text-slate-400 hover:text-white rounded-md transition-all text-[10px] font-medium">
-                  <X className="w-3.5 h-3.5" /> Cancel
-                </button>
-              </div>
-            )}
 
             {/* Search */}
             {sentMessages.length > 0 && (
