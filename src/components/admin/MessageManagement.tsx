@@ -1802,6 +1802,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   theme="light"
                   adminId=""
                   enableQuickCopy
+                  onClearAll={() => setMessageForm(previous => ({ ...previous, title: '', content: '' }))}
                 />
               </div>
             </div>
