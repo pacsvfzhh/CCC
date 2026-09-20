@@ -104,11 +104,11 @@ const getNotificationDeliveryLabel = (deliveryMode: NotificationDeliveryMode) =>
 const getMessageTypeTone = (deliveryMode: NotificationDeliveryMode) => {
   if (deliveryMode === 'realtime_with_login_fallback') {
     return {
-      card: 'border-cyan-700/90 bg-gradient-to-br from-cyan-950/80 via-slate-800 to-slate-900',
-      accent: 'bg-cyan-300',
-      icon: 'bg-cyan-900/80 text-cyan-100 ring-1 ring-cyan-600/60',
-      label: 'text-cyan-100/70',
-      value: 'text-cyan-50',
+      card: 'border-amber-700/90 bg-gradient-to-br from-amber-950/90 via-orange-950/75 to-slate-900',
+      accent: 'bg-gradient-to-r from-amber-300 to-orange-400',
+      icon: 'bg-gradient-to-br from-amber-300 to-orange-500 text-amber-950 ring-1 ring-amber-200/70',
+      label: 'text-amber-200/75',
+      value: 'text-amber-100',
     };
   }
   return deliveryMode === 'login_only'
@@ -2083,11 +2083,21 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { setSelectedMessageDetail(null); setEditingMessage(false); } }}>
           <div className="bg-slate-900 rounded-2xl border border-slate-700/50 shadow-2xl max-w-7xl w-full h-[90vh] overflow-hidden flex flex-col">
             {/* Slim Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-700/50 flex-shrink-0">
-              <h3 className="text-sm font-bold text-white truncate mr-4">
-                {editingMessage ? 'Editing Message' : selectedMessageDetail.title}
-              </h3>
-              <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="relative flex flex-shrink-0 items-center justify-between overflow-hidden border-b border-cyan-300/20 bg-gradient-to-r from-slate-950 via-blue-950 to-cyan-950 px-5 py-3 shadow-[0_8px_24px_rgba(8,47,73,0.28)]">
+              <div className="pointer-events-none absolute -left-8 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-blue-400/15 blur-2xl" />
+              <div className="pointer-events-none absolute right-40 top-1/2 h-24 w-24 -translate-y-1/2 rounded-full bg-cyan-300/10 blur-2xl" />
+              <div className="relative mr-4 flex min-w-0 items-center gap-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-gradient-to-br from-blue-500/30 to-cyan-400/20 text-cyan-100 shadow-inner shadow-white/10">
+                  <Bell className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[8px] font-black uppercase tracking-[0.2em] text-cyan-200/65">
+                    {editingMessage ? 'Editing message' : 'Sent message details'}
+                  </p>
+                  <h3 className="truncate text-sm font-black text-white">{selectedMessageDetail.title}</h3>
+                </div>
+              </div>
+              <div className="relative flex flex-shrink-0 items-center gap-2">
                 {editingMessage ? (
                   <>
                     <button type="button" onClick={handleSaveEdit} disabled={saving}
@@ -2110,9 +2120,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                       className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-700 bg-red-600 px-3.5 text-xs font-bold text-white transition-colors hover:border-red-600 hover:bg-red-500">
                       <Trash2 className="h-3.5 w-3.5" /> Delete
                     </button>
-                    <div className="ml-1 border-l border-slate-700/80 pl-2">
+                    <div className="ml-1 border-l border-cyan-200/20 pl-2">
                       <button type="button" onClick={() => { setSelectedMessageDetail(null); setEditingMessage(false); }}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 bg-slate-700 text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-600 hover:text-white"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-200/25 bg-white/10 text-cyan-50 backdrop-blur-sm transition-colors hover:border-cyan-100/50 hover:bg-white/20 hover:text-white"
                         aria-label="Close message details"
                         title="Close">
                         <X className="h-4 w-4" />
@@ -2391,7 +2401,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   </div>
                 </div>
 
-                {messageStats.has(selectedMessageDetail.id) && !editingMessage && (() => {
+                {messageStats.has(selectedMessageDetail.id) && (() => {
                   const stats = messageStats.get(selectedMessageDetail.id)!;
                   return (
                     <div className="order-3 shrink-0 border-t border-slate-700/40 bg-slate-900/45 px-4 py-2.5">
