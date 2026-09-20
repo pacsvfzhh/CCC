@@ -942,7 +942,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         onMouseDown={() => setEmployeePickerOpen(false)}
       >
         <div
-          className="flex max-h-[calc(100vh-32px)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.35rem] border border-cyan-300/25 bg-gradient-to-br from-slate-900 via-blue-950/95 to-cyan-950/85 shadow-[0_24px_80px_rgba(2,8,23,0.72),0_0_40px_rgba(8,145,178,0.18)] ring-1 ring-inset ring-white/[0.08]"
+          className="flex h-[min(720px,calc(100vh-32px))] max-h-[calc(100vh-32px)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.35rem] border border-cyan-300/25 bg-gradient-to-br from-slate-900 via-blue-950/95 to-cyan-950/85 shadow-[0_24px_80px_rgba(2,8,23,0.72),0_0_40px_rgba(8,145,178,0.18)] ring-1 ring-inset ring-white/[0.08]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="automation-employee-picker-title"
@@ -999,14 +999,14 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <button
                       type="button"
                       onClick={() => setEmployeePickerStatusFilter(previous => previous === 'active' ? 'all' : 'active')}
-                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-all ${employeePickerStatusFilter === 'active' ? 'border-emerald-200/50 bg-emerald-500/25 text-emerald-100 shadow-sm shadow-emerald-950/30' : 'border-emerald-300/20 bg-emerald-500/[0.08] text-emerald-300/80 hover:border-emerald-200/45 hover:bg-emerald-500/15'}`}
+                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-black outline-none transition-colors focus-visible:ring-2 focus-visible:ring-emerald-300/60 ${employeePickerStatusFilter === 'active' ? 'border-emerald-200/50 bg-emerald-500/25 text-emerald-100 shadow-sm shadow-emerald-950/30' : 'border-emerald-300/20 bg-emerald-500/[0.08] text-emerald-300/80 hover:border-emerald-200/45 hover:bg-emerald-500/15'}`}
                     >
                       啟用
                     </button>
                     <button
                       type="button"
                       onClick={() => setEmployeePickerStatusFilter(previous => previous === 'inactive' ? 'all' : 'inactive')}
-                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-all ${employeePickerStatusFilter === 'inactive' ? 'border-rose-200/55 bg-rose-500/25 text-rose-100 shadow-sm shadow-rose-950/30' : 'border-rose-300/25 bg-rose-500/[0.08] text-rose-300/80 hover:border-rose-200/55 hover:bg-rose-500/15 hover:text-rose-100'}`}
+                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-black outline-none transition-colors focus-visible:ring-2 focus-visible:ring-rose-300/60 ${employeePickerStatusFilter === 'inactive' ? 'border-rose-200/55 bg-rose-500/25 text-rose-100 shadow-sm shadow-rose-950/30' : 'border-rose-300/25 bg-rose-500/[0.08] text-rose-300/80 hover:border-rose-200/55 hover:bg-rose-500/15 hover:text-rose-100'}`}
                     >
                       停用
                     </button>
@@ -1019,7 +1019,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           ? previous.filter(id => !visibleIds.includes(id))
                           : Array.from(new Set([...previous, ...visibleIds]));
                       })}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-black text-cyan-100 transition-all hover:-translate-y-0.5 hover:border-cyan-200/70 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-black text-cyan-100 outline-none transition-colors hover:border-cyan-200/70 hover:bg-cyan-500/20 focus-visible:ring-2 focus-visible:ring-cyan-300/60 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       {allVisibleEmployeesSelected ? '取消全選' : '全選結果'}
@@ -1032,10 +1032,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   <span>員工 ID</span>
                   <span>狀態</span>
                 </div>
+                <div className="h-[min(52vh,420px)] overflow-hidden">
                 {employeePickerResults.length === 0 ? (
-                  <div className="px-4 py-10 text-center text-sm text-slate-500">找不到符合的員工帳號或 ID</div>
+                  <div className="flex h-full items-center justify-center px-4 py-10 text-center text-sm text-slate-500">找不到符合的員工帳號或 ID</div>
                 ) : (
-                  <div className="max-h-[min(52vh,420px)] divide-y divide-slate-700/50 overflow-y-auto bg-slate-950/20 dark-panel-scroll">
+                  <div className="h-full divide-y divide-slate-700/50 overflow-y-auto overflow-anchor-none bg-slate-950/20 [scrollbar-gutter:stable] dark-panel-scroll">
                     {employeePickerResults.map(employee => {
                       const selected = pendingRecipientIds.includes(employee.id);
                       return (
@@ -1055,7 +1056,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               togglePendingEmployee(employee.id);
                             }
                           }}
-                          className={`group grid cursor-pointer grid-cols-[1.75rem_minmax(0,1.25fr)_minmax(0,1fr)_auto] items-center gap-2 border-l-2 px-3 py-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-l-cyan-300 bg-cyan-500/10' : 'border-l-transparent hover:bg-slate-800/60'}`}
+                          className={`group grid cursor-pointer grid-cols-[1.75rem_minmax(0,1.25fr)_minmax(0,1fr)_auto] items-center gap-2 border-l-2 px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-l-cyan-300 bg-cyan-500/10' : 'border-l-transparent hover:bg-slate-800/60'}`}
                         >
                           <input
                             type="checkbox"
@@ -1076,6 +1077,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     })}
                   </div>
                 )}
+                </div>
               </div>
 
               <div className="min-w-0 overflow-hidden rounded-xl border border-cyan-300/25 bg-gradient-to-b from-cyan-950/25 via-slate-900/80 to-slate-950/80 shadow-[inset_0_0_24px_rgba(34,211,238,0.04)]">
@@ -1093,8 +1095,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   <span>員工 ID</span>
                   <span className="text-center">操作</span>
                 </div>
+                <div className="h-[min(52vh,420px)] overflow-hidden">
                 {pendingSelectedEmployees.length === 0 ? (
-                  <div className="flex min-h-[210px] flex-col items-center justify-center px-4 py-8 text-center">
+                  <div className="flex h-full min-h-[210px] flex-col items-center justify-center px-4 py-8 text-center">
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.07] text-cyan-300/60">
                       <Users className="h-5 w-5" />
                     </span>
@@ -1102,7 +1105,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <p className="mt-1 text-[11px] leading-5 text-slate-500">勾選左側員工後，名單會顯示在這裡</p>
                   </div>
                 ) : (
-                  <div className="max-h-[min(52vh,420px)] divide-y divide-cyan-300/10 overflow-y-auto bg-slate-950/20 dark-panel-scroll">
+                  <div className="h-full divide-y divide-cyan-300/10 overflow-y-auto overflow-anchor-none bg-slate-950/20 [scrollbar-gutter:stable] dark-panel-scroll">
                     {pendingSelectedEmployees.map(employee => (
                       <div key={employee.id} className="group grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_1.75rem] items-center gap-2 border-l-2 border-l-transparent px-3 py-1.5 transition-colors hover:border-l-cyan-300 hover:bg-cyan-950/25">
                         <span className="min-w-0 truncate text-xs font-black text-cyan-50">{employee.username}</span>
@@ -1114,6 +1117,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     ))}
                   </div>
                 )}
+                </div>
               </div>
             </div>
           </div>
