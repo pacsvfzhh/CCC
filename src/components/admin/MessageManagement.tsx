@@ -1101,6 +1101,18 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const selectedAdminManualMessages = sentMessages.filter(
     message => message.sender_id === (selectedAdminId || admin.id),
   );
+  const sentMessageReadSummary = sentMessages.reduce(
+    (summary, message) => {
+      const stats = messageStats.get(message.id);
+      const totalRecipients = stats?.total_recipients || 0;
+      const isFullyRead = totalRecipients > 0 && (stats?.read_count || 0) === totalRecipients;
+
+      if (isFullyRead) summary.read += 1;
+      else summary.unread += 1;
+      return summary;
+    },
+    { total: sentMessages.length, read: 0, unread: 0 },
+  );
 
   const filteredMessages = sentMessages.filter(msg => {
     if (selectedAdminId) {
@@ -1927,7 +1939,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 <div className="flex items-center gap-1.5">
                   <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-slate-500">Read status</p>
                   <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
-                    {([['all', 'All'], ['read', 'Read'], ['unread', 'Unread']] as const).map(([val, label]) => {
+                    {([
+                      ['all', 'All', sentMessageReadSummary.total],
+                      ['read', 'Read', sentMessageReadSummary.read],
+                      ['unread', 'Unread', sentMessageReadSummary.unread],
+                    ] as const).map(([val, label, count]) => {
                       const activeClass = val === 'read'
                         ? 'border-emerald-500 bg-emerald-600 text-white'
                         : val === 'unread'
@@ -1940,8 +1956,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           : 'text-indigo-300 hover:bg-indigo-950/70 hover:text-indigo-100';
                       return (
                         <button key={val} onClick={() => setReadStatusFilter(val)}
-                          className={`min-w-0 flex-1 rounded border px-1 py-1 text-[9px] font-bold transition-colors ${readStatusFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
-                          {label}
+                          className={`flex min-h-9 min-w-0 flex-1 flex-col items-center justify-center rounded border px-1 py-1 text-[9px] font-bold leading-none transition-colors ${readStatusFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
+                          <span>{label}</span>
+                          <span className="mt-1 text-[10px] font-black tabular-nums">{count}</span>
                         </button>
                       );
                     })}
