@@ -1298,8 +1298,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         className="mt-2 flex w-full flex-wrap gap-1.5 rounded-lg border border-transparent bg-slate-950/30 px-2 py-1.5 text-left transition-colors hover:border-cyan-200/30 hover:bg-cyan-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 disabled:cursor-not-allowed disabled:opacity-60"
                         aria-label="編輯已選員工名單"
                       >
-                        <span className="text-[10px] font-bold text-cyan-300/70">點擊查看完整名單</span>
-                        <span className="employee-selection-scroll flex max-h-[9rem] w-full flex-wrap content-start gap-1.5 overflow-y-auto pr-1">
+                        <span className="employee-selection-scroll flex max-h-[7rem] w-full flex-wrap content-start gap-1.5 overflow-y-auto pr-1">
                           {selectedEmployees.map(employee => (
                             <span key={employee.id} title={`${employee.username} · ${employee.employee_id}`} className="max-w-[48%] truncate rounded-md border border-cyan-300/20 bg-slate-950/60 px-2 py-1 text-[10px] font-semibold text-slate-200">
                               <span className="font-bold text-cyan-100">{employee.username}</span>
