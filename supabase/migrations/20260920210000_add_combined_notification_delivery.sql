@@ -923,9 +923,4 @@ GRANT EXECUTE ON FUNCTION public.has_pending_employee_login_notifications(uuid, 
 GRANT EXECUTE ON FUNCTION public.claim_next_login_notification_delivery(uuid, uuid, text, boolean, integer) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.complete_notification_delivery(uuid, uuid, text, uuid, uuid, boolean) TO anon, authenticated;
 
-REVOKE UPDATE, INSERT ON public.message_recipients FROM anon, authenticated;
-REVOKE INSERT, UPDATE ON public.messages FROM anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.mark_message_as_read(uuid, uuid) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.mark_login_popup_as_shown(uuid, uuid) FROM PUBLIC, anon, authenticated;
-
 NOTIFY pgrst, 'reload schema';
