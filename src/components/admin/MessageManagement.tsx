@@ -2625,7 +2625,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               </aside>
             </div>
 
-            <div className="relative flex shrink-0 flex-col gap-3 border-t border-emerald-200/15 bg-gradient-to-r from-emerald-950/90 via-slate-950/90 to-teal-950/90 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div className="relative flex shrink-0 flex-col gap-3 border-t border-emerald-200/15 bg-gradient-to-r from-emerald-950/90 via-slate-950/90 to-teal-950/90 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-end sm:px-5">
               <div className="flex items-center gap-2">
                 {editingTemplateId && (
                   <button
@@ -2636,16 +2636,16 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     New blank
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={saveAsTemplate}
+                  disabled={savingTemplate || !newTemplateName.trim()}
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-xs font-black text-white shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-35 ${editingTemplateId ? 'border-blue-200/30 bg-gradient-to-r from-blue-500 to-indigo-500 shadow-blue-950/30 hover:from-blue-400 hover:to-indigo-400' : 'border-emerald-200/35 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 shadow-emerald-950/35 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400'}`}
+                >
+                  {savingTemplate ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : editingTemplateId ? <Save className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                  {savingTemplate ? 'Saving...' : editingTemplateId ? 'Update Template' : 'Save Template'}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={saveAsTemplate}
-                disabled={savingTemplate || !newTemplateName.trim()}
-                className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-xs font-black text-white shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-35 ${editingTemplateId ? 'border-blue-200/30 bg-gradient-to-r from-blue-500 to-indigo-500 shadow-blue-950/30 hover:from-blue-400 hover:to-indigo-400' : 'border-emerald-200/35 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 shadow-emerald-950/35 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400'}`}
-              >
-                {savingTemplate ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : editingTemplateId ? <Save className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-                {savingTemplate ? 'Saving...' : editingTemplateId ? 'Update Template' : 'Save Template'}
-              </button>
             </div>
           </div>
         </div>
