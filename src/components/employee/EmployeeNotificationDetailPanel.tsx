@@ -19,6 +19,7 @@ export interface EmployeeNotificationDetailData {
 interface EmployeeNotificationDetailPanelProps {
   message: EmployeeNotificationDetailData;
   onClose: () => void;
+  embedded?: boolean;
 }
 
 function getPriorityIcon(priority: EmployeeNotificationDetailData['priority'], className: string) {
@@ -30,7 +31,7 @@ function getPriorityIcon(priority: EmployeeNotificationDetailData['priority'], c
   }
 }
 
-export default function EmployeeNotificationDetailPanel({ message, onClose }: EmployeeNotificationDetailPanelProps) {
+export default function EmployeeNotificationDetailPanel({ message, onClose, embedded = false }: EmployeeNotificationDetailPanelProps) {
   const { t, dateLocale } = useLanguage();
   const { isDesktop } = useResponsive();
   const isReward = message.notification_category === 'performance_reward';
@@ -38,7 +39,7 @@ export default function EmployeeNotificationDetailPanel({ message, onClose }: Em
 
   return (
     <div
-      className={`relative flex h-full w-full flex-col overflow-hidden bg-[#f0f5ff] ${isDesktop ? 'lg:h-[82vh] lg:max-w-2xl lg:rounded-3xl lg:shadow-2xl' : ''}`}
+      className={`relative flex h-full w-full flex-col overflow-hidden bg-[#f0f5ff] ${!embedded && isDesktop ? 'lg:h-[82vh] lg:max-w-2xl lg:rounded-3xl lg:shadow-2xl' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="employee-notification-detail-title"

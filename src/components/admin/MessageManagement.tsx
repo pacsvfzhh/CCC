@@ -2126,7 +2126,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             {/* Two-column body */}
             <div className="flex-1 flex min-h-0 overflow-hidden">
               {/* Left: Content */}
-              <div className={`flex min-h-0 w-[60%] flex-col ${editingMessage ? 'bg-white' : 'items-center bg-slate-950/35 p-4'}`}>
+              <div className={`flex min-h-0 w-[60%] flex-col overflow-hidden ${editingMessage ? 'bg-white' : 'bg-[#f0f5ff]'}`}>
                 {editingMessage ? (
                   <>
                     <div className="flex-shrink-0 border-b border-gray-200 px-8 pb-4 pt-6">
@@ -2151,8 +2151,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     </div>
                   </>
                 ) : (
-                  <div className="flex h-full min-h-0 w-full max-w-2xl flex-col overflow-hidden rounded-3xl shadow-2xl shadow-blue-950/25">
+                  <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
                     <EmployeeNotificationDetailPanel
+                      embedded
                       message={{
                         title: selectedMessageDetail.title,
                         content: selectedMessageDetail.content,
