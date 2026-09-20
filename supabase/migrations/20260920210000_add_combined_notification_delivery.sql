@@ -46,6 +46,16 @@ WHERE message.id = recipient.message_id
   AND recipient.is_shown = true
   AND recipient.delivery_channel IS NULL;
 
+UPDATE public.message_recipients AS recipient
+SET delivery_channel = 'realtime',
+    delivered_at = COALESCE(recipient.created_at, clock_timestamp()),
+    is_shown = true,
+    shown_at = COALESCE(recipient.shown_at, recipient.created_at, clock_timestamp())
+FROM public.messages AS message
+WHERE message.id = recipient.message_id
+  AND message.delivery_mode = 'realtime_only'
+  AND recipient.delivery_channel IS NULL;
+
 ALTER TABLE public.messages
   ALTER COLUMN delivery_mode SET NOT NULL,
   ALTER COLUMN delivery_mode SET DEFAULT 'realtime_only';
@@ -216,14 +226,30 @@ DECLARE
   v_message_type text;
   v_result jsonb;
   v_message_id uuid;
+  v_existing_message_id uuid;
   v_registered_mode text;
 BEGIN
   IF p_delivery_mode NOT IN ('realtime_only', 'login_only', 'realtime_with_login_fallback') THEN
     RAISE EXCEPTION 'Unsupported notification delivery mode.';
   END IF;
 
+  SELECT (operation.result ->> 'message_id')::uuid
+  INTO v_existing_message_id
+  FROM public.financial_operations AS operation
+  WHERE operation.operation_id = p_operation_id
+    AND operation.operation_type = 'admin_message_send';
+
+  IF v_existing_message_id IS NOT NULL THEN
+    SELECT delivery_mode
+    INTO v_registered_mode
+    FROM public.messages
+    WHERE id = v_existing_message_id;
+  ELSE
+    v_registered_mode := p_delivery_mode;
+  END IF;
+
   INSERT INTO private.notification_delivery_operations(operation_id, delivery_mode)
-  VALUES (p_operation_id, p_delivery_mode)
+  VALUES (p_operation_id, v_registered_mode)
   ON CONFLICT (operation_id) DO NOTHING;
 
   SELECT delivery_mode
@@ -442,9 +468,11 @@ BEGIN
   );
   v_task_id := (v_result ->> 'task_id')::uuid;
 
-  UPDATE public.notification_automation_tasks
-  SET delivery_mode = v_source_mode
-  WHERE id = v_task_id;
+  IF NOT COALESCE((v_result ->> 'duplicate')::boolean, false) THEN
+    UPDATE public.notification_automation_tasks
+    SET delivery_mode = v_source_mode
+    WHERE id = v_task_id;
+  END IF;
 
   RETURN v_result || jsonb_build_object('delivery_mode', v_source_mode);
 END;
@@ -560,6 +588,46 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.update_admin_message_content_with_session(
+  p_admin_session_token uuid,
+  p_message_id uuid,
+  p_title text,
+  p_content text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+DECLARE
+  v_admin_id uuid;
+  v_admin_role text;
+BEGIN
+  SELECT admin_id, admin_role
+  INTO v_admin_id, v_admin_role
+  FROM private.get_financial_admin_context(p_admin_session_token);
+
+  IF char_length(trim(COALESCE(p_title, ''))) NOT BETWEEN 1 AND 200 THEN
+    RAISE EXCEPTION 'Message title must contain between 1 and 200 characters.';
+  END IF;
+  IF char_length(trim(COALESCE(p_content, ''))) NOT BETWEEN 1 AND 100000 THEN
+    RAISE EXCEPTION 'Message content must contain between 1 and 100000 characters.';
+  END IF;
+
+  UPDATE public.messages
+  SET title = trim(p_title),
+      content = p_content
+  WHERE id = p_message_id
+    AND (sender_id = v_admin_id OR v_admin_role = 'super_admin');
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Message was not found or cannot be edited.';
+  END IF;
+
+  RETURN jsonb_build_object('success', true, 'message_id', p_message_id);
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.claim_realtime_notification_delivery(
   p_user_id uuid,
   p_session_token uuid,
@@ -594,6 +662,64 @@ BEGIN
     AND recipient.delivery_channel IS NULL
     AND (recipient.delivery_claim_token IS NULL OR recipient.delivery_claim_until <= clock_timestamp())
     AND (message.expires_at IS NULL OR message.expires_at > clock_timestamp())
+  RETURNING recipient.* INTO v_recipient;
+
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT * INTO v_message
+  FROM public.messages
+  WHERE id = v_recipient.message_id;
+
+  RETURN jsonb_build_object(
+    'claim_token', v_claim_token,
+    'recipient', to_jsonb(v_recipient),
+    'message', to_jsonb(v_message)
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.claim_next_realtime_notification_delivery(
+  p_user_id uuid,
+  p_session_token uuid,
+  p_tab_id text,
+  p_lease_seconds integer DEFAULT 120
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+DECLARE
+  v_recipient public.message_recipients%ROWTYPE;
+  v_message public.messages%ROWTYPE;
+  v_claim_token uuid := gen_random_uuid();
+  v_lease_seconds integer := LEAST(GREATEST(COALESCE(p_lease_seconds, 120), 30), 300);
+BEGIN
+  IF NOT public.validate_employee_session(p_user_id, p_session_token, p_tab_id) THEN
+    RAISE EXCEPTION 'Employee session is invalid or expired.';
+  END IF;
+
+  WITH candidate AS (
+    SELECT recipient.id
+    FROM public.message_recipients AS recipient
+    JOIN public.messages AS message ON message.id = recipient.message_id
+    WHERE recipient.recipient_id = p_user_id
+      AND recipient.delivery_channel IS NULL
+      AND (recipient.delivery_claim_token IS NULL OR recipient.delivery_claim_until <= clock_timestamp())
+      AND (message.expires_at IS NULL OR message.expires_at > clock_timestamp())
+      AND message.delivery_mode = 'realtime_only'
+    ORDER BY recipient.delivery_sequence
+    LIMIT 1
+    FOR UPDATE OF recipient SKIP LOCKED
+  )
+  UPDATE public.message_recipients AS recipient
+  SET delivery_claim_token = v_claim_token,
+      delivery_claim_channel = 'realtime',
+      delivery_claim_until = clock_timestamp() + make_interval(secs => v_lease_seconds)
+  FROM candidate
+  WHERE recipient.id = candidate.id
   RETURNING recipient.* INTO v_recipient;
 
   IF NOT FOUND THEN
@@ -682,8 +808,8 @@ BEGIN
         OR (NOT p_combined_only AND message.delivery_mode = 'login_only')
       )
     ORDER BY recipient.delivery_sequence
-    FOR UPDATE OF recipient SKIP LOCKED
     LIMIT 1
+    FOR UPDATE OF recipient SKIP LOCKED
   )
   UPDATE public.message_recipients AS recipient
   SET delivery_claim_token = v_claim_token,
@@ -777,7 +903,9 @@ REVOKE ALL ON FUNCTION public.save_notification_automation_task_copy_with_delive
 REVOKE ALL ON FUNCTION public.copy_shared_notification_automation_task_with_delivery(uuid, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.get_employee_notification_messages(uuid, uuid, text, text, integer) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.mark_employee_notification_read(uuid, uuid, text, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.update_admin_message_content_with_session(uuid, uuid, text, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.claim_realtime_notification_delivery(uuid, uuid, text, uuid, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.claim_next_realtime_notification_delivery(uuid, uuid, text, integer) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.has_pending_employee_login_notifications(uuid, uuid, text, boolean) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.claim_next_login_notification_delivery(uuid, uuid, text, boolean, integer) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.complete_notification_delivery(uuid, uuid, text, uuid, uuid, boolean) FROM PUBLIC;
@@ -788,11 +916,16 @@ GRANT EXECUTE ON FUNCTION public.save_notification_automation_task_copy_with_del
 GRANT EXECUTE ON FUNCTION public.copy_shared_notification_automation_task_with_delivery(uuid, uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_employee_notification_messages(uuid, uuid, text, text, integer) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_employee_notification_read(uuid, uuid, text, uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.update_admin_message_content_with_session(uuid, uuid, text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_realtime_notification_delivery(uuid, uuid, text, uuid, integer) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_next_realtime_notification_delivery(uuid, uuid, text, integer) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.has_pending_employee_login_notifications(uuid, uuid, text, boolean) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_next_login_notification_delivery(uuid, uuid, text, boolean, integer) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.complete_notification_delivery(uuid, uuid, text, uuid, uuid, boolean) TO anon, authenticated;
 
-REVOKE UPDATE ON public.message_recipients FROM anon, authenticated;
+REVOKE UPDATE, INSERT ON public.message_recipients FROM anon, authenticated;
+REVOKE INSERT, UPDATE ON public.messages FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.mark_message_as_read(uuid, uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.mark_login_popup_as_shown(uuid, uuid) FROM PUBLIC, anon, authenticated;
 
 NOTIFY pgrst, 'reload schema';

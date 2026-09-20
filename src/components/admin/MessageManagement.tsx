@@ -1058,10 +1058,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('messages')
-        .update({ title: editForm.title.trim(), content: htmlContent })
-        .eq('id', selectedMessageDetail.id);
+      const { error } = await supabase.rpc('update_admin_message_content_with_session', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_message_id: selectedMessageDetail.id,
+        p_title: editForm.title.trim(),
+        p_content: htmlContent,
+      });
 
       if (error) throw error;
 

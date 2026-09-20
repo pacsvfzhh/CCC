@@ -493,16 +493,21 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         rewardCurrency: result.message.reward_currency,
       };
 
-      const { data: completed, error: completeError } = await supabase.rpc('complete_notification_delivery', {
+      const completionPayload = {
         p_user_id: employee.id,
         p_session_token: session.token,
         p_tab_id: session.tabId,
         p_recipient_id: result.recipient.id,
         p_claim_token: result.claim_token,
         p_mark_read: false,
-      });
-      if (completeError) throw completeError;
-      if (!(completed as { success?: boolean } | null)?.success) throw new Error('Notification delivery could not be confirmed.');
+      };
+      let completion = await supabase.rpc('complete_notification_delivery', completionPayload);
+      if (completion.error && navigator.onLine) {
+        await new Promise(resolve => window.setTimeout(resolve, 300));
+        completion = await supabase.rpc('complete_notification_delivery', completionPayload);
+      }
+      if (completion.error) throw completion.error;
+      if (!(completion.data as { success?: boolean } | null)?.success) throw new Error('Notification delivery could not be confirmed.');
 
       deliveredRecipientIdsRef.current.add(recipientId);
       playNotificationSound();
