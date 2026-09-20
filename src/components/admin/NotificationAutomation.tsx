@@ -1006,7 +1006,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <button
                       type="button"
                       onClick={() => setEmployeePickerStatusFilter(previous => previous === 'inactive' ? 'all' : 'inactive')}
-                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-all ${employeePickerStatusFilter === 'inactive' ? 'border-slate-300/45 bg-slate-500/25 text-slate-100 shadow-sm shadow-slate-950/30' : 'border-slate-500/50 bg-slate-800/50 text-slate-400 hover:border-slate-400/70 hover:bg-slate-700/70 hover:text-slate-200'}`}
+                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-all ${employeePickerStatusFilter === 'inactive' ? 'border-rose-200/55 bg-rose-500/25 text-rose-100 shadow-sm shadow-rose-950/30' : 'border-rose-300/25 bg-rose-500/[0.08] text-rose-300/80 hover:border-rose-200/55 hover:bg-rose-500/15 hover:text-rose-100'}`}
                     >
                       停用
                     </button>
