@@ -150,7 +150,6 @@ export default function QuickCopyRichContent({
       image.decoding = 'async';
     });
     container.querySelectorAll('button.message-quick-copy-button').forEach(button => button.remove());
-    if (!interactive) return;
 
     const insertionAnchors = new Map<HTMLElement, Element>();
     collectMarkerGroups(container).forEach((markers, index) => {
@@ -159,9 +158,10 @@ export default function QuickCopyRichContent({
 
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'message-quick-copy-button';
+      button.className = `message-quick-copy-button${interactive ? '' : ' is-preview-only'}`;
       button.dataset.quickCopyIndex = String(index);
       button.setAttribute('aria-live', 'polite');
+      button.disabled = !interactive;
       setButtonLabel(button, copyLabel);
 
       const block = getBlockAncestor(lastMarker, container);
@@ -261,6 +261,9 @@ export default function QuickCopyRichContent({
           box-shadow: 0 4px 10px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
           transition: background 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
         }
+        .quick-copy-rich-content .message-quick-copy-button.is-preview-only {
+          cursor: default;
+        }
         .quick-copy-rich-content .message-quick-copy-button:hover {
           border-color: rgba(14, 165, 233, 0.65);
           background: linear-gradient(135deg, rgb(224 242 254) 0%, rgb(186 230 253) 52%, rgb(165 243 252) 100%);
@@ -280,6 +283,9 @@ export default function QuickCopyRichContent({
         }
         .quick-copy-rich-content .message-quick-copy-button:active {
           transform: translateY(1px) scale(0.98);
+        }
+        .quick-copy-rich-content .message-quick-copy-button.is-preview-only:active {
+          transform: none;
         }
         .quick-copy-rich-content .message-quick-copy-button:focus-visible {
           outline: 2px solid rgb(14 165 233);

@@ -55,16 +55,15 @@ export default function EmployeeNotificationDetailPanel({ message, onClose, embe
         <div className="absolute bottom-0 left-0 h-24 w-24 -translate-x-1/3 translate-y-1/2 rounded-full bg-white/[0.04]" />
 
         <div className="relative px-4 pb-3 pt-6 lg:px-6">
-          {!readOnlyPreview && (
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t.messages.close}
-              className={`notification-panel-close absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 lg:right-6 lg:top-5 ${isReward ? 'border border-amber-950/20 bg-amber-950/15 text-amber-950 hover:bg-amber-950/25 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
-            >
-              <X className="h-5 w-5" strokeWidth={2.5} />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={readOnlyPreview ? undefined : onClose}
+            disabled={readOnlyPreview}
+            aria-label={t.messages.close}
+            className={`notification-panel-close absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg backdrop-blur-sm transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 disabled:cursor-default lg:right-6 lg:top-5 ${isReward ? 'border border-amber-950/20 bg-amber-950/15 text-amber-950 hover:bg-amber-950/25 focus-visible:ring-amber-950/35' : 'bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60'}`}
+          >
+            <X className="h-5 w-5" strokeWidth={2.5} />
+          </button>
 
           <div className="flex items-start gap-2.5 pr-10">
             <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border backdrop-blur-sm sm:h-10 sm:w-10 ${isReward ? 'border-amber-950/20 bg-amber-950/15 text-amber-950 shadow-sm shadow-amber-950/10' : 'border-white/20 bg-white/15'}`}>
@@ -154,15 +153,14 @@ export default function EmployeeNotificationDetailPanel({ message, onClose, embe
               </>
             )}
           </div>
-          {!readOnlyPreview && (
-            <button
-              type="button"
-              onClick={onClose}
-              className={`min-h-[44px] rounded-xl px-6 py-2.5 text-sm font-semibold transition-all active:scale-95 ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-lg shadow-amber-500/25 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600' : 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-cyan-600'}`}
-            >
-              {t.messages.close}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={readOnlyPreview ? undefined : onClose}
+            disabled={readOnlyPreview}
+            className={`min-h-[44px] rounded-xl px-6 py-2.5 text-sm font-semibold transition-all active:scale-95 disabled:cursor-default ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-lg shadow-amber-500/25 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600' : 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-cyan-600'}`}
+          >
+            {t.messages.close}
+          </button>
         </div>
       </div>
     </div>
