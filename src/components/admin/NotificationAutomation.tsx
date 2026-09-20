@@ -18,6 +18,7 @@ import {
   Play,
   Plus,
   RefreshCw,
+  Search,
   Settings2,
   Trash2,
   ShieldCheck,
@@ -340,6 +341,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [notice, setNotice] = useState<AutomationNotice | null>(null);
   const [variableHelpOpen, setVariableHelpOpen] = useState(false);
   const [employeePreviewOpen, setEmployeePreviewOpen] = useState(false);
+  const [employeePickerOpen, setEmployeePickerOpen] = useState(false);
+  const [employeePickerSearch, setEmployeePickerSearch] = useState('');
+  const [pendingRecipientIds, setPendingRecipientIds] = useState<string[]>([]);
   const adminMenuAnchorRef = useRef<HTMLDivElement>(null);
   const loadRef = useRef<(() => Promise<void>) | null>(null);
   const dashboardRequestIdRef = useRef(0);
@@ -411,6 +415,26 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     }),
     [dashboard.shared_templates, dashboard.tasks],
   );
+  const selectedEmployees = useMemo(
+    () => employees.filter(employee => form.recipientIds.includes(employee.id)),
+    [employees, form.recipientIds],
+  );
+  const employeePickerResults = useMemo(() => {
+    const query = employeePickerSearch.trim().toLocaleLowerCase();
+    if (!query) return employees;
+    return employees.filter(employee =>
+      employee.username.toLocaleLowerCase().includes(query)
+      || employee.employee_id.toLocaleLowerCase().includes(query),
+    );
+  }, [employees, employeePickerSearch]);
+  const allVisibleEmployeesSelected = employeePickerResults.length > 0
+    && employeePickerResults.every(employee => pendingRecipientIds.includes(employee.id));
+
+  const openEmployeePicker = (initialRecipientIds = form.recipientIds) => {
+    setPendingRecipientIds(initialRecipientIds);
+    setEmployeePickerSearch('');
+    setEmployeePickerOpen(true);
+  };
 
   const openNewTask = () => {
     const next = createDefaultForm();
@@ -425,6 +449,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     setReadOnly(false);
     setVariableHelpOpen(false);
     setEmployeePreviewOpen(false);
+    setEmployeePickerOpen(false);
     setEditorOpen(true);
   };
 
@@ -436,7 +461,21 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     setReadOnly(onlyView || task.owner_admin_id !== admin.id);
     setVariableHelpOpen(false);
     setEmployeePreviewOpen(false);
+    setEmployeePickerOpen(false);
     setEditorOpen(true);
+  };
+
+  const saveEmployeePicker = () => {
+    if (pendingRecipientIds.length === 0) {
+      showNotice('error', '請至少選擇一名員工');
+      return;
+    }
+    setForm(previous => ({
+      ...previous,
+      recipientScope: 'selected',
+      recipientIds: pendingRecipientIds,
+    }));
+    setEmployeePickerOpen(false);
   };
 
   const saveTask = async () => {
@@ -517,6 +556,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       setEditorOpen(false);
       setVariableHelpOpen(false);
       setEmployeePreviewOpen(false);
+      setEmployeePickerOpen(false);
       setCopiedFromName(null);
       setCopySourceTaskId(null);
       if (saveSharedTemplate) setView('templates');
@@ -879,14 +919,109 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       </div>,
       document.body,
     );
+    const employeePickerDialog = employeePickerOpen && createPortal(
+      <div
+        className="fixed inset-0 z-[190] flex items-center justify-center bg-slate-950/75 px-4 py-5 backdrop-blur-sm"
+        role="presentation"
+        onMouseDown={() => setEmployeePickerOpen(false)}
+      >
+        <div
+          className="flex max-h-[calc(100vh-40px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 shadow-2xl shadow-cyan-950/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="automation-employee-picker-title"
+          onMouseDown={event => event.stopPropagation()}
+        >
+          <div className="flex shrink-0 items-start gap-3 border-b border-cyan-300/20 bg-gradient-to-r from-blue-950 via-cyan-950 to-blue-950 px-5 py-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-200/30 bg-cyan-400/15 text-cyan-200 shadow-lg shadow-cyan-950/30">
+              <Users className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 id="automation-employee-picker-title" className="text-base font-black tracking-tight text-white">選擇指定員工</h2>
+              <p className="mt-1 text-xs leading-5 text-cyan-100/70">搜尋員工帳號或員工 ID，可同時選擇多名員工。</p>
+            </div>
+            <button type="button" onClick={() => setEmployeePickerOpen(false)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70" aria-label="關閉員工選擇">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-5 dark-panel-scroll">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-300/70" />
+              <input
+                autoFocus
+                type="search"
+                value={employeePickerSearch}
+                onChange={event => setEmployeePickerSearch(event.target.value)}
+                placeholder="搜尋員工帳號或員工 ID"
+                className="w-full rounded-xl border border-slate-700 bg-slate-900/90 py-2.5 pl-10 pr-3 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+              />
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-cyan-300/15 bg-cyan-400/[0.06] px-3 py-2">
+              <span className="text-xs font-bold text-cyan-100">已選擇 {pendingRecipientIds.length} 名員工</span>
+              <button
+                type="button"
+                disabled={employeePickerResults.length === 0}
+                onClick={() => setPendingRecipientIds(previous => {
+                  const visibleIds = employeePickerResults.map(employee => employee.id);
+                  return allVisibleEmployeesSelected
+                    ? previous.filter(id => !visibleIds.includes(id))
+                    : Array.from(new Set([...previous, ...visibleIds]));
+                })}
+                className="rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-bold text-cyan-100 transition-colors hover:border-cyan-200/60 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {allVisibleEmployeesSelected ? '取消全選' : '全選搜尋結果'}
+              </button>
+            </div>
+
+            <div className="mt-3 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/70">
+              {employeePickerResults.length === 0 ? (
+                <div className="px-4 py-10 text-center text-sm text-slate-500">找不到符合的員工帳號或 ID</div>
+              ) : (
+                <div className="max-h-[min(52vh,420px)] overflow-y-auto p-1.5 dark-panel-scroll">
+                  {employeePickerResults.map(employee => {
+                    const selected = pendingRecipientIds.includes(employee.id);
+                    return (
+                      <label key={employee.id} className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${selected ? 'border-cyan-300/35 bg-cyan-500/10' : 'border-transparent hover:border-slate-700 hover:bg-slate-800/80'}`}>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={event => setPendingRecipientIds(previous => event.target.checked ? (previous.includes(employee.id) ? previous : [...previous, employee.id]) : previous.filter(id => id !== employee.id))}
+                          className="h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-950 accent-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className={`block truncate text-sm font-bold ${selected ? 'text-cyan-100' : 'text-slate-200'}`}>{employee.username}</span>
+                          <span className="mt-0.5 block truncate text-[11px] text-slate-500">員工 ID：{employee.employee_id}</span>
+                        </span>
+                        {employee.is_active ? <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">啟用</span> : <span className="shrink-0 rounded-full border border-slate-600 bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-500">停用</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 justify-end gap-2 border-t border-slate-800/80 px-5 py-3">
+            <button type="button" onClick={() => setEmployeePickerOpen(false)} className="h-9 rounded-lg border border-slate-600/80 bg-slate-800 px-4 text-xs font-bold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700">取消</button>
+            <button type="button" onClick={saveEmployeePicker} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-cyan-500 to-blue-600 px-4 text-xs font-black text-white shadow-lg shadow-cyan-950/30 transition-all hover:brightness-110 active:scale-[0.98]">
+              <CheckCircle2 className="h-4 w-4" />保存選擇
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
         {noticeCard}
         {variableHelpDialog}
         {employeePreviewDialog}
+        {employeePickerDialog}
         <div className="relative z-10 flex h-11 shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-cyan-300/25 bg-gradient-to-r from-blue-950 via-cyan-900 to-blue-950 px-3 shadow-lg shadow-blue-950/70">
           <div className="flex min-w-0 items-center gap-2">
-            <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setVariableHelpOpen(false); setEmployeePreviewOpen(false); setEditorOpen(false); }} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-200/70 bg-red-600 text-white shadow-md shadow-red-950/35 transition-colors hover:border-white hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/80">
+            <button onClick={() => { setCopiedFromName(null); setCopySourceTaskId(null); setVariableHelpOpen(false); setEmployeePreviewOpen(false); setEmployeePickerOpen(false); setEditorOpen(false); }} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-200/70 bg-red-600 text-white shadow-md shadow-red-950/35 transition-colors hover:border-white hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/80">
               <ArrowLeft className="h-3.5 w-3.5" />
             </button>
             <h2 className="truncate text-base font-black tracking-tight text-white drop-shadow-sm">{readOnly ? '查看管理員範本' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2>
@@ -1020,24 +1155,38 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 <div className="mb-2 flex items-center gap-1.5 text-xs font-black text-cyan-200"><Users className="h-3.5 w-3.5" />適用員工</div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {(['all_managed', 'selected'] as const).map(scope => (
-                    <button key={scope} disabled={readOnly} onClick={() => setForm(previous => ({ ...previous, recipientScope: scope }))} className={`rounded-lg border px-2.5 py-2 text-left transition-all duration-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${form.recipientScope === scope ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/15 to-blue-500/5 text-cyan-100 shadow-md shadow-cyan-950/30' : 'border-slate-700 bg-slate-950/80 text-slate-400 hover:border-slate-600 hover:bg-slate-800/70 hover:text-slate-200'} disabled:cursor-not-allowed disabled:opacity-60`}>
+                    <button key={scope} type="button" disabled={readOnly} onClick={() => {
+                      setForm(previous => ({ ...previous, recipientScope: scope, recipientIds: scope === 'selected' ? previous.recipientIds : [] }));
+                      if (scope === 'selected') openEmployeePicker(form.recipientScope === 'selected' ? form.recipientIds : []);
+                    }} className={`rounded-lg border px-2.5 py-2 text-left transition-all duration-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${form.recipientScope === scope ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/15 to-blue-500/5 text-cyan-100 shadow-md shadow-cyan-950/30' : 'border-slate-700 bg-slate-950/80 text-slate-400 hover:border-slate-600 hover:bg-slate-800/70 hover:text-slate-200'} disabled:cursor-not-allowed disabled:opacity-60`}>
                       <p className="text-sm font-bold">{scope === 'all_managed' ? '全部可管理員工' : '指定員工'}</p>
                       <p className="mt-0.5 text-[10px] opacity-60">{scope === 'all_managed' ? '自動包含你權限範圍內的員工' : '只對下方勾選的員工生效'}</p>
                     </button>
                   ))}
                 </div>
-                {form.recipientScope === 'selected' && (
-                  <div className="mt-2 max-h-28 space-y-0.5 overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 p-1.5">
-                    {employees.map(employee => (
-                      <label key={employee.id} className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 transition-all duration-200 hover:bg-white hover:shadow-sm">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">{employee.username}</p>
-                          <p className="text-[11px] text-slate-500">{employee.employee_id}</p>
-                        </div>
-                        <input disabled={readOnly} type="checkbox" checked={form.recipientIds.includes(employee.id)} onChange={event => setForm(previous => ({ ...previous, recipientIds: event.target.checked ? [...previous.recipientIds, employee.id] : previous.recipientIds.filter(id => id !== employee.id) }))} className="h-4 w-4 rounded bg-white accent-cyan-500 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-60" />
-                      </label>
-                    ))}
+                {form.recipientScope === 'selected' ? (
+                  <div className="mt-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06] p-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-bold text-cyan-100">已選擇 {selectedEmployees.length} 名員工</p>
+                      <button type="button" disabled={readOnly} onClick={() => openEmployeePicker()} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2 py-1.5 text-[10px] font-black text-cyan-100 transition-colors hover:border-cyan-200/60 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50">
+                        <Users className="h-3 w-3" />{selectedEmployees.length > 0 ? '編輯名單' : '選擇員工'}
+                      </button>
+                    </div>
+                    {selectedEmployees.length > 0 ? (
+                      <div className="mt-2 flex max-h-24 flex-wrap gap-1.5 overflow-y-auto pr-1 dark-panel-scroll">
+                        {selectedEmployees.map(employee => (
+                          <span key={employee.id} title={`${employee.username} · ${employee.employee_id}`} className="max-w-full rounded-md border border-cyan-300/20 bg-slate-950/60 px-2 py-1 text-[10px] font-semibold text-slate-200">
+                            <span className="font-bold text-cyan-100">{employee.username}</span>
+                            <span className="ml-1 text-slate-500">{employee.employee_id}</span>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-[10px] text-amber-200/80">尚未選擇員工，請點擊「選擇員工」開啟名單。</p>
+                    )}
                   </div>
+                ) : (
+                  <p className="mt-2 rounded-lg border border-slate-700/60 bg-slate-950/45 px-2.5 py-2 text-[10px] leading-5 text-slate-500">選擇「指定員工」後，可在彈窗中搜尋帳號或員工 ID 並進行多選。</p>
                 )}
               </section>
               </div>
