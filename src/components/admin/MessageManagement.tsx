@@ -1720,7 +1720,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           <p className="mt-1 text-[10px] text-emerald-200/45">Click “New Template” to create one</p>
                         </div>
                       ) : (
-                        <div className="relative max-h-64 space-y-1.5 overflow-y-auto p-2 scrollbar-dark">
+                        <div className="relative max-h-[32rem] space-y-1.5 overflow-y-auto p-2 scrollbar-dark">
                           {templates.map(tpl => (
                             <div key={tpl.id}
                               onClick={() => applyTemplate(tpl)}
