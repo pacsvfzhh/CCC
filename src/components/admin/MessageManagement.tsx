@@ -1971,10 +1971,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 const isFullyRead = recipientCount > 0 && readCount === recipientCount;
                 const isPartiallyRead = readCount > 0 && !isFullyRead;
                 const cardTone = isFullyRead
-                  ? 'border-emerald-500/35 border-l-emerald-400 bg-gradient-to-r from-emerald-950/75 via-slate-900/85 to-slate-900/65 hover:border-emerald-400/55'
+                  ? 'border-emerald-500/35 border-l-emerald-400 bg-gradient-to-r from-emerald-950/75 via-slate-900/85 to-slate-900/65 hover:border-emerald-300/80 hover:shadow-[0_6px_18px_rgba(16,185,129,0.22)]'
                   : isPartiallyRead
-                    ? 'border-amber-500/35 border-l-amber-400 bg-gradient-to-r from-amber-950/70 via-slate-900/85 to-slate-900/65 hover:border-amber-400/55'
-                    : 'border-red-500/35 border-l-red-400 bg-gradient-to-r from-red-950/70 via-slate-900/85 to-slate-900/65 hover:border-red-400/55';
+                    ? 'border-amber-500/35 border-l-amber-400 bg-gradient-to-r from-amber-950/70 via-slate-900/85 to-slate-900/65 hover:border-amber-300/80 hover:shadow-[0_6px_18px_rgba(245,158,11,0.22)]'
+                    : 'border-red-500/35 border-l-red-400 bg-gradient-to-r from-red-950/70 via-slate-900/85 to-slate-900/65 hover:border-red-300/80 hover:shadow-[0_6px_18px_rgba(239,68,68,0.22)]';
                 const isSelectedMsg = selectedMessageIds.has(msg.id);
 
                 return (
@@ -1991,9 +1991,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         void loadRecipientDetailsRef.current?.(msg.id);
                       }
                     }}
-                    className={`cursor-pointer rounded-md border border-l-[3px] px-2.5 py-2 transition-colors duration-150 ${
+                    className={`cursor-pointer rounded-md border border-l-[3px] px-2.5 py-2 transition-[transform,box-shadow,border-color,filter] duration-150 hover:translate-x-0.5 hover:brightness-110 ${
                       selectionMode && isSelectedMsg
-                        ? 'border-blue-400/50 border-l-blue-400 bg-blue-600/20 ring-1 ring-blue-500/30'
+                        ? 'border-blue-400/50 border-l-blue-400 bg-blue-600/20 ring-1 ring-blue-500/30 hover:border-blue-300/80 hover:shadow-[0_6px_18px_rgba(59,130,246,0.24)]'
                         : cardTone
                     }`}
                   >
