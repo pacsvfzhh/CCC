@@ -3084,6 +3084,10 @@ export interface Database {
         Args: { p_user_id: string; p_session_token: string; p_tab_id: string; p_recipient_id: string; p_lease_seconds?: number };
         Returns: Record<string, unknown> | null;
       };
+      claim_next_realtime_notification_delivery: {
+        Args: { p_user_id: string; p_session_token: string; p_tab_id: string; p_lease_seconds?: number };
+        Returns: Record<string, unknown> | null;
+      };
       has_pending_employee_login_notifications: {
         Args: { p_user_id: string; p_session_token: string; p_tab_id: string; p_combined_only?: boolean };
         Returns: boolean;

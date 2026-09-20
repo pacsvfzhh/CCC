@@ -37,6 +37,21 @@ interface EmployeeDashboardProps {
   employee: Employee;
 }
 
+type RealtimeNotificationClaim = {
+  claim_token: string;
+  recipient: { id: string };
+  message: {
+    title: string;
+    content: string;
+    priority: string;
+    notification_category: string;
+    reward_amount: number | null;
+    reward_currency: string | null;
+  };
+};
+
+type EmployeeFinancialSession = ReturnType<typeof getEmployeeFinancialSession>;
+
 export default function EmployeeDashboard({ employee: initialEmployee }: EmployeeDashboardProps) {
   const [employee, setEmployee] = useState<Employee>(initialEmployee);
   const [activeTab, setActiveTab] = useState<'announcements' | 'orders' | 'wallet' | 'statistics' | 'dispatch'>('announcements');
@@ -64,6 +79,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const loadUnreadCountRef = useRef<(() => Promise<void>) | null>(null);
   const checkLoginPopupMessagesRef = useRef<((combinedOnly?: boolean) => Promise<void>) | null>(null);
   const processRealtimeRecipientRef = useRef<((recipientId: string) => Promise<void>) | null>(null);
+  const recoverRealtimeNotificationsRef = useRef<(() => Promise<void>) | null>(null);
   const notificationChannelStatusRef = useRef('CLOSED');
   const deliveredRecipientIdsRef = useRef(new Set<string>());
   const realtimeDeliveryChainRef = useRef<Promise<void>>(Promise.resolve());
@@ -308,20 +324,27 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     void loadUnreadCountRef.current?.();
     void checkLoginPopupMessagesRef.current?.(false);
 
-    const recoverCombinedNotifications = () => {
-      if (document.visibilityState === 'visible' && navigator.onLine) {
-        void loadUnreadCountRef.current?.();
-        void checkLoginPopupMessagesRef.current?.(true);
-      }
+    const recoverNotifications = () => {
+      if (document.visibilityState !== 'visible' || !navigator.onLine) return;
+
+      void loadUnreadCountRef.current?.();
+      if (notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
+
+      realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
+        .then(async () => {
+          await recoverRealtimeNotificationsRef.current?.();
+          await checkLoginPopupMessagesRef.current?.(true);
+        })
+        .catch(error => console.error('Error recovering employee notifications:', error));
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') recoverCombinedNotifications();
+      if (document.visibilityState === 'visible') recoverNotifications();
     };
 
-    window.addEventListener('online', recoverCombinedNotifications);
+    window.addEventListener('online', recoverNotifications);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    const recoveryTimer = window.setInterval(recoverCombinedNotifications, 30000);
+    const recoveryTimer = window.setInterval(recoverNotifications, 30000);
 
     const channel = supabase
       .channel(`employee_new_messages_${employee.id}`)
@@ -357,11 +380,11 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       )
       .subscribe(status => {
         notificationChannelStatusRef.current = status;
-        if (status === 'SUBSCRIBED') recoverCombinedNotifications();
+        if (status === 'SUBSCRIBED') recoverNotifications();
       });
 
     return () => {
-      window.removeEventListener('online', recoverCombinedNotifications);
+      window.removeEventListener('online', recoverNotifications);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(recoveryTimer);
       notificationChannelStatusRef.current = 'CLOSED';
@@ -455,6 +478,45 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     }
   };
 
+  const deliverClaimedRealtimeNotification = async (
+    result: RealtimeNotificationClaim,
+    session: EmployeeFinancialSession,
+  ) => {
+    const recipientId = result.recipient.id;
+    const completionPayload = {
+      p_user_id: employee.id,
+      p_session_token: session.token,
+      p_tab_id: session.tabId,
+      p_recipient_id: recipientId,
+      p_claim_token: result.claim_token,
+      p_mark_read: false,
+    };
+    let completion = await supabase.rpc('complete_notification_delivery', completionPayload);
+    if (completion.error && navigator.onLine) {
+      await new Promise(resolve => window.setTimeout(resolve, 300));
+      completion = await supabase.rpc('complete_notification_delivery', completionPayload);
+    }
+    if (completion.error) throw completion.error;
+    if (!(completion.data as { success?: boolean } | null)?.success) {
+      throw new Error('Notification delivery could not be confirmed.');
+    }
+    if (deliveredRecipientIdsRef.current.has(recipientId)) return;
+
+    deliveredRecipientIdsRef.current.add(recipientId);
+    playNotificationSound();
+    setHasNewMessage(true);
+    setMessageToastQueue(previous => previous.some(item => item.recipientId === recipientId) ? previous : [...previous, {
+      recipientId,
+      title: result.message.title,
+      content: result.message.content,
+      priority: result.message.priority,
+      notificationCategory: result.message.notification_category,
+      rewardAmount: result.message.reward_amount,
+      rewardCurrency: result.message.reward_currency,
+    }]);
+    void loadUnreadCountRef.current?.();
+  };
+
   const processRealtimeRecipient = async (recipientId: string) => {
     if (deliveredRecipientIdsRef.current.has(recipientId)) return;
 
@@ -469,58 +531,36 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       });
       if (error) throw error;
 
-      const result = data as {
-        claim_token: string;
-        recipient: { id: string };
-        message: {
-          title: string;
-          content: string;
-          priority: string;
-          notification_category: string;
-          reward_amount: number | null;
-          reward_currency: string | null;
-        };
-      } | null;
-      if (!result) return;
-
-      const toastMessage = {
-        recipientId: result.recipient.id,
-        title: result.message.title,
-        content: result.message.content,
-        priority: result.message.priority,
-        notificationCategory: result.message.notification_category,
-        rewardAmount: result.message.reward_amount,
-        rewardCurrency: result.message.reward_currency,
-      };
-
-      const completionPayload = {
-        p_user_id: employee.id,
-        p_session_token: session.token,
-        p_tab_id: session.tabId,
-        p_recipient_id: result.recipient.id,
-        p_claim_token: result.claim_token,
-        p_mark_read: false,
-      };
-      let completion = await supabase.rpc('complete_notification_delivery', completionPayload);
-      if (completion.error && navigator.onLine) {
-        await new Promise(resolve => window.setTimeout(resolve, 300));
-        completion = await supabase.rpc('complete_notification_delivery', completionPayload);
-      }
-      if (completion.error) throw completion.error;
-      if (!(completion.data as { success?: boolean } | null)?.success) throw new Error('Notification delivery could not be confirmed.');
-
-      deliveredRecipientIdsRef.current.add(recipientId);
-      playNotificationSound();
-      setHasNewMessage(true);
-      setMessageToastQueue(previous => previous.some(item => item.recipientId === recipientId) ? previous : [...previous, toastMessage]);
-      void loadUnreadCountRef.current?.();
+      const result = data as RealtimeNotificationClaim | null;
+      if (result) await deliverClaimedRealtimeNotification(result, session);
     } catch (error) {
       console.error('Error processing realtime notification:', error);
     }
   };
+
+  const recoverRealtimeNotifications = async () => {
+    const session = getEmployeeFinancialSession();
+    for (let recovered = 0; recovered < 50; recovered += 1) {
+      if (document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
+
+      const { data, error } = await supabase.rpc('claim_next_realtime_notification_delivery', {
+        p_user_id: employee.id,
+        p_session_token: session.token,
+        p_tab_id: session.tabId,
+        p_lease_seconds: 120,
+      });
+      if (error) throw error;
+
+      const result = data as RealtimeNotificationClaim | null;
+      if (!result) return;
+      await deliverClaimedRealtimeNotification(result, session);
+    }
+  };
+
   loadUnreadCountRef.current = loadUnreadCount;
   checkLoginPopupMessagesRef.current = checkLoginPopupMessages;
   processRealtimeRecipientRef.current = processRealtimeRecipient;
+  recoverRealtimeNotificationsRef.current = recoverRealtimeNotifications;
 
   const dismissMessageToast = () => {
     setShowMessageToast(false);
