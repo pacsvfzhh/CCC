@@ -1132,13 +1132,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       if (readStatusFilter === 'unread' && readCount === totalRecipients) return false;
     }
     if (sentMessagesSearchQuery.trim()) {
-      const query = sentMessagesSearchQuery.toLowerCase();
-      const matchesTitle = msg.title.toLowerCase().includes(query);
-      const matchesContent = msg.content.toLowerCase().includes(query);
-      const matchesSender = msg.sender_username.toLowerCase().includes(query);
-      const recipientNames = recipientUsernames.get(msg.id) || [];
-      const matchesRecipient = recipientNames.some(name => name.toLowerCase().includes(query));
-      if (!matchesTitle && !matchesContent && !matchesSender && !matchesRecipient) return false;
+      const query = sentMessagesSearchQuery.trim().toLowerCase();
+      const recipients = recipientDetails.get(msg.id);
+      const matchesRecipient = [...(recipients?.read || []), ...(recipients?.unread || [])]
+        .some(employee => employee.username.toLowerCase().includes(query)
+          || employee.employee_id.toLowerCase().includes(query));
+      if (!matchesRecipient) return false;
     }
     return true;
   });
@@ -1884,13 +1883,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             {/* Search */}
             {sentMessages.length > 0 && (
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
+                <Search className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
                 <input type="text" value={sentMessagesSearchQuery} onChange={(e) => setSentMessagesSearchQuery(e.target.value)}
-                  placeholder="Search sent..."
-                  className="w-full rounded-lg border border-slate-600/70 bg-slate-800/90 py-2 pl-7 pr-7 text-[11px] text-white placeholder-slate-500 outline-none transition-colors focus:border-blue-500/70 focus:bg-slate-800 focus:ring-1 focus:ring-blue-400/50"
+                  placeholder="Search employee account / ID..."
+                  className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-7 pr-7 text-[11px] text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
                 {sentMessagesSearchQuery && (
-                  <button onClick={() => setSentMessagesSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
+                  <button onClick={() => setSentMessagesSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700">
                     <X className="w-3 h-3" />
                   </button>
                 )}
