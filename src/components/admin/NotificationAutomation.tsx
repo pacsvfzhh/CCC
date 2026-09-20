@@ -1210,7 +1210,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
               <section className="mt-3 border-t border-slate-700/60 pt-2.5">
                 <div className="mb-2 flex items-center gap-1.5 text-xs font-black text-cyan-200"><Target className="h-3.5 w-3.5" />觸發條件</div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-3">
                   <label>
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">條件類型</span>
                     <select disabled={readOnly} value={form.triggerType} onChange={event => { setTemplateCustomized(false); setForm(previous => ({ ...previous, triggerType: event.target.value as TriggerType })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300">
@@ -1243,7 +1243,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         <span className="mb-1.5 block text-xs font-semibold text-slate-400">日期</span>
                         <input disabled={readOnly} type="number" min="1" max={new Date(2000, Number(form.annualMonth), 0).getDate()} step="1" value={form.annualDay} onChange={event => setForm(previous => ({ ...previous, annualDay: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                       </label>
-                      <div className="sm:col-span-2 rounded-xl border border-violet-500/20 bg-violet-500/10 p-3 text-xs leading-relaxed text-violet-100/80">
+                      <div className="sm:col-span-3 rounded-xl border border-violet-500/20 bg-violet-500/10 p-3 text-xs leading-relaxed text-violet-100/80">
                         系統依 UTC 伺服器日期自動判斷，每年到達所選月日只執行一次，不依賴管理員或員工瀏覽器保持開啟。
                       </div>
                     </>
