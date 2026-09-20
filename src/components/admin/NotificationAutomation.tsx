@@ -998,8 +998,12 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           role="checkbox"
                           aria-checked={selected}
                           tabIndex={0}
-                          onClick={() => togglePendingEmployee(employee.id)}
+                          onClick={event => {
+                            if (event.target instanceof HTMLInputElement) return;
+                            togglePendingEmployee(employee.id);
+                          }}
                           onKeyDown={event => {
+                            if (event.target instanceof HTMLInputElement) return;
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault();
                               togglePendingEmployee(employee.id);
@@ -1010,10 +1014,14 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           <input
                             type="checkbox"
                             checked={selected}
-                            onChange={() => togglePendingEmployee(employee.id)}
-                            onClick={event => event.stopPropagation()}
-                            className="h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-950 accent-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                            onChange={event => setPendingRecipientIds(previous => event.target.checked
+                              ? (previous.includes(employee.id) ? previous : [...previous, employee.id])
+                              : previous.filter(id => id !== employee.id))}
+                            className="peer sr-only"
                           />
+                          <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-400/70 ${selected ? 'border-cyan-200 bg-cyan-500 text-white shadow-sm shadow-cyan-950/40' : 'border-slate-600 bg-slate-950/80 text-transparent'}`}>
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          </span>
                           <span className="min-w-0 flex-1">
                             <span className={`block truncate text-sm font-bold ${selected ? 'text-cyan-100' : 'text-slate-200'}`}>{employee.username}</span>
                             <span className="mt-0.5 block truncate text-[11px] text-slate-500">員工 ID：{employee.employee_id}</span>
