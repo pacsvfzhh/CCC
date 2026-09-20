@@ -808,6 +808,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       let query = supabase
         .from('messages')
         .select('*')
+        .is('automation_execution_id', null)
         .order('created_at', { ascending: false });
 
       if (admin.role !== 'super_admin' && !admin.is_super_admin) {
@@ -1014,24 +1015,25 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   };
 
   const handleDeleteAll = async () => {
+    const manualMessageIds = selectedAdminManualMessages.map(message => message.id);
+    if (manualMessageIds.length === 0) return;
+
     setDeleting(true);
     try {
-      const targetAdminId = selectedAdminId || admin.id;
-      const { data, error } = await supabase.rpc('delete_all_messages_for_admin', {
+      const { data, error } = await supabase.rpc('delete_messages', {
+        message_ids: manualMessageIds,
         requesting_admin_id: admin.id,
-        target_admin_id: targetAdminId
       });
       if (error) throw error;
 
-      const result = data as { success: boolean; deleted_count: number; error?: string };
+      const result = data as { success: boolean; deleted_count: number; failed_count: number };
       if (result.success) {
         setNotification({ type: 'success', message: `Successfully deleted ${result.deleted_count} message(s)` });
         await loadSentMessages();
         setShowDeleteConfirm(false);
         setDeleteMode(null);
+        setSelectedMessageDetail(null);
         exitSelectionMode();
-      } else {
-        setNotification({ type: 'error', message: result.error || 'Failed to delete messages' });
       }
     } catch (error) {
       console.error('Error deleting all messages:', error);
@@ -1106,6 +1108,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
   const selectedGroupEmployeeIds = new Set(
     (selectedAdminId ? allEmployees.get(selectedAdminId) || [] : []).map(employee => employee.id),
+  );
+  const selectedAdminManualMessages = sentMessages.filter(
+    message => message.sender_id === (selectedAdminId || admin.id),
   );
 
   const filteredMessages = sentMessages.filter(msg => {
@@ -1837,7 +1842,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           <div className="space-y-1.5 border-b border-slate-700/60 bg-slate-800/45 px-3 py-2.5">
             <div className="flex items-center justify-between">
               <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-200">Sent messages</h3>
-              {sentMessages.length > 0 && !selectionMode && (
+              {selectedAdminManualMessages.length > 0 && !selectionMode && (
                 <div className="flex items-center gap-1">
                   <button onClick={enterSelectionMode}
                     className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-400 transition-colors hover:border-blue-700 hover:bg-blue-950/70 hover:text-blue-200" title="Select messages">
@@ -1958,6 +1963,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             ) : (
               paginatedMessages.map(msg => {
                 const stats = messageStats.get(msg.id);
+                const recipientCount = stats?.total_recipients || 0;
+                const recipientDetail = recipientDetails.get(msg.id);
+                const soleRecipient = recipientCount === 1
+                  ? recipientDetail?.read[0] || recipientDetail?.unread[0]
+                  : null;
                 const isSelectedMsg = selectedMessageIds.has(msg.id);
 
                 return (
@@ -1986,8 +1996,20 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           {isSelectedMsg ? <CheckSquare className="w-3.5 h-3.5 text-blue-400" /> : <Square className="w-3.5 h-3.5 text-slate-600" />}
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-[11px] font-bold text-slate-100 truncate mb-1.5">{msg.title}</h4>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1.5 flex items-start justify-between gap-2">
+                          <h4 className="min-w-0 flex-1 truncate text-[11px] font-bold text-slate-100">{msg.title}</h4>
+                          {recipientCount > 1 ? (
+                            <span className="shrink-0 rounded-md border border-blue-400/25 bg-blue-500/10 px-1.5 py-1 text-[8px] font-bold text-blue-200">
+                              發送給 {recipientCount} 人
+                            </span>
+                          ) : soleRecipient ? (
+                            <span className="min-w-0 max-w-[112px] shrink-0 text-right leading-tight" title={`${soleRecipient.username} · ${soleRecipient.employee_id}`}>
+                              <span className="block truncate text-[9px] font-bold text-cyan-200">{soleRecipient.username}</span>
+                              <span className="mt-0.5 block truncate font-mono text-[8px] text-slate-500">{soleRecipient.employee_id}</span>
+                            </span>
+                          ) : null}
+                        </div>
                         <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                           <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold border ${getPriorityColor(msg.priority)}`}>
                             {msg.priority.charAt(0).toUpperCase() + msg.priority.slice(1)}
@@ -2571,9 +2593,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   </p>
                 ) : (
                   <p className="text-sm text-slate-300">
-                    You are about to delete <span className="font-semibold text-white">all messages</span> for the selected admin group.
-                    {sentMessages.length > 0 && (
-                      <span className="block mt-1 text-slate-400">({sentMessages.length} message{sentMessages.length !== 1 ? 's' : ''} will be deleted)</span>
+                    You are about to delete <span className="font-semibold text-white">all manually sent messages</span> for the selected admin group.
+                    {selectedAdminManualMessages.length > 0 && (
+                      <span className="block mt-1 text-slate-400">({selectedAdminManualMessages.length} message{selectedAdminManualMessages.length !== 1 ? 's' : ''} will be deleted)</span>
                     )}
                   </p>
                 )}
