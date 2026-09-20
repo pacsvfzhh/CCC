@@ -2627,13 +2627,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
             <div className="relative flex shrink-0 flex-col gap-3 border-t border-emerald-200/15 bg-gradient-to-r from-emerald-950/90 via-slate-950/90 to-teal-950/90 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setShowSaveTemplateModal(false); setEditingTemplateId(null); setNewTemplateName(''); setTemplateEditorContent(''); setTemplateFormTitle(''); }}
-                  className="rounded-xl border border-emerald-200/20 bg-slate-950/35 px-4 py-2.5 text-xs font-bold text-emerald-100/75 transition-all hover:border-emerald-200/45 hover:bg-emerald-400/10 hover:text-white"
-                >
-                  Cancel
-                </button>
                 {editingTemplateId && (
                   <button
                     type="button"
