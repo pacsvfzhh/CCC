@@ -8,6 +8,7 @@ interface NotificationDeliverySelectorProps {
   onChange: (value: NotificationDeliveryMode) => void;
   disabled?: boolean;
   className?: string;
+  embedded?: boolean;
 }
 
 const options = [
@@ -42,17 +43,18 @@ export default function NotificationDeliverySelector({
   onChange,
   disabled = false,
   className = '',
+  embedded = false,
 }: NotificationDeliverySelectorProps) {
   return (
-    <div className={`rounded-2xl border border-cyan-300/30 bg-gradient-to-r from-cyan-500/[0.08] via-slate-950/75 to-violet-500/[0.08] p-2.5 ${className}`}>
-      <div className="mb-2 flex items-center justify-between gap-3 px-1">
+    <div className={`${embedded ? 'bg-transparent' : 'rounded-2xl border border-cyan-300/30 bg-gradient-to-r from-cyan-500/[0.08] via-slate-950/75 to-violet-500/[0.08] p-2.5'} ${className}`}>
+      <div className={`${embedded ? 'mb-1' : 'mb-2 px-1'} flex items-center justify-between gap-3`}>
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-cyan-300" />
           <span className="text-[11px] font-black tracking-[0.08em] text-slate-100">通知類型</span>
         </div>
         <span className="text-[9px] font-semibold text-cyan-100/55">結合通知只顯示於管理員端</span>
       </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className={`grid grid-cols-1 sm:grid-cols-3 ${embedded ? 'gap-1.5' : 'gap-2'}`}>
         {options.map(option => {
           const Icon = option.icon;
           const selected = value === option.value;
@@ -63,13 +65,13 @@ export default function NotificationDeliverySelector({
               disabled={disabled}
               aria-pressed={selected}
               onClick={() => onChange(option.value)}
-              className={`min-w-0 rounded-xl border px-2.5 py-2 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 disabled:cursor-not-allowed disabled:opacity-60 ${selected ? option.active : option.inactive}`}
+              className={`min-w-0 border px-2.5 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 disabled:cursor-not-allowed disabled:opacity-60 ${embedded ? 'rounded-lg py-1.5' : 'rounded-xl py-2'} ${selected ? option.active : option.inactive}`}
             >
               <span className="flex items-center justify-center gap-1.5 text-[11px] font-black">
                 <Icon className="h-3.5 w-3.5 shrink-0" />
                 {option.label}
               </span>
-              <span className={`mt-1 block truncate text-center text-[9px] font-semibold ${selected ? 'text-white/75' : 'text-slate-400'}`}>
+              <span className={`${embedded ? 'mt-0.5' : 'mt-1'} block truncate text-center text-[9px] font-semibold ${selected ? 'text-white/75' : 'text-slate-400'}`}>
                 {option.description}
               </span>
             </button>

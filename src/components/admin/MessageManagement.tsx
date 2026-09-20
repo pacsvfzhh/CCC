@@ -1626,12 +1626,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
         {/* Panel 3: Compose Message */}
         <div className="flex min-w-0 flex-1 flex-col border-r border-slate-700/60 bg-slate-900/95">
-          <div className="flex-1 min-h-0 flex flex-col p-3 gap-3">
+          <div className="flex min-h-0 flex-1 flex-col gap-2.5 p-3">
             <NotificationDeliverySelector
               value={messageForm.deliveryMode}
               onChange={deliveryMode => setMessageForm(previous => ({ ...previous, deliveryMode }))}
               disabled={sending}
               className="shrink-0"
+              embedded
             />
 
             <div className="flex shrink-0 flex-nowrap items-center gap-2">
@@ -1745,19 +1746,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               </div>
             </div>
 
-            {/* Title - light input */}
-            <div className="shrink-0">
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase">Title</label>
-                <span className="text-[10px] text-slate-600">{messageForm.title.length}/200</span>
-              </div>
-              <input type="text" value={messageForm.title}
-                onChange={(e) => setMessageForm({ ...messageForm, title: e.target.value.slice(0, 200) })}
-                placeholder="Enter message title..."
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
             <section className={`shrink-0 rounded-2xl border p-3 transition-colors duration-200 ${manualRewardEnabled ? 'border-amber-300/45 bg-gradient-to-br from-amber-500/[0.12] via-orange-500/[0.06] to-slate-900 shadow-[0_10px_28px_rgba(120,53,15,0.16)]' : 'border-slate-700/80 bg-slate-900/65 hover:border-slate-600'}`}>
               <div className={`flex items-center justify-between gap-2 border-l-2 pl-3 ${manualRewardEnabled ? 'border-amber-300' : 'border-slate-600'}`}>
                 <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -1799,6 +1787,19 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 </button>
               </div>
             </section>
+
+            {/* Title - light input */}
+            <div className="shrink-0">
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-[10px] font-semibold uppercase text-slate-400">Title</label>
+                <span className="text-[10px] text-slate-600">{messageForm.title.length}/200</span>
+              </div>
+              <input type="text" value={messageForm.title}
+                onChange={(e) => setMessageForm({ ...messageForm, title: e.target.value.slice(0, 200) })}
+                placeholder="Enter message title..."
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
 
             {/* TipTap Editor - fills all remaining space */}
             <div className="flex-1 min-h-0 flex flex-col">
