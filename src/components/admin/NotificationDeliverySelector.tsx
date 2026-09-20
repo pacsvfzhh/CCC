@@ -17,8 +17,8 @@ const options = [
     label: '結合通知',
     description: '在線即時，離線登入彈出',
     icon: ShieldCheck,
-    active: 'border-cyan-200 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_18px_rgba(6,182,212,0.28)]',
-    inactive: 'border-cyan-700/70 bg-cyan-950/30 text-cyan-200 hover:border-cyan-400/80 hover:bg-cyan-950/70',
+    active: 'border-amber-200 bg-gradient-to-r from-amber-400 to-orange-500 text-amber-950 shadow-[0_0_18px_rgba(245,158,11,0.3)]',
+    inactive: 'border-amber-700/70 bg-amber-950/30 text-amber-200 hover:border-amber-400/80 hover:bg-amber-950/70',
   },
   {
     value: 'realtime_only' as const,
