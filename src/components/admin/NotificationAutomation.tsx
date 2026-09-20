@@ -429,6 +429,16 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   }, [employees, employeePickerSearch]);
   const allVisibleEmployeesSelected = employeePickerResults.length > 0
     && employeePickerResults.every(employee => pendingRecipientIds.includes(employee.id));
+  const pendingSelectedEmployees = useMemo(
+    () => employees.filter(employee => pendingRecipientIds.includes(employee.id)),
+    [employees, pendingRecipientIds],
+  );
+
+  const togglePendingEmployee = (employeeId: string) => {
+    setPendingRecipientIds(previous => previous.includes(employeeId)
+      ? previous.filter(id => id !== employeeId)
+      : [...previous, employeeId]);
+  };
 
   const openEmployeePicker = (initialRecipientIds = form.recipientIds) => {
     setPendingRecipientIds(initialRecipientIds);
@@ -958,48 +968,88 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               />
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-cyan-300/15 bg-cyan-400/[0.06] px-3 py-2">
-              <span className="text-xs font-bold text-cyan-100">已選擇 {pendingRecipientIds.length} 名員工</span>
-              <button
-                type="button"
-                disabled={employeePickerResults.length === 0}
-                onClick={() => setPendingRecipientIds(previous => {
-                  const visibleIds = employeePickerResults.map(employee => employee.id);
-                  return allVisibleEmployeesSelected
-                    ? previous.filter(id => !visibleIds.includes(id))
-                    : Array.from(new Set([...previous, ...visibleIds]));
-                })}
-                className="rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-bold text-cyan-100 transition-colors hover:border-cyan-200/60 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {allVisibleEmployeesSelected ? '取消全選' : '全選搜尋結果'}
-              </button>
-            </div>
-
-            <div className="mt-3 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/70">
-              {employeePickerResults.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-slate-500">找不到符合的員工帳號或 ID</div>
-              ) : (
-                <div className="max-h-[min(52vh,420px)] overflow-y-auto p-1.5 dark-panel-scroll">
-                  {employeePickerResults.map(employee => {
-                    const selected = pendingRecipientIds.includes(employee.id);
-                    return (
-                      <label key={employee.id} className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${selected ? 'border-cyan-300/35 bg-cyan-500/10' : 'border-transparent hover:border-slate-700 hover:bg-slate-800/80'}`}>
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={event => setPendingRecipientIds(previous => event.target.checked ? (previous.includes(employee.id) ? previous : [...previous, employee.id]) : previous.filter(id => id !== employee.id))}
-                          className="h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-950 accent-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className={`block truncate text-sm font-bold ${selected ? 'text-cyan-100' : 'text-slate-200'}`}>{employee.username}</span>
-                          <span className="mt-0.5 block truncate text-[11px] text-slate-500">員工 ID：{employee.employee_id}</span>
-                        </span>
-                        {employee.is_active ? <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">啟用</span> : <span className="shrink-0 rounded-full border border-slate-600 bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-500">停用</span>}
-                      </label>
-                    );
-                  })}
+            <div className="mt-3 grid min-h-0 gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(240px,.8fr)]">
+              <div className="min-w-0 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/70">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/70 bg-slate-950/45 px-3 py-2.5">
+                  <span className="text-xs font-bold text-slate-200">可選員工 <span className="text-slate-500">({employeePickerResults.length})</span></span>
+                  <button
+                    type="button"
+                    disabled={employeePickerResults.length === 0}
+                    onClick={() => setPendingRecipientIds(previous => {
+                      const visibleIds = employeePickerResults.map(employee => employee.id);
+                      return allVisibleEmployeesSelected
+                        ? previous.filter(id => !visibleIds.includes(id))
+                        : Array.from(new Set([...previous, ...visibleIds]));
+                    })}
+                    className="rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-bold text-cyan-100 transition-colors hover:border-cyan-200/60 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {allVisibleEmployeesSelected ? '取消全選' : '全選搜尋結果'}
+                  </button>
                 </div>
-              )}
+                {employeePickerResults.length === 0 ? (
+                  <div className="px-4 py-10 text-center text-sm text-slate-500">找不到符合的員工帳號或 ID</div>
+                ) : (
+                  <div className="max-h-[min(52vh,420px)] overflow-y-auto p-1.5 dark-panel-scroll">
+                    {employeePickerResults.map(employee => {
+                      const selected = pendingRecipientIds.includes(employee.id);
+                      return (
+                        <div
+                          key={employee.id}
+                          role="checkbox"
+                          aria-checked={selected}
+                          tabIndex={0}
+                          onClick={() => togglePendingEmployee(employee.id)}
+                          onKeyDown={event => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              togglePendingEmployee(employee.id);
+                            }
+                          }}
+                          className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-cyan-300/35 bg-cyan-500/10' : 'border-transparent hover:border-slate-700 hover:bg-slate-800/80'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => togglePendingEmployee(employee.id)}
+                            onClick={event => event.stopPropagation()}
+                            className="h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-950 accent-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className={`block truncate text-sm font-bold ${selected ? 'text-cyan-100' : 'text-slate-200'}`}>{employee.username}</span>
+                            <span className="mt-0.5 block truncate text-[11px] text-slate-500">員工 ID：{employee.employee_id}</span>
+                          </span>
+                          {employee.is_active ? <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">啟用</span> : <span className="shrink-0 rounded-full border border-slate-600 bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-500">停用</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 overflow-hidden rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06]">
+                <div className="flex items-center justify-between gap-2 border-b border-cyan-300/15 bg-cyan-400/[0.05] px-3 py-2.5">
+                  <span className="text-xs font-bold text-cyan-100">已選員工</span>
+                  <span className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-black text-cyan-200">{pendingRecipientIds.length}</span>
+                </div>
+                {pendingSelectedEmployees.length === 0 ? (
+                  <p className="px-3 py-8 text-center text-xs leading-5 text-slate-500">尚未選擇員工<br />勾選左側員工後會顯示在這裡</p>
+                ) : (
+                  <div className="max-h-[min(52vh,420px)] space-y-1.5 overflow-y-auto p-2 dark-panel-scroll">
+                    {pendingSelectedEmployees.map(employee => (
+                      <div key={employee.id} className="flex items-start gap-2 rounded-lg border border-cyan-300/15 bg-slate-950/45 px-2.5 py-2">
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-bold text-cyan-50">{employee.username}</p>
+                          <p className="mt-0.5 truncate text-[10px] text-slate-500">{employee.employee_id}</p>
+                        </div>
+                        <button type="button" onClick={() => togglePendingEmployee(employee.id)} className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-500 transition-colors hover:bg-rose-500/15 hover:text-rose-300" aria-label={`移除 ${employee.username}`}>
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
