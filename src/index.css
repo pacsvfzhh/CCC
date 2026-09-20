@@ -51,6 +51,28 @@
   scrollbar-color: #3b82f6 transparent;
 }
 
+.employee-selection-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 211, 238, 0.7) rgba(8, 47, 73, 0.35);
+  scrollbar-gutter: stable;
+}
+.employee-selection-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.employee-selection-scroll::-webkit-scrollbar-track {
+  background: rgba(8, 47, 73, 0.35);
+  border-radius: 999px;
+}
+.employee-selection-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(103, 232, 249, 0.82), rgba(37, 99, 235, 0.78));
+  border: 1px solid rgba(15, 23, 42, 0.55);
+  border-radius: 999px;
+}
+.employee-selection-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(165, 243, 252, 0.95), rgba(59, 130, 246, 0.9));
+}
+
 .login-history-modal-scroll {
   background-color: #020617;
   color-scheme: dark;
