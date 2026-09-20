@@ -1164,16 +1164,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     }
   };
 
-  const getPriorityBorderColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'border-l-red-500';
-      case 'high': return 'border-l-amber-500';
-      case 'normal': return 'border-l-emerald-500';
-      case 'low': return 'border-l-slate-500';
-      default: return 'border-l-slate-500';
-    }
-  };
-
   if (loading && !initialEmployee) {
     return (
       <div className="flex min-h-[280px] flex-1 flex-col items-center justify-center gap-4 text-center text-slate-400">
@@ -1952,6 +1942,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 const soleRecipient = recipientCount === 1
                   ? recipientDetail?.read[0] || recipientDetail?.unread[0]
                   : null;
+                const readCount = stats?.read_count || 0;
+                const isFullyRead = recipientCount > 0 && readCount === recipientCount;
+                const isPartiallyRead = readCount > 0 && !isFullyRead;
+                const cardTone = isFullyRead
+                  ? 'border-emerald-500/35 border-l-emerald-400 bg-gradient-to-r from-emerald-950/75 via-slate-900/85 to-slate-900/65 hover:border-emerald-400/55'
+                  : isPartiallyRead
+                    ? 'border-amber-500/35 border-l-amber-400 bg-gradient-to-r from-amber-950/70 via-slate-900/85 to-slate-900/65 hover:border-amber-400/55'
+                    : 'border-red-500/35 border-l-red-400 bg-gradient-to-r from-red-950/70 via-slate-900/85 to-slate-900/65 hover:border-red-400/55';
                 const isSelectedMsg = selectedMessageIds.has(msg.id);
 
                 return (
@@ -1968,10 +1966,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         void loadRecipientDetailsRef.current?.(msg.id);
                       }
                     }}
-                    className={`cursor-pointer rounded-lg border border-slate-700/40 border-l-[3px] px-2.5 py-2.5 transition-colors duration-150 ${getPriorityBorderColor(msg.priority)} ${
+                    className={`cursor-pointer rounded-md border border-l-[3px] px-2 py-1.5 transition-colors duration-150 ${
                       selectionMode && isSelectedMsg
-                        ? 'bg-blue-600/15 ring-1 ring-blue-500/30'
-                        : 'bg-slate-800/45 hover:border-slate-600/70 hover:bg-slate-800/75'
+                        ? 'border-blue-400/50 border-l-blue-400 bg-blue-600/20 ring-1 ring-blue-500/30'
+                        : cardTone
                     }`}
                   >
                     <div className="flex items-start gap-2">
@@ -1981,48 +1979,48 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="mb-1.5 flex items-start justify-between gap-2">
-                          <h4 className="min-w-0 flex-1 truncate text-[11px] font-bold text-slate-100">{msg.title}</h4>
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <h4 className="min-w-0 flex-1 truncate text-[10px] font-bold text-slate-100">{msg.title}</h4>
                           {recipientCount > 1 ? (
-                            <span className="shrink-0 rounded-md border border-blue-400/25 bg-blue-500/10 px-1.5 py-1 text-[8px] font-bold text-blue-200">
-                              發送給 {recipientCount} 人
+                            <span className="shrink-0 rounded border border-blue-400/25 bg-blue-500/10 px-1.5 py-0.5 text-[8px] font-bold text-blue-200">
+                              {recipientCount} 人
                             </span>
                           ) : soleRecipient ? (
-                            <span className="min-w-0 max-w-[112px] shrink-0 text-right leading-tight" title={`${soleRecipient.username} · ${soleRecipient.employee_id}`}>
-                              <span className="block truncate text-[9px] font-bold text-cyan-200">{soleRecipient.username}</span>
-                              <span className="mt-0.5 block truncate font-mono text-[8px] text-slate-500">{soleRecipient.employee_id}</span>
+                            <span className="min-w-0 max-w-[126px] shrink-0 truncate text-right text-[8px] leading-none" title={`${soleRecipient.username} · ${soleRecipient.employee_id}`}>
+                              <span className="font-bold text-cyan-200">{soleRecipient.username}</span>
+                              <span className="ml-1 font-mono text-slate-500">{soleRecipient.employee_id}</span>
                             </span>
                           ) : null}
                         </div>
-                        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                          <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold border ${getPriorityColor(msg.priority)}`}>
-                            {msg.priority.charAt(0).toUpperCase() + msg.priority.slice(1)}
-                          </span>
-                          <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${
-                            getDeliveryMode(msg) === 'realtime_with_login_fallback'
-                              ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
-                              : getDeliveryMode(msg) === 'login_only'
-                                ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
-                                : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
-                          }`}>
-                            {getNotificationDeliveryLabel(getDeliveryMode(msg))}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          {stats ? (
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-12 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                                <div className={`h-full rounded-full transition-all ${stats.read_percentage === 100 ? 'bg-emerald-500' : stats.read_percentage >= 50 ? 'bg-amber-500' : 'bg-slate-500'}`}
-                                  style={{ width: `${stats.read_percentage}%` }} />
-                              </div>
-                              <span className={`text-[9px] font-bold ${stats.read_percentage === 100 ? 'text-emerald-400' : stats.read_percentage >= 50 ? 'text-amber-400' : 'text-slate-500'}`}>
-                                {stats.read_count}/{stats.total_recipients}
-                              </span>
-                            </div>
-                          ) : <div />}
-                          <span className="text-[9px] text-slate-500 font-medium">
-                            {formatMessageDateTime(msg.created_at)}
-                          </span>
+                        <div className="flex min-w-0 items-center justify-between gap-1.5">
+                          <div className="flex min-w-0 items-center gap-1">
+                            <span className={`rounded-full border px-1.5 py-px text-[7px] font-bold ${getPriorityColor(msg.priority)}`}>
+                              {msg.priority.charAt(0).toUpperCase() + msg.priority.slice(1)}
+                            </span>
+                            <span className={`truncate rounded-full border px-1.5 py-px text-[7px] font-semibold ${
+                              getDeliveryMode(msg) === 'realtime_with_login_fallback'
+                                ? 'border-amber-500/30 bg-amber-500/15 text-amber-300'
+                                : getDeliveryMode(msg) === 'login_only'
+                                  ? 'border-violet-500/30 bg-violet-500/15 text-violet-300'
+                                  : 'border-blue-500/30 bg-blue-500/15 text-blue-300'
+                            }`}>
+                              {getNotificationDeliveryLabel(getDeliveryMode(msg))}
+                            </span>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <span className={`rounded px-1 py-0.5 text-[7px] font-black ${
+                              isFullyRead
+                                ? 'bg-emerald-400/15 text-emerald-300'
+                                : isPartiallyRead
+                                  ? 'bg-amber-400/15 text-amber-300'
+                                  : 'bg-red-400/15 text-red-300'
+                            }`}>
+                              {isFullyRead ? '已讀' : isPartiallyRead ? '部分' : '未讀'} {readCount}/{recipientCount}
+                            </span>
+                            <span className="text-[7px] font-medium text-slate-500">
+                              {formatMessageDateTime(msg.created_at)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
