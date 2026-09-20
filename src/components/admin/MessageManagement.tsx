@@ -199,7 +199,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
   const [showTagDropdown, setShowTagDropdown] = useState(false);
 
-  const [templates, setTemplates] = useState<Array<{id:string; name:string; title:string; content:string; message_type:string; delivery_mode: NotificationDeliveryMode; priority:string}>>([]);
+  const [templates, setTemplates] = useState<Array<{id:string; name:string; title:string; content:string}>>([]);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
@@ -509,7 +509,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     try {
       const { data, error } = await supabase
         .from('message_templates')
-        .select('id, name, title, content, message_type, delivery_mode, priority')
+        .select('id, name, title, content')
         .eq('admin_id', admin.id)
         .order('sort_order')
         .order('created_at', { ascending: false });
@@ -543,8 +543,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           name: newTemplateName.trim(),
           title: templateFormTitle,
           content: htmlContent,
-          delivery_mode: messageForm.deliveryMode,
-          message_type: messageForm.deliveryMode === 'realtime_only' ? 'realtime' : 'login_popup',
         });
         if (error) throw error;
         setNotification({ type: 'success', message: `Template "${newTemplateName.trim()}" saved!` });
@@ -583,7 +581,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       ...prev,
       title: template.title,
       content: template.content,
-      deliveryMode: template.delivery_mode || (template.message_type === 'login_popup' ? 'login_only' : 'realtime_only'),
     }));
     composeEditorRef.current?.getEditor()?.commands.setContent(template.content);
     setShowTemplateDropdown(false);
@@ -1764,14 +1761,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                     </div>
                                   </div>
                                   {tpl.title && <div className="mt-0.5 truncate text-[9px] font-medium text-emerald-100/65">{tpl.title}</div>}
-                                  <div className="mt-1.5 flex items-center gap-1">
-                                    <span className={`rounded-md border px-1.5 py-0.5 text-[7px] font-bold ${getPriorityColor(tpl.priority as Message['priority'])}`}>
-                                      {(tpl.priority || 'normal').charAt(0).toUpperCase() + (tpl.priority || 'normal').slice(1)}
-                                    </span>
-                                    <span className="rounded-md border border-teal-300/20 bg-teal-400/10 px-1.5 py-0.5 text-[7px] font-bold text-teal-200">
-                                      {getNotificationDeliveryLabel(tpl.delivery_mode)}
-                                    </span>
-                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -2592,44 +2581,39 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           <div
                             key={tpl.id}
                             onClick={() => startEditTemplate(tpl)}
-                            className={`group relative cursor-pointer overflow-hidden rounded-xl border p-3 transition-all hover:-translate-y-0.5 ${isEditing ? 'border-emerald-300/70 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-slate-950/60 ring-1 ring-emerald-300/25 shadow-[0_10px_24px_rgba(16,185,129,0.16)]' : 'border-emerald-200/15 bg-gradient-to-br from-emerald-900/35 via-slate-950/60 to-teal-950/30 hover:border-emerald-300/45 hover:from-emerald-800/45 hover:to-teal-900/40 hover:shadow-[0_10px_24px_rgba(16,185,129,0.12)]'}`}
+                            className={`group relative cursor-pointer overflow-hidden rounded-xl border p-2.5 transition-all hover:-translate-y-0.5 ${isEditing ? 'border-emerald-300/70 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-slate-950/60 ring-1 ring-emerald-300/25 shadow-[0_8px_20px_rgba(16,185,129,0.16)]' : 'border-emerald-200/15 bg-gradient-to-br from-emerald-900/35 via-slate-950/60 to-teal-950/30 hover:border-emerald-300/45 hover:from-emerald-800/45 hover:to-teal-900/40 hover:shadow-[0_8px_20px_rgba(16,185,129,0.12)]'}`}
                           >
                             <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-300 via-teal-400 to-cyan-400 opacity-80" />
-                            <div className="flex items-start gap-2.5 pl-1">
-                              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${isEditing ? 'border-emerald-200/35 bg-emerald-300/20 text-emerald-100' : 'border-emerald-200/15 bg-emerald-400/10 text-emerald-300/80'}`}>
-                                <Bookmark className="h-3.5 w-3.5" />
+                            <div className="flex items-start gap-2 pl-1">
+                              <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${isEditing ? 'border-emerald-200/35 bg-emerald-300/20 text-emerald-100' : 'border-emerald-200/15 bg-emerald-400/10 text-emerald-300/80'}`}>
+                                <Bookmark className="h-3 w-3" />
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-start justify-between gap-2">
-                                  <div className={`min-w-0 truncate text-[11px] font-black ${isEditing ? 'text-emerald-50' : 'text-white'}`}>{tpl.name}</div>
-                                  <span className="shrink-0 text-[8px] font-bold uppercase tracking-wider text-emerald-200/45">{isEditing ? 'Editing' : 'Saved'}</span>
+                                  <div className={`min-w-0 truncate text-[10px] font-black ${isEditing ? 'text-emerald-50' : 'text-white'}`}>{tpl.name}</div>
+                                  <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); startEditTemplate(tpl); }}
+                                      aria-label={`Edit ${tpl.name}`}
+                                      title="Edit template"
+                                      className="rounded-md p-1 text-emerald-200/60 transition-colors hover:bg-emerald-400/15 hover:text-emerald-100"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => deleteTemplate(tpl.id, e)}
+                                      aria-label={`Delete ${tpl.name}`}
+                                      title="Delete template"
+                                      className="rounded-md p-1 text-emerald-200/60 transition-colors hover:bg-red-400/15 hover:text-red-200"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
                                 </div>
-                                {tpl.title && <div className="mt-1 truncate text-[10px] font-semibold text-emerald-100/65">{tpl.title}</div>}
-                                {contentPreview && <p className="mt-1.5 line-clamp-2 text-[9px] leading-relaxed text-emerald-100/45">{contentPreview}</p>}
-                              </div>
-                            </div>
-                            <div className="mt-2.5 flex items-center gap-1.5 border-t border-emerald-200/10 pt-2.5 pl-11">
-                              <span className={`rounded-md border px-1.5 py-0.5 text-[7px] font-bold ${getPriorityColor(tpl.priority as Message['priority'])}`}>
-                                {(tpl.priority || 'normal').charAt(0).toUpperCase() + (tpl.priority || 'normal').slice(1)}
-                              </span>
-                              <span className="rounded-md border border-teal-300/20 bg-teal-400/10 px-1.5 py-0.5 text-[7px] font-bold text-teal-200">{getNotificationDeliveryLabel(tpl.delivery_mode)}</span>
-                              <div className="ml-auto flex items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); startEditTemplate(tpl); }}
-                                  aria-label={`Edit ${tpl.name}`}
-                                  className="rounded-lg p-1.5 text-emerald-200/60 transition-colors hover:bg-emerald-400/15 hover:text-emerald-100"
-                                >
-                                  <Pencil className="h-3 w-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => deleteTemplate(tpl.id, e)}
-                                  aria-label={`Delete ${tpl.name}`}
-                                  className="rounded-lg p-1.5 text-emerald-200/60 transition-colors hover:bg-red-400/15 hover:text-red-200"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
+                                {tpl.title && <div className="mt-0.5 truncate text-[9px] font-semibold text-emerald-100/65">{tpl.title}</div>}
+                                {contentPreview && <p className="mt-1 line-clamp-1 text-[8px] leading-relaxed text-emerald-100/45">{contentPreview}</p>}
                               </div>
                             </div>
                           </div>
