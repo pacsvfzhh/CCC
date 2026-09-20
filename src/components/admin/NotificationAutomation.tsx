@@ -49,7 +49,7 @@ interface AutomationEmployee {
   is_active: boolean;
 }
 
-type TriggerType = 'total_orders' | 'daily_orders' | 'work_days' | 'commission_amount' | 'consecutive_work_days' | 'annual_date';
+type TriggerType = 'total_orders' | 'daily_orders' | 'work_days' | 'commission_amount' | 'consecutive_work_days' | 'annual_date' | 'first_login';
 type TriggerMode = 'reach_once' | 'recurring';
 type TaskStatus = 'draft' | 'active' | 'paused' | 'archived';
 type EmployeePickerStatusFilter = 'all' | 'active' | 'inactive';
@@ -160,6 +160,7 @@ const triggerLabels: Record<TriggerType, string> = {
   commission_amount: '累計佣金金額',
   consecutive_work_days: '連續工作達標',
   annual_date: '每年指定日期',
+  first_login: '新員工帳戶第一次登入',
 };
 
 const statusLabels: Record<TaskStatus, string> = {
@@ -272,6 +273,11 @@ function buildEnglishTemplate(triggerType: TriggerType, rewardEnabled: boolean, 
         title: 'A Special Message for You',
         content: `<p>Hello, {{employee_name}}! Today is {{annual_month}}/{{annual_day}}, and we would like to share this special message with you.${reward} Thank you for being an important part of our team!</p>`,
       };
+    case 'first_login':
+      return {
+        title: 'Welcome to the Team',
+        content: `<p>Welcome, {{employee_name}}! This is your first login to the employee platform.${reward} We are glad to have you with us.</p>`,
+      };
     default:
       return {
         title: 'Congratulations on Your Order Milestone',
@@ -303,6 +309,9 @@ function summarizeTask(task: AutomationTask, currency: string) {
 
   if (task.trigger_type === 'annual_date') {
     return `每年 ${task.annual_month || 1} 月 ${task.annual_day || 1} 日依 UTC 伺服器日期執行一次`;
+  }
+  if (task.trigger_type === 'first_login') {
+    return '新員工帳戶第一次登入時發送一次通知';
   }
   if (task.trigger_type === 'consecutive_work_days') {
     return `${task.trigger_mode === 'recurring' ? '每連續' : '連續'} ${value} 天，且每天至少完成 ${task.minimum_daily_orders || 0} 筆訂單`;
@@ -520,7 +529,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       showNotice('error', '獎金金額必須大於零');
       return;
     }
-
     if (form.triggerType === 'annual_date') {
       showNotice('error', '每年指定日期任務目前尚未啟用，請先選擇其他條件類型');
       return;
@@ -1213,11 +1221,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 <div className="grid gap-3 sm:grid-cols-3">
                   <label>
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">條件類型</span>
-                    <select disabled={readOnly} value={form.triggerType} onChange={event => { setTemplateCustomized(false); setForm(previous => ({ ...previous, triggerType: event.target.value as TriggerType })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300">
+                    <select disabled={readOnly} value={form.triggerType} onChange={event => { const triggerType = event.target.value as TriggerType; setTemplateCustomized(false); setForm(previous => ({ ...previous, triggerType, triggerMode: triggerType === 'first_login' ? 'reach_once' : previous.triggerMode, thresholdValue: triggerType === 'first_login' ? '1' : previous.thresholdValue })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300">
                       {Object.entries(triggerLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </select>
                   </label>
-                  {form.triggerType !== 'annual_date' ? (
+                  {form.triggerType !== 'annual_date' && form.triggerType !== 'first_login' ? (
                     <>
                       <label>
                         <span className="mb-1.5 block text-xs font-semibold text-slate-400">觸發方式</span>
@@ -1231,7 +1239,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         <input disabled={readOnly} type="number" min={form.triggerType === 'commission_amount' ? '0.01' : '1'} step={form.triggerType === 'commission_amount' ? '0.01' : '1'} value={form.thresholdValue} onChange={event => setForm(previous => ({ ...previous, thresholdValue: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
                       </label>
                     </>
-                  ) : (
+                  ) : form.triggerType === 'annual_date' ? (
                     <>
                       <label>
                         <span className="mb-1.5 block text-xs font-semibold text-slate-400">月份</span>
@@ -1247,6 +1255,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         系統依 UTC 伺服器日期自動判斷，每年到達所選月日只執行一次，不依賴管理員或員工瀏覽器保持開啟。
                       </div>
                     </>
+                  ) : (
+                    <div className="sm:col-span-3 rounded-xl border border-violet-500/20 bg-violet-500/10 p-3 text-xs leading-relaxed text-violet-100/80">
+                      新員工帳戶第一次登入時只發送一次通知，不需要設定目標數值或日期。
+                    </div>
                   )}
                   {form.triggerType === 'consecutive_work_days' && (
                     <label>
