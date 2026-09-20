@@ -1108,27 +1108,48 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const selectedGroupEmployeeIds = new Set(
     (selectedAdminId ? allEmployees.get(selectedAdminId) || [] : []).map(employee => employee.id),
   );
-  const selectedAdminManualMessages = sentMessages.filter(
-    message => message.sender_id === (selectedAdminId || admin.id),
-  );
-  const sentMessageReadSummary = sentMessages.reduce(
+  const selectedGroupMessages = sentMessages.filter(message => (
+    !selectedAdminId
+    || (message.recipient_ids || []).some(recipientId => selectedGroupEmployeeIds.has(recipientId))
+  ));
+  const getSelectedGroupMessageStats = (message: Message): MessageStats => {
+    const existingStats = messageStats.get(message.id) || {
+      total_recipients: 0,
+      read_count: 0,
+      unread_count: 0,
+      read_percentage: 0,
+    };
+    if (!selectedAdminId) return existingStats;
+
+    const scopedRecipientIds = (message.recipient_ids || [])
+      .filter(recipientId => selectedGroupEmployeeIds.has(recipientId));
+    const readRecipientIds = new Set(
+      (recipientDetails.get(message.id)?.read || []).map(employee => employee.id),
+    );
+    const readCount = scopedRecipientIds.filter(recipientId => readRecipientIds.has(recipientId)).length;
+    const totalRecipients = scopedRecipientIds.length;
+
+    return {
+      total_recipients: totalRecipients,
+      read_count: readCount,
+      unread_count: totalRecipients - readCount,
+      read_percentage: totalRecipients > 0 ? Math.round((readCount / totalRecipients) * 100) : 0,
+    };
+  };
+  const selectedAdminManualMessages = selectedGroupMessages;
+  const sentMessageReadSummary = selectedGroupMessages.reduce(
     (summary, message) => {
-      const stats = messageStats.get(message.id);
-      const totalRecipients = stats?.total_recipients || 0;
-      const isFullyRead = totalRecipients > 0 && (stats?.read_count || 0) === totalRecipients;
+      const stats = getSelectedGroupMessageStats(message);
+      const isFullyRead = stats.total_recipients > 0 && stats.read_count === stats.total_recipients;
 
       if (isFullyRead) summary.read += 1;
       else summary.unread += 1;
       return summary;
     },
-    { total: sentMessages.length, read: 0, unread: 0 },
+    { total: selectedGroupMessages.length, read: 0, unread: 0 },
   );
 
-  const filteredMessages = sentMessages.filter(msg => {
-    if (selectedAdminId) {
-      const recipientIds = msg.recipient_ids || [];
-      if (!recipientIds.some(recipientId => selectedGroupEmployeeIds.has(recipientId))) return false;
-    }
+  const filteredMessages = selectedGroupMessages.filter(msg => {
     if (messageTypeFilter !== 'all' && getDeliveryMode(msg) !== messageTypeFilter) return false;
     if (messageScopeFilter !== 'all') {
       const isBroadcast = !msg.recipient_ids || msg.recipient_ids.length === 0;
@@ -1136,16 +1157,15 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       if (messageScopeFilter === 'targeted' && isBroadcast) return false;
     }
     if (readStatusFilter !== 'all') {
-      const stats = messageStats.get(msg.id);
-      const totalRecipients = stats?.total_recipients || 0;
-      const readCount = stats?.read_count || 0;
-      if (readStatusFilter === 'read' && (totalRecipients === 0 || readCount !== totalRecipients)) return false;
-      if (readStatusFilter === 'unread' && readCount === totalRecipients) return false;
+      const stats = getSelectedGroupMessageStats(msg);
+      if (readStatusFilter === 'read' && (stats.total_recipients === 0 || stats.read_count !== stats.total_recipients)) return false;
+      if (readStatusFilter === 'unread' && stats.read_count === stats.total_recipients) return false;
     }
     if (sentMessagesSearchQuery.trim()) {
       const query = sentMessagesSearchQuery.trim().toLowerCase();
       const recipients = recipientDetails.get(msg.id);
       const matchesRecipient = [...(recipients?.read || []), ...(recipients?.unread || [])]
+        .filter(employee => !selectedAdminId || selectedGroupEmployeeIds.has(employee.id))
         .some(employee => employee.username.toLowerCase().includes(query)
           || employee.employee_id.toLowerCase().includes(query));
       if (!matchesRecipient) return false;
@@ -1930,7 +1950,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             </div>
 
             {/* Search */}
-            {sentMessages.length > 0 && (
+            {selectedGroupMessages.length > 0 && (
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
                 <input type="text" value={sentMessagesSearchQuery} onChange={(e) => setSentMessagesSearchQuery(e.target.value)}
@@ -1946,7 +1966,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             )}
 
             {/* Filter tabs */}
-            {sentMessages.length > 0 && (
+            {selectedGroupMessages.length > 0 && (
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5">
                   <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-slate-500">Message type</p>
@@ -2011,19 +2031,19 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           <div className="min-h-0 flex-1 space-y-1 overflow-y-auto border-b border-slate-700/60 p-1.5 scrollbar-dark">
             {messagesLoading ? (
               <div className="text-center py-10 text-slate-500 text-xs">Loading...</div>
-            ) : sentMessages.length === 0 ? (
+            ) : selectedGroupMessages.length === 0 ? (
               <div className="text-center py-10 text-slate-600 text-xs font-medium">No messages yet</div>
             ) : filteredMessages.length === 0 ? (
               <div className="text-center py-10 text-slate-600 text-xs font-medium">No matches</div>
             ) : (
               filteredMessages.map(msg => {
-                const stats = messageStats.get(msg.id);
-                const recipientCount = stats?.total_recipients || 0;
+                const stats = getSelectedGroupMessageStats(msg);
+                const recipientCount = stats.total_recipients;
                 const recipientDetail = recipientDetails.get(msg.id);
-                const soleRecipient = recipientCount === 1
-                  ? recipientDetail?.read[0] || recipientDetail?.unread[0]
-                  : null;
-                const readCount = stats?.read_count || 0;
+                const scopedRecipients = [...(recipientDetail?.read || []), ...(recipientDetail?.unread || [])]
+                  .filter(employee => !selectedAdminId || selectedGroupEmployeeIds.has(employee.id));
+                const soleRecipient = recipientCount === 1 ? scopedRecipients[0] : null;
+                const readCount = stats.read_count;
                 const isFullyRead = recipientCount > 0 && readCount === recipientCount;
                 const isPartiallyRead = readCount > 0 && !isFullyRead;
                 const cardTone = isFullyRead
