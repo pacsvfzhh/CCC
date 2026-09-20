@@ -167,6 +167,11 @@ const statusLabels: Record<TaskStatus, string> = {
   archived: '已結束',
 };
 
+const messageTypeLabels = {
+  realtime: '即時通知',
+  login_popup: '登入通知',
+} as const;
+
 const statusSortOrder: Record<TaskStatus, number> = {
   active: 0,
   paused: 1,
@@ -1052,6 +1057,32 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     {!readOnly && <button onClick={regenerateTemplate} className="shrink-0 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 transition-all duration-200 hover:border-cyan-300/50 hover:bg-cyan-500/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70">套用預設範本</button>}
                   </div>
                 </div>
+                <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-700/70 bg-slate-950/55 px-2.5 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <Bell className="h-3.5 w-3.5 text-cyan-300" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">通知類型</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      disabled={readOnly}
+                      onClick={() => setForm(previous => ({ ...previous, messageType: 'realtime' }))}
+                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-colors duration-200 ${form.messageType === 'realtime' ? 'border-blue-500 bg-blue-600 text-white shadow-sm' : 'border-blue-800/80 bg-slate-800 text-blue-300 hover:border-blue-700 hover:bg-blue-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      <Bell className="h-3.5 w-3.5" />
+                      {messageTypeLabels.realtime}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={readOnly}
+                      onClick={() => setForm(previous => ({ ...previous, messageType: 'login_popup' }))}
+                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-bold transition-colors duration-200 ${form.messageType === 'login_popup' ? 'border-violet-500 bg-violet-600 text-white shadow-sm' : 'border-violet-800/80 bg-slate-800 text-violet-300 hover:border-violet-700 hover:bg-violet-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      {messageTypeLabels.login_popup}
+                    </button>
+                  </div>
+                </div>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
                   <label className="shrink-0">
                     <span className="mb-1.5 block text-xs font-semibold text-slate-400">通知標題</span>
@@ -1214,10 +1245,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <div className="min-w-[1100px]">
-                  <div className="grid grid-cols-[48px_minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-l-2 border-l-transparent bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 px-3 text-[10px] font-black tracking-wider text-white shadow-md shadow-blue-950/40">
+                <div className="min-w-[1200px]">
+                  <div className="grid grid-cols-[48px_minmax(260px,1.45fr)_minmax(130px,.7fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-l-2 border-l-transparent bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 px-3 text-[10px] font-black tracking-wider text-white shadow-md shadow-blue-950/40">
                     <div className="px-2 py-2 text-center">序號</div>
                     <div className="px-2 py-2 pl-[54px]">任務</div>
+                    <div className="px-2 py-2">通知類型</div>
                     <div className="px-2 py-2">觸發條件</div>
                     <div className="px-2 py-2">適用範圍</div>
                     <div className="px-2 py-2">執行次數</div>
@@ -1226,7 +1258,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   </div>
                   <div>
                     {orderedTasks.map((task, index) => (
-                      <div key={task.id} className={`group relative grid grid-cols-[48px_minmax(260px,1.45fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-b border-l-2 border-l-transparent px-3 transition-all duration-200 before:absolute before:left-0 before:content-[''] ${task.status === 'active' ? 'border-b-orange-800/60 bg-gradient-to-r from-amber-950/70 via-orange-950/55 to-orange-950/30 hover:z-10 hover:from-amber-900/80 hover:via-orange-900/65 hover:to-orange-950/45 hover:shadow-[inset_0_0_0_1px_rgba(251,191,36,0.22),0_6px_18px_rgba(67,20,7,0.22)] before:inset-y-1.5 before:w-2 before:rounded-r-full before:bg-gradient-to-b before:from-yellow-200 before:via-amber-400 before:to-orange-600 before:shadow-[0_0_18px_rgba(251,146,60,0.72)]' : 'border-b-slate-800/80 bg-slate-950/55 hover:z-10 hover:bg-blue-950/55 hover:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.24),0_6px_18px_rgba(7,30,70,0.28)] before:inset-y-2 before:w-1 before:rounded-r-full before:bg-slate-700/80 hover:before:bg-blue-500 hover:before:shadow-[0_0_12px_rgba(59,130,246,0.45)]'}`}>
+                      <div key={task.id} className={`group relative grid grid-cols-[48px_minmax(260px,1.45fr)_minmax(130px,.7fr)_minmax(210px,1.15fr)_minmax(170px,.9fr)_minmax(110px,.55fr)_minmax(130px,.65fr)_128px] border-b border-l-2 border-l-transparent px-3 transition-all duration-200 before:absolute before:left-0 before:content-[''] ${task.status === 'active' ? 'border-b-orange-800/60 bg-gradient-to-r from-amber-950/70 via-orange-950/55 to-orange-950/30 hover:z-10 hover:from-amber-900/80 hover:via-orange-900/65 hover:to-orange-950/45 hover:shadow-[inset_0_0_0_1px_rgba(251,191,36,0.22),0_6px_18px_rgba(67,20,7,0.22)] before:inset-y-1.5 before:w-2 before:rounded-r-full before:bg-gradient-to-b before:from-yellow-200 before:via-amber-400 before:to-orange-600 before:shadow-[0_0_18px_rgba(251,146,60,0.72)]' : 'border-b-slate-800/80 bg-slate-950/55 hover:z-10 hover:bg-blue-950/55 hover:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.24),0_6px_18px_rgba(7,30,70,0.28)] before:inset-y-2 before:w-1 before:rounded-r-full before:bg-slate-700/80 hover:before:bg-blue-500 hover:before:shadow-[0_0_12px_rgba(59,130,246,0.45)]'}`}>
                         <div className={`flex items-center justify-center px-2 py-2.5 text-xs font-black tabular-nums ${task.status === 'active' ? 'text-amber-300' : 'text-slate-600 group-hover:text-sky-300'}`}>{index + 1}</div>
                         <div className="min-w-0 px-2 py-2.5">
                           <div className="flex min-w-0 items-center gap-2.5">
@@ -1245,6 +1277,12 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               </p>
                             </div>
                           </div>
+                        </div>
+                        <div className="min-w-0 px-2 py-2.5">
+                          <p className={`flex items-center gap-1.5 text-[11px] font-black ${task.status === 'active' ? 'text-cyan-100' : 'text-slate-400'}`}>
+                            {task.message_type === 'login_popup' ? <AlertCircle className="h-3.5 w-3.5 shrink-0" /> : <Bell className="h-3.5 w-3.5 shrink-0" />}
+                            <span className="truncate">{messageTypeLabels[task.message_type]}</span>
+                          </p>
                         </div>
                         <div className="min-w-0 px-2 py-2.5">
                           <p className={`truncate text-[10px] font-black tracking-wide ${task.status === 'active' ? 'text-amber-200/90' : 'text-slate-500'}`}>{triggerLabels[task.trigger_type]}</p>
@@ -1347,7 +1385,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           <div className="min-w-0 px-2 py-2.5">
                             <p className={`flex items-center gap-1 truncate text-[11px] font-bold ${alreadyAdded ? 'text-cyan-100' : 'text-slate-400'}`}>
                               <Bell className="h-3.5 w-3.5 shrink-0" />
-                              {task.message_type === 'login_popup' ? '登入彈窗' : '即時通知'}
+                              {messageTypeLabels[task.message_type]}
                             </p>
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
