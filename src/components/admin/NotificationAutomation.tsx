@@ -979,9 +979,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-hidden bg-gradient-to-br from-blue-950/35 via-slate-900/35 to-cyan-950/30 p-4 sm:p-5">
-            <div className="grid h-full min-h-0 gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,.8fr)]">
-              <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/70">
+          <div className="min-h-0 flex-1 overflow-hidden bg-gradient-to-br from-blue-950/35 via-slate-900/35 to-cyan-950/30">
+            <div className="grid h-full min-h-0 gap-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,.8fr)]">
+              <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden border-b border-slate-700/80 bg-slate-900/70 lg:border-b-0 lg:border-r">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/70 bg-gradient-to-r from-slate-950/75 to-slate-900/60 px-3.5 py-2.5">
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">搜尋結果</p>
@@ -1073,7 +1073,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 </div>
               </div>
 
-              <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-cyan-300/25 bg-gradient-to-b from-cyan-950/25 via-slate-900/80 to-slate-950/80 shadow-[inset_0_0_24px_rgba(34,211,238,0.04)]">
+              <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-gradient-to-b from-cyan-950/25 via-slate-900/80 to-slate-950/80 shadow-[inset_0_0_24px_rgba(34,211,238,0.04)]">
                 <div className="flex items-center justify-between gap-2 border-b border-cyan-300/15 bg-gradient-to-r from-cyan-400/[0.09] to-blue-500/[0.04] px-3.5 py-3">
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-[0.16em] text-cyan-300/65">Selection preview</p>
