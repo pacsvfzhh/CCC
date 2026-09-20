@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
-import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 import EmployeeNotificationDetailPanel from '../employee/EmployeeNotificationDetailPanel';
@@ -46,6 +45,9 @@ interface Message {
   message_type: 'realtime' | 'login_popup';
   delivery_mode: NotificationDeliveryMode;
   priority: 'low' | 'normal' | 'high' | 'urgent';
+  notification_category?: 'standard' | 'performance_reward' | null;
+  reward_amount?: number | null;
+  reward_currency?: string | null;
   created_at: string;
   recipient_ids?: string[];
 }
@@ -2124,62 +2126,48 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             {/* Two-column body */}
             <div className="flex-1 flex min-h-0 overflow-hidden">
               {/* Left: Content */}
-              <div className={`w-[60%] flex flex-col min-h-0 ${editingMessage ? 'bg-white' : 'bg-white'}`}>
-                {!editingMessage ? (
-                  <div className="px-8 pt-6 pb-4 border-b border-gray-200 flex-shrink-0">
-                    <h2 className="text-xl font-bold text-gray-900 mb-3 leading-tight">{selectedMessageDetail.title}</h2>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${getPriorityColor(selectedMessageDetail.priority)}`}>
-                        {selectedMessageDetail.priority.charAt(0).toUpperCase() + selectedMessageDetail.priority.slice(1)}
-                      </span>
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                        selectedDeliveryMode === 'realtime_with_login_fallback'
-                          ? 'bg-cyan-100 text-cyan-800 border border-cyan-300'
-                          : selectedDeliveryMode === 'login_only'
-                            ? 'bg-violet-100 text-violet-700 border border-violet-300'
-                            : 'bg-blue-100 text-blue-700 border border-blue-300'
-                      }`}>
-                        {getNotificationDeliveryLabel(selectedDeliveryMode)}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="px-8 pt-6 pb-4 border-b border-gray-200 flex-shrink-0">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Title</label>
-                    <input type="text" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value.slice(0, 200) })}
-                      className="w-full text-base font-bold bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Message title..."
-                    />
-                  </div>
-                )}
-
-                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-dark">
-                  {editingMessage ? (
-                    <div className="px-8 py-6 h-full [&>div]:h-full [&>div]:flex [&>div]:flex-col">
-                      <TiptapEditor
-                        ref={editEditorRef}
-                        content={editForm.content}
-                        onChange={(html: string) => setEditForm(prev => ({ ...prev, content: html }))}
-                        placeholder="Edit message content..."
-                        theme="light"
-                        adminId={admin.id}
-                        enableQuickCopy
+              <div className={`flex min-h-0 w-[60%] flex-col ${editingMessage ? 'bg-white' : 'items-center bg-slate-950/35 p-4'}`}>
+                {editingMessage ? (
+                  <>
+                    <div className="flex-shrink-0 border-b border-gray-200 px-8 pb-4 pt-6">
+                      <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-gray-400">Title</label>
+                      <input type="text" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value.slice(0, 200) })}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base font-bold text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Message title..."
                       />
                     </div>
-                  ) : (
-                    <div className="px-8 py-6">
-                      <div className="prose prose-gray max-w-none">
-                        <div
-                          className="text-gray-700 leading-relaxed text-[15px] [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-3 [&_b]:font-bold [&_u]:underline [&_p]:mb-3"
-                          dangerouslySetInnerHTML={{ __html: sanitizeHTML(selectedMessageDetail.content, {
-                            allowedTags: ['p', 'br', 'div', 'span', 'strong', 'em', 'u', 'b', 'i', 'font', 'img'],
-                            allowedAttributes: ['style', 'class', 'size', 'src', 'alt', 'width', 'height']
-                          }) }}
+                    <div className="min-h-0 flex-1 overflow-y-auto scrollbar-dark">
+                      <div className="h-full px-8 py-6 [&>div]:flex [&>div]:h-full [&>div]:flex-col">
+                        <TiptapEditor
+                          ref={editEditorRef}
+                          content={editForm.content}
+                          onChange={(html: string) => setEditForm(prev => ({ ...prev, content: html }))}
+                          placeholder="Edit message content..."
+                          theme="light"
+                          adminId={admin.id}
+                          enableQuickCopy
                         />
                       </div>
                     </div>
-                  )}
-                </div>
+                  </>
+                ) : (
+                  <div className="flex h-full min-h-0 w-full max-w-2xl flex-col overflow-hidden rounded-3xl shadow-2xl shadow-blue-950/25">
+                    <EmployeeNotificationDetailPanel
+                      message={{
+                        title: selectedMessageDetail.title,
+                        content: selectedMessageDetail.content,
+                        message_type: selectedDeliveryMode === 'login_only' ? 'login_popup' : 'realtime',
+                        priority: selectedMessageDetail.priority,
+                        notification_category: selectedMessageDetail.notification_category,
+                        reward_amount: selectedMessageDetail.reward_amount,
+                        reward_currency: selectedMessageDetail.reward_currency,
+                        created_at: selectedMessageDetail.created_at,
+                        is_read: false,
+                      }}
+                      onClose={() => { setSelectedMessageDetail(null); setEditingMessage(false); }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Right: Stats & Info */}
