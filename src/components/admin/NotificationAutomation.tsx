@@ -1269,16 +1269,16 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               </div>
 
               <div className="mt-3 border-t border-slate-700/60 pt-3">
-                <section>
-                  <div className={`mb-2 flex items-center justify-between gap-2 border-l-2 pl-2 ${form.rewardEnabled ? 'border-amber-300' : 'border-slate-600'}`}>
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <Gift className={`h-4 w-4 shrink-0 ${form.rewardEnabled ? 'text-amber-300' : 'text-slate-500'}`} />
+                <section className={`rounded-2xl border p-3 transition-colors duration-200 ${form.rewardEnabled ? 'border-amber-300/45 bg-gradient-to-br from-amber-500/[0.12] via-orange-500/[0.06] to-slate-900 shadow-[0_10px_28px_rgba(120,53,15,0.16)]' : 'border-slate-700/80 bg-slate-900/65 hover:border-slate-600'}`}>
+                  <div className={`flex items-center justify-between gap-2 border-l-2 pl-3 ${form.rewardEnabled ? 'border-amber-300' : 'border-slate-600'}`}>
+                    <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                      <Gift className={`h-5 w-5 shrink-0 ${form.rewardEnabled ? 'text-amber-300' : 'text-slate-500'}`} />
                       <div className="min-w-0 shrink-0">
-                        <h3 className={`whitespace-nowrap ${form.rewardEnabled ? 'text-sm font-black text-amber-100' : 'text-sm font-black text-white'}`}>績效獎金與適用員工</h3>
-                        <p className="text-[10px] text-slate-500">{form.rewardEnabled ? '已啟用，通知會附帶績效獎金' : '關閉時只發送一般通知'}</p>
+                        <h3 className={`whitespace-nowrap text-[15px] font-black ${form.rewardEnabled ? 'text-amber-100' : 'text-slate-100'}`}>績效獎金與適用員工</h3>
+                        <p className={`text-[10px] ${form.rewardEnabled ? 'text-amber-100/70' : 'text-slate-400'}`}>{form.rewardEnabled ? '已啟用，通知會附帶績效獎金' : '關閉時只發送一般通知'}</p>
                       </div>
                       {form.rewardEnabled && (
-                        <div className="flex min-w-0 shrink items-center gap-2 rounded-xl border border-amber-300/25 bg-gradient-to-r from-amber-500/[0.12] to-orange-500/[0.08] px-2 py-1 shadow-sm shadow-amber-950/20">
+                        <div className="flex min-w-0 shrink items-center gap-2 rounded-xl border border-amber-300/35 bg-gradient-to-r from-amber-500/[0.16] to-orange-500/[0.1] px-2 py-1 shadow-sm shadow-amber-950/25">
                           <label className="flex shrink-0 items-center gap-2">
                             <span className="text-[11px] font-black text-amber-100">每次獎金</span>
                             <input
@@ -1306,11 +1306,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         setTemplateCustomized(false);
                         setForm(previous => ({ ...previous, rewardEnabled: !previous.rewardEnabled }));
                       }}
-                      className="group inline-flex shrink-0 items-center gap-2 rounded-lg border border-transparent px-1.5 py-1 transition-colors hover:border-amber-300/25 hover:bg-amber-400/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 disabled:cursor-not-allowed disabled:opacity-60"
+                      className={`group inline-flex shrink-0 items-center gap-2 rounded-xl border px-2 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 disabled:cursor-not-allowed disabled:opacity-60 ${form.rewardEnabled ? 'border-amber-200/35 bg-amber-400/[0.1] hover:border-amber-100/60 hover:bg-amber-400/[0.16]' : 'border-slate-700 bg-slate-950/45 hover:border-slate-500 hover:bg-slate-800/70'}`}
                     >
-                      <span className={`text-[10px] font-black ${form.rewardEnabled ? 'text-amber-200' : 'text-slate-500'}`}>{form.rewardEnabled ? '已啟用' : '未啟用'}</span>
-                      <span className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors ${form.rewardEnabled ? 'border-amber-200/70 bg-gradient-to-r from-amber-300 to-orange-500 shadow-sm shadow-amber-900/40' : 'border-slate-600 bg-slate-800'}`}>
-                        <span className={`h-4 w-4 rounded-full bg-white shadow-md transition-transform ${form.rewardEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                      <span className={`text-[11px] font-black ${form.rewardEnabled ? 'text-amber-100' : 'text-slate-300'}`}>{form.rewardEnabled ? '已啟用' : '未啟用'}</span>
+                      <span className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors ${form.rewardEnabled ? 'border-amber-200/80 bg-gradient-to-r from-amber-300 to-orange-500 shadow-[0_0_14px_rgba(245,158,11,0.32)]' : 'border-slate-600 bg-slate-800'}`}>
+                        <span className={`h-5 w-5 rounded-full bg-white shadow-md transition-transform ${form.rewardEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                       </span>
                     </button>
                   </div>
