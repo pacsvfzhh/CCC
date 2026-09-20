@@ -936,42 +936,58 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         onMouseDown={() => setEmployeePickerOpen(false)}
       >
         <div
-          className="flex max-h-[calc(100vh-40px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 shadow-2xl shadow-cyan-950/50"
+          className="flex max-h-[calc(100vh-32px)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.35rem] border border-cyan-300/25 bg-slate-950/95 shadow-[0_24px_80px_rgba(2,8,23,0.72),0_0_40px_rgba(8,145,178,0.12)] ring-1 ring-inset ring-white/[0.04]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="automation-employee-picker-title"
           onMouseDown={event => event.stopPropagation()}
         >
-          <div className="flex shrink-0 items-start gap-3 border-b border-cyan-300/20 bg-gradient-to-r from-blue-950 via-cyan-950 to-blue-950 px-5 py-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-200/30 bg-cyan-400/15 text-cyan-200 shadow-lg shadow-cyan-950/30">
+          <div className="relative flex shrink-0 items-start gap-3 overflow-hidden border-b border-cyan-300/20 bg-gradient-to-r from-blue-950 via-cyan-950 to-blue-950 px-5 py-4">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(103,232,249,0.16),transparent_34%),radial-gradient(circle_at_85%_100%,rgba(59,130,246,0.14),transparent_38%)]" />
+            <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-200/30 bg-cyan-400/15 text-cyan-200 shadow-lg shadow-cyan-950/30 ring-1 ring-inset ring-white/10">
               <Users className="h-5 w-5" />
             </span>
-            <div className="min-w-0 flex-1">
-              <h2 id="automation-employee-picker-title" className="text-base font-black tracking-tight text-white">選擇指定員工</h2>
-              <p className="mt-1 text-xs leading-5 text-cyan-100/70">搜尋員工帳號或員工 ID，可同時選擇多名員工。</p>
+            <div className="relative z-10 min-w-0 flex-1">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-200/65">Employee targeting</p>
+              <h2 id="automation-employee-picker-title" className="mt-0.5 text-lg font-black tracking-tight text-white">選擇指定員工</h2>
+              <p className="mt-1 text-xs leading-5 text-cyan-100/70">搜尋帳號或員工 ID，從左側選擇後在右側確認名單。</p>
             </div>
-            <button type="button" onClick={() => setEmployeePickerOpen(false)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70" aria-label="關閉員工選擇">
+            <button type="button" onClick={() => setEmployeePickerOpen(false)} className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition-colors hover:border-cyan-200/30 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70" aria-label="關閉員工選擇">
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-5 dark-panel-scroll">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-300/70" />
-              <input
-                autoFocus
-                type="search"
-                value={employeePickerSearch}
-                onChange={event => setEmployeePickerSearch(event.target.value)}
-                placeholder="搜尋員工帳號或員工 ID"
-                className="w-full rounded-xl border border-slate-700 bg-slate-900/90 py-2.5 pl-10 pr-3 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
-              />
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 dark-panel-scroll">
+            <div className="rounded-2xl border border-slate-700/80 bg-slate-900/75 p-2 shadow-inner shadow-slate-950/40">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-300/80" />
+                <input
+                  autoFocus
+                  type="search"
+                  value={employeePickerSearch}
+                  onChange={event => setEmployeePickerSearch(event.target.value)}
+                  placeholder="搜尋員工帳號或員工 ID"
+                  className="w-full rounded-xl border border-slate-700/80 bg-slate-950/80 py-3 pl-10 pr-10 text-sm text-white outline-none transition-all placeholder:text-slate-500 hover:border-slate-600 focus:border-cyan-400 focus:bg-slate-950 focus:ring-2 focus:ring-cyan-400/20"
+                />
+                {employeePickerSearch && (
+                  <button type="button" onClick={() => setEmployeePickerSearch('')} className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-800 hover:text-white" aria-label="清除搜尋">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1 text-[10px] font-bold text-slate-500">
+                <span>共 {employeePickerResults.length} 名可選員工</span>
+                <span className="text-cyan-300/80">已暫存 {pendingRecipientIds.length} 名</span>
+              </div>
             </div>
 
-            <div className="mt-3 grid min-h-0 gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(240px,.8fr)]">
+            <div className="mt-4 grid min-h-0 gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,.8fr)]">
               <div className="min-w-0 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/70">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/70 bg-slate-950/45 px-3 py-2.5">
-                  <span className="text-xs font-bold text-slate-200">可選員工 <span className="text-slate-500">({employeePickerResults.length})</span></span>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/70 bg-gradient-to-r from-slate-950/75 to-slate-900/60 px-3.5 py-3">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">搜尋結果</p>
+                    <p className="mt-0.5 text-sm font-black text-white">可選員工 <span className="ml-1 text-cyan-300">{employeePickerResults.length}</span></p>
+                  </div>
                   <button
                     type="button"
                     disabled={employeePickerResults.length === 0}
@@ -981,9 +997,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         ? previous.filter(id => !visibleIds.includes(id))
                         : Array.from(new Set([...previous, ...visibleIds]));
                     })}
-                    className="rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-bold text-cyan-100 transition-colors hover:border-cyan-200/60 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-black text-cyan-100 transition-all hover:-translate-y-0.5 hover:border-cyan-200/70 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    {allVisibleEmployeesSelected ? '取消全選' : '全選搜尋結果'}
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {allVisibleEmployeesSelected ? '取消全選' : '全選結果'}
                   </button>
                 </div>
                 {employeePickerResults.length === 0 ? (
@@ -1009,7 +1026,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               togglePendingEmployee(employee.id);
                             }
                           }}
-                          className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-cyan-300/35 bg-cyan-500/10' : 'border-transparent hover:border-slate-700 hover:bg-slate-800/80'}`}
+                          className={`group flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-cyan-300/40 bg-gradient-to-r from-cyan-500/15 via-blue-500/[0.08] to-transparent shadow-[inset_0_0_20px_rgba(34,211,238,0.05)]' : 'border-transparent hover:border-slate-700/80 hover:bg-slate-800/80'}`}
                         >
                           <input
                             type="checkbox"
@@ -1019,14 +1036,17 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               : previous.filter(id => id !== employee.id))}
                             className="peer sr-only"
                           />
-                          <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-400/70 ${selected ? 'border-cyan-200 bg-cyan-500 text-white shadow-sm shadow-cyan-950/40' : 'border-slate-600 bg-slate-950/80 text-transparent'}`}>
+                          <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-400/70 ${selected ? 'border-cyan-200 bg-cyan-500 text-white shadow-[0_0_12px_rgba(34,211,238,0.45)]' : 'border-slate-600 bg-slate-950/80 text-transparent group-hover:border-slate-500'}`}>
                             <CheckCircle2 className="h-3.5 w-3.5" />
                           </span>
-                          <span className="min-w-0 flex-1">
-                            <span className={`block truncate text-sm font-bold ${selected ? 'text-cyan-100' : 'text-slate-200'}`}>{employee.username}</span>
-                            <span className="mt-0.5 block truncate text-[11px] text-slate-500">員工 ID：{employee.employee_id}</span>
+                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-xs font-black shadow-inner ${selected ? 'border-cyan-200/35 bg-gradient-to-br from-cyan-400/35 to-blue-600/30 text-cyan-50' : 'border-slate-700 bg-slate-950/80 text-slate-500'}`}>
+                            {employee.username.charAt(0).toUpperCase() || '?'}
                           </span>
-                          {employee.is_active ? <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">啟用</span> : <span className="shrink-0 rounded-full border border-slate-600 bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-500">停用</span>}
+                          <span className="min-w-0 flex-1">
+                            <span className={`block truncate text-sm font-black ${selected ? 'text-cyan-50' : 'text-slate-200'}`}>{employee.username}</span>
+                            <span className="mt-0.5 block truncate text-[11px] text-slate-500">員工 ID：<span className="font-semibold text-slate-400">{employee.employee_id}</span></span>
+                          </span>
+                          {employee.is_active ? <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-black text-emerald-300">啟用</span> : <span className="shrink-0 rounded-full border border-slate-600 bg-slate-800 px-2 py-1 text-[10px] font-black text-slate-500">停用</span>}
                         </div>
                       );
                     })}
@@ -1034,24 +1054,37 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 )}
               </div>
 
-              <div className="min-w-0 overflow-hidden rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06]">
-                <div className="flex items-center justify-between gap-2 border-b border-cyan-300/15 bg-cyan-400/[0.05] px-3 py-2.5">
-                  <span className="text-xs font-bold text-cyan-100">已選員工</span>
-                  <span className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-black text-cyan-200">{pendingRecipientIds.length}</span>
+              <div className="min-w-0 overflow-hidden rounded-xl border border-cyan-300/25 bg-gradient-to-b from-cyan-950/25 via-slate-900/80 to-slate-950/80 shadow-[inset_0_0_24px_rgba(34,211,238,0.04)]">
+                <div className="flex items-center justify-between gap-2 border-b border-cyan-300/15 bg-gradient-to-r from-cyan-400/[0.09] to-blue-500/[0.04] px-3.5 py-3">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-cyan-300/65">Selection preview</p>
+                    <p className="mt-0.5 text-sm font-black text-white">已選員工</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/30 bg-cyan-500/15 px-2.5 py-1 text-[10px] font-black text-cyan-100">
+                    <CheckCircle2 className="h-3.5 w-3.5" />{pendingRecipientIds.length} 名
+                  </span>
                 </div>
                 {pendingSelectedEmployees.length === 0 ? (
-                  <p className="px-3 py-8 text-center text-xs leading-5 text-slate-500">尚未選擇員工<br />勾選左側員工後會顯示在這裡</p>
+                  <div className="flex min-h-[210px] flex-col items-center justify-center px-4 py-8 text-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.07] text-cyan-300/60">
+                      <Users className="h-5 w-5" />
+                    </span>
+                    <p className="mt-3 text-xs font-bold text-slate-300">尚未選擇員工</p>
+                    <p className="mt-1 text-[11px] leading-5 text-slate-500">勾選左側員工後，名單會顯示在這裡</p>
+                  </div>
                 ) : (
-                  <div className="max-h-[min(52vh,420px)] space-y-1.5 overflow-y-auto p-2 dark-panel-scroll">
+                  <div className="max-h-[min(52vh,420px)] space-y-2 overflow-y-auto p-2.5 dark-panel-scroll">
                     {pendingSelectedEmployees.map(employee => (
-                      <div key={employee.id} className="flex items-start gap-2 rounded-lg border border-cyan-300/15 bg-slate-950/45 px-2.5 py-2">
-                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                      <div key={employee.id} className="group flex items-center gap-2.5 rounded-xl border border-cyan-300/15 bg-slate-950/55 px-2.5 py-2 transition-colors hover:border-cyan-200/30 hover:bg-cyan-950/25">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-200/20 bg-gradient-to-br from-cyan-400/25 to-blue-600/25 text-[11px] font-black text-cyan-100">
+                          {employee.username.charAt(0).toUpperCase() || '?'}
+                        </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-bold text-cyan-50">{employee.username}</p>
-                          <p className="mt-0.5 truncate text-[10px] text-slate-500">{employee.employee_id}</p>
+                          <p className="truncate text-xs font-black text-cyan-50">{employee.username}</p>
+                          <p className="mt-0.5 truncate text-[10px] text-slate-500">員工 ID：{employee.employee_id}</p>
                         </div>
-                        <button type="button" onClick={() => togglePendingEmployee(employee.id)} className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-500 transition-colors hover:bg-rose-500/15 hover:text-rose-300" aria-label={`移除 ${employee.username}`}>
-                          <X className="h-3 w-3" />
+                        <button type="button" onClick={() => togglePendingEmployee(employee.id)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-transparent text-slate-500 transition-colors hover:border-rose-300/20 hover:bg-rose-500/15 hover:text-rose-300" aria-label={`移除 ${employee.username}`}>
+                          <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     ))}
@@ -1061,11 +1094,17 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             </div>
           </div>
 
-          <div className="flex shrink-0 justify-end gap-2 border-t border-slate-800/80 px-5 py-3">
-            <button type="button" onClick={() => setEmployeePickerOpen(false)} className="h-9 rounded-lg border border-slate-600/80 bg-slate-800 px-4 text-xs font-bold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700">取消</button>
-            <button type="button" onClick={saveEmployeePicker} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-cyan-500 to-blue-600 px-4 text-xs font-black text-white shadow-lg shadow-cyan-950/30 transition-all hover:brightness-110 active:scale-[0.98]">
-              <CheckCircle2 className="h-4 w-4" />保存選擇
-            </button>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-800/80 bg-slate-950/70 px-5 py-3.5">
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-300">已暫存 {pendingRecipientIds.length} 名員工</p>
+              <p className="mt-0.5 text-[10px] text-slate-500">保存後會套用到目前任務</p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button type="button" onClick={() => setEmployeePickerOpen(false)} className="h-9 rounded-lg border border-slate-600/80 bg-slate-800 px-4 text-xs font-bold text-slate-200 transition-all hover:border-slate-500 hover:bg-slate-700 active:scale-[0.98]">取消</button>
+              <button type="button" onClick={saveEmployeePicker} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-cyan-200/35 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 px-4 text-xs font-black text-white shadow-lg shadow-cyan-950/30 transition-all hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.98]">
+                <CheckCircle2 className="h-4 w-4" />保存選擇
+              </button>
+            </div>
           </div>
         </div>
       </div>,
