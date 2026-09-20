@@ -324,71 +324,83 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     void loadUnreadCountRef.current?.();
     void checkLoginPopupMessagesRef.current?.(false);
 
-    const recoverNotifications = () => {
+    const recoverWhileActive = () => {
+      if (
+        document.visibilityState !== 'visible'
+        || !navigator.onLine
+        || notificationChannelStatusRef.current !== 'SUBSCRIBED'
+      ) return;
+
+      void loadUnreadCountRef.current?.();
+      realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
+        .then(() => recoverRealtimeNotificationsRef.current?.())
+        .catch(error => console.error('Error recovering realtime notifications:', error));
+    };
+
+    const recoverAfterInterruption = () => {
       if (document.visibilityState !== 'visible' || !navigator.onLine) return;
 
       void loadUnreadCountRef.current?.();
-      if (notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
-
-      realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
-        .then(async () => {
-          await recoverRealtimeNotificationsRef.current?.();
-          await checkLoginPopupMessagesRef.current?.(true);
-        })
-        .catch(error => console.error('Error recovering employee notifications:', error));
+      if (notificationChannelStatusRef.current === 'SUBSCRIBED') {
+        void checkLoginPopupMessagesRef.current?.(true);
+      }
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') recoverNotifications();
+      if (document.visibilityState === 'visible') recoverAfterInterruption();
     };
 
-    window.addEventListener('online', recoverNotifications);
+    window.addEventListener('online', recoverAfterInterruption);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    const recoveryTimer = window.setInterval(recoverNotifications, 30000);
+    const recoveryTimer = window.setInterval(recoverWhileActive, 30000);
 
-    const channel = supabase
-      .channel(`employee_new_messages_${employee.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'message_recipients',
-          filter: `recipient_id=eq.${employee.id}`
-        },
-        payload => {
-          void loadUnreadCountRef.current?.();
-          const recipientId = String((payload.new as { id?: string }).id || '');
-          if (!recipientId || document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
-          realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
-            .then(() => processRealtimeRecipientRef.current?.(recipientId))
-            .then(() => undefined)
-            .catch(error => console.error('Error draining realtime notifications:', error));
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'message_recipients',
-          filter: `recipient_id=eq.${employee.id}`
-        },
-        () => {
-          void loadUnreadCountRef.current?.();
-        }
-      )
-      .subscribe(status => {
-        notificationChannelStatusRef.current = status;
-        if (status === 'SUBSCRIBED') recoverNotifications();
-      });
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const subscribeTimer = window.setTimeout(() => {
+      channel = supabase
+        .channel(`employee_new_messages_${employee.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'message_recipients',
+            filter: `recipient_id=eq.${employee.id}`
+          },
+          payload => {
+            void loadUnreadCountRef.current?.();
+            const recipientId = String((payload.new as { id?: string }).id || '');
+            if (!recipientId || document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
+            realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
+              .then(() => processRealtimeRecipientRef.current?.(recipientId))
+              .then(() => undefined)
+              .catch(error => console.error('Error draining realtime notifications:', error));
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'message_recipients',
+            filter: `recipient_id=eq.${employee.id}`
+          },
+          () => {
+            void loadUnreadCountRef.current?.();
+          }
+        )
+        .subscribe(status => {
+          notificationChannelStatusRef.current = status;
+          if (status === 'SUBSCRIBED') recoverAfterInterruption();
+        });
+    }, 0);
 
     return () => {
-      window.removeEventListener('online', recoverNotifications);
+      window.removeEventListener('online', recoverAfterInterruption);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(recoveryTimer);
+      window.clearTimeout(subscribeTimer);
       notificationChannelStatusRef.current = 'CLOSED';
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [employee.id]);
 

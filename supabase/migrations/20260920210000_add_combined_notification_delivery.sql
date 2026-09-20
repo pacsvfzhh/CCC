@@ -837,7 +837,7 @@ BEGIN
       AND recipient.delivery_channel IS NULL
       AND (recipient.delivery_claim_token IS NULL OR recipient.delivery_claim_until <= clock_timestamp())
       AND (message.expires_at IS NULL OR message.expires_at > clock_timestamp())
-      AND message.delivery_mode = 'realtime_only'
+      AND message.delivery_mode IN ('realtime_only', 'realtime_with_login_fallback')
     ORDER BY recipient.delivery_sequence
     LIMIT 1
     FOR UPDATE OF recipient SKIP LOCKED

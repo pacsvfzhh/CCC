@@ -25,7 +25,11 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
   const loadLoginPopupMessagesRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
-    void loadLoginPopupMessagesRef.current?.();
+    const loadTimer = window.setTimeout(() => {
+      void loadLoginPopupMessagesRef.current?.();
+    }, 0);
+
+    return () => window.clearTimeout(loadTimer);
   }, [employee.id]);
 
   useLayoutEffect(() => {
