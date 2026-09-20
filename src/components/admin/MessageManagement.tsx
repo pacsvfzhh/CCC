@@ -570,6 +570,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     templateEditorRef2.current?.getEditor()?.commands.setContent(tpl.content);
   };
 
+  const startNewTemplate = () => {
+    setEditingTemplateId(null);
+    setNewTemplateName('');
+    setTemplateFormTitle('');
+    setTemplateEditorContent('');
+    templateEditorRef2.current?.getEditor()?.commands.clearContent();
+  };
+
   const applyTemplate = (template: typeof templates[0]) => {
     setMessageForm(prev => ({
       ...prev,
@@ -2468,65 +2476,85 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         </div>
       )}
 
-      {/* Save Template Modal - Full Editor Panel */}
       {showSaveTemplateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowSaveTemplateModal(false); setEditingTemplateId(null); setNewTemplateName(''); setTemplateEditorContent(''); setTemplateFormTitle(''); } }}>
-          <div onClick={(e) => e.stopPropagation()} className="bg-slate-900 rounded-2xl border border-slate-700/50 w-full max-w-7xl h-[92vh] flex flex-col shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-700/50 flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${editingTemplateId ? 'bg-blue-600/20' : 'bg-teal-600/20'}`}>
-                  {editingTemplateId ? <Pencil className="w-5 h-5 text-blue-400" /> : <Bookmark className="w-5 h-5 text-teal-400" />}
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-3 backdrop-blur-md sm:p-5"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowSaveTemplateModal(false); setEditingTemplateId(null); setNewTemplateName(''); setTemplateEditorContent(''); setTemplateFormTitle(''); } }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative flex h-[calc(100vh-1.5rem)] max-h-[56rem] w-full max-w-[88rem] flex-col overflow-hidden rounded-[1.35rem] border border-emerald-300/25 bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 shadow-[0_24px_80px_rgba(2,44,34,0.6)] sm:h-[calc(100vh-2.5rem)]"
+          >
+            <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-teal-400/10 blur-3xl" />
+
+            <div className="relative flex shrink-0 items-center justify-between border-b border-emerald-200/15 bg-gradient-to-r from-emerald-500/20 via-teal-500/10 to-transparent px-4 py-3.5 sm:px-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-inner shadow-white/10 ${editingTemplateId ? 'border-blue-200/35 bg-blue-400/15 text-blue-200' : 'border-emerald-200/35 bg-emerald-400/15 text-emerald-100'}`}>
+                  {editingTemplateId ? <Pencil className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">{editingTemplateId ? 'Edit Template' : 'Create Message Template'}</h3>
-                  <p className="text-[11px] text-slate-500">{editingTemplateId ? 'Modify this template\'s name, title, and content' : 'Configure all settings and content for this template'}</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="truncate text-sm font-black text-white sm:text-base">{editingTemplateId ? 'Edit Template' : 'Create Message Template'}</h3>
+                    <span className={`hidden rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.16em] sm:inline-flex ${editingTemplateId ? 'border-blue-200/25 bg-blue-400/10 text-blue-200' : 'border-emerald-200/25 bg-emerald-400/10 text-emerald-200'}`}>
+                      {editingTemplateId ? 'Editing' : 'New template'}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate text-[10px] font-medium text-emerald-100/55">{editingTemplateId ? 'Update the saved content and keep your team\'s workflow consistent' : 'Build a reusable notification with a clear name, title, and message'}</p>
                 </div>
               </div>
-              <button onClick={() => { setShowSaveTemplateModal(false); setEditingTemplateId(null); setNewTemplateName(''); setTemplateEditorContent(''); setTemplateFormTitle(''); }} className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
-                <X className="w-5 h-5 text-slate-400" />
+              <button
+                type="button"
+                onClick={() => { setShowSaveTemplateModal(false); setEditingTemplateId(null); setNewTemplateName(''); setTemplateEditorContent(''); setTemplateFormTitle(''); }}
+                aria-label="Close template editor"
+                className="ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200/15 bg-slate-950/25 text-emerald-100/60 transition-all hover:border-emerald-200/45 hover:bg-emerald-400/15 hover:text-white"
+              >
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Body: Left editor / Right preview */}
-            <div className="flex-1 flex min-h-0 overflow-hidden">
-              {/* Left: Editor */}
-              <div className="w-[65%] flex flex-col border-r border-slate-700/50 p-5 gap-4">
-                {/* Template name */}
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide whitespace-nowrap">Name</label>
+            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+              <div className="flex min-h-0 flex-1 flex-col gap-3 border-b border-emerald-200/15 p-4 sm:gap-4 sm:p-5 lg:w-[64%] lg:flex-none lg:border-b-0 lg:border-r">
+                <div className="flex shrink-0 flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/70">Template name</label>
+                    <span className="text-[9px] font-semibold text-emerald-200/45">Required</span>
+                  </div>
                   <input
                     type="text"
                     value={newTemplateName}
                     onChange={(e) => setNewTemplateName(e.target.value.slice(0, 50))}
-                    className="flex-1 min-w-0 px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400 placeholder:text-slate-400 shadow-sm"
-                    placeholder="Template name (e.g., Welcome Message, Shift Reminder...)"
+                    className="w-full rounded-xl border border-emerald-200/25 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-[0_8px_20px_rgba(2,44,34,0.16)] outline-none transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
+                    placeholder="e.g. Welcome message or shift reminder"
                     autoFocus
                   />
                 </div>
 
-                {/* Title */}
-                <div className="flex-shrink-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Title</label>
-                    <span className="text-[10px] text-slate-600">{templateFormTitle.length}/200</span>
+                <div className="flex shrink-0 flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/70">Notification title</label>
+                    <span className="text-[9px] font-semibold tabular-nums text-emerald-200/45">{templateFormTitle.length}/200</span>
                   </div>
-                  <input type="text" value={templateFormTitle}
+                  <input
+                    type="text"
+                    value={templateFormTitle}
                     onChange={(e) => setTemplateFormTitle(e.target.value.slice(0, 200))}
-                    placeholder="Enter message title..."
-                    className="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400 transition-all shadow-sm"
+                    placeholder="Enter a concise title"
+                    className="w-full rounded-xl border border-emerald-200/25 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-[0_8px_20px_rgba(2,44,34,0.14)] outline-none transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
                   />
                 </div>
 
-                {/* Content Editor */}
-                <div className="flex-1 min-h-0 flex flex-col">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 shrink-0">Content</label>
-                  <div className="flex-1 min-h-0 [&>div]:h-full [&>div]:flex [&>div]:flex-col">
+                <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+                  <div className="flex shrink-0 items-center justify-between gap-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/70">Message content</label>
+                    <span className="rounded-full border border-emerald-200/15 bg-emerald-400/10 px-2 py-0.5 text-[8px] font-bold text-emerald-200/65">Rich text enabled</span>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-emerald-200/25 bg-white shadow-[0_10px_28px_rgba(2,44,34,0.18)] [&>div]:h-full [&>div]:flex [&>div]:flex-col">
                     <TiptapEditor
                       ref={templateEditorRef2}
                       content={templateEditorContent}
                       onChange={(html: string) => setTemplateEditorContent(html)}
-                      placeholder="Write your template content here..."
+                      placeholder="Write your reusable notification content here..."
                       theme="light"
                       adminId=""
                       enableQuickCopy
@@ -2535,68 +2563,110 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 </div>
               </div>
 
-              {/* Right: Existing templates list */}
-              <div className="w-[35%] flex flex-col bg-slate-950/40">
-                <div className="px-4 py-3 border-b border-slate-700/50 flex-shrink-0">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wide">Existing Templates</h4>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{templates.length} template{templates.length !== 1 ? 's' : ''} saved</p>
+              <aside className="flex min-h-0 flex-1 flex-col bg-gradient-to-b from-emerald-950/55 via-slate-950/60 to-teal-950/55 lg:w-[36%] lg:flex-none">
+                <div className="relative shrink-0 border-b border-emerald-200/15 px-4 py-3.5 sm:px-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-300/75">Library</p>
+                      <h4 className="mt-1 text-sm font-black text-white">Existing Templates</h4>
+                      <p className="mt-0.5 text-[10px] font-medium text-emerald-100/50">Select a card to load it into the editor</p>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-emerald-200/25 bg-emerald-400/15 px-2 py-1 text-[9px] font-black tabular-nums text-emerald-100">{templates.length}</span>
+                  </div>
                 </div>
-                <div className="flex-1 overflow-y-auto scrollbar-dark p-3 space-y-2">
+                <div className="min-h-0 flex-1 overflow-y-auto p-3 scrollbar-dark sm:p-4">
                   {templates.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Bookmark className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-                      <p className="text-xs text-slate-500 font-medium">No templates yet</p>
-                      <p className="text-[10px] text-slate-600 mt-1">Fill in the form and save your first template</p>
+                    <div className="flex h-full min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-emerald-200/20 bg-emerald-400/[0.04] px-5 text-center">
+                      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-200/20 bg-emerald-400/10 text-emerald-300/75">
+                        <Bookmark className="h-5 w-5" />
+                      </div>
+                      <p className="text-xs font-bold text-emerald-100/80">No templates yet</p>
+                      <p className="mt-1 max-w-52 text-[10px] leading-relaxed text-emerald-100/45">Save this form to create the first reusable notification for your team.</p>
                     </div>
                   ) : (
-                    templates.map(tpl => {
-                      const isEditing = editingTemplateId === tpl.id;
-                      return (
-                      <div key={tpl.id} className={`rounded-xl p-3.5 group transition-all border ${isEditing ? 'bg-blue-600/15 border-blue-500/40 ring-1 ring-blue-500/20' : 'bg-slate-800/50 border-slate-700/30 hover:bg-slate-800/80 hover:border-slate-600/50'}`}>
-                        <div className="flex items-start gap-3">
-                          <div className={`p-1.5 rounded-lg flex-shrink-0 mt-0.5 ${isEditing ? 'bg-blue-500/20' : 'bg-teal-500/10'}`}>
-                            <Bookmark className={`w-3.5 h-3.5 ${isEditing ? 'text-blue-400' : 'text-teal-400/70'}`} />
+                    <div className="space-y-2.5">
+                      {templates.map(tpl => {
+                        const isEditing = editingTemplateId === tpl.id;
+                        const contentPreview = tpl.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                        return (
+                          <div
+                            key={tpl.id}
+                            onClick={() => startEditTemplate(tpl)}
+                            className={`group relative cursor-pointer overflow-hidden rounded-xl border p-3 transition-all hover:-translate-y-0.5 ${isEditing ? 'border-emerald-300/70 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-slate-950/60 ring-1 ring-emerald-300/25 shadow-[0_10px_24px_rgba(16,185,129,0.16)]' : 'border-emerald-200/15 bg-gradient-to-br from-emerald-900/35 via-slate-950/60 to-teal-950/30 hover:border-emerald-300/45 hover:from-emerald-800/45 hover:to-teal-900/40 hover:shadow-[0_10px_24px_rgba(16,185,129,0.12)]'}`}
+                          >
+                            <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-300 via-teal-400 to-cyan-400 opacity-80" />
+                            <div className="flex items-start gap-2.5 pl-1">
+                              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${isEditing ? 'border-emerald-200/35 bg-emerald-300/20 text-emerald-100' : 'border-emerald-200/15 bg-emerald-400/10 text-emerald-300/80'}`}>
+                                <Bookmark className="h-3.5 w-3.5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className={`min-w-0 truncate text-[11px] font-black ${isEditing ? 'text-emerald-50' : 'text-white'}`}>{tpl.name}</div>
+                                  <span className="shrink-0 text-[8px] font-bold uppercase tracking-wider text-emerald-200/45">{isEditing ? 'Editing' : 'Saved'}</span>
+                                </div>
+                                {tpl.title && <div className="mt-1 truncate text-[10px] font-semibold text-emerald-100/65">{tpl.title}</div>}
+                                {contentPreview && <p className="mt-1.5 line-clamp-2 text-[9px] leading-relaxed text-emerald-100/45">{contentPreview}</p>}
+                              </div>
+                            </div>
+                            <div className="mt-2.5 flex items-center gap-1.5 border-t border-emerald-200/10 pt-2.5 pl-11">
+                              <span className={`rounded-md border px-1.5 py-0.5 text-[7px] font-bold ${getPriorityColor(tpl.priority as Message['priority'])}`}>
+                                {(tpl.priority || 'normal').charAt(0).toUpperCase() + (tpl.priority || 'normal').slice(1)}
+                              </span>
+                              <span className="rounded-md border border-teal-300/20 bg-teal-400/10 px-1.5 py-0.5 text-[7px] font-bold text-teal-200">{getNotificationDeliveryLabel(tpl.delivery_mode)}</span>
+                              <div className="ml-auto flex items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); startEditTemplate(tpl); }}
+                                  aria-label={`Edit ${tpl.name}`}
+                                  className="rounded-lg p-1.5 text-emerald-200/60 transition-colors hover:bg-emerald-400/15 hover:text-emerald-100"
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => deleteTemplate(tpl.id, e)}
+                                  aria-label={`Delete ${tpl.name}`}
+                                  className="rounded-lg p-1.5 text-emerald-200/60 transition-colors hover:bg-red-400/15 hover:text-red-200"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className={`text-xs font-bold truncate ${isEditing ? 'text-blue-200' : 'text-slate-200'}`}>{tpl.name}</div>
-                            {tpl.title && <div className="text-[10px] text-slate-400 truncate mt-0.5">{tpl.title}</div>}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-700/30">
-                          <button onClick={() => startEditTemplate(tpl)}
-                            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all ${isEditing ? 'bg-blue-600/30 text-blue-300' : 'bg-slate-700/50 text-slate-400 hover:bg-blue-600/20 hover:text-blue-300'}`}>
-                            <Pencil className="w-3 h-3" /> Edit
-                          </button>
-                          <button onClick={() => deleteTemplate(tpl.id, { stopPropagation: () => {} } as React.MouseEvent)}
-                            className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[10px] font-bold bg-slate-700/50 text-slate-400 hover:bg-red-600/20 hover:text-red-400 transition-all">
-                            <Trash2 className="w-3 h-3" /> Delete
-                          </button>
-                        </div>
-                      </div>
-                      );
-                    })
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
-              </div>
+              </aside>
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between px-5 py-3 border-t border-slate-700/50 flex-shrink-0 bg-slate-900/80">
+            <div className="relative flex shrink-0 flex-col gap-3 border-t border-emerald-200/15 bg-gradient-to-r from-emerald-950/90 via-slate-950/90 to-teal-950/90 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div className="flex items-center gap-2">
-                <button onClick={() => { setShowSaveTemplateModal(false); setEditingTemplateId(null); setNewTemplateName(''); setTemplateEditorContent(''); setTemplateFormTitle(''); }}
-                  className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors">
+                <button
+                  type="button"
+                  onClick={() => { setShowSaveTemplateModal(false); setEditingTemplateId(null); setNewTemplateName(''); setTemplateEditorContent(''); setTemplateFormTitle(''); }}
+                  className="rounded-xl border border-emerald-200/20 bg-slate-950/35 px-4 py-2.5 text-xs font-bold text-emerald-100/75 transition-all hover:border-emerald-200/45 hover:bg-emerald-400/10 hover:text-white"
+                >
                   Cancel
                 </button>
                 {editingTemplateId && (
-                  <button onClick={() => { setEditingTemplateId(null); setNewTemplateName(''); setTemplateFormTitle(''); setTemplateEditorContent(''); templateEditorRef2.current?.getEditor()?.commands.setContent(''); }}
-                    className="px-4 py-2.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-lg text-sm font-medium transition-colors border border-slate-600/50">
-                    New Instead
+                  <button
+                    type="button"
+                    onClick={startNewTemplate}
+                    className="rounded-xl border border-emerald-200/20 bg-emerald-400/10 px-4 py-2.5 text-xs font-bold text-emerald-200 transition-all hover:border-emerald-200/45 hover:bg-emerald-400/20 hover:text-emerald-100"
+                  >
+                    New blank
                   </button>
                 )}
               </div>
-              <button onClick={saveAsTemplate} disabled={savingTemplate || !newTemplateName.trim()}
-                className={`flex items-center gap-2 px-6 py-2.5 text-white rounded-lg text-sm font-bold transition-all disabled:opacity-30 shadow-lg ${editingTemplateId ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/25' : 'bg-teal-600 hover:bg-teal-500 shadow-teal-600/25'}`}>
-                {savingTemplate ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : editingTemplateId ? <Save className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+              <button
+                type="button"
+                onClick={saveAsTemplate}
+                disabled={savingTemplate || !newTemplateName.trim()}
+                className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-xs font-black text-white shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-35 ${editingTemplateId ? 'border-blue-200/30 bg-gradient-to-r from-blue-500 to-indigo-500 shadow-blue-950/30 hover:from-blue-400 hover:to-indigo-400' : 'border-emerald-200/35 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 shadow-emerald-950/35 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400'}`}
+              >
+                {savingTemplate ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : editingTemplateId ? <Save className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
                 {savingTemplate ? 'Saving...' : editingTemplateId ? 'Update Template' : 'Save Template'}
               </button>
             </div>
