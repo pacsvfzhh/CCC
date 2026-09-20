@@ -52,6 +52,7 @@ interface AutomationEmployee {
 type TriggerType = 'total_orders' | 'daily_orders' | 'work_days' | 'commission_amount' | 'consecutive_work_days' | 'annual_date';
 type TriggerMode = 'reach_once' | 'recurring';
 type TaskStatus = 'draft' | 'active' | 'paused' | 'archived';
+type EmployeePickerStatusFilter = 'all' | 'active' | 'inactive';
 
 interface AutomationTask {
   id: string;
@@ -343,6 +344,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [employeePreviewOpen, setEmployeePreviewOpen] = useState(false);
   const [employeePickerOpen, setEmployeePickerOpen] = useState(false);
   const [employeePickerSearch, setEmployeePickerSearch] = useState('');
+  const [employeePickerStatusFilter, setEmployeePickerStatusFilter] = useState<EmployeePickerStatusFilter>('all');
   const [pendingRecipientIds, setPendingRecipientIds] = useState<string[]>([]);
   const adminMenuAnchorRef = useRef<HTMLDivElement>(null);
   const loadRef = useRef<(() => Promise<void>) | null>(null);
@@ -421,12 +423,15 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   );
   const employeePickerResults = useMemo(() => {
     const query = employeePickerSearch.trim().toLocaleLowerCase();
-    if (!query) return employees;
-    return employees.filter(employee =>
-      employee.username.toLocaleLowerCase().includes(query)
-      || employee.employee_id.toLocaleLowerCase().includes(query),
-    );
-  }, [employees, employeePickerSearch]);
+    return employees.filter(employee => {
+      const matchesQuery = !query
+        || employee.username.toLocaleLowerCase().includes(query)
+        || employee.employee_id.toLocaleLowerCase().includes(query);
+      const matchesStatus = employeePickerStatusFilter === 'all'
+        || employee.is_active === (employeePickerStatusFilter === 'active');
+      return matchesQuery && matchesStatus;
+    });
+  }, [employees, employeePickerSearch, employeePickerStatusFilter]);
   const allVisibleEmployeesSelected = employeePickerResults.length > 0
     && employeePickerResults.every(employee => pendingRecipientIds.includes(employee.id));
   const pendingSelectedEmployees = useMemo(
@@ -443,6 +448,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const openEmployeePicker = (initialRecipientIds = form.recipientIds) => {
     setPendingRecipientIds(initialRecipientIds);
     setEmployeePickerSearch('');
+    setEmployeePickerStatusFilter('all');
     setEmployeePickerOpen(true);
   };
 
@@ -983,25 +989,42 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
             <div className="mt-4 grid min-h-0 gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,.8fr)]">
               <div className="min-w-0 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/70">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/70 bg-gradient-to-r from-slate-950/75 to-slate-900/60 px-3.5 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/70 bg-gradient-to-r from-slate-950/75 to-slate-900/60 px-3.5 py-2.5">
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">搜尋結果</p>
                     <p className="mt-0.5 text-sm font-black text-white">可選員工 <span className="ml-1 text-cyan-300">{employeePickerResults.length}</span></p>
                   </div>
-                  <button
-                    type="button"
-                    disabled={employeePickerResults.length === 0}
-                    onClick={() => setPendingRecipientIds(previous => {
-                      const visibleIds = employeePickerResults.map(employee => employee.id);
-                      return allVisibleEmployeesSelected
-                        ? previous.filter(id => !visibleIds.includes(id))
-                        : Array.from(new Set([...previous, ...visibleIds]));
-                    })}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-black text-cyan-100 transition-all hover:-translate-y-0.5 hover:border-cyan-200/70 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    {allVisibleEmployeesSelected ? '取消全選' : '全選結果'}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <SlidersHorizontal className="mr-0.5 h-3.5 w-3.5 text-cyan-300/70" aria-hidden="true" />
+                    <button
+                      type="button"
+                      onClick={() => setEmployeePickerStatusFilter(previous => previous === 'active' ? 'all' : 'active')}
+                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-all ${employeePickerStatusFilter === 'active' ? 'border-emerald-200/50 bg-emerald-500/25 text-emerald-100 shadow-sm shadow-emerald-950/30' : 'border-emerald-300/20 bg-emerald-500/[0.08] text-emerald-300/80 hover:border-emerald-200/45 hover:bg-emerald-500/15'}`}
+                    >
+                      啟用
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEmployeePickerStatusFilter(previous => previous === 'inactive' ? 'all' : 'inactive')}
+                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-all ${employeePickerStatusFilter === 'inactive' ? 'border-slate-300/45 bg-slate-500/25 text-slate-100 shadow-sm shadow-slate-950/30' : 'border-slate-500/50 bg-slate-800/50 text-slate-400 hover:border-slate-400/70 hover:bg-slate-700/70 hover:text-slate-200'}`}
+                    >
+                      停用
+                    </button>
+                    <button
+                      type="button"
+                      disabled={employeePickerResults.length === 0}
+                      onClick={() => setPendingRecipientIds(previous => {
+                        const visibleIds = employeePickerResults.map(employee => employee.id);
+                        return allVisibleEmployeesSelected
+                          ? previous.filter(id => !visibleIds.includes(id))
+                          : Array.from(new Set([...previous, ...visibleIds]));
+                      })}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-black text-cyan-100 transition-all hover:-translate-y-0.5 hover:border-cyan-200/70 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {allVisibleEmployeesSelected ? '取消全選' : '全選結果'}
+                    </button>
+                  </div>
                 </div>
                 {employeePickerResults.length === 0 ? (
                   <div className="px-4 py-10 text-center text-sm text-slate-500">找不到符合的員工帳號或 ID</div>
@@ -1026,7 +1049,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               togglePendingEmployee(employee.id);
                             }
                           }}
-                          className={`group flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-cyan-300/40 bg-gradient-to-r from-cyan-500/15 via-blue-500/[0.08] to-transparent shadow-[inset_0_0_20px_rgba(34,211,238,0.05)]' : 'border-transparent hover:border-slate-700/80 hover:bg-slate-800/80'}`}
+                          className={`group flex cursor-pointer items-center gap-2.5 rounded-xl border px-2.5 py-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-cyan-300/40 bg-gradient-to-r from-cyan-500/15 via-blue-500/[0.08] to-transparent shadow-[inset_0_0_20px_rgba(34,211,238,0.05)]' : 'border-transparent hover:border-slate-700/80 hover:bg-slate-800/80'}`}
                         >
                           <input
                             type="checkbox"
@@ -1038,9 +1061,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           />
                           <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-400/70 ${selected ? 'border-cyan-200 bg-cyan-500 text-white shadow-[0_0_12px_rgba(34,211,238,0.45)]' : 'border-slate-600 bg-slate-950/80 text-transparent group-hover:border-slate-500'}`}>
                             <CheckCircle2 className="h-3.5 w-3.5" />
-                          </span>
-                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-xs font-black shadow-inner ${selected ? 'border-cyan-200/35 bg-gradient-to-br from-cyan-400/35 to-blue-600/30 text-cyan-50' : 'border-slate-700 bg-slate-950/80 text-slate-500'}`}>
-                            {employee.username.charAt(0).toUpperCase() || '?'}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className={`block truncate text-sm font-black ${selected ? 'text-cyan-50' : 'text-slate-200'}`}>{employee.username}</span>
@@ -1075,10 +1095,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 ) : (
                   <div className="max-h-[min(52vh,420px)] space-y-2 overflow-y-auto p-2.5 dark-panel-scroll">
                     {pendingSelectedEmployees.map(employee => (
-                      <div key={employee.id} className="group flex items-center gap-2.5 rounded-xl border border-cyan-300/15 bg-slate-950/55 px-2.5 py-2 transition-colors hover:border-cyan-200/30 hover:bg-cyan-950/25">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-200/20 bg-gradient-to-br from-cyan-400/25 to-blue-600/25 text-[11px] font-black text-cyan-100">
-                          {employee.username.charAt(0).toUpperCase() || '?'}
-                        </span>
+                      <div key={employee.id} className="group flex items-center gap-2 rounded-xl border border-cyan-300/15 bg-slate-950/55 px-2.5 py-1.5 transition-colors hover:border-cyan-200/30 hover:bg-cyan-950/25">
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-xs font-black text-cyan-50">{employee.username}</p>
                           <p className="mt-0.5 truncate text-[10px] text-slate-500">員工 ID：{employee.employee_id}</p>
