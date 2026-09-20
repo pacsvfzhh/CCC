@@ -1758,27 +1758,47 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               />
             </div>
 
-            <div className={`shrink-0 rounded-xl border p-3 ${manualRewardEnabled ? 'border-amber-400/40 bg-gradient-to-r from-amber-950/70 to-slate-900' : 'border-slate-700 bg-slate-800/45'}`}>
-              <label className="flex cursor-pointer items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${manualRewardEnabled ? 'bg-amber-400 text-amber-950' : 'bg-slate-700 text-slate-400'}`}>
-                    <Gift className="h-4 w-4" />
+            <section className={`shrink-0 rounded-2xl border p-3 transition-colors duration-200 ${manualRewardEnabled ? 'border-amber-300/45 bg-gradient-to-br from-amber-500/[0.12] via-orange-500/[0.06] to-slate-900 shadow-[0_10px_28px_rgba(120,53,15,0.16)]' : 'border-slate-700/80 bg-slate-900/65 hover:border-slate-600'}`}>
+              <div className={`flex items-center justify-between gap-2 border-l-2 pl-3 ${manualRewardEnabled ? 'border-amber-300' : 'border-slate-600'}`}>
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                  <Gift className={`h-5 w-5 shrink-0 ${manualRewardEnabled ? 'text-amber-300' : 'text-slate-500'}`} />
+                  <div className="min-w-0 shrink-0">
+                    <h3 className={`whitespace-nowrap text-[15px] font-black ${manualRewardEnabled ? 'text-amber-100' : 'text-slate-100'}`}>績效獎金</h3>
+                    <p className={`text-[10px] ${manualRewardEnabled ? 'text-amber-100/70' : 'text-slate-400'}`}>{manualRewardEnabled ? '已啟用，通知會附帶績效獎金' : '關閉時只發送一般通知'}</p>
                   </div>
-                  <div>
-                    <p className={`text-[11px] font-bold ${manualRewardEnabled ? 'text-amber-100' : 'text-slate-300'}`}>發放績效獎金</p>
-                    <p className="text-[9px] text-slate-500">未勾選時只發送一般通知，不會修改錢包</p>
-                  </div>
+                  {manualRewardEnabled && (
+                    <div className="flex min-w-0 shrink items-center gap-2 rounded-xl border border-amber-300/35 bg-gradient-to-r from-amber-500/[0.16] to-orange-500/[0.1] px-2 py-1 shadow-sm shadow-amber-950/25">
+                      <label className="flex shrink-0 items-center gap-2">
+                        <span className="text-[11px] font-black text-amber-100">每人獎金</span>
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={manualRewardAmount}
+                          onChange={event => setManualRewardAmount(event.target.value)}
+                          aria-label="每人獎金"
+                          className="h-9 w-28 rounded-xl border border-amber-300/70 bg-white px-3 text-base font-black text-slate-900 shadow-[0_2px_8px_rgba(120,53,15,0.18)] outline-none transition-colors hover:border-amber-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-400/35"
+                        />
+                      </label>
+                      <span className="inline-flex h-9 shrink-0 items-center rounded-xl border border-amber-200/45 bg-amber-300/20 px-3 text-xs font-black text-amber-100 shadow-sm" title="網站計量貨幣">
+                        {currencyUnit}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <input type="checkbox" checked={manualRewardEnabled} onChange={event => setManualRewardEnabled(event.target.checked)} className="h-4 w-4 accent-amber-400" />
-              </label>
-              {manualRewardEnabled && (
-                <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                  <input type="number" min="0.01" step="0.01" value={manualRewardAmount} onChange={event => setManualRewardAmount(event.target.value)} placeholder="每名員工的獎金金額" className="min-w-0 rounded-lg border border-amber-500/30 bg-slate-950 px-3 py-2 text-xs font-bold text-amber-100 outline-none focus:border-amber-400" />
-                  <div className="flex items-center rounded-lg border border-amber-500/20 bg-amber-400/10 px-3 text-xs font-black text-amber-200">{currencyUnit}</div>
-                  <p className="col-span-2 text-[9px] text-amber-200/60">發送後立即入帳。{selectedEmployeeIds.size > 0 && manualRewardAmount ? `預計總額：${(Number(manualRewardAmount) * selectedEmployeeIds.size).toFixed(2)} ${currencyUnit}` : ''}</p>
-                </div>
-              )}
-            </div>
+                <button
+                  type="button"
+                  aria-pressed={manualRewardEnabled}
+                  onClick={() => setManualRewardEnabled(previous => !previous)}
+                  className={`group inline-flex shrink-0 items-center gap-2 rounded-xl border px-2 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 ${manualRewardEnabled ? 'border-amber-200/35 bg-amber-400/[0.1] hover:border-amber-100/60 hover:bg-amber-400/[0.16]' : 'border-slate-700 bg-slate-950/45 hover:border-slate-500 hover:bg-slate-800/70'}`}
+                >
+                  <span className={`text-[11px] font-black ${manualRewardEnabled ? 'text-amber-100' : 'text-slate-300'}`}>{manualRewardEnabled ? '已啟用' : '未啟用'}</span>
+                  <span className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors ${manualRewardEnabled ? 'border-amber-200/80 bg-gradient-to-r from-amber-300 to-orange-500 shadow-[0_0_14px_rgba(245,158,11,0.32)]' : 'border-slate-600 bg-slate-800'}`}>
+                    <span className={`h-5 w-5 rounded-full bg-white shadow-md transition-transform ${manualRewardEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </span>
+                </button>
+              </div>
+            </section>
 
             {/* TipTap Editor - fills all remaining space */}
             <div className="flex-1 min-h-0 flex flex-col">
