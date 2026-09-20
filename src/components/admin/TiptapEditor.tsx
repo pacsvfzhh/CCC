@@ -1245,22 +1245,6 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
             <div className="flex-1" />
 
-            {onClearAll && (
-              <button
-                type="button"
-                onClick={() => {
-                  editor.chain().focus().clearContent().run();
-                  onClearAll();
-                }}
-                title="一键清空输入框内容"
-                aria-label="一键清空输入框内容"
-                className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-red-400 bg-gradient-to-r from-red-500 to-orange-500 px-2.5 text-[11px] font-black text-white shadow-sm shadow-red-500/25 transition-all hover:border-red-300 hover:from-red-400 hover:to-orange-400 hover:shadow-md hover:shadow-red-500/35 active:scale-[0.98]"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                一键清空输入框内容
-              </button>
-            )}
-
             <MenuButton
               onClick={() => editor.chain().focus().undo().run()}
               disabled={!editor.can().chain().focus().undo().run()}
@@ -1276,6 +1260,22 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             >
               <Redo className="w-4 h-4" />
             </MenuButton>
+
+            {onClearAll && (
+              <button
+                type="button"
+                onClick={() => {
+                  editor.chain().focus().clearContent().run();
+                  onClearAll();
+                }}
+                title="一键清空输入框内容"
+                aria-label="一键清空输入框内容"
+                className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-red-400 bg-gradient-to-r from-red-500 to-orange-500 px-2.5 text-[11px] font-black text-white shadow-sm shadow-red-500/25 transition-all hover:border-red-300 hover:from-red-400 hover:to-orange-400 hover:shadow-md hover:shadow-red-500/35 active:scale-[0.98]"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                一键清空输入框内容
+              </button>
+            )}
           </div>
         )}
 
