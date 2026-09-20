@@ -191,8 +191,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [messageScopeFilter] = useState<'all' | 'broadcast' | 'targeted'>('all');
   const [readStatusFilter, setReadStatusFilter] = useState<'all' | 'read' | 'unread'>('all');
   const [sentMessagesSearchQuery, setSentMessagesSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const messagesPerPage = 15;
 
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -1133,13 +1131,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     return true;
   });
 
-  const totalPages = Math.ceil(filteredMessages.length / messagesPerPage);
-  const paginatedMessages = filteredMessages.slice(
-    (currentPage - 1) * messagesPerPage,
-    currentPage * messagesPerPage
-  );
   useEffect(() => {
-    setCurrentPage(1);
     setSelectedMessageIds(new Set());
   }, [selectedAdminId, messageTypeFilter, messageScopeFilter, readStatusFilter, sentMessagesSearchQuery]);
 
@@ -1953,7 +1945,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             ) : filteredMessages.length === 0 ? (
               <div className="text-center py-10 text-slate-600 text-xs font-medium">No matches</div>
             ) : (
-              paginatedMessages.map(msg => {
+              filteredMessages.map(msg => {
                 const stats = messageStats.get(msg.id);
                 const recipientCount = stats?.total_recipients || 0;
                 const recipientDetail = recipientDetails.get(msg.id);
@@ -2040,22 +2032,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             )}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-700/60 bg-slate-800/35 px-3 py-2">
-              <span className="text-[9px] text-slate-500 font-medium">{currentPage}/{totalPages}</span>
-              <div className="flex items-center gap-0.5">
-                <button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}
-                  className="px-2 py-0.5 text-[9px] font-semibold hover:bg-white/10 disabled:opacity-30 text-slate-300 rounded-md transition-all">
-                  Prev
-                </button>
-                <button onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}
-                  className="px-2 py-0.5 text-[9px] font-semibold hover:bg-white/10 disabled:opacity-30 text-slate-300 rounded-md transition-all">
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
