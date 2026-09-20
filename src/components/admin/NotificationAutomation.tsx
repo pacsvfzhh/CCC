@@ -937,12 +937,12 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     );
     const employeePickerDialog = employeePickerOpen && createPortal(
       <div
-        className="fixed inset-0 z-[190] flex items-center justify-center bg-slate-950/75 px-4 py-5 backdrop-blur-sm"
+        className="fixed inset-0 z-[190] flex items-center justify-center bg-slate-950/75 px-4 py-3 backdrop-blur-sm"
         role="presentation"
         onMouseDown={() => setEmployeePickerOpen(false)}
       >
         <div
-          className="flex h-[min(720px,calc(100vh-32px))] max-h-[calc(100vh-32px)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.35rem] border border-cyan-300/25 bg-gradient-to-br from-slate-900 via-blue-950/95 to-cyan-950/85 shadow-[0_24px_80px_rgba(2,8,23,0.72),0_0_40px_rgba(8,145,178,0.18)] ring-1 ring-inset ring-white/[0.08]"
+          className="flex h-[min(860px,calc(100vh-24px))] max-h-[calc(100vh-24px)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.35rem] border border-cyan-300/25 bg-gradient-to-br from-slate-900 via-blue-950/95 to-cyan-950/85 shadow-[0_24px_80px_rgba(2,8,23,0.72),0_0_40px_rgba(8,145,178,0.18)] ring-1 ring-inset ring-white/[0.08]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="automation-employee-picker-title"
@@ -963,7 +963,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-br from-blue-950/35 via-slate-900/35 to-cyan-950/30 p-4 sm:p-5 dark-panel-scroll">
+          <div className="min-h-0 flex-1 overflow-hidden bg-gradient-to-br from-blue-950/35 via-slate-900/35 to-cyan-950/30 p-4 sm:p-5">
             <div className="rounded-2xl border border-cyan-200/20 bg-gradient-to-r from-slate-800/90 via-blue-900/70 to-cyan-950/75 p-2 shadow-inner shadow-blue-950/40">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-700" />
@@ -1032,7 +1032,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   <span>員工 ID</span>
                   <span>狀態</span>
                 </div>
-                <div className="h-[min(52vh,420px)] overflow-hidden">
+                <div className="h-[clamp(180px,calc(100vh-410px),420px)] overflow-hidden">
                 {employeePickerResults.length === 0 ? (
                   <div className="flex h-full items-center justify-center px-4 py-10 text-center text-sm text-slate-500">找不到符合的員工帳號或 ID</div>
                 ) : (
@@ -1095,7 +1095,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   <span>員工 ID</span>
                   <span className="text-center">操作</span>
                 </div>
-                <div className="h-[min(52vh,420px)] overflow-hidden">
+                <div className="h-[clamp(180px,calc(100vh-410px),420px)] overflow-hidden">
                 {pendingSelectedEmployees.length === 0 ? (
                   <div className="flex h-full min-h-[210px] flex-col items-center justify-center px-4 py-8 text-center">
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.07] text-cyan-300/60">
