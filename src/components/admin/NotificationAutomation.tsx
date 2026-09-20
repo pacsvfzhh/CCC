@@ -1278,9 +1278,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         <p className="text-[10px] text-slate-500">{form.rewardEnabled ? '已啟用，通知會附帶績效獎金' : '關閉時只發送一般通知'}</p>
                       </div>
                       {form.rewardEnabled && (
-                        <div className="flex min-w-0 shrink items-center gap-1.5 border-l border-amber-300/20 pl-2">
-                          <label className="flex shrink-0 items-center gap-1.5">
-                            <span className="text-[10px] font-semibold text-amber-200/70">每次獎金</span>
+                        <div className="flex min-w-0 shrink items-center gap-2 rounded-xl border border-amber-300/25 bg-gradient-to-r from-amber-500/[0.12] to-orange-500/[0.08] px-2 py-1 shadow-sm shadow-amber-950/20">
+                          <label className="flex shrink-0 items-center gap-2">
+                            <span className="text-[11px] font-black text-amber-100">每次獎金</span>
                             <input
                               disabled={readOnly}
                               type="number"
@@ -1289,10 +1289,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               value={form.rewardAmount}
                               onChange={event => setForm(previous => ({ ...previous, rewardAmount: event.target.value }))}
                               aria-label="每次獎金"
-                              className="h-8 w-20 rounded-lg border border-slate-300 bg-white px-2 text-sm font-bold text-slate-900 shadow-sm outline-none transition-colors hover:border-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300"
+                              className="h-9 w-28 rounded-xl border border-amber-300/70 bg-white px-3 text-base font-black text-slate-900 shadow-[0_2px_8px_rgba(120,53,15,0.18)] outline-none transition-colors hover:border-amber-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-400/35 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-amber-300"
                             />
                           </label>
-                          <span className="inline-flex h-8 shrink-0 items-center rounded-lg border border-amber-500/20 bg-amber-400/10 px-2 text-[11px] font-black text-amber-200" title="網站計量貨幣">
+                          <span className="inline-flex h-9 shrink-0 items-center rounded-xl border border-amber-200/45 bg-amber-300/20 px-3 text-xs font-black text-amber-100 shadow-sm" title="網站計量貨幣">
                             {dashboard.currency}
                           </span>
                         </div>
