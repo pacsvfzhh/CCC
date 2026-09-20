@@ -948,7 +948,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
           aria-labelledby="automation-employee-picker-title"
           onMouseDown={event => event.stopPropagation()}
         >
-          <div className="relative flex shrink-0 items-start gap-3 overflow-hidden border-b border-cyan-300/20 bg-gradient-to-r from-blue-950 via-cyan-950 to-blue-950 px-5 py-4">
+          <div className="relative flex shrink-0 flex-wrap items-center gap-3 overflow-hidden border-b border-cyan-300/20 bg-gradient-to-r from-blue-950 via-cyan-950 to-blue-950 px-5 py-4">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(103,232,249,0.16),transparent_34%),radial-gradient(circle_at_85%_100%,rgba(59,130,246,0.14),transparent_38%)]" />
             <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-200/30 bg-cyan-400/15 text-cyan-200 shadow-lg shadow-cyan-950/30 ring-1 ring-inset ring-white/10">
               <Users className="h-5 w-5" />
@@ -958,37 +958,30 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               <h2 id="automation-employee-picker-title" className="mt-0.5 text-lg font-black tracking-tight text-white">選擇指定員工</h2>
               <p className="mt-1 text-xs leading-5 text-cyan-100/70">搜尋帳號或員工 ID，從左側選擇後在右側確認名單。</p>
             </div>
+            <div className="relative z-10 w-full shrink-0 sm:w-[min(42%,320px)]">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-700" />
+              <input
+                autoFocus
+                type="search"
+                value={employeePickerSearch}
+                onChange={event => setEmployeePickerSearch(event.target.value)}
+                placeholder="搜尋員工帳號或員工 ID"
+                className="w-full rounded-xl border border-cyan-100/80 bg-slate-50 py-2.5 pl-10 pr-10 text-sm font-semibold text-slate-900 outline-none transition-colors placeholder:text-slate-500 shadow-sm shadow-blue-950/20 hover:border-cyan-200 hover:bg-white focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-400/30"
+              />
+              {employeePickerSearch && (
+                <button type="button" onClick={() => setEmployeePickerSearch('')} className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900" aria-label="清除搜尋">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
             <button type="button" onClick={() => setEmployeePickerOpen(false)} className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition-colors hover:border-cyan-200/30 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70" aria-label="關閉員工選擇">
               <X className="h-4 w-4" />
             </button>
           </div>
 
           <div className="min-h-0 flex-1 overflow-hidden bg-gradient-to-br from-blue-950/35 via-slate-900/35 to-cyan-950/30 p-4 sm:p-5">
-            <div className="rounded-2xl border border-cyan-200/20 bg-gradient-to-r from-slate-800/90 via-blue-900/70 to-cyan-950/75 p-2 shadow-inner shadow-blue-950/40">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-700" />
-                <input
-                  autoFocus
-                  type="search"
-                  value={employeePickerSearch}
-                  onChange={event => setEmployeePickerSearch(event.target.value)}
-                  placeholder="搜尋員工帳號或員工 ID"
-                  className="w-full rounded-xl border border-cyan-100/80 bg-slate-50 py-3 pl-10 pr-10 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-500 shadow-sm shadow-blue-950/20 hover:border-cyan-200 hover:bg-white focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-400/30"
-                />
-                {employeePickerSearch && (
-                  <button type="button" onClick={() => setEmployeePickerSearch('')} className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900" aria-label="清除搜尋">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1 text-[10px] font-bold text-slate-500">
-                <span>共 {employeePickerResults.length} 名可選員工</span>
-                <span className="text-cyan-300/80">已暫存 {pendingRecipientIds.length} 名</span>
-              </div>
-            </div>
-
-            <div className="mt-4 grid min-h-0 gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,.8fr)]">
-              <div className="min-w-0 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/70">
+            <div className="grid h-full min-h-0 gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,.8fr)]">
+              <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/70">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/70 bg-gradient-to-r from-slate-950/75 to-slate-900/60 px-3.5 py-2.5">
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">搜尋結果</p>
@@ -1032,7 +1025,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   <span>員工 ID</span>
                   <span>狀態</span>
                 </div>
-                <div className="h-[clamp(180px,calc(100vh-410px),420px)] overflow-hidden">
+                <div className="min-h-0 flex-1 overflow-hidden">
                 {employeePickerResults.length === 0 ? (
                   <div className="flex h-full items-center justify-center px-4 py-10 text-center text-sm text-slate-500">找不到符合的員工帳號或 ID</div>
                 ) : (
@@ -1080,7 +1073,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 </div>
               </div>
 
-              <div className="min-w-0 overflow-hidden rounded-xl border border-cyan-300/25 bg-gradient-to-b from-cyan-950/25 via-slate-900/80 to-slate-950/80 shadow-[inset_0_0_24px_rgba(34,211,238,0.04)]">
+              <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-cyan-300/25 bg-gradient-to-b from-cyan-950/25 via-slate-900/80 to-slate-950/80 shadow-[inset_0_0_24px_rgba(34,211,238,0.04)]">
                 <div className="flex items-center justify-between gap-2 border-b border-cyan-300/15 bg-gradient-to-r from-cyan-400/[0.09] to-blue-500/[0.04] px-3.5 py-3">
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-[0.16em] text-cyan-300/65">Selection preview</p>
@@ -1095,7 +1088,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   <span>員工 ID</span>
                   <span className="text-center">操作</span>
                 </div>
-                <div className="h-[clamp(180px,calc(100vh-410px),420px)] overflow-hidden">
+                <div className="min-h-0 flex-1 overflow-hidden">
                 {pendingSelectedEmployees.length === 0 ? (
                   <div className="flex h-full min-h-[210px] flex-col items-center justify-center px-4 py-8 text-center">
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.07] text-cyan-300/60">
