@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
+import EmployeeNotificationDetailPanel from '../employee/EmployeeNotificationDetailPanel';
 import TiptapEditor, { type TiptapEditorRef } from './TiptapEditor';
 import NotificationAutomation from './NotificationAutomation';
 import NotificationDeliverySelector, { type NotificationDeliveryMode } from './NotificationDeliverySelector';
@@ -10,7 +12,7 @@ import {
   Send, Users, Bell, AlertCircle, X, Search,
   Check, CheckSquare, Square, Trash2, AlertTriangle,
   Pencil, Save, ChevronDown,
-  Tag, Bookmark, Plus, Clock, Radio, Globe, Gift, Sparkles, ShieldCheck
+  Tag, Bookmark, Plus, Clock, Radio, Globe, Gift, Sparkles, ShieldCheck, Eye
 } from 'lucide-react';
 
 interface AdminGroup {
@@ -160,6 +162,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [sending, setSending] = useState(false);
   const [sendProgress, setSendProgress] = useState<{ sent: number; total: number } | null>(null);
   const [showAutomation, setShowAutomation] = useState(false);
+  const [employeePreviewOpen, setEmployeePreviewOpen] = useState(false);
   const [manualRewardEnabled, setManualRewardEnabled] = useState(false);
   const [manualRewardAmount, setManualRewardAmount] = useState('');
   const [showRewardConfirm, setShowRewardConfirm] = useState(false);
@@ -1207,6 +1210,34 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const selectedDeliveryMode = selectedMessageDetail ? getDeliveryMode(selectedMessageDetail) : 'realtime_only';
   const messageTypeTone = getMessageTypeTone(selectedDeliveryMode);
   const messagePriorityTone = getMessagePriorityTone(selectedMessageDetail?.priority || 'normal');
+  const employeePreviewDialog = employeePreviewOpen && createPortal(
+    <div
+      className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-900/45 p-0 backdrop-blur-sm sm:p-4"
+      role="presentation"
+      onMouseDown={() => setEmployeePreviewOpen(false)}
+    >
+      <div
+        className="pointer-events-auto flex h-full w-full max-w-2xl flex-col overflow-hidden sm:h-[82vh] sm:max-h-[88vh] sm:rounded-3xl sm:shadow-2xl sm:shadow-blue-900/20"
+        onMouseDown={event => event.stopPropagation()}
+      >
+        <EmployeeNotificationDetailPanel
+          message={{
+            title: messageForm.title || 'Notification title',
+            content: messageForm.content || '<p>Notification content</p>',
+            message_type: messageForm.deliveryMode === 'login_only' ? 'login_popup' : 'realtime',
+            priority: messageForm.priority,
+            notification_category: manualRewardEnabled ? 'performance_reward' : null,
+            reward_amount: manualRewardEnabled ? Number(manualRewardAmount || 0) : null,
+            reward_currency: currencyUnit,
+            created_at: new Date().toISOString(),
+            is_read: false,
+          }}
+          onClose={() => setEmployeePreviewOpen(false)}
+        />
+      </div>
+    </div>,
+    document.body,
+  );
 
   if (showAutomation) {
     return (
@@ -1235,6 +1266,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
+      {employeePreviewDialog}
       {showRewardConfirm && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md overflow-hidden rounded-2xl border border-amber-400/30 bg-slate-900 shadow-2xl shadow-amber-950/50">
@@ -1634,6 +1666,19 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
               {/* Template button */}
               <div className="flex items-center gap-1 ml-auto" ref={templateDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTemplateDropdown(false);
+                    setEmployeePreviewOpen(true);
+                  }}
+                  aria-haspopup="dialog"
+                  aria-expanded={employeePreviewOpen}
+                  className="flex items-center gap-1.5 rounded-lg border border-blue-300/35 bg-blue-500/15 px-3.5 py-2 text-[11px] font-bold text-blue-100 transition-colors duration-200 hover:border-blue-200/70 hover:bg-blue-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/70"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  員工端預覽
+                </button>
                 <div className="relative">
                   <button
                     onClick={() => { setShowTemplateDropdown(!showTemplateDropdown); }}
