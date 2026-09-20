@@ -71,7 +71,7 @@ export default function NotificationDeliverySelector({
                 <Icon className="h-3.5 w-3.5 shrink-0" />
                 {option.label}
               </span>
-              <span className={`${embedded ? 'mt-0.5' : 'mt-1'} block truncate text-center text-[9px] font-semibold ${selected ? 'text-white/75' : 'text-slate-400'}`}>
+              <span className={`${embedded ? 'mt-0.5' : 'mt-1'} block truncate text-center text-[9px] font-semibold text-current`}>
                 {option.description}
               </span>
             </button>
