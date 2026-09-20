@@ -962,7 +962,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-700" />
               <input
                 autoFocus
-                type="search"
+                type="text"
                 value={employeePickerSearch}
                 onChange={event => setEmployeePickerSearch(event.target.value)}
                 placeholder="搜尋員工帳號或員工 ID"
