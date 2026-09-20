@@ -1029,7 +1029,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 {employeePickerResults.length === 0 ? (
                   <div className="px-4 py-10 text-center text-sm text-slate-500">找不到符合的員工帳號或 ID</div>
                 ) : (
-                  <div className="max-h-[min(52vh,420px)] overflow-y-auto p-1.5 dark-panel-scroll">
+                  <div className="max-h-[min(52vh,420px)] divide-y divide-slate-700/50 overflow-y-auto bg-slate-950/20 dark-panel-scroll">
                     {employeePickerResults.map(employee => {
                       const selected = pendingRecipientIds.includes(employee.id);
                       return (
@@ -1049,7 +1049,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               togglePendingEmployee(employee.id);
                             }
                           }}
-                          className={`group flex cursor-pointer items-center gap-2.5 rounded-xl border px-2.5 py-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-cyan-300/40 bg-gradient-to-r from-cyan-500/15 via-blue-500/[0.08] to-transparent shadow-[inset_0_0_20px_rgba(34,211,238,0.05)]' : 'border-transparent hover:border-slate-700/80 hover:bg-slate-800/80'}`}
+                          className={`group flex cursor-pointer items-center gap-2.5 border-l-2 px-3 py-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-l-cyan-300 bg-cyan-500/10' : 'border-l-transparent hover:bg-slate-800/60'}`}
                         >
                           <input
                             type="checkbox"
@@ -1093,9 +1093,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <p className="mt-1 text-[11px] leading-5 text-slate-500">勾選左側員工後，名單會顯示在這裡</p>
                   </div>
                 ) : (
-                  <div className="max-h-[min(52vh,420px)] space-y-2 overflow-y-auto p-2.5 dark-panel-scroll">
+                  <div className="max-h-[min(52vh,420px)] divide-y divide-cyan-300/10 overflow-y-auto bg-slate-950/20 dark-panel-scroll">
                     {pendingSelectedEmployees.map(employee => (
-                      <div key={employee.id} className="group flex items-center gap-2 rounded-xl border border-cyan-300/15 bg-slate-950/55 px-2.5 py-1.5 transition-colors hover:border-cyan-200/30 hover:bg-cyan-950/25">
+                      <div key={employee.id} className="group flex items-center gap-2 border-l-2 border-l-transparent px-3 py-1.5 transition-colors hover:border-l-cyan-300 hover:bg-cyan-950/25">
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-xs font-black text-cyan-50">{employee.username}</p>
                           <p className="mt-0.5 truncate text-[10px] text-slate-500">員工 ID：{employee.employee_id}</p>
