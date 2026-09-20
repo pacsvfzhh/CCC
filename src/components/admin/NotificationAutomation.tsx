@@ -1189,7 +1189,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <p className="text-[10px] text-slate-500">設定任務名稱、觸發條件、獎金與適用員工</p>
                   </div>
                 </div>
-                <div className="flex min-h-[52px] shrink-0 flex-wrap items-center gap-2 rounded-2xl border border-cyan-300/25 bg-gradient-to-r from-cyan-500/[0.1] via-slate-950/75 to-violet-500/[0.1] px-3 py-2 shadow-lg shadow-slate-950/25">
+                <div className="flex min-h-[52px] shrink-0 flex-wrap items-center gap-2 rounded-2xl border-2 border-cyan-200/65 bg-gradient-to-r from-cyan-500/[0.1] via-slate-950/75 to-violet-500/[0.1] px-3 py-2 shadow-[0_0_0_1px_rgba(34,211,238,0.12),0_12px_30px_rgba(8,47,73,0.28)]">
                   <div className="flex items-center gap-2 rounded-xl border border-slate-700/70 bg-slate-900/75 px-2.5 py-1.5">
                     <Bell className="h-4 w-4 text-cyan-300" />
                     <span className="text-[11px] font-black tracking-[0.08em] text-slate-200">通知類型</span>
