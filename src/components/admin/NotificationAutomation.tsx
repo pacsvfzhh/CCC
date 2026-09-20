@@ -1291,16 +1291,32 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       </button>
                     </div>
                     {selectedEmployees.length > 0 ? (
-                      <div className="mt-2 flex max-h-24 flex-wrap gap-1.5 overflow-y-auto pr-1 dark-panel-scroll">
-                        {selectedEmployees.map(employee => (
-                          <span key={employee.id} title={`${employee.username} · ${employee.employee_id}`} className="max-w-full rounded-md border border-cyan-300/20 bg-slate-950/60 px-2 py-1 text-[10px] font-semibold text-slate-200">
+                      <button
+                        type="button"
+                        disabled={readOnly}
+                        onClick={() => openEmployeePicker()}
+                        className="mt-2 flex w-full flex-wrap gap-1.5 rounded-lg border border-transparent bg-slate-950/30 px-2 py-1.5 text-left transition-colors hover:border-cyan-200/30 hover:bg-cyan-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 disabled:cursor-not-allowed disabled:opacity-60"
+                        aria-label="編輯已選員工名單"
+                      >
+                        {selectedEmployees.slice(0, 4).map(employee => (
+                          <span key={employee.id} title={`${employee.username} · ${employee.employee_id}`} className="max-w-[48%] truncate rounded-md border border-cyan-300/20 bg-slate-950/60 px-2 py-1 text-[10px] font-semibold text-slate-200">
                             <span className="font-bold text-cyan-100">{employee.username}</span>
                             <span className="ml-1 text-slate-500">{employee.employee_id}</span>
                           </span>
                         ))}
-                      </div>
+                        {selectedEmployees.length > 4 && (
+                          <span className="rounded-md border border-cyan-300/20 bg-cyan-500/10 px-2 py-1 text-[10px] font-black text-cyan-200">+{selectedEmployees.length - 4} 名</span>
+                        )}
+                      </button>
                     ) : (
-                      <p className="mt-2 text-[10px] text-amber-200/80">尚未選擇員工，請點擊「選擇員工」開啟名單。</p>
+                      <button
+                        type="button"
+                        disabled={readOnly}
+                        onClick={() => openEmployeePicker()}
+                        className="mt-2 w-full rounded-lg border border-dashed border-amber-300/25 bg-amber-400/[0.04] px-2.5 py-2 text-left text-[10px] text-amber-200/80 transition-colors hover:border-amber-200/50 hover:bg-amber-400/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        尚未選擇員工，請點擊「選擇員工」開啟名單。
+                      </button>
                     )}
                   </div>
                 ) : (
