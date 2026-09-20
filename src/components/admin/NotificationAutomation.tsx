@@ -256,7 +256,7 @@ function buildEnglishTemplate(triggerType: TriggerType, rewardEnabled: boolean, 
     case 'work_days':
       return {
         title: 'Congratulations on Your Work Milestone',
-        content: `<p>Congratulations, {{employee_name}}! You have completed {{threshold_value}} working days.${reward} Your consistency and dedication are greatly appreciated.</p>`,
+        content: `<p>Congratulations, {{employee_name}}! You have completed {{threshold_value}} qualifying working days with at least {{minimum_daily_orders}} orders per day.${reward} Your consistency and dedication are greatly appreciated.</p>`,
       };
     case 'commission_amount':
       return {
@@ -320,7 +320,7 @@ function summarizeTask(task: AutomationTask, currency: string) {
     return `每天${mode} ${value} 筆成功或失敗訂單`;
   }
   if (task.trigger_type === 'work_days') {
-    return `${mode} ${value} 個有效工作日`;
+    return `${mode} ${value} 個有效工作日，每天至少完成 ${task.minimum_daily_orders || 0} 筆訂單`;
   }
   if (task.trigger_type === 'commission_amount') {
     return `${mode} ${value} 佣金`;
@@ -516,6 +516,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       showNotice('error', '觸發數值必須大於零');
       return;
     }
+    if ((form.triggerType === 'work_days' || form.triggerType === 'consecutive_work_days') && Number(form.minimumDailyOrders) <= 0) {
+      showNotice('error', '請設定每天至少完成訂單數');
+      return;
+    }
     if (form.triggerType === 'annual_date') {
       const month = Number(form.annualMonth);
       const day = Number(form.annualDay);
@@ -544,7 +548,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       p_trigger_type: form.triggerType,
       p_trigger_mode: form.triggerMode,
       p_threshold_value: Number(form.thresholdValue),
-      p_minimum_daily_orders: form.triggerType === 'consecutive_work_days' ? Number(form.minimumDailyOrders) : null,
+      p_minimum_daily_orders: form.triggerType === 'work_days' || form.triggerType === 'consecutive_work_days' ? Number(form.minimumDailyOrders) : null,
       p_minimum_daily_work_minutes: form.minimumDailyWorkMinutes ? Number(form.minimumDailyWorkMinutes) : null,
       p_recipient_scope: form.recipientScope,
       p_recipient_ids: form.recipientScope === 'selected' ? form.recipientIds : [],
@@ -1260,7 +1264,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                       新員工帳戶第一次登入時只發送一次通知，不需要設定目標數值或日期。
                     </div>
                   )}
-                  {form.triggerType === 'consecutive_work_days' && (
+                  {(form.triggerType === 'work_days' || form.triggerType === 'consecutive_work_days') && (
                     <label>
                       <span className="mb-1.5 block text-xs font-semibold text-slate-400">每天至少完成訂單數</span>
                       <input disabled={readOnly} type="number" min="1" step="1" value={form.minimumDailyOrders} onChange={event => setForm(previous => ({ ...previous, minimumDailyOrders: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:border-slate-300" />
