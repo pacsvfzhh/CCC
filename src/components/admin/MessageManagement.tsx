@@ -5,11 +5,12 @@ import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 import TiptapEditor, { type TiptapEditorRef } from './TiptapEditor';
 import NotificationAutomation from './NotificationAutomation';
+import NotificationDeliverySelector, { type NotificationDeliveryMode } from './NotificationDeliverySelector';
 import {
   Send, Users, Bell, AlertCircle, X, Search,
   Check, CheckSquare, Square, Trash2, AlertTriangle,
   Pencil, Save, ChevronDown,
-  Tag, Bookmark, Plus, Clock, Radio, Globe, Gift, Sparkles
+  Tag, Bookmark, Plus, Clock, Radio, Globe, Gift, Sparkles, ShieldCheck
 } from 'lucide-react';
 
 interface AdminGroup {
@@ -41,6 +42,7 @@ interface Message {
   title: string;
   content: string;
   message_type: 'realtime' | 'login_popup';
+  delivery_mode: NotificationDeliveryMode;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   created_at: string;
   recipient_ids?: string[];
@@ -86,8 +88,26 @@ const formatMessageDateTime = (value: string) =>
     hour12: false,
   }).format(new Date(value));
 
-const getMessageTypeTone = (messageType: Message['message_type']) =>
-  messageType === 'login_popup'
+const getDeliveryMode = (message: Pick<Message, 'message_type' | 'delivery_mode'>): NotificationDeliveryMode =>
+  message.delivery_mode || (message.message_type === 'login_popup' ? 'login_only' : 'realtime_only');
+
+const getNotificationDeliveryLabel = (deliveryMode: NotificationDeliveryMode) => ({
+  realtime_with_login_fallback: '結合通知',
+  realtime_only: '即時通知',
+  login_only: '登入通知',
+})[deliveryMode];
+
+const getMessageTypeTone = (deliveryMode: NotificationDeliveryMode) => {
+  if (deliveryMode === 'realtime_with_login_fallback') {
+    return {
+      card: 'border-cyan-700/90 bg-gradient-to-br from-cyan-950/80 via-slate-800 to-slate-900',
+      accent: 'bg-cyan-300',
+      icon: 'bg-cyan-900/80 text-cyan-100 ring-1 ring-cyan-600/60',
+      label: 'text-cyan-100/70',
+      value: 'text-cyan-50',
+    };
+  }
+  return deliveryMode === 'login_only'
     ? {
         card: 'border-violet-800/90 bg-gradient-to-br from-violet-950/80 via-slate-800 to-slate-900',
         accent: 'bg-violet-400',
@@ -102,6 +122,7 @@ const getMessageTypeTone = (messageType: Message['message_type']) =>
         label: 'text-blue-200/70',
         value: 'text-blue-100',
       };
+};
 
 const getMessagePriorityTone = (priority: Message['priority']) => {
   switch (priority) {
@@ -133,7 +154,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [messageForm, setMessageForm] = useState({
     title: '',
     content: '',
-    messageType: 'realtime' as 'realtime' | 'login_popup',
+    deliveryMode: 'realtime_with_login_fallback' as NotificationDeliveryMode,
     priority: 'normal' as 'low' | 'normal' | 'high' | 'urgent'
   });
   const [sending, setSending] = useState(false);
@@ -164,7 +185,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [editForm, setEditForm] = useState({ title: '', content: '' });
   const [saving, setSaving] = useState(false);
 
-  const [messageTypeFilter, setMessageTypeFilter] = useState<'all' | 'realtime' | 'login_popup'>('all');
+  const [messageTypeFilter, setMessageTypeFilter] = useState<'all' | NotificationDeliveryMode>('all');
   const [messageScopeFilter] = useState<'all' | 'broadcast' | 'targeted'>('all');
   const [readStatusFilter, setReadStatusFilter] = useState<'all' | 'read' | 'unread'>('all');
   const [sentMessagesSearchQuery, setSentMessagesSearchQuery] = useState('');
@@ -175,7 +196,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
   const [showTagDropdown, setShowTagDropdown] = useState(false);
 
-  const [templates, setTemplates] = useState<Array<{id:string; name:string; title:string; content:string; message_type:string; priority:string}>>([]);
+  const [templates, setTemplates] = useState<Array<{id:string; name:string; title:string; content:string; message_type:string; delivery_mode: NotificationDeliveryMode; priority:string}>>([]);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
@@ -485,7 +506,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     try {
       const { data, error } = await supabase
         .from('message_templates')
-        .select('id, name, title, content, message_type, priority')
+        .select('id, name, title, content, message_type, delivery_mode, priority')
         .eq('admin_id', admin.id)
         .order('sort_order')
         .order('created_at', { ascending: false });
@@ -519,6 +540,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           name: newTemplateName.trim(),
           title: templateFormTitle,
           content: htmlContent,
+          delivery_mode: messageForm.deliveryMode,
+          message_type: messageForm.deliveryMode === 'realtime_only' ? 'realtime' : 'login_popup',
         });
         if (error) throw error;
         setNotification({ type: 'success', message: `Template "${newTemplateName.trim()}" saved!` });
@@ -549,6 +572,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       ...prev,
       title: template.title,
       content: template.content,
+      deliveryMode: template.delivery_mode || (template.message_type === 'login_popup' ? 'login_only' : 'realtime_only'),
     }));
     composeEditorRef.current?.getEditor()?.commands.setContent(template.content);
     setShowTemplateDropdown(false);
@@ -719,7 +743,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         recipientIds,
         title: messageForm.title.trim(),
         content: htmlContent,
-        messageType: messageForm.messageType,
+        deliveryMode: messageForm.deliveryMode,
         priority: messageForm.priority,
         rewardAmount,
       });
@@ -730,12 +754,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         };
       }
 
-      const { data, error } = await supabase.rpc('send_admin_message_secure', {
+      const { data, error } = await supabase.rpc('send_admin_message_with_delivery', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_recipient_ids: recipientIds,
         p_title: messageForm.title.trim(),
         p_content: htmlContent,
-        p_message_type: messageForm.messageType,
+        p_delivery_mode: messageForm.deliveryMode,
         p_priority: messageForm.priority,
         p_reward_amount: rewardAmount,
         p_operation_id: manualSendOperationRef.current.id,
@@ -753,7 +777,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       });
 
       manualSendOperationRef.current = null;
-      setMessageForm({ title: '', content: '', messageType: 'realtime', priority: 'normal' });
+      setMessageForm({ title: '', content: '', deliveryMode: 'realtime_with_login_fallback', priority: 'normal' });
       setManualRewardEnabled(false);
       setManualRewardAmount('');
       composeEditorRef.current?.getEditor()?.commands.clearContent();
@@ -1084,10 +1108,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       const recipientIds = msg.recipient_ids || [];
       if (!recipientIds.some(recipientId => selectedGroupEmployeeIds.has(recipientId))) return false;
     }
-    if (messageTypeFilter !== 'all') {
-      if (messageTypeFilter === 'realtime' && msg.message_type !== 'realtime') return false;
-      if (messageTypeFilter === 'login_popup' && msg.message_type !== 'login_popup') return false;
-    }
+    if (messageTypeFilter !== 'all' && getDeliveryMode(msg) !== messageTypeFilter) return false;
     if (messageScopeFilter !== 'all') {
       const isBroadcast = !msg.recipient_ids || msg.recipient_ids.length === 0;
       if (messageScopeFilter === 'broadcast' && !isBroadcast) return false;
@@ -1181,7 +1202,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const filteredEmployees = getFilteredEmployees();
   const allCurrentSelected = filteredEmployees.length > 0 && filteredEmployees.every(e => selectedEmployeeIds.has(e.id));
   const allEmployeesSelected = allEmployeesFlat.length > 0 && allEmployeesFlat.every(emp => selectedEmployeeIds.has(emp.id));
-  const messageTypeTone = getMessageTypeTone(selectedMessageDetail?.message_type || 'realtime');
+  const selectedDeliveryMode = selectedMessageDetail ? getDeliveryMode(selectedMessageDetail) : 'realtime_only';
+  const messageTypeTone = getMessageTypeTone(selectedDeliveryMode);
   const messagePriorityTone = getMessagePriorityTone(selectedMessageDetail?.priority || 'normal');
 
   if (showAutomation) {
@@ -1571,35 +1593,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         {/* Panel 3: Compose Message */}
         <div className="flex min-w-0 flex-1 flex-col border-r border-slate-700/60 bg-slate-900/95">
           <div className="flex-1 min-h-0 flex flex-col p-3 gap-3">
-            {/* Type + Priority + Template row */}
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
-              {/* Type selector */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Type</span>
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => setMessageForm({ ...messageForm, messageType: 'realtime' })}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[11px] font-bold transition-colors duration-200 ${
-                      messageForm.messageType === 'realtime'
-                        ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
-                        : 'bg-slate-800 text-blue-300 border-blue-800/80 hover:bg-blue-950/80 hover:border-blue-700'
-                    }`}>
-                    <Bell className="w-3.5 h-3.5" />
-                    Realtime
-                  </button>
-                  <button
-                    onClick={() => setMessageForm({ ...messageForm, messageType: 'login_popup' })}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[11px] font-bold transition-colors duration-200 ${
-                      messageForm.messageType === 'login_popup'
-                        ? 'bg-violet-600 text-white border-violet-500 shadow-sm'
-                        : 'bg-slate-800 text-violet-300 border-violet-800/80 hover:bg-violet-950/80 hover:border-violet-700'
-                    }`}>
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    Login Popup
-                  </button>
-                </div>
-              </div>
+            <NotificationDeliverySelector
+              value={messageForm.deliveryMode}
+              onChange={deliveryMode => setMessageForm(previous => ({ ...previous, deliveryMode }))}
+              disabled={sending}
+              className="shrink-0"
+            />
 
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
               {/* Priority selector */}
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Priority</span>
@@ -1830,17 +1831,21 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 <div className="flex items-center gap-1.5">
                   <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-slate-500">Message type</p>
                   <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
-                    {([['all', 'All'], ['realtime', 'Realtime'], ['login_popup', 'Popup']] as const).map(([val, label]) => {
-                      const activeClass = val === 'realtime'
-                        ? 'border-blue-500 bg-blue-600 text-white'
-                        : val === 'login_popup'
-                          ? 'border-violet-500 bg-violet-600 text-white'
-                          : 'border-slate-600 bg-slate-700 text-slate-100';
-                      const idleClass = val === 'realtime'
-                        ? 'text-blue-300/80 hover:bg-blue-950/70 hover:text-blue-100'
-                        : val === 'login_popup'
-                          ? 'text-violet-300/80 hover:bg-violet-950/70 hover:text-violet-100'
-                          : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100';
+                    {([['all', 'All'], ['realtime_with_login_fallback', '結合'], ['realtime_only', '即時'], ['login_only', '登入']] as const).map(([val, label]) => {
+                      const activeClass = val === 'realtime_with_login_fallback'
+                        ? 'border-cyan-400 bg-cyan-600 text-white'
+                        : val === 'realtime_only'
+                          ? 'border-blue-500 bg-blue-600 text-white'
+                          : val === 'login_only'
+                            ? 'border-violet-500 bg-violet-600 text-white'
+                            : 'border-slate-600 bg-slate-700 text-slate-100';
+                      const idleClass = val === 'realtime_with_login_fallback'
+                        ? 'text-cyan-200/80 hover:bg-cyan-950/70 hover:text-cyan-50'
+                        : val === 'realtime_only'
+                          ? 'text-blue-300/80 hover:bg-blue-950/70 hover:text-blue-100'
+                          : val === 'login_only'
+                            ? 'text-violet-300/80 hover:bg-violet-950/70 hover:text-violet-100'
+                            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100';
                       return (
                         <button key={val} onClick={() => setMessageTypeFilter(val)}
                           className={`min-w-0 flex-1 rounded border px-1 py-1 text-[9px] font-bold transition-colors ${messageTypeFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
@@ -1921,11 +1926,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             {msg.priority.charAt(0).toUpperCase() + msg.priority.slice(1)}
                           </span>
                           <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${
-                            msg.message_type === 'login_popup'
-                              ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
-                              : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                            getDeliveryMode(msg) === 'realtime_with_login_fallback'
+                              ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
+                              : getDeliveryMode(msg) === 'login_only'
+                                ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
+                                : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
                           }`}>
-                            {msg.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}
+                            {getNotificationDeliveryLabel(getDeliveryMode(msg))}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
@@ -2028,11 +2035,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         {selectedMessageDetail.priority.charAt(0).toUpperCase() + selectedMessageDetail.priority.slice(1)}
                       </span>
                       <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                        selectedMessageDetail.message_type === 'login_popup'
-                          ? 'bg-violet-100 text-violet-700 border border-violet-300'
-                          : 'bg-blue-100 text-blue-700 border border-blue-300'
+                        selectedDeliveryMode === 'realtime_with_login_fallback'
+                          ? 'bg-cyan-100 text-cyan-800 border border-cyan-300'
+                          : selectedDeliveryMode === 'login_only'
+                            ? 'bg-violet-100 text-violet-700 border border-violet-300'
+                            : 'bg-blue-100 text-blue-700 border border-blue-300'
                       }`}>
-                        {selectedMessageDetail.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}
+                        {getNotificationDeliveryLabel(selectedDeliveryMode)}
                       </span>
                     </div>
                   </div>
@@ -2109,12 +2118,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           <div className="mb-2 flex items-center justify-between gap-1.5">
                             <p className={`truncate text-[9px] font-black uppercase tracking-[0.14em] ${messageTypeTone.label}`}>Type</p>
                             <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${messageTypeTone.icon}`}>
-                              {selectedMessageDetail.message_type === 'login_popup'
-                                ? <Bell className="h-3.5 w-3.5" />
-                                : <Radio className="h-3.5 w-3.5" />}
+                              {selectedDeliveryMode === 'realtime_with_login_fallback'
+                                ? <ShieldCheck className="h-3.5 w-3.5" />
+                                : selectedDeliveryMode === 'login_only'
+                                  ? <Bell className="h-3.5 w-3.5" />
+                                  : <Radio className="h-3.5 w-3.5" />}
                             </div>
                           </div>
-                          <p className={`truncate text-[10px] font-black ${messageTypeTone.value}`}>{selectedMessageDetail.message_type === 'login_popup' ? 'Login Popup' : 'Realtime'}</p>
+                          <p className={`truncate text-[10px] font-black ${messageTypeTone.value}`}>{getNotificationDeliveryLabel(selectedDeliveryMode)}</p>
                           <p className={`mt-0.5 truncate text-[8px] font-medium ${messageTypeTone.label}`}>Delivery channel</p>
                         </div>
                         <div className={`relative min-h-[82px] min-w-0 overflow-hidden rounded-lg border ${messagePriorityTone.card} px-2.5 py-2 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]`}>

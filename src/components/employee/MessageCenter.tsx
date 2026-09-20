@@ -12,6 +12,10 @@ interface MessageCenterProps {
   onClose: () => void;
 }
 
+const getDeliveredMessageType = (message: MessageWithRecipient): 'realtime' | 'login_popup' =>
+  message.delivery_channel
+    || (message.messages.delivery_mode === 'realtime_only' ? 'realtime' : 'login_popup');
+
 export default function MessageCenter({ employee, onClose }: MessageCenterProps) {
   const { t, dateLocale } = useLanguage();
   const [messages, setMessages] = useState<MessageWithRecipient[]>([]);
@@ -20,6 +24,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
   const [selectedMessage, setSelectedMessage] = useState<MessageWithRecipient | null>(null);
   const { isDesktop } = useResponsive();
   const loadMessagesRef = useRef<(() => Promise<void>) | null>(null);
+  const loadRequestIdRef = useRef(0);
 
   useEffect(() => {
     void loadMessagesRef.current?.();
@@ -56,6 +61,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
   }, [isDesktop]);
 
   const loadMessages = async () => {
+    const requestId = ++loadRequestIdRef.current;
     setLoading(true);
     try {
       let query = supabase
@@ -68,6 +74,11 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
           read_at,
           is_shown,
           shown_at,
+          delivery_channel,
+          delivery_claim_token,
+          delivery_claim_channel,
+          delivery_claim_until,
+          delivered_at,
           created_at,
           messages!inner (
             id,
@@ -75,6 +86,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
             title,
             content,
             message_type,
+            delivery_mode,
             priority,
             notification_category,
             reward_amount,
@@ -87,21 +99,22 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (filter === 'unread') {
-        query = query.eq('is_read', false);
-      } else if (filter === 'login') {
-        query = query.eq('messages.message_type', 'login_popup');
-      } else if (filter === 'realtime') {
-        query = query.eq('messages.message_type', 'realtime');
-      }
+      if (filter === 'unread') query = query.eq('is_read', false);
 
       const { data, error } = await query;
       if (error) throw error;
-      setMessages(data || []);
+      if (requestId !== loadRequestIdRef.current) return;
+
+      const loadedMessages = (data || []) as MessageWithRecipient[];
+      setMessages(loadedMessages.filter(message => {
+        if (filter === 'login') return getDeliveredMessageType(message) === 'login_popup';
+        if (filter === 'realtime') return getDeliveredMessageType(message) === 'realtime';
+        return true;
+      }));
     } catch (error) {
-      console.error('Error loading messages:', error);
+      if (requestId === loadRequestIdRef.current) console.error('Error loading messages:', error);
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestIdRef.current) setLoading(false);
     }
   };
   loadMessagesRef.current = loadMessages;
@@ -114,13 +127,15 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
         .eq('message_id', messageId)
         .eq('recipient_id', employee.id);
       if (error) throw error;
+      const readAt = new Date().toISOString();
       setMessages(prev =>
         prev.map(msg =>
           msg.message_id === messageId
-            ? { ...msg, is_read: true, read_at: new Date().toISOString() }
+            ? { ...msg, is_read: true, read_at: readAt }
             : msg
         )
       );
+      setSelectedMessage(previous => previous?.message_id === messageId ? { ...previous, is_read: true, read_at: readAt } : previous);
     } catch (error) {
       console.error('Error marking message as read:', error);
     }
@@ -407,7 +422,8 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
               sortedMessages.map((msg, index) => {
                 const isUnread = !msg.is_read;
                 const isReward = msg.messages.notification_category === 'performance_reward';
-                const style = getCardStyle(msg.messages.priority, msg.messages.message_type, isUnread, index, isReward);
+                const deliveredMessageType = getDeliveredMessageType(msg);
+                const style = getCardStyle(msg.messages.priority, deliveredMessageType, isUnread, index, isReward);
                 return (
                   <div
                     key={msg.id}
@@ -483,11 +499,11 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <span className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wider ${
-                                  msg.messages.message_type === 'login_popup'
+                                  deliveredMessageType === 'login_popup'
                                     ? 'bg-sky-100 text-sky-700 ring-1 ring-sky-200/80'
                                     : 'bg-teal-100 text-teal-700 ring-1 ring-teal-200/80'
                                 }`}>
-                                  {msg.messages.message_type === 'login_popup' ? t.messages.typeLogin : t.messages.typeLive}
+                                  {deliveredMessageType === 'login_popup' ? t.messages.typeLogin : t.messages.typeLive}
                                 </span>
                                 <span className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wider ${
                                   msg.messages.priority === 'urgent'
@@ -614,8 +630,8 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
 
                 {/* Tags */}
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-10">
-                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-950/25 bg-amber-950/15 text-amber-950' : selectedMessage.messages.message_type === 'login_popup' ? 'border-white/20 bg-white/15 text-sky-100' : 'border-white/20 bg-white/15 text-cyan-100'}`}>
-                    {selectedMessage.messages.message_type === 'login_popup' ? t.messages.loginNotification : t.messages.liveMessage}
+                  <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-amber-950/25 bg-amber-950/15 text-amber-950' : getDeliveredMessageType(selectedMessage) === 'login_popup' ? 'border-white/20 bg-white/15 text-sky-100' : 'border-white/20 bg-white/15 text-cyan-100'}`}>
+                    {getDeliveredMessageType(selectedMessage) === 'login_popup' ? t.messages.loginNotification : t.messages.liveMessage}
                   </span>
                   <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider lg:text-[10px] ${selectedMessage.messages.notification_category === 'performance_reward' ? 'border-orange-800/25 bg-orange-800/20 text-orange-950' : 'border-white/15 bg-white/15 text-white'}`}>
                     {selectedMessage.messages.priority === 'urgent' ? t.messages.priorityUrgent : selectedMessage.messages.priority === 'high' ? t.messages.priorityHigh : selectedMessage.messages.priority === 'normal' ? t.messages.priorityNormal : t.messages.priorityLow} {t.messages.priority}

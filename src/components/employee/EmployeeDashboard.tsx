@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, Lock, ChevronDown, Gift } from 'lucide-react';
 import { Employee } from '../../types';
-import { AUTH_STORAGE_KEY, logout } from '../../lib/auth';
+import { AUTH_STORAGE_KEY, getEmployeeFinancialSession, logout } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { useCompanyName } from '../../lib/useCompanyName';
 import { useResponsive } from '../../lib/useResponsive';
@@ -49,7 +49,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const [hasNewOrder, setHasNewOrder] = useState(false);
   const [hasOrderTimeout, setHasOrderTimeout] = useState(false);
   const [showMessageToast, setShowMessageToast] = useState(false);
-  const [latestMessage, setLatestMessage] = useState<{ title: string; content: string; priority: string; notificationCategory: string; rewardAmount: number | null; rewardCurrency: string | null } | null>(null);
+  const [latestMessage, setLatestMessage] = useState<{ recipientId: string; title: string; content: string; priority: string; notificationCategory: string; rewardAmount: number | null; rewardCurrency: string | null } | null>(null);
+  const [messageToastQueue, setMessageToastQueue] = useState<Array<{ recipientId: string; title: string; content: string; priority: string; notificationCategory: string; rewardAmount: number | null; rewardCurrency: string | null }>>([]);
   const [audioContextReady, setAudioContextReady] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showSessionExpired, setShowSessionExpired] = useState(false);
@@ -61,8 +62,10 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const { isMobile, isTablet } = useResponsive();
   const { t, language, setLanguage } = useLanguage();
   const loadUnreadCountRef = useRef<(() => Promise<void>) | null>(null);
-  const checkLoginPopupMessagesRef = useRef<(() => Promise<void>) | null>(null);
-  const loadLatestMessageRef = useRef<(() => Promise<void>) | null>(null);
+  const checkLoginPopupMessagesRef = useRef<((combinedOnly?: boolean) => Promise<void>) | null>(null);
+  const processRealtimeRecipientRef = useRef<((recipientId: string) => Promise<void>) | null>(null);
+  const notificationChannelStatusRef = useRef('CLOSED');
+  const deliveredRecipientIdsRef = useRef(new Set<string>());
 
   // Trigger auto messages for all eligible customers on login
   useEffect(() => {
@@ -300,15 +303,26 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     return () => clearTimeout(timer);
   }, [activeTab, loadedTabs]);
 
-  // Load unread message count
   useEffect(() => {
-    // Load data asynchronously without blocking render
     void loadUnreadCountRef.current?.();
-    void checkLoginPopupMessagesRef.current?.();
+    void checkLoginPopupMessagesRef.current?.(false);
 
-    // Subscribe to new messages
+    const recoverCombinedNotifications = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        void loadUnreadCountRef.current?.();
+        void checkLoginPopupMessagesRef.current?.(true);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') recoverCombinedNotifications();
+    };
+
+    window.addEventListener('online', recoverCombinedNotifications);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     const channel = supabase
-      .channel('employee_new_messages')
+      .channel(`employee_new_messages_${employee.id}`)
       .on(
         'postgres_changes',
         {
@@ -317,22 +331,11 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           table: 'message_recipients',
           filter: `recipient_id=eq.${employee.id}`
         },
-        async () => {
+        payload => {
           void loadUnreadCountRef.current?.();
-
-          const { data: latest } = await supabase
-            .from('message_recipients')
-            .select('id, messages!inner(message_type)')
-            .eq('recipient_id', employee.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (latest?.messages?.message_type === 'login_popup') return;
-
-          playNotificationSound();
-          setHasNewMessage(true);
-          await loadLatestMessageRef.current?.();
+          const recipientId = String((payload.new as { id?: string }).id || '');
+          if (!recipientId || document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
+          void processRealtimeRecipientRef.current?.(recipientId);
         }
       )
       .on(
@@ -347,10 +350,16 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           void loadUnreadCountRef.current?.();
         }
       )
-      .subscribe();
+      .subscribe(status => {
+        notificationChannelStatusRef.current = status;
+        if (status === 'SUBSCRIBED') recoverCombinedNotifications();
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      window.removeEventListener('online', recoverCombinedNotifications);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      notificationChannelStatusRef.current = 'CLOSED';
+      void supabase.removeChannel(channel);
     };
   }, [employee.id]);
 
@@ -424,66 +433,113 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     }
   };
 
-  const checkLoginPopupMessages = async () => {
+  const checkLoginPopupMessages = async (combinedOnly = false) => {
     try {
-      const { data, error } = await supabase
-        .from('message_recipients')
-        .select('id, messages!inner(message_type)')
-        .eq('recipient_id', employee.id)
-        .eq('is_shown', false)
-        .eq('messages.message_type', 'login_popup')
-        .limit(1);
-
-      if (!error && data && data.length > 0) {
-        setShowLoginPopup(true);
-      }
+      const session = getEmployeeFinancialSession();
+      const { data, error } = await supabase.rpc('has_pending_employee_login_notifications', {
+        p_user_id: employee.id,
+        p_session_token: session.token,
+        p_tab_id: session.tabId,
+        p_combined_only: combinedOnly,
+      });
+      if (error) throw error;
+      if (data) setShowLoginPopup(true);
     } catch (error) {
       console.error('Error checking login popup messages:', error);
     }
   };
 
-  const loadLatestMessage = async () => {
+  const processRealtimeRecipient = async (recipientId: string) => {
+    if (deliveredRecipientIdsRef.current.has(recipientId)) return;
+
     try {
-      const { data, error } = await supabase
-        .from('message_recipients')
-        .select(`
-          id,
-          messages!inner (
-            title,
-            content,
-            priority,
-            notification_category,
-            reward_amount,
-            reward_currency
-          )
-        `)
-        .eq('recipient_id', employee.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const session = getEmployeeFinancialSession();
+      const { data, error } = await supabase.rpc('claim_realtime_notification_delivery', {
+        p_user_id: employee.id,
+        p_session_token: session.token,
+        p_tab_id: session.tabId,
+        p_recipient_id: recipientId,
+        p_lease_seconds: 120,
+      });
+      if (error) throw error;
 
-      if (!error && data) {
-        setLatestMessage({
-          title: data.messages.title,
-          content: data.messages.content,
-          priority: data.messages.priority,
-          notificationCategory: data.messages.notification_category,
-          rewardAmount: data.messages.reward_amount,
-          rewardCurrency: data.messages.reward_currency,
-        });
-        setShowMessageToast(true);
+      const result = data as {
+        claim_token: string;
+        recipient: { id: string };
+        message: {
+          title: string;
+          content: string;
+          priority: string;
+          notification_category: string;
+          reward_amount: number | null;
+          reward_currency: string | null;
+        };
+      } | null;
+      if (!result) return;
 
-        setTimeout(() => {
-          setShowMessageToast(false);
-        }, 10000);
-      }
+      const toastMessage = {
+        recipientId: result.recipient.id,
+        title: result.message.title,
+        content: result.message.content,
+        priority: result.message.priority,
+        notificationCategory: result.message.notification_category,
+        rewardAmount: result.message.reward_amount,
+        rewardCurrency: result.message.reward_currency,
+      };
+
+      playNotificationSound();
+      setHasNewMessage(true);
+      setMessageToastQueue(previous => previous.some(item => item.recipientId === recipientId) ? previous : [...previous, toastMessage]);
+
+      const { data: completed, error: completeError } = await supabase.rpc('complete_notification_delivery', {
+        p_user_id: employee.id,
+        p_session_token: session.token,
+        p_tab_id: session.tabId,
+        p_recipient_id: result.recipient.id,
+        p_claim_token: result.claim_token,
+        p_mark_read: false,
+      });
+      if (completeError) throw completeError;
+      if (!(completed as { success?: boolean } | null)?.success) throw new Error('Notification delivery could not be confirmed.');
+
+      deliveredRecipientIdsRef.current.add(recipientId);
+      void loadUnreadCountRef.current?.();
     } catch (error) {
-      console.error('Error loading latest message:', error);
+      console.error('Error processing realtime notification:', error);
     }
   };
   loadUnreadCountRef.current = loadUnreadCount;
   checkLoginPopupMessagesRef.current = checkLoginPopupMessages;
-  loadLatestMessageRef.current = loadLatestMessage;
+  processRealtimeRecipientRef.current = processRealtimeRecipient;
+
+  const dismissMessageToast = () => {
+    setShowMessageToast(false);
+    setLatestMessage(null);
+  };
+
+  useEffect(() => {
+    if (showMessageToast || latestMessage || messageToastQueue.length === 0) return;
+    const [nextMessage, ...remainingMessages] = messageToastQueue;
+    setLatestMessage(nextMessage);
+    setMessageToastQueue(remainingMessages);
+    setShowMessageToast(true);
+  }, [latestMessage, messageToastQueue, showMessageToast]);
+
+  useEffect(() => {
+    if (!showMessageToast || !latestMessage) return;
+    const timer = window.setTimeout(() => {
+      setShowMessageToast(false);
+      setLatestMessage(null);
+    }, 10000);
+    return () => window.clearTimeout(timer);
+  }, [latestMessage, showMessageToast]);
+
+  useEffect(() => {
+    deliveredRecipientIdsRef.current.clear();
+    setMessageToastQueue([]);
+    setShowMessageToast(false);
+    setLatestMessage(null);
+  }, [employee.id]);
 
   return (
     <div className={`min-h-screen relative nav-root-padding employee-shell`} style={{ background: '#f8fafc' }}>
@@ -662,7 +718,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
                         {/* Content */}
                         <div
-                          onClick={() => { setShowMessageToast(false); setShowMessageCenter(true); }}
+                          onClick={() => { dismissMessageToast(); setShowMessageCenter(true); }}
                           className="relative px-3 sm:px-4 pt-3 sm:pt-3.5 pb-3 sm:pb-3.5 cursor-pointer touch-manipulation"
                           style={{ WebkitTapHighlightColor: 'transparent' }}
                         >
@@ -683,7 +739,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                               </h3>
                             </div>
                             <button
-                              onClick={(e) => { e.stopPropagation(); setShowMessageToast(false); }}
+                              onClick={(e) => { e.stopPropagation(); dismissMessageToast(); }}
                               className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-90 transition-all"
                               style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation', minWidth: '32px', minHeight: '32px' }}
                             >

@@ -602,6 +602,7 @@ export interface Database {
           title: string;
           content: string;
           message_type: string;
+          delivery_mode: 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
           priority: string;
           sort_order: number;
           created_at: string;
@@ -614,6 +615,7 @@ export interface Database {
           title?: string;
           content?: string;
           message_type?: string;
+          delivery_mode?: 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
           priority?: string;
           sort_order?: number;
           created_at?: string;
@@ -626,6 +628,7 @@ export interface Database {
           title?: string;
           content?: string;
           message_type?: string;
+          delivery_mode?: 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
           priority?: string;
           sort_order?: number;
           created_at?: string;
@@ -641,6 +644,7 @@ export interface Database {
           title: string;
           content: string;
           message_type: 'login_popup' | 'realtime';
+          delivery_mode: 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
           priority: 'low' | 'normal' | 'high' | 'urgent';
           notification_category: 'standard' | 'performance_reward';
           reward_amount: number | null;
@@ -656,6 +660,7 @@ export interface Database {
           title: string;
           content: string;
           message_type: string;
+          delivery_mode?: 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
           priority?: string;
           notification_category?: 'standard' | 'performance_reward';
           reward_amount?: number | null;
@@ -671,6 +676,7 @@ export interface Database {
           title?: string;
           content?: string;
           message_type?: string;
+          delivery_mode?: 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
           priority?: string;
           notification_category?: 'standard' | 'performance_reward';
           reward_amount?: number | null;
@@ -690,6 +696,11 @@ export interface Database {
           read_at: string | null;
           is_shown: boolean | null;
           shown_at: string | null;
+          delivery_channel: 'realtime' | 'login_popup' | null;
+          delivery_claim_token: string | null;
+          delivery_claim_channel: 'realtime' | 'login_popup' | null;
+          delivery_claim_until: string | null;
+          delivered_at: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -700,6 +711,11 @@ export interface Database {
           read_at?: string | null;
           is_shown?: boolean | null;
           shown_at?: string | null;
+          delivery_channel?: 'realtime' | 'login_popup' | null;
+          delivery_claim_token?: string | null;
+          delivery_claim_channel?: 'realtime' | 'login_popup' | null;
+          delivery_claim_until?: string | null;
+          delivered_at?: string | null;
           created_at?: string | null;
         };
         Update: {
@@ -710,6 +726,11 @@ export interface Database {
           read_at?: string | null;
           is_shown?: boolean | null;
           shown_at?: string | null;
+          delivery_channel?: 'realtime' | 'login_popup' | null;
+          delivery_claim_token?: string | null;
+          delivery_claim_channel?: 'realtime' | 'login_popup' | null;
+          delivery_claim_until?: string | null;
+          delivered_at?: string | null;
           created_at?: string | null;
         };
         Relationships: [
@@ -2971,6 +2992,86 @@ export interface Database {
           p_reward_amount: number | null;
           p_operation_id: string;
         };
+        Returns: Record<string, unknown>;
+      };
+      send_admin_message_with_delivery: {
+        Args: {
+          p_admin_session_token: string;
+          p_recipient_ids: string[];
+          p_title: string;
+          p_content: string;
+          p_delivery_mode: 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
+          p_priority: string;
+          p_reward_amount: number | null;
+          p_operation_id: string;
+        };
+        Returns: Record<string, unknown>;
+      };
+      save_notification_automation_task_with_delivery: {
+        Args: {
+          p_admin_session_token: string;
+          p_task_id: string | null;
+          p_name: string;
+          p_description: string;
+          p_trigger_type: string;
+          p_trigger_mode: string;
+          p_threshold_value: number;
+          p_minimum_daily_orders: number | null;
+          p_minimum_daily_work_minutes: number | null;
+          p_recipient_scope: string;
+          p_recipient_ids: string[];
+          p_title_template: string;
+          p_content_template: string;
+          p_delivery_mode: 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
+          p_priority: string;
+          p_reward_enabled: boolean;
+          p_reward_amount: number | null;
+          p_is_shared_template: boolean;
+          p_starts_at: string | null;
+          p_ends_at: string | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      save_notification_automation_task_copy_with_delivery: {
+        Args: {
+          p_admin_session_token: string;
+          p_source_task_id: string;
+          p_task_id: string | null;
+          p_name: string;
+          p_description: string;
+          p_trigger_type: string;
+          p_trigger_mode: string;
+          p_threshold_value: number;
+          p_minimum_daily_orders: number | null;
+          p_minimum_daily_work_minutes: number | null;
+          p_recipient_scope: string;
+          p_recipient_ids: string[];
+          p_title_template: string;
+          p_content_template: string;
+          p_delivery_mode: 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
+          p_priority: string;
+          p_reward_enabled: boolean;
+          p_reward_amount: number | null;
+          p_is_shared_template: boolean;
+          p_starts_at: string | null;
+          p_ends_at: string | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      claim_realtime_notification_delivery: {
+        Args: { p_user_id: string; p_session_token: string; p_tab_id: string; p_recipient_id: string; p_lease_seconds?: number };
+        Returns: Record<string, unknown> | null;
+      };
+      has_pending_employee_login_notifications: {
+        Args: { p_user_id: string; p_session_token: string; p_tab_id: string; p_combined_only?: boolean };
+        Returns: boolean;
+      };
+      claim_next_login_notification_delivery: {
+        Args: { p_user_id: string; p_session_token: string; p_tab_id: string; p_combined_only?: boolean; p_lease_seconds?: number };
+        Returns: Record<string, unknown> | null;
+      };
+      complete_notification_delivery: {
+        Args: { p_user_id: string; p_session_token: string; p_tab_id: string; p_recipient_id: string; p_claim_token: string; p_mark_read?: boolean };
         Returns: Record<string, unknown>;
       };
       delete_messages: {

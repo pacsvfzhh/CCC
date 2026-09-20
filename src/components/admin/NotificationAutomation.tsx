@@ -34,6 +34,7 @@ import { useResponsive } from '../../lib/useResponsive';
 import EmployeeNotificationDetailPanel from '../employee/EmployeeNotificationDetailPanel';
 import AdminPageLoading from './AdminPageLoading';
 import TiptapEditor from './TiptapEditor';
+import NotificationDeliverySelector, { type NotificationDeliveryMode } from './NotificationDeliverySelector';
 
 interface AdminIdentity {
   id: string;
@@ -77,6 +78,7 @@ interface AutomationTask {
   title_template: string;
   content_template: string;
   message_type: 'realtime' | 'login_popup';
+  delivery_mode: NotificationDeliveryMode;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   reward_enabled: boolean;
   reward_amount: number | null;
@@ -130,7 +132,7 @@ interface TaskForm {
   recipientIds: string[];
   titleTemplate: string;
   contentTemplate: string;
-  messageType: 'realtime' | 'login_popup';
+  deliveryMode: NotificationDeliveryMode;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   rewardEnabled: boolean;
   rewardAmount: string;
@@ -158,8 +160,8 @@ const triggerLabels: Record<TriggerType, string> = {
   total_orders: '累計完成訂單數',
   daily_orders: '當天完成訂單數',
   work_days: '累計工作天數',
-  consecutive_work_days: '連續工作達標',
   commission_amount: '累計佣金金額',
+  consecutive_work_days: '連續工作達標',
   annual_date: '每年指定日期',
   first_login: '新員工帳戶第一次登入',
 };
@@ -171,10 +173,14 @@ const statusLabels: Record<TaskStatus, string> = {
   archived: '已結束',
 };
 
-const messageTypeLabels = {
-  realtime: '即時通知',
-  login_popup: '登入通知',
-} as const;
+const getTaskDeliveryMode = (task: Pick<AutomationTask, 'message_type' | 'delivery_mode'>): NotificationDeliveryMode =>
+  task.delivery_mode || (task.message_type === 'login_popup' ? 'login_only' : 'realtime_only');
+
+const getNotificationDeliveryLabel = (deliveryMode: NotificationDeliveryMode) => ({
+  realtime_with_login_fallback: '結合通知',
+  realtime_only: '即時通知',
+  login_only: '登入通知',
+})[deliveryMode];
 
 const statusSortOrder: Record<TaskStatus, number> = {
   active: 0,
@@ -206,7 +212,7 @@ function createDefaultForm(): TaskForm {
     recipientIds: [],
     titleTemplate: '',
     contentTemplate: '',
-    messageType: 'realtime',
+    deliveryMode: 'realtime_with_login_fallback',
     priority: 'normal',
     rewardEnabled: false,
     rewardAmount: '',
@@ -230,7 +236,7 @@ function taskToForm(task: AutomationTask): TaskForm {
     recipientIds: task.recipient_ids || [],
     titleTemplate: task.title_template,
     contentTemplate: task.content_template,
-    messageType: task.message_type,
+    deliveryMode: getTaskDeliveryMode(task),
     priority: task.priority,
     rewardEnabled: task.reward_enabled,
     rewardAmount: task.reward_amount ? String(task.reward_amount) : '',
@@ -561,7 +567,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       p_recipient_ids: form.recipientScope === 'selected' ? form.recipientIds : [],
       p_title_template: form.titleTemplate.trim(),
       p_content_template: form.contentTemplate.trim(),
-      p_message_type: form.messageType,
+      p_delivery_mode: form.deliveryMode,
       p_priority: form.priority,
       p_reward_enabled: form.rewardEnabled,
       p_reward_amount: form.rewardEnabled ? Number(form.rewardAmount) : null,
@@ -573,11 +579,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     setSaving(true);
     try {
       const { error } = copySourceTaskId
-        ? await supabase.rpc('save_notification_automation_task_copy', {
+        ? await supabase.rpc('save_notification_automation_task_copy_with_delivery', {
             ...taskPayload,
             p_source_task_id: copySourceTaskId,
           })
-        : await supabase.rpc('save_notification_automation_task', taskPayload);
+        : await supabase.rpc('save_notification_automation_task_with_delivery', taskPayload);
       if (error) throw error;
 
       showNotice(
@@ -940,7 +946,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             message={{
               title: previewTitle || 'Notification title',
               content: previewContent,
-              message_type: form.messageType,
+              message_type: form.deliveryMode === 'login_only' ? 'login_popup' : 'realtime',
               priority: form.priority,
               notification_category: form.rewardEnabled ? 'performance_reward' : null,
               reward_amount: form.rewardEnabled ? Number(form.rewardAmount || 0) : null,
@@ -1190,32 +1196,12 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <p className="text-[10px] text-slate-500">設定任務名稱、觸發條件、獎金與適用員工</p>
                   </div>
                 </div>
-                <div className="flex min-h-[52px] shrink-0 flex-wrap items-center gap-2 rounded-2xl border-2 border-cyan-200/65 bg-gradient-to-r from-cyan-500/[0.1] via-slate-950/75 to-violet-500/[0.1] px-3 py-2 shadow-[0_0_0_1px_rgba(34,211,238,0.12),0_12px_30px_rgba(8,47,73,0.28)]">
-                  <div className="flex items-center gap-2 rounded-xl border border-slate-700/70 bg-slate-900/75 px-2.5 py-1.5">
-                    <Bell className="h-4 w-4 text-cyan-300" />
-                    <span className="text-[11px] font-black tracking-[0.08em] text-slate-200">通知類型</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      disabled={readOnly}
-                      onClick={() => setForm(previous => ({ ...previous, messageType: 'realtime' }))}
-                      className={`flex min-h-9 min-w-[7rem] items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-black transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/80 ${form.messageType === 'realtime' ? 'border-blue-200/90 bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-[0_0_18px_rgba(14,165,233,0.28)]' : 'border-blue-700/80 bg-slate-900/80 text-blue-200 hover:border-blue-400/80 hover:bg-blue-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
-                    >
-                      <Bell className="h-3.5 w-3.5" />
-                      {messageTypeLabels.realtime}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={readOnly}
-                      onClick={() => setForm(previous => ({ ...previous, messageType: 'login_popup' }))}
-                      className={`flex min-h-9 min-w-[7rem] items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-black transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/80 ${form.messageType === 'login_popup' ? 'border-violet-200/90 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-[0_0_18px_rgba(139,92,246,0.28)]' : 'border-violet-700/80 bg-slate-900/80 text-violet-200 hover:border-violet-400/80 hover:bg-violet-950/80'} disabled:cursor-not-allowed disabled:opacity-60`}
-                    >
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      {messageTypeLabels.login_popup}
-                    </button>
-                  </div>
-                </div>
+                <NotificationDeliverySelector
+                  value={form.deliveryMode}
+                  onChange={deliveryMode => setForm(previous => ({ ...previous, deliveryMode }))}
+                  disabled={readOnly}
+                  className="w-full shrink-0 lg:max-w-2xl"
+                />
               </div>
               <div className="min-h-0">
               <section>
@@ -1625,8 +1611,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                         </div>
                         <div className="min-w-0 px-2 py-2.5">
                           <p className={`flex items-center gap-1.5 text-[11px] font-black ${task.status === 'active' ? 'text-cyan-100' : 'text-slate-400'}`}>
-                            {task.message_type === 'login_popup' ? <AlertCircle className="h-3.5 w-3.5 shrink-0" /> : <Bell className="h-3.5 w-3.5 shrink-0" />}
-                            <span className="truncate">{messageTypeLabels[task.message_type]}</span>
+                            {getTaskDeliveryMode(task) === 'realtime_with_login_fallback' ? <ShieldCheck className="h-3.5 w-3.5 shrink-0" /> : getTaskDeliveryMode(task) === 'login_only' ? <AlertCircle className="h-3.5 w-3.5 shrink-0" /> : <Bell className="h-3.5 w-3.5 shrink-0" />}
+                            <span className="truncate">{getNotificationDeliveryLabel(getTaskDeliveryMode(task))}</span>
                           </p>
                         </div>
                         <div className="min-w-0 px-2 py-2.5">
@@ -1729,8 +1715,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                           </div>
                           <div className="min-w-0 px-2 py-2.5">
                             <p className={`flex items-center gap-1 truncate text-[11px] font-bold ${alreadyAdded ? 'text-cyan-100' : 'text-slate-400'}`}>
-                              <Bell className="h-3.5 w-3.5 shrink-0" />
-                              {messageTypeLabels[task.message_type]}
+                              {getTaskDeliveryMode(task) === 'realtime_with_login_fallback' ? <ShieldCheck className="h-3.5 w-3.5 shrink-0" /> : getTaskDeliveryMode(task) === 'login_only' ? <AlertCircle className="h-3.5 w-3.5 shrink-0" /> : <Bell className="h-3.5 w-3.5 shrink-0" />}
+                              {getNotificationDeliveryLabel(getTaskDeliveryMode(task))}
                             </p>
                           </div>
                           <div className="min-w-0 px-2 py-2.5">

@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Bell, Clock, ChevronRight, Gift, Wallet } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { getEmployeeFinancialSession } from '../../lib/auth';
 import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
@@ -12,9 +13,12 @@ interface LoginPopupMessagesProps {
   onClose: () => void;
 }
 
+type ClaimedLoginMessage = MessageWithRecipient & { claim_token: string };
+
 export default function LoginPopupMessages({ employee, onClose }: LoginPopupMessagesProps) {
-  const [messages, setMessages] = useState<MessageWithRecipient[]>([]);
+  const [messages, setMessages] = useState<ClaimedLoginMessage[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const { isMobile, isDesktop } = useResponsive();
   const { t, dateLocale } = useLanguage();
@@ -54,98 +58,96 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
     };
   }, [isDesktop]);
 
+  const claimNextLoginMessage = async () => {
+    const session = getEmployeeFinancialSession();
+    const { data, error } = await supabase.rpc('claim_next_login_notification_delivery', {
+      p_user_id: employee.id,
+      p_session_token: session.token,
+      p_tab_id: session.tabId,
+      p_combined_only: false,
+      p_lease_seconds: 300,
+    });
+    if (error) throw error;
+
+    const result = data as {
+      claim_token: string;
+      recipient: MessageWithRecipient;
+      message: MessageWithRecipient['messages'];
+    } | null;
+
+    if (!result) {
+      setMessages([]);
+      setHasMore(false);
+      return false;
+    }
+
+    setMessages([{ ...result.recipient, messages: result.message, claim_token: result.claim_token }]);
+    setCurrentIndex(0);
+
+    const { data: pending, error: pendingError } = await supabase.rpc('has_pending_employee_login_notifications', {
+      p_user_id: employee.id,
+      p_session_token: session.token,
+      p_tab_id: session.tabId,
+      p_combined_only: false,
+    });
+    if (pendingError) throw pendingError;
+    setHasMore(Boolean(pending));
+    return true;
+  };
+
   const loadLoginPopupMessages = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('message_recipients')
-        .select(`
-          id,
-          message_id,
-          recipient_id,
-          is_read,
-          read_at,
-          is_shown,
-          shown_at,
-          created_at,
-          messages!inner (
-            id,
-            sender_username,
-            title,
-            content,
-            message_type,
-            priority,
-            notification_category,
-            reward_amount,
-            reward_currency,
-            automation_execution_id,
-            created_at
-          )
-        `)
-        .eq('recipient_id', employee.id)
-        .eq('is_shown', false)
-        .eq('messages.message_type', 'login_popup')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (error) throw error;
-
-      setMessages(data || []);
+      await claimNextLoginMessage();
     } catch (error) {
       console.error('Error loading login popup messages:', error);
+      setMessages([]);
     } finally {
       setLoading(false);
     }
   };
   loadLoginPopupMessagesRef.current = loadLoginPopupMessages;
 
-  const markCurrentAsShown = async () => {
-    if (messages.length === 0 || !messages[currentIndex]) return;
-
+  const completeCurrentDelivery = async (markRead: boolean) => {
     const msg = messages[currentIndex];
+    if (!msg) return false;
 
-    try {
-      await supabase
-        .from('message_recipients')
-        .update({
-          is_shown: true,
-          shown_at: new Date().toISOString(),
-          is_read: true,
-          read_at: new Date().toISOString()
-        })
-        .eq('message_id', msg.message_id)
-        .eq('recipient_id', employee.id);
-    } catch (error) {
-      console.error('Error marking message as shown:', error);
-    }
+    const session = getEmployeeFinancialSession();
+    const { data, error } = await supabase.rpc('complete_notification_delivery', {
+      p_user_id: employee.id,
+      p_session_token: session.token,
+      p_tab_id: session.tabId,
+      p_recipient_id: msg.id,
+      p_claim_token: msg.claim_token,
+      p_mark_read: markRead,
+    });
+    if (error) throw error;
+    return Boolean((data as { success?: boolean } | null)?.success);
   };
 
   const handleNext = async () => {
-    await markCurrentAsShown();
-
-    if (currentIndex < messages.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      onClose();
+    try {
+      if (!await completeCurrentDelivery(true)) return;
+      if (hasMore) {
+        setLoading(true);
+        const claimed = await claimNextLoginMessage();
+        if (!claimed) onClose();
+        setLoading(false);
+      } else {
+        onClose();
+      }
+    } catch (error) {
+      setLoading(false);
+      console.error('Error completing login notification delivery:', error);
     }
   };
 
   const handleClose = async () => {
-    for (const msg of messages) {
-      try {
-        await supabase
-          .from('message_recipients')
-          .update({
-            is_shown: true,
-            shown_at: new Date().toISOString()
-          })
-          .eq('message_id', msg.message_id)
-          .eq('recipient_id', employee.id);
-      } catch (error) {
-        console.error('Error marking message as shown:', error);
-      }
+    try {
+      if (await completeCurrentDelivery(false)) onClose();
+    } catch (error) {
+      console.error('Error completing login notification delivery:', error);
     }
-    onClose();
   };
 
   const useFullscreen = !isDesktop;
@@ -291,10 +293,10 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   </div>
                   <div className="min-w-0">
                     <p className={`truncate text-[10px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
-                      {messages.length > 1 ? `${currentIndex + 1} ${t.loginPopup.of} ${messages.length}` : t.loginPopup.notification}
+                      {hasMore ? t.loginPopup.notification : t.loginPopup.notification}
                     </p>
                     <p className={`mt-1 truncate text-sm font-semibold ${isReward ? 'text-amber-900' : 'text-slate-700'}`}>
-                      {currentIndex < messages.length - 1 ? t.loginPopup.next : t.loginPopup.gotIt}
+                      {hasMore ? t.loginPopup.next : t.loginPopup.gotIt}
                     </p>
                   </div>
                 </div>
@@ -304,7 +306,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                     onClick={handleNext}
                     className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 active:from-amber-600 active:via-yellow-600 active:to-orange-600' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/25 active:from-blue-700 active:to-blue-800'}`}
                   >
-                    <span>{messages.length > 1 && currentIndex < messages.length - 1 ? t.loginPopup.next : messages.length > 1 ? t.loginPopup.done : t.loginPopup.gotIt}</span>
+                    <span>{hasMore ? t.loginPopup.next : t.loginPopup.gotIt}</span>
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -429,10 +431,10 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   </div>
                   <div className="min-w-0">
                     <p className={`truncate text-[10px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
-                      {messages.length > 1 ? `${currentIndex + 1} ${t.loginPopup.of} ${messages.length}` : t.loginPopup.notification}
+                      {hasMore ? t.loginPopup.notification : t.loginPopup.notification}
                     </p>
                     <p className={`mt-1 truncate text-sm font-semibold ${isReward ? 'text-amber-900' : 'text-slate-700'}`}>
-                      {currentIndex < messages.length - 1 ? t.loginPopup.next : t.loginPopup.gotIt}
+                      {hasMore ? t.loginPopup.next : t.loginPopup.gotIt}
                     </p>
                   </div>
                 </div>
@@ -442,7 +444,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                       onClick={handleNext}
                       className={`flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${isReward ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-amber-950 shadow-md shadow-amber-500/25 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600 hover:shadow-lg hover:shadow-amber-500/35' : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:shadow-blue-500/30'}`}
                     >
-                      <span>{messages.length > 1 && currentIndex < messages.length - 1 ? t.loginPopup.next : messages.length > 1 ? t.loginPopup.done : t.loginPopup.gotIt}</span>
+                      <span>{hasMore ? t.loginPopup.next : t.loginPopup.gotIt}</span>
                       <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>

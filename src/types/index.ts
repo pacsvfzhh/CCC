@@ -143,6 +143,9 @@ export interface VerificationRequest {
   updated_at: string;
 }
 
+export type NotificationDeliveryMode = 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
+export type NotificationDeliveryChannel = 'realtime' | 'login_popup';
+
 export interface Message {
   id: string;
   sender_id?: string;
@@ -150,6 +153,7 @@ export interface Message {
   title: string;
   content: string;
   message_type: 'login_popup' | 'realtime';
+  delivery_mode: NotificationDeliveryMode;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   notification_category?: 'standard' | 'performance_reward';
   reward_amount?: number | null;
@@ -167,6 +171,11 @@ export interface MessageRecipient {
   read_at: string | null;
   is_shown: boolean | null;
   shown_at: string | null;
+  delivery_channel: NotificationDeliveryChannel | null;
+  delivery_claim_token: string | null;
+  delivery_claim_channel: NotificationDeliveryChannel | null;
+  delivery_claim_until: string | null;
+  delivered_at: string | null;
   created_at: string | null;
 }
 
