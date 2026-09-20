@@ -1690,50 +1690,50 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   </button>
 
                   {showTemplateDropdown && (
-                    <div className="absolute right-0 top-full z-50 mt-2 w-[22rem] overflow-hidden rounded-2xl border border-emerald-300/25 bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 shadow-[0_18px_45px_rgba(2,44,34,0.55)]">
+                    <div className="absolute right-0 top-full z-50 mt-1.5 w-[19rem] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-emerald-300/25 bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 shadow-[0_14px_32px_rgba(2,44,34,0.5)]">
                       <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-emerald-400/15 blur-3xl" />
                       <div className="pointer-events-none absolute -bottom-16 -left-8 h-32 w-32 rounded-full bg-teal-400/10 blur-3xl" />
-                      <div className="relative flex items-center justify-between border-b border-emerald-200/15 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent px-3.5 py-3">
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-emerald-200/25 bg-emerald-400/15 text-emerald-200 shadow-inner shadow-white/10">
-                            <Bookmark className="h-4 w-4" />
+                      <div className="relative flex items-center justify-between border-b border-emerald-200/15 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent px-3 py-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-emerald-200/25 bg-emerald-400/15 text-emerald-200 shadow-inner shadow-white/10">
+                            <Bookmark className="h-3.5 w-3.5" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[11px] font-black tracking-wide text-emerald-50">Message Templates</p>
-                            <p className="text-[9px] font-medium text-emerald-200/60">快速套用已保存的通知内容</p>
+                            <p className="text-[10px] font-black tracking-wide text-emerald-50">Message Templates</p>
+                            <p className="text-[8px] font-medium text-emerald-200/60">快速套用已保存的通知内容</p>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => { setShowTemplateDropdown(false); setShowSaveTemplateModal(true); setEditingTemplateId(null); setNewTemplateName(''); setTemplateEditorContent(composeEditorRef.current?.getContent() || ''); setTemplateFormTitle(messageForm.title); }}
-                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200/35 bg-gradient-to-r from-emerald-500 to-teal-500 px-2.5 py-1.5 text-[10px] font-black text-white shadow-sm shadow-emerald-950/30 transition-all hover:border-emerald-100/70 hover:from-emerald-400 hover:to-teal-400"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-200/35 bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1 text-[9px] font-black text-white shadow-sm shadow-emerald-950/30 transition-all hover:border-emerald-100/70 hover:from-emerald-400 hover:to-teal-400"
                         >
                           <Plus className="h-3 w-3" /> New Template
                         </button>
                       </div>
                       {templates.length === 0 ? (
-                        <div className="relative px-3 py-8 text-center">
-                          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300/70">
-                            <Bookmark className="h-5 w-5" />
+                        <div className="relative px-3 py-5 text-center">
+                          <div className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300/70">
+                            <Bookmark className="h-4 w-4" />
                           </div>
                           <p className="text-[11px] font-bold text-emerald-100/80">No templates yet</p>
                           <p className="mt-1 text-[10px] text-emerald-200/45">Click “New Template” to create one</p>
                         </div>
                       ) : (
-                        <div className="relative max-h-80 space-y-2 overflow-y-auto p-2.5 scrollbar-dark">
+                        <div className="relative max-h-64 space-y-1.5 overflow-y-auto p-2 scrollbar-dark">
                           {templates.map(tpl => (
                             <div key={tpl.id}
                               onClick={() => applyTemplate(tpl)}
-                              className="group relative cursor-pointer overflow-hidden rounded-xl border border-emerald-300/15 bg-gradient-to-br from-emerald-900/45 via-slate-900/80 to-teal-950/35 p-2.5 shadow-[0_8px_20px_rgba(2,44,34,0.2)] transition-all hover:-translate-y-0.5 hover:border-emerald-300/50 hover:from-emerald-800/55 hover:to-teal-900/45 hover:shadow-[0_10px_24px_rgba(16,185,129,0.16)]"
+                              className="group relative cursor-pointer overflow-hidden rounded-lg border border-emerald-300/15 bg-gradient-to-br from-emerald-900/45 via-slate-900/80 to-teal-950/35 p-2 shadow-[0_6px_16px_rgba(2,44,34,0.18)] transition-all hover:-translate-y-0.5 hover:border-emerald-300/50 hover:from-emerald-800/55 hover:to-teal-900/45 hover:shadow-[0_8px_18px_rgba(16,185,129,0.14)]"
                             >
                               <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-300 via-teal-400 to-cyan-400 opacity-70" />
-                              <div className="flex items-start gap-2.5 pl-1">
-                                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-emerald-200/20 bg-gradient-to-br from-emerald-400/25 to-teal-500/10 text-emerald-200 shadow-inner shadow-white/10">
-                                  <Bookmark className="h-3.5 w-3.5" />
+                              <div className="flex items-start gap-2 pl-1">
+                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-emerald-200/20 bg-gradient-to-br from-emerald-400/25 to-teal-500/10 text-emerald-200 shadow-inner shadow-white/10">
+                                  <Bookmark className="h-3 w-3" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0 truncate text-[11px] font-black text-white">{tpl.name}</div>
+                                    <div className="min-w-0 truncate text-[10px] font-black text-white">{tpl.name}</div>
                                     <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                                       <button
                                         type="button"
@@ -1755,12 +1755,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                       </button>
                                     </div>
                                   </div>
-                                  {tpl.title && <div className="mt-0.5 truncate text-[10px] font-medium text-emerald-100/65">{tpl.title}</div>}
-                                  <div className="mt-2 flex items-center gap-1.5">
-                                    <span className={`rounded-md border px-1.5 py-0.5 text-[8px] font-bold ${getPriorityColor(tpl.priority as Message['priority'])}`}>
+                                  {tpl.title && <div className="mt-0.5 truncate text-[9px] font-medium text-emerald-100/65">{tpl.title}</div>}
+                                  <div className="mt-1.5 flex items-center gap-1">
+                                    <span className={`rounded-md border px-1.5 py-0.5 text-[7px] font-bold ${getPriorityColor(tpl.priority as Message['priority'])}`}>
                                       {(tpl.priority || 'normal').charAt(0).toUpperCase() + (tpl.priority || 'normal').slice(1)}
                                     </span>
-                                    <span className="rounded-md border border-teal-300/20 bg-teal-400/10 px-1.5 py-0.5 text-[8px] font-bold text-teal-200">
+                                    <span className="rounded-md border border-teal-300/20 bg-teal-400/10 px-1.5 py-0.5 text-[7px] font-bold text-teal-200">
                                       {getNotificationDeliveryLabel(tpl.delivery_mode)}
                                     </span>
                                   </div>
