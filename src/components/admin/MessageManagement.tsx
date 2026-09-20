@@ -1988,7 +1988,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           ) : soleRecipient ? (
                             <span className="min-w-0 max-w-[126px] shrink-0 truncate text-right text-[8px] leading-none" title={`${soleRecipient.username} · ${soleRecipient.employee_id}`}>
                               <span className="font-bold text-cyan-200">{soleRecipient.username}</span>
-                              <span className="ml-1 font-mono text-slate-500">{soleRecipient.employee_id}</span>
+                              <span className="ml-1 font-mono font-semibold text-slate-300">{soleRecipient.employee_id}</span>
                             </span>
                           ) : null}
                         </div>
@@ -2017,7 +2017,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             }`}>
                               {isFullyRead ? '已讀' : isPartiallyRead ? '部分' : '未讀'} {readCount}/{recipientCount}
                             </span>
-                            <span className="text-[7px] font-medium text-slate-500">
+                            <span className="text-[7px] font-semibold text-slate-300">
                               {formatMessageDateTime(msg.created_at)}
                             </span>
                           </div>
