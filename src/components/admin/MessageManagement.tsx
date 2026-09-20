@@ -1905,19 +1905,19 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
                     {([['all', 'All'], ['realtime_with_login_fallback', '結合'], ['realtime_only', '即時'], ['login_only', '登入']] as const).map(([val, label]) => {
                       const activeClass = val === 'realtime_with_login_fallback'
-                        ? 'border-cyan-400 bg-cyan-600 text-white'
+                        ? 'border-amber-300 bg-gradient-to-r from-amber-400 to-orange-500 text-amber-950'
                         : val === 'realtime_only'
                           ? 'border-blue-500 bg-blue-600 text-white'
                           : val === 'login_only'
                             ? 'border-violet-500 bg-violet-600 text-white'
-                            : 'border-slate-600 bg-slate-700 text-slate-100';
+                            : 'border-teal-400 bg-teal-600 text-white';
                       const idleClass = val === 'realtime_with_login_fallback'
-                        ? 'text-cyan-200/80 hover:bg-cyan-950/70 hover:text-cyan-50'
+                        ? 'text-amber-300 hover:bg-amber-950/70 hover:text-amber-100'
                         : val === 'realtime_only'
                           ? 'text-blue-300/80 hover:bg-blue-950/70 hover:text-blue-100'
                           : val === 'login_only'
                             ? 'text-violet-300/80 hover:bg-violet-950/70 hover:text-violet-100'
-                            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100';
+                            : 'text-teal-300 hover:bg-teal-950/70 hover:text-teal-100';
                       return (
                         <button key={val} onClick={() => setMessageTypeFilter(val)}
                           className={`min-w-0 flex-1 rounded border px-1 py-1 text-[9px] font-bold transition-colors ${messageTypeFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
@@ -1934,11 +1934,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                       const activeClass = val === 'read'
                         ? 'border-emerald-500 bg-emerald-600 text-white'
                         : val === 'unread'
-                          ? 'border-slate-500 bg-slate-600 text-white'
-                          : 'border-slate-600 bg-slate-700 text-slate-100';
+                          ? 'border-red-400 bg-red-600 text-white'
+                          : 'border-indigo-400 bg-indigo-600 text-white';
                       const idleClass = val === 'read'
                         ? 'text-emerald-300/80 hover:bg-emerald-950/70 hover:text-emerald-100'
-                        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100';
+                        : val === 'unread'
+                          ? 'text-red-300 hover:bg-red-950/70 hover:text-red-100'
+                          : 'text-indigo-300 hover:bg-indigo-950/70 hover:text-indigo-100';
                       return (
                         <button key={val} onClick={() => setReadStatusFilter(val)}
                           className={`min-w-0 flex-1 rounded border px-1 py-1 text-[9px] font-bold transition-colors ${readStatusFilter === val ? activeClass : `border-transparent ${idleClass}`}`}>
