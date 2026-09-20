@@ -174,7 +174,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [messageStats, setMessageStats] = useState<Map<string, MessageStats>>(new Map());
   const [recipientDetails, setRecipientDetails] = useState<Map<string, { read: Employee[]; unread: Employee[] }>>(new Map());
   const [loadingRecipientDetails, setLoadingRecipientDetails] = useState(false);
-  const [recipientUsernames, setRecipientUsernames] = useState<Map<string, string[]>>(new Map());
   const [recipientSearchQuery, setRecipientSearchQuery] = useState('');
   const [recipientStatusFilter, setRecipientStatusFilter] = useState<'all' | 'read' | 'unread'>('all');
 
@@ -853,12 +852,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       const recipientEmployeeMap = new Map(recipientUsers?.map(user => [user.id, user]) || []);
       const recipientsByMessage = new Map<string, string[]>();
       const statsByMessage = new Map<string, MessageStats>();
-      const recipientUsernamesByMessage = new Map<string, string[]>();
       const recipientDetailsByMessage = new Map<string, { read: Employee[]; unread: Employee[] }>();
 
       messageIds.forEach(msgId => {
         recipientsByMessage.set(msgId, []);
-        recipientUsernamesByMessage.set(msgId, []);
         recipientDetailsByMessage.set(msgId, { read: [], unread: [] });
         statsByMessage.set(msgId, { total_recipients: 0, read_count: 0, unread_count: 0, read_percentage: 0 });
       });
@@ -872,11 +869,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           const details = recipientDetailsByMessage.get(recipient.message_id)!;
           if (recipient.is_read) details.read.push(employee as Employee);
           else details.unread.push(employee as Employee);
-        }
-
-        if (employee?.username) {
-          const usernameList = recipientUsernamesByMessage.get(recipient.message_id)!;
-          usernameList.push(employee.username);
         }
 
         const stats = statsByMessage.get(recipient.message_id)!;
@@ -893,7 +885,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
       setSentMessages(messagesWithRecipients);
       setMessageStats(statsByMessage);
-      setRecipientUsernames(recipientUsernamesByMessage);
       setRecipientDetails(recipientDetailsByMessage);
       if (!isBackgroundRefresh) setSelectedMessageIds(new Set());
     } catch (error) {
@@ -2344,14 +2335,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         const details = recipientDetails.get(selectedMessageDetail.id);
                         const employees = details ? [...details.read, ...details.unread] : [];
                         const readIds = new Set(details?.read.map(employee => employee.id) || []);
-                        const usernames = recipientUsernames.get(selectedMessageDetail.id) || [];
                         const query = recipientSearchQuery.trim().toLowerCase();
                         const visibleEmployees = employees.filter(employee => {
                           const matchesSearch = !query || employee.username.toLowerCase().includes(query) || employee.employee_id.toLowerCase().includes(query);
                           const matchesStatus = query.length > 0 || recipientStatusFilter === 'all' || (recipientStatusFilter === 'read' ? readIds.has(employee.id) : !readIds.has(employee.id));
                           return matchesSearch && matchesStatus;
                         });
-                        const visibleUsernames = usernames.filter(name => !query || name.toLowerCase().includes(query));
 
                         if (employees.length > 0) {
                           return (
@@ -2383,27 +2372,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           );
                         }
 
-                        if (usernames.length > 0) {
-                          return (
-                            <div className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-dark">
-                              {visibleUsernames.length > 0 ? (
-                                <div className="overflow-hidden rounded-xl border border-teal-300/15 bg-slate-950/25 divide-y divide-teal-200/10">
-                                  {visibleUsernames.map(name => (
-                                    <div key={name} className="flex items-center gap-2.5 px-2.5 py-2">
-                                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-700 text-[10px] font-black text-slate-300">
-                                        {name.slice(0, 1).toUpperCase()}
-                                      </div>
-                                      <p className="min-w-0 flex-1 truncate text-xs font-bold text-white">{name}</p>
-                                      <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-slate-500">Employee</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="rounded-xl border border-slate-500/25 bg-slate-950/25 px-3 py-3 text-xs text-slate-400">No matching employee accounts.</p>
-                              )}
-                            </div>
-                          );
-                        }
 
                         return loadingRecipientDetails ? (
                           <div className="flex items-center justify-center rounded-xl border border-teal-300/15 bg-slate-950/25 py-6">
