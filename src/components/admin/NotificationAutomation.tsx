@@ -157,8 +157,8 @@ const triggerLabels: Record<TriggerType, string> = {
   total_orders: '累計完成訂單數',
   daily_orders: '當天完成訂單數',
   work_days: '累計工作天數',
-  commission_amount: '累計佣金金額',
   consecutive_work_days: '連續工作達標',
+  commission_amount: '累計佣金金額',
   annual_date: '每年指定日期',
   first_login: '新員工帳戶第一次登入',
 };
