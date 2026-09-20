@@ -548,10 +548,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         setNotification({ type: 'success', message: `Template "${newTemplateName.trim()}" saved!` });
       }
       setEditingTemplateId(null);
-      setShowSaveTemplateModal(false);
       setNewTemplateName('');
       setTemplateEditorContent('');
       setTemplateFormTitle('');
+      templateEditorRef2.current?.getEditor()?.commands.clearContent();
       loadTemplates();
     } catch (error: unknown) {
       setNotification({ type: 'error', message: formatSupabaseError(error) || 'Failed to save template' });
