@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Bell, Eye, AlertCircle, CheckCircle, Clock, Zap, Shield, Radio, ChevronRight, MailOpen, Sparkles, Gift, Wallet } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { getEmployeeFinancialSession } from '../../lib/auth';
 import { Employee, MessageWithRecipient } from '../../types';
 import { useResponsive } from '../../lib/useResponsive';
 import { useLanguage } from '../../lib/i18n/context';
@@ -64,53 +65,17 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
     const requestId = ++loadRequestIdRef.current;
     setLoading(true);
     try {
-      let query = supabase
-        .from('message_recipients')
-        .select(`
-          id,
-          message_id,
-          recipient_id,
-          is_read,
-          read_at,
-          is_shown,
-          shown_at,
-          delivery_channel,
-          delivery_claim_token,
-          delivery_claim_channel,
-          delivery_claim_until,
-          delivered_at,
-          created_at,
-          messages!inner (
-            id,
-            sender_username,
-            title,
-            content,
-            message_type,
-            delivery_mode,
-            priority,
-            notification_category,
-            reward_amount,
-            reward_currency,
-            automation_execution_id,
-            created_at
-          )
-        `)
-        .eq('recipient_id', employee.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (filter === 'unread') query = query.eq('is_read', false);
-
-      const { data, error } = await query;
+      const session = getEmployeeFinancialSession();
+      const { data, error } = await supabase.rpc('get_employee_notification_messages', {
+        p_user_id: employee.id,
+        p_session_token: session.token,
+        p_tab_id: session.tabId,
+        p_filter: filter,
+        p_limit: 50,
+      });
       if (error) throw error;
       if (requestId !== loadRequestIdRef.current) return;
-
-      const loadedMessages = (data || []) as MessageWithRecipient[];
-      setMessages(loadedMessages.filter(message => {
-        if (filter === 'login') return getDeliveredMessageType(message) === 'login_popup';
-        if (filter === 'realtime') return getDeliveredMessageType(message) === 'realtime';
-        return true;
-      }));
+      setMessages((data || []) as MessageWithRecipient[]);
     } catch (error) {
       if (requestId === loadRequestIdRef.current) console.error('Error loading messages:', error);
     } finally {
@@ -119,23 +84,25 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
   };
   loadMessagesRef.current = loadMessages;
 
-  const markAsRead = async (messageId: string) => {
+  const markAsRead = async (recipientId: string) => {
     try {
-      const { error } = await supabase
-        .from('message_recipients')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('message_id', messageId)
-        .eq('recipient_id', employee.id);
+      const session = getEmployeeFinancialSession();
+      const { data, error } = await supabase.rpc('mark_employee_notification_read', {
+        p_user_id: employee.id,
+        p_session_token: session.token,
+        p_tab_id: session.tabId,
+        p_recipient_id: recipientId,
+      });
       if (error) throw error;
-      const readAt = new Date().toISOString();
+      const readAt = String((data as { read_at?: string } | null)?.read_at || new Date().toISOString());
       setMessages(prev =>
         prev.map(msg =>
-          msg.message_id === messageId
+          msg.id === recipientId
             ? { ...msg, is_read: true, read_at: readAt }
             : msg
         )
       );
-      setSelectedMessage(previous => previous?.message_id === messageId ? { ...previous, is_read: true, read_at: readAt } : previous);
+      setSelectedMessage(previous => previous?.id === recipientId ? { ...previous, is_read: true, read_at: readAt } : previous);
     } catch (error) {
       console.error('Error marking message as read:', error);
     }
@@ -144,7 +111,7 @@ export default function MessageCenter({ employee, onClose }: MessageCenterProps)
   const openMessage = (msg: MessageWithRecipient) => {
     setSelectedMessage(msg);
     if (!msg.is_read) {
-      markAsRead(msg.message_id);
+      markAsRead(msg.id);
     }
   };
 

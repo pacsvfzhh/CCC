@@ -90,15 +90,20 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
       p_tab_id: session.tabId,
       p_combined_only: false,
     });
-    if (pendingError) throw pendingError;
-    setHasMore(Boolean(pending));
+    if (pendingError) {
+      console.error('Error checking for additional login notifications:', pendingError);
+      setHasMore(true);
+    } else {
+      setHasMore(Boolean(pending));
+    }
     return true;
   };
 
   const loadLoginPopupMessages = async () => {
     setLoading(true);
     try {
-      await claimNextLoginMessage();
+      const claimed = await claimNextLoginMessage();
+      if (!claimed) onClose();
     } catch (error) {
       console.error('Error loading login popup messages:', error);
       setMessages([]);
@@ -127,7 +132,10 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
   const handleNext = async () => {
     try {
-      if (!await completeCurrentDelivery(true)) return;
+      if (!await completeCurrentDelivery(true)) {
+        onClose();
+        return;
+      }
       if (hasMore) {
         setLoading(true);
         const claimed = await claimNextLoginMessage();
@@ -144,7 +152,8 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
 
   const handleClose = async () => {
     try {
-      if (await completeCurrentDelivery(false)) onClose();
+      await completeCurrentDelivery(false);
+      onClose();
     } catch (error) {
       console.error('Error completing login notification delivery:', error);
     }
@@ -293,7 +302,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   </div>
                   <div className="min-w-0">
                     <p className={`truncate text-[10px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
-                      {hasMore ? t.loginPopup.notification : t.loginPopup.notification}
+                      {t.loginPopup.notification}
                     </p>
                     <p className={`mt-1 truncate text-sm font-semibold ${isReward ? 'text-amber-900' : 'text-slate-700'}`}>
                       {hasMore ? t.loginPopup.next : t.loginPopup.gotIt}
@@ -431,7 +440,7 @@ export default function LoginPopupMessages({ employee, onClose }: LoginPopupMess
                   </div>
                   <div className="min-w-0">
                     <p className={`truncate text-[10px] font-bold uppercase tracking-[0.14em] ${isReward ? 'text-amber-700' : 'text-slate-400'}`}>
-                      {hasMore ? t.loginPopup.notification : t.loginPopup.notification}
+                      {t.loginPopup.notification}
                     </p>
                     <p className={`mt-1 truncate text-sm font-semibold ${isReward ? 'text-amber-900' : 'text-slate-700'}`}>
                       {hasMore ? t.loginPopup.next : t.loginPopup.gotIt}

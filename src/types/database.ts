@@ -700,7 +700,9 @@ export interface Database {
           delivery_claim_token: string | null;
           delivery_claim_channel: 'realtime' | 'login_popup' | null;
           delivery_claim_until: string | null;
+          delivery_completed_claim_token: string | null;
           delivered_at: string | null;
+          delivery_sequence: number;
           created_at: string | null;
         };
         Insert: {
@@ -715,7 +717,9 @@ export interface Database {
           delivery_claim_token?: string | null;
           delivery_claim_channel?: 'realtime' | 'login_popup' | null;
           delivery_claim_until?: string | null;
+          delivery_completed_claim_token?: string | null;
           delivered_at?: string | null;
+          delivery_sequence?: number;
           created_at?: string | null;
         };
         Update: {
@@ -730,7 +734,9 @@ export interface Database {
           delivery_claim_token?: string | null;
           delivery_claim_channel?: 'realtime' | 'login_popup' | null;
           delivery_claim_until?: string | null;
+          delivery_completed_claim_token?: string | null;
           delivered_at?: string | null;
+          delivery_sequence?: number;
           created_at?: string | null;
         };
         Relationships: [
@@ -3056,6 +3062,18 @@ export interface Database {
           p_starts_at: string | null;
           p_ends_at: string | null;
         };
+        Returns: Record<string, unknown>;
+      };
+      copy_shared_notification_automation_task_with_delivery: {
+        Args: { p_admin_session_token: string; p_source_task_id: string };
+        Returns: Record<string, unknown>;
+      };
+      get_employee_notification_messages: {
+        Args: { p_user_id: string; p_session_token: string; p_tab_id: string; p_filter?: string; p_limit?: number };
+        Returns: unknown[];
+      };
+      mark_employee_notification_read: {
+        Args: { p_user_id: string; p_session_token: string; p_tab_id: string; p_recipient_id: string };
         Returns: Record<string, unknown>;
       };
       claim_realtime_notification_delivery: {

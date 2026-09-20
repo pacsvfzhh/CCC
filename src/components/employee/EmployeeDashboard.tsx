@@ -66,6 +66,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const processRealtimeRecipientRef = useRef<((recipientId: string) => Promise<void>) | null>(null);
   const notificationChannelStatusRef = useRef('CLOSED');
   const deliveredRecipientIdsRef = useRef(new Set<string>());
+  const realtimeDeliveryChainRef = useRef<Promise<void>>(Promise.resolve());
 
   // Trigger auto messages for all eligible customers on login
   useEffect(() => {
@@ -320,6 +321,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
     window.addEventListener('online', recoverCombinedNotifications);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    const recoveryTimer = window.setInterval(recoverCombinedNotifications, 30000);
 
     const channel = supabase
       .channel(`employee_new_messages_${employee.id}`)
@@ -335,7 +337,10 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
           void loadUnreadCountRef.current?.();
           const recipientId = String((payload.new as { id?: string }).id || '');
           if (!recipientId || document.visibilityState !== 'visible' || !navigator.onLine || notificationChannelStatusRef.current !== 'SUBSCRIBED') return;
-          void processRealtimeRecipientRef.current?.(recipientId);
+          realtimeDeliveryChainRef.current = realtimeDeliveryChainRef.current
+            .then(() => processRealtimeRecipientRef.current?.(recipientId))
+            .then(() => undefined)
+            .catch(error => console.error('Error draining realtime notifications:', error));
         }
       )
       .on(
@@ -358,6 +363,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     return () => {
       window.removeEventListener('online', recoverCombinedNotifications);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearInterval(recoveryTimer);
       notificationChannelStatusRef.current = 'CLOSED';
       void supabase.removeChannel(channel);
     };
@@ -487,10 +493,6 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
         rewardCurrency: result.message.reward_currency,
       };
 
-      playNotificationSound();
-      setHasNewMessage(true);
-      setMessageToastQueue(previous => previous.some(item => item.recipientId === recipientId) ? previous : [...previous, toastMessage]);
-
       const { data: completed, error: completeError } = await supabase.rpc('complete_notification_delivery', {
         p_user_id: employee.id,
         p_session_token: session.token,
@@ -503,6 +505,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       if (!(completed as { success?: boolean } | null)?.success) throw new Error('Notification delivery could not be confirmed.');
 
       deliveredRecipientIdsRef.current.add(recipientId);
+      playNotificationSound();
+      setHasNewMessage(true);
+      setMessageToastQueue(previous => previous.some(item => item.recipientId === recipientId) ? previous : [...previous, toastMessage]);
       void loadUnreadCountRef.current?.();
     } catch (error) {
       console.error('Error processing realtime notification:', error);
@@ -658,9 +663,9 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
                 <div className="relative">
                   <button
                     onClick={() => {
+                      dismissMessageToast();
                       setShowMessageCenter(true);
                       setHasNewMessage(false);
-                      setShowMessageToast(false);
                     }}
                     className={`relative rounded-lg transition-all duration-200 group ${
                       unreadMessageCount > 0

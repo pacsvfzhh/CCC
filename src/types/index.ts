@@ -175,7 +175,9 @@ export interface MessageRecipient {
   delivery_claim_token: string | null;
   delivery_claim_channel: NotificationDeliveryChannel | null;
   delivery_claim_until: string | null;
+  delivery_completed_claim_token: string | null;
   delivered_at: string | null;
+  delivery_sequence: number;
   created_at: string | null;
 }
 

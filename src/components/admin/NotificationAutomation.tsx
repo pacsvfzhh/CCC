@@ -681,7 +681,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     }
 
     try {
-      const { data, error } = await supabase.rpc('copy_shared_notification_automation_task', {
+      const { data, error } = await supabase.rpc('copy_shared_notification_automation_task_with_delivery', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_source_task_id: task.id,
       });
@@ -730,7 +730,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
     try {
       for (const template of templates) {
-        const { data, error } = await supabase.rpc('copy_shared_notification_automation_task', {
+        const { data, error } = await supabase.rpc('copy_shared_notification_automation_task_with_delivery', {
           p_admin_session_token: getAdminFinancialSessionToken(),
           p_source_task_id: template.id,
         });
