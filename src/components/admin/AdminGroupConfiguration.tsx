@@ -124,7 +124,7 @@ export default function AdminGroupConfiguration() {
 
       setGlobalDefaults({
         company_name: defaults.company_name || '',
-        currency_unit: defaults.currency_unit || 'USDT',
+        currency_unit: defaults.currency_unit || 'USDC',
         commission_rate: defaults.commission_rate || '',
         success_rate: defaults.success_rate || '',
         withdrawal_amount_threshold: defaults.withdrawal_amount_threshold || '',
@@ -503,7 +503,7 @@ export default function AdminGroupConfiguration() {
                   required
                   maxLength={10}
                   className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  placeholder="USDT"
+                  placeholder="USDC"
                 />
                 <p className="text-slate-500 text-xs mt-1">
                   Currency unit displayed on employee pages (e.g., USDT, USD, BTC)

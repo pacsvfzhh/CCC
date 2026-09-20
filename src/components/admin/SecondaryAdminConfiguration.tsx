@@ -82,7 +82,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
 
       setGlobalDefaults({
         company_name: globalMap.company_name || '',
-        currency_unit: globalMap.currency_unit || 'USDT',
+        currency_unit: globalMap.currency_unit || 'USDC',
         commission_rate: globalMap.commission_rate || '',
         success_rate: globalMap.success_rate || '',
         withdrawal_amount_threshold: globalMap.withdrawal_amount_threshold || '',
@@ -92,7 +92,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
 
       setFormValues({
         company_name: configMap.company_name || globalMap.company_name || '',
-        currency_unit: configMap.currency_unit || globalMap.currency_unit || 'USDT',
+        currency_unit: configMap.currency_unit || globalMap.currency_unit || 'USDC',
         commission_rate: configMap.commission_rate || globalMap.commission_rate || '',
         success_rate: configMap.success_rate || globalMap.success_rate || '',
         withdrawal_amount_threshold: configMap.withdrawal_amount_threshold || globalMap.withdrawal_amount_threshold || '',
@@ -273,7 +273,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
           <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
             <div className="text-xs text-slate-400 mb-1">Withdrawal Amount</div>
             <div className="text-lg font-bold text-white">
-              {formValues.withdrawal_amount_threshold || '0'} {formValues.currency_unit || 'USDT'}
+              {formValues.withdrawal_amount_threshold || '0'} {formValues.currency_unit || 'USDC'}
             </div>
           </div>
           <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
@@ -362,7 +362,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
                 required
                 maxLength={10}
                 className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                placeholder="USDT"
+                placeholder="USDC"
               />
               <p className="text-slate-500 text-xs mt-1">
                 Currency unit displayed on employee pages (e.g., USDT, USD, BTC)
@@ -448,13 +448,13 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
                   placeholder="100"
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm pointer-events-none">
-                  {formValues.currency_unit || 'USDT'}
+                  {formValues.currency_unit || 'USDC'}
                 </span>
               </div>
               <p className="text-slate-500 text-xs mt-1">Minimum balance required for withdrawal</p>
               {globalDefaults.withdrawal_amount_threshold && (
                 <p className="text-slate-600 text-xs mt-1">
-                  Global default: {globalDefaults.withdrawal_amount_threshold} {globalDefaults.currency_unit || 'USDT'}
+                  Global default: {globalDefaults.withdrawal_amount_threshold} {globalDefaults.currency_unit || 'USDC'}
                 </p>
               )}
             </div>

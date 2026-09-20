@@ -121,7 +121,7 @@ export function safeJsonParse<T>(
  */
 export function safeCurrency(
   value: number | null | undefined,
-  currency: string = 'USDT'
+  currency: string = 'USDC'
 ): string {
   const num = safeNumber(value, 0);
   return `${num.toLocaleString(undefined, {

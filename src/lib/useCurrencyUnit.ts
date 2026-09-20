@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './supabase';
 
 const CACHE_KEY_PREFIX = 'cached_currency_unit';
-const DEFAULT_CURRENCY = 'USDT';
+const DEFAULT_CURRENCY = 'USDC';
 
 let instanceCounter = 0;
 
