@@ -1966,7 +1966,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         void loadRecipientDetailsRef.current?.(msg.id);
                       }
                     }}
-                    className={`cursor-pointer rounded-md border border-l-[3px] px-2 py-1.5 transition-colors duration-150 ${
+                    className={`cursor-pointer rounded-md border border-l-[3px] px-2.5 py-2 transition-colors duration-150 ${
                       selectionMode && isSelectedMsg
                         ? 'border-blue-400/50 border-l-blue-400 bg-blue-600/20 ring-1 ring-blue-500/30'
                         : cardTone
@@ -1986,9 +1986,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                               {recipientCount} 人
                             </span>
                           ) : soleRecipient ? (
-                            <span className="min-w-0 max-w-[126px] shrink-0 truncate text-right text-[8px] leading-none" title={`${soleRecipient.username} · ${soleRecipient.employee_id}`}>
-                              <span className="font-bold text-cyan-200">{soleRecipient.username}</span>
-                              <span className="ml-1 font-mono font-semibold text-slate-300">{soleRecipient.employee_id}</span>
+                            <span className="min-w-0 max-w-[136px] shrink-0 truncate text-right text-[9px] leading-none" title={`${soleRecipient.username} · ${soleRecipient.employee_id}`}>
+                              <span className="font-bold text-cyan-100">{soleRecipient.username}</span>
+                              <span className="ml-1 font-mono font-semibold text-slate-200">{soleRecipient.employee_id}</span>
                             </span>
                           ) : null}
                         </div>
@@ -2017,7 +2017,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             }`}>
                               {isFullyRead ? '已讀' : isPartiallyRead ? '部分' : '未讀'} {readCount}/{recipientCount}
                             </span>
-                            <span className="text-[7px] font-semibold text-slate-300">
+                            <span className="text-[8px] font-semibold text-slate-200">
                               {formatMessageDateTime(msg.created_at)}
                             </span>
                           </div>
