@@ -2306,7 +2306,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                     setRecipientSearchQuery('');
                                     setRecipientStatusFilter('all');
                                   }}
-                                  className={`${baseClass} ${allActive ? 'border-teal-300/50 bg-teal-300/15 text-teal-100' : 'border-slate-600/60 bg-slate-900/35 text-slate-400 hover:border-teal-300/30 hover:text-teal-100'}`}
+                                  className={`${baseClass} ${allActive ? 'border-indigo-400 bg-indigo-600 text-white shadow-sm shadow-indigo-950/35' : 'border-indigo-500/30 bg-indigo-950/20 text-indigo-300 hover:border-indigo-400/60 hover:bg-indigo-950/45 hover:text-indigo-100'}`}
                                 >
                                   <span>All</span>
                                   <span className="font-black">{stats?.total_recipients ?? 0}</span>
@@ -2318,7 +2318,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                     setRecipientSearchQuery('');
                                     setRecipientStatusFilter(prev => prev === 'read' ? 'all' : 'read');
                                   }}
-                                  className={`${baseClass} ${readActive ? 'border-emerald-300/50 bg-emerald-300/15 text-emerald-100' : 'border-slate-600/60 bg-slate-900/35 text-slate-400 hover:border-emerald-300/30 hover:text-emerald-100'}`}
+                                  className={`${baseClass} ${readActive ? 'border-emerald-400 bg-emerald-600 text-white shadow-sm shadow-emerald-950/35' : 'border-emerald-500/30 bg-emerald-950/20 text-emerald-300 hover:border-emerald-400/60 hover:bg-emerald-950/45 hover:text-emerald-100'}`}
                                 >
                                   <span>Read</span>
                                   <span className="font-black">{stats?.read_count ?? 0}</span>
@@ -2330,7 +2330,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                     setRecipientSearchQuery('');
                                     setRecipientStatusFilter(prev => prev === 'unread' ? 'all' : 'unread');
                                   }}
-                                  className={`${baseClass} ${unreadActive ? 'border-slate-500 bg-slate-700 text-slate-100' : 'border-slate-600/60 bg-slate-900/35 text-slate-400 hover:border-slate-500 hover:text-slate-200'}`}
+                                  className={`${baseClass} ${unreadActive ? 'border-red-400 bg-red-600 text-white shadow-sm shadow-red-950/35' : 'border-red-500/30 bg-red-950/20 text-red-300 hover:border-red-400/60 hover:bg-red-950/45 hover:text-red-100'}`}
                                 >
                                   <span>Unread</span>
                                   <span className="font-black">{stats?.unread_count ?? 0}</span>
