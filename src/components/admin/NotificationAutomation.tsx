@@ -1049,7 +1049,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                               togglePendingEmployee(employee.id);
                             }
                           }}
-                          className={`group grid cursor-pointer grid-cols-[1.75rem_minmax(0,1.25fr)_minmax(0,1fr)_auto] items-center gap-2 border-l-2 px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-l-cyan-300 bg-cyan-500/10' : 'border-l-transparent hover:bg-slate-800/60'}`}
+                          className={`group grid cursor-pointer grid-cols-[1.75rem_minmax(0,1.25fr)_minmax(0,1fr)_auto] items-center gap-2 border-l-2 px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${selected ? 'border-l-cyan-200 bg-gradient-to-r from-cyan-400/25 via-blue-500/20 to-cyan-500/10 shadow-[inset_0_0_24px_rgba(34,211,238,0.10)]' : 'border-l-transparent bg-slate-950/20 hover:bg-slate-800/80'}`}
                         >
                           <input
                             type="checkbox"
