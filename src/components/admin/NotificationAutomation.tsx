@@ -282,9 +282,9 @@ function taskToForm(task: AutomationTask): TaskForm {
   };
 }
 
-function buildEnglishContent(triggerType: TriggerType, rewardEnabled: boolean, rewardAmount: string) {
-  const reward = rewardEnabled && rewardAmount
-    ? ' A performance bonus of {{bonus_amount}} {{currency}} has been credited to your wallet.'
+function buildEnglishContent(triggerType: TriggerType, rewardEnabled: boolean) {
+  const reward = rewardEnabled
+    ? ' You have also earned a performance bonus of {{bonus_amount}} {{currency}}, which has been credited to your wallet.'
     : '';
 
   switch (triggerType) {
@@ -527,9 +527,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   useEffect(() => {
     if (contentCustomized || readOnly) return;
-    const content = buildEnglishContent(form.triggerType, form.rewardEnabled, form.rewardAmount);
+    const content = buildEnglishContent(form.triggerType, form.rewardEnabled);
     setForm(previous => ({ ...previous, titleTemplate: content.title, contentTemplate: content.content }));
-  }, [form.triggerType, form.rewardEnabled, form.rewardAmount, contentCustomized, readOnly]);
+  }, [form.triggerType, form.rewardEnabled, contentCustomized, readOnly]);
 
   useEffect(() => {
     if (loading) return;
@@ -851,7 +851,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       return;
     }
     const next = createDefaultForm(selectedPlan.id);
-    const content = buildEnglishContent(next.triggerType, next.rewardEnabled, next.rewardAmount);
+    const content = buildEnglishContent(next.triggerType, next.rewardEnabled);
     next.titleTemplate = content.title;
     next.contentTemplate = content.content;
     setForm(next);
@@ -1045,7 +1045,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   };
 
   const regenerateContent = () => {
-    const content = buildEnglishContent(form.triggerType, form.rewardEnabled, form.rewardAmount);
+    const content = buildEnglishContent(form.triggerType, form.rewardEnabled);
     setForm(previous => ({ ...previous, titleTemplate: content.title, contentTemplate: content.content }));
     setContentCustomized(false);
   };
@@ -1300,19 +1300,13 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 </div>
                 <div className="mt-auto min-h-9 shrink-0 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-2 text-xs text-cyan-100">{summarizeTask({ trigger_type: form.triggerType, trigger_mode: form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode, threshold_value: Number(form.thresholdValue || 0), minimum_daily_orders: Number(form.minimumDailyOrders || 0), minimum_daily_work_minutes: form.minimumDailyWorkMinutes ? Number(form.minimumDailyWorkMinutes) : null, annual_month: Number(form.annualMonth || 1), annual_day: Number(form.annualDay || 1) } as AutomationTask, dashboard.currency)}</div>
               </section>
-              <section className={`relative min-h-[146px] overflow-hidden rounded-2xl border p-3.5 transition-colors sm:h-[146px] ${form.rewardEnabled ? 'border-amber-300/45 bg-[linear-gradient(135deg,rgba(120,53,15,0.28),rgba(15,23,42,0.92)_58%,rgba(8,47,73,0.46))] shadow-[0_10px_28px_rgba(245,158,11,0.08)]' : 'border-slate-700 bg-[linear-gradient(135deg,rgba(15,23,42,0.92),rgba(2,6,23,0.72))]'}`}>
-                <span className={`pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full blur-3xl transition-colors ${form.rewardEnabled ? 'bg-amber-400/20' : 'bg-cyan-400/5'}`} />
-                <div className="relative flex h-full flex-col">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors ${form.rewardEnabled ? 'border-amber-200/35 bg-gradient-to-br from-amber-400/30 to-yellow-500/10 text-amber-200' : 'border-slate-600 bg-slate-800/80 text-slate-400'}`}><Gift className="h-5 w-5" /></span>
-                      <div className="min-w-0"><h3 className="text-sm font-black text-white">績效獎金</h3><p className={`mt-0.5 text-[10px] font-semibold ${form.rewardEnabled ? 'text-amber-100/65' : 'text-slate-500'}`}>達標通知可同時發放一次獎金</p></div>
-                    </div>
-                    <button type="button" disabled={readOnly} aria-pressed={form.rewardEnabled} onClick={() => { setContentCustomized(false); setForm(previous => ({ ...previous, rewardEnabled: !previous.rewardEnabled })); }} className={`inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-2.5 text-[11px] font-black transition-colors ${form.rewardEnabled ? 'border-amber-200/45 bg-amber-400/15 text-amber-100' : 'border-slate-600 bg-slate-800/90 text-slate-300'} disabled:opacity-50`}><span>{form.rewardEnabled ? '已啟用' : '未啟用'}</span><span className={`relative h-4 w-7 rounded-full transition-colors ${form.rewardEnabled ? 'bg-amber-400' : 'bg-slate-600'}`}><span className={`absolute left-0 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform ${form.rewardEnabled ? 'translate-x-3.5' : 'translate-x-0.5'}`} /></span></button>
-                  </div>
-                  <div className={`mt-auto flex h-12 shrink-0 items-center rounded-xl border px-3 transition-colors ${form.rewardEnabled ? 'border-amber-300/25 bg-amber-400/[0.08]' : 'border-slate-700/80 bg-slate-950/35'}`}>
-                    {form.rewardEnabled ? <label className="flex w-full items-center gap-2"><span className="shrink-0 text-xs font-black text-amber-100">每次獎金</span><input disabled={readOnly} type="number" min="0.01" step="0.01" value={form.rewardAmount} onChange={event => setForm(previous => ({ ...previous, rewardAmount: event.target.value }))} className="h-8 min-w-0 flex-1 rounded-lg border border-amber-300/70 bg-white px-3 text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-amber-300/25 disabled:bg-slate-200" /><span className="shrink-0 text-xs font-black text-amber-200">{dashboard.currency}</span></label> : <p className="text-[11px] font-semibold text-slate-500">啟用後可設定每次達標時發放的獎金金額。</p>}
-                  </div>
+              <section className={`relative min-h-[68px] overflow-hidden rounded-xl border px-3 py-2.5 transition-colors sm:h-[68px] ${form.rewardEnabled ? 'border-amber-300/45 bg-[linear-gradient(90deg,rgba(120,53,15,0.3),rgba(15,23,42,0.94)_62%,rgba(8,47,73,0.38))] shadow-[0_8px_22px_rgba(245,158,11,0.07)]' : 'border-slate-700 bg-[linear-gradient(90deg,rgba(15,23,42,0.94),rgba(2,6,23,0.76))]'}`}>
+                <span className={`pointer-events-none absolute -right-6 -top-10 h-24 w-24 rounded-full blur-3xl ${form.rewardEnabled ? 'bg-amber-400/20' : 'bg-cyan-400/5'}`} />
+                <div className="relative flex h-full flex-wrap items-center gap-2.5 sm:flex-nowrap">
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors ${form.rewardEnabled ? 'border-amber-200/35 bg-gradient-to-br from-amber-400/30 to-yellow-500/10 text-amber-200' : 'border-slate-600 bg-slate-800/80 text-slate-400'}`}><Gift className="h-4.5 w-4.5" /></span>
+                  <div className="min-w-[136px] flex-1"><h3 className="text-sm font-black text-white">績效獎金</h3><p className={`truncate text-[10px] font-semibold ${form.rewardEnabled ? 'text-amber-100/65' : 'text-slate-500'}`}>達標時同步發放獎金</p></div>
+                  {form.rewardEnabled && <label className="flex shrink-0 items-center gap-1.5"><span className="text-[11px] font-black text-amber-100">獎金</span><input disabled={readOnly} type="number" min="0.01" step="0.01" value={form.rewardAmount} onChange={event => setForm(previous => ({ ...previous, rewardAmount: event.target.value }))} placeholder="0.00" aria-label="每次獎金金額" className="h-8 w-28 rounded-lg border border-amber-300/70 bg-white px-2.5 text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-amber-300/25 disabled:bg-slate-200" /><span className="text-[11px] font-black text-amber-200">{dashboard.currency}</span></label>}
+                  <button type="button" disabled={readOnly} aria-pressed={form.rewardEnabled} onClick={() => { setContentCustomized(false); setForm(previous => ({ ...previous, rewardEnabled: !previous.rewardEnabled })); }} className={`inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-2.5 text-[11px] font-black transition-colors ${form.rewardEnabled ? 'border-amber-200/45 bg-amber-400/15 text-amber-100' : 'border-slate-600 bg-slate-800/90 text-slate-300'} disabled:opacity-50`}><span>{form.rewardEnabled ? '已啟用' : '未啟用'}</span><span className={`relative h-4 w-7 rounded-full transition-colors ${form.rewardEnabled ? 'bg-amber-400' : 'bg-slate-600'}`}><span className={`absolute left-0 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform ${form.rewardEnabled ? 'translate-x-3.5' : 'translate-x-0.5'}`} /></span></button>
                 </div>
               </section>
               {form.planId === null && <section className="rounded-xl border border-slate-700 bg-slate-950/35 p-3">
