@@ -198,6 +198,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [showGroupDropdown, setShowGroupDropdown] = useState(false);
 
   const [templates, setTemplates] = useState<Array<{id:string; name:string; title:string; content:string}>>([]);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
@@ -213,6 +214,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const editEditorRef = useRef<TiptapEditorRef>(null);
   const manualSendOperationRef = useRef<{ id: string; fingerprint: string } | null>(null);
   const tagDropdownRef = useRef<HTMLDivElement>(null);
+  const groupDropdownRef = useRef<HTMLDivElement>(null);
   const templateDropdownRef = useRef<HTMLDivElement>(null);
 
   const hasInitiallyLoaded = useRef(false);
@@ -375,6 +377,24 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showTagDropdown]);
+
+  useEffect(() => {
+    if (!showGroupDropdown) return;
+    const handleClick = (event: MouseEvent) => {
+      if (groupDropdownRef.current && !groupDropdownRef.current.contains(event.target as Node)) {
+        setShowGroupDropdown(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowGroupDropdown(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showGroupDropdown]);
 
   // Close template dropdown on outside click
   useEffect(() => {
@@ -1224,6 +1244,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const allEmployeesFlat = Array.from(allEmployees.values()).flat();
   const totalEmployees = allEmployeesFlat.length;
   const filteredEmployees = getFilteredEmployees();
+  const selectedAdminGroup = adminGroups.find(group => group.id === selectedAdminId);
   const allCurrentSelected = filteredEmployees.length > 0 && filteredEmployees.every(e => selectedEmployeeIds.has(e.id));
   const allEmployeesSelected = allEmployeesFlat.length > 0 && allEmployeesFlat.every(emp => selectedEmployeeIds.has(emp.id));
   const selectedDeliveryMode = selectedMessageDetail ? getDeliveryMode(selectedMessageDetail) : 'realtime_only';
@@ -1342,93 +1363,107 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       )}
 
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-5 py-2.5 bg-slate-900/95 border-b border-slate-700/60">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-sm shadow-blue-900/40">
-            <Send className="h-4 w-4 text-white" />
+      <div className="relative flex items-center justify-between overflow-visible border-b border-blue-300/20 bg-gradient-to-r from-slate-950 via-blue-950/95 to-cyan-950/90 px-5 py-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.28)]">
+        <div className="pointer-events-none absolute inset-y-0 left-12 w-56 bg-blue-400/10 blur-2xl" />
+        <div className="relative flex min-w-0 items-center gap-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-200/25 bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-sm shadow-blue-950/50">
+            <Send className="h-4 w-4" />
           </div>
           <h2 className="text-base font-bold tracking-tight text-white">Messages</h2>
-          <span className="text-[11px] font-medium text-slate-400">
+          <span className="truncate text-[11px] font-medium text-blue-100/55">
             {selectedEmployeeIds.size > 0 ? `${selectedEmployeeIds.size} recipient${selectedEmployeeIds.size > 1 ? 's' : ''} selected` : `${totalEmployees} employees total`}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="relative flex shrink-0 items-center gap-2">
+          {admin.role !== 'secondary_admin' && (
+            <div ref={groupDropdownRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setShowGroupDropdown(previous => !previous)}
+                aria-expanded={showGroupDropdown}
+                aria-haspopup="menu"
+                className={`flex h-8 max-w-[260px] items-center gap-2 rounded-lg border px-2.5 text-[11px] font-bold transition-all ${showGroupDropdown ? 'border-blue-200/70 bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-[0_0_18px_rgba(59,130,246,0.3)]' : 'border-blue-300/30 bg-gradient-to-r from-blue-600/25 to-cyan-500/15 text-blue-100 hover:border-blue-200/60 hover:from-blue-500/35 hover:to-cyan-400/25'}`}
+              >
+                <Users className="h-3.5 w-3.5 shrink-0" />
+                <span className="max-w-32 truncate">{selectedAdminGroup?.username || 'Select group'}</span>
+                <span className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-black tabular-nums ${showGroupDropdown ? 'border-white/25 bg-white/15 text-white' : 'border-blue-300/25 bg-blue-400/15 text-blue-200'}`}>
+                  {selectedAdminGroup?.total_employees ?? 0}
+                </span>
+                <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${showGroupDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showGroupDropdown && (
+                <div className="absolute right-0 top-full z-[80] mt-2 w-72 overflow-hidden rounded-2xl border border-blue-300/30 bg-gradient-to-br from-blue-950 via-slate-950 to-cyan-950 shadow-[0_20px_48px_rgba(2,6,23,0.68)] ring-1 ring-white/[0.04] backdrop-blur-xl">
+                  <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-blue-400/15 blur-3xl" />
+                  <div className="relative border-b border-blue-200/15 bg-gradient-to-r from-blue-500/20 via-cyan-500/10 to-transparent px-3.5 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-blue-200/25 bg-blue-400/15 text-blue-200 shadow-inner shadow-white/10">
+                          <Users className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <p className="text-[11px] font-black text-white">Switch admin group</p>
+                          <p className="mt-0.5 text-[9px] font-medium text-blue-100/50">Choose which employee group to manage</p>
+                        </div>
+                      </div>
+                      <span className="rounded-md border border-blue-200/20 bg-blue-400/10 px-1.5 py-0.5 text-[9px] font-black tabular-nums text-blue-200">{adminGroups.length}</span>
+                    </div>
+                  </div>
+                  <div className="max-h-80 space-y-1.5 overflow-y-auto p-2 scrollbar-dark">
+                    {adminGroups.map(group => {
+                      const isActive = selectedAdminId === group.id;
+                      const selectedInGroup = (allEmployees.get(group.id) || [])
+                        .filter(employee => selectedEmployeeIds.has(employee.id)).length;
+                      return (
+                        <button
+                          key={group.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedAdminId(group.id);
+                            setSelectedMessageIds(new Set());
+                            setSelectedMessageDetail(null);
+                            setShowGroupDropdown(false);
+                          }}
+                          className={`group flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all ${isActive ? 'border-blue-300/65 bg-gradient-to-r from-blue-500/30 via-cyan-500/15 to-transparent text-white shadow-[0_8px_18px_rgba(37,99,235,0.16)]' : 'border-blue-200/10 bg-slate-900/45 text-slate-300 hover:border-blue-300/40 hover:bg-blue-500/10 hover:text-white'}`}
+                        >
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black ${isActive ? 'border-blue-200/45 bg-gradient-to-br from-blue-400 to-cyan-500 text-white' : group.role === 'super_admin' ? 'border-blue-400/25 bg-blue-500/15 text-blue-300' : 'border-cyan-400/20 bg-cyan-500/10 text-cyan-300'}`}>
+                            {group.role === 'super_admin' ? 'S' : 'A'}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[11px] font-bold">{group.username}</span>
+                            <span className={`mt-0.5 block text-[8px] font-semibold uppercase tracking-wider ${isActive ? 'text-blue-100/65' : 'text-slate-500 group-hover:text-blue-200/60'}`}>{group.role === 'super_admin' ? 'Super admin' : 'Admin group'}</span>
+                          </span>
+                          <span className="shrink-0 text-right">
+                            <span className={`flex items-center justify-end gap-1 text-[10px] font-black tabular-nums ${isActive ? 'text-blue-100' : 'text-blue-300'}`}>
+                              <Users className="h-3 w-3" /> {group.total_employees}
+                            </span>
+                            {selectedInGroup > 0 && <span className="mt-0.5 block text-[8px] font-bold text-cyan-300">{selectedInGroup} selected</span>}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {selectedEmployeeIds.size > 0 && (
-            <button onClick={clearSelection} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-3 text-[11px] font-bold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">
-              <X className="w-3 h-3" />
+            <button onClick={clearSelection} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-500/60 bg-slate-900/45 px-3 text-[11px] font-bold text-slate-200 transition-colors hover:border-blue-300/50 hover:bg-blue-500/15 hover:text-white">
+              <X className="h-3 w-3" />
               Clear
             </button>
           )}
-          <button onClick={() => setShowAutomation(true)} className="flex h-8 items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 text-[11px] font-bold text-cyan-200 transition-colors hover:border-cyan-300/50 hover:bg-cyan-500/20">
+          <button onClick={() => setShowAutomation(true)} className="flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-cyan-500/15 to-blue-500/15 px-3 text-[11px] font-bold text-cyan-100 transition-colors hover:border-cyan-200/55 hover:from-cyan-500/25 hover:to-blue-500/25">
             <Sparkles className="h-3.5 w-3.5" />
             自動化任務
           </button>
         </div>
       </div>
 
-      {/* 4-Panel Horizontal Layout */}
+      {/* 3-Panel Horizontal Layout */}
       <div className="flex flex-1 min-h-0 overflow-hidden rounded-xl border border-slate-700/60 bg-slate-950/80 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.95)]">
 
-        {/* Panel 1: Admin Groups */}
-        {admin.role !== 'secondary_admin' && (
-          <div className="flex w-56 flex-shrink-0 flex-col border-r border-slate-700/60 bg-slate-900/95">
-            <div className="flex items-center justify-between border-b border-slate-700/60 bg-slate-800/45 px-3.5 py-3">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-4 rounded-full bg-blue-500"></div>
-                <h3 className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">Groups</h3>
-              </div>
-              <span className="text-[10px] min-w-[24px] text-center py-0.5 px-1.5 rounded-md bg-blue-600/20 text-blue-300 font-bold border border-blue-500/20">{adminGroups.length}</span>
-            </div>
-            <div className="flex-1 overflow-y-auto scrollbar-dark p-2 space-y-1.5">
-              {adminGroups.map(group => {
-                const groupEmployees = allEmployees.get(group.id) || [];
-                const selectedInGroup = groupEmployees.filter(e => selectedEmployeeIds.has(e.id)).length;
-                const isActive = selectedAdminId === group.id;
-                return (
-                  <button
-                    key={group.id}
-                    onClick={() => {
-                      setSelectedAdminId(group.id);
-                      setSelectedMessageIds(new Set());
-                      setSelectedMessageDetail(null);
-                    }}
-                    className={`group w-full text-left px-3 py-3 rounded-xl transition-all duration-200 border ${
-                      isActive
-                        ? 'bg-blue-600/20 border-blue-400/60 ring-1 ring-blue-400/30 shadow-md shadow-blue-900/20 border-l-[3px] border-l-blue-400'
-                        : 'bg-slate-800/45 border-slate-700/50 hover:bg-slate-800/75 hover:border-slate-600/70'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 mb-2">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold flex-shrink-0 transition-colors border ${
-                        isActive
-                          ? 'bg-blue-500/40 text-white border-blue-400/60'
-                          : group.role === 'super_admin'
-                            ? 'bg-blue-500/15 text-blue-400 border-blue-500/20 group-hover:bg-blue-500/25'
-                            : 'bg-teal-500/15 text-teal-400 border-teal-500/20 group-hover:bg-teal-500/25'
-                      }`}>
-                        {group.role === 'super_admin' ? 'S' : 'A'}
-                      </div>
-                      <span className={`text-[13px] font-semibold truncate flex-1 transition-colors ${
-                        isActive ? 'text-white' : 'text-slate-200 group-hover:text-white'
-                      }`}>{group.username}</span>
-                    </div>
-                    <div className="flex items-center justify-between pl-[42px] text-[11px]">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-3 h-3 text-slate-500" />
-                        <span className={isActive ? 'text-slate-200 font-medium' : 'text-slate-400'}>{group.total_employees}</span>
-                      </div>
-                      {selectedInGroup > 0 && (
-                        <span className="font-bold text-blue-200 bg-blue-500/25 px-2 py-0.5 rounded-md border border-blue-400/30 text-[11px]">{selectedInGroup} selected</span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Panel 2: Employees */}
+        {/* Panel 1: Employees */}
         <div className="flex w-64 flex-shrink-0 flex-col border-r border-slate-700/70 bg-slate-950/35">
           <div className="space-y-1 border-b border-slate-700/70 bg-slate-900/85 px-2.5 py-1.5">
             {/* Search */}
@@ -1643,7 +1678,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           </div>
         </div>
 
-        {/* Panel 3: Compose Message */}
+        {/* Panel 2: Compose Message */}
         <div className="flex min-w-0 flex-1 flex-col border-r border-slate-700/60 bg-slate-900/95">
           <div className="flex min-h-0 flex-1 flex-col gap-2.5 p-3">
             <NotificationDeliverySelector
@@ -1879,7 +1914,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           </div>
         </div>
 
-        {/* Panel 4: Sent Messages */}
+        {/* Panel 3: Sent Messages */}
         <div className="flex min-h-0 w-72 flex-shrink-0 flex-col border-l border-slate-700/60 bg-slate-900/95">
           {/* Header */}
           <div className="space-y-1.5 border-b border-slate-700/60 bg-slate-800/45 px-3 py-2.5">
