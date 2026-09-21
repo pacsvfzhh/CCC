@@ -205,6 +205,13 @@ const planStatusLabels: Record<PlanStatus, string> = {
   archived: '已封存',
 };
 
+const planStatusFilterLabels: Record<'all' | PlanStatus, string> = {
+  all: '全部狀態',
+  active: '執行中',
+  paused: '已暫停',
+  archived: '已封存',
+};
+
 const statusSortOrder: Record<TaskStatus, number> = {
   active: 0,
   paused: 1,
@@ -397,6 +404,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [selectedPlanId, setSelectedPlanId] = useState<string>(UNGROUPED_PLAN_ID);
   const [planSearch, setPlanSearch] = useState('');
   const [planStatusFilter, setPlanStatusFilter] = useState<'all' | PlanStatus>('all');
+  const [planStatusMenuOpen, setPlanStatusMenuOpen] = useState(false);
   const [taskSearch, setTaskSearch] = useState('');
   const [taskStatusFilter, setTaskStatusFilter] = useState<'all' | TaskStatus>('all');
   const [taskTriggerFilter, setTaskTriggerFilter] = useState<'all' | TriggerType>('all');
@@ -1279,11 +1287,12 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         <div className="grid min-h-0 flex-1 lg:grid-cols-[270px_minmax(0,1fr)]">
           <aside className="hidden min-h-0 flex-col border-r border-slate-700/90 bg-[linear-gradient(180deg,#0b1220_0%,#0b1220_48%,#111827_100%)] lg:flex">
             <div className="border-b border-cyan-300/10 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.1),transparent_55%)] px-3 py-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-500/10 text-cyan-200"><Sparkles className="h-3.5 w-3.5" /></span><p className="truncate text-xs font-black text-white">自動化方案</p></div>
-                <div className="flex shrink-0 items-center gap-1"><span className="rounded-md border border-emerald-300/15 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-black tabular-nums text-emerald-300">{dashboard.plans.filter(plan => plan.status === 'active').length} 執行中</span><span className="rounded-md border border-cyan-300/15 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-black tabular-nums text-cyan-200">{dashboard.tasks.length}</span></div>
+              <div className="flex items-center justify-between gap-1.5">
+                <div className="flex min-w-0 items-center gap-1.5"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-500/10 text-cyan-200"><Sparkles className="h-3.5 w-3.5" /></span><p className="truncate text-xs font-black text-white">自動化方案</p><button type="button" onClick={() => openPlanModal()} className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-2 text-[10px] font-black text-white shadow-md shadow-cyan-950/30 transition-colors hover:from-cyan-400 hover:to-blue-500"><Plus className="h-3 w-3" />新增方案</button></div>
+                <div className="flex shrink-0 items-center gap-1"><span className="rounded-md border border-emerald-300/15 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-black tabular-nums text-emerald-300">{dashboard.plans.filter(plan => plan.status === 'active').length}</span><span className="rounded-md border border-cyan-300/15 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-black tabular-nums text-cyan-200">{dashboard.tasks.length}</span></div>
               </div>
-              <div className="mt-2 flex items-center gap-1.5"><label className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500" /><input value={planSearch} onChange={event => setPlanSearch(event.target.value)} placeholder="搜尋方案" className="h-8 w-full rounded-lg border border-slate-700 bg-slate-950/80 pl-8 pr-2 text-[11px] font-semibold text-white outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-400" /></label><select aria-label="方案狀態" value={planStatusFilter} onChange={event => setPlanStatusFilter(event.target.value as 'all' | PlanStatus)} className="h-8 w-[82px] shrink-0 rounded-lg border border-slate-700 bg-slate-950 px-1.5 text-[10px] font-bold text-slate-300 outline-none focus:border-cyan-400"><option value="all">全部</option><option value="active">執行中</option><option value="paused">暫停</option><option value="archived">封存</option></select><button type="button" onClick={() => openPlanModal()} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-950/30 transition-transform hover:scale-[1.04]" aria-label="新增方案" title="新增方案"><Plus className="h-3.5 w-3.5" /></button></div>
+              <label className="relative mt-2 block"><Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" /><input value={planSearch} onChange={event => setPlanSearch(event.target.value)} placeholder="搜尋方案名稱或說明" className="h-8 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-[11px] font-semibold text-slate-900 outline-none transition-colors placeholder:text-slate-400 shadow-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/25" /></label>
+              <div className="relative mt-2"><button type="button" onClick={() => setPlanStatusMenuOpen(previous => !previous)} aria-expanded={planStatusMenuOpen} aria-haspopup="menu" className={`flex h-8 w-full items-center justify-between rounded-lg border px-2.5 text-[10px] font-black transition-colors ${planStatusMenuOpen ? 'border-cyan-300/70 bg-cyan-500/15 text-cyan-100' : 'border-slate-700 bg-slate-950/70 text-slate-300 hover:border-cyan-300/40 hover:bg-slate-900'}`}><span className="inline-flex items-center gap-1.5"><SlidersHorizontal className="h-3.5 w-3.5 text-cyan-300" />{planStatusFilterLabels[planStatusFilter]}</span><ChevronDown className={`h-3.5 w-3.5 text-cyan-300 transition-transform ${planStatusMenuOpen ? 'rotate-180' : ''}`} /></button>{planStatusMenuOpen && <div role="menu" className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-950 p-1.5 shadow-[0_16px_32px_rgba(2,6,23,0.55)]">{(['all', 'active', 'paused', 'archived'] as const).map(status => <button key={status} type="button" role="menuitem" onClick={() => { setPlanStatusFilter(status); setPlanStatusMenuOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[10px] font-black transition-colors ${planStatusFilter === status ? 'bg-cyan-500/15 text-cyan-100' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><span>{planStatusFilterLabels[status]}</span>{planStatusFilter === status && <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300" />}</button>)}</div>}</div>
             </div>
             <div className="dark-panel-scroll min-h-0 flex-1 space-y-2.5 overflow-y-auto p-3">
               <p className="px-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">目前方案</p>
