@@ -3043,6 +3043,13 @@ export interface Database {
         };
         Returns: Record<string, unknown>;
       };
+      delete_archived_notification_automation_plan: {
+        Args: {
+          p_admin_session_token: string;
+          p_plan_id: string;
+        };
+        Returns: Record<string, unknown>;
+      };
       set_notification_automation_plan_members: {
         Args: {
           p_admin_session_token: string;
