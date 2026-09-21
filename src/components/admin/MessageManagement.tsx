@@ -1628,7 +1628,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         isSelected
                           ? 'border-emerald-400/70 border-l-2 border-l-emerald-300 bg-emerald-500/20 px-2.5 py-2'
                           : 'border-slate-800 bg-slate-900/45 px-2 py-1.5 hover:border-slate-700 hover:bg-slate-800/80'
-                      } ${emp.is_pinned && !isSelected ? 'border-l-2 border-l-amber-500/70' : ''}`}
+                      }`}
                     >
                       <div className="flex items-center gap-2">
                         <div className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border transition-colors duration-150 ${
@@ -1647,9 +1647,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             <span className={`truncate tracking-tight ${isSelected ? 'text-[13px] font-bold text-white' : 'text-[11px] font-semibold text-slate-300 group-hover:text-white'}`}>
                               {emp.username}
                             </span>
-                            {emp.is_pinned && (
-                              <Bookmark className="w-3.5 h-3.5 text-amber-400 fill-amber-400/40 flex-shrink-0" />
-                            )}
                             {!emp.is_active && (
                               <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-300 font-bold flex-shrink-0 border border-red-500/20">OFF</span>
                             )}
