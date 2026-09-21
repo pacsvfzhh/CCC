@@ -1242,9 +1242,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   }
 
   const allEmployeesFlat = Array.from(allEmployees.values()).flat();
-  const totalEmployees = allEmployeesFlat.length;
   const filteredEmployees = getFilteredEmployees();
   const selectedAdminGroup = adminGroups.find(group => group.id === selectedAdminId);
+  const selectedGroupEmployees = selectedAdminId ? allEmployees.get(selectedAdminId) || [] : allEmployeesFlat;
+  const selectedGroupEmployeeCount = selectedAdminGroup?.total_employees ?? selectedGroupEmployees.length;
+  const selectedInCurrentGroup = selectedGroupEmployees.filter(employee => selectedEmployeeIds.has(employee.id)).length;
   const allCurrentSelected = filteredEmployees.length > 0 && filteredEmployees.every(e => selectedEmployeeIds.has(e.id));
   const allEmployeesSelected = allEmployeesFlat.length > 0 && allEmployeesFlat.every(emp => selectedEmployeeIds.has(emp.id));
   const selectedDeliveryMode = selectedMessageDetail ? getDeliveryMode(selectedMessageDetail) : 'realtime_only';
@@ -1370,9 +1372,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             <Send className="h-4 w-4" />
           </div>
           <h2 className="text-base font-bold tracking-tight text-white">Messages</h2>
-          <span className="truncate text-[11px] font-medium text-blue-100/55">
-            {selectedEmployeeIds.size > 0 ? `${selectedEmployeeIds.size} recipient${selectedEmployeeIds.size > 1 ? 's' : ''} selected` : `${totalEmployees} employees total`}
-          </span>
+          <div className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-blue-200/20 bg-gradient-to-r from-blue-500/15 to-cyan-400/10 px-2.5 text-blue-100 shadow-inner shadow-white/[0.04]">
+            <Users className="h-3 w-3 text-cyan-300" />
+            <span className="text-[11px] font-black tabular-nums text-white">{selectedGroupEmployeeCount}</span>
+            <span className="text-[9px] font-semibold text-blue-100/60">employees</span>
+            {selectedInCurrentGroup > 0 && (
+              <span className="ml-0.5 border-l border-blue-200/20 pl-2 text-[9px] font-bold text-cyan-300">{selectedInCurrentGroup} selected</span>
+            )}
+          </div>
         </div>
         <div className="relative flex shrink-0 items-center gap-2">
           {admin.role !== 'secondary_admin' && (
