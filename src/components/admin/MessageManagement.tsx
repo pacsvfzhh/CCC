@@ -1532,7 +1532,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     <ChevronDown className={`h-2.5 w-2.5 transition-transform duration-150 ${showTagDropdown ? 'rotate-180' : ''}`} />
                   </button>
                   {showTagDropdown && (
-                    <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-amber-300/35 bg-gradient-to-br from-[#3a1c09] via-slate-950/[0.98] to-[#241108] shadow-2xl shadow-slate-950/80 ring-1 ring-orange-200/10 backdrop-blur-xl">
+                    <div className="absolute right-0 top-full z-50 mt-2 w-52 max-w-[calc(100vw-1rem)] overflow-hidden rounded-2xl border border-amber-300/35 bg-gradient-to-br from-[#3a1c09] via-slate-950/[0.98] to-[#241108] shadow-2xl shadow-slate-950/80 ring-1 ring-orange-200/10 backdrop-blur-xl">
                       <div className="border-b border-amber-300/20 bg-gradient-to-r from-amber-500/25 via-orange-500/10 to-transparent px-3.5 py-3">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
