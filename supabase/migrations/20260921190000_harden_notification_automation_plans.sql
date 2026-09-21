@@ -11,38 +11,14 @@ WHERE execution.task_id = task.id
 CREATE INDEX IF NOT EXISTS notification_automation_executions_plan_idx
   ON public.notification_automation_executions(owner_admin_id, plan_id, executed_at DESC);
 
-CREATE OR REPLACE FUNCTION private.lock_notification_automation_configuration()
-RETURNS trigger
-LANGUAGE plpgsql
+CREATE OR REPLACE FUNCTION private.acquire_notification_automation_configuration_lock()
+RETURNS void
+LANGUAGE sql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
-BEGIN
-  PERFORM pg_advisory_xact_lock(hashtextextended('notification_automation_queue', 0));
-  RETURN NULL;
-END;
+  SELECT pg_advisory_xact_lock(hashtextextended('notification_automation_queue', 0));
 $$;
-
-DROP TRIGGER IF EXISTS lock_notification_automation_tasks ON public.notification_automation_tasks;
-CREATE TRIGGER lock_notification_automation_tasks
-  BEFORE INSERT OR UPDATE OR DELETE
-  ON public.notification_automation_tasks
-  FOR EACH STATEMENT
-  EXECUTE FUNCTION private.lock_notification_automation_configuration();
-
-DROP TRIGGER IF EXISTS lock_notification_automation_plans ON public.notification_automation_plans;
-CREATE TRIGGER lock_notification_automation_plans
-  BEFORE INSERT OR UPDATE OR DELETE
-  ON public.notification_automation_plans
-  FOR EACH STATEMENT
-  EXECUTE FUNCTION private.lock_notification_automation_configuration();
-
-DROP TRIGGER IF EXISTS lock_notification_automation_plan_members ON public.notification_automation_plan_members;
-CREATE TRIGGER lock_notification_automation_plan_members
-  BEFORE INSERT OR UPDATE OR DELETE
-  ON public.notification_automation_plan_members
-  FOR EACH STATEMENT
-  EXECUTE FUNCTION private.lock_notification_automation_configuration();
 
 CREATE OR REPLACE FUNCTION private.snapshot_notification_automation_execution_plan()
 RETURNS trigger
@@ -51,11 +27,15 @@ SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
 BEGIN
-  IF NEW.plan_id IS NULL AND NEW.task_id IS NOT NULL THEN
+  IF NEW.task_id IS NOT NULL THEN
     SELECT task.plan_id
     INTO NEW.plan_id
     FROM public.notification_automation_tasks AS task
     WHERE task.id = NEW.task_id;
+  ELSIF TG_OP = 'INSERT' THEN
+    NEW.plan_id := NULL;
+  ELSIF OLD.task_id IS NOT NULL AND NEW.task_id IS NULL THEN
+    NEW.plan_id := OLD.plan_id;
   END IF;
 
   RETURN NEW;
@@ -136,6 +116,8 @@ DECLARE
   v_user_ids uuid[] := COALESCE(p_user_ids, ARRAY[]::uuid[]);
   v_added_user_ids uuid[];
 BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+
   SELECT context.admin_id, context.admin_role
   INTO v_admin_id, v_admin_role
   FROM private.get_financial_admin_context(p_admin_session_token) AS context;
@@ -255,6 +237,8 @@ DECLARE
   v_task public.notification_automation_tasks%ROWTYPE;
   v_current_plan_id uuid;
 BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+
   SELECT context.admin_id, context.admin_role
   INTO v_admin_id, v_admin_role
   FROM private.get_financial_admin_context(p_admin_session_token) AS context;
@@ -349,6 +333,8 @@ DECLARE
   v_task public.notification_automation_tasks%ROWTYPE;
   v_password_hash text;
 BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+
   SELECT context.admin_id, context.admin_role
   INTO v_admin_id, v_admin_role
   FROM private.get_financial_admin_context(p_admin_session_token) AS context;
@@ -484,7 +470,584 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION private.lock_notification_automation_configuration() FROM PUBLIC, anon, authenticated;
+CREATE OR REPLACE FUNCTION public.save_notification_automation_plan(
+  p_admin_session_token uuid,
+  p_owner_admin_id uuid,
+  p_plan_id uuid,
+  p_name text,
+  p_description text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+DECLARE
+  v_admin_id uuid;
+  v_admin_role text;
+  v_owner_admin_id uuid;
+  v_plan public.notification_automation_plans%ROWTYPE;
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+
+  SELECT context.admin_id, context.admin_role
+  INTO v_admin_id, v_admin_role
+  FROM private.get_financial_admin_context(p_admin_session_token) AS context;
+
+  v_owner_admin_id := private.resolve_notification_automation_owner(
+    v_admin_id,
+    v_admin_role,
+    p_owner_admin_id
+  );
+
+  IF char_length(trim(COALESCE(p_name, ''))) NOT BETWEEN 1 AND 120 THEN
+    RAISE EXCEPTION 'Plan name must contain between 1 and 120 characters.';
+  END IF;
+
+  IF p_plan_id IS NULL THEN
+    INSERT INTO public.notification_automation_plans (
+      owner_admin_id,
+      name,
+      description
+    ) VALUES (
+      v_owner_admin_id,
+      trim(p_name),
+      COALESCE(trim(p_description), '')
+    )
+    RETURNING * INTO v_plan;
+  ELSE
+    UPDATE public.notification_automation_plans
+    SET name = trim(p_name),
+        description = COALESCE(trim(p_description), ''),
+        updated_at = clock_timestamp()
+    WHERE id = p_plan_id
+      AND owner_admin_id = v_owner_admin_id
+    RETURNING * INTO v_plan;
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Automation plan was not found or cannot be edited.';
+    END IF;
+  END IF;
+
+  RETURN jsonb_build_object('success', true, 'plan', to_jsonb(v_plan));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.set_notification_automation_plan_status(
+  p_admin_session_token uuid,
+  p_plan_id uuid,
+  p_status text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+DECLARE
+  v_admin_id uuid;
+  v_admin_role text;
+  v_plan public.notification_automation_plans%ROWTYPE;
+  v_previous_status text;
+  v_task public.notification_automation_tasks%ROWTYPE;
+  v_user_id uuid;
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+
+  SELECT context.admin_id, context.admin_role
+  INTO v_admin_id, v_admin_role
+  FROM private.get_financial_admin_context(p_admin_session_token) AS context;
+
+  IF p_status NOT IN ('active', 'paused', 'archived') THEN
+    RAISE EXCEPTION 'Unsupported automation plan status.';
+  END IF;
+
+  SELECT plan.*
+  INTO v_plan
+  FROM public.notification_automation_plans AS plan
+  WHERE plan.id = p_plan_id
+    AND (
+      plan.owner_admin_id = v_admin_id
+      OR v_admin_role = 'super_admin'
+    )
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Automation plan was not found or cannot be changed.';
+  END IF;
+
+  PERFORM private.resolve_notification_automation_owner(
+    v_admin_id,
+    v_admin_role,
+    v_plan.owner_admin_id
+  );
+
+  v_previous_status := v_plan.status;
+
+  UPDATE public.notification_automation_plans
+  SET status = p_status,
+      updated_at = clock_timestamp()
+  WHERE id = v_plan.id
+  RETURNING * INTO v_plan;
+
+  IF p_status = 'active' AND v_previous_status <> 'active' THEN
+    FOR v_task IN
+      SELECT task.*
+      FROM public.notification_automation_tasks AS task
+      WHERE task.plan_id = v_plan.id
+        AND task.status = 'active'
+        AND (task.starts_at IS NULL OR task.starts_at <= clock_timestamp())
+    LOOP
+      FOR v_user_id IN
+        SELECT employee.id
+        FROM public.users AS employee
+        WHERE employee.is_active = true
+          AND private.automation_task_applies_to_user(v_task, employee.id)
+      LOOP
+        PERFORM private.capture_automation_baseline(v_task, v_user_id);
+      END LOOP;
+    END LOOP;
+  END IF;
+
+  RETURN jsonb_build_object('success', true, 'plan', to_jsonb(v_plan));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.save_notification_automation_task_v2(
+  p_admin_session_token uuid,
+  p_owner_admin_id uuid,
+  p_plan_id uuid,
+  p_task_id uuid,
+  p_name text,
+  p_description text,
+  p_trigger_type text,
+  p_trigger_mode text,
+  p_threshold_value numeric,
+  p_minimum_daily_orders integer,
+  p_minimum_daily_work_minutes integer,
+  p_recipient_scope text,
+  p_recipient_ids uuid[],
+  p_title_template text,
+  p_content_template text,
+  p_delivery_mode text,
+  p_priority text,
+  p_reward_enabled boolean,
+  p_reward_amount numeric,
+  p_starts_at timestamptz,
+  p_ends_at timestamptz
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+DECLARE
+  v_admin_id uuid;
+  v_admin_role text;
+  v_owner_admin_id uuid;
+  v_owner_role text;
+  v_message_type text;
+  v_task public.notification_automation_tasks%ROWTYPE;
+  v_user_id uuid;
+  v_recipient_ids uuid[] := COALESCE(p_recipient_ids, ARRAY[]::uuid[]);
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+
+  SELECT context.admin_id, context.admin_role
+  INTO v_admin_id, v_admin_role
+  FROM private.get_financial_admin_context(p_admin_session_token) AS context;
+
+  v_owner_admin_id := private.resolve_notification_automation_owner(
+    v_admin_id,
+    v_admin_role,
+    p_owner_admin_id
+  );
+
+  SELECT owner.role
+  INTO v_owner_role
+  FROM public.admins AS owner
+  WHERE owner.id = v_owner_admin_id;
+
+  IF p_trigger_type NOT IN ('total_orders', 'daily_orders', 'work_days', 'commission_amount', 'consecutive_work_days', 'first_login') THEN
+    RAISE EXCEPTION 'Unsupported automation trigger.';
+  END IF;
+  IF p_trigger_mode NOT IN ('reach_once', 'recurring') THEN
+    RAISE EXCEPTION 'Unsupported automation trigger mode.';
+  END IF;
+  IF p_trigger_type = 'first_login'
+    AND (p_trigger_mode <> 'reach_once' OR p_threshold_value IS DISTINCT FROM 1) THEN
+    RAISE EXCEPTION 'First-login automation only supports a single reach-once threshold.';
+  END IF;
+  IF p_threshold_value IS NULL
+    OR p_threshold_value <= 0
+    OR p_threshold_value > 1000000000000
+    OR p_threshold_value::text IN ('NaN', 'Infinity', '-Infinity')
+    OR (p_trigger_type <> 'commission_amount' AND p_threshold_value <> trunc(p_threshold_value))
+    OR (p_trigger_type = 'commission_amount' AND p_threshold_value < 0.01) THEN
+    RAISE EXCEPTION 'Trigger threshold is outside the supported range.';
+  END IF;
+  IF p_trigger_type IN ('work_days', 'consecutive_work_days')
+    AND COALESCE(p_minimum_daily_orders, 0) <= 0 THEN
+    RAISE EXCEPTION 'A minimum daily order count is required.';
+  END IF;
+  IF COALESCE(p_reward_enabled, false)
+    AND (
+      p_reward_amount IS NULL
+      OR p_reward_amount <= 0
+      OR p_reward_amount::text IN ('NaN', 'Infinity', '-Infinity')
+    ) THEN
+    RAISE EXCEPTION 'Reward amount must be a finite positive number.';
+  END IF;
+  IF p_recipient_scope NOT IN ('all_managed', 'selected') THEN
+    RAISE EXCEPTION 'Unsupported recipient scope.';
+  END IF;
+  IF p_delivery_mode NOT IN ('realtime_only', 'login_only', 'realtime_with_login_fallback') THEN
+    RAISE EXCEPTION 'Unsupported notification delivery mode.';
+  END IF;
+  IF p_priority NOT IN ('low', 'normal', 'high', 'urgent') THEN
+    RAISE EXCEPTION 'Unsupported notification priority.';
+  END IF;
+
+  v_message_type := CASE p_delivery_mode
+    WHEN 'realtime_only' THEN 'realtime'
+    ELSE 'login_popup'
+  END;
+
+  IF p_plan_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1
+    FROM public.notification_automation_plans AS plan
+    WHERE plan.id = p_plan_id
+      AND plan.owner_admin_id = v_owner_admin_id
+      AND plan.status <> 'archived'
+  ) THEN
+    RAISE EXCEPTION 'The selected automation plan is not available.';
+  END IF;
+
+  IF p_task_id IS NULL AND p_plan_id IS NULL THEN
+    RAISE EXCEPTION 'New automation tasks must belong to a plan.';
+  END IF;
+
+  IF p_task_id IS NOT NULL THEN
+    SELECT task.*
+    INTO v_task
+    FROM public.notification_automation_tasks AS task
+    WHERE task.id = p_task_id
+      AND task.owner_admin_id = v_owner_admin_id
+      AND task.is_shared_template = false
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Automation task was not found or cannot be edited.';
+    END IF;
+
+    IF v_task.plan_id IS NULL AND p_plan_id IS NOT NULL THEN
+      RAISE EXCEPTION 'Legacy ungrouped tasks cannot be moved into a plan automatically.';
+    END IF;
+    IF v_task.plan_id IS NOT NULL AND p_plan_id IS DISTINCT FROM v_task.plan_id THEN
+      RAISE EXCEPTION 'Move tasks between plans with an explicit migration workflow.';
+    END IF;
+  END IF;
+
+  IF p_plan_id IS NULL
+    AND p_recipient_scope = 'selected'
+    AND cardinality(v_recipient_ids) = 0 THEN
+    RAISE EXCEPTION 'Select at least one employee for the legacy task.';
+  END IF;
+
+  IF p_task_id IS NULL THEN
+    INSERT INTO public.notification_automation_tasks (
+      owner_admin_id,
+      plan_id,
+      name,
+      description,
+      trigger_type,
+      trigger_mode,
+      threshold_value,
+      minimum_daily_orders,
+      minimum_daily_work_minutes,
+      recipient_scope,
+      title_template,
+      content_template,
+      message_type,
+      delivery_mode,
+      priority,
+      reward_enabled,
+      reward_amount,
+      is_shared_template,
+      starts_at,
+      ends_at
+    ) VALUES (
+      v_owner_admin_id,
+      p_plan_id,
+      trim(p_name),
+      COALESCE(trim(p_description), ''),
+      p_trigger_type,
+      p_trigger_mode,
+      p_threshold_value,
+      p_minimum_daily_orders,
+      p_minimum_daily_work_minutes,
+      p_recipient_scope,
+      trim(p_title_template),
+      p_content_template,
+      v_message_type,
+      p_delivery_mode,
+      p_priority,
+      COALESCE(p_reward_enabled, false),
+      CASE WHEN p_reward_enabled THEN p_reward_amount ELSE NULL END,
+      false,
+      p_starts_at,
+      p_ends_at
+    )
+    RETURNING * INTO v_task;
+  ELSE
+    UPDATE public.notification_automation_tasks
+    SET name = trim(p_name),
+        description = COALESCE(trim(p_description), ''),
+        trigger_type = p_trigger_type,
+        trigger_mode = p_trigger_mode,
+        threshold_value = p_threshold_value,
+        minimum_daily_orders = p_minimum_daily_orders,
+        minimum_daily_work_minutes = p_minimum_daily_work_minutes,
+        recipient_scope = p_recipient_scope,
+        title_template = trim(p_title_template),
+        content_template = p_content_template,
+        message_type = v_message_type,
+        delivery_mode = p_delivery_mode,
+        priority = p_priority,
+        reward_enabled = COALESCE(p_reward_enabled, false),
+        reward_amount = CASE WHEN p_reward_enabled THEN p_reward_amount ELSE NULL END,
+        starts_at = p_starts_at,
+        ends_at = p_ends_at,
+        status = 'draft',
+        activated_at = NULL,
+        version = version + 1,
+        updated_at = clock_timestamp()
+    WHERE id = v_task.id
+    RETURNING * INTO v_task;
+
+    DELETE FROM public.notification_automation_task_recipients
+    WHERE task_id = v_task.id;
+
+    DELETE FROM public.notification_automation_progress
+    WHERE task_id = v_task.id;
+  END IF;
+
+  IF v_task.plan_id IS NULL AND p_recipient_scope = 'selected' THEN
+    FOREACH v_user_id IN ARRAY v_recipient_ids
+    LOOP
+      IF NOT private.admin_can_manage_automation_user(
+        v_owner_admin_id,
+        v_owner_role,
+        v_user_id
+      ) THEN
+        RAISE EXCEPTION 'An employee is outside the task administrator scope.';
+      END IF;
+
+      INSERT INTO public.notification_automation_task_recipients(task_id, user_id)
+      VALUES (v_task.id, v_user_id);
+    END LOOP;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'task_id', v_task.id,
+    'plan_id', v_task.plan_id,
+    'version', v_task.version,
+    'status', v_task.status,
+    'delivery_mode', v_task.delivery_mode
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.set_notification_automation_task_status_v2(
+  p_admin_session_token uuid,
+  p_task_id uuid,
+  p_status text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+DECLARE
+  v_admin_id uuid;
+  v_admin_role text;
+  v_task public.notification_automation_tasks%ROWTYPE;
+  v_user_id uuid;
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+
+  SELECT context.admin_id, context.admin_role
+  INTO v_admin_id, v_admin_role
+  FROM private.get_financial_admin_context(p_admin_session_token) AS context;
+
+  IF p_status NOT IN ('draft', 'active', 'paused', 'archived') THEN
+    RAISE EXCEPTION 'Unsupported task status.';
+  END IF;
+
+  SELECT task.*
+  INTO v_task
+  FROM public.notification_automation_tasks AS task
+  WHERE task.id = p_task_id
+    AND task.is_shared_template = false
+    AND (
+      task.owner_admin_id = v_admin_id
+      OR v_admin_role = 'super_admin'
+    )
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Automation task was not found or cannot be changed.';
+  END IF;
+
+  PERFORM private.resolve_notification_automation_owner(
+    v_admin_id,
+    v_admin_role,
+    v_task.owner_admin_id
+  );
+
+  IF p_status = 'active'
+    AND v_task.plan_id IS NOT NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.notification_automation_plans AS plan
+      WHERE plan.id = v_task.plan_id
+        AND plan.status = 'active'
+    ) THEN
+    RAISE EXCEPTION 'Activate the automation plan before activating this task.';
+  END IF;
+
+  IF p_status = 'active' AND v_task.status <> 'active' THEN
+    UPDATE public.notification_automation_tasks
+    SET status = 'active',
+        activated_at = clock_timestamp(),
+        updated_at = clock_timestamp()
+    WHERE id = v_task.id
+    RETURNING * INTO v_task;
+
+    IF v_task.starts_at IS NULL OR v_task.starts_at <= clock_timestamp() THEN
+      FOR v_user_id IN
+        SELECT employee.id
+        FROM public.users AS employee
+        WHERE employee.is_active = true
+          AND private.automation_task_applies_to_user(v_task, employee.id)
+      LOOP
+        PERFORM private.capture_automation_baseline(v_task, v_user_id);
+      END LOOP;
+    END IF;
+  ELSE
+    UPDATE public.notification_automation_tasks
+    SET status = p_status,
+        updated_at = clock_timestamp()
+    WHERE id = v_task.id
+    RETURNING * INTO v_task;
+  END IF;
+
+  RETURN jsonb_build_object('success', true, 'status', v_task.status);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.delete_notification_automation_task(
+  p_admin_session_token uuid,
+  p_task_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+DECLARE
+  v_admin_id uuid;
+  v_admin_role text;
+  v_owner_admin_id uuid;
+  v_owner_role text;
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+
+  SELECT context.admin_id, context.admin_role
+  INTO v_admin_id, v_admin_role
+  FROM private.get_financial_admin_context(p_admin_session_token) AS context;
+
+  SELECT task.owner_admin_id, owner.role
+  INTO v_owner_admin_id, v_owner_role
+  FROM public.notification_automation_tasks AS task
+  JOIN public.admins AS owner ON owner.id = task.owner_admin_id
+  WHERE task.id = p_task_id
+    AND (
+      task.owner_admin_id = v_admin_id
+      OR v_admin_role = 'super_admin'
+    )
+  FOR UPDATE OF task;
+
+  IF NOT FOUND OR v_owner_role = 'emergency_admin' THEN
+    RAISE EXCEPTION 'Automation task was not found or cannot be deleted.';
+  END IF;
+
+  DELETE FROM public.notification_automation_tasks
+  WHERE id = p_task_id;
+
+  RETURN jsonb_build_object('success', true, 'task_id', p_task_id);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_update_admin_account(
+  p_admin_session_token uuid,
+  p_target_admin_id uuid,
+  p_updates jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+DECLARE
+  v_admin_id uuid;
+  v_admin_role text;
+  v_target_role text;
+  v_admin public.admins%ROWTYPE;
+BEGIN
+  IF p_updates ? 'is_active' THEN
+    PERFORM private.acquire_notification_automation_configuration_lock();
+  END IF;
+
+  SELECT context.admin_id, context.admin_role
+  INTO v_admin_id, v_admin_role
+  FROM private.get_financial_admin_context(p_admin_session_token) AS context;
+
+  SELECT role INTO v_target_role
+  FROM public.admins
+  WHERE id = p_target_admin_id;
+
+  IF v_target_role IS NULL OR (
+    p_target_admin_id <> v_admin_id
+    AND NOT (v_admin_role = 'super_admin' AND v_target_role = 'secondary_admin')
+  ) THEN
+    RAISE EXCEPTION 'You do not have permission to update this administrator.';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM jsonb_object_keys(p_updates) AS key
+    WHERE key NOT IN ('username', 'is_active', 'is_pinned')
+  ) THEN
+    RAISE EXCEPTION 'The administrator update contains a protected field.';
+  END IF;
+  IF p_updates ? 'is_active' AND p_target_admin_id = v_admin_id THEN
+    RAISE EXCEPTION 'Administrators cannot deactivate their own account.';
+  END IF;
+
+  UPDATE public.admins
+  SET username = CASE WHEN p_updates ? 'username' THEN trim(p_updates->>'username') ELSE username END,
+      is_active = CASE WHEN p_updates ? 'is_active' THEN (p_updates->>'is_active')::boolean ELSE is_active END,
+      is_pinned = CASE WHEN p_updates ? 'is_pinned' THEN (p_updates->>'is_pinned')::boolean ELSE is_pinned END,
+      updated_at = now()
+  WHERE id = p_target_admin_id
+  RETURNING * INTO v_admin;
+
+  RETURN to_jsonb(v_admin) - 'password_hash';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.acquire_notification_automation_configuration_lock() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.snapshot_notification_automation_execution_plan() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.capture_notification_automation_assignment_baseline(public.notification_automation_tasks, uuid, timestamptz) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.get_notification_automation_executions_v2(uuid, uuid, uuid, boolean) FROM PUBLIC;

@@ -3016,6 +3016,15 @@ export interface Database {
         Args: { p_admin_session_token: string };
         Returns: Record<string, unknown>;
       };
+      get_notification_automation_executions_v2: {
+        Args: {
+          p_admin_session_token: string;
+          p_owner_admin_id: string;
+          p_plan_id?: string | null;
+          p_all_plans?: boolean;
+        };
+        Returns: unknown[];
+      };
       save_notification_automation_plan: {
         Args: {
           p_admin_session_token: string;

@@ -184,6 +184,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [automationAssignmentsByEmployee, setAutomationAssignmentsByEmployee] = useState<Map<string, NotificationAutomationPlanAssignment>>(new Map());
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithAdmin | null>(null);
   const [editingAutomationPlanId, setEditingAutomationPlanId] = useState('');
+  const [editingAutomationPlanTouched, setEditingAutomationPlanTouched] = useState(false);
+  const editingEmployeeInitialRef = useRef<{ username: string; employeeId: string; remarks: string; planId: string } | null>(null);
   const [savingEmployeeEdit, setSavingEmployeeEdit] = useState(false);
   const [editEmployeeError, setEditEmployeeError] = useState<string | null>(null);
   const [editingRemarksOnly, setEditingRemarksOnly] = useState<EmployeeWithAdmin | null>(null);
@@ -871,18 +873,23 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         }),
       ]);
       if (employeeSnapshotResult.error) throw employeeSnapshotResult.error;
-      if (planAssignmentResult.error) throw planAssignmentResult.error;
+      if (planAssignmentResult.error && isFinancialAdminSessionError(planAssignmentResult.error)) throw planAssignmentResult.error;
 
       const snapshot = employeeSnapshotResult.data;
-      const planAssignmentSnapshot = planAssignmentResult.data as {
+      const planAssignmentSnapshot = planAssignmentResult.error ? null : planAssignmentResult.data as {
         plans?: NotificationAutomationPlan[];
         assignments?: NotificationAutomationPlanAssignment[];
       } | null;
+      const hasValidPlanAssignmentSnapshot = Boolean(
+        planAssignmentSnapshot
+        && Array.isArray(planAssignmentSnapshot.plans)
+        && Array.isArray(planAssignmentSnapshot.assignments)
+      );
       if (!snapshot || !Array.isArray(snapshot.admins) || !Array.isArray(snapshot.employees)) {
         throw new Error('Employee management snapshot response was invalid.');
       }
-      if (!planAssignmentSnapshot || !Array.isArray(planAssignmentSnapshot.plans) || !Array.isArray(planAssignmentSnapshot.assignments)) {
-        throw new Error('Notification automation plan assignment response was invalid.');
+      if (planAssignmentResult.error) {
+        console.error('Error loading automation plan assignments:', formatSupabaseError(planAssignmentResult.error));
       }
 
       const adminMap = new Map(snapshot.admins.map(adminInfo => [adminInfo.id, adminInfo]));
@@ -955,14 +962,18 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         return false;
       }
 
-      const nextAssignmentsByEmployee = new Map<string, NotificationAutomationPlanAssignment>(
-        planAssignmentSnapshot.assignments.map(assignment => [assignment.user_id, assignment]),
-      );
+      const nextAssignmentsByEmployee = hasValidPlanAssignmentSnapshot
+        ? new Map<string, NotificationAutomationPlanAssignment>(
+            planAssignmentSnapshot!.assignments!.map(assignment => [assignment.user_id, assignment]),
+          )
+        : null;
 
       realtimeChangeGenerationRef.current += 1;
       setEmployeeGroups(groupsArray);
-      setAutomationPlans(planAssignmentSnapshot.plans);
-      setAutomationAssignmentsByEmployee(nextAssignmentsByEmployee);
+      if (hasValidPlanAssignmentSnapshot) {
+        setAutomationPlans(planAssignmentSnapshot!.plans!);
+        setAutomationAssignmentsByEmployee(nextAssignmentsByEmployee!);
+      }
       setAdminPinOverrides(new Map());
       setLoadError(null);
       setLoading(false);
@@ -1257,15 +1268,33 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   };
 
   const openEmployeeEditor = useCallback((employee: EmployeeWithAdmin) => {
+    const planId = automationAssignmentsByEmployee.get(employee.id)?.plan_id || '';
+    editingEmployeeInitialRef.current = {
+      username: employee.username,
+      employeeId: employee.employee_id,
+      remarks: employee.remarks || '',
+      planId,
+    };
     setEditingEmployee(employee);
-    setEditingAutomationPlanId(automationAssignmentsByEmployee.get(employee.id)?.plan_id || '');
+    setEditingAutomationPlanId(planId);
+    setEditingAutomationPlanTouched(false);
     setEditEmployeeError(null);
   }, [automationAssignmentsByEmployee]);
 
   const closeEmployeeEditor = () => {
     if (savingEmployeeEdit) return;
+    const initial = editingEmployeeInitialRef.current;
+    const dirty = Boolean(editingEmployee && initial && (
+      editingEmployee.username !== initial.username
+      || editingEmployee.employee_id !== initial.employeeId
+      || (editingEmployee.remarks || '') !== initial.remarks
+      || editingAutomationPlanId !== initial.planId
+    ));
+    if (dirty && !window.confirm('員工資料或自動化方案尚未儲存，確定要放棄變更嗎？')) return;
     setEditingEmployee(null);
     setEditingAutomationPlanId('');
+    setEditingAutomationPlanTouched(false);
+    editingEmployeeInitialRef.current = null;
     setEditEmployeeError(null);
   };
 
@@ -1280,8 +1309,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     }
 
     const currentAssignment = automationAssignmentsByEmployee.get(editingEmployee.id);
+    const initialPlanId = editingEmployeeInitialRef.current?.planId || null;
+    const livePlanId = currentAssignment?.plan_id || null;
     const nextPlanId = editingAutomationPlanId || null;
-    const assignmentChanged = (currentAssignment?.plan_id || null) !== nextPlanId;
+    const assignmentChanged = editingAutomationPlanTouched && initialPlanId !== nextPlanId;
+    if (editingAutomationPlanTouched && livePlanId !== initialPlanId && livePlanId !== nextPlanId) {
+      setEditEmployeeError('此員工的自動化方案已被其他管理員更新，請關閉後重新開啟最新資料再修改。');
+      return;
+    }
     const activeOwnerPlans = automationPlans.filter(plan => (
       plan.status === 'active' && plan.owner_admin_id === editingEmployee.created_by
     ));
@@ -1326,6 +1361,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
       setEditingEmployee(null);
       setEditingAutomationPlanId('');
+      setEditingAutomationPlanTouched(false);
+      editingEmployeeInitialRef.current = null;
       setEditEmployeeError(null);
       setNotification({
         show: true,
@@ -3987,7 +4024,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     <select
                       id="edit-employee-automation-plan"
                       value={editingAutomationPlanId}
-                      onChange={(event) => setEditingAutomationPlanId(event.target.value)}
+                      onChange={(event) => {
+                        setEditingAutomationPlanId(event.target.value);
+                        setEditingAutomationPlanTouched(true);
+                      }}
                       disabled={savingEmployeeEdit}
                       className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                     >

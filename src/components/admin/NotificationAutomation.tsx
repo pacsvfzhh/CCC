@@ -401,6 +401,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [taskStatusFilter, setTaskStatusFilter] = useState<'all' | TaskStatus>('all');
   const [taskTriggerFilter, setTaskTriggerFilter] = useState<'all' | TriggerType>('all');
   const [executionScope, setExecutionScope] = useState<'selected' | 'all'>('selected');
+  const [executionsLoading, setExecutionsLoading] = useState(false);
+  const [executionRefreshKey, setExecutionRefreshKey] = useState(0);
   const [editorOpen, setEditorOpen] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
   const [form, setForm] = useState<TaskForm>(createDefaultForm());
@@ -424,6 +426,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [pendingMemberIds, setPendingMemberIds] = useState<string[]>([]);
   const loadRef = useRef<((ownerAdminId?: string) => Promise<void>) | null>(null);
   const dashboardRequestIdRef = useRef(0);
+  const executionRequestIdRef = useRef(0);
   const editorInitialSnapshotRef = useRef('');
   const planInitialSnapshotRef = useRef('');
   const memberInitialSnapshotRef = useRef('');
@@ -457,7 +460,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         tasks: Array.isArray(next.tasks) ? next.tasks : [],
         executions: Array.isArray(next.executions) ? next.executions : [],
       };
-      setDashboard(normalized);
+      setDashboard(previous => ({
+        ...normalized,
+        executions: previous.selected_owner_id === normalized.selected_owner_id ? previous.executions : [],
+      }));
+      setSelectedAdminId(normalized.selected_owner_id);
       const storedSelection = window.localStorage.getItem(planSelectionStorageKey(normalized.selected_owner_id));
       const validStoredSelection = storedSelection === UNGROUPED_PLAN_ID
         || normalized.plans.some(plan => plan.id === storedSelection);
@@ -467,6 +474,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
           || normalized.plans.find(plan => plan.status === 'paused')?.id
           || UNGROUPED_PLAN_ID;
       setSelectedPlanId(nextSelection);
+      setExecutionRefreshKey(previous => previous + 1);
       window.localStorage.setItem(planSelectionStorageKey(normalized.selected_owner_id), nextSelection);
     } catch {
       if (requestId === dashboardRequestIdRef.current) {
@@ -507,6 +515,38 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     setForm(previous => ({ ...previous, titleTemplate: content.title, contentTemplate: content.content }));
   }, [form.triggerType, form.rewardEnabled, form.rewardAmount, contentCustomized, readOnly]);
 
+  useEffect(() => {
+    if (loading) return;
+    const requestId = ++executionRequestIdRef.current;
+    const ownerId = dashboard.selected_owner_id;
+    const planId = executionScope === 'all' || selectedPlanId === UNGROUPED_PLAN_ID ? null : selectedPlanId;
+    setExecutionsLoading(true);
+
+    const loadExecutions = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_notification_automation_executions_v2', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_owner_admin_id: ownerId,
+          p_plan_id: planId,
+          p_all_plans: executionScope === 'all',
+        });
+        if (requestId !== executionRequestIdRef.current) return;
+        if (error) throw error;
+        setDashboard(previous => previous.selected_owner_id === ownerId
+          ? { ...previous, executions: Array.isArray(data) ? data as unknown as AutomationExecution[] : [] }
+          : previous);
+      } catch {
+        if (requestId === executionRequestIdRef.current) {
+          showNotice('error', '無法載入執行記錄，請稍後再試。');
+        }
+      } finally {
+        if (requestId === executionRequestIdRef.current) setExecutionsLoading(false);
+      }
+    };
+
+    void loadExecutions();
+  }, [dashboard.selected_owner_id, executionRefreshKey, executionScope, loading, selectedPlanId]);
+
   const selectedAdmin = dashboard.admin_groups.find(group => group.id === selectedAdminId);
   const selectedOwnerName = selectedAdmin?.username || (dashboard.selected_owner_id === admin.id ? admin.username : '管理員分組');
   const selectedPlan = dashboard.plans.find(plan => plan.id === selectedPlanId) || null;
@@ -516,6 +556,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     if (dashboard.employees.length > 0) return dashboard.employees;
     return employees.filter(employee => employee.created_by === dashboard.selected_owner_id);
   }, [dashboard.employees, dashboard.selected_owner_id, employees]);
+  const legacyRecipientEmployees = useMemo(() => (
+    isSuperAdmin && dashboard.selected_owner_id === admin.id && form.planId === null
+      ? employees
+      : ownerEmployees
+  ), [admin.id, dashboard.selected_owner_id, employees, form.planId, isSuperAdmin, ownerEmployees]);
   const planById = useMemo(
     () => new Map(dashboard.plans.map(plan => [plan.id, plan])),
     [dashboard.plans],
@@ -571,12 +616,12 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       && (!query || plan.name.toLocaleLowerCase().includes(query) || plan.description.toLocaleLowerCase().includes(query)));
   }, [dashboard.plans, planSearch, planStatusFilter]);
   const selectedEmployees = useMemo(
-    () => ownerEmployees.filter(employee => form.recipientIds.includes(employee.id)),
-    [form.recipientIds, ownerEmployees],
+    () => legacyRecipientEmployees.filter(employee => form.recipientIds.includes(employee.id)),
+    [form.recipientIds, legacyRecipientEmployees],
   );
   const employeePickerResults = useMemo(() => {
     const query = employeePickerSearch.trim().toLocaleLowerCase();
-    return ownerEmployees.filter(employee => {
+    return legacyRecipientEmployees.filter(employee => {
       const matchesQuery = !query
         || employee.username.toLocaleLowerCase().includes(query)
         || employee.employee_id.toLocaleLowerCase().includes(query)
@@ -585,10 +630,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         || employee.is_active === (employeePickerStatusFilter === 'active');
       return matchesQuery && matchesStatus;
     });
-  }, [employeePickerSearch, employeePickerStatusFilter, ownerEmployees]);
+  }, [employeePickerSearch, employeePickerStatusFilter, legacyRecipientEmployees]);
   const pendingSelectedEmployees = useMemo(
-    () => ownerEmployees.filter(employee => pendingRecipientIds.includes(employee.id)),
-    [ownerEmployees, pendingRecipientIds],
+    () => legacyRecipientEmployees.filter(employee => pendingRecipientIds.includes(employee.id)),
+    [legacyRecipientEmployees, pendingRecipientIds],
   );
   const memberPickerResults = useMemo(() => {
     const query = memberPickerSearch.trim().toLocaleLowerCase();
@@ -624,8 +669,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   };
 
   const selectAdminGroup = (ownerAdminId: string) => {
-    if (ownerAdminId === selectedAdminId) return;
-    setSelectedAdminId(ownerAdminId);
+    if (ownerAdminId === dashboard.selected_owner_id || saving || deletingTaskId !== null) return;
     setRefreshing(true);
     setExecutionScope('selected');
     setTaskSearch('');
@@ -881,6 +925,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       showNotice('info', `方案目前為「${planStatusLabels[taskPlan.status]}」，請先恢復方案才能啟用任務。`);
       return;
     }
+    setSaving(true);
     try {
       const { error } = await supabase.rpc('set_notification_automation_task_status_v2', {
         p_admin_session_token: getAdminFinancialSessionToken(),
@@ -899,6 +944,8 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       await loadDashboard(dashboard.selected_owner_id);
     } catch {
       showNotice('error', '無法更新任務狀態，請稍後再試。');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -985,7 +1032,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   const planDialog = planModalOpen && createPortal(
     <div className="fixed inset-0 z-[210] flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm" onMouseDown={closePlanModal}>
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="plan-dialog-title" onMouseDown={event => event.stopPropagation()}>
+      <div className={`w-full max-w-lg overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl ${saving ? 'pointer-events-none' : ''}`} role="dialog" aria-modal="true" aria-labelledby="plan-dialog-title" onMouseDown={event => event.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-cyan-300/20 bg-gradient-to-r from-blue-950 to-cyan-950 px-5 py-4">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-200"><Settings2 className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300/60">{selectedOwnerName}</p><h2 id="plan-dialog-title" className="text-base font-black text-white">{editingPlan ? '編輯自動化方案' : '新增自動化方案'}</h2></div>
@@ -1006,7 +1053,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   const memberPickerDialog = memberPickerOpen && selectedPlan && createPortal(
     <div className="fixed inset-0 z-[215] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm" onMouseDown={closeMemberPicker}>
-      <div className="flex h-[min(820px,calc(100vh-24px))] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="member-picker-title" onMouseDown={event => event.stopPropagation()}>
+      <div className={`flex h-[min(820px,calc(100vh-24px))] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl ${saving ? 'pointer-events-none' : ''}`} role="dialog" aria-modal="true" aria-labelledby="member-picker-title" onMouseDown={event => event.stopPropagation()}>
         <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-cyan-300/20 bg-gradient-to-r from-blue-950 via-cyan-950 to-blue-950 px-4 py-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-200"><Users className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300/60">{selectedOwnerName} · {selectedPlan.name}</p><h2 id="member-picker-title" className="text-base font-black text-white">管理方案員工</h2></div>
@@ -1126,7 +1173,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
           </div>
           {readOnly ? <span className="rounded-lg border border-amber-300/25 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-200">封存方案僅供查看</span> : <button type="button" disabled={saving} onClick={() => void saveTask()} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-3 text-xs font-black text-white disabled:opacity-50">{saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}儲存任務草稿</button>}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-900 xl:overflow-hidden">
+        <div className={`min-h-0 flex-1 overflow-y-auto bg-slate-900 xl:overflow-hidden ${saving ? 'pointer-events-none opacity-75' : ''}`}>
           <div className="grid min-h-full grid-cols-1 xl:h-full xl:min-h-0 xl:grid-cols-2">
             <div className="min-h-0 space-y-3 border-slate-700 bg-slate-900/60 p-3 xl:overflow-y-auto xl:border-r">
               <NotificationDeliverySelector value={form.deliveryMode} onChange={deliveryMode => setForm(previous => ({ ...previous, deliveryMode }))} disabled={readOnly} embedded />
@@ -1164,7 +1211,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             <div className="flex min-h-[620px] flex-col border-slate-700 bg-slate-950/35 p-3 xl:min-h-0 xl:border-l">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2 border-l-2 border-cyan-400 pl-2.5"><FileText className="h-4 w-4 text-cyan-300" /><div><h3 className="text-sm font-black text-white">英文通知內容</h3><p className="text-[10px] text-slate-500">動態變數會在發送時替換</p></div></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setEmployeePreviewOpen(true)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-blue-300/35 bg-blue-500/15 px-2.5 text-[11px] font-bold text-blue-100"><Eye className="h-3.5 w-3.5" />員工端預覽</button><button type="button" onClick={() => setVariableHelpOpen(true)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 text-[11px] font-bold text-cyan-200"><Info className="h-3.5 w-3.5" />變數說明</button>{!readOnly && <button type="button" onClick={regenerateContent} className="h-8 rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 text-[11px] font-bold text-cyan-200">重新產生預設內容</button>}</div></div>
               <label className="shrink-0"><span className="mb-1.5 block text-xs font-semibold text-slate-400">通知標題</span><input disabled={readOnly} value={form.titleTemplate} onChange={event => { setContentCustomized(true); setForm(previous => ({ ...previous, titleTemplate: event.target.value })); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none disabled:bg-slate-200" /></label>
-              <div className="mt-3 flex min-h-[460px] flex-1 flex-col"><span className="mb-1.5 text-xs font-semibold text-slate-400">通知內容</span><div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-slate-300 bg-white [&>div]:flex [&>div]:h-full [&>div]:flex-col"><TiptapEditor content={form.contentTemplate} onChange={content => { setContentCustomized(true); setForm(previous => ({ ...previous, contentTemplate: content })); }} placeholder="Write your notification content here..." editable={!readOnly} adminId={admin.id} theme="light" enableQuickCopy /></div></div>
+              <div className="mt-3 flex min-h-[460px] flex-1 flex-col"><span className="mb-1.5 text-xs font-semibold text-slate-400">通知內容</span><div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-slate-300 bg-white [&>div]:flex [&>div]:h-full [&>div]:flex-col"><TiptapEditor content={form.contentTemplate} onChange={content => { setContentCustomized(true); setForm(previous => ({ ...previous, contentTemplate: content })); }} placeholder="Write your notification content here..." editable={!readOnly && !saving} adminId={admin.id} theme="light" enableQuickCopy /></div></div>
             </div>
           </div>
         </div>
@@ -1210,7 +1257,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               <div className="min-w-0"><h1 className="truncate text-lg font-black text-white sm:text-xl">通知自動化方案</h1><p className="truncate text-[10px] font-bold text-cyan-100/65">目前分組：{selectedOwnerName} · {currentSelectionName}</p></div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {isSuperAdmin ? <label className="relative"><span className="sr-only">管理員分組</span><select value={selectedAdminId} onChange={event => selectAdminGroup(event.target.value)} disabled={refreshing} className="h-9 min-w-[170px] appearance-none rounded-xl border border-sky-300/30 bg-slate-900 py-0 pl-3 pr-9 text-xs font-black text-sky-100 outline-none disabled:opacity-50"><option value={admin.id}>{admin.username}</option>{dashboard.admin_groups.filter(group => group.id !== admin.id).map(group => <option key={group.id} value={group.id}>{group.username}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sky-300" /></label> : <span className="inline-flex h-9 items-center rounded-xl border border-sky-300/20 bg-sky-500/10 px-3 text-xs font-black text-sky-100">{admin.username}</span>}
+              {isSuperAdmin ? <label className="relative"><span className="sr-only">管理員分組</span><select value={selectedAdminId} onChange={event => selectAdminGroup(event.target.value)} disabled={refreshing || saving || deletingTaskId !== null} className="h-9 min-w-[170px] appearance-none rounded-xl border border-sky-300/30 bg-slate-900 py-0 pl-3 pr-9 text-xs font-black text-sky-100 outline-none disabled:opacity-50"><option value={admin.id}>{admin.username}</option>{dashboard.admin_groups.filter(group => group.id !== admin.id).map(group => <option key={group.id} value={group.id}>{group.username}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sky-300" /></label> : <span className="inline-flex h-9 items-center rounded-xl border border-sky-300/20 bg-sky-500/10 px-3 text-xs font-black text-sky-100">{admin.username}</span>}
               <button type="button" onClick={() => { setRefreshing(true); void loadDashboard(dashboard.selected_owner_id); }} disabled={refreshing} className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-600 bg-slate-800 px-3 text-xs font-bold text-slate-200 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />刷新</button>
               <button type="button" onClick={() => openPlanModal()} className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-3 text-xs font-black text-white"><Plus className="h-4 w-4" />新增方案</button>
             </div>
@@ -1256,7 +1303,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 <div className="hidden lg:block"><table className="w-full table-fixed text-left text-xs"><thead className="sticky top-0 z-10 bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 text-white"><tr><th className="w-[26%] px-4 py-2 font-black">任務</th><th className="w-[21%] px-3 py-2 font-black">觸發條件</th><th className="w-[14%] px-3 py-2 font-black">適用範圍</th><th className="w-[9%] px-3 py-2 font-black">執行</th><th className="w-[13%] px-3 py-2 font-black">獎金</th><th className="w-[17%] px-4 py-2 text-right font-black">操作</th></tr></thead><tbody className="divide-y divide-slate-800">{filteredTasks.map(task => <tr key={task.id} className={`${task.status === 'active' ? 'bg-amber-950/25' : 'bg-slate-950/25'} transition-colors hover:bg-slate-800/65`}><td className="px-4 py-3"><div className="flex min-w-0 items-start gap-2.5"><span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${task.status === 'active' ? 'border-amber-300/30 bg-amber-500/15 text-amber-200' : 'border-slate-700 bg-slate-900 text-slate-500'}`}>{task.reward_enabled ? <Gift className="h-4 w-4" /> : <Bell className="h-4 w-4" />}</span><div className="min-w-0"><div className="flex min-w-0 items-center gap-2"><p className="truncate font-black text-white" title={task.name}>{task.name}</p><span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-black ${task.status === 'active' ? 'bg-emerald-500/10 text-emerald-300' : task.status === 'paused' ? 'bg-amber-500/10 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>{taskStatusLabels[task.status]}</span></div><p className="mt-1 truncate text-[10px] text-slate-500">{getNotificationDeliveryLabel(getTaskDeliveryMode(task))}</p></div></div></td><td className="px-3 py-3"><p className="truncate text-[10px] font-black text-cyan-300/80">{triggerLabels[task.trigger_type]}</p><p className="mt-1 truncate text-[11px] text-slate-400" title={summarizeTask(task, dashboard.currency)}>{summarizeTask(task, dashboard.currency)}</p></td><td className="px-3 py-3 text-[11px] font-bold text-slate-300">{task.recipient_scope === 'selected' ? task.plan_id ? `方案指定員工 · ${selectedPlan?.member_count || 0} 名` : `指定 ${task.recipient_ids?.length || 0} 名` : '所有員工'}</td><td className="px-3 py-3 font-black tabular-nums text-cyan-200">{task.execution_count || 0}</td><td className="px-3 py-3 text-[11px] font-black text-amber-200">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</td><td className="px-4 py-3">{renderTaskActions(task)}</td></tr>)}</tbody></table></div>
                 <div className="space-y-3 p-3 lg:hidden">{filteredTasks.map(task => <article key={task.id} className={`rounded-xl border p-3 ${task.status === 'active' ? 'border-amber-300/25 bg-amber-950/25' : 'border-slate-700 bg-slate-950/45'}`}><div className="flex items-start gap-3"><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${task.status === 'active' ? 'border-amber-300/30 bg-amber-500/15 text-amber-200' : 'border-slate-700 bg-slate-900 text-slate-500'}`}>{task.reward_enabled ? <Gift className="h-4 w-4" /> : <Bell className="h-4 w-4" />}</span><div className="min-w-0 flex-1"><div className="flex min-w-0 items-center gap-2"><h3 className="truncate text-sm font-black text-white">{task.name}</h3><span className="shrink-0 rounded-full bg-slate-800 px-2 py-0.5 text-[9px] font-black text-slate-300">{taskStatusLabels[task.status]}</span></div><p className="mt-1 text-[10px] font-bold text-cyan-300">{triggerLabels[task.trigger_type]} · {getNotificationDeliveryLabel(getTaskDeliveryMode(task))}</p></div></div><p className="mt-3 text-xs leading-5 text-slate-400">{summarizeTask(task, dashboard.currency)}</p><div className="mt-3 grid grid-cols-3 gap-2 text-center"><div className="rounded-lg bg-slate-900 px-2 py-2"><p className="text-[9px] text-slate-500">適用</p><p className="mt-0.5 truncate text-[10px] font-bold text-slate-200">{task.recipient_scope === 'selected' ? task.plan_id ? `方案 ${selectedPlan?.member_count || 0} 名` : `指定 ${task.recipient_ids?.length || 0} 名` : '所有員工'}</p></div><div className="rounded-lg bg-slate-900 px-2 py-2"><p className="text-[9px] text-slate-500">執行</p><p className="mt-0.5 text-xs font-black text-cyan-200">{task.execution_count || 0}</p></div><div className="rounded-lg bg-slate-900 px-2 py-2"><p className="text-[9px] text-slate-500">獎金</p><p className="mt-0.5 truncate text-[10px] font-black text-amber-200">{task.reward_enabled ? `${Number(task.reward_amount || 0).toFixed(2)} ${dashboard.currency}` : '無'}</p></div></div><div className="mt-3 border-t border-slate-700 pt-3">{renderTaskActions(task)}</div></article>)}</div>
               </>)}
-              {view === 'executions' && (filteredExecutions.length === 0 ? <div className="flex min-h-[320px] flex-col items-center justify-center px-6 py-12 text-center"><span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-400/20 bg-blue-500/10 text-cyan-300"><History className="h-6 w-6" /></span><p className="mt-3 text-sm font-black text-slate-200">尚無執行記錄</p><p className="mt-1 text-xs text-slate-500">任務成功觸發後，執行資料會顯示在這裡</p></div> : <><div className="hidden md:block"><table className="w-full table-fixed text-left text-xs"><thead className="sticky top-0 z-10 bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 text-white"><tr><th className="w-[24%] px-4 py-2 font-black">任務</th><th className="w-[16%] px-3 py-2 font-black">員工</th>{executionScope === 'all' && <th className="w-[16%] px-3 py-2 font-black">方案</th>}<th className="w-[10%] px-3 py-2 font-black">階段</th><th className="w-[11%] px-3 py-2 font-black">實際數值</th><th className="w-[12%] px-3 py-2 font-black">獎金</th><th className="w-[10%] px-3 py-2 font-black">狀態</th><th className="px-4 py-2 text-right font-black">執行時間</th></tr></thead><tbody className="divide-y divide-slate-800">{filteredExecutions.map(execution => <tr key={execution.id} className="bg-slate-950/20 text-slate-300 hover:bg-slate-800/60"><td className="truncate px-4 py-3 font-semibold text-white">{execution.task_name}</td><td className="truncate px-3 py-3">{execution.employee_username}</td>{executionScope === 'all' && <td className="truncate px-3 py-3 text-slate-400">{execution.plan_id ? planById.get(execution.plan_id)?.name || '已移除方案' : '未分組任務'}</td>}<td className="px-3 py-3">第 {execution.stage} 階段</td><td className="px-3 py-3">{Number(execution.actual_value).toLocaleString()}</td><td className="px-3 py-3 font-bold text-amber-300">{execution.reward_amount ? `${Number(execution.reward_amount).toFixed(2)} ${execution.reward_currency}` : '—'}</td><td className="px-3 py-3"><span className={`rounded-md px-2 py-1 font-bold ${execution.status === 'succeeded' ? 'bg-emerald-500/10 text-emerald-300' : execution.status === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-blue-500/10 text-blue-300'}`}>{execution.status === 'succeeded' ? '成功' : execution.status === 'failed' ? '失敗' : '處理中'}</span></td><td className="px-4 py-3 text-right text-[10px] text-slate-500">{formatDateTime(execution.executed_at)}</td></tr>)}</tbody></table></div><div className="space-y-3 p-3 md:hidden">{filteredExecutions.map(execution => <article key={execution.id} className="rounded-xl border border-slate-700 bg-slate-950/45 p-3"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><h3 className="truncate text-sm font-black text-white">{execution.task_name}</h3><p className="mt-1 truncate text-xs text-slate-400">{execution.employee_username}</p></div><span className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold ${execution.status === 'succeeded' ? 'bg-emerald-500/10 text-emerald-300' : execution.status === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-blue-500/10 text-blue-300'}`}>{execution.status === 'succeeded' ? '成功' : execution.status === 'failed' ? '失敗' : '處理中'}</span></div><div className="mt-3 grid grid-cols-3 gap-2 text-center"><div className="rounded-lg bg-slate-900 p-2"><p className="text-[9px] text-slate-500">階段</p><p className="mt-0.5 text-xs font-bold text-slate-200">{execution.stage}</p></div><div className="rounded-lg bg-slate-900 p-2"><p className="text-[9px] text-slate-500">實際數值</p><p className="mt-0.5 text-xs font-bold text-cyan-200">{Number(execution.actual_value).toLocaleString()}</p></div><div className="rounded-lg bg-slate-900 p-2"><p className="text-[9px] text-slate-500">獎金</p><p className="mt-0.5 truncate text-[10px] font-bold text-amber-200">{execution.reward_amount ? `${Number(execution.reward_amount).toFixed(2)} ${execution.reward_currency}` : '—'}</p></div></div><p className="mt-3 text-right text-[10px] text-slate-500">{formatDateTime(execution.executed_at)}</p></article>)}</div></>)}
+              {view === 'executions' && (executionsLoading ? <div className="flex min-h-[320px] items-center justify-center"><RefreshCw className="h-6 w-6 animate-spin text-cyan-300" /></div> : filteredExecutions.length === 0 ? <div className="flex min-h-[320px] flex-col items-center justify-center px-6 py-12 text-center"><span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-400/20 bg-blue-500/10 text-cyan-300"><History className="h-6 w-6" /></span><p className="mt-3 text-sm font-black text-slate-200">尚無執行記錄</p><p className="mt-1 text-xs text-slate-500">任務成功觸發後，執行資料會顯示在這裡</p></div> : <><div className="hidden md:block"><table className="w-full table-fixed text-left text-xs"><thead className="sticky top-0 z-10 bg-gradient-to-r from-blue-800 via-cyan-800 to-blue-900 text-white"><tr><th className="w-[24%] px-4 py-2 font-black">任務</th><th className="w-[16%] px-3 py-2 font-black">員工</th>{executionScope === 'all' && <th className="w-[16%] px-3 py-2 font-black">方案</th>}<th className="w-[10%] px-3 py-2 font-black">階段</th><th className="w-[11%] px-3 py-2 font-black">實際數值</th><th className="w-[12%] px-3 py-2 font-black">獎金</th><th className="w-[10%] px-3 py-2 font-black">狀態</th><th className="px-4 py-2 text-right font-black">執行時間</th></tr></thead><tbody className="divide-y divide-slate-800">{filteredExecutions.map(execution => <tr key={execution.id} className="bg-slate-950/20 text-slate-300 hover:bg-slate-800/60"><td className="truncate px-4 py-3 font-semibold text-white">{execution.task_name}</td><td className="truncate px-3 py-3">{execution.employee_username}</td>{executionScope === 'all' && <td className="truncate px-3 py-3 text-slate-400">{execution.plan_id ? planById.get(execution.plan_id)?.name || '已移除方案' : '未分組任務'}</td>}<td className="px-3 py-3">第 {execution.stage} 階段</td><td className="px-3 py-3">{Number(execution.actual_value).toLocaleString()}</td><td className="px-3 py-3 font-bold text-amber-300">{execution.reward_amount ? `${Number(execution.reward_amount).toFixed(2)} ${execution.reward_currency}` : '—'}</td><td className="px-3 py-3"><span className={`rounded-md px-2 py-1 font-bold ${execution.status === 'succeeded' ? 'bg-emerald-500/10 text-emerald-300' : execution.status === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-blue-500/10 text-blue-300'}`}>{execution.status === 'succeeded' ? '成功' : execution.status === 'failed' ? '失敗' : '處理中'}</span></td><td className="px-4 py-3 text-right text-[10px] text-slate-500">{formatDateTime(execution.executed_at)}</td></tr>)}</tbody></table></div><div className="space-y-3 p-3 md:hidden">{filteredExecutions.map(execution => <article key={execution.id} className="rounded-xl border border-slate-700 bg-slate-950/45 p-3"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><h3 className="truncate text-sm font-black text-white">{execution.task_name}</h3><p className="mt-1 truncate text-xs text-slate-400">{execution.employee_username}</p></div><span className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold ${execution.status === 'succeeded' ? 'bg-emerald-500/10 text-emerald-300' : execution.status === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-blue-500/10 text-blue-300'}`}>{execution.status === 'succeeded' ? '成功' : execution.status === 'failed' ? '失敗' : '處理中'}</span></div><div className="mt-3 grid grid-cols-3 gap-2 text-center"><div className="rounded-lg bg-slate-900 p-2"><p className="text-[9px] text-slate-500">階段</p><p className="mt-0.5 text-xs font-bold text-slate-200">{execution.stage}</p></div><div className="rounded-lg bg-slate-900 p-2"><p className="text-[9px] text-slate-500">實際數值</p><p className="mt-0.5 text-xs font-bold text-cyan-200">{Number(execution.actual_value).toLocaleString()}</p></div><div className="rounded-lg bg-slate-900 p-2"><p className="text-[9px] text-slate-500">獎金</p><p className="mt-0.5 truncate text-[10px] font-bold text-amber-200">{execution.reward_amount ? `${Number(execution.reward_amount).toFixed(2)} ${execution.reward_currency}` : '—'}</p></div></div><p className="mt-3 text-right text-[10px] text-slate-500">{formatDateTime(execution.executed_at)}</p></article>)}</div></>)}
             </div>
           </main>
         </div>
