@@ -1950,8 +1950,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             </div>
 
             {/* Search */}
-            {selectedGroupMessages.length > 0 && (
-              <div className="relative">
+            <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
                 <input type="text" value={sentMessagesSearchQuery} onChange={(e) => setSentMessagesSearchQuery(e.target.value)}
                   placeholder="Search employee account / ID..."
@@ -1962,12 +1961,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     <X className="w-3 h-3" />
                   </button>
                 )}
-              </div>
-            )}
+            </div>
 
             {/* Filter tabs */}
-            {selectedGroupMessages.length > 0 && (
-              <div className="space-y-1">
+            <div className="space-y-1">
                 <div className="flex items-center gap-1.5">
                   <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-slate-500">Message type</p>
                   <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
@@ -2023,8 +2020,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     })}
                   </div>
                 </div>
-              </div>
-            )}
+            </div>
           </div>
 
           {/* Message List */}
