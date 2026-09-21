@@ -381,6 +381,94 @@ function serializeMemberIds(memberIds: string[]) {
   return JSON.stringify([...memberIds].sort());
 }
 
+interface AutomationRuleSelectProps {
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  ariaLabel: string;
+  accent?: boolean;
+}
+
+function AutomationRuleSelect({ value, options, onChange, disabled = false, ariaLabel, accent = false }: AutomationRuleSelectProps) {
+  const [open, setOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ left: number; top: number; width: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const selectedLabel = options.find(option => option.value === value)?.label || value;
+
+  useEffect(() => {
+    if (!open) return;
+
+    const updatePosition = () => {
+      const button = buttonRef.current;
+      if (!button) return;
+      const rect = button.getBoundingClientRect();
+      const menuHeight = Math.min(options.length * 36 + 8, 280);
+      const top = window.innerHeight - rect.bottom >= menuHeight + 8
+        ? rect.bottom + 6
+        : Math.max(8, rect.top - menuHeight - 6);
+      setMenuPosition({
+        left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)),
+        top,
+        width: rect.width,
+      });
+    };
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!buttonRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+
+    updatePosition();
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [open, options.length]);
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        disabled={disabled}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen(previous => !previous)}
+        className={`flex h-9 w-full items-center justify-between gap-2 rounded-lg border px-3 text-left text-sm font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_4px_12px_rgba(2,6,23,0.18)] outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-300/25 disabled:opacity-60 ${accent ? 'border-cyan-300/40 bg-gradient-to-r from-cyan-950/95 to-blue-950/90 text-cyan-50 hover:border-cyan-200/60' : 'border-blue-300/25 bg-gradient-to-r from-slate-800/95 to-blue-950/75 text-slate-100 hover:border-blue-300/45'}`}
+      >
+        <span className="min-w-0 truncate">{selectedLabel}</span>
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-300/70 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && menuPosition && createPortal(
+        <div
+          ref={menuRef}
+          role="listbox"
+          aria-label={ariaLabel}
+          className="fixed z-[280] max-h-[280px] overflow-y-auto rounded-xl border border-cyan-300/25 bg-[linear-gradient(145deg,rgba(15,23,42,0.99),rgba(2,6,23,0.98))] p-1.5 shadow-[0_18px_45px_rgba(2,6,23,0.65),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl"
+          style={{ left: menuPosition.left, top: menuPosition.top, width: menuPosition.width }}
+        >
+          {options.map(option => {
+            const selected = option.value === value;
+            return <button key={option.value} type="button" role="option" aria-selected={selected} onClick={() => { onChange(option.value); setOpen(false); }} className={`flex h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 text-left text-xs font-bold transition-colors ${selected ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/15 text-cyan-50' : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'}`}><span className="truncate">{option.label}</span>{selected && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-cyan-300" />}</button>;
+          })}
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
 export default function NotificationAutomation({ admin, employees, onBack }: Props) {
   const { isDesktop } = useResponsive();
   const isSuperAdmin = admin.role === 'super_admin' || Boolean(admin.is_super_admin);
@@ -1280,25 +1368,25 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             <div className="min-h-0 space-y-3 border-slate-700 bg-slate-900/60 p-3 xl:overflow-y-auto xl:border-r">
               <NotificationDeliverySelector value={form.deliveryMode} onChange={deliveryMode => setForm(previous => ({ ...previous, deliveryMode }))} disabled={readOnly} embedded />
               <label className="block"><span className="mb-1.5 block text-xs font-semibold text-slate-400">任務名稱</span><input disabled={readOnly} value={form.name} onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} placeholder="例如：100 筆訂單鼓勵通知" className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 disabled:bg-slate-200" /></label>
-              <section className="relative isolate flex flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_38%),linear-gradient(145deg,rgba(15,23,42,0.98),rgba(2,6,23,0.9))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_32px_rgba(2,6,23,0.24)] sm:h-[220px]">
+              <section className="relative isolate flex flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_38%),linear-gradient(145deg,rgba(15,23,42,0.98),rgba(2,6,23,0.9))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_32px_rgba(2,6,23,0.24)] sm:h-[248px]">
                 <span className="pointer-events-none absolute -right-8 -top-12 h-32 w-32 rounded-full border border-cyan-300/10 bg-cyan-400/[0.04]" />
                 <span className="pointer-events-none absolute bottom-0 left-16 h-px w-48 bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent" />
                 <div className="relative z-10 mb-2 flex h-7 shrink-0 items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-200/25 bg-gradient-to-br from-cyan-400/20 to-blue-500/10 text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.08)]"><SlidersHorizontal className="h-3.5 w-3.5" /></span><div className="flex min-w-0 items-baseline gap-2"><h3 className="text-xs font-black text-cyan-50">觸發條件</h3><span className="truncate text-[8px] font-black uppercase tracking-[0.18em] text-cyan-300/45">Automation rule</span></div></div>
                   <span className="shrink-0 rounded-full border border-emerald-300/15 bg-emerald-400/[0.07] px-2 py-1 text-[8px] font-black tracking-wide text-emerald-200/75">即時規則</span>
                 </div>
-                <div className="relative z-10 grid gap-2.5 sm:h-[122px] sm:shrink-0 sm:grid-cols-3 sm:grid-rows-2">
-                  <label><span className="mb-1 block text-[10px] font-black tracking-wide text-cyan-100/60">條件類型</span><select disabled={readOnly} value={form.triggerType} onChange={event => { const triggerType = event.target.value as TriggerType; setContentCustomized(false); setForm(previous => ({ ...previous, triggerType, triggerMode: triggerType === 'first_login' ? 'reach_once' : previous.triggerMode, thresholdValue: triggerType === 'first_login' ? '1' : previous.thresholdValue })); }} className="h-9 w-full rounded-lg border border-cyan-300/25 bg-slate-900/90 px-3 text-sm font-bold text-slate-100 shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60">{Object.entries(triggerLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+                <div className="relative z-10 grid gap-3 sm:h-[150px] sm:shrink-0 sm:grid-cols-3 sm:grid-rows-2">
+                  <div><span className="mb-1 block text-[11px] font-black tracking-wide text-cyan-50/90">條件類型</span><AutomationRuleSelect ariaLabel="條件類型" disabled={readOnly} accent value={form.triggerType} options={Object.entries(triggerLabels).map(([value, label]) => ({ value, label }))} onChange={value => { const triggerType = value as TriggerType; setContentCustomized(false); setForm(previous => ({ ...previous, triggerType, triggerMode: triggerType === 'first_login' ? 'reach_once' : previous.triggerMode, thresholdValue: triggerType === 'first_login' ? '1' : previous.thresholdValue })); }} /></div>
                   {form.triggerType !== 'annual_date' && form.triggerType !== 'first_login' ? <>
-                    <label><span className="mb-1 block text-[10px] font-black tracking-wide text-slate-400">觸發方式</span><select disabled={readOnly} value={form.triggerMode} onChange={event => setForm(previous => ({ ...previous, triggerMode: event.target.value as TriggerMode }))} className="h-9 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm font-bold text-slate-100 shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60"><option value="reach_once">累計達到一次</option><option value="recurring">每達到指定數量</option></select></label>
-                    <label><span className="mb-1 block text-[10px] font-black tracking-wide text-slate-400">{form.triggerType === 'commission_amount' ? `目標金額（${dashboard.currency}）` : form.triggerType.includes('work_days') ? '目標天數' : '目標訂單數'}</span><input disabled={readOnly} type="number" min={form.triggerType === 'commission_amount' ? '0.01' : '1'} step={form.triggerType === 'commission_amount' ? '0.01' : '1'} value={form.thresholdValue} onChange={event => setForm(previous => ({ ...previous, thresholdValue: event.target.value }))} className="h-9 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm font-black text-white shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60" /></label>
+                    <div><span className="mb-1 block text-[11px] font-black tracking-wide text-blue-100/80">觸發方式</span><AutomationRuleSelect ariaLabel="觸發方式" disabled={readOnly} value={form.triggerMode} options={[{ value: 'reach_once', label: '累計達到一次' }, { value: 'recurring', label: '每達到指定數量' }]} onChange={value => setForm(previous => ({ ...previous, triggerMode: value as TriggerMode }))} /></div>
+                    <label><span className="mb-1 block text-[11px] font-black tracking-wide text-blue-100/80">{form.triggerType === 'commission_amount' ? `目標金額（${dashboard.currency}）` : form.triggerType.includes('work_days') ? '目標天數' : '目標訂單數'}</span><input disabled={readOnly} type="number" min={form.triggerType === 'commission_amount' ? '0.01' : '1'} step={form.triggerType === 'commission_amount' ? '0.01' : '1'} value={form.thresholdValue} onChange={event => setForm(previous => ({ ...previous, thresholdValue: event.target.value }))} className="h-9 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm font-black text-white shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60" /></label>
                   </> : form.triggerType === 'annual_date' ? <>
-                    <label><span className="mb-1 block text-[10px] font-black tracking-wide text-slate-400">月份</span><select disabled={readOnly} value={form.annualMonth} onChange={event => setForm(previous => ({ ...previous, annualMonth: event.target.value }))} className="h-9 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm font-bold text-slate-100 shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60">{Array.from({ length: 12 }, (_, index) => index + 1).map(month => <option key={month} value={month}>{month} 月</option>)}</select></label>
-                    <label><span className="mb-1 block text-[10px] font-black tracking-wide text-slate-400">日期</span><input disabled={readOnly} type="number" min="1" max={new Date(2000, Number(form.annualMonth), 0).getDate()} value={form.annualDay} onChange={event => setForm(previous => ({ ...previous, annualDay: event.target.value }))} className="h-9 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm font-black text-white shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60" /></label>
-                  </> : <div className="flex h-full items-center rounded-lg border border-cyan-300/20 bg-gradient-to-r from-cyan-400/10 via-blue-500/[0.08] to-transparent px-3 text-xs font-semibold leading-5 text-cyan-50/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:col-span-2">新員工帳戶第一次登入時只發送一次通知。</div>}
+                    <div><span className="mb-1 block text-[11px] font-black tracking-wide text-blue-100/80">月份</span><AutomationRuleSelect ariaLabel="月份" disabled={readOnly} value={form.annualMonth} options={Array.from({ length: 12 }, (_, index) => ({ value: String(index + 1), label: `${index + 1} 月` }))} onChange={value => setForm(previous => ({ ...previous, annualMonth: value }))} /></div>
+                    <label><span className="mb-1 block text-[11px] font-black tracking-wide text-blue-100/80">日期</span><input disabled={readOnly} type="number" min="1" max={new Date(2000, Number(form.annualMonth), 0).getDate()} value={form.annualDay} onChange={event => setForm(previous => ({ ...previous, annualDay: event.target.value }))} className="h-9 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm font-black text-white shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60" /></label>
+                  </> : <><div aria-hidden="true" /><div aria-hidden="true" /></>}
                   {(form.triggerType === 'work_days' || form.triggerType === 'consecutive_work_days') ? <>
-                    <label><span className="mb-1 block text-[10px] font-black tracking-wide text-slate-400">每天至少完成訂單數</span><input disabled={readOnly} type="number" min="1" value={form.minimumDailyOrders} onChange={event => setForm(previous => ({ ...previous, minimumDailyOrders: event.target.value }))} className="h-9 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm font-black text-white shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60" /></label>
-                    <label><span className="mb-1 block truncate text-[10px] font-black tracking-wide text-slate-400">每天至少工作分鐘（選填）</span><input disabled={readOnly} type="number" min="1" value={form.minimumDailyWorkMinutes} onChange={event => setForm(previous => ({ ...previous, minimumDailyWorkMinutes: event.target.value }))} className="h-9 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm font-black text-white shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60" /></label>
+                    <label><span className="mb-1 block text-[11px] font-black tracking-wide text-blue-100/80">每天至少完成訂單數</span><input disabled={readOnly} type="number" min="1" value={form.minimumDailyOrders} onChange={event => setForm(previous => ({ ...previous, minimumDailyOrders: event.target.value }))} className="h-9 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm font-black text-white shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60" /></label>
+                    <label><span className="mb-1 block truncate text-[11px] font-black tracking-wide text-blue-100/80">每天至少工作分鐘（選填）</span><input disabled={readOnly} type="number" min="1" value={form.minimumDailyWorkMinutes} onChange={event => setForm(previous => ({ ...previous, minimumDailyWorkMinutes: event.target.value }))} className="h-9 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm font-black text-white shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60" /></label>
                     <div aria-hidden="true" />
                   </> : <><div aria-hidden="true" /><div aria-hidden="true" /><div aria-hidden="true" /></>}
                 </div>
@@ -1400,7 +1488,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               <p className="px-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">目前方案</p>
               {activePlans.length === 0 && planStatusFilter !== 'archived' && <p className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/35 px-3 py-5 text-center text-xs text-slate-500">找不到符合條件的方案</p>}
               {activePlans.map(plan => renderPlanCard(plan))}
-              {archivedPlans.length > 0 && <details className="rounded-xl border border-slate-700/70 bg-slate-950/35 p-2" open={planStatusFilter === 'archived'}><summary className="cursor-pointer select-none px-1 py-1 text-[10px] font-black tracking-wide text-slate-400">封存歷史 <span className="text-slate-600">·</span> {archivedPlans.length}</summary><div className="mt-2 space-y-1.5">{archivedPlans.map(plan => renderPlanCard(plan, true))}</div></details>}
+              {archivedPlans.length > 0 && <details className="rounded-xl border border-slate-700/70 bg-slate-950/35 p-2" open={planStatusFilter === 'archived'}><summary className="cursor-pointer select-none px-1 py-1 text-[11px] font-black tracking-wide text-blue-100/80">封存歷史 <span className="text-slate-600">·</span> {archivedPlans.length}</summary><div className="mt-2 space-y-1.5">{archivedPlans.map(plan => renderPlanCard(plan, true))}</div></details>}
             </div>
           </aside>
           <main className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-slate-900">
