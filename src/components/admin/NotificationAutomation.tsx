@@ -13,6 +13,7 @@ import {
   Gift,
   History,
   Info,
+  Layers3,
   Pause,
   Play,
   Plus,
@@ -486,6 +487,111 @@ function AutomationRuleSelect({ value, options, onChange, disabled = false, aria
           {options.map(option => {
             const selected = option.value === value;
             return <button key={option.value} type="button" role="option" aria-selected={selected} onClick={() => { onChange(option.value); setOpen(false); }} className={`flex h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 text-left text-xs font-bold transition-colors ${selected ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/15 text-cyan-50' : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'}`}><span className="truncate">{option.label}</span>{selected && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-cyan-300" />}</button>;
+          })}
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
+type ExecutionScope = 'selected' | 'all';
+
+interface ExecutionScopeSelectProps {
+  value: ExecutionScope;
+  currentSelectionName: string;
+  onChange: (value: ExecutionScope) => void;
+}
+
+function ExecutionScopeSelect({ value, currentSelectionName, onChange }: ExecutionScopeSelectProps) {
+  const [open, setOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ left: number; top: number; width: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const selectedOption = value === 'selected'
+    ? { label: '目前方案', detail: currentSelectionName, Icon: Settings2 }
+    : { label: '全部方案', detail: '跨方案查詢', Icon: Layers3 };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const updatePosition = () => {
+      const button = buttonRef.current;
+      if (!button) return;
+      const rect = button.getBoundingClientRect();
+      const width = Math.max(rect.width, 280);
+      const menuHeight = 178;
+      const top = window.innerHeight - rect.bottom >= menuHeight + 8
+        ? rect.bottom + 8
+        : Math.max(8, rect.top - menuHeight - 8);
+      setMenuPosition({
+        left: Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8)),
+        top,
+        width,
+      });
+    };
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!buttonRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+
+    updatePosition();
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [open]);
+
+  const SelectedIcon = selectedOption.Icon;
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-label="選擇執行記錄查詢範圍"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen(previous => !previous)}
+        className={`group flex h-10 w-[184px] shrink-0 items-center gap-2 rounded-xl border px-2 text-left outline-none transition-all focus-visible:ring-2 focus-visible:ring-cyan-300/30 ${open ? 'border-cyan-200/75 bg-gradient-to-r from-cyan-500/25 to-blue-500/20 shadow-[0_0_0_1px_rgba(103,232,249,0.12),0_10px_24px_rgba(8,145,178,0.2)]' : 'border-cyan-300/35 bg-gradient-to-r from-slate-900 via-cyan-950/70 to-blue-950/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_6px_16px_rgba(2,6,23,0.3)] hover:border-cyan-200/60 hover:from-cyan-950/90 hover:to-blue-950'}`}
+      >
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors ${open ? 'border-cyan-100/40 bg-cyan-300/20 text-white' : 'border-cyan-200/25 bg-cyan-400/15 text-cyan-200 group-hover:bg-cyan-300/20 group-hover:text-white'}`}>
+          <SelectedIcon className="h-3.5 w-3.5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[9px] font-black uppercase leading-3 tracking-[0.12em] text-cyan-200/70">查詢範圍</span>
+          <span className="flex min-w-0 items-center gap-1 text-[11px] font-black leading-4 text-white"><span className="shrink-0">{selectedOption.label}</span><span className="truncate text-[9px] font-bold text-blue-100/55">· {selectedOption.detail}</span></span>
+        </span>
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && menuPosition && createPortal(
+        <div
+          ref={menuRef}
+          role="listbox"
+          aria-label="執行記錄查詢範圍"
+          className="fixed z-[280] overflow-hidden rounded-2xl border border-cyan-200/30 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_42%),linear-gradient(145deg,rgba(15,23,42,0.99),rgba(2,6,23,0.99))] p-2 shadow-[0_22px_55px_rgba(2,6,23,0.72),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl"
+          style={{ left: menuPosition.left, top: menuPosition.top, width: menuPosition.width }}
+        >
+          <div className="mb-1.5 flex items-center justify-between px-2 py-1">
+            <span><span className="block text-[10px] font-black uppercase tracking-[0.15em] text-cyan-200">執行記錄範圍</span><span className="mt-0.5 block text-[9px] font-semibold text-slate-500">只影響目前顯示與搜尋的記錄</span></span>
+            <SlidersHorizontal className="h-4 w-4 text-cyan-300/80" />
+          </div>
+          {([
+            { id: 'selected' as const, label: '目前方案', description: `只查詢「${currentSelectionName}」的執行記錄`, Icon: Settings2 },
+            { id: 'all' as const, label: '全部方案', description: '跨目前管理員的所有方案查詢執行記錄', Icon: Layers3 },
+          ]).map(option => {
+            const selected = option.id === value;
+            const OptionIcon = option.Icon;
+            return <button key={option.id} type="button" role="option" aria-selected={selected} onClick={() => { onChange(option.id); setOpen(false); }} className={`group/option flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all ${selected ? 'border-cyan-200/35 bg-gradient-to-r from-cyan-500/25 via-sky-500/15 to-blue-500/15 shadow-[inset_3px_0_0_rgba(34,211,238,0.9)]' : 'border-transparent text-slate-300 hover:border-blue-300/20 hover:bg-gradient-to-r hover:from-blue-500/10 hover:to-cyan-500/10'}`}><span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${selected ? 'border-cyan-100/35 bg-cyan-300/20 text-cyan-50' : 'border-slate-700 bg-slate-900/80 text-slate-400 group-hover/option:border-cyan-300/25 group-hover/option:text-cyan-200'}`}><OptionIcon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className={`block text-xs font-black ${selected ? 'text-white' : 'text-slate-200'}`}>{option.label}</span><span className={`mt-0.5 block truncate text-[10px] font-semibold ${selected ? 'text-cyan-100/70' : 'text-slate-500'}`}>{option.description}</span></span><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? 'border-cyan-200/50 bg-cyan-400/20 text-cyan-100' : 'border-slate-700 text-transparent'}`}><CheckCircle2 className="h-3.5 w-3.5" /></span></button>;
           })}
         </div>,
         document.body,
@@ -1526,7 +1632,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
             </section>
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700 bg-slate-950/50 px-3 py-2.5">
               <div className="flex rounded-xl border border-slate-700 bg-slate-950 p-1">{[{ id: 'tasks' as const, label: '任務', icon: Settings2 }, { id: 'executions' as const, label: '執行記錄', icon: History }].map(tab => <button key={tab.id} type="button" onClick={() => setView(tab.id)} className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-black ${view === tab.id ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white' : 'text-slate-400 hover:bg-slate-800'}`}><tab.icon className="h-3.5 w-3.5" />{tab.label}</button>)}</div>
-              {view === 'tasks' ? <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2"><div className="relative"><button type="button" onClick={() => { setTaskStatusMenuOpen(previous => !previous); setTaskTriggerMenuOpen(false); }} aria-expanded={taskStatusMenuOpen} className={`inline-flex h-8 min-w-[112px] items-center justify-between gap-2 rounded-lg border px-2.5 text-[10px] font-black transition-colors ${taskStatusMenuOpen ? 'border-cyan-300/60 bg-cyan-500/15 text-cyan-100' : 'border-slate-600 bg-slate-900 text-slate-300 hover:border-cyan-300/40 hover:bg-slate-800'}`}><span>{taskStatusFilter === 'all' ? '全部狀態' : taskStatusLabels[taskStatusFilter]}</span><ChevronDown className={`h-3.5 w-3.5 text-cyan-300 transition-transform ${taskStatusMenuOpen ? 'rotate-180' : ''}`} /></button>{taskStatusMenuOpen && <div role="menu" className="absolute right-0 top-[calc(100%+6px)] z-30 w-40 overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-950 p-1.5 shadow-[0_16px_32px_rgba(2,6,23,0.6)]">{(['all', 'draft', 'active', 'paused'] as const).map(status => <button key={status} type="button" role="menuitem" onClick={() => { setTaskStatusFilter(status); setTaskStatusMenuOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[10px] font-black transition-colors ${taskStatusFilter === status ? 'bg-cyan-500/15 text-cyan-100' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><span>{status === 'all' ? '全部狀態' : taskStatusLabels[status]}</span>{taskStatusFilter === status && <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300" />}</button>)}</div>}</div><div className="relative"><button type="button" onClick={() => { setTaskTriggerMenuOpen(previous => !previous); setTaskStatusMenuOpen(false); }} aria-expanded={taskTriggerMenuOpen} className={`inline-flex h-8 w-[180px] items-center justify-between gap-2 rounded-lg border px-2.5 text-[10px] font-black transition-colors ${taskTriggerMenuOpen ? 'border-blue-300/60 bg-blue-500/15 text-blue-100' : 'border-slate-600 bg-slate-900 text-slate-300 hover:border-blue-300/40 hover:bg-slate-800'}`}><span className="truncate">{taskTriggerFilter === 'all' ? '全部條件' : triggerLabels[taskTriggerFilter]}</span><ChevronDown className={`h-3.5 w-3.5 text-blue-300 transition-transform ${taskTriggerMenuOpen ? 'rotate-180' : ''}`} /></button>{taskTriggerMenuOpen && <div role="menu" className="absolute right-0 top-[calc(100%+6px)] z-30 w-48 overflow-hidden rounded-xl border border-blue-300/25 bg-slate-950 p-1.5 shadow-[0_16px_32px_rgba(2,6,23,0.6)]">{(['all', 'total_orders', 'daily_orders', 'work_days', 'commission_amount', 'consecutive_work_days', 'annual_date', 'first_login'] as const).map(trigger => <button key={trigger} type="button" role="menuitem" onClick={() => { setTaskTriggerFilter(trigger); setTaskTriggerMenuOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[10px] font-black transition-colors ${taskTriggerFilter === trigger ? 'bg-blue-500/15 text-blue-100' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><span className="truncate">{trigger === 'all' ? '全部條件' : triggerLabels[trigger]}</span>{taskTriggerFilter === trigger && <CheckCircle2 className="h-3.5 w-3.5 text-blue-300" />}</button>)}</div>}</div></div> : <div className="flex min-w-0 flex-1 items-center justify-end gap-2"><label className="relative w-64 shrink-0"><Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-300" /><input value={executionSearch} onChange={event => setExecutionSearch(event.target.value)} placeholder="搜尋曾接收通知的員工帳號或 ID" aria-label="搜尋自動化通知接收員工" className="h-8 w-full rounded-lg border border-cyan-300/25 bg-slate-900 pl-9 pr-3 text-xs font-semibold text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/15" /></label><select value={executionScope} onChange={event => setExecutionScope(event.target.value as 'selected' | 'all')} className="h-8 rounded-lg border border-slate-600 bg-slate-900 px-2.5 text-[10px] font-black text-slate-200 outline-none focus:border-cyan-300"><option value="selected">目前方案</option><option value="all">全部方案</option></select></div>}
+              {view === 'tasks' ? <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2"><div className="relative"><button type="button" onClick={() => { setTaskStatusMenuOpen(previous => !previous); setTaskTriggerMenuOpen(false); }} aria-expanded={taskStatusMenuOpen} className={`inline-flex h-8 min-w-[112px] items-center justify-between gap-2 rounded-lg border px-2.5 text-[10px] font-black transition-colors ${taskStatusMenuOpen ? 'border-cyan-300/60 bg-cyan-500/15 text-cyan-100' : 'border-slate-600 bg-slate-900 text-slate-300 hover:border-cyan-300/40 hover:bg-slate-800'}`}><span>{taskStatusFilter === 'all' ? '全部狀態' : taskStatusLabels[taskStatusFilter]}</span><ChevronDown className={`h-3.5 w-3.5 text-cyan-300 transition-transform ${taskStatusMenuOpen ? 'rotate-180' : ''}`} /></button>{taskStatusMenuOpen && <div role="menu" className="absolute right-0 top-[calc(100%+6px)] z-30 w-40 overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-950 p-1.5 shadow-[0_16px_32px_rgba(2,6,23,0.6)]">{(['all', 'draft', 'active', 'paused'] as const).map(status => <button key={status} type="button" role="menuitem" onClick={() => { setTaskStatusFilter(status); setTaskStatusMenuOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[10px] font-black transition-colors ${taskStatusFilter === status ? 'bg-cyan-500/15 text-cyan-100' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><span>{status === 'all' ? '全部狀態' : taskStatusLabels[status]}</span>{taskStatusFilter === status && <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300" />}</button>)}</div>}</div><div className="relative"><button type="button" onClick={() => { setTaskTriggerMenuOpen(previous => !previous); setTaskStatusMenuOpen(false); }} aria-expanded={taskTriggerMenuOpen} className={`inline-flex h-8 w-[180px] items-center justify-between gap-2 rounded-lg border px-2.5 text-[10px] font-black transition-colors ${taskTriggerMenuOpen ? 'border-blue-300/60 bg-blue-500/15 text-blue-100' : 'border-slate-600 bg-slate-900 text-slate-300 hover:border-blue-300/40 hover:bg-slate-800'}`}><span className="truncate">{taskTriggerFilter === 'all' ? '全部條件' : triggerLabels[taskTriggerFilter]}</span><ChevronDown className={`h-3.5 w-3.5 text-blue-300 transition-transform ${taskTriggerMenuOpen ? 'rotate-180' : ''}`} /></button>{taskTriggerMenuOpen && <div role="menu" className="absolute right-0 top-[calc(100%+6px)] z-30 w-48 overflow-hidden rounded-xl border border-blue-300/25 bg-slate-950 p-1.5 shadow-[0_16px_32px_rgba(2,6,23,0.6)]">{(['all', 'total_orders', 'daily_orders', 'work_days', 'commission_amount', 'consecutive_work_days', 'annual_date', 'first_login'] as const).map(trigger => <button key={trigger} type="button" role="menuitem" onClick={() => { setTaskTriggerFilter(trigger); setTaskTriggerMenuOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[10px] font-black transition-colors ${taskTriggerFilter === trigger ? 'bg-blue-500/15 text-blue-100' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><span className="truncate">{trigger === 'all' ? '全部條件' : triggerLabels[trigger]}</span>{taskTriggerFilter === trigger && <CheckCircle2 className="h-3.5 w-3.5 text-blue-300" />}</button>)}</div>}</div></div> : <div className="flex min-w-0 flex-1 items-center justify-end gap-2"><label className="relative w-64 shrink-0"><Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-300" /><input value={executionSearch} onChange={event => setExecutionSearch(event.target.value)} placeholder="搜尋曾接收通知的員工帳號或 ID" aria-label="搜尋自動化通知接收員工" className="h-10 w-full rounded-xl border border-cyan-300/25 bg-slate-900 pl-9 pr-3 text-xs font-semibold text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/15" /></label><ExecutionScopeSelect value={executionScope} currentSelectionName={currentSelectionName} onChange={setExecutionScope} /></div>}
             </div>
             <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto">
               {view === 'tasks' && (filteredTasks.length === 0 ? <div className="flex min-h-[320px] flex-col items-center justify-center px-6 py-12 text-center"><span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-500/10 text-cyan-300"><Bell className="h-6 w-6" /></span><p className="mt-3 text-sm font-black text-slate-200">{selectionTasks.length === 0 ? '此處尚無自動化任務' : '找不到符合篩選條件的任務'}</p><p className="mt-1 max-w-md text-xs leading-5 text-slate-500">{selectedPlan?.status === 'active' ? '新增任務後會先儲存為草稿，再由你確認啟用。' : selectedPlan?.status === 'paused' ? '可新增並編輯草稿任務；方案恢復前無法啟用或執行任務。' : isUngroupedSelected ? '請先選擇一個方案建立新任務。' : '恢復方案後即可新增或啟用任務。'}</p>{selectedPlan && selectedPlan.status !== 'archived' && <button type="button" onClick={openNewTask} className="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 text-xs font-black text-white"><Plus className="h-4 w-4" />新增第一個任務</button>}</div> : <>
