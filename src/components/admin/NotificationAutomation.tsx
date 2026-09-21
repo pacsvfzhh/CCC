@@ -1268,10 +1268,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
-        {noticeCard}{variableHelpDialog}{employeePreviewDialog}{employeePickerDialog}
+        {noticeCard}{discardDialog}{variableHelpDialog}{employeePreviewDialog}{employeePickerDialog}
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-300/25 bg-gradient-to-r from-blue-950 via-cyan-900 to-blue-950 px-3 py-2 shadow-lg">
           <div className="flex min-w-0 items-center gap-2">
-            <button type="button" onClick={closeTaskEditor} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-red-200/60 bg-red-600 text-white"><ArrowLeft className="h-4 w-4" /></button>
+            <button type="button" onClick={closeTaskEditor} aria-label="返回上一頁" title="返回上一頁" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-red-200/60 bg-red-600 text-white"><ArrowLeft className="h-4 w-4" /></button>
             <div className="min-w-0"><h2 className="truncate text-base font-black text-white">{readOnly ? '查看自動化任務' : form.id ? '編輯自動化任務' : '新增自動化任務'}</h2><p className="truncate text-[10px] font-bold text-cyan-100/75">{selectedOwnerName} · {editorPlan?.name || '未分組任務'}</p></div>
           </div>
           {readOnly ? <span className="rounded-lg border border-amber-300/25 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-200">封存方案僅供查看</span> : <button type="button" disabled={saving} onClick={() => void saveTask()} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-3 text-xs font-black text-white disabled:opacity-50">{saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}儲存任務草稿</button>}
