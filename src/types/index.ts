@@ -10,6 +10,30 @@ export interface Admin {
   updated_at: string;
 }
 
+export type AutomationPlanStatus = 'active' | 'paused' | 'archived';
+
+export interface NotificationAutomationPlan {
+  id: string;
+  owner_admin_id: string;
+  name: string;
+  description: string;
+  status: AutomationPlanStatus;
+  member_count?: number;
+  task_count?: number;
+  active_task_count?: number;
+  selected_task_count?: number;
+  all_managed_task_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface NotificationAutomationPlanAssignment {
+  user_id: string;
+  plan_id: string;
+  plan_name: string;
+  plan_status: AutomationPlanStatus;
+}
+
 export interface Employee {
   id: string;
   username: string;
@@ -22,6 +46,8 @@ export interface Employee {
   remarks: string;
   tags: string[];
   is_pinned: boolean;
+  automation_plan_id?: string | null;
+  automation_plan_name?: string | null;
   current_session_token?: string | null;
   session_created_at?: string | null;
   last_heartbeat_at?: string | null;

@@ -1018,6 +1018,77 @@ export interface Database {
           }
         ];
       };
+      notification_automation_plans: {
+        Row: {
+          id: string;
+          owner_admin_id: string;
+          name: string;
+          description: string;
+          status: 'active' | 'paused' | 'archived';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_admin_id: string;
+          name: string;
+          description?: string;
+          status?: 'active' | 'paused' | 'archived';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_admin_id?: string;
+          name?: string;
+          description?: string;
+          status?: 'active' | 'paused' | 'archived';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'notification_automation_plans_owner_admin_id_fkey';
+            columns: ['owner_admin_id'];
+            isOneToOne: false;
+            referencedRelation: 'admins';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      notification_automation_plan_members: {
+        Row: {
+          plan_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          plan_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          plan_id?: string;
+          user_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'notification_automation_plan_members_plan_id_fkey';
+            columns: ['plan_id'];
+            isOneToOne: false;
+            referencedRelation: 'notification_automation_plans';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notification_automation_plan_members_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       admins: {
         Row: {
           id: string;
@@ -2108,6 +2179,23 @@ export interface Database {
         };
         Returns: { success?: boolean; error?: string; user?: Record<string, unknown> };
       };
+      admin_create_employee_account_with_automation_plan: {
+        Args: {
+          p_admin_session_token: string;
+          p_username: string;
+          p_password: string;
+          p_employee_id: string;
+          p_created_by: string;
+          p_remarks: string;
+          p_automation_plan_id?: string | null;
+        };
+        Returns: {
+          success?: boolean;
+          error?: string;
+          user?: Record<string, unknown>;
+          automation_plan_id?: string | null;
+        };
+      };
       admin_create_secondary_account: {
         Args: { p_admin_session_token: string; p_password: string; p_username: string };
         Returns: { success?: boolean; error?: string; user?: Record<string, unknown> };
@@ -2914,6 +3002,85 @@ export interface Database {
         Args: {
           p_admin_session_token: string;
           p_owner_admin_id?: string | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      get_notification_automation_dashboard_v2: {
+        Args: {
+          p_admin_session_token: string;
+          p_owner_admin_id?: string | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      get_notification_automation_plan_assignments: {
+        Args: { p_admin_session_token: string };
+        Returns: Record<string, unknown>;
+      };
+      save_notification_automation_plan: {
+        Args: {
+          p_admin_session_token: string;
+          p_owner_admin_id: string;
+          p_plan_id: string | null;
+          p_name: string;
+          p_description: string;
+        };
+        Returns: Record<string, unknown>;
+      };
+      set_notification_automation_plan_status: {
+        Args: {
+          p_admin_session_token: string;
+          p_plan_id: string;
+          p_status: 'active' | 'paused' | 'archived';
+        };
+        Returns: Record<string, unknown>;
+      };
+      set_notification_automation_plan_members: {
+        Args: {
+          p_admin_session_token: string;
+          p_plan_id: string;
+          p_user_ids: string[];
+        };
+        Returns: Record<string, unknown>;
+      };
+      set_notification_automation_plan_for_employee: {
+        Args: {
+          p_admin_session_token: string;
+          p_user_id: string;
+          p_plan_id: string | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      save_notification_automation_task_v2: {
+        Args: {
+          p_admin_session_token: string;
+          p_owner_admin_id: string;
+          p_plan_id: string | null;
+          p_task_id: string | null;
+          p_name: string;
+          p_description: string;
+          p_trigger_type: string;
+          p_trigger_mode: string;
+          p_threshold_value: number;
+          p_minimum_daily_orders: number | null;
+          p_minimum_daily_work_minutes: number | null;
+          p_recipient_scope: string;
+          p_recipient_ids: string[];
+          p_title_template: string;
+          p_content_template: string;
+          p_delivery_mode: 'realtime_only' | 'login_only' | 'realtime_with_login_fallback';
+          p_priority: string;
+          p_reward_enabled: boolean;
+          p_reward_amount: number | null;
+          p_starts_at: string | null;
+          p_ends_at: string | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      set_notification_automation_task_status_v2: {
+        Args: {
+          p_admin_session_token: string;
+          p_task_id: string;
+          p_status: string;
         };
         Returns: Record<string, unknown>;
       };
