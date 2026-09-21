@@ -419,6 +419,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [deleteTarget, setDeleteTarget] = useState<AutomationTask | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [planDeleteTarget, setPlanDeleteTarget] = useState<AutomationPlan | null>(null);
+  const [planArchiveTarget, setPlanArchiveTarget] = useState<AutomationPlan | null>(null);
   const [discardTarget, setDiscardTarget] = useState<'plan' | 'members' | 'task' | null>(null);
   const [notice, setNotice] = useState<AutomationNotice | null>(null);
   const [variableHelpOpen, setVariableHelpOpen] = useState(false);
@@ -759,7 +760,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   };
 
   const changePlanStatus = async (plan: AutomationPlan, status: PlanStatus) => {
-    if (status === 'archived' && !window.confirm(`確定要封存方案「${plan.name}」嗎？`)) return;
     setSaving(true);
     try {
       const { error } = await supabase.rpc('set_notification_automation_plan_status', {
@@ -1092,6 +1092,17 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     document.body,
   );
 
+  const planArchiveDialog = planArchiveTarget && createPortal(
+    <div className="fixed inset-0 z-[225] flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-amber-300/30 bg-slate-900 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="archive-plan-title">
+        <div className="flex items-start gap-3 border-b border-amber-300/15 bg-amber-500/[0.08] px-5 py-4"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-300/25 bg-amber-400/15 text-amber-200"><Archive className="h-5 w-5" /></span><div><h2 id="archive-plan-title" className="text-sm font-black text-white">封存自動化方案？</h2><p className="mt-1 text-xs leading-5 text-amber-100/75">封存後方案與任務會停止執行，但資料仍可查看、恢復或永久刪除。</p></div></div>
+        <div className="px-5 py-4"><p className="truncate rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm font-black text-slate-100">{planArchiveTarget.name}</p></div>
+        <div className="flex justify-end gap-2 border-t border-slate-800 px-5 py-3"><button type="button" onClick={() => setPlanArchiveTarget(null)} disabled={saving} className="h-9 rounded-lg border border-slate-600 bg-slate-800 px-4 text-xs font-bold text-slate-200 disabled:opacity-50">取消</button><button type="button" onClick={() => { const plan = planArchiveTarget; setPlanArchiveTarget(null); void changePlanStatus(plan, 'archived'); }} disabled={saving} className="inline-flex h-9 items-center gap-2 rounded-lg bg-amber-500 px-4 text-xs font-black text-slate-950 hover:bg-amber-400 disabled:opacity-50"><Archive className="h-3.5 w-3.5" />確認封存</button></div>
+      </div>
+    </div>,
+    document.body,
+  );
+
   const planDeleteDialog = planDeleteTarget && createPortal(
     <div className="fixed inset-0 z-[225] flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm">
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="delete-plan-title">
@@ -1323,7 +1334,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   return (
     <>
-      {noticeCard}{deleteDialog}{discardDialog}{planDeleteDialog}{planDialog}{memberPickerDialog}
+      {noticeCard}{deleteDialog}{discardDialog}{planArchiveDialog}{planDeleteDialog}{planDialog}{memberPickerDialog}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
         <header className="shrink-0 border-b border-cyan-300/20 bg-[radial-gradient(circle_at_82%_0%,rgba(6,182,212,0.18),transparent_34%),linear-gradient(90deg,#020617_0%,#0f172a_55%,#083344_100%)] px-3 py-3 shadow-[0_8px_24px_rgba(2,6,23,0.32)] sm:px-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1367,7 +1378,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-xl font-black tracking-tight text-white">{currentSelectionName}</h2><span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${selectedPlan?.status === 'active' ? 'border-emerald-300/25 bg-emerald-500/10 text-emerald-300' : selectedPlan?.status === 'paused' ? 'border-amber-300/25 bg-amber-500/10 text-amber-300' : 'border-slate-600 bg-slate-800 text-slate-400'}`}>{selectedPlan ? planStatusLabels[selectedPlan.status] : '舊任務'}</span></div><p className="mt-1 max-w-3xl text-xs leading-5 text-slate-200">{selectedPlan?.description || (selectedPlan ? '尚未填寫方案說明' : '既有未分組任務，可繼續使用原本的個別員工名單。')}</p><p className="mt-1 text-[10px] font-bold text-cyan-100/65">{selectedPlan ? `最後更新 ${formatDateTime(selectedPlan.updated_at)}` : `${selectedOwnerName} · 未分組任務`}</p></div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {selectedPlan && <><button type="button" onClick={openMemberPicker} disabled={selectedPlan.status === 'archived'} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-violet-300/25 bg-violet-500/10 px-2.5 text-[11px] font-black text-violet-200 disabled:cursor-not-allowed disabled:opacity-40"><Users className="h-3.5 w-3.5" />管理員工</button><button type="button" onClick={() => openPlanModal(selectedPlan)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-cyan-500/10 px-2.5 text-[11px] font-black text-cyan-200"><Edit3 className="h-3.5 w-3.5" />編輯</button>{selectedPlan.status === 'active' ? <button type="button" onClick={() => void changePlanStatus(selectedPlan, 'paused')} disabled={saving} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-300/25 bg-amber-500/10 px-2.5 text-[11px] font-black text-amber-200 disabled:opacity-50"><Pause className="h-3.5 w-3.5" />暫停</button> : <button type="button" onClick={() => void changePlanStatus(selectedPlan, 'active')} disabled={saving} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-300/25 bg-emerald-500/10 px-2.5 text-[11px] font-black text-emerald-200 disabled:opacity-50"><Play className="h-3.5 w-3.5" />{selectedPlan.status === 'archived' ? '恢復' : '繼續'}</button>}{selectedPlan.status !== 'archived' ? <button type="button" onClick={() => void changePlanStatus(selectedPlan, 'archived')} disabled={saving} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-300/35 bg-rose-500/15 px-2.5 text-[11px] font-black text-rose-100 transition-colors hover:border-rose-200/60 hover:bg-rose-500/25 disabled:opacity-50" title="封存方案"><Archive className="h-3.5 w-3.5" />封存方案</button> : <button type="button" onClick={() => setPlanDeleteTarget(selectedPlan)} disabled={saving} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-300/50 bg-rose-600 px-2.5 text-[11px] font-black text-white shadow-sm shadow-rose-950/35 transition-colors hover:bg-rose-500 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />刪除方案</button>}</>}
+                  {selectedPlan && <><button type="button" onClick={openMemberPicker} disabled={selectedPlan.status === 'archived'} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-violet-300/25 bg-violet-500/10 px-2.5 text-[11px] font-black text-violet-200 disabled:cursor-not-allowed disabled:opacity-40"><Users className="h-3.5 w-3.5" />管理員工</button><button type="button" onClick={() => openPlanModal(selectedPlan)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-cyan-500/10 px-2.5 text-[11px] font-black text-cyan-200"><Edit3 className="h-3.5 w-3.5" />編輯</button>{selectedPlan.status === 'active' ? <button type="button" onClick={() => void changePlanStatus(selectedPlan, 'paused')} disabled={saving} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-300/25 bg-amber-500/10 px-2.5 text-[11px] font-black text-amber-200 disabled:opacity-50"><Pause className="h-3.5 w-3.5" />暫停</button> : <button type="button" onClick={() => void changePlanStatus(selectedPlan, 'active')} disabled={saving} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-300/25 bg-emerald-500/10 px-2.5 text-[11px] font-black text-emerald-200 disabled:opacity-50"><Play className="h-3.5 w-3.5" />{selectedPlan.status === 'archived' ? '恢復' : '繼續'}</button>}{selectedPlan.status !== 'archived' ? <button type="button" onClick={() => setPlanArchiveTarget(selectedPlan)} disabled={saving} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-300/35 bg-rose-500/15 px-2.5 text-[11px] font-black text-rose-100 transition-colors hover:border-rose-200/60 hover:bg-rose-500/25 disabled:opacity-50" title="封存方案"><Archive className="h-3.5 w-3.5" />封存方案</button> : <button type="button" onClick={() => setPlanDeleteTarget(selectedPlan)} disabled={saving} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-300/50 bg-rose-600 px-2.5 text-[11px] font-black text-white shadow-sm shadow-rose-950/35 transition-colors hover:bg-rose-500 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />刪除方案</button>}</>}
                   <button type="button" onClick={openNewTask} disabled={!selectedPlan || selectedPlan.status === 'archived'} title={!selectedPlan ? '請先選擇方案' : selectedPlan.status === 'archived' ? '請先恢復方案' : selectedPlan.status === 'paused' ? '建立草稿任務' : '新增任務'} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-3 text-[11px] font-black text-white disabled:cursor-not-allowed disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500"><Plus className="h-3.5 w-3.5" />新增任務</button>
                 </div>
               </div>
