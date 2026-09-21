@@ -169,6 +169,7 @@ interface TaskForm {
 interface Props {
   admin: AdminIdentity;
   employees: AutomationEmployee[];
+  isActive?: boolean;
   onBack: () => void;
 }
 
@@ -600,7 +601,7 @@ function ExecutionScopeSelect({ value, currentSelectionName, onChange }: Executi
   );
 }
 
-export default function NotificationAutomation({ admin, employees, onBack }: Props) {
+export default function NotificationAutomation({ admin, employees, isActive = true, onBack }: Props) {
   const { isDesktop } = useResponsive();
   const isSuperAdmin = admin.role === 'super_admin' || Boolean(admin.is_super_admin);
   const emptyDashboard: AutomationDashboard = {
@@ -659,6 +660,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [pendingMemberIds, setPendingMemberIds] = useState<string[]>([]);
   const [memberTagPopover, setMemberTagPopover] = useState<{ employee: AutomationEmployee; x: number; y: number } | null>(null);
   const loadRef = useRef<((ownerAdminId?: string) => Promise<void>) | null>(null);
+  const wasActiveRef = useRef(isActive);
   const dashboardRequestIdRef = useRef(0);
   const executionRequestIdRef = useRef(0);
   const editorInitialSnapshotRef = useRef('');
@@ -726,6 +728,14 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   useEffect(() => {
     void loadRef.current?.(admin.id);
   }, [admin.id]);
+
+  useEffect(() => {
+    if (isActive && !wasActiveRef.current) {
+      setRefreshing(true);
+      void loadRef.current?.(dashboard.selected_owner_id);
+    }
+    wasActiveRef.current = isActive;
+  }, [dashboard.selected_owner_id, isActive]);
 
   useEffect(() => {
     if (!notice) return;

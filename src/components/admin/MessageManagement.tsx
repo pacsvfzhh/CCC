@@ -242,6 +242,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   useEffect(() => {
     if (isActive && !wasActiveRef.current && !initialEmployee) {
       setSelectedEmployeeIds(new Set());
+      if (hasInitiallyLoaded.current) {
+        void loadAllDataRef.current?.(true);
+      }
     }
 
     wasActiveRef.current = isActive;
@@ -1277,6 +1280,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         <NotificationAutomation
           admin={admin}
           employees={allEmployeesFlat}
+          isActive={isActive}
           onBack={() => setShowAutomation(false)}
         />
         {notification && (
