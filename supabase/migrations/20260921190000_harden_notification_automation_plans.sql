@@ -1047,6 +1047,271 @@ BEGIN
 END;
 $$;
 
+ALTER FUNCTION public.save_notification_automation_task(uuid, uuid, text, text, text, text, numeric, integer, integer, text, uuid[], text, text, text, text, boolean, numeric, boolean, timestamptz, timestamptz)
+  RENAME TO save_notification_automation_task_unlocked;
+ALTER FUNCTION public.save_notification_automation_task_copy(uuid, uuid, uuid, text, text, text, text, numeric, integer, integer, text, uuid[], text, text, text, text, boolean, numeric, boolean, timestamptz, timestamptz)
+  RENAME TO save_notification_automation_task_copy_unlocked;
+ALTER FUNCTION public.copy_shared_notification_automation_task(uuid, uuid)
+  RENAME TO copy_shared_notification_automation_task_unlocked;
+ALTER FUNCTION public.set_notification_automation_task_status(uuid, uuid, text)
+  RENAME TO set_notification_automation_task_status_unlocked;
+ALTER FUNCTION public.admin_create_employee_account(uuid, text, text, text, uuid, text)
+  RENAME TO admin_create_employee_account_unlocked;
+ALTER FUNCTION public.admin_update_employee_account(uuid, uuid, jsonb)
+  RENAME TO admin_update_employee_account_unlocked;
+ALTER FUNCTION public.admin_delete_employee_account(uuid, uuid)
+  RENAME TO admin_delete_employee_account_unlocked;
+ALTER FUNCTION public.admin_delete_secondary_account(uuid, uuid)
+  RENAME TO admin_delete_secondary_account_unlocked;
+
+CREATE OR REPLACE FUNCTION public.save_notification_automation_task(
+  p_admin_session_token uuid,
+  p_task_id uuid,
+  p_name text,
+  p_description text,
+  p_trigger_type text,
+  p_trigger_mode text,
+  p_threshold_value numeric,
+  p_minimum_daily_orders integer,
+  p_minimum_daily_work_minutes integer,
+  p_recipient_scope text,
+  p_recipient_ids uuid[],
+  p_title_template text,
+  p_content_template text,
+  p_message_type text,
+  p_priority text,
+  p_reward_enabled boolean,
+  p_reward_amount numeric,
+  p_is_shared_template boolean,
+  p_starts_at timestamptz,
+  p_ends_at timestamptz
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+  RETURN public.save_notification_automation_task_unlocked(
+    p_admin_session_token,
+    p_task_id,
+    p_name,
+    p_description,
+    p_trigger_type,
+    p_trigger_mode,
+    p_threshold_value,
+    p_minimum_daily_orders,
+    p_minimum_daily_work_minutes,
+    p_recipient_scope,
+    p_recipient_ids,
+    p_title_template,
+    p_content_template,
+    p_message_type,
+    p_priority,
+    p_reward_enabled,
+    p_reward_amount,
+    p_is_shared_template,
+    p_starts_at,
+    p_ends_at
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.save_notification_automation_task_copy(
+  p_admin_session_token uuid,
+  p_source_task_id uuid,
+  p_task_id uuid,
+  p_name text,
+  p_description text,
+  p_trigger_type text,
+  p_trigger_mode text,
+  p_threshold_value numeric,
+  p_minimum_daily_orders integer,
+  p_minimum_daily_work_minutes integer,
+  p_recipient_scope text,
+  p_recipient_ids uuid[],
+  p_title_template text,
+  p_content_template text,
+  p_message_type text,
+  p_priority text,
+  p_reward_enabled boolean,
+  p_reward_amount numeric,
+  p_is_shared_template boolean,
+  p_starts_at timestamptz,
+  p_ends_at timestamptz
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+  RETURN public.save_notification_automation_task_copy_unlocked(
+    p_admin_session_token,
+    p_source_task_id,
+    p_task_id,
+    p_name,
+    p_description,
+    p_trigger_type,
+    p_trigger_mode,
+    p_threshold_value,
+    p_minimum_daily_orders,
+    p_minimum_daily_work_minutes,
+    p_recipient_scope,
+    p_recipient_ids,
+    p_title_template,
+    p_content_template,
+    p_message_type,
+    p_priority,
+    p_reward_enabled,
+    p_reward_amount,
+    p_is_shared_template,
+    p_starts_at,
+    p_ends_at
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.copy_shared_notification_automation_task(
+  p_admin_session_token uuid,
+  p_source_task_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+  RETURN public.copy_shared_notification_automation_task_unlocked(
+    p_admin_session_token,
+    p_source_task_id
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.set_notification_automation_task_status(
+  p_admin_session_token uuid,
+  p_task_id uuid,
+  p_status text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+  RETURN public.set_notification_automation_task_status_unlocked(
+    p_admin_session_token,
+    p_task_id,
+    p_status
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_create_employee_account(
+  p_admin_session_token uuid,
+  p_username text,
+  p_password text,
+  p_employee_id text,
+  p_created_by uuid,
+  p_remarks text
+)
+RETURNS jsonb
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+  SELECT public.admin_create_employee_account_with_automation_plan(
+    p_admin_session_token,
+    p_username,
+    p_password,
+    p_employee_id,
+    p_created_by,
+    p_remarks,
+    NULL
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_update_employee_account(
+  p_admin_session_token uuid,
+  p_user_id uuid,
+  p_updates jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+BEGIN
+  IF p_updates ? 'is_active' THEN
+    PERFORM private.acquire_notification_automation_configuration_lock();
+  END IF;
+  RETURN public.admin_update_employee_account_unlocked(
+    p_admin_session_token,
+    p_user_id,
+    p_updates
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_delete_employee_account(
+  p_admin_session_token uuid,
+  p_user_id uuid
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+  RETURN public.admin_delete_employee_account_unlocked(
+    p_admin_session_token,
+    p_user_id
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_delete_secondary_account(
+  p_admin_session_token uuid,
+  p_target_admin_id uuid
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+  RETURN public.admin_delete_secondary_account_unlocked(
+    p_admin_session_token,
+    p_target_admin_id
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.save_notification_automation_task_unlocked(uuid, uuid, text, text, text, text, numeric, integer, integer, text, uuid[], text, text, text, text, boolean, numeric, boolean, timestamptz, timestamptz) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.save_notification_automation_task_copy_unlocked(uuid, uuid, uuid, text, text, text, text, numeric, integer, integer, text, uuid[], text, text, text, text, boolean, numeric, boolean, timestamptz, timestamptz) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.copy_shared_notification_automation_task_unlocked(uuid, uuid) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.set_notification_automation_task_status_unlocked(uuid, uuid, text) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.admin_create_employee_account_unlocked(uuid, text, text, text, uuid, text) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.admin_update_employee_account_unlocked(uuid, uuid, jsonb) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.admin_delete_employee_account_unlocked(uuid, uuid) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.admin_delete_secondary_account_unlocked(uuid, uuid) FROM PUBLIC, anon, authenticated, service_role;
+
+GRANT EXECUTE ON FUNCTION public.save_notification_automation_task(uuid, uuid, text, text, text, text, numeric, integer, integer, text, uuid[], text, text, text, text, boolean, numeric, boolean, timestamptz, timestamptz) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.save_notification_automation_task_copy(uuid, uuid, uuid, text, text, text, text, numeric, integer, integer, text, uuid[], text, text, text, text, boolean, numeric, boolean, timestamptz, timestamptz) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.copy_shared_notification_automation_task(uuid, uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.set_notification_automation_task_status(uuid, uuid, text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_create_employee_account(uuid, text, text, text, uuid, text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_update_employee_account(uuid, uuid, jsonb) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_delete_employee_account(uuid, uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_delete_secondary_account(uuid, uuid) TO anon, authenticated, service_role;
+
 REVOKE ALL ON FUNCTION private.acquire_notification_automation_configuration_lock() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.snapshot_notification_automation_execution_plan() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.capture_notification_automation_assignment_baseline(public.notification_automation_tasks, uuid, timestamptz) FROM PUBLIC, anon, authenticated;
