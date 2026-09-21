@@ -1287,8 +1287,9 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         <div className="grid min-h-0 flex-1 lg:grid-cols-[270px_minmax(0,1fr)]">
           <aside className="hidden min-h-0 flex-col border-r border-slate-700/90 bg-[linear-gradient(180deg,#0b1220_0%,#0b1220_48%,#111827_100%)] lg:flex">
             <div className="border-b border-cyan-300/10 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.1),transparent_55%)] px-3 py-2.5">
-              <div className="flex items-center gap-1.5">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-500/10 text-cyan-200"><Sparkles className="h-3.5 w-3.5" /></span><p className="truncate text-xs font-black text-white">自動化方案</p><button type="button" onClick={() => openPlanModal()} className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-2 text-[10px] font-black text-white shadow-md shadow-cyan-950/30 transition-colors hover:from-cyan-400 hover:to-blue-500"><Plus className="h-3 w-3" />新增方案</button>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-1.5"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-500/10 text-cyan-200"><Sparkles className="h-3.5 w-3.5" /></span><p className="truncate text-xs font-black text-white">自動化方案</p></div>
+                <button type="button" onClick={() => openPlanModal()} className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-2 text-[10px] font-black text-white shadow-md shadow-cyan-950/30 transition-colors hover:from-cyan-400 hover:to-blue-500"><Plus className="h-3 w-3" />新增方案</button>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-1.5 text-[9px] font-bold">
                 <span className="flex h-6 items-center justify-between gap-1 rounded-md border border-emerald-300/15 bg-emerald-500/[0.08] px-2 text-emerald-100/75"><span className="truncate">執行中方案</span><strong className="shrink-0 text-[11px] font-black tabular-nums text-emerald-300">{dashboard.plans.filter(plan => plan.status === 'active').length}</strong></span>
