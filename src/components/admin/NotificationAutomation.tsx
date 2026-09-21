@@ -1187,7 +1187,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
         <div className="min-h-0 flex-1 overflow-hidden bg-slate-900">
           <div className="grid h-full min-h-0 w-full grid-cols-1 overflow-hidden border border-slate-700/70 bg-slate-950/45 xl:grid-cols-2">
-            <div className="min-h-0 overflow-y-auto rounded-2xl border border-slate-700/70 bg-slate-900/55 p-3 shadow-inner shadow-slate-950/30 xl:col-start-1 xl:row-start-1 xl:border-r">
+            <div className="min-h-0 overflow-y-auto rounded-none border border-slate-700/70 bg-slate-900/55 p-3 shadow-inner shadow-slate-950/30 xl:col-start-1 xl:row-start-1 xl:border-r">
               <NotificationDeliverySelector
                 value={form.deliveryMode}
                 onChange={deliveryMode => setForm(previous => ({ ...previous, deliveryMode }))}
