@@ -3152,7 +3152,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const activePlansForGroup = automationPlans.filter(plan => (
       plan.status === 'active' && plan.owner_admin_id === targetAdminId
     ));
-    const selectedPlan = activePlansForGroup.find(plan => plan.id === formData.automationPlanId);
     const fieldFocusClasses = isSuperGroup
       ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
       : 'focus:border-blue-500 focus:ring-blue-500/20';
@@ -3224,8 +3223,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             <div className={`mt-5 rounded-2xl border p-4 ${isSuperGroup ? 'border-yellow-300/20 bg-yellow-500/5' : 'border-cyan-300/20 bg-cyan-500/5'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <label htmlFor={`create-automation-plan-${targetAdminId}`} className={`block text-[11px] font-bold uppercase tracking-[0.14em] ${isSuperGroup ? 'text-yellow-100/80' : 'text-cyan-100/80'}`}>自動化方案</label>
-                  <p className="mt-1 text-[11px] leading-5 text-slate-400">建立帳戶時可一併套用此群組的啟用方案。</p>
+                  <label htmlFor={`create-automation-plan-${targetAdminId}`} className={`block text-[11px] font-bold uppercase tracking-[0.14em] ${isSuperGroup ? 'text-yellow-100/80' : 'text-cyan-100/80'}`}>自動化通知方案</label>
+                  <p className="mt-1 text-[11px] leading-5 text-slate-400">選擇後，員工帳號會直接加入方案，並套用方案內的通知任務。</p>
                 </div>
                 <Bell className={`mt-0.5 h-4 w-4 shrink-0 ${isSuperGroup ? 'text-yellow-300' : 'text-cyan-300'}`} />
               </div>
@@ -3239,23 +3238,20 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     className={`mt-3 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 shadow-sm outline-none transition-colors ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`}
                   >
                     <option value="">不指定方案</option>
-                    {activePlansForGroup.map(plan => {
-                      const selectedTaskCount = Number(plan.selected_task_count) || 0;
-                      return (
-                        <option key={plan.id} value={plan.id}>
-                          {plan.name}（{selectedTaskCount} 個指定員工任務{selectedTaskCount === 0 ? '，無需選擇' : ''}）
-                        </option>
-                      );
-                    })}
+                    {activePlansForGroup.map(plan => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name}（{Number(plan.selected_task_count) || 0} 個通知任務）
+                      </option>
+                    ))}
                   </select>
-                  {selectedPlan && (Number(selectedPlan.selected_task_count) || 0) === 0 && (
-                    <p className="mt-2 rounded-lg border border-slate-600/50 bg-slate-950/30 px-3 py-2 text-[11px] leading-5 text-slate-400">
-                      此方案目前只有全體員工任務，未包含指定員工任務；全體任務會自動生效，因此不需要特別指定此方案。
+                  {formData.automationPlanId && (
+                    <p className="mt-2 rounded-lg border border-cyan-300/15 bg-cyan-500/5 px-3 py-2 text-[11px] leading-5 text-cyan-100/75">
+                      建立成功後，此員工會出現在所選方案的「管理員工」名單中。
                     </p>
                   )}
                 </>
               ) : (
-                <p className="mt-3 rounded-lg border border-dashed border-slate-600/60 bg-slate-950/20 px-3 py-2 text-[11px] text-slate-500">此群組目前沒有可指定的啟用方案。</p>
+                <p className="mt-3 rounded-lg border border-dashed border-slate-600/60 bg-slate-950/20 px-3 py-2 text-[11px] text-slate-500">此群組目前沒有可用的自動化通知方案。</p>
               )}
             </div>
 
@@ -4002,7 +3998,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 const currentPlanIsSelectable = currentAssignment
                   ? activeOwnerPlans.some(plan => plan.id === currentAssignment.plan_id)
                   : false;
-                const selectedPlan = activeOwnerPlans.find(plan => plan.id === editingAutomationPlanId);
                 const statusLabel = currentAssignment?.plan_status === 'archived'
                   ? '已封存'
                   : currentAssignment?.plan_status === 'paused'
@@ -4013,7 +4008,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   <div className="rounded-2xl border border-cyan-300/20 bg-cyan-500/5 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <label htmlFor="edit-employee-automation-plan" className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">自動化方案</label>
+                        <label htmlFor="edit-employee-automation-plan" className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">自動化通知方案</label>
                         <p className="mt-1 text-[11px] leading-5 text-slate-400">
                           目前方案：<span className="font-semibold text-cyan-100">{currentAssignment ? currentAssignment.plan_name : '不指定方案'}</span>
                           {currentAssignment && <span className="ml-1 text-slate-500">（{statusLabel}）</span>}
@@ -4039,17 +4034,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                       )}
                       {activeOwnerPlans.map(plan => (
                         <option key={plan.id} value={plan.id}>
-                          {plan.name}（{Number(plan.selected_task_count) || 0} 個指定員工任務）
+                          {plan.name}（{Number(plan.selected_task_count) || 0} 個通知任務）
                         </option>
                       ))}
                     </select>
                     {activeOwnerPlans.length === 0 && !currentAssignment && (
                       <p className="mt-2 text-[11px] text-slate-500">此員工所屬群組目前沒有可指定的啟用方案。</p>
                     )}
-                    {selectedPlan && (Number(selectedPlan.selected_task_count) || 0) === 0 && (
-                      <p className="mt-2 text-[11px] leading-5 text-slate-500">此方案目前只有全體員工任務，沒有指定員工任務，因此不需要特別選擇。</p>
+                    {editingAutomationPlanId && (
+                      <p className="mt-2 text-[11px] leading-5 text-cyan-100/70">儲存後，此員工會加入所選方案的「管理員工」名單。</p>
                     )}
-                    <p className="mt-3 border-t border-cyan-300/10 pt-3 text-[11px] leading-5 text-slate-400">變更只會影響未來的指定員工自動化；既有發送與執行歷史都會保留。</p>
+                    <p className="mt-3 border-t border-cyan-300/10 pt-3 text-[11px] leading-5 text-slate-400">變更會同步方案員工名單並影響後續通知任務；既有發送與執行歷史都會保留。</p>
                   </div>
                 );
               })()}
