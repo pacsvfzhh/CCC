@@ -460,6 +460,14 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     () => employees.filter(employee => pendingRecipientIds.includes(employee.id)),
     [employees, pendingRecipientIds],
   );
+  const visiblePendingSelectedEmployees = useMemo(() => {
+    const query = employeePickerSearch.trim().toLocaleLowerCase();
+    if (!query) return pendingSelectedEmployees;
+    return pendingSelectedEmployees.filter(employee => (
+      employee.username.toLocaleLowerCase().includes(query)
+      || employee.employee_id.toLocaleLowerCase().includes(query)
+    ));
+  }, [employeePickerSearch, pendingSelectedEmployees]);
 
   const togglePendingEmployee = (employeeId: string) => {
     setPendingRecipientIds(previous => previous.includes(employeeId)
@@ -1122,9 +1130,13 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                     <p className="mt-3 text-xs font-bold text-slate-300">尚未選擇員工</p>
                     <p className="mt-1 text-[11px] leading-5 text-slate-500">勾選左側員工後，名單會顯示在這裡</p>
                   </div>
+                ) : visiblePendingSelectedEmployees.length === 0 ? (
+                  <div className="flex h-full min-h-[210px] items-center justify-center px-4 py-8 text-center text-xs font-semibold text-slate-500">
+                    找不到符合搜尋條件的已選員工
+                  </div>
                 ) : (
                   <div className="h-full divide-y divide-cyan-300/10 overflow-y-auto overflow-anchor-none bg-slate-950/20 [scrollbar-gutter:stable] dark-panel-scroll">
-                    {pendingSelectedEmployees.map(employee => (
+                    {visiblePendingSelectedEmployees.map(employee => (
                       <div key={employee.id} className="group grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_1.75rem] items-center gap-2 border-l-2 border-l-transparent px-3 py-1.5 transition-colors hover:border-l-cyan-300 hover:bg-cyan-950/25">
                         <span className="min-w-0 truncate text-xs font-black text-cyan-50">{employee.username}</span>
                         <span className="min-w-0 truncate text-[11px] font-semibold text-slate-400">{employee.employee_id}</span>
