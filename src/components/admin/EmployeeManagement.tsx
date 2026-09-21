@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet, MapPin, Clock3, History, LogIn, LogOut } from 'lucide-react';
 import { formatSupabaseError, isFinancialAdminSessionError, isSupabaseAbortError, supabase } from '../../lib/supabase';
-import { Employee, Admin } from '../../types';
+import { Employee, Admin, NotificationAutomationPlan, NotificationAutomationPlanAssignment } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken, logout } from '../../lib/auth';
 import EmployeeDetailModal from './EmployeeDetailModal';
 import LoginDeviceSummary from './LoginDeviceSummary';
@@ -180,7 +180,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [automationPlans, setAutomationPlans] = useState<NotificationAutomationPlan[]>([]);
+  const [automationAssignmentsByEmployee, setAutomationAssignmentsByEmployee] = useState<Map<string, NotificationAutomationPlanAssignment>>(new Map());
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithAdmin | null>(null);
+  const [editingAutomationPlanId, setEditingAutomationPlanId] = useState('');
+  const [savingEmployeeEdit, setSavingEmployeeEdit] = useState(false);
+  const [editEmployeeError, setEditEmployeeError] = useState<string | null>(null);
   const [editingRemarksOnly, setEditingRemarksOnly] = useState<EmployeeWithAdmin | null>(null);
   const [showPasswordReset, setShowPasswordReset] = useState<{id: string; username: string; employeeId: string} | null>(null);
   const [newPassword, setNewPassword] = useState('');
@@ -214,6 +219,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     password: '',
     employeeId: '',
     remarks: '',
+    automationPlanId: '',
   });
   const [selectedAdminForCreate, setSelectedAdminForCreate] = useState<string | null>(null);
   const adminFilterRef = useRef<HTMLDivElement>(null);
@@ -294,7 +300,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const pendingReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextAutoRefreshAtRef = useRef(Date.now() + AUTO_REFRESH_INTERVAL_MS);
-  const guardedLoadEmployeesRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
+  const guardedLoadEmployeesRef = useRef<((silent?: boolean) => Promise<boolean>) | null>(null);
   const realtimeChangeGenerationRef = useRef(0);
   const employeeScopeGenerationRef = useRef(0);
   const employeeScopeKeyRef = useRef(`${admin.id}:${admin.role}`);
@@ -404,6 +410,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       initialLoadStartedRef.current = false;
       employeeGroupsRef.current = [];
       setEmployeeGroups([]);
+      setAutomationPlans([]);
+      setAutomationAssignmentsByEmployee(new Map());
+      setEditingAutomationPlanId('');
+      setEditEmployeeError(null);
       setExpandedGroups(new Set());
       setLoadError(null);
       setLoading(true);
@@ -790,6 +800,21 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setFormData({ ...formData, password });
   };
 
+  const openCreateEmployeeForm = (targetAdminId: string) => {
+    setFormData(prev => ({ ...prev, automationPlanId: '' }));
+    setCreateError(null);
+    setSelectedAdminForCreate(targetAdminId);
+    setShowCreateForm(true);
+    setExpandedGroups(prev => new Set(prev).add(targetAdminId));
+  };
+
+  const closeCreateEmployeeForm = () => {
+    setShowCreateForm(false);
+    setCreateError(null);
+    setFormData({ username: '', password: '', employeeId: '', remarks: '', automationPlanId: '' });
+    setSelectedAdminForCreate(null);
+  };
+
   const generateResetPassword = () => {
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
     let password = '';
@@ -799,10 +824,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setNewPassword(password);
   };
 
-  const guardedLoadEmployees = async (silent: boolean = true) => {
+  const guardedLoadEmployees = async (silent: boolean = true): Promise<boolean> => {
     if (loadInProgressRef.current) {
       pendingReloadRef.current = true;
-      return;
+      return false;
     }
     if (pendingReloadTimerRef.current) {
       clearTimeout(pendingReloadTimerRef.current);
@@ -813,6 +838,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     try {
       const committed = await loadEmployees(silent);
       resetAutoRefreshTimer(committed ? AUTO_REFRESH_INTERVAL_MS : AUTO_REFRESH_RETRY_MS);
+      return committed;
     } finally {
       loadInProgressRef.current = false;
       if (isMountedRef.current && pendingReloadRef.current) schedulePendingReload();
@@ -835,12 +861,28 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     }
 
     try {
-      const { data: snapshot, error } = await supabase.rpc('get_employee_management_snapshot', {
-        p_admin_session_token: getAdminFinancialSessionToken(),
-      });
-      if (error) throw error;
+      const sessionToken = getAdminFinancialSessionToken();
+      const [employeeSnapshotResult, planAssignmentResult] = await Promise.all([
+        supabase.rpc('get_employee_management_snapshot', {
+          p_admin_session_token: sessionToken,
+        }),
+        supabase.rpc('get_notification_automation_plan_assignments', {
+          p_admin_session_token: sessionToken,
+        }),
+      ]);
+      if (employeeSnapshotResult.error) throw employeeSnapshotResult.error;
+      if (planAssignmentResult.error) throw planAssignmentResult.error;
+
+      const snapshot = employeeSnapshotResult.data;
+      const planAssignmentSnapshot = planAssignmentResult.data as {
+        plans?: NotificationAutomationPlan[];
+        assignments?: NotificationAutomationPlanAssignment[];
+      } | null;
       if (!snapshot || !Array.isArray(snapshot.admins) || !Array.isArray(snapshot.employees)) {
         throw new Error('Employee management snapshot response was invalid.');
+      }
+      if (!planAssignmentSnapshot || !Array.isArray(planAssignmentSnapshot.plans) || !Array.isArray(planAssignmentSnapshot.assignments)) {
+        throw new Error('Notification automation plan assignment response was invalid.');
       }
 
       const adminMap = new Map(snapshot.admins.map(adminInfo => [adminInfo.id, adminInfo]));
@@ -913,8 +955,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         return false;
       }
 
+      const nextAssignmentsByEmployee = new Map<string, NotificationAutomationPlanAssignment>(
+        planAssignmentSnapshot.assignments.map(assignment => [assignment.user_id, assignment]),
+      );
+
       realtimeChangeGenerationRef.current += 1;
       setEmployeeGroups(groupsArray);
+      setAutomationPlans(planAssignmentSnapshot.plans);
+      setAutomationAssignmentsByEmployee(nextAssignmentsByEmployee);
       setAdminPinOverrides(new Map());
       setLoadError(null);
       setLoading(false);
@@ -962,19 +1010,20 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         ? admin.id
         : (selectedAdminForCreate || admin.id);
 
-      const { data: result, error } = await supabase.rpc('admin_create_employee_account', {
+      const { data: result, error } = await supabase.rpc('admin_create_employee_account_with_automation_plan', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_username: formData.username.trim(),
         p_password: formData.password,
         p_employee_id: formData.employeeId.trim(),
         p_created_by: createdBy,
         p_remarks: formData.remarks.trim(),
+        p_automation_plan_id: formData.automationPlanId || null,
       });
 
       if (error) throw new Error(formatSupabaseError(error));
       if (!result?.success) throw new Error(result?.error || '建立員工失敗');
 
-      setFormData({ username: '', password: '', employeeId: '', remarks: '' });
+      setFormData({ username: '', password: '', employeeId: '', remarks: '', automationPlanId: '' });
       setShowCreateForm(false);
       setCreateError(null);
       setSelectedAdminForCreate(null);
@@ -1204,6 +1253,112 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       }
       setNotification({ show: true, type: 'error', title: '錯誤', message: '更新員工資料失敗，已還原畫面內容' });
       void guardedLoadEmployeesRef.current?.(true);
+    }
+  };
+
+  const openEmployeeEditor = useCallback((employee: EmployeeWithAdmin) => {
+    setEditingEmployee(employee);
+    setEditingAutomationPlanId(automationAssignmentsByEmployee.get(employee.id)?.plan_id || '');
+    setEditEmployeeError(null);
+  }, [automationAssignmentsByEmployee]);
+
+  const closeEmployeeEditor = () => {
+    if (savingEmployeeEdit) return;
+    setEditingEmployee(null);
+    setEditingAutomationPlanId('');
+    setEditEmployeeError(null);
+  };
+
+  const handleSaveEmployeeEdit = async () => {
+    if (!editingEmployee || savingEmployeeEdit) return;
+
+    const username = editingEmployee.username.trim();
+    const employeeId = editingEmployee.employee_id.trim();
+    if (!username || !employeeId) {
+      setEditEmployeeError('使用者名稱與員工 ID 均為必填。');
+      return;
+    }
+
+    const currentAssignment = automationAssignmentsByEmployee.get(editingEmployee.id);
+    const nextPlanId = editingAutomationPlanId || null;
+    const assignmentChanged = (currentAssignment?.plan_id || null) !== nextPlanId;
+    const activeOwnerPlans = automationPlans.filter(plan => (
+      plan.status === 'active' && plan.owner_admin_id === editingEmployee.created_by
+    ));
+    const selectedPlan = nextPlanId
+      ? activeOwnerPlans.find(plan => plan.id === nextPlanId)
+      : null;
+    let profileSaved = false;
+
+    setSavingEmployeeEdit(true);
+    setEditEmployeeError(null);
+
+    try {
+      const { error: profileError } = await supabase.rpc('admin_update_employee_account', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_user_id: editingEmployee.id,
+        p_updates: {
+          username,
+          employee_id: employeeId,
+          remarks: (editingEmployee.remarks || '').trim(),
+        },
+      });
+      if (profileError) throw profileError;
+      profileSaved = true;
+
+      if (assignmentChanged) {
+        const { data: assignmentResult, error: assignmentError } = await supabase.rpc('set_notification_automation_plan_for_employee', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_user_id: editingEmployee.id,
+          p_plan_id: nextPlanId,
+        });
+        if (assignmentError) throw assignmentError;
+        if (!assignmentResult?.success) throw new Error('自動化方案更新未成功完成。');
+      }
+
+      const refreshed = await guardedLoadEmployeesRef.current?.(false);
+      if (!refreshed) {
+        setEditEmployeeError(assignmentChanged
+          ? '員工帳戶資料與自動化方案已儲存，但目前無法重新載入伺服器資料。請保留此視窗並稍後重試。'
+          : '員工帳戶資料已儲存，但目前無法重新載入伺服器資料。請保留此視窗並稍後重試。');
+        return;
+      }
+
+      setEditingEmployee(null);
+      setEditingAutomationPlanId('');
+      setEditEmployeeError(null);
+      setNotification({
+        show: true,
+        type: 'success',
+        category: 'profile',
+        title: '員工資料已儲存',
+        message: assignmentChanged
+          ? '帳戶資料與自動化方案已成功更新，並已從伺服器重新整理。'
+          : '帳戶資料已成功更新，並已從伺服器重新整理。',
+        employee: { username, employeeId },
+        details: [
+          { label: '使用者名稱', value: username },
+          { label: '員工 ID', value: employeeId },
+          { label: '備註', value: editingEmployee.remarks?.trim() || '（空白）' },
+          ...(assignmentChanged ? [{
+            label: '自動化方案',
+            value: selectedPlan?.name || (nextPlanId ? currentAssignment?.plan_name || '已更新' : '不指定方案'),
+          }] : []),
+        ],
+      });
+    } catch (error) {
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+        return;
+      }
+
+      console.error('Error saving employee and automation plan:', formatSupabaseError(error));
+      setEditEmployeeError(profileSaved
+        ? `員工帳戶資料已儲存，但自動化方案更新失敗：${formatSupabaseError(error) || '請重試。'}`
+        : `員工帳戶資料儲存失敗，自動化方案尚未變更：${formatSupabaseError(error) || '請重試。'}`);
+      await guardedLoadEmployeesRef.current?.(true);
+    } finally {
+      setSavingEmployeeEdit(false);
     }
   };
 
@@ -2578,7 +2733,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         {isOpen && (
           <div className="absolute right-8 top-1/2 z-50 flex h-7 -translate-y-1/2 items-center gap-1 whitespace-nowrap rounded-xl border border-slate-400/55 bg-[#0b1220] px-1.5 shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_12px_30px_rgba(2,6,23,0.86)] ring-1 ring-inset ring-blue-300/15">
             <button
-              onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); setEditingEmployee(employee); }}
+              onClick={(e) => { e.stopPropagation(); setOpenActionMenu(null); openEmployeeEditor(employee); }}
               className="group inline-flex h-6 items-center gap-1.5 rounded-md border border-blue-300/45 border-l-2 border-l-blue-300/95 bg-blue-950/75 px-3 text-xs font-extrabold text-blue-100 shadow-[inset_0_1px_0_rgba(147,197,253,0.16)] transition-all duration-150 hover:-translate-y-px hover:border-blue-100 hover:bg-blue-600 hover:text-white hover:shadow-[0_0_14px_rgba(59,130,246,0.62)] active:translate-y-px active:scale-[0.96] active:bg-blue-800 active:shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               title="編輯詳情"
               aria-label="編輯員工"
@@ -2608,7 +2763,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         )}
       </div>
     );
-  }, [openActionMenu]);
+  }, [openActionMenu, openEmployeeEditor]);
 
   const renderEmployeeRow = useCallback((employee: EmployeeWithAdmin, index: number, isSuperAdmin: boolean) => (
     <tr
@@ -2957,6 +3112,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const renderCreateForm = (targetAdminId: string, groupAdmin?: { role: string; username: string }) => {
     if (!showCreateForm || selectedAdminForCreate !== targetAdminId) return null;
     const isSuperGroup = groupAdmin?.role === 'super_admin';
+    const activePlansForGroup = automationPlans.filter(plan => (
+      plan.status === 'active' && plan.owner_admin_id === targetAdminId
+    ));
+    const selectedPlan = activePlansForGroup.find(plan => plan.id === formData.automationPlanId);
     const fieldFocusClasses = isSuperGroup
       ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
       : 'focus:border-blue-500 focus:ring-blue-500/20';
@@ -3025,8 +3184,46 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               </div>
             </div>
 
+            <div className={`mt-5 rounded-2xl border p-4 ${isSuperGroup ? 'border-yellow-300/20 bg-yellow-500/5' : 'border-cyan-300/20 bg-cyan-500/5'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <label htmlFor={`create-automation-plan-${targetAdminId}`} className={`block text-[11px] font-bold uppercase tracking-[0.14em] ${isSuperGroup ? 'text-yellow-100/80' : 'text-cyan-100/80'}`}>自動化方案</label>
+                  <p className="mt-1 text-[11px] leading-5 text-slate-400">建立帳戶時可一併套用此群組的啟用方案。</p>
+                </div>
+                <Bell className={`mt-0.5 h-4 w-4 shrink-0 ${isSuperGroup ? 'text-yellow-300' : 'text-cyan-300'}`} />
+              </div>
+              {activePlansForGroup.length > 0 ? (
+                <>
+                  <select
+                    id={`create-automation-plan-${targetAdminId}`}
+                    value={formData.automationPlanId}
+                    onChange={(event) => setFormData({ ...formData, automationPlanId: event.target.value })}
+                    disabled={creating}
+                    className={`mt-3 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 shadow-sm outline-none transition-colors ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`}
+                  >
+                    <option value="">不指定方案</option>
+                    {activePlansForGroup.map(plan => {
+                      const selectedTaskCount = Number(plan.selected_task_count) || 0;
+                      return (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name}（{selectedTaskCount} 個指定員工任務{selectedTaskCount === 0 ? '，無需選擇' : ''}）
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {selectedPlan && (Number(selectedPlan.selected_task_count) || 0) === 0 && (
+                    <p className="mt-2 rounded-lg border border-slate-600/50 bg-slate-950/30 px-3 py-2 text-[11px] leading-5 text-slate-400">
+                      此方案目前只有全體員工任務，未包含指定員工任務；全體任務會自動生效，因此不需要特別指定此方案。
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="mt-3 rounded-lg border border-dashed border-slate-600/60 bg-slate-950/20 px-3 py-2 text-[11px] text-slate-500">此群組目前沒有可指定的啟用方案。</p>
+              )}
+            </div>
+
             <div className="mt-5 flex items-center justify-end gap-2 border-t border-slate-700/70 pt-4">
-              <button type="button" onClick={() => { setShowCreateForm(false); setCreateError(null); setFormData({ username: '', password: '', employeeId: '', remarks: '' }); setSelectedAdminForCreate(null); }} disabled={creating} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="button" onClick={closeCreateEmployeeForm} disabled={creating} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
                 <X className="h-4 w-4" />
                 取消
               </button>
@@ -3341,7 +3538,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               <p className="text-slate-400 font-medium mb-2">找不到員工</p>
               <p className="text-slate-500 text-sm mb-4">建立第一位員工以開始使用</p>
               <button
-                onClick={() => { setSelectedAdminForCreate(admin.id); setShowCreateForm(true); }}
+                onClick={() => openCreateEmployeeForm(admin.id)}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105"
               >
                 <UserPlus className="w-5 h-5" /> 建立員工
@@ -3481,7 +3678,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 )}
                 <div className="ml-auto flex shrink-0 items-center gap-2">
                   <button
-                    onClick={() => { setSelectedAdminForCreate(admin.id); setShowCreateForm(true); }}
+                    onClick={() => openCreateEmployeeForm(admin.id)}
                     className="inline-flex h-7 items-center gap-1.5 rounded-md border border-blue-400/40 bg-blue-600/85 px-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-950/40 transition-all hover:border-blue-300/60 hover:bg-blue-500 active:bg-blue-700"
                   >
                     <UserPlus className="h-3.5 w-3.5" /> 建立員工
@@ -3642,7 +3839,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                       </div>
                       <button
                         type="button"
-                        onClick={() => { setSelectedAdminForCreate(group.admin.id); setShowCreateForm(true); setExpandedGroups(prev => new Set(prev).add(group.admin.id)); }}
+                        onClick={() => openCreateEmployeeForm(group.admin.id)}
                         className="ml-auto inline-flex h-7 shrink-0 -translate-y-0.5 items-center gap-1.5 rounded-lg border border-yellow-400/50 bg-yellow-600/80 px-2.5 py-1 text-[11px] font-semibold text-yellow-50 shadow-lg shadow-yellow-950/30 transition-all hover:border-yellow-300/70 hover:bg-yellow-500 active:bg-yellow-700"
                       >
                         <UserPlus className="h-3.5 w-3.5" /> 新增
@@ -3709,8 +3906,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       {/* ===== MODALS ===== */}
 
       {editingEmployee && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEditingEmployee(null)}>
-          <div className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-blue-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={closeEmployeeEditor}>
+          <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-[1.75rem] border border-blue-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="relative overflow-hidden rounded-t-[1.75rem] border-b border-blue-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-5 py-5 sm:px-6">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
               <div className="flex items-start justify-between gap-4">
@@ -3724,7 +3921,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     <p className="mt-1 text-xs text-blue-100/60">更新可識別資訊與內部備註。</p>
                   </div>
                 </div>
-                <button type="button" onClick={() => setEditingEmployee(null)} aria-label="關閉編輯員工" className="rounded-xl border border-blue-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-blue-300/40 hover:bg-blue-400/10 hover:text-white">
+                <button type="button" onClick={closeEmployeeEditor} disabled={savingEmployeeEdit} aria-label="關閉編輯員工" className="rounded-xl border border-blue-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-blue-300/40 hover:bg-blue-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -3746,30 +3943,92 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     使用者名稱
                     <span className="rounded-full border border-blue-300/20 bg-blue-400/10 px-2 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-blue-200">登入識別</span>
                   </label>
-                  <input id="edit-employee-username" type="text" value={editingEmployee.username} onChange={(e) => setEditingEmployee({ ...editingEmployee, username: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20" />
+                  <input id="edit-employee-username" type="text" value={editingEmployee.username} onChange={(e) => setEditingEmployee({ ...editingEmployee, username: e.target.value })} disabled={savingEmployeeEdit} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400" />
                 </div>
                 <div>
                   <label className="mb-2 flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[0.14em] text-blue-100" htmlFor="edit-employee-id">
                     員工 ID
                     <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-cyan-200">內部識別</span>
                   </label>
-                  <input id="edit-employee-id" type="text" value={editingEmployee.employee_id} onChange={(e) => setEditingEmployee({ ...editingEmployee, employee_id: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20" />
+                  <input id="edit-employee-id" type="text" value={editingEmployee.employee_id} onChange={(e) => setEditingEmployee({ ...editingEmployee, employee_id: e.target.value })} disabled={savingEmployeeEdit} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400" />
                 </div>
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-blue-100" htmlFor="edit-employee-remarks">備註</label>
-                  <input id="edit-employee-remarks" type="text" value={editingEmployee.remarks || ''} onChange={(e) => setEditingEmployee({ ...editingEmployee, remarks: e.target.value })} placeholder="輸入管理員備註……" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20" />
+                  <input id="edit-employee-remarks" type="text" value={editingEmployee.remarks || ''} onChange={(e) => setEditingEmployee({ ...editingEmployee, remarks: e.target.value })} disabled={savingEmployeeEdit} placeholder="輸入管理員備註……" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400" />
                 </div>
               </div>
+              {(() => {
+                const currentAssignment = automationAssignmentsByEmployee.get(editingEmployee.id);
+                const activeOwnerPlans = automationPlans.filter(plan => (
+                  plan.status === 'active' && plan.owner_admin_id === editingEmployee.created_by
+                ));
+                const currentPlanIsSelectable = currentAssignment
+                  ? activeOwnerPlans.some(plan => plan.id === currentAssignment.plan_id)
+                  : false;
+                const selectedPlan = activeOwnerPlans.find(plan => plan.id === editingAutomationPlanId);
+                const statusLabel = currentAssignment?.plan_status === 'archived'
+                  ? '已封存'
+                  : currentAssignment?.plan_status === 'paused'
+                    ? '已暫停'
+                    : '啟用中';
+
+                return (
+                  <div className="rounded-2xl border border-cyan-300/20 bg-cyan-500/5 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <label htmlFor="edit-employee-automation-plan" className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">自動化方案</label>
+                        <p className="mt-1 text-[11px] leading-5 text-slate-400">
+                          目前方案：<span className="font-semibold text-cyan-100">{currentAssignment ? currentAssignment.plan_name : '不指定方案'}</span>
+                          {currentAssignment && <span className="ml-1 text-slate-500">（{statusLabel}）</span>}
+                        </p>
+                      </div>
+                      <Bell className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
+                    </div>
+                    <select
+                      id="edit-employee-automation-plan"
+                      value={editingAutomationPlanId}
+                      onChange={(event) => setEditingAutomationPlanId(event.target.value)}
+                      disabled={savingEmployeeEdit}
+                      className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="">不指定方案</option>
+                      {currentAssignment && !currentPlanIsSelectable && (
+                        <option value={currentAssignment.plan_id} disabled>
+                          {currentAssignment.plan_name}（{statusLabel}，僅保留歷史指派）
+                        </option>
+                      )}
+                      {activeOwnerPlans.map(plan => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name}（{Number(plan.selected_task_count) || 0} 個指定員工任務）
+                        </option>
+                      ))}
+                    </select>
+                    {activeOwnerPlans.length === 0 && !currentAssignment && (
+                      <p className="mt-2 text-[11px] text-slate-500">此員工所屬群組目前沒有可指定的啟用方案。</p>
+                    )}
+                    {selectedPlan && (Number(selectedPlan.selected_task_count) || 0) === 0 && (
+                      <p className="mt-2 text-[11px] leading-5 text-slate-500">此方案目前只有全體員工任務，沒有指定員工任務，因此不需要特別選擇。</p>
+                    )}
+                    <p className="mt-3 border-t border-cyan-300/10 pt-3 text-[11px] leading-5 text-slate-400">變更只會影響未來的指定員工自動化；既有發送與執行歷史都會保留。</p>
+                  </div>
+                );
+              })()}
+              {editEmployeeError && (
+                <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-red-400/35 bg-red-500/10 px-3.5 py-3 text-xs leading-5 text-red-200">
+                  <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{editEmployeeError}</span>
+                </div>
+              )}
               <div className="flex items-start gap-2.5 rounded-xl border border-blue-300/15 bg-blue-500/5 px-3.5 py-3 text-xs leading-5 text-slate-400">
                 <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-300" />
-                <span>儲存後，員工清單與相關管理檢視會同步顯示最新資料。</span>
+                <span>儲存後，員工清單與相關管理檢視會從伺服器重新載入最新資料。</span>
               </div>
             </div>
             <div className="flex flex-col-reverse gap-2 overflow-hidden rounded-b-[1.75rem] border-t border-blue-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
-              <button type="button" onClick={() => setEditingEmployee(null)} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white">取消</button>
-              <button type="button" onClick={() => handleUpdateEmployee(editingEmployee.id, { username: editingEmployee.username, employee_id: editingEmployee.employee_id, remarks: editingEmployee.remarks })} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300/40 bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-950/35 transition-colors hover:bg-blue-500 active:bg-blue-700">
-                <CheckCircle className="h-4 w-4" />
-                儲存變更
+              <button type="button" onClick={closeEmployeeEditor} disabled={savingEmployeeEdit} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">取消</button>
+              <button type="button" onClick={() => void handleSaveEmployeeEdit()} disabled={savingEmployeeEdit || !editingEmployee.username.trim() || !editingEmployee.employee_id.trim()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300/40 bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-950/35 transition-colors hover:bg-blue-500 active:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                {savingEmployeeEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                {savingEmployeeEdit ? '儲存中…' : '儲存變更'}
               </button>
             </div>
           </div>
