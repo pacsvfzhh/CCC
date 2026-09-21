@@ -439,6 +439,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [memberPickerSearch, setMemberPickerSearch] = useState('');
   const [memberPickerStatusFilter, setMemberPickerStatusFilter] = useState<EmployeePickerStatusFilter>('all');
   const [pendingMemberIds, setPendingMemberIds] = useState<string[]>([]);
+  const [memberTagPopover, setMemberTagPopover] = useState<{ employee: AutomationEmployee; x: number; y: number } | null>(null);
   const loadRef = useRef<((ownerAdminId?: string) => Promise<void>) | null>(null);
   const dashboardRequestIdRef = useRef(0);
   const executionRequestIdRef = useRef(0);
@@ -808,6 +809,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     memberInitialSnapshotRef.current = serializeMemberIds(selectedPlanMemberIds);
     setMemberPickerSearch('');
     setMemberPickerStatusFilter('all');
+    setMemberTagPopover(null);
     setMemberPickerOpen(true);
   };
 
@@ -817,6 +819,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
       setDiscardTarget('members');
       return;
     }
+    setMemberTagPopover(null);
     setMemberPickerOpen(false);
   };
 
@@ -830,6 +833,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
         p_user_ids: pendingMemberIds,
       });
       if (error) throw error;
+      setMemberTagPopover(null);
       setMemberPickerOpen(false);
       showNotice('success', `員工名單已更新：新增 ${membersAdded.length} 名、移除 ${membersRemoved.length} 名${membersMoved.length ? `，其中 ${membersMoved.length} 名由其他方案移入` : ''}`);
       setRefreshing(true);
@@ -1181,7 +1185,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                 const assignedElsewhere = assignedPlan && assignedPlan.id !== selectedPlan.id;
                 return <button key={employee.id} type="button" onClick={() => togglePendingMember(employee.id)} className={`flex w-full items-start gap-3 border-l-2 px-4 py-2.5 text-left transition-colors ${selected ? 'border-cyan-300 bg-cyan-500/10' : 'border-transparent hover:bg-slate-800/70'}`}>
                   <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${selected ? 'border-cyan-200 bg-cyan-500 text-white' : 'border-slate-600 bg-slate-950 text-transparent'}`}><CheckCircle2 className="h-3.5 w-3.5" /></span>
-                  <span className="min-w-0 flex-1"><span className="flex min-w-0 items-center gap-2"><span className="truncate text-xs font-black text-white">{employee.username}</span><span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-black ${employee.is_active ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>{employee.is_active ? '啟用' : '停用'}</span></span><span className="mt-0.5 flex min-w-0 items-center gap-1"><span className="min-w-0 flex-1 truncate text-[10px] text-slate-500">{employee.employee_id}</span>{employee.tags?.length ? <span className="group/tags relative shrink-0"><span className="flex max-w-[104px] items-center gap-1"><span className="truncate rounded-full border border-amber-500/30 bg-amber-500/20 px-1.5 py-0 text-[10px] font-medium text-amber-400">{employee.tags[0]}</span>{employee.tags.length > 1 && <span className="text-[10px] text-slate-500">+{employee.tags.length - 1}</span>}</span><span className="pointer-events-none absolute left-full top-1/2 z-30 ml-2 hidden w-max max-w-[260px] -translate-y-1/2 flex-wrap gap-1 rounded-lg border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-950 shadow-xl group-hover/tags:flex">{employee.tags.map((tag, index) => <span key={`${tag}-${index}`} className="rounded-full border border-amber-700 bg-amber-900 px-1.5 py-px text-[10px] font-medium text-amber-100">{tag}</span>)}</span></span> : null}</span>{assignedElsewhere && <span className="mt-1 block truncate text-[10px] font-bold text-amber-300">目前屬於「{assignedPlan.name}」，儲存後將移入此方案</span>}</span>
+                  <span className="min-w-0 flex-1"><span className="flex min-w-0 items-center gap-2"><span className="truncate text-xs font-black text-white">{employee.username}</span><span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-black ${employee.is_active ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>{employee.is_active ? '啟用' : '停用'}</span></span><span className="mt-0.5 flex min-w-0 items-center gap-1"><span className="shrink-0 text-[10px] text-slate-500">{employee.employee_id}</span>{employee.tags?.length ? <span className="min-w-0 flex-1" onMouseEnter={event => { const rect = event.currentTarget.getBoundingClientRect(); setMemberTagPopover({ employee, x: rect.right + 8, y: rect.top + rect.height / 2 }); }} onMouseLeave={() => setMemberTagPopover(null)}><span className="flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap">{employee.tags.map((tag, index) => <span key={`${tag}-${index}`} className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/20 px-1.5 py-0 text-[10px] font-medium text-amber-400">{tag}</span>)}</span>{memberTagPopover?.employee.id === employee.id && createPortal(<div className="pointer-events-none fixed z-[260] flex w-max max-w-[320px] flex-wrap gap-1 rounded-lg border border-amber-300 bg-amber-100 px-2.5 py-1.5 text-xs font-semibold text-amber-950 shadow-[0_12px_30px_rgba(2,6,23,0.45)]" style={{ left: memberTagPopover.x, top: memberTagPopover.y, transform: 'translateY(-50%)' }}>{employee.tags.map((tag, index) => <span key={`${tag}-${index}`} className="rounded-full border border-amber-700 bg-amber-900 px-1.5 py-px text-[10px] font-medium text-amber-100">{tag}</span>)}</div>, document.body)}</span> : null}</span>{assignedElsewhere && <span className="mt-1 block truncate text-[10px] font-bold text-amber-300">目前屬於「{assignedPlan.name}」，儲存後將移入此方案</span>}</span>
                 </button>;
               })}
             </div>
