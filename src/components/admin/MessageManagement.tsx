@@ -557,7 +557,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           content: htmlContent,
         }).eq('id', editingTemplateId);
         if (error) throw error;
-        setNotification({ type: 'success', message: `Template updated!` });
+        setNotification({ type: 'success', message: '範本已更新！' });
       } else {
         const { error } = await supabase.from('message_templates').insert({
           admin_id: admin.id,
@@ -566,7 +566,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           content: htmlContent,
         });
         if (error) throw error;
-        setNotification({ type: 'success', message: `Template "${newTemplateName.trim()}" saved!` });
+        setNotification({ type: 'success', message: `範本「${newTemplateName.trim()}」已儲存！` });
       }
       setEditingTemplateId(null);
       setNewTemplateName('');
@@ -575,7 +575,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       templateEditorRef2.current?.getEditor()?.commands.clearContent();
       loadTemplates();
     } catch (error: unknown) {
-      setNotification({ type: 'error', message: formatSupabaseError(error) || 'Failed to save template' });
+      setNotification({ type: 'error', message: formatSupabaseError(error) || '儲存範本失敗' });
     } finally {
       setSavingTemplate(false);
     }
@@ -605,7 +605,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     }));
     composeEditorRef.current?.getEditor()?.commands.setContent(template.content);
     setShowTemplateDropdown(false);
-    setNotification({ type: 'success', message: `Template "${template.name}" applied` });
+    setNotification({ type: 'success', message: `已套用範本「${template.name}」` });
   };
 
   const deleteTemplate = async (templateId: string, e: React.MouseEvent) => {
@@ -697,18 +697,18 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
   const validateAndSendMessage = async () => {
     if (!messageForm.title.trim()) {
-      setNotification({ type: 'error', message: 'Please enter a message title' });
+      setNotification({ type: 'error', message: '請輸入訊息標題' });
       return;
     }
 
     const content = composeEditorRef.current?.getContent() || '';
     if (!content.trim() || content === '<p></p>') {
-      setNotification({ type: 'error', message: 'Please enter message content' });
+      setNotification({ type: 'error', message: '請輸入訊息內容' });
       return;
     }
 
     if (selectedEmployeeIds.size === 0) {
-      setNotification({ type: 'error', message: 'Please select at least one recipient' });
+      setNotification({ type: 'error', message: '請至少選擇一位收件人' });
       return;
     }
 
@@ -720,7 +720,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       if (unauthorized.length > 0) {
         setNotification({
           type: 'error',
-          message: `Cannot send to ${unauthorized.length} employee(s) not under your management`
+          message: `無法向 ${unauthorized.length} 名不屬於您管理範圍的員工發送訊息`
         });
         return;
       }
@@ -1002,7 +1002,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
       const result = data as { success: boolean; deleted_count: number; failed_count: number };
       if (result.success) {
-        setNotification({ type: 'success', message: `Successfully deleted ${result.deleted_count} message(s)` });
+        setNotification({ type: 'success', message: `已成功刪除 ${result.deleted_count} 則訊息` });
         await loadSentMessages();
         setShowDeleteConfirm(false);
         setDeleteMode(null);
@@ -1011,7 +1011,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       }
     } catch (error) {
       console.error('Error deleting messages:', error);
-      setNotification({ type: 'error', message: 'Failed to delete messages' });
+      setNotification({ type: 'error', message: '刪除訊息失敗' });
     } finally {
       setDeleting(false);
     }
@@ -1031,7 +1031,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
       const result = data as { success: boolean; deleted_count: number; failed_count: number };
       if (result.success) {
-        setNotification({ type: 'success', message: `Successfully deleted ${result.deleted_count} message(s)` });
+        setNotification({ type: 'success', message: `已成功刪除 ${result.deleted_count} 則訊息` });
         await loadSentMessages();
         setShowDeleteConfirm(false);
         setDeleteMode(null);
@@ -1040,7 +1040,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       }
     } catch (error) {
       console.error('Error deleting all messages:', error);
-      setNotification({ type: 'error', message: 'Failed to delete messages' });
+      setNotification({ type: 'error', message: '刪除訊息失敗' });
     } finally {
       setDeleting(false);
     }
@@ -1060,7 +1060,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     if (!selectedMessageDetail) return;
     const htmlContent = editEditorRef.current?.getContent() || '';
     if (!editForm.title.trim() || !htmlContent.trim() || htmlContent === '<p></p>') {
-      setNotification({ type: 'error', message: 'Title and content cannot be empty' });
+      setNotification({ type: 'error', message: '標題和內容不能為空' });
       return;
     }
 
@@ -1077,11 +1077,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
       setSelectedMessageDetail({ ...selectedMessageDetail, title: editForm.title.trim(), content: htmlContent });
       setEditingMessage(false);
-      setNotification({ type: 'success', message: 'Message updated successfully' });
+      setNotification({ type: 'success', message: '訊息已成功更新' });
       loadSentMessages();
     } catch (error: unknown) {
       console.error('Error updating message:', formatSupabaseError(error));
-      setNotification({ type: 'error', message: formatSupabaseError(error) || 'Failed to update message' });
+      setNotification({ type: 'error', message: formatSupabaseError(error) || '更新訊息失敗' });
     } finally {
       setSaving(false);
     }
@@ -1200,6 +1200,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     }
   }, [notification]);
 
+  const getPriorityLabel = (priority: Message['priority']) => ({
+    low: '低',
+    normal: '普通',
+    high: '高',
+    urgent: '緊急',
+  })[priority];
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'urgent': return 'text-red-400 bg-red-500/10 border-red-500/30';
@@ -1247,8 +1254,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
       >
         <EmployeeNotificationDetailPanel
           message={{
-            title: messageForm.title || 'Notification title',
-            content: messageForm.content || '<p>Notification content</p>',
+            title: messageForm.title || '通知標題',
+            content: messageForm.content || '<p>通知內容</p>',
             message_type: messageForm.deliveryMode === 'login_only' ? 'login_popup' : 'realtime',
             priority: messageForm.priority,
             notification_category: manualRewardEnabled ? 'performance_reward' : null,
@@ -1356,8 +1363,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
             <div>
-              <div className="font-bold text-white">Sending Messages...</div>
-              <div className="text-sm text-slate-400">{sendProgress.sent} of {sendProgress.total} sent</div>
+              <div className="font-bold text-white">訊息發送中...</div>
+              <div className="text-sm text-slate-400">{sendProgress.sent} / {sendProgress.total} 已發送</div>
             </div>
           </div>
           <div className="w-64 h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -1373,7 +1380,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-200/25 bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-sm shadow-blue-950/50">
             <Send className="h-4 w-4" />
           </div>
-          <h2 className="text-base font-bold tracking-tight text-white">Messages</h2>
+          <h2 className="text-base font-bold tracking-tight text-white">訊息</h2>
           <div className="flex h-8 w-56 shrink-0 overflow-hidden rounded-lg border border-emerald-300/35 bg-gradient-to-r from-emerald-950/95 via-teal-950/90 to-blue-950/90 shadow-[0_8px_20px_rgba(6,78,59,0.28)] ring-1 ring-cyan-300/10">
             <div className="flex min-w-0 flex-1 items-center gap-2 px-2.5">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-emerald-200/30 bg-gradient-to-br from-emerald-400/30 to-blue-400/25 text-emerald-100 shadow-inner shadow-white/10">
@@ -1400,7 +1407,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 className={`flex h-8 w-64 items-center gap-2 rounded-lg border px-2.5 text-[11px] font-bold transition-all ${showGroupDropdown ? 'border-blue-200/70 bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-[0_0_18px_rgba(59,130,246,0.3)]' : 'border-blue-300/30 bg-gradient-to-r from-blue-600/25 to-cyan-500/15 text-blue-100 hover:border-blue-200/60 hover:from-blue-500/35 hover:to-cyan-400/25'}`}
               >
                 <Users className="h-3.5 w-3.5 shrink-0" />
-                <span className="min-w-0 flex-1 truncate text-left">{selectedAdminGroup?.username || 'Select group'}</span>
+                <span className="min-w-0 flex-1 truncate text-left">{selectedAdminGroup?.username || '選擇群組'}</span>
                 <span className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-black tabular-nums ${showGroupDropdown ? 'border-white/25 bg-white/15 text-white' : 'border-blue-300/25 bg-blue-400/15 text-blue-200'}`}>
                   {selectedAdminGroup?.total_employees ?? 0}
                 </span>
@@ -1417,8 +1424,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           <Users className="h-4 w-4" />
                         </span>
                         <div>
-                          <p className="text-[11px] font-black text-white">Switch admin group</p>
-                          <p className="mt-0.5 text-[9px] font-medium text-blue-100/50">Choose which employee group to manage</p>
+                          <p className="text-[11px] font-black text-white">切換管理員群組</p>
+                          <p className="mt-0.5 text-[9px] font-medium text-blue-100/50">選擇要管理的員工群組</p>
                         </div>
                       </div>
                       <span className="rounded-md border border-blue-200/20 bg-blue-400/10 px-1.5 py-0.5 text-[9px] font-black tabular-nums text-blue-200">{adminGroups.length}</span>
@@ -1446,13 +1453,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[11px] font-bold">{group.username}</span>
-                            <span className={`mt-0.5 block text-[8px] font-semibold uppercase tracking-wider ${isActive ? 'text-blue-100/65' : 'text-slate-500 group-hover:text-blue-200/60'}`}>{group.role === 'super_admin' ? 'Super admin' : 'Admin group'}</span>
+                            <span className={`mt-0.5 block text-[8px] font-semibold tracking-wider ${isActive ? 'text-blue-100/65' : 'text-slate-500 group-hover:text-blue-200/60'}`}>{group.role === 'super_admin' ? '超級管理員' : '管理員群組'}</span>
                           </span>
                           <span className="shrink-0 text-right">
                             <span className={`flex items-center justify-end gap-1 text-[10px] font-black tabular-nums ${isActive ? 'text-blue-100' : 'text-blue-300'}`}>
                               <Users className="h-3 w-3" /> {group.total_employees}
                             </span>
-                            {selectedInGroup > 0 && <span className="mt-0.5 block text-[8px] font-bold text-cyan-300">{selectedInGroup} selected</span>}
+                            {selectedInGroup > 0 && <span className="mt-0.5 block text-[8px] font-bold text-cyan-300">已選 {selectedInGroup} 人</span>}
                           </span>
                         </button>
                       );
@@ -1465,7 +1472,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           {selectedEmployeeIds.size > 0 && (
             <button onClick={clearSelection} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-500/60 bg-slate-900/45 px-3 text-[11px] font-bold text-slate-200 transition-colors hover:border-blue-300/50 hover:bg-blue-500/15 hover:text-white">
               <X className="h-3 w-3" />
-              Clear
+              清除
             </button>
           )}
           <button onClick={() => setShowAutomation(true)} className="flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-cyan-500/15 to-blue-500/15 px-3 text-[11px] font-bold text-cyan-100 transition-colors hover:border-cyan-200/55 hover:from-cyan-500/25 hover:to-blue-500/25">
@@ -1486,7 +1493,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
               <input
                 type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search employees..."
+                placeholder="搜尋員工..."
                 className="w-full rounded-lg border border-slate-300 bg-white py-1.5 pl-8 pr-8 text-[11px] font-medium text-slate-900 placeholder-slate-400 outline-none transition-colors duration-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30"
               />
               {searchQuery && (
@@ -1510,7 +1517,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             : 'border-blue-400/70 bg-blue-500/25 text-blue-100'
                         : 'border-slate-700/60 bg-slate-900/40 text-slate-400 hover:border-slate-500 hover:bg-slate-800 hover:text-slate-100'
                     }`}>
-                    {status === 'all' ? 'All' : status === 'active' ? 'Active' : 'Verified'}
+                    {status === 'all' ? '全部' : status === 'active' ? '啟用' : '已驗證'}
                   </button>
                 ))}
               </div>
@@ -1527,7 +1534,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         : 'border-amber-300/35 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-slate-900/70 text-amber-100 hover:border-amber-200/70 hover:from-amber-500/35 hover:via-orange-500/20 hover:to-orange-950/60 hover:text-white'
                     }`}>
                     <Tag className="h-3 w-3" />
-                    <span className="hidden min-[1380px]:inline">Tags</span>
+                    <span className="hidden min-[1380px]:inline">標籤</span>
                     {selectedTags.size > 0 && <span className="min-w-[18px] rounded-md border border-white/45 bg-white/20 px-1 text-center text-[9px] font-black text-white shadow-inner">{selectedTags.size}</span>}
                     <ChevronDown className={`h-2.5 w-2.5 transition-transform duration-150 ${showTagDropdown ? 'rotate-180' : ''}`} />
                   </button>
@@ -1539,15 +1546,15 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-amber-200/35 bg-gradient-to-br from-amber-400/35 to-orange-500/20 text-amber-200 shadow-inner shadow-amber-100/10">
                               <Tag className="h-3.5 w-3.5" />
                             </span>
-                            <span className="text-xs font-black text-slate-100">Filter by tag</span>
+                            <span className="text-xs font-black text-slate-100">依標籤篩選</span>
                           </div>
-                          <span className="rounded-md border border-amber-200/25 bg-amber-300/15 px-1.5 py-0.5 text-[9px] font-black tabular-nums text-amber-100">{allAvailableTags.length} tags</span>
+                          <span className="rounded-md border border-amber-200/25 bg-amber-300/15 px-1.5 py-0.5 text-[9px] font-black tabular-nums text-amber-100">{allAvailableTags.length} 個標籤</span>
                         </div>
-                        <p className="mt-1.5 text-[10px] leading-relaxed text-amber-100/60">Choose one or more tags to narrow recipients.</p>
+                        <p className="mt-1.5 text-[10px] leading-relaxed text-amber-100/60">選擇一個或多個標籤以縮小收件對象範圍。</p>
                         {selectedTags.size > 0 && (
                           <button onClick={() => { clearTagFilter(); setShowTagDropdown(false); }} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-amber-200/35 bg-gradient-to-r from-amber-500/15 to-orange-500/20 px-2 py-1.5 text-[10px] font-extrabold text-amber-100 transition-all hover:border-amber-200/70 hover:from-amber-500/30 hover:to-orange-500/35 hover:text-white">
                             <X className="h-3 w-3" />
-                            Clear selected tags
+                            清除已選標籤
                           </button>
                         )}
                       </div>
@@ -1579,7 +1586,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 disabled={allEmployeesSelected}
                 className="flex h-7 flex-1 items-center justify-center gap-1 rounded-md border border-blue-400/60 bg-blue-600/25 px-2 text-[10px] font-bold text-blue-50 transition-colors duration-150 hover:border-blue-300/80 hover:bg-blue-600/40 disabled:cursor-not-allowed disabled:border-emerald-500/30 disabled:bg-emerald-500/10 disabled:text-emerald-200"
               >
-                {allEmployeesSelected ? <><CheckSquare className="h-3.5 w-3.5" /> All selected</> : <><Users className="h-3.5 w-3.5" /> Select all</>}
+                {allEmployeesSelected ? <><CheckSquare className="h-3.5 w-3.5" /> 已全選</> : <><Users className="h-3.5 w-3.5" /> 全選</>}
               </button>
               <button
                 type="button"
@@ -1588,7 +1595,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 className="flex h-7 flex-1 items-center justify-center gap-1 rounded-md border border-red-400/55 bg-red-500/15 px-2 text-[10px] font-bold text-red-100 transition-colors duration-150 hover:border-red-300/80 hover:bg-red-500/25 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-950 disabled:text-slate-600"
               >
                 <X className="h-3.5 w-3.5" />
-                Clear selection
+                清除選取
               </button>
             </div>
 
@@ -1601,11 +1608,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center mx-auto mb-3 border border-slate-700/50">
                   <Users className="w-6 h-6 text-slate-500" />
                 </div>
-                <p className="text-sm text-slate-400 font-medium">Select a group</p>
+                <p className="text-sm text-slate-400 font-medium">請選擇群組</p>
               </div>
             ) : filteredEmployees.length === 0 ? (
               <div className="px-4 py-14 text-center">
-                <p className="text-sm text-slate-400 font-medium">No employees found</p>
+                <p className="text-sm text-slate-400 font-medium">找不到員工</p>
               </div>
             ) : (
               <div className="space-y-0.5 p-1.5">
@@ -1648,7 +1655,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                               {emp.username}
                             </span>
                             {!emp.is_active && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-300 font-bold flex-shrink-0 border border-red-500/20">OFF</span>
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-300 font-bold flex-shrink-0 border border-red-500/20">停用</span>
                             )}
                           </div>
                           <div className="flex items-center gap-1.5 mt-0.5">
@@ -1700,7 +1707,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             <div className="flex shrink-0 flex-nowrap items-center gap-2">
               {/* Priority selector */}
               <div className="flex shrink-0 items-center gap-1.5">
-                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Priority</span>
+                <span className="text-[10px] font-semibold text-slate-500 tracking-wide">優先級</span>
                 <div className="flex gap-1">
                   {(['normal', 'high', 'urgent'] as const).map((priority) => {
                     const isActive = messageForm.priority === priority;
@@ -1719,7 +1726,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             : `${c.inactiveBg} ${c.inactiveText} ${c.inactiveBorder} ${c.hoverBg} ${c.hoverBorder}`
                         }`}>
                         <div className={`h-2 w-2 rounded-full ${c.dot} ${isActive ? 'opacity-100' : 'opacity-60'}`} />
-                        {priority}
+                        {getPriorityLabel(priority)}
                       </button>
                     );
                   })}
@@ -1750,7 +1757,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         : 'border-emerald-700/70 bg-gradient-to-r from-emerald-950/70 via-teal-950/60 to-slate-900 text-emerald-200 hover:border-emerald-400/70 hover:from-emerald-900/80 hover:to-teal-950/80'
                     }`}>
                     <Bookmark className="w-3.5 h-3.5" />
-                    Templates
+                    範本
                     {templates.length > 0 && (
                       <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-black ${showTemplateDropdown ? 'bg-white/20 text-white' : 'bg-emerald-400/15 text-emerald-300'}`}>{templates.length}</span>
                     )}
@@ -1767,8 +1774,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             <Bookmark className="h-3.5 w-3.5" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[10px] font-black tracking-wide text-emerald-50">Message Templates</p>
-                            <p className="text-[8px] font-medium text-emerald-200/60">快速套用已保存的通知内容</p>
+                            <p className="text-[10px] font-black tracking-wide text-emerald-50">訊息範本</p>
+                            <p className="text-[8px] font-medium text-emerald-200/60">快速套用已儲存的通知內容</p>
                           </div>
                         </div>
                         <button
@@ -1776,7 +1783,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           onClick={() => { setShowTemplateDropdown(false); setShowSaveTemplateModal(true); setEditingTemplateId(null); setNewTemplateName(''); setTemplateEditorContent(composeEditorRef.current?.getContent() || ''); setTemplateFormTitle(messageForm.title); }}
                           className="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-200/35 bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1 text-[9px] font-black text-white shadow-sm shadow-emerald-950/30 transition-all hover:border-emerald-100/70 hover:from-emerald-400 hover:to-teal-400"
                         >
-                          <Plus className="h-3 w-3" /> New Template
+                          <Plus className="h-3 w-3" /> 新增範本
                         </button>
                       </div>
                       {templates.length === 0 ? (
@@ -1784,8 +1791,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           <div className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300/70">
                             <Bookmark className="h-4 w-4" />
                           </div>
-                          <p className="text-[11px] font-bold text-emerald-100/80">No templates yet</p>
-                          <p className="mt-1 text-[10px] text-emerald-200/45">Click “New Template” to create one</p>
+                          <p className="text-[11px] font-bold text-emerald-100/80">尚無範本</p>
+                          <p className="mt-1 text-[10px] text-emerald-200/45">點擊「新增範本」以建立範本</p>
                         </div>
                       ) : (
                         <div className="relative max-h-[32rem] space-y-1.5 overflow-y-auto p-2 scrollbar-dark">
@@ -1806,8 +1813,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                       <button
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); setShowTemplateDropdown(false); setShowSaveTemplateModal(true); startEditTemplate(tpl); }}
-                                        aria-label={`Edit ${tpl.name}`}
-                                        title="Edit template"
+                                        aria-label={`編輯 ${tpl.name}`}
+                                        title="編輯範本"
                                         className="rounded-md p-1 text-emerald-200/60 transition-colors hover:bg-blue-400/20 hover:text-blue-200"
                                       >
                                         <Pencil className="h-3 w-3" />
@@ -1815,8 +1822,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                       <button
                                         type="button"
                                         onClick={(e) => deleteTemplate(tpl.id, e)}
-                                        aria-label={`Delete ${tpl.name}`}
-                                        title="Delete template"
+                                        aria-label={`刪除 ${tpl.name}`}
+                                        title="刪除範本"
                                         className="rounded-md p-1 text-emerald-200/60 transition-colors hover:bg-red-400/20 hover:text-red-200"
                                       >
                                         <X className="h-3 w-3" />
@@ -1881,25 +1888,25 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             {/* Title - light input */}
             <div className="shrink-0">
               <div className="mb-1 flex items-center justify-between">
-                <label className="text-[10px] font-semibold uppercase text-slate-400">Title</label>
+                <label className="text-[10px] font-semibold text-slate-400">標題</label>
                 <span className="text-[10px] text-slate-600">{messageForm.title.length}/200</span>
               </div>
               <input type="text" value={messageForm.title}
                 onChange={(e) => setMessageForm({ ...messageForm, title: e.target.value.slice(0, 200) })}
-                placeholder="Enter message title..."
+                placeholder="輸入訊息標題..."
                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
 
             {/* TipTap Editor - fills all remaining space */}
             <div className="flex-1 min-h-0 flex flex-col">
-              <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1.5 shrink-0">Content</label>
+              <label className="block text-[10px] font-semibold text-slate-400 mb-1.5 shrink-0">內容</label>
               <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm [&>div]:h-full [&>div]:flex [&>div]:flex-col">
                 <TiptapEditor
                   ref={composeEditorRef}
                   content=""
                   onChange={(html: string) => setMessageForm(prev => ({ ...prev, content: html }))}
-                  placeholder="Write your message here..."
+                  placeholder="在此輸入訊息內容..."
                   theme="light"
                   adminId=""
                   enableQuickCopy
@@ -1917,7 +1924,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-950/30 transition-colors hover:bg-blue-500 active:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-35 disabled:shadow-none"
             >
               <Send className="w-4 h-4" />
-              {sending ? 'Sending...' : selectedEmployeeIds.size === 0 ? 'Select recipients to send' : `Send to ${selectedEmployeeIds.size} recipient${selectedEmployeeIds.size !== 1 ? 's' : ''}`}
+              {sending ? '發送中...' : selectedEmployeeIds.size === 0 ? '請選擇收件人' : `發送給 ${selectedEmployeeIds.size} 位員工`}
             </button>
           </div>
         </div>
@@ -1927,15 +1934,15 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           {/* Header */}
           <div className="space-y-1.5 border-b border-slate-700/60 bg-slate-800/45 px-3 py-2.5">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="min-w-0 truncate text-[11px] font-bold uppercase tracking-[0.16em] text-slate-200">Sent messages</h3>
+              <h3 className="min-w-0 truncate text-[11px] font-bold uppercase tracking-[0.16em] text-slate-200">已發送訊息</h3>
               {selectedAdminManualMessages.length > 0 && (
                 selectionMode ? (
                   <div className="flex shrink-0 items-center gap-1">
                     <button
                       type="button"
                       onClick={toggleSelectAll}
-                      title={selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 ? 'Deselect all' : 'Select all'}
-                      aria-label={selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 ? 'Deselect all messages' : 'Select all messages'}
+                      title={selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 ? '取消全選' : '全選'}
+                      aria-label={selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 ? '取消全選訊息' : '全選訊息'}
                       className={`flex h-7 w-7 items-center justify-center rounded-md border transition-colors ${
                         selectedMessageIds.size === filteredMessages.length && filteredMessages.length > 0 && filteredMessages.every(message => selectedMessageIds.has(message.id))
                           ? 'border-cyan-300/60 bg-cyan-500/25 text-cyan-100 hover:bg-cyan-500/35'
@@ -1950,8 +1957,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                       type="button"
                       onClick={() => { setDeleteMode('selected'); setShowDeleteConfirm(true); }}
                       disabled={selectedMessageIds.size === 0}
-                      title={selectedMessageIds.size > 0 ? `Delete ${selectedMessageIds.size} selected messages` : 'Select messages to delete'}
-                      aria-label="Delete selected messages"
+                      title={selectedMessageIds.size > 0 ? `刪除 ${selectedMessageIds.size} 則已選訊息` : '請先選擇要刪除的訊息'}
+                      aria-label="刪除已選訊息"
                       className="relative flex h-7 min-w-7 items-center justify-center rounded-md border border-red-400/40 bg-red-500/15 px-1.5 text-red-200 transition-colors hover:border-red-300/70 hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-35"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -1960,8 +1967,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     <button
                       type="button"
                       onClick={exitSelectionMode}
-                      title="Cancel selection"
-                      aria-label="Cancel message selection"
+                      title="取消選取"
+                      aria-label="取消訊息選取"
                       className="flex h-7 w-7 items-center justify-center rounded-md border border-amber-400/40 bg-amber-500/15 text-amber-200 transition-colors hover:border-amber-300/70 hover:bg-amber-500/25"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -1973,8 +1980,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                       type="button"
                       onClick={enterSelectionMode}
                       className="flex h-7 w-7 items-center justify-center rounded-md border border-blue-400/40 bg-blue-500/15 text-blue-200 transition-colors hover:border-blue-300/70 hover:bg-blue-500/25"
-                      title="Select messages"
-                      aria-label="Select messages"
+                      title="選擇訊息"
+                      aria-label="選擇訊息"
                     >
                       <CheckSquare className="h-3.5 w-3.5" />
                     </button>
@@ -1982,8 +1989,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                       type="button"
                       onClick={() => { setDeleteMode('all'); setShowDeleteConfirm(true); }}
                       className="flex h-7 w-7 items-center justify-center rounded-md border border-red-400/40 bg-red-500/15 text-red-200 transition-colors hover:border-red-300/70 hover:bg-red-500/25"
-                      title="Clear all manually sent messages"
-                      aria-label="Clear all manually sent messages"
+                      title="清除全部手動發送訊息"
+                      aria-label="清除全部手動發送訊息"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -1996,7 +2003,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
                 <input type="text" value={sentMessagesSearchQuery} onChange={(e) => setSentMessagesSearchQuery(e.target.value)}
-                  placeholder="Search employee account / ID..."
+                  placeholder="搜尋員工帳號／ID..."
                   className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-7 pr-7 text-[11px] text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
                 {sentMessagesSearchQuery && (
@@ -2009,9 +2016,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             {/* Filter tabs */}
             <div className="space-y-1">
                 <div className="flex items-center gap-1.5">
-                  <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-slate-500">Message type</p>
+                  <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold tracking-[0.12em] text-slate-500">訊息類型</p>
                   <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
-                    {([['all', 'All'], ['realtime_with_login_fallback', '結合'], ['realtime_only', '即時'], ['login_only', '登入']] as const).map(([val, label]) => {
+                    {([['all', '全部'], ['realtime_with_login_fallback', '結合'], ['realtime_only', '即時'], ['login_only', '登入']] as const).map(([val, label]) => {
                       const activeClass = val === 'realtime_with_login_fallback'
                         ? 'border-amber-300 bg-gradient-to-r from-amber-400 to-orange-500 text-amber-950'
                         : val === 'realtime_only'
@@ -2036,12 +2043,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-slate-500">Read status</p>
+                  <p className="w-[58px] shrink-0 px-0.5 text-[8px] font-bold tracking-[0.12em] text-slate-500">閱讀狀態</p>
                   <div className="flex min-w-0 flex-1 rounded-md border border-slate-700/60 bg-slate-950/35 p-0.5">
                     {([
-                      ['all', 'All', sentMessageReadSummary.total],
-                      ['read', 'Read', sentMessageReadSummary.read],
-                      ['unread', 'Unread', sentMessageReadSummary.unread],
+                      ['all', '全部', sentMessageReadSummary.total],
+                      ['read', '已讀', sentMessageReadSummary.read],
+                      ['unread', '未讀', sentMessageReadSummary.unread],
                     ] as const).map(([val, label, count]) => {
                       const activeClass = val === 'read'
                         ? 'border-emerald-500 bg-emerald-600 text-white'
@@ -2069,11 +2076,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           {/* Message List */}
           <div className="min-h-0 flex-1 space-y-1 overflow-y-auto border-b border-slate-700/60 p-1.5 scrollbar-dark">
             {messagesLoading ? (
-              <div className="text-center py-10 text-slate-500 text-xs">Loading...</div>
+              <div className="text-center py-10 text-slate-500 text-xs">載入中...</div>
             ) : selectedGroupMessages.length === 0 ? (
-              <div className="text-center py-10 text-slate-600 text-xs font-medium">No messages yet</div>
+              <div className="text-center py-10 text-slate-600 text-xs font-medium">尚無訊息</div>
             ) : filteredMessages.length === 0 ? (
-              <div className="text-center py-10 text-slate-600 text-xs font-medium">No matches</div>
+              <div className="text-center py-10 text-slate-600 text-xs font-medium">沒有符合的結果</div>
             ) : (
               filteredMessages.map(msg => {
                 const stats = getSelectedGroupMessageStats(msg);
@@ -2135,7 +2142,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         <div className="flex min-w-0 items-center justify-between gap-1.5">
                           <div className="flex min-w-0 items-center gap-1">
                             <span className={`rounded-full border px-1.5 py-px text-[7px] font-bold ${getPriorityColor(msg.priority)}`}>
-                              {msg.priority.charAt(0).toUpperCase() + msg.priority.slice(1)}
+                              {getPriorityLabel(msg.priority)}
                             </span>
                             <span className={`truncate rounded-full border px-1.5 py-px text-[7px] font-semibold ${
                               getDeliveryMode(msg) === 'realtime_with_login_fallback'
@@ -2187,7 +2194,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 </div>
                 <div className="min-w-0">
                   <p className="text-[8px] font-black uppercase tracking-[0.2em] text-cyan-200/65">
-                    {editingMessage ? 'Editing message' : 'Sent message details'}
+                    {editingMessage ? '編輯訊息' : '已發送訊息詳情'}
                   </p>
                   <h3 className="truncate text-sm font-black text-white">{selectedMessageDetail.title}</h3>
                 </div>
@@ -2198,28 +2205,28 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     <button type="button" onClick={handleSaveEdit} disabled={saving}
                       className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-emerald-700 bg-emerald-600 px-3.5 text-xs font-bold text-white transition-colors hover:border-emerald-600 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50">
                       {saving ? <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-100/30 border-t-emerald-100" /> : <Save className="h-3.5 w-3.5" />}
-                      {saving ? 'Saving...' : 'Save changes'}
+                      {saving ? '儲存中...' : '儲存變更'}
                     </button>
                     <button type="button" onClick={handleCancelEdit} disabled={saving}
                       className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-700 px-3.5 text-xs font-bold text-white transition-colors hover:border-slate-500 hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50">
-                      <X className="h-3.5 w-3.5" /> Cancel
+                      <X className="h-3.5 w-3.5" /> 取消
                     </button>
                   </>
                 ) : (
                   <>
                     <button type="button" onClick={() => handleStartEdit(selectedMessageDetail)}
                       className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-blue-700 bg-blue-600 px-3.5 text-xs font-bold text-white transition-colors hover:border-blue-600 hover:bg-blue-500">
-                      <Pencil className="h-3.5 w-3.5" /> Edit
+                      <Pencil className="h-3.5 w-3.5" /> 編輯
                     </button>
                     <button type="button" onClick={() => { setSelectedMessageIds(new Set([selectedMessageDetail.id])); setDeleteMode('selected'); setShowDeleteConfirm(true); }}
                       className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-700 bg-red-600 px-3.5 text-xs font-bold text-white transition-colors hover:border-red-600 hover:bg-red-500">
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                      <Trash2 className="h-3.5 w-3.5" /> 刪除
                     </button>
                     <div className="ml-1 border-l border-cyan-200/20 pl-2">
                       <button type="button" onClick={() => { setSelectedMessageDetail(null); setEditingMessage(false); }}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-200/25 bg-white/10 text-cyan-50 backdrop-blur-sm transition-colors hover:border-cyan-100/50 hover:bg-white/20 hover:text-white"
-                        aria-label="Close message details"
-                        title="Close">
+                        aria-label="關閉訊息詳情"
+                        title="關閉">
                         <X className="h-4 w-4" />
                       </button>
                     </div>
@@ -2235,10 +2242,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 {editingMessage ? (
                   <>
                     <div className="flex-shrink-0 border-b border-gray-200 px-8 pb-4 pt-6">
-                      <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-gray-400">Title</label>
+                      <label className="mb-1.5 block text-[10px] font-bold tracking-wide text-gray-400">標題</label>
                       <input type="text" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value.slice(0, 200) })}
                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base font-bold text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Message title..."
+                        placeholder="訊息標題..."
                       />
                     </div>
                     <div className="min-h-0 flex-1 overflow-y-auto scrollbar-dark">
@@ -2247,7 +2254,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           ref={editEditorRef}
                           content={editForm.content}
                           onChange={(html: string) => setEditForm(prev => ({ ...prev, content: html }))}
-                          placeholder="Edit message content..."
+                          placeholder="編輯訊息內容..."
                           theme="light"
                           adminId={admin.id}
                           enableQuickCopy
@@ -2286,7 +2293,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   <div className="relative flex min-h-0 flex-1 flex-col gap-3">
                     <div className="shrink-0 border-b border-teal-200/15 pb-3">
                       <div className="mb-2 flex items-center justify-between gap-3">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-300">Message details</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-300">訊息詳情</h4>
                         <span
                           className="inline-flex min-h-7 max-w-[55%] items-center truncate rounded-lg border border-slate-600 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-100 shadow-sm shadow-slate-950/30"
                           title={selectedMessageDetail.sender_username}
@@ -2298,18 +2305,18 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                         <div className="relative min-h-[82px] min-w-0 overflow-hidden rounded-lg border border-slate-700 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 px-2.5 py-2 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]">
                           <div className="absolute inset-x-0 top-0 h-0.5 bg-slate-400" />
                           <div className="mb-2 flex items-center justify-between gap-1.5">
-                            <p className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-slate-300/75">Sent</p>
+                            <p className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-slate-300/75">發送時間</p>
                             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-700 text-slate-200 ring-1 ring-slate-600">
                               <Clock className="h-3.5 w-3.5" />
                             </div>
                           </div>
                           <p className="whitespace-nowrap text-[9px] font-bold text-white" title={formatMessageDateTime(selectedMessageDetail.created_at)}>{formatMessageDateTime(selectedMessageDetail.created_at)}</p>
-                          <p className="mt-0.5 text-[8px] font-medium text-slate-400">Date &amp; time</p>
+                          <p className="mt-0.5 text-[8px] font-medium text-slate-400">日期與時間</p>
                         </div>
                         <div className={`relative min-h-[82px] min-w-0 overflow-hidden rounded-lg border ${messageTypeTone.card} px-2.5 py-2 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]`}>
                           <div className={`absolute inset-x-0 top-0 h-0.5 ${messageTypeTone.accent}`} />
                           <div className="mb-2 flex items-center justify-between gap-1.5">
-                            <p className={`truncate text-[9px] font-black uppercase tracking-[0.14em] ${messageTypeTone.label}`}>Type</p>
+                            <p className={`truncate text-[9px] font-black uppercase tracking-[0.14em] ${messageTypeTone.label}`}>類型</p>
                             <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${messageTypeTone.icon}`}>
                               {selectedDeliveryMode === 'realtime_with_login_fallback'
                                 ? <ShieldCheck className="h-3.5 w-3.5" />
@@ -2319,20 +2326,20 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             </div>
                           </div>
                           <p className={`truncate text-[10px] font-black ${messageTypeTone.value}`}>{getNotificationDeliveryLabel(selectedDeliveryMode)}</p>
-                          <p className={`mt-0.5 truncate text-[8px] font-medium ${messageTypeTone.label}`}>Delivery channel</p>
+                          <p className={`mt-0.5 truncate text-[8px] font-medium ${messageTypeTone.label}`}>投遞方式</p>
                         </div>
                         <div className={`relative min-h-[82px] min-w-0 overflow-hidden rounded-lg border ${messagePriorityTone.card} px-2.5 py-2 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.9)]`}>
                           <div className={`absolute inset-x-0 top-0 h-0.5 ${messagePriorityTone.accent}`} />
                           <div className="mb-2 flex items-center justify-between gap-1.5">
-                            <p className={`truncate text-[9px] font-black uppercase tracking-[0.14em] ${messagePriorityTone.label}`}>Priority</p>
+                            <p className={`truncate text-[9px] font-black uppercase tracking-[0.14em] ${messagePriorityTone.label}`}>優先級</p>
                             <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${messagePriorityTone.icon}`}>
                               <AlertCircle className="h-3.5 w-3.5" />
                             </div>
                           </div>
                           <p className={`truncate text-[10px] font-black ${messagePriorityTone.value}`}>
-                            {selectedMessageDetail.priority.charAt(0).toUpperCase() + selectedMessageDetail.priority.slice(1)}
+                            {getPriorityLabel(selectedMessageDetail.priority)}
                           </p>
-                          <p className={`mt-0.5 truncate text-[8px] font-medium ${messagePriorityTone.label}`}>Message level</p>
+                          <p className={`mt-0.5 truncate text-[8px] font-medium ${messagePriorityTone.label}`}>訊息等級</p>
                         </div>
                       </div>
                     </div>
@@ -2343,12 +2350,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           <Users className="h-5 w-5 text-teal-200" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-300/80">Primary recipients</p>
-                          <h4 className="truncate text-base font-black text-white">Sent to employees</h4>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-300/80">主要收件人</p>
+                          <h4 className="truncate text-base font-black text-white">發送給員工</h4>
                         </div>
                       </div>
                       <span className="shrink-0 rounded-full border border-teal-200/30 bg-teal-300/15 px-2.5 py-1 text-xs font-black text-teal-100">
-                        {selectedMessageDetail.recipient_ids?.length || 'ALL'}
+                        {selectedMessageDetail.recipient_ids?.length || '全部'}
                       </span>
                     </div>
 
@@ -2363,7 +2370,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                               setRecipientSearchQuery(event.target.value);
                               setRecipientStatusFilter('all');
                             }}
-                            placeholder="Search employee or account ID..."
+                            placeholder="搜尋員工或帳號 ID..."
                             className="h-9 w-full rounded-lg border border-teal-300/20 bg-slate-950/35 pl-9 pr-8 text-xs font-medium text-slate-100 outline-none transition-colors placeholder:text-teal-100/35 focus:border-teal-300/55 focus:bg-slate-950/60 focus:ring-2 focus:ring-teal-300/15"
                           />
                           {recipientSearchQuery && (
@@ -2374,13 +2381,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                 setRecipientStatusFilter('all');
                               }}
                               className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-teal-200/70 transition-colors hover:bg-teal-300/10 hover:text-white"
-                              aria-label="Clear recipient search"
+                              aria-label="清除收件人搜尋"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
                           )}
                         </div>
-                        <div className="grid shrink-0 grid-cols-3 gap-1.5" role="group" aria-label="Filter recipients by read status">
+                        <div className="grid shrink-0 grid-cols-3 gap-1.5" role="group" aria-label="依閱讀狀態篩選收件人">
                           {(() => {
                             const stats = messageStats.get(selectedMessageDetail.id);
                             const hasSearch = recipientSearchQuery.trim().length > 0;
@@ -2400,7 +2407,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                   }}
                                   className={`${baseClass} ${allActive ? 'border-indigo-400 bg-indigo-600 text-white shadow-sm shadow-indigo-950/35' : 'border-indigo-500/30 bg-indigo-950/20 text-indigo-300 hover:border-indigo-400/60 hover:bg-indigo-950/45 hover:text-indigo-100'}`}
                                 >
-                                  <span>All</span>
+                                  <span>全部</span>
                                   <span className="font-black">{stats?.total_recipients ?? 0}</span>
                                 </button>
                                 <button
@@ -2412,7 +2419,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                   }}
                                   className={`${baseClass} ${readActive ? 'border-emerald-400 bg-emerald-600 text-white shadow-sm shadow-emerald-950/35' : 'border-emerald-500/30 bg-emerald-950/20 text-emerald-300 hover:border-emerald-400/60 hover:bg-emerald-950/45 hover:text-emerald-100'}`}
                                 >
-                                  <span>Read</span>
+                                  <span>已讀</span>
                                   <span className="font-black">{stats?.read_count ?? 0}</span>
                                 </button>
                                 <button
@@ -2424,7 +2431,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                   }}
                                   className={`${baseClass} ${unreadActive ? 'border-red-400 bg-red-600 text-white shadow-sm shadow-red-950/35' : 'border-red-500/30 bg-red-950/20 text-red-300 hover:border-red-400/60 hover:bg-red-950/45 hover:text-red-100'}`}
                                 >
-                                  <span>Unread</span>
+                                  <span>未讀</span>
                                   <span className="font-black">{stats?.unread_count ?? 0}</span>
                                 </button>
                               </>
@@ -2438,8 +2445,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                       <div className="flex items-center gap-3 rounded-xl border border-blue-300/25 bg-blue-400/10 px-3.5 py-3">
                         <Globe className="h-5 w-5 shrink-0 text-blue-300" />
                         <div>
-                          <p className="text-sm font-bold text-blue-100">All Employees</p>
-                          <p className="text-[10px] font-medium text-blue-300/80">Broadcast notification</p>
+                          <p className="text-sm font-bold text-blue-100">所有員工</p>
+                          <p className="text-[10px] font-medium text-blue-300/80">廣播通知</p>
                         </div>
                       </div>
                     ) : (
@@ -2472,11 +2479,11 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                         </div>
                                         <div className="shrink-0 text-right">
                                           <span className={`block text-[9px] font-black uppercase tracking-wide ${isRead ? 'text-emerald-300' : 'text-slate-500'}`}>
-                                            {isRead ? 'Read' : 'Unread'}
+                                            {isRead ? '已讀' : '未讀'}
                                           </span>
                                           {isRead && (
                                             <span className="mt-0.5 block whitespace-nowrap text-[8px] font-semibold text-emerald-200/70" title={employee.message_read_at ? formatMessageDateTime(employee.message_read_at) : undefined}>
-                                              {employee.message_read_at ? formatMessageDateTime(employee.message_read_at) : 'Time unavailable'}
+                                              {employee.message_read_at ? formatMessageDateTime(employee.message_read_at) : '時間不可用'}
                                             </span>
                                           )}
                                         </div>
@@ -2485,7 +2492,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                   })}
                                 </div>
                               ) : (
-                                <p className="rounded-xl border border-slate-500/25 bg-slate-950/25 px-3 py-3 text-xs text-slate-400">No matching employee accounts.</p>
+                                <p className="rounded-xl border border-slate-500/25 bg-slate-950/25 px-3 py-3 text-xs text-slate-400">沒有符合的員工帳號。</p>
                               )}
                             </div>
                           );
@@ -2497,7 +2504,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                             <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-400/30 border-t-teal-300" />
                           </div>
                         ) : (
-                          <p className="rounded-xl border border-slate-500/25 bg-slate-950/25 px-3 py-3 text-xs text-slate-400">Employee account details unavailable.</p>
+                          <p className="rounded-xl border border-slate-500/25 bg-slate-950/25 px-3 py-3 text-xs text-slate-400">無法取得員工帳號詳情。</p>
                         );
                       })()
                     )}
@@ -2509,8 +2516,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   return (
                     <div className="order-3 shrink-0 border-t border-slate-700/40 bg-slate-900/45 px-4 py-2.5">
                       <div className="mb-1.5 flex items-center justify-between gap-3">
-                        <h4 className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Delivery progress</h4>
-                        <span className="text-[9px] font-bold text-slate-400">{stats.read_count}/{stats.total_recipients} read</span>
+                        <h4 className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">投遞進度</h4>
+                        <span className="text-[9px] font-bold text-slate-400">{stats.read_count}/{stats.total_recipients} 已讀</span>
                       </div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-slate-700">
                         <div className={`h-full rounded-full transition-all ${stats.read_percentage === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 to-cyan-400'}`} style={{ width: `${stats.read_percentage}%` }} />
@@ -2543,18 +2550,18 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="truncate text-sm font-black text-white sm:text-base">{editingTemplateId ? 'Edit Template' : 'Create Message Template'}</h3>
+                    <h3 className="truncate text-sm font-black text-white sm:text-base">{editingTemplateId ? '編輯範本' : '建立訊息範本'}</h3>
                     <span className={`hidden rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.16em] sm:inline-flex ${editingTemplateId ? 'border-blue-200/25 bg-blue-400/10 text-blue-200' : 'border-emerald-200/25 bg-emerald-400/10 text-emerald-200'}`}>
-                      {editingTemplateId ? 'Editing' : 'New template'}
+                      {editingTemplateId ? '編輯中' : '新範本'}
                     </span>
                   </div>
-                  <p className="mt-0.5 truncate text-[10px] font-medium text-emerald-100/55">{editingTemplateId ? 'Update the saved content and keep your team\'s workflow consistent' : 'Build a reusable notification with a clear name, title, and message'}</p>
+                  <p className="mt-0.5 truncate text-[10px] font-medium text-emerald-100/55">{editingTemplateId ? '更新已儲存的內容，讓團隊工作流程保持一致' : '建立具備清晰名稱、標題和內容的可重複使用通知'}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowSaveTemplateModal(false); setEditingTemplateId(null); setNewTemplateName(''); setTemplateEditorContent(''); setTemplateFormTitle(''); }}
-                aria-label="Close template editor"
+                aria-label="關閉範本編輯器"
                 className="ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200/15 bg-slate-950/25 text-emerald-100/60 transition-all hover:border-emerald-200/45 hover:bg-emerald-400/15 hover:text-white"
               >
                 <X className="h-4 w-4" />
@@ -2565,44 +2572,44 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               <div className="flex min-h-0 flex-1 flex-col gap-3 border-b border-emerald-200/15 p-4 sm:gap-4 sm:p-5 lg:w-[64%] lg:flex-none lg:border-b-0 lg:border-r">
                 <div className="flex shrink-0 flex-col gap-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/70">Template name</label>
-                    <span className="text-[9px] font-semibold text-emerald-200/45">Required</span>
+                    <label className="text-[9px] font-black tracking-[0.18em] text-emerald-200/70">範本名稱</label>
+                    <span className="text-[9px] font-semibold text-emerald-200/45">必填</span>
                   </div>
                   <input
                     type="text"
                     value={newTemplateName}
                     onChange={(e) => setNewTemplateName(e.target.value.slice(0, 50))}
                     className="w-full rounded-xl border border-emerald-200/25 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-[0_8px_20px_rgba(2,44,34,0.16)] outline-none transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
-                    placeholder="e.g. Welcome message or shift reminder"
+                    placeholder="例如：歡迎訊息或輪班提醒"
                     autoFocus
                   />
                 </div>
 
                 <div className="flex shrink-0 flex-col gap-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/70">Notification title</label>
+                    <label className="text-[9px] font-black tracking-[0.18em] text-emerald-200/70">通知標題</label>
                     <span className="text-[9px] font-semibold tabular-nums text-emerald-200/45">{templateFormTitle.length}/200</span>
                   </div>
                   <input
                     type="text"
                     value={templateFormTitle}
                     onChange={(e) => setTemplateFormTitle(e.target.value.slice(0, 200))}
-                    placeholder="Enter a concise title"
+                    placeholder="輸入簡潔的標題"
                     className="w-full rounded-xl border border-emerald-200/25 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-[0_8px_20px_rgba(2,44,34,0.14)] outline-none transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
                   />
                 </div>
 
                 <div className="flex min-h-0 flex-1 flex-col gap-1.5">
                   <div className="flex shrink-0 items-center justify-between gap-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/70">Message content</label>
-                    <span className="rounded-full border border-emerald-200/15 bg-emerald-400/10 px-2 py-0.5 text-[8px] font-bold text-emerald-200/65">Rich text enabled</span>
+                    <label className="text-[9px] font-black tracking-[0.18em] text-emerald-200/70">訊息內容</label>
+                    <span className="rounded-full border border-emerald-200/15 bg-emerald-400/10 px-2 py-0.5 text-[8px] font-bold text-emerald-200/65">支援豐富文字</span>
                   </div>
                   <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-emerald-200/25 bg-white shadow-[0_10px_28px_rgba(2,44,34,0.18)] [&>div]:h-full [&>div]:flex [&>div]:flex-col">
                     <TiptapEditor
                       ref={templateEditorRef2}
                       content={templateEditorContent}
                       onChange={(html: string) => setTemplateEditorContent(html)}
-                      placeholder="Write your reusable notification content here..."
+                      placeholder="在此輸入可重複使用的通知內容..."
                       theme="light"
                       adminId=""
                       enableQuickCopy
@@ -2615,9 +2622,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 <div className="relative shrink-0 border-b border-emerald-200/15 px-4 py-3.5 sm:px-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-300/75">Library</p>
-                      <h4 className="mt-1 text-sm font-black text-white">Existing Templates</h4>
-                      <p className="mt-0.5 text-[10px] font-medium text-emerald-100/50">Select a card to load it into the editor</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-300/75">範本庫</p>
+                      <h4 className="mt-1 text-sm font-black text-white">現有範本</h4>
+                      <p className="mt-0.5 text-[10px] font-medium text-emerald-100/50">選擇卡片以載入編輯器</p>
                     </div>
                     <span className="shrink-0 rounded-full border border-emerald-200/25 bg-emerald-400/15 px-2 py-1 text-[9px] font-black tabular-nums text-emerald-100">{templates.length}</span>
                   </div>
@@ -2628,8 +2635,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                       <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-200/20 bg-emerald-400/10 text-emerald-300/75">
                         <Bookmark className="h-5 w-5" />
                       </div>
-                      <p className="text-xs font-bold text-emerald-100/80">No templates yet</p>
-                      <p className="mt-1 max-w-52 text-[10px] leading-relaxed text-emerald-100/45">Save this form to create the first reusable notification for your team.</p>
+                      <p className="text-xs font-bold text-emerald-100/80">尚無範本</p>
+                      <p className="mt-1 max-w-52 text-[10px] leading-relaxed text-emerald-100/45">儲存此表單，以建立團隊第一個可重複使用的通知。</p>
                     </div>
                   ) : (
                     <div className="space-y-2.5">
@@ -2654,8 +2661,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                     <button
                                       type="button"
                                       onClick={(e) => { e.stopPropagation(); startEditTemplate(tpl); }}
-                                      aria-label={`Edit ${tpl.name}`}
-                                      title="Edit template"
+                                      aria-label={`編輯 ${tpl.name}`}
+                                      title="編輯範本"
                                       className="rounded-md p-1 text-emerald-200/60 transition-colors hover:bg-emerald-400/15 hover:text-emerald-100"
                                     >
                                       <Pencil className="h-3 w-3" />
@@ -2663,8 +2670,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                     <button
                                       type="button"
                                       onClick={(e) => deleteTemplate(tpl.id, e)}
-                                      aria-label={`Delete ${tpl.name}`}
-                                      title="Delete template"
+                                      aria-label={`刪除 ${tpl.name}`}
+                                      title="刪除範本"
                                       className="rounded-md p-1 text-emerald-200/60 transition-colors hover:bg-red-400/15 hover:text-red-200"
                                     >
                                       <Trash2 className="h-3 w-3" />
@@ -2692,7 +2699,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     onClick={startNewTemplate}
                     className="rounded-xl border border-emerald-200/20 bg-emerald-400/10 px-4 py-2.5 text-xs font-bold text-emerald-200 transition-all hover:border-emerald-200/45 hover:bg-emerald-400/20 hover:text-emerald-100"
                   >
-                    New blank
+                    新增空白範本
                   </button>
                 )}
                 <button
@@ -2702,7 +2709,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-xs font-black text-white shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-35 ${editingTemplateId ? 'border-blue-200/30 bg-gradient-to-r from-blue-500 to-indigo-500 shadow-blue-950/30 hover:from-blue-400 hover:to-indigo-400' : 'border-emerald-200/35 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 shadow-emerald-950/35 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400'}`}
                 >
                   {savingTemplate ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : editingTemplateId ? <Save className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-                  {savingTemplate ? 'Saving...' : editingTemplateId ? 'Update Template' : 'Save Template'}
+                  {savingTemplate ? '儲存中...' : editingTemplateId ? '更新範本' : '儲存範本'}
                 </button>
               </div>
             </div>
@@ -2720,20 +2727,20 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   <AlertTriangle className="w-6 h-6 text-red-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Confirm Deletion</h3>
-                  <p className="text-sm text-slate-400">This action cannot be undone</p>
+                  <h3 className="text-lg font-bold text-white">確認刪除</h3>
+                  <p className="text-sm text-slate-400">此操作無法復原</p>
                 </div>
               </div>
               <div className="bg-slate-800/50 rounded-lg p-4 mb-6">
                 {deleteMode === 'selected' ? (
                   <p className="text-sm text-slate-300">
-                    You are about to delete <span className="font-semibold text-white">{selectedMessageIds.size}</span> selected message{selectedMessageIds.size !== 1 ? 's' : ''}.
+                    您即將刪除 <span className="font-semibold text-white">{selectedMessageIds.size}</span> 則已選訊息。
                   </p>
                 ) : (
                   <p className="text-sm text-slate-300">
-                    You are about to delete <span className="font-semibold text-white">all manually sent messages</span> for the selected admin group.
+                    您即將刪除所選管理員群組的<span className="font-semibold text-white">全部手動發送訊息</span>。
                     {selectedAdminManualMessages.length > 0 && (
-                      <span className="block mt-1 text-slate-400">({selectedAdminManualMessages.length} message{selectedAdminManualMessages.length !== 1 ? 's' : ''} will be deleted)</span>
+                      <span className="block mt-1 text-slate-400">（將刪除 {selectedAdminManualMessages.length} 則訊息）</span>
                     )}
                   </p>
                 )}
@@ -2741,14 +2748,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               <div className="flex gap-3">
                 <button onClick={() => { setShowDeleteConfirm(false); setDeleteMode(null); }} disabled={deleting}
                   className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50">
-                  Cancel
+                  取消
                 </button>
                 <button onClick={handleConfirmDelete} disabled={deleting}
                   className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                   {deleting ? (
-                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Deleting...</>
+                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> 刪除中...</>
                   ) : (
-                    <><Trash2 className="w-4 h-4" /> Delete</>
+                    <><Trash2 className="w-4 h-4" /> 刪除</>
                   )}
                 </button>
               </div>
