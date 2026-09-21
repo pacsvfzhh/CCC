@@ -1053,6 +1053,8 @@ ALTER FUNCTION public.save_notification_automation_task_copy(uuid, uuid, uuid, t
   RENAME TO save_notification_automation_task_copy_unlocked;
 ALTER FUNCTION public.copy_shared_notification_automation_task(uuid, uuid)
   RENAME TO copy_shared_notification_automation_task_unlocked;
+ALTER FUNCTION public.copy_shared_notification_automation_task_with_delivery(uuid, uuid)
+  RENAME TO copy_shared_notification_automation_task_with_delivery_unlocked;
 ALTER FUNCTION public.set_notification_automation_task_status(uuid, uuid, text)
   RENAME TO set_notification_automation_task_status_unlocked;
 ALTER FUNCTION public.admin_create_employee_account(uuid, text, text, text, uuid, text)
@@ -1192,6 +1194,24 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.copy_shared_notification_automation_task_with_delivery(
+  p_admin_session_token uuid,
+  p_source_task_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private, pg_temp
+AS $$
+BEGIN
+  PERFORM private.acquire_notification_automation_configuration_lock();
+  RETURN public.copy_shared_notification_automation_task_with_delivery_unlocked(
+    p_admin_session_token,
+    p_source_task_id
+  );
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.set_notification_automation_task_status(
   p_admin_session_token uuid,
   p_task_id uuid,
@@ -1297,6 +1317,7 @@ $$;
 REVOKE ALL ON FUNCTION public.save_notification_automation_task_unlocked(uuid, uuid, text, text, text, text, numeric, integer, integer, text, uuid[], text, text, text, text, boolean, numeric, boolean, timestamptz, timestamptz) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.save_notification_automation_task_copy_unlocked(uuid, uuid, uuid, text, text, text, text, numeric, integer, integer, text, uuid[], text, text, text, text, boolean, numeric, boolean, timestamptz, timestamptz) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.copy_shared_notification_automation_task_unlocked(uuid, uuid) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.copy_shared_notification_automation_task_with_delivery_unlocked(uuid, uuid) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.set_notification_automation_task_status_unlocked(uuid, uuid, text) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.admin_create_employee_account_unlocked(uuid, text, text, text, uuid, text) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.admin_update_employee_account_unlocked(uuid, uuid, jsonb) FROM PUBLIC, anon, authenticated, service_role;
@@ -1306,11 +1327,20 @@ REVOKE ALL ON FUNCTION public.admin_delete_secondary_account_unlocked(uuid, uuid
 GRANT EXECUTE ON FUNCTION public.save_notification_automation_task(uuid, uuid, text, text, text, text, numeric, integer, integer, text, uuid[], text, text, text, text, boolean, numeric, boolean, timestamptz, timestamptz) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.save_notification_automation_task_copy(uuid, uuid, uuid, text, text, text, text, numeric, integer, integer, text, uuid[], text, text, text, text, boolean, numeric, boolean, timestamptz, timestamptz) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.copy_shared_notification_automation_task(uuid, uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.copy_shared_notification_automation_task_with_delivery(uuid, uuid) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.set_notification_automation_task_status(uuid, uuid, text) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.admin_create_employee_account(uuid, text, text, text, uuid, text) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.admin_update_employee_account(uuid, uuid, jsonb) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.admin_delete_employee_account(uuid, uuid) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.admin_delete_secondary_account(uuid, uuid) TO anon, authenticated, service_role;
+
+DO $$
+BEGIN
+  IF to_regprocedure('public.save_notification_automation_task(uuid,uuid,text,text,text,text,numeric,integer,integer,integer,integer,text,uuid[],text,text,text,text,boolean,numeric,boolean,timestamptz,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION public.save_notification_automation_task(uuid, uuid, text, text, text, text, numeric, integer, integer, integer, integer, text, uuid[], text, text, text, text, boolean, numeric, boolean, timestamptz, timestamptz) FROM PUBLIC, anon, authenticated, service_role';
+  END IF;
+END;
+$$;
 
 REVOKE ALL ON FUNCTION private.acquire_notification_automation_configuration_lock() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.snapshot_notification_automation_execution_plan() FROM PUBLIC, anon, authenticated;
