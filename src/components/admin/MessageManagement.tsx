@@ -151,6 +151,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [loading, setLoading] = useState(true);
 
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
+  const [employeeTagPreview, setEmployeeTagPreview] = useState<{ employeeId: string; tags: string[]; left: number; top: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'verified'>('all');
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
@@ -1309,6 +1310,25 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {employeePreviewDialog}
+      {employeeTagPreview && createPortal(
+        <div
+          className="pointer-events-none fixed z-[220] max-w-[calc(100vw-2rem)] -translate-y-1/2 rounded-xl border border-amber-300 bg-amber-100 px-2.5 py-2 text-amber-950 shadow-[0_14px_32px_rgba(120,53,15,0.3)]"
+          style={{
+            left: employeeTagPreview.left,
+            top: employeeTagPreview.top,
+            maxWidth: `calc(100vw - ${employeeTagPreview.left + 16}px)`,
+          }}
+        >
+          <div className="flex flex-wrap items-center gap-1">
+            {employeeTagPreview.tags.map((tag, index) => (
+              <span key={`${employeeTagPreview.employeeId}-${index}`} className="rounded-full border border-amber-700 bg-amber-900 px-2 py-0.5 text-[10px] font-semibold text-amber-100 shadow-sm">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>,
+        document.body,
+      )}
       {showRewardConfirm && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md overflow-hidden rounded-2xl border border-amber-400/30 bg-slate-900 shadow-2xl shadow-amber-950/50">
@@ -1575,13 +1595,20 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   )}
                 </div>
                 {filteredEmployees.length > 0 && (
-                  <button onClick={selectAllCurrentGroup}
-                    className={`flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[9px] font-bold transition-colors duration-150 ${
+                  <button
+                    type="button"
+                    onClick={selectAllCurrentGroup}
+                    aria-pressed={allCurrentSelected}
+                    className={`group/select-all flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-[9px] font-black transition-all duration-150 active:scale-[0.97] ${
                       allCurrentSelected
-                        ? 'border-slate-600 bg-slate-800 text-slate-300 hover:bg-slate-700'
-                        : 'border-slate-600 bg-slate-800/80 text-slate-300 hover:border-slate-500 hover:bg-slate-700'
-                    }`}>
-                    {allCurrentSelected ? <><CheckSquare className="h-3.5 w-3.5" /> Deselect</> : <><Square className="h-3.5 w-3.5" /> Select all</>}
+                        ? 'border-emerald-300/55 bg-gradient-to-r from-emerald-500/25 to-teal-500/20 text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.14)] hover:border-emerald-200/75 hover:from-emerald-500/35 hover:to-teal-500/30'
+                        : 'border-blue-300/35 bg-gradient-to-r from-blue-500/20 to-cyan-500/15 text-blue-100 shadow-[0_6px_14px_rgba(30,64,175,0.12)] hover:-translate-y-px hover:border-blue-200/65 hover:from-blue-500/30 hover:to-cyan-500/25 hover:shadow-[0_8px_18px_rgba(37,99,235,0.18)]'
+                    }`}
+                  >
+                    <span className={`flex h-4 w-4 items-center justify-center rounded-md border transition-colors ${allCurrentSelected ? 'border-emerald-200/60 bg-emerald-400/25 text-white' : 'border-blue-200/35 bg-blue-400/10 text-blue-200 group-hover/select-all:bg-blue-400/20'}`}>
+                      {allCurrentSelected ? <Check className="h-3 w-3" strokeWidth={3} /> : <Square className="h-3 w-3" />}
+                    </span>
+                    {allCurrentSelected ? 'Deselect all' : 'Select all'}
                   </button>
                 )}
               </div>
@@ -1590,7 +1617,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
           </div>
 
           {/* Employee List */}
-          <div className="min-h-0 flex-1 overflow-y-auto scrollbar-dark">
+          <div className="min-h-0 flex-1 overflow-y-auto scrollbar-dark" onScroll={() => setEmployeeTagPreview(null)}>
             {!selectedAdminId ? (
               <div className="px-4 py-14 text-center">
                 <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center mx-auto mb-3 border border-slate-700/50">
@@ -1652,14 +1679,24 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className={`font-mono ${isSelected ? 'text-[11px] font-semibold text-emerald-100/90' : 'text-[10px] text-slate-500'}`}>{emp.employee_id}</span>
                             {emp.tags && emp.tags.length > 0 && (
-                              <div className="flex min-w-0 gap-1 overflow-hidden">
-                                {emp.tags.slice(0, 2).map((tag, idx) => (
-                                  <span key={idx} className={`max-w-[76px] truncate rounded-md border px-1.5 py-px text-[9px] font-bold ${isSelected ? 'border-emerald-300/40 bg-emerald-400/20 text-emerald-50' : 'border-teal-400/15 bg-teal-500/10 text-teal-300'}`}>
-                                    {tag}
-                                  </span>
-                                ))}
-                                {emp.tags.length > 2 && (
-                                  <span className={`shrink-0 text-[10px] font-bold ${isSelected ? 'text-emerald-100/80' : 'text-slate-500'}`}>+{emp.tags.length - 2}</span>
+                              <div
+                                className="flex min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap"
+                                onMouseEnter={(event) => {
+                                  const bounds = event.currentTarget.getBoundingClientRect();
+                                  setEmployeeTagPreview({
+                                    employeeId: emp.id,
+                                    tags: emp.tags,
+                                    left: bounds.right + 8,
+                                    top: bounds.top + bounds.height / 2,
+                                  });
+                                }}
+                                onMouseLeave={() => setEmployeeTagPreview(null)}
+                              >
+                                <span className="min-w-0 max-w-[88px] flex-1 truncate rounded-full border border-amber-500/30 bg-amber-500/20 px-1.5 py-0 text-[10px] font-medium text-amber-400">
+                                  {emp.tags[0]}
+                                </span>
+                                {emp.tags.length > 1 && (
+                                  <span className="shrink-0 text-[10px] font-medium text-slate-500">+{emp.tags.length - 1}</span>
                                 )}
                               </div>
                             )}
