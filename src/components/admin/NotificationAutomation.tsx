@@ -418,6 +418,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
   const [contentCustomized, setContentCustomized] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AutomationTask | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+  const [discardTarget, setDiscardTarget] = useState<'plan' | 'members' | 'task' | null>(null);
   const [notice, setNotice] = useState<AutomationNotice | null>(null);
   const [variableHelpOpen, setVariableHelpOpen] = useState(false);
   const [employeePreviewOpen, setEmployeePreviewOpen] = useState(false);
@@ -699,7 +700,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   const closePlanModal = () => {
     if (saving) return;
-    if (planDirty && !window.confirm('方案內容尚未儲存，確定要放棄變更嗎？')) return;
+    if (planDirty) {
+      setDiscardTarget('plan');
+      return;
+    }
     setPlanModalOpen(false);
   };
 
@@ -769,7 +773,10 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   const closeMemberPicker = () => {
     if (saving) return;
-    if (membersDirty && !window.confirm('方案員工名單尚未儲存，確定要放棄變更嗎？')) return;
+    if (membersDirty) {
+      setDiscardTarget('members');
+      return;
+    }
     setMemberPickerOpen(false);
   };
 
@@ -828,11 +835,26 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   const closeTaskEditor = () => {
     if (saving) return;
-    if (editorDirty && !window.confirm('任務內容尚未儲存，確定要放棄變更嗎？')) return;
+    if (editorDirty) {
+      setDiscardTarget('task');
+      return;
+    }
     setVariableHelpOpen(false);
     setEmployeePreviewOpen(false);
     setEmployeePickerOpen(false);
     setEditorOpen(false);
+  };
+
+  const confirmDiscardChanges = () => {
+    if (discardTarget === 'plan') setPlanModalOpen(false);
+    if (discardTarget === 'members') setMemberPickerOpen(false);
+    if (discardTarget === 'task') {
+      setVariableHelpOpen(false);
+      setEmployeePreviewOpen(false);
+      setEmployeePickerOpen(false);
+      setEditorOpen(false);
+    }
+    setDiscardTarget(null);
   };
 
   const openEmployeePicker = (initialRecipientIds = form.recipientIds) => {
@@ -1039,6 +1061,16 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     document.body,
   );
 
+  const discardDialog = discardTarget && createPortal(
+    <div className="fixed inset-0 z-[230] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-amber-300/25 bg-slate-900 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="discard-changes-title">
+        <div className="flex items-start gap-3 border-b border-amber-300/15 bg-amber-500/[0.08] px-5 py-4"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-300/25 bg-amber-400/15 text-amber-200"><AlertCircle className="h-5 w-5" /></span><div><h2 id="discard-changes-title" className="text-sm font-black text-white">放棄未儲存的變更？</h2><p className="mt-1 text-xs leading-5 text-amber-100/75">關閉後，本次編輯內容不會保留。</p></div></div>
+        <div className="flex justify-end gap-2 px-5 py-3"><button type="button" onClick={() => setDiscardTarget(null)} className="h-9 rounded-lg border border-slate-600 bg-slate-800 px-4 text-xs font-bold text-slate-200">繼續編輯</button><button type="button" onClick={confirmDiscardChanges} className="h-9 rounded-lg bg-amber-500 px-4 text-xs font-black text-slate-950 hover:bg-amber-400">放棄變更</button></div>
+      </div>
+    </div>,
+    document.body,
+  );
+
   const planDialog = planModalOpen && createPortal(
     <div className="fixed inset-0 z-[210] flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm" onMouseDown={closePlanModal}>
       <div className={`w-full max-w-lg overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl ${saving ? 'pointer-events-none' : ''}`} role="dialog" aria-modal="true" aria-labelledby="plan-dialog-title" onMouseDown={event => event.stopPropagation()}>
@@ -1228,13 +1260,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
     );
   }
 
-  const ungroupedStats = {
-    taskCount: selectionTasks.length,
-    activeTaskCount: selectionTasks.filter(task => task.status === 'active').length,
-    selectedTaskCount: selectionTasks.filter(task => task.recipient_scope === 'selected').length,
-    allManagedTaskCount: selectionTasks.filter(task => task.recipient_scope === 'all_managed').length,
-  };
-
   const renderPlanCard = (plan: AutomationPlan, compact = false) => {
     const selected = selectedPlanId === plan.id;
     const statusTone = plan.status === 'active'
@@ -1266,7 +1291,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   return (
     <>
-      {noticeCard}{deleteDialog}{planDialog}{memberPickerDialog}
+      {noticeCard}{deleteDialog}{discardDialog}{planDialog}{memberPickerDialog}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
         <header className="shrink-0 border-b border-cyan-300/20 bg-[radial-gradient(circle_at_82%_0%,rgba(6,182,212,0.18),transparent_34%),linear-gradient(90deg,#020617_0%,#0f172a_55%,#083344_100%)] px-3 py-3 shadow-[0_8px_24px_rgba(2,6,23,0.32)] sm:px-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1314,14 +1339,6 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
                   <button type="button" onClick={openNewTask} disabled={!selectedPlan || selectedPlan.status !== 'active'} title={!selectedPlan ? '請先選擇執行中的方案' : selectedPlan.status !== 'active' ? '請先恢復方案' : '新增任務'} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-3 text-[11px] font-black text-white disabled:cursor-not-allowed disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500"><Plus className="h-3.5 w-3.5" />新增任務</button>
                 </div>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">{[
-                ['方案員工', selectedPlan?.member_count ?? '—'],
-                ['任務總數', selectedPlan?.task_count ?? ungroupedStats.taskCount],
-                ['啟用任務', selectedPlan?.active_task_count ?? ungroupedStats.activeTaskCount],
-                ['方案指定', selectedPlan?.selected_task_count ?? ungroupedStats.selectedTaskCount],
-                ['所有員工', selectedPlan?.all_managed_task_count ?? ungroupedStats.allManagedTaskCount],
-              ].map(([label, value]) => <div key={label} className="relative overflow-hidden rounded-xl border border-cyan-300/15 bg-slate-950/55 px-3 py-2.5 shadow-[0_6px_14px_rgba(2,6,23,0.2)]"><span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/55 to-transparent" /><p className="text-[9px] font-black tracking-[0.08em] text-cyan-100/70">{label}</p><p className="mt-1 text-lg font-black leading-none tabular-nums text-white">{value}</p></div>)}</div>
-              {selectedPlan?.status === 'paused' && <p className="mt-2 rounded-lg border border-amber-300/20 bg-amber-500/[0.08] px-3 py-2 text-[11px] font-bold text-amber-200">方案已暫停，任務不會執行，也無法啟用任務；請先按「繼續」恢復方案。</p>}
             </section>
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700 bg-slate-950/50 px-3 py-2.5">
               <div className="flex rounded-xl border border-slate-700 bg-slate-950 p-1">{[{ id: 'tasks' as const, label: '任務', icon: Settings2 }, { id: 'executions' as const, label: '執行記錄', icon: History }].map(tab => <button key={tab.id} type="button" onClick={() => setView(tab.id)} className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-black ${view === tab.id ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white' : 'text-slate-400 hover:bg-slate-800'}`}><tab.icon className="h-3.5 w-3.5" />{tab.label}</button>)}</div>
