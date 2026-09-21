@@ -1392,12 +1392,12 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             <Send className="h-4 w-4" />
           </div>
           <h2 className="text-base font-bold tracking-tight text-white">Messages</h2>
-          <div className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-blue-200/20 bg-gradient-to-r from-blue-500/15 to-cyan-400/10 px-2.5 text-blue-100 shadow-inner shadow-white/[0.04]">
-            <Users className="h-3 w-3 text-cyan-300" />
-            <span className="text-[11px] font-black tabular-nums text-white">{selectedGroupEmployeeCount}</span>
-            <span className="text-[9px] font-semibold text-blue-100/60">employees</span>
+          <div className="flex h-8 min-w-[132px] shrink-0 items-center justify-center gap-2 rounded-lg border border-blue-200/35 bg-gradient-to-r from-blue-500/30 via-sky-500/20 to-cyan-400/20 px-3 text-blue-50 shadow-[0_6px_16px_rgba(37,99,235,0.18)] ring-1 ring-white/[0.04]">
+            <Users className="h-3.5 w-3.5 shrink-0 text-cyan-200" />
+            <span className="text-sm font-black tabular-nums text-white">{selectedGroupEmployeeCount}</span>
+            <span className="text-[10px] font-bold text-blue-100/75">名員工</span>
             {selectedInCurrentGroup > 0 && (
-              <span className="ml-0.5 border-l border-blue-200/20 pl-2 text-[9px] font-bold text-cyan-300">{selectedInCurrentGroup} selected</span>
+              <span className="ml-0.5 border-l border-blue-100/25 pl-2 text-[10px] font-black text-cyan-200">已選 {selectedInCurrentGroup}</span>
             )}
           </div>
         </div>
