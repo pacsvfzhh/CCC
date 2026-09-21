@@ -1720,7 +1720,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                     return (
                       <button key={priority}
                         onClick={() => setMessageForm({ ...messageForm, priority })}
-                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-[11px] font-bold capitalize transition-colors duration-200 ${
+                        className={`flex h-9 w-[4.5rem] items-center justify-center gap-1.5 rounded-lg border px-2.5 py-2 text-[11px] font-bold capitalize transition-colors duration-200 ${
                           isActive
                             ? `${c.activeBg} text-white ${c.activeBorder} shadow-sm`
                             : `${c.inactiveBg} ${c.inactiveText} ${c.inactiveBorder} ${c.hoverBg} ${c.hoverBorder}`
