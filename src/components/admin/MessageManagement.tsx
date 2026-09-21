@@ -619,23 +619,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     }
   };
 
-  const selectAllCurrentGroup = () => {
-    if (!selectedAdminId) return;
-    const employees = getFilteredEmployees();
-    const employeeIds = employees.map(e => e.id);
-    const allSelected = employees.length > 0 && employees.every(e => selectedEmployeeIds.has(e.id));
-
-    if (allSelected) {
-      setSelectedEmployeeIds(prev => {
-        const next = new Set(prev);
-        employeeIds.forEach(id => next.delete(id));
-        return next;
-      });
-    } else {
-      setSelectedEmployeeIds(prev => new Set([...Array.from(prev), ...employeeIds]));
-    }
-  };
-
   const toggleEmployeeSelection = (employeeId: string) => {
     setSelectedEmployeeIds(prev => {
       const next = new Set(prev);
@@ -1248,7 +1231,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const selectedGroupEmployees = selectedAdminId ? allEmployees.get(selectedAdminId) || [] : allEmployeesFlat;
   const selectedGroupEmployeeCount = selectedAdminGroup?.total_employees ?? selectedGroupEmployees.length;
   const selectedInCurrentGroup = selectedGroupEmployees.filter(employee => selectedEmployeeIds.has(employee.id)).length;
-  const allCurrentSelected = filteredEmployees.length > 0 && filteredEmployees.every(e => selectedEmployeeIds.has(e.id));
   const allEmployeesSelected = allEmployeesFlat.length > 0 && allEmployeesFlat.every(emp => selectedEmployeeIds.has(emp.id));
   const selectedDeliveryMode = selectedMessageDetail ? getDeliveryMode(selectedMessageDetail) : 'realtime_only';
   const messageTypeTone = getMessageTypeTone(selectedDeliveryMode);
@@ -1392,13 +1374,19 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
             <Send className="h-4 w-4" />
           </div>
           <h2 className="text-base font-bold tracking-tight text-white">Messages</h2>
-          <div className="flex h-8 min-w-[132px] shrink-0 items-center justify-center gap-2 rounded-lg border border-blue-200/35 bg-gradient-to-r from-blue-500/30 via-sky-500/20 to-cyan-400/20 px-3 text-blue-50 shadow-[0_6px_16px_rgba(37,99,235,0.18)] ring-1 ring-white/[0.04]">
-            <Users className="h-3.5 w-3.5 shrink-0 text-cyan-200" />
-            <span className="text-sm font-black tabular-nums text-white">{selectedGroupEmployeeCount}</span>
-            <span className="text-[10px] font-bold text-blue-100/75">名員工</span>
-            {selectedInCurrentGroup > 0 && (
-              <span className="ml-0.5 border-l border-blue-100/25 pl-2 text-[10px] font-black text-cyan-200">已選 {selectedInCurrentGroup}</span>
-            )}
+          <div className="flex h-8 w-56 shrink-0 overflow-hidden rounded-lg border border-emerald-300/35 bg-gradient-to-r from-emerald-950/95 via-teal-950/90 to-blue-950/90 shadow-[0_8px_20px_rgba(6,78,59,0.28)] ring-1 ring-cyan-300/10">
+            <div className="flex min-w-0 flex-1 items-center gap-2 px-2.5">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-emerald-200/30 bg-gradient-to-br from-emerald-400/30 to-blue-400/25 text-emerald-100 shadow-inner shadow-white/10">
+                <Users className="h-3.5 w-3.5" />
+              </span>
+              <span className="text-base font-black tabular-nums leading-none text-white">{selectedGroupEmployeeCount}</span>
+              <span className="truncate text-[10px] font-bold text-emerald-100/75">名員工</span>
+            </div>
+            <div className={`flex h-full min-w-[88px] shrink-0 items-center justify-center gap-1.5 border-l px-2.5 transition-all ${selectedInCurrentGroup > 0 ? 'border-blue-100/55 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white shadow-[-7px_0_18px_rgba(37,99,235,0.3)]' : 'border-blue-300/20 bg-blue-950/65 text-blue-300/70'}`}>
+              <Check className="h-3.5 w-3.5" strokeWidth={3} />
+              <span className="text-[11px] font-black">已選</span>
+              <span className="text-sm font-black tabular-nums leading-none">{selectedInCurrentGroup}</span>
+            </div>
           </div>
         </div>
         <div className="relative flex shrink-0 items-center gap-2">
@@ -1584,35 +1572,25 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               )}
             </div>
 
-            {/* Employee count + Select */}
-            {selectedAdminId && (
-              <div className="flex items-center justify-between gap-1.5 border-t border-slate-800/80 px-0.5 pt-1">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <span className="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-600">Visible</span>
-                  <span className="min-w-[22px] rounded border border-blue-400/60 bg-blue-500/20 px-1.5 py-px text-center text-[10px] font-extrabold tabular-nums text-blue-100">{filteredEmployees.length}</span>
-                  {selectedEmployeeIds.size > 0 && (
-                    <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-px text-[9px] font-semibold tabular-nums text-emerald-300">{selectedEmployeeIds.size} selected</span>
-                  )}
-                </div>
-                {filteredEmployees.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={selectAllCurrentGroup}
-                    aria-pressed={allCurrentSelected}
-                    className={`group/select-all flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-[9px] font-black transition-all duration-150 active:scale-[0.97] ${
-                      allCurrentSelected
-                        ? 'border-emerald-300/55 bg-gradient-to-r from-emerald-500/25 to-teal-500/20 text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.14)] hover:border-emerald-200/75 hover:from-emerald-500/35 hover:to-teal-500/30'
-                        : 'border-blue-300/35 bg-gradient-to-r from-blue-500/20 to-cyan-500/15 text-blue-100 shadow-[0_6px_14px_rgba(30,64,175,0.12)] hover:-translate-y-px hover:border-blue-200/65 hover:from-blue-500/30 hover:to-cyan-500/25 hover:shadow-[0_8px_18px_rgba(37,99,235,0.18)]'
-                    }`}
-                  >
-                    <span className={`flex h-4 w-4 items-center justify-center rounded-md border transition-colors ${allCurrentSelected ? 'border-emerald-200/60 bg-emerald-400/25 text-white' : 'border-blue-200/35 bg-blue-400/10 text-blue-200 group-hover/select-all:bg-blue-400/20'}`}>
-                      {allCurrentSelected ? <Check className="h-3 w-3" strokeWidth={3} /> : <Square className="h-3 w-3" />}
-                    </span>
-                    {allCurrentSelected ? 'Deselect all' : 'Select all'}
-                  </button>
-                )}
-              </div>
-            )}
+            <div className="flex gap-1.5 border-t border-slate-700/70 pt-1.5">
+              <button
+                type="button"
+                onClick={selectAllEmployees}
+                disabled={allEmployeesSelected}
+                className="flex h-7 flex-1 items-center justify-center gap-1 rounded-md border border-blue-400/60 bg-blue-600/25 px-2 text-[10px] font-bold text-blue-50 transition-colors duration-150 hover:border-blue-300/80 hover:bg-blue-600/40 disabled:cursor-not-allowed disabled:border-emerald-500/30 disabled:bg-emerald-500/10 disabled:text-emerald-200"
+              >
+                {allEmployeesSelected ? <><CheckSquare className="h-3.5 w-3.5" /> All selected</> : <><Users className="h-3.5 w-3.5" /> Select all</>}
+              </button>
+              <button
+                type="button"
+                onClick={clearSelection}
+                disabled={selectedEmployeeIds.size === 0}
+                className="flex h-7 flex-1 items-center justify-center gap-1 rounded-md border border-red-400/55 bg-red-500/15 px-2 text-[10px] font-bold text-red-100 transition-colors duration-150 hover:border-red-300/80 hover:bg-red-500/25 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-950 disabled:text-slate-600"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear selection
+              </button>
+            </div>
 
           </div>
 
@@ -1708,17 +1686,6 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 })}
               </div>
             )}
-          </div>
-          <div className="flex gap-1.5 border-t border-slate-700/70 bg-slate-900/95 px-2 py-2">
-            <button onClick={selectAllEmployees} disabled={allEmployeesSelected}
-              className="flex flex-1 items-center justify-center gap-1 rounded-md border border-blue-400/60 bg-blue-600/25 px-2 py-1.5 text-[10px] font-bold text-blue-50 transition-colors duration-150 hover:border-blue-300/80 hover:bg-blue-600/40 disabled:cursor-not-allowed disabled:border-emerald-500/30 disabled:bg-emerald-500/10 disabled:text-emerald-200">
-              {allEmployeesSelected ? <><CheckSquare className="h-3.5 w-3.5" /> All selected</> : <><Users className="h-3.5 w-3.5" /> Select all</>}
-            </button>
-            <button onClick={clearSelection} disabled={selectedEmployeeIds.size === 0}
-              className="flex flex-1 items-center justify-center gap-1 rounded-md border border-red-400/55 bg-red-500/15 px-2 py-1.5 text-[10px] font-bold text-red-100 transition-colors duration-150 hover:border-red-300/80 hover:bg-red-500/25 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-950 disabled:text-slate-600">
-              <X className="h-3.5 w-3.5" />
-              Clear selection
-            </button>
           </div>
         </div>
 
