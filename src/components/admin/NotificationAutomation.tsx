@@ -271,7 +271,7 @@ function taskToForm(task: AutomationTask): TaskForm {
     annualMonth: task.annual_month ? String(task.annual_month) : '1',
     annualDay: task.annual_day ? String(task.annual_day) : '1',
     recipientScope: task.recipient_scope,
-    recipientIds: task.recipient_ids || [],
+    recipientIds: task.plan_id === null ? task.recipient_ids || [] : [],
     titleTemplate: task.title_template,
     contentTemplate: task.content_template,
     deliveryMode: getTaskDeliveryMode(task),
@@ -1269,7 +1269,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
-        {noticeCard}{variableHelpDialog}{employeePreviewDialog}{employeePickerDialog}
+        {noticeCard}{variableHelpDialog}{employeePreviewDialog}{employeePickerDialog}{memberPickerDialog}
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-300/25 bg-gradient-to-r from-blue-950 via-cyan-900 to-blue-950 px-3 py-2 shadow-lg">
           <div className="flex min-w-0 items-center gap-2">
             <button type="button" onClick={closeTaskEditor} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-red-200/60 bg-red-600 text-white"><ArrowLeft className="h-4 w-4" /></button>
@@ -1305,11 +1305,11 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
               <section className="rounded-xl border border-slate-700 bg-slate-950/35 p-3">
                 <div className="mb-3 flex items-center gap-1.5 text-xs font-black text-cyan-200"><Users className="h-3.5 w-3.5" />適用員工</div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <button type="button" disabled={readOnly} onClick={() => setForm(previous => ({ ...previous, recipientScope: 'all_managed', recipientIds: previous.planId === null ? [] : previous.recipientIds }))} className={`rounded-lg border px-3 py-2 text-left ${form.recipientScope === 'all_managed' ? 'border-cyan-400 bg-cyan-500/15 text-cyan-100' : 'border-slate-700 text-slate-400'} disabled:opacity-50`}><p className="text-sm font-bold">所有員工</p><p className="mt-0.5 text-[10px] opacity-70">新員工不需加入方案，會自動適用</p></button>
-                  <button type="button" disabled={readOnly} onClick={() => { setForm(previous => ({ ...previous, recipientScope: 'selected' })); if (form.planId === null) openEmployeePicker(form.recipientScope === 'selected' ? form.recipientIds : []); }} className={`rounded-lg border px-3 py-2 text-left ${form.recipientScope === 'selected' ? 'border-cyan-400 bg-cyan-500/15 text-cyan-100' : 'border-slate-700 text-slate-400'} disabled:opacity-50`}><p className="text-sm font-bold">{form.planId === null ? '指定員工' : '方案指定員工'}</p><p className="mt-0.5 text-[10px] opacity-70">{form.planId === null ? '沿用此舊任務的個別名單' : `使用方案員工名單，目前 ${editorMemberCount} 名`}</p></button>
+                  <button type="button" disabled={readOnly} onClick={() => setForm(previous => ({ ...previous, recipientScope: 'all_managed', recipientIds: [] }))} className={`rounded-lg border px-3 py-2 text-left ${form.recipientScope === 'all_managed' ? 'border-cyan-400 bg-cyan-500/15 text-cyan-100' : 'border-slate-700 text-slate-400'} disabled:opacity-50`}><p className="text-sm font-bold">{form.planId === null ? '所有員工' : '全部管理員工'}</p><p className="mt-0.5 text-[10px] opacity-70">{form.planId === null ? '此管理員範圍內的員工會自動適用' : '方案擁有者管理的所有啟用員工，不需要加入方案'}</p></button>
+                  <button type="button" disabled={readOnly} onClick={() => { setForm(previous => ({ ...previous, recipientScope: 'selected', recipientIds: previous.planId === null ? previous.recipientIds : [] })); if (form.planId === null) openEmployeePicker(form.recipientScope === 'selected' ? form.recipientIds : []); }} className={`rounded-lg border px-3 py-2 text-left ${form.recipientScope === 'selected' ? 'border-cyan-400 bg-cyan-500/15 text-cyan-100' : 'border-slate-700 text-slate-400'} disabled:opacity-50`}><p className="text-sm font-bold">{form.planId === null ? '指定員工' : '方案指定員工'}</p><p className="mt-0.5 text-[10px] opacity-70">{form.planId === null ? '沿用此舊任務的個別名單' : `方案內所有指定員工任務共用，目前 ${editorMemberCount} 名`}</p></button>
                 </div>
                 {form.recipientScope === 'selected' && form.planId === null && <div className="mt-3 rounded-lg border border-cyan-300/20 bg-cyan-500/[0.05] p-2.5"><div className="flex items-center justify-between gap-2"><p className="text-xs font-bold text-cyan-100">已選擇 {selectedEmployees.length} 名員工</p><button type="button" disabled={readOnly} onClick={() => openEmployeePicker()} className="rounded-lg border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1.5 text-[10px] font-black text-cyan-100 disabled:opacity-50">編輯名單</button></div>{selectedEmployees.length > 0 && <div className="mt-2 flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">{selectedEmployees.map(employee => <span key={employee.id} className="rounded-md border border-cyan-300/20 bg-slate-950/60 px-2 py-1 text-[10px] text-slate-300"><strong className="text-cyan-100">{employee.username}</strong> · {employee.employee_id}</span>)}</div>}</div>}
-                {form.recipientScope === 'selected' && form.planId !== null && <p className="mt-3 rounded-lg border border-cyan-300/20 bg-cyan-500/[0.05] px-3 py-2 text-xs leading-5 text-cyan-100">此任務會使用「{editorPlan?.name}」的方案員工名單（{editorMemberCount} 名），個別員工請回到方案頁管理。</p>}
+                {form.recipientScope === 'selected' && form.planId !== null && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-cyan-300/20 bg-cyan-500/[0.05] px-3 py-2"><div className="min-w-0"><p className="truncate text-xs font-black text-cyan-50">{editorPlan?.name}</p><p className="mt-0.5 text-[10px] leading-4 text-cyan-100/70">目前 {editorMemberCount} 名方案員工；名單變更會套用到方案內所有指定員工任務。</p></div><button type="button" disabled={readOnly || editorPlan?.status === 'archived'} onClick={openMemberPicker} className="shrink-0 rounded-lg border border-cyan-300/35 bg-cyan-500/15 px-2.5 py-1.5 text-[10px] font-black text-cyan-50 hover:bg-cyan-500/25 disabled:opacity-40">管理方案員工</button></div>}
               </section>
             </div>
             <div className="flex min-h-[620px] flex-col border-slate-700 bg-slate-950/35 p-3 xl:min-h-0 xl:border-l">
