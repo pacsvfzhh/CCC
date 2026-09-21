@@ -2193,10 +2193,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                   <Bell className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[8px] font-black uppercase tracking-[0.2em] text-cyan-200/65">
-                    {editingMessage ? '編輯訊息' : '已發送訊息詳情'}
-                  </p>
-                  <h3 className="truncate text-sm font-black text-white">{selectedMessageDetail.title}</h3>
+                  <p className="text-sm font-black tracking-[0.12em] text-cyan-100">已發送訊息詳情</p>
                 </div>
               </div>
               <div className="relative flex flex-shrink-0 items-center gap-2">
@@ -2475,7 +2472,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                                         </div>
                                         <div className="min-w-0 flex-1">
                                           <p className={`truncate text-xs font-bold ${isRead ? 'text-emerald-50' : 'text-slate-400'}`}>{employee.username}</p>
-                                          <p className={`truncate font-mono text-[9px] ${isRead ? 'text-emerald-300/70' : 'text-slate-600'}`}>{employee.employee_id}</p>
+                                          <p className={`truncate font-mono text-[11px] font-semibold ${isRead ? 'text-emerald-300/80' : 'text-slate-500'}`}>{employee.employee_id}</p>
                                         </div>
                                         <div className="shrink-0 text-right">
                                           <span className={`block text-[9px] font-black uppercase tracking-wide ${isRead ? 'text-emerald-300' : 'text-slate-500'}`}>
