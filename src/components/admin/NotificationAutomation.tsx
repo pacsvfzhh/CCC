@@ -1148,7 +1148,7 @@ export default function NotificationAutomation({ admin, employees, onBack }: Pro
 
   const memberPickerDialog = memberPickerOpen && selectedPlan && createPortal(
     <div className="fixed inset-0 z-[215] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm" onMouseDown={closeMemberPicker}>
-      <div className={`flex h-[min(820px,calc(100vh-24px))] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-cyan-300/30 bg-slate-900 shadow-[0_24px_64px_rgba(2,6,23,0.7)] ${saving ? 'pointer-events-none' : ''}`} role="dialog" aria-modal="true" aria-labelledby="member-picker-title" onMouseDown={event => event.stopPropagation()}>
+      <div className={`flex h-[min(820px,calc(100vh-24px))] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-cyan-300/30 bg-slate-900 shadow-[0_24px_64px_rgba(2,6,23,0.7)] ${saving ? 'pointer-events-none' : ''}`} role="dialog" aria-modal="true" aria-labelledby="member-picker-title" onMouseDown={event => event.stopPropagation()}>
         <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-cyan-300/20 bg-gradient-to-r from-blue-950 via-cyan-950 to-blue-950 px-4 py-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-200"><Users className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300/60">{selectedOwnerName} · {selectedPlan.name}</p><h2 id="member-picker-title" className="text-base font-black text-white">管理方案員工</h2></div>
