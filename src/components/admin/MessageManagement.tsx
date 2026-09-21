@@ -1389,10 +1389,10 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 onClick={() => setShowGroupDropdown(previous => !previous)}
                 aria-expanded={showGroupDropdown}
                 aria-haspopup="menu"
-                className={`flex h-8 max-w-[260px] items-center gap-2 rounded-lg border px-2.5 text-[11px] font-bold transition-all ${showGroupDropdown ? 'border-blue-200/70 bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-[0_0_18px_rgba(59,130,246,0.3)]' : 'border-blue-300/30 bg-gradient-to-r from-blue-600/25 to-cyan-500/15 text-blue-100 hover:border-blue-200/60 hover:from-blue-500/35 hover:to-cyan-400/25'}`}
+                className={`flex h-8 w-64 items-center gap-2 rounded-lg border px-2.5 text-[11px] font-bold transition-all ${showGroupDropdown ? 'border-blue-200/70 bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-[0_0_18px_rgba(59,130,246,0.3)]' : 'border-blue-300/30 bg-gradient-to-r from-blue-600/25 to-cyan-500/15 text-blue-100 hover:border-blue-200/60 hover:from-blue-500/35 hover:to-cyan-400/25'}`}
               >
                 <Users className="h-3.5 w-3.5 shrink-0" />
-                <span className="max-w-32 truncate">{selectedAdminGroup?.username || 'Select group'}</span>
+                <span className="min-w-0 flex-1 truncate text-left">{selectedAdminGroup?.username || 'Select group'}</span>
                 <span className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-black tabular-nums ${showGroupDropdown ? 'border-white/25 bg-white/15 text-white' : 'border-blue-300/25 bg-blue-400/15 text-blue-200'}`}>
                   {selectedAdminGroup?.total_employees ?? 0}
                 </span>
@@ -1400,7 +1400,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               </button>
 
               {showGroupDropdown && (
-                <div className="absolute right-0 top-full z-[80] mt-2 w-72 overflow-hidden rounded-2xl border border-blue-300/30 bg-gradient-to-br from-blue-950 via-slate-950 to-cyan-950 shadow-[0_20px_48px_rgba(2,6,23,0.68)] ring-1 ring-white/[0.04] backdrop-blur-xl">
+                <div className="absolute right-0 top-full z-[80] mt-2 w-64 overflow-hidden rounded-2xl border border-blue-300/30 bg-gradient-to-br from-blue-950 via-slate-950 to-cyan-950 shadow-[0_20px_48px_rgba(2,6,23,0.68)] ring-1 ring-white/[0.04] backdrop-blur-xl">
                   <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-blue-400/15 blur-3xl" />
                   <div className="relative border-b border-blue-200/15 bg-gradient-to-r from-blue-500/20 via-cyan-500/10 to-transparent px-3.5 py-3">
                     <div className="flex items-center justify-between gap-3">
