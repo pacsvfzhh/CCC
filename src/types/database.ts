@@ -3022,6 +3022,7 @@ export interface Database {
           p_owner_admin_id: string;
           p_plan_id?: string | null;
           p_all_plans?: boolean;
+          p_search_query?: string | null;
         };
         Returns: unknown[];
       };
