@@ -121,13 +121,14 @@ SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_owner_admin_id uuid;
+  v_plan_status text;
 BEGIN
   IF NEW.plan_id IS NULL THEN
     RETURN NEW;
   END IF;
 
-  SELECT plan.owner_admin_id
-  INTO v_owner_admin_id
+  SELECT plan.owner_admin_id, plan.status
+  INTO v_owner_admin_id, v_plan_status
   FROM public.notification_automation_plans AS plan
   WHERE plan.id = NEW.plan_id;
 
@@ -139,6 +140,10 @@ BEGIN
     RAISE EXCEPTION 'Shared templates cannot be assigned to an automation plan.';
   END IF;
 
+  IF NEW.status = 'active' AND v_plan_status <> 'active' THEN
+    RAISE EXCEPTION 'Activate the automation plan before activating this task.';
+  END IF;
+
   RETURN NEW;
 END;
 $$;
@@ -146,7 +151,7 @@ $$;
 DROP TRIGGER IF EXISTS validate_notification_automation_task_plan
   ON public.notification_automation_tasks;
 CREATE TRIGGER validate_notification_automation_task_plan
-  BEFORE INSERT OR UPDATE OF plan_id, owner_admin_id, is_shared_template
+  BEFORE INSERT OR UPDATE OF plan_id, owner_admin_id, is_shared_template, status
   ON public.notification_automation_tasks
   FOR EACH ROW
   EXECUTE FUNCTION private.validate_notification_automation_task_plan();
@@ -502,6 +507,9 @@ DECLARE
   v_admin_id uuid;
   v_admin_role text;
   v_plan public.notification_automation_plans%ROWTYPE;
+  v_previous_status text;
+  v_task public.notification_automation_tasks%ROWTYPE;
+  v_user_id uuid;
 BEGIN
   SELECT context.admin_id, context.admin_role
   INTO v_admin_id, v_admin_role
@@ -531,11 +539,31 @@ BEGIN
     v_plan.owner_admin_id
   );
 
+  v_previous_status := v_plan.status;
+
   UPDATE public.notification_automation_plans
   SET status = p_status,
       updated_at = clock_timestamp()
   WHERE id = v_plan.id
   RETURNING * INTO v_plan;
+
+  IF p_status = 'active' AND v_previous_status <> 'active' THEN
+    FOR v_task IN
+      SELECT task.*
+      FROM public.notification_automation_tasks AS task
+      WHERE task.plan_id = v_plan.id
+        AND task.status = 'active'
+    LOOP
+      FOR v_user_id IN
+        SELECT employee.id
+        FROM public.users AS employee
+        WHERE employee.is_active = true
+          AND private.automation_task_applies_to_user(v_task, employee.id)
+      LOOP
+        PERFORM private.capture_automation_baseline(v_task, v_user_id);
+      END LOOP;
+    END LOOP;
+  END IF;
 
   RETURN jsonb_build_object('success', true, 'plan', to_jsonb(v_plan));
 END;
@@ -601,6 +629,12 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'An employee is outside the automation plan administrator group.';
   END IF;
+
+  PERFORM employee.id
+  FROM public.users AS employee
+  WHERE employee.id = ANY(v_user_ids)
+  ORDER BY employee.id
+  FOR UPDATE;
 
   SELECT COALESCE(array_agg(requested_user_id), ARRAY[]::uuid[])
   INTO v_added_user_ids
@@ -680,6 +714,7 @@ DECLARE
   v_admin_id uuid;
   v_admin_role text;
   v_owner_admin_id uuid;
+  v_owner_role text;
   v_message_type text;
   v_task public.notification_automation_tasks%ROWTYPE;
   v_user_id uuid;
@@ -694,6 +729,11 @@ BEGIN
     v_admin_role,
     p_owner_admin_id
   );
+
+  SELECT owner.role
+  INTO v_owner_role
+  FROM public.admins AS owner
+  WHERE owner.id = v_owner_admin_id;
 
   IF p_trigger_type NOT IN ('total_orders', 'daily_orders', 'work_days', 'commission_amount', 'consecutive_work_days', 'first_login') THEN
     RAISE EXCEPTION 'Unsupported automation trigger.';
@@ -864,15 +904,10 @@ BEGIN
     LOOP
       IF NOT private.admin_can_manage_automation_user(
         v_owner_admin_id,
-        CASE WHEN v_admin_role = 'super_admin' THEN 'super_admin' ELSE v_admin_role END,
+        v_owner_role,
         v_user_id
-      ) OR NOT EXISTS (
-        SELECT 1
-        FROM public.users AS employee
-        WHERE employee.id = v_user_id
-          AND employee.created_by = v_owner_admin_id
       ) THEN
-        RAISE EXCEPTION 'An employee is outside the task administrator group.';
+        RAISE EXCEPTION 'An employee is outside the task administrator scope.';
       END IF;
 
       INSERT INTO public.notification_automation_task_recipients(task_id, user_id)
