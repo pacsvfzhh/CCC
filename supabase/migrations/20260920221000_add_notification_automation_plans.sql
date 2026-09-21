@@ -553,6 +553,7 @@ BEGIN
       FROM public.notification_automation_tasks AS task
       WHERE task.plan_id = v_plan.id
         AND task.status = 'active'
+        AND (task.starts_at IS NULL OR task.starts_at <= clock_timestamp())
     LOOP
       FOR v_user_id IN
         SELECT employee.id
@@ -665,6 +666,7 @@ BEGIN
       WHERE task.plan_id = v_plan.id
         AND task.status = 'active'
         AND task.recipient_scope = 'selected'
+        AND (task.starts_at IS NULL OR task.starts_at <= clock_timestamp())
     LOOP
       PERFORM private.capture_automation_baseline(v_task, v_user_id);
     END LOOP;
@@ -1152,6 +1154,7 @@ BEGIN
       WHERE task.plan_id = v_plan.id
         AND task.status = 'active'
         AND task.recipient_scope = 'selected'
+        AND (task.starts_at IS NULL OR task.starts_at <= clock_timestamp())
     LOOP
       PERFORM private.capture_automation_baseline(v_task, v_employee.id);
     END LOOP;
@@ -1247,6 +1250,7 @@ BEGIN
       WHERE task.plan_id = v_plan.id
         AND task.status = 'active'
         AND task.recipient_scope = 'selected'
+        AND (task.starts_at IS NULL OR task.starts_at <= clock_timestamp())
     LOOP
       PERFORM private.capture_automation_baseline(v_task, v_user.id);
     END LOOP;
