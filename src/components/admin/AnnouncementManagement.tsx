@@ -613,14 +613,14 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const actionButtonClass = 'inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70';
   const lightInputClass = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20';
 
-  const renderStatusBadges = (announcement: Announcement, highContrast = false, hideGlobal = false) => (
+  const renderStatusBadges = (announcement: Announcement, highContrast = false) => (
     <div className="flex flex-wrap items-center gap-1.5">
       {announcement.is_pinned && (
         <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${highContrast ? 'border-white/35 bg-slate-950/35 text-white shadow-sm' : 'border-amber-400/30 bg-amber-500/10 text-amber-300'}`}>
           <Pin className="h-2.5 w-2.5" />置顶 {announcement.pin_order}
         </span>
       )}
-      {announcement.is_global && !hideGlobal && (
+      {announcement.is_global && (
         <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${highContrast ? 'border-white/35 bg-slate-950/35 text-white shadow-sm' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300'}`}>
           <Globe className="h-2.5 w-2.5" />全局
         </span>
@@ -1004,14 +1004,11 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
             </form>
           ) : selectedAnnouncement ? (
             <div className="flex h-full min-h-0 flex-col">
-              <div className="relative flex shrink-0 flex-wrap items-start justify-between gap-3 overflow-hidden border-b border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(8,145,178,0.2),transparent_38%),linear-gradient(105deg,rgba(8,47,73,0.88),rgba(15,23,42,0.98)_68%)] px-4 py-3 shadow-lg shadow-slate-950/20">
+              <div className="relative flex min-h-[156px] shrink-0 flex-wrap items-start justify-between gap-3 overflow-hidden border-b border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(8,145,178,0.2),transparent_38%),linear-gradient(105deg,rgba(8,47,73,0.88),rgba(15,23,42,0.98)_68%)] px-4 py-3 shadow-lg shadow-slate-950/20 lg:h-[120px] lg:min-h-0 lg:flex-nowrap">
                 <div className="pointer-events-none absolute -left-8 -top-12 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
-                <div className="relative min-w-[240px] flex-1">
-                  {(selectedAnnouncement.is_pinned || selectedAnnouncement.is_hidden) && (
-                    <div className="mb-1.5 flex flex-wrap items-center gap-2">{renderStatusBadges(selectedAnnouncement, false, true)}</div>
-                  )}
-                  <h2 className="max-w-4xl break-words text-sm font-black leading-5 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.45)] sm:text-base sm:leading-6">{selectedAnnouncement.title}</h2>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <div className="relative flex min-w-[240px] flex-1 flex-col lg:self-stretch">
+                  <h2 className="line-clamp-2 h-10 max-w-4xl break-words text-sm font-black leading-5 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.45)] sm:h-12 sm:text-base sm:leading-6">{selectedAnnouncement.title}</h2>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 lg:mt-auto">
                     <span className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/20 bg-slate-950/35 px-2 py-1 text-[10px] font-bold text-slate-200">
                       <Users className="h-3 w-3 text-cyan-300" />
                       <span className="text-slate-400">所属管理员</span>
