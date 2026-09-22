@@ -267,19 +267,30 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const selectedAnnouncement = announcements.find(item => item.id === selectedAnnouncementId) || null;
   const selectedAdminName = selectedGroup?.adminName || admin.username;
 
-  const visibleAnnouncements = useMemo(() => {
+  const searchMatchedAnnouncements = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    return (selectedGroup?.announcements || []).filter(item => {
-      const matchesQuery = !normalizedQuery
-        || item.title.toLowerCase().includes(normalizedQuery)
-        || stripMarkup(item.content).toLowerCase().includes(normalizedQuery);
-      const matchesStatus = statusFilter === 'all'
-        || (statusFilter === 'pinned' && item.is_pinned)
-        || (statusFilter === 'hidden' && item.is_hidden)
-        || (statusFilter === 'global' && item.is_global);
-      return matchesQuery && matchesStatus;
-    });
-  }, [searchQuery, selectedGroup, statusFilter]);
+    return (selectedGroup?.announcements || []).filter(item => (
+      !normalizedQuery
+      || item.title.toLowerCase().includes(normalizedQuery)
+      || stripMarkup(item.content).toLowerCase().includes(normalizedQuery)
+    ));
+  }, [searchQuery, selectedGroup]);
+
+  const statusCounts = useMemo<Record<StatusFilter, number>>(() => ({
+    all: searchMatchedAnnouncements.length,
+    pinned: searchMatchedAnnouncements.filter(item => item.is_pinned).length,
+    hidden: searchMatchedAnnouncements.filter(item => item.is_hidden).length,
+    global: searchMatchedAnnouncements.filter(item => item.is_global).length,
+  }), [searchMatchedAnnouncements]);
+
+  const visibleAnnouncements = useMemo(() => (
+    searchMatchedAnnouncements.filter(item => (
+      statusFilter === 'all'
+      || (statusFilter === 'pinned' && item.is_pinned)
+      || (statusFilter === 'hidden' && item.is_hidden)
+      || (statusFilter === 'global' && item.is_global)
+    ))
+  ), [searchMatchedAnnouncements, statusFilter]);
 
   useEffect(() => {
     if (!selectedGroup && groupedAnnouncements.length > 0) {
@@ -706,38 +717,60 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       </div>
 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="hidden min-h-0 flex-col border-r border-slate-700 bg-slate-900/95 lg:flex">
-          <div className="shrink-0 border-b border-slate-700 p-3">
+        <aside className="hidden min-h-0 flex-col border-r border-cyan-950/70 bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(8,20,38,0.98))] lg:flex">
+          <div className="relative shrink-0 overflow-hidden border-b border-cyan-900/45 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.13),transparent_42%),linear-gradient(145deg,rgba(15,23,42,0.98),rgba(8,47,73,0.4))] p-3">
+            <div className="pointer-events-none absolute -right-8 -top-10 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl" />
+            <div className="relative mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-400/10 text-cyan-200">
+                  <SlidersHorizontal className="h-3 w-3" />
+                </span>
+                <span className="text-[11px] font-black tracking-wide text-slate-100">公告筛选</span>
+              </div>
+              <span className="rounded-md border border-cyan-300/15 bg-slate-950/35 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-cyan-100/80">
+                当前 {visibleAnnouncements.length} 则
+              </span>
+            </div>
             <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
               <input
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
-                placeholder="搜索标题或内容"
-                className="h-9 w-full rounded-lg border border-slate-700 bg-slate-950 pl-8 pr-8 text-xs text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-400/70"
+                placeholder="搜索标题或正文内容"
+                className="h-10 w-full rounded-xl border border-white/80 bg-slate-50 pl-9 pr-9 text-xs font-bold text-slate-800 shadow-[0_8px_22px_rgba(2,8,23,0.22),inset_0_1px_0_rgba(255,255,255,0.9)] outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-cyan-400 focus:bg-white focus:ring-2 focus:ring-cyan-400/20"
               />
               {searchQuery && (
-                <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white" aria-label="清除搜索">
+                <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-200 hover:text-slate-700" aria-label="清除搜索">
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
-            <div className="mt-2 grid grid-cols-4 gap-1">
+            <div className="relative mt-2.5 grid grid-cols-4 gap-1.5">
               {([
-                ['all', '全部'],
-                ['pinned', '置顶'],
-                ['hidden', '隐藏'],
-                ['global', '全局'],
-              ] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setStatusFilter(value)}
-                  className={`rounded-md px-1 py-1.5 text-[10px] font-black transition ${statusFilter === value ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'}`}
-                >
-                  {label}
-                </button>
-              ))}
+                { value: 'all', label: '全部', icon: LayoutList, activeClass: 'border-sky-300/70 bg-gradient-to-b from-sky-500 to-blue-600 text-white shadow-sky-950/35', idleClass: 'border-sky-400/20 bg-sky-500/10 text-sky-200 hover:border-sky-300/40 hover:bg-sky-500/20' },
+                { value: 'pinned', label: '置顶', icon: Pin, activeClass: 'border-amber-200/70 bg-gradient-to-b from-amber-400 to-orange-600 text-white shadow-amber-950/35', idleClass: 'border-amber-400/20 bg-amber-500/10 text-amber-200 hover:border-amber-300/40 hover:bg-amber-500/20' },
+                { value: 'hidden', label: '隐藏', icon: EyeOff, activeClass: 'border-rose-300/70 bg-gradient-to-b from-rose-500 to-red-700 text-white shadow-rose-950/35', idleClass: 'border-rose-400/20 bg-rose-500/10 text-rose-200 hover:border-rose-300/40 hover:bg-rose-500/20' },
+                { value: 'global', label: '全局', icon: Globe, activeClass: 'border-violet-300/70 bg-gradient-to-b from-violet-500 to-indigo-700 text-white shadow-violet-950/35', idleClass: 'border-violet-400/20 bg-violet-500/10 text-violet-200 hover:border-violet-300/40 hover:bg-violet-500/20' },
+              ] as const).map(({ value, label, icon: FilterIcon, activeClass, idleClass }) => {
+                const active = statusFilter === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setStatusFilter(value)}
+                    aria-pressed={active}
+                    className={`group flex min-w-0 flex-col items-stretch rounded-xl border px-1.5 py-1.5 shadow-md transition duration-200 ${active ? activeClass : idleClass}`}
+                  >
+                    <span className="flex items-center justify-center gap-1 text-[10px] font-black leading-none">
+                      <FilterIcon className="h-3 w-3 shrink-0" />
+                      {label}
+                    </span>
+                    <span className={`mt-1.5 flex h-5 min-w-0 items-center justify-center rounded-md border px-1 text-[10px] font-black tabular-nums ${active ? 'border-white/25 bg-white/20 text-white' : 'border-white/10 bg-slate-950/25 text-current'}`}>
+                      {statusCounts[value]}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
