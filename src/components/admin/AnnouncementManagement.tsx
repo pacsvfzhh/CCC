@@ -549,19 +549,16 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                 setGroupMenuOpen(value => !value);
                 setCarouselPanelOpen(false);
               }}
-              className="inline-flex h-9 max-w-[210px] items-center gap-2 rounded-xl border border-cyan-300/25 bg-slate-950/45 px-3 text-left shadow-sm transition hover:border-cyan-300/45 hover:bg-slate-900"
+              className="inline-flex h-9 w-[250px] items-center gap-2 rounded-xl border border-cyan-300/25 bg-slate-950/45 px-3 text-left shadow-sm transition hover:border-cyan-300/45 hover:bg-slate-900"
               aria-expanded={groupMenuOpen}
               aria-haspopup="menu"
             >
-              <Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[9px] font-bold leading-none text-slate-500">切换分组</span>
-                <span className="mt-1 block truncate text-[11px] font-black leading-none text-white">{selectedAdminName}</span>
-              </span>
+              <Users className="h-4 w-4 shrink-0 text-cyan-300" />
+              <span className="min-w-0 flex-1 truncate text-sm font-black leading-none text-white">{selectedAdminName}</span>
               <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
             </button>
             {groupMenuOpen && (
-              <div role="menu" className="absolute left-0 top-[calc(100%+6px)] z-50 max-h-[360px] w-[260px] overflow-y-auto rounded-xl border border-cyan-300/25 bg-slate-950 p-1.5 shadow-2xl shadow-black/60">
+              <div role="menu" className="absolute left-0 top-[calc(100%+6px)] z-50 max-h-[360px] w-full overflow-y-auto rounded-xl border border-cyan-300/25 bg-slate-950 p-1.5 shadow-2xl shadow-black/60">
                 <div className="mb-1 flex items-center justify-between px-2 py-1.5">
                   <span className="text-[10px] font-black text-slate-300">管理员分组</span>
                   <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold text-cyan-200">{announcements.length} 则公告</span>
