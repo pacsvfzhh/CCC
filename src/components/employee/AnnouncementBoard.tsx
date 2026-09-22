@@ -1,13 +1,11 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { Pin, Calendar, Bell, Sparkles, Radio, ChevronRight, X, Zap, Star, Eye, TrendingUp, Lock, Shield, Layers, Database } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Pin, Calendar, Bell, Sparkles, Radio, ChevronRight, Zap, Star, Eye, TrendingUp, Lock, Shield, Layers, Database } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Announcement, AnnouncementListItem } from '../../types';
-import { marked } from 'marked';
-import { sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import { useDeviceOptimization } from '../../lib/useDeviceOptimization';
 import { useLanguage } from '../../lib/i18n/context';
+import AnnouncementDetailModal from '../AnnouncementDetailModal';
 
 interface AnnouncementBoardProps {
   userId: string;
@@ -132,11 +130,6 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     return new Map();
   });
 
-  marked.setOptions({
-    breaks: true,
-    gfm: true,
-  });
-
   const getCategoryIcon = (announcement: AnnouncementListItem | Announcement) => {
     const iconMap: Record<string, LucideIcon> = {
       'bell': Bell,
@@ -173,22 +166,6 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     const colorScheme = categoryInfo?.color_scheme?.toLowerCase() || 'slate';
     return colorMap[colorScheme] || '#22d3ee';
   };
-
-  const renderContent = (content: string) => {
-    // Check if content is already HTML (starts with < tag)
-    if (content.trim().startsWith('<')) {
-      return content;
-    }
-    // Otherwise, treat as markdown
-    const rendered = marked(content);
-    return typeof rendered === 'string' ? rendered : '';
-  };
-
-  // Memoize the rendered and sanitized content for the selected announcement
-  const sanitizedSelectedContent = useMemo(() => {
-    if (!selectedAnnouncement) return '';
-    return sanitizeAnnouncementContent(renderContent(selectedAnnouncement.content));
-  }, [selectedAnnouncement]);
 
   const handleAnnouncementClick = useCallback(async (item: AnnouncementListItem) => {
     const cachedContent = contentCacheRef.current.get(item.id);
@@ -852,176 +829,21 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
   return (
     <>
-      {/* Mobile Overlay + Detail Modal - rendered via portal to escape stacking contexts */}
-      {selectedAnnouncement && createPortal(
-        <>
-          {isMobileDevice && (
-            <div className="fixed inset-0 bg-black/60 z-[9999]" />
-          )}
-          <div
-            className="fixed inset-0 z-[10000] flex items-stretch justify-stretch p-0
-            xl:items-center xl:justify-center xl:p-6
-            overflow-hidden touch-none"
-            onClick={() => setSelectedAnnouncement(null)}
-            style={{
-              background: isMobileDevice ? 'rgba(15, 23, 42, 0.7)' : 'rgba(15, 23, 42, 0.6)',
-              backdropFilter: isMobileDevice ? 'none' : 'blur(4px)',
-              WebkitBackdropFilter: isMobileDevice ? 'none' : 'blur(4px)',
-              animation: isIOS ? 'none' : 'fadeIn 0.2s ease-out',
-              willChange: isIOS ? 'auto' : 'opacity',
-              WebkitTapHighlightColor: 'transparent',
-              overscrollBehavior: 'contain'
-            }}
-          >
-            <div
-              className="relative w-full h-full
-              xl:max-w-3xl xl:max-h-[85vh] xl:w-[680px] xl:h-auto
-              bg-white
-              rounded-none xl:rounded-2xl
-              overflow-hidden flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                animation: isMobileDevice ? 'none' : 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: isMobileDevice ? 'none' : '0 25px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255,255,255,0.1)'
-              }}
-            >
-              {/* Premium Blue Gradient Header */}
-              <div
-                className="relative flex-shrink-0 overflow-hidden"
-                style={{
-                  paddingTop: isMobileDevice ? 'calc(env(safe-area-inset-top) + 16px)' : '24px',
-                  paddingBottom: '20px',
-                  paddingLeft: '20px',
-                  paddingRight: '20px',
-                  background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 40%, #3b82f6 70%, #1d4ed8 100%)'
-                }}
-              >
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
-                  <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-blue-300/10 rounded-full blur-xl"></div>
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-                  <div className="absolute inset-0 opacity-[0.04]" style={{
-                    backgroundImage: 'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
-                    backgroundSize: '32px 32px'
-                  }}></div>
-                </div>
-
-                <button
-                  onClick={() => setSelectedAnnouncement(null)}
-                  className="absolute top-3 right-3 z-20 w-9 h-9 flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors active:bg-white/30 active:scale-90"
-                  style={{
-                    touchAction: 'manipulation',
-                    top: isMobileDevice ? 'calc(env(safe-area-inset-top) + 12px)' : '16px'
-                  }}
-                  aria-label="Close"
-                >
-                  <X className="w-4 h-4 text-white" />
-                </button>
-
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-3 flex-wrap">
-                    {selectedAnnouncement.is_pinned && (
-                      <div className="flex items-center gap-1 px-2.5 py-1 bg-amber-500 rounded-full shadow-sm shadow-amber-700/30">
-                        <Pin className="w-3 h-3 text-white fill-white" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">{t.announcements.pinned}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 rounded-full border border-white/20">
-                      <Calendar className="w-3 h-3 text-blue-100" />
-                      <span className="text-[10px] sm:text-xs text-blue-50 font-medium">
-                        {new Date(selectedAnnouncement.publish_at).toLocaleDateString(dateLocale, {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 p-2.5 bg-white/15 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg shadow-blue-900/20">
-                      {(() => {
-                        const CategoryIcon = getCategoryIcon(selectedAnnouncement);
-                        return <CategoryIcon className="w-6 h-6 text-white" />;
-                      })()}
-                    </div>
-                    <h2 className="text-lg sm:text-xl font-bold text-white leading-snug break-words pr-8">
-                      {selectedAnnouncement.title}
-                    </h2>
-                  </div>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-blue-400/30 via-blue-300/50 to-blue-400/30"></div>
-              </div>
-
-              {/* Content Area */}
-              <div
-                className="relative flex-1 overflow-y-auto min-h-0 hide-scrollbar"
-                style={{
-                  WebkitOverflowScrolling: 'touch',
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none',
-                  padding: isMobileDevice ? '16px' : '24px'
-                }}
-              >
-                <div className="relative" style={{ minHeight: contentLoading ? '60vh' : 'auto' }}>
-                  {contentLoading ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ animation: 'content-fade-in 0.3s ease-out' }}>
-                      {/* Large centered loading spinner */}
-                      <div className="relative mb-8">
-                        <div className="w-16 h-16 rounded-full border-4 border-blue-100" style={{ animation: 'content-pulse-ring 2s ease-in-out infinite' }}></div>
-                        <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-blue-500 border-r-blue-400" style={{ animation: 'content-spinner 0.8s linear infinite' }}></div>
-                        <div className="absolute inset-2 w-12 h-12 rounded-full border-4 border-transparent border-b-blue-300 border-l-blue-200" style={{ animation: 'content-spinner 1.2s linear infinite reverse' }}></div>
-                      </div>
-
-                      {/* Animated progress bar */}
-                      <div className="w-48 h-1.5 bg-blue-100 rounded-full overflow-hidden mb-4">
-                        <div className="h-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 rounded-full" style={{ animation: 'content-progress-bar 1.5s ease-in-out infinite', backgroundSize: '200% 100%' }}></div>
-                      </div>
-
-                      {/* Loading text with dot animation */}
-                      <div className="flex items-center gap-1 text-blue-500">
-                        <span className="text-base font-medium">Loading content</span>
-                        <span className="flex gap-0.5">
-                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full" style={{ animation: 'content-bounce-dot 1.4s ease-in-out infinite' }}></span>
-                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full" style={{ animation: 'content-bounce-dot 1.4s ease-in-out infinite 0.2s' }}></span>
-                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full" style={{ animation: 'content-bounce-dot 1.4s ease-in-out infinite 0.4s' }}></span>
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className="relative announcement-content mobile-content"
-                      style={{ fontSize: '15px', lineHeight: '1.75', color: '#374151' }}
-                      dangerouslySetInnerHTML={{ __html: sanitizedSelectedContent }}
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div
-                className="relative flex-shrink-0 border-t border-slate-100 bg-slate-50/80 hidden sm:flex"
-                style={{
-                  paddingTop: '12px',
-                  paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
-                  paddingLeft: '20px',
-                  paddingRight: '20px',
-                  minHeight: '68px'
-                }}
-              >
-                <button
-                  onClick={() => setSelectedAnnouncement(null)}
-                  className="relative w-full px-5 py-3 min-h-[44px] bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 active:from-blue-800 active:to-blue-700 text-white font-semibold text-sm rounded-xl transition-all duration-200 shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
-                  style={{ touchAction: 'manipulation' }}
-                >
-                  {t.common.close}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>,
-        document.body
+      {selectedAnnouncement && (
+        <AnnouncementDetailModal
+          title={selectedAnnouncement.title}
+          content={selectedAnnouncement.content}
+          publishAt={selectedAnnouncement.publish_at}
+          isPinned={selectedAnnouncement.is_pinned}
+          onClose={() => setSelectedAnnouncement(null)}
+          CategoryIcon={getCategoryIcon(selectedAnnouncement)}
+          dateLocale={dateLocale}
+          pinnedLabel={t.announcements.pinned}
+          closeLabel={t.common.close}
+          contentLoading={contentLoading}
+          isMobileDevice={isMobileDevice}
+          isIOS={isIOS}
+        />
       )}
 
       <style>{`

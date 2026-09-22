@@ -5,6 +5,8 @@ import type { LucideIcon } from 'lucide-react';
 import { marked } from 'marked';
 import { sanitizeAnnouncementContent } from '../lib/sanitizeHTML';
 
+marked.setOptions({ breaks: true, gfm: true });
+
 interface AnnouncementDetailModalProps {
   title: string;
   content: string;
@@ -157,7 +159,7 @@ export default function AnnouncementDetailModal({
               </div>
             ) : (
               <div
-                className="announcement-content announcement-detail-content relative"
+                className="announcement-detail-content relative"
                 style={{ fontSize: '15px', lineHeight: '1.75', color: '#374151' }}
                 dangerouslySetInnerHTML={{ __html: sanitizedContent }}
               />
@@ -192,6 +194,7 @@ export default function AnnouncementDetailModal({
         @keyframes announcement-detail-pulse { 50% { transform: scale(1.08); opacity: .65; } }
         @keyframes announcement-detail-progress { 0% { transform: translateX(-100%); } 50% { transform: translateX(0); } 100% { transform: translateX(100%); } }
         .announcement-detail-scroll::-webkit-scrollbar { display: none; }
+        .announcement-detail-content { overflow-x: hidden; overflow-wrap: break-word; word-break: break-word; }
         .announcement-detail-content h1,
         .announcement-detail-content h2,
         .announcement-detail-content h3,
@@ -213,6 +216,10 @@ export default function AnnouncementDetailModal({
         .announcement-detail-content a { color: #2563eb; text-decoration: none; border-bottom: 1px solid rgba(37,99,235,.3); }
         .announcement-detail-content blockquote { margin: 1em 0; padding: .75em 1em; border-left: 3px solid #3b82f6; border-radius: 0 .375rem .375rem 0; background: #f8fafc; color: #4b5563; }
         .announcement-detail-content hr { margin: 1.5em 0; border: 0; height: 1px; background: #e5e7eb; }
+        .announcement-detail-content table { display: block; width: 100%; max-width: 100%; margin: 1rem 0; overflow-x: auto; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: .5rem; }
+        .announcement-detail-content th,
+        .announcement-detail-content td { padding: .625rem .75rem; border-bottom: 1px solid #f3f4f6; text-align: left; }
+        .announcement-detail-content th { background: #f9fafb; color: #374151; font-size: 12px; font-weight: 600; }
         .announcement-detail-content img { display: block; max-width: 100%; height: auto; margin: 1rem 0; border: 1px solid #e2e8f0; border-radius: .75rem; background: #f8fafc; box-shadow: 0 4px 8px rgba(0,0,0,.08); }
         .announcement-detail-content .video-wrapper { display: block !important; width: fit-content !important; max-width: 100% !important; margin: 1rem auto !important; }
         .announcement-detail-content video { display: block; width: 100%; max-width: min(800px, 100%); height: auto; border: 1px solid #e2e8f0; border-radius: .75rem; background: #0f172a; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,.1); }

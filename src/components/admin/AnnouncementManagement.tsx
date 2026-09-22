@@ -32,6 +32,7 @@ import { Announcement, Admin } from '../../types';
 import { sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import { processContentImages } from '../../lib/imageOptimizer';
 import { cleanupContentImages } from '../../lib/storageCleanup';
+import AnnouncementDetailModal from '../AnnouncementDetailModal';
 import TiptapEditor, { TiptapEditorRef } from './TiptapEditor';
 
 interface AnnouncementManagementProps {
@@ -1288,31 +1289,16 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       )}
 
 
-      {showEmployeePreview && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-3 backdrop-blur-md" onClick={() => setShowEmployeePreview(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="employee-preview-title" className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl" onClick={event => event.stopPropagation()}>
-            <div className="flex shrink-0 items-center justify-between border-b border-slate-700 px-4 py-3">
-              <div>
-                <h3 id="employee-preview-title" className="text-sm font-black text-white">员工端公告预览</h3>
-                <p className="text-[10px] text-slate-500">预览发布后的标题、状态和正文效果</p>
-              </div>
-              <button type="button" onClick={() => setShowEmployeePreview(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-600 bg-slate-800 text-slate-400 hover:text-white" aria-label="关闭预览"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto bg-slate-950 p-3 sm:p-5">
-              <article className="mx-auto rounded-2xl border border-slate-200 bg-white p-5 text-slate-800 shadow-2xl sm:p-7">
-                <div className="mb-4 border-b border-slate-200 pb-4">
-                  <h2 className="text-xl font-black text-slate-900">{workspaceMode === 'edit' ? draft.title || '未命名公告' : selectedAnnouncement?.title || '未命名公告'}</h2>
-                  <p className="mt-1 text-xs text-slate-500">{new Date(workspaceMode === 'edit' ? draft.publishAt : selectedAnnouncement?.publish_at || Date.now()).toLocaleString()}</p>
-                </div>
-                <div
-                  className="announcement-preview prose prose-slate max-w-none text-slate-800"
-                  dangerouslySetInnerHTML={{ __html: sanitizeAnnouncementContent(renderMarkdown(workspaceMode === 'edit' ? draft.content : selectedAnnouncement?.content || '')) }}
-                />
-              </article>
-            </div>
-          </div>
-        </div>,
-        document.body,
+      {showEmployeePreview && (
+        <AnnouncementDetailModal
+          title={workspaceMode === 'edit' ? draft.title || '未命名公告' : selectedAnnouncement?.title || '未命名公告'}
+          content={workspaceMode === 'edit' ? draft.content : selectedAnnouncement?.content || ''}
+          publishAt={workspaceMode === 'edit' ? draft.publishAt : selectedAnnouncement?.publish_at || new Date().toISOString()}
+          isPinned={workspaceMode === 'edit' ? draft.isPinned : selectedAnnouncement?.is_pinned || false}
+          onClose={() => setShowEmployeePreview(false)}
+          pinnedLabel="置顶"
+          closeLabel="关闭"
+        />
       )}
     </div>
   );
