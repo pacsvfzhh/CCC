@@ -4263,21 +4263,21 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <label htmlFor="edit-employee-automation-plan" className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300/80">02 · 自動化通知方案</label>
-                        <div className={`mt-2 flex min-w-0 items-center gap-2 rounded-xl border px-2.5 py-2 shadow-inner ${currentAssignment ? 'border-cyan-300/25 bg-gradient-to-r from-cyan-500/15 to-blue-500/5 shadow-cyan-950/30' : 'border-slate-600/70 bg-gradient-to-r from-slate-800/90 to-slate-900/75 shadow-black/20'}`}>
-                          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${currentAssignment ? 'border-cyan-300/35 bg-cyan-400/15 text-cyan-200' : 'border-slate-600 bg-slate-800 text-slate-400'}`}>
+                        <div className={`mt-2 flex min-w-0 items-center gap-2 rounded-lg border px-2 py-1.5 ${currentAssignment ? 'border-cyan-300/15 bg-cyan-400/[0.06]' : 'border-slate-700/50 bg-slate-950/30'}`}>
+                          <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${currentAssignment ? 'border-cyan-300/20 bg-cyan-400/[0.08] text-cyan-300/75' : 'border-slate-700/70 bg-slate-900/50 text-slate-500'}`}>
                             {currentAssignment ? <Bell className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">目前方案</span>
-                            <span className={`block truncate text-[11px] font-extrabold ${currentAssignment ? 'text-cyan-50' : 'text-slate-100'}`}>{currentAssignment ? currentAssignment.plan_name : '不指定方案'}</span>
+                            <span className="block text-[8px] font-bold uppercase tracking-[0.12em] text-slate-600">目前方案</span>
+                            <span className={`block truncate text-[10px] font-semibold ${currentAssignment ? 'text-cyan-100/80' : 'text-slate-300'}`}>{currentAssignment ? currentAssignment.plan_name : '不指定方案'}</span>
                           </span>
                           {currentAssignment ? (
-                            <span className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${currentAssignment.plan_status === 'active' ? 'border-emerald-300/35 bg-emerald-400/15 text-emerald-100' : currentAssignment.plan_status === 'paused' ? 'border-amber-300/35 bg-amber-400/15 text-amber-100' : 'border-slate-500/40 bg-slate-500/15 text-slate-200'}`}>
+                            <span className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[8px] font-semibold opacity-80 ${currentAssignment.plan_status === 'active' ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200' : currentAssignment.plan_status === 'paused' ? 'border-amber-300/25 bg-amber-400/10 text-amber-200' : 'border-slate-600/60 bg-slate-700/30 text-slate-300'}`}>
                               <span className={`h-1.5 w-1.5 rounded-full ${currentAssignment.plan_status === 'active' ? 'bg-emerald-300 shadow-[0_0_7px_rgba(110,231,183,0.9)]' : currentAssignment.plan_status === 'paused' ? 'bg-amber-300' : 'bg-slate-400'}`} />
                               {statusLabel}
                             </span>
                           ) : (
-                            <span className="shrink-0 rounded-md border border-slate-500/45 bg-slate-700/50 px-1.5 py-0.5 text-[9px] font-bold text-slate-200">未加入</span>
+                            <span className="shrink-0 rounded-md border border-slate-700/70 bg-slate-800/40 px-1.5 py-0.5 text-[8px] font-semibold text-slate-400">未加入</span>
                           )}
                         </div>
                       </div>
