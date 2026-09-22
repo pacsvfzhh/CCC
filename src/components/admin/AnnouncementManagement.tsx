@@ -6,7 +6,6 @@ import {
   Calendar,
   CheckCircle2,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   Clock,
   Eye,
@@ -184,10 +183,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const [carouselPanelOpen, setCarouselPanelOpen] = useState(false);
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
   const [publishPickerOpen, setPublishPickerOpen] = useState(false);
-  const [publishPickerMonth, setPublishPickerMonth] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  });
 
   const isDirty = workspaceMode === 'edit' && JSON.stringify(draft) !== initialDraftSnapshot;
 
@@ -328,17 +323,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const selectedAnnouncement = announcements.find(item => item.id === selectedAnnouncementId) || null;
   const selectedAdminName = selectedGroup?.adminName || admin.username;
   const selectedPublishDate = useMemo(() => parseLocalDateTime(draft.publishAt), [draft.publishAt]);
-  const publishCalendarDays = useMemo(() => {
-    const year = publishPickerMonth.getFullYear();
-    const month = publishPickerMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const gridStart = new Date(year, month, 1 - firstDay.getDay());
-    return Array.from({ length: 42 }, (_, index) => {
-      const date = new Date(gridStart);
-      date.setDate(gridStart.getDate() + index);
-      return date;
-    });
-  }, [publishPickerMonth]);
 
   const searchMatchedAnnouncements = useMemo(() => (
     (selectedGroup?.announcements || []).filter(item => fuzzyMatches(item.title, searchQuery))
@@ -974,10 +958,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                   <div ref={publishPickerRef} className="relative">
                     <button
                       type="button"
-                      onClick={() => {
-                        setPublishPickerMonth(new Date(selectedPublishDate.getFullYear(), selectedPublishDate.getMonth(), 1));
-                        setPublishPickerOpen(previous => !previous);
-                      }}
+                      onClick={() => setPublishPickerOpen(previous => !previous)}
                       aria-expanded={publishPickerOpen}
                       className={`inline-flex h-8 items-center gap-1.5 rounded-lg border bg-slate-950/35 px-2.5 text-[10px] font-bold text-slate-200 transition ${publishPickerOpen ? 'border-cyan-300/60 ring-2 ring-cyan-400/15' : 'border-blue-300/20 hover:border-cyan-300/40 hover:bg-cyan-500/10'}`}
                     >
@@ -990,99 +971,58 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                     </button>
 
                     {publishPickerOpen && (
-                      <div className="absolute left-0 top-10 z-[80] w-[min(326px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-cyan-300/25 bg-[linear-gradient(155deg,rgba(8,47,73,0.99),rgba(15,23,42,0.99)_58%,rgba(30,41,59,0.99))] text-white shadow-2xl shadow-slate-950/70">
-                        <div className="border-b border-cyan-300/15 bg-cyan-950/35 px-4 py-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-500/15 text-cyan-200"><Calendar className="h-4 w-4" /></span>
-                              <div>
-                                <p className="text-xs font-black">选择发布时间</p>
-                                <p className="mt-0.5 text-[9px] font-bold text-cyan-100/55">日期与时间将在保存后生效</p>
-                              </div>
+                      <div className="absolute left-0 top-10 z-[80] w-[min(310px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-cyan-300/30 bg-[linear-gradient(150deg,rgba(8,47,73,0.99),rgba(15,23,42,0.99)_65%)] text-white shadow-2xl shadow-slate-950/70 ring-1 ring-white/5">
+                        <div className="flex items-center justify-between border-b border-cyan-300/15 bg-cyan-950/35 px-3.5 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/25 bg-gradient-to-br from-cyan-500/25 to-blue-600/20 text-cyan-100 shadow-inner"><Calendar className="h-4 w-4" /></span>
+                            <div>
+                              <p className="text-xs font-black">设置发布时间</p>
+                              <p className="mt-0.5 text-[10px] font-black tabular-nums text-cyan-100/65">
+                                {selectedPublishDate.toLocaleString('zh-CN', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
+                              </p>
                             </div>
-                            <button type="button" onClick={() => setPublishPickerOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white" aria-label="关闭发布时间选择器"><X className="h-3.5 w-3.5" /></button>
                           </div>
+                          <button type="button" onClick={() => setPublishPickerOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white" aria-label="关闭发布时间选择器"><X className="h-3.5 w-3.5" /></button>
                         </div>
 
                         <div className="p-3">
-                          <div className="mb-2 flex items-center justify-between">
-                            <button type="button" onClick={() => setPublishPickerMonth(previous => new Date(previous.getFullYear(), previous.getMonth() - 1, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-600/60 bg-slate-800/70 text-slate-200 transition hover:border-cyan-400/40 hover:bg-cyan-500/15 hover:text-white" aria-label="上个月"><ChevronLeft className="h-4 w-4" /></button>
-                            <strong className="text-sm font-black tracking-wide text-white">{publishPickerMonth.getFullYear()} 年 {publishPickerMonth.getMonth() + 1} 月</strong>
-                            <button type="button" onClick={() => setPublishPickerMonth(previous => new Date(previous.getFullYear(), previous.getMonth() + 1, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-600/60 bg-slate-800/70 text-slate-200 transition hover:border-cyan-400/40 hover:bg-cyan-500/15 hover:text-white" aria-label="下个月"><ChevronRight className="h-4 w-4" /></button>
-                          </div>
-                          <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-black text-cyan-100/55">
-                            {['日', '一', '二', '三', '四', '五', '六'].map(day => <span key={day} className="py-1">{day}</span>)}
-                          </div>
-                          <div className="mt-1 grid grid-cols-7 gap-1">
-                            {publishCalendarDays.map(date => {
-                              const isCurrentMonth = date.getMonth() === publishPickerMonth.getMonth();
-                              const isSelected = date.getFullYear() === selectedPublishDate.getFullYear() && date.getMonth() === selectedPublishDate.getMonth() && date.getDate() === selectedPublishDate.getDate();
-                              const today = new Date();
-                              const isToday = date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
-                              return (
-                                <button
-                                  key={date.toISOString()}
-                                  type="button"
-                                  onClick={() => {
-                                    const nextDate = new Date(date);
-                                    nextDate.setHours(selectedPublishDate.getHours(), selectedPublishDate.getMinutes(), 0, 0);
-                                    setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(nextDate) }));
-                                    if (!isCurrentMonth) setPublishPickerMonth(new Date(date.getFullYear(), date.getMonth(), 1));
-                                  }}
-                                  className={`relative flex h-8 items-center justify-center rounded-lg text-[11px] font-black tabular-nums transition ${isSelected ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-950/50 ring-1 ring-cyan-200/50' : isCurrentMonth ? 'text-slate-100 hover:bg-cyan-500/15 hover:text-white' : 'text-slate-600 hover:bg-slate-700/50 hover:text-slate-300'}`}
-                                >
-                                  {date.getDate()}
-                                  {isToday && !isSelected && <span className="absolute bottom-1 h-0.5 w-2 rounded-full bg-cyan-400" />}
-                                </button>
-                              );
-                            })}
+                          <div className="grid grid-cols-[1fr_112px] gap-2">
+                            <label className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm transition focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/20">
+                              <span className="mb-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-slate-500"><Calendar className="h-3 w-3 text-cyan-600" />日期</span>
+                              <input
+                                type="date"
+                                value={draft.publishAt.split('T')[0]}
+                                onChange={event => setDraft(previous => ({ ...previous, publishAt: `${event.target.value}T${previous.publishAt.split('T')[1]?.slice(0, 5) || '00:00'}` }))}
+                                className="h-7 w-full bg-transparent text-xs font-black text-slate-900 outline-none [color-scheme:light]"
+                              />
+                            </label>
+                            <label className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm transition focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/20">
+                              <span className="mb-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-slate-500"><Clock className="h-3 w-3 text-blue-600" />时间</span>
+                              <input
+                                type="time"
+                                value={draft.publishAt.split('T')[1]?.slice(0, 5) || '00:00'}
+                                onChange={event => setDraft(previous => ({ ...previous, publishAt: `${previous.publishAt.split('T')[0]}T${event.target.value}` }))}
+                                className="h-7 w-full bg-transparent text-xs font-black text-slate-900 outline-none [color-scheme:light]"
+                              />
+                            </label>
                           </div>
 
-                          <div className="mt-3 flex items-center gap-2 rounded-xl border border-cyan-300/15 bg-slate-950/35 p-2.5">
-                            <Clock className="h-4 w-4 shrink-0 text-cyan-300" />
-                            <span className="text-[10px] font-black text-slate-300">时间</span>
-                            <select
-                              value={selectedPublishDate.getHours()}
-                              onChange={event => {
-                                const nextDate = new Date(selectedPublishDate);
-                                nextDate.setHours(Number(event.target.value));
-                                setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(nextDate) }));
-                              }}
-                              className="h-8 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-2 text-center text-xs font-black text-white outline-none focus:border-cyan-400"
-                              aria-label="发布小时"
-                            >
-                              {Array.from({ length: 24 }, (_, hour) => <option key={hour} value={hour}>{String(hour).padStart(2, '0')} 时</option>)}
-                            </select>
-                            <span className="font-black text-cyan-200">:</span>
-                            <select
-                              value={selectedPublishDate.getMinutes()}
-                              onChange={event => {
-                                const nextDate = new Date(selectedPublishDate);
-                                nextDate.setMinutes(Number(event.target.value));
-                                setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(nextDate) }));
-                              }}
-                              className="h-8 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-2 text-center text-xs font-black text-white outline-none focus:border-cyan-400"
-                              aria-label="发布分钟"
-                            >
-                              {Array.from({ length: 60 }, (_, minute) => <option key={minute} value={minute}>{String(minute).padStart(2, '0')} 分</option>)}
-                            </select>
-                          </div>
-
-                          <div className="mt-2 grid grid-cols-2 gap-2">
+                          <p className="mb-1.5 mt-3 text-[9px] font-black uppercase tracking-[0.14em] text-cyan-100/45">快捷选择</p>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            <button type="button" onClick={() => setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(new Date()) }))} className="h-8 rounded-lg border border-cyan-300/20 bg-cyan-500/10 text-[10px] font-black text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-500/20">现在</button>
                             <button type="button" onClick={() => {
-                              const now = new Date();
-                              setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(now) }));
-                              setPublishPickerMonth(new Date(now.getFullYear(), now.getMonth(), 1));
-                            }} className="h-8 rounded-lg border border-cyan-300/20 bg-cyan-500/10 text-[10px] font-black text-cyan-100 transition hover:bg-cyan-500/20">设为现在</button>
+                              const today = new Date();
+                              today.setHours(18, 0, 0, 0);
+                              setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(today) }));
+                            }} className="h-8 rounded-lg border border-sky-300/20 bg-sky-500/10 text-[10px] font-black text-sky-100 transition hover:border-sky-300/40 hover:bg-sky-500/20">今天 18:00</button>
                             <button type="button" onClick={() => {
                               const tomorrow = new Date();
                               tomorrow.setDate(tomorrow.getDate() + 1);
                               tomorrow.setHours(9, 0, 0, 0);
                               setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(tomorrow) }));
-                              setPublishPickerMonth(new Date(tomorrow.getFullYear(), tomorrow.getMonth(), 1));
-                            }} className="h-8 rounded-lg border border-blue-300/20 bg-blue-500/10 text-[10px] font-black text-blue-100 transition hover:bg-blue-500/20">明天 09:00</button>
+                            }} className="h-8 rounded-lg border border-blue-300/20 bg-blue-500/10 text-[10px] font-black text-blue-100 transition hover:border-blue-300/40 hover:bg-blue-500/20">明天 09:00</button>
                           </div>
-                          <button type="button" onClick={() => setPublishPickerOpen(false)} className="mt-2.5 flex h-9 w-full items-center justify-center rounded-xl border border-cyan-200/30 bg-gradient-to-r from-cyan-600 to-blue-700 text-[11px] font-black text-white shadow-md shadow-cyan-950/40 transition hover:from-cyan-500 hover:to-blue-600">确认发布时间</button>
+                          <button type="button" onClick={() => setPublishPickerOpen(false)} className="mt-3 flex h-9 w-full items-center justify-center rounded-xl border border-cyan-200/30 bg-gradient-to-r from-cyan-600 to-blue-700 text-[11px] font-black text-white shadow-md shadow-cyan-950/40 transition hover:from-cyan-500 hover:to-blue-600">确认发布时间</button>
                         </div>
                       </div>
                     )}
