@@ -588,21 +588,18 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
           </div>
 
           {isSuperAdmin && (
-            <div className="relative flex h-9 items-stretch overflow-visible rounded-xl border border-emerald-300/25 bg-slate-950/45 shadow-sm">
+            <div className="relative flex h-9 w-[250px] items-stretch overflow-visible rounded-xl border border-emerald-300/30 bg-[linear-gradient(100deg,rgba(6,78,59,0.28),rgba(15,23,42,0.5))] shadow-sm shadow-emerald-950/20">
               <button
                 type="button"
                 onClick={() => void toggleCarouselEnabled()}
                 disabled={savingCarouselSettings}
-                className="flex items-center gap-2 rounded-l-xl px-2.5 text-left transition hover:bg-slate-900 disabled:opacity-60"
+                className="flex min-w-0 flex-1 items-center gap-2 rounded-l-xl px-2.5 text-left transition hover:bg-emerald-500/10 disabled:opacity-60"
               >
-                <span className={`flex h-6 w-6 items-center justify-center rounded-lg border ${carouselEnabled ? 'border-emerald-300/30 bg-emerald-500/15 text-emerald-300' : 'border-slate-600 bg-slate-800 text-slate-400'}`}>
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border ${carouselEnabled ? 'border-emerald-300/35 bg-emerald-500/20 text-emerald-200' : 'border-slate-500 bg-slate-700/80 text-slate-200'}`}>
                   {carouselEnabled ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
                 </span>
-                <span>
-                  <span className="block text-[9px] font-bold leading-none text-slate-500">公告栏</span>
-                  <span className="mt-1 block whitespace-nowrap text-[11px] font-black leading-none text-white">自动滚动</span>
-                </span>
-                <span className={`relative ml-1 h-5 w-9 rounded-full transition ${carouselEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}>
+                <span className="min-w-0 flex-1 whitespace-nowrap text-[13px] font-black leading-none text-slate-100">公告栏自动滚动</span>
+                <span className={`relative h-5 w-9 shrink-0 rounded-full transition ${carouselEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}>
                   <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${carouselEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
                 </span>
               </button>
@@ -612,25 +609,38 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                   setCarouselPanelOpen(value => !value);
                   setGroupMenuOpen(false);
                 }}
-                className="flex w-7 items-center justify-center rounded-r-xl border-l border-slate-700 text-slate-500 transition hover:bg-slate-900 hover:text-white"
+                className="flex w-8 shrink-0 items-center justify-center rounded-r-xl border-l border-emerald-300/20 text-emerald-200/70 transition hover:bg-emerald-500/15 hover:text-white"
                 aria-label="调整自动滚动速度"
                 aria-expanded={carouselPanelOpen}
               >
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${carouselPanelOpen ? 'rotate-180' : ''}`} />
               </button>
               {carouselPanelOpen && (
-                <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[260px] rounded-xl border border-emerald-300/25 bg-slate-950 p-3 shadow-2xl shadow-black/60">
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-xs font-black text-white"><Gauge className="h-3.5 w-3.5 text-emerald-300" />滚动速度</span>
-                    <span className="rounded-md bg-emerald-500/10 px-2 py-1 font-mono text-[10px] font-black text-emerald-300">{carouselSpeed.toFixed(1)}x</span>
+                <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[300px] overflow-hidden rounded-2xl border border-emerald-300/30 bg-[linear-gradient(145deg,rgba(6,78,59,0.98),rgba(15,23,42,0.99)_52%,rgba(2,12,27,0.99))] p-3.5 shadow-[0_22px_60px_rgba(0,0,0,0.68),0_0_28px_rgba(16,185,129,0.1)]">
+                  <div className="flex items-start justify-between gap-3 border-b border-emerald-300/15 pb-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-300/25 bg-emerald-500/15 text-emerald-200"><Gauge className="h-4 w-4" /></span>
+                      <div className="min-w-0">
+                        <h3 className="text-xs font-black text-white">自动滚动设置</h3>
+                        <p className="mt-1 text-[10px] leading-none text-emerald-100/65">调整员工端公告轮播速度</p>
+                      </div>
+                    </div>
+                    <span className={`rounded-lg border px-2 py-1 text-[9px] font-black ${carouselEnabled ? 'border-emerald-300/30 bg-emerald-500/15 text-emerald-100' : 'border-slate-500/40 bg-slate-700/60 text-slate-200'}`}>{carouselEnabled ? '已开启' : '已关闭'}</span>
                   </div>
-                  <input type="range" min="0.1" max="5" step="0.1" value={carouselSpeed} onChange={event => setCarouselSpeed(Number(event.target.value))} className="h-1.5 w-full cursor-pointer accent-emerald-500" />
-                  <div className="mt-3 grid grid-cols-5 gap-1">
-                    {[0.3, 0.6, 1, 2, 3].map(speed => <button key={speed} type="button" onClick={() => setCarouselSpeed(speed)} className={`rounded py-1.5 text-[9px] font-black ${Math.abs(carouselSpeed - speed) < 0.05 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>{speed}x</button>)}
+                  <div className="mt-3 rounded-xl border border-emerald-300/15 bg-slate-950/45 p-3">
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-[11px] font-black text-slate-100">滚动速度</span>
+                      <span className="rounded-lg border border-emerald-300/25 bg-emerald-500/15 px-2.5 py-1 font-mono text-[11px] font-black text-emerald-100">{carouselSpeed.toFixed(1)}x</span>
+                    </div>
+                    <input type="range" min="0.1" max="5" step="0.1" value={carouselSpeed} onChange={event => setCarouselSpeed(Number(event.target.value))} className="h-2 w-full cursor-pointer accent-emerald-400" />
+                    <div className="mt-1 flex justify-between text-[9px] font-bold text-slate-400"><span>较慢</span><span>较快</span></div>
+                    <div className="mt-3 grid grid-cols-5 gap-1.5">
+                      {[0.3, 0.6, 1, 2, 3].map(speed => <button key={speed} type="button" onClick={() => setCarouselSpeed(speed)} className={`rounded-lg border py-1.5 text-[10px] font-black transition ${Math.abs(carouselSpeed - speed) < 0.05 ? 'border-emerald-300/50 bg-emerald-600 text-white shadow-sm shadow-emerald-950/40' : 'border-slate-600/70 bg-slate-800/90 text-slate-200 hover:border-emerald-400/35 hover:bg-slate-700 hover:text-white'}`}>{speed}x</button>)}
+                    </div>
                   </div>
-                  {showCarouselSuccessMessage && <p className="mt-2 flex items-center gap-1 text-[10px] font-bold text-emerald-300"><CheckCircle2 className="h-3 w-3" />设置已保存</p>}
-                  {carouselErrorMessage && <p className="mt-2 flex items-start gap-1 text-[10px] font-bold text-red-300"><AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />{carouselErrorMessage}</p>}
-                  <button type="button" onClick={() => void saveCarouselSettings()} disabled={savingCarouselSettings} className="mt-3 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-700 text-[10px] font-black text-white transition hover:bg-emerald-600 disabled:opacity-50"><Save className="h-3.5 w-3.5" />{savingCarouselSettings ? '保存中…' : '保存滚动速度'}</button>
+                  {showCarouselSuccessMessage && <p className="mt-2.5 flex items-center gap-1.5 rounded-lg border border-emerald-300/20 bg-emerald-500/10 px-2.5 py-2 text-[10px] font-bold text-emerald-100"><CheckCircle2 className="h-3.5 w-3.5" />滚动速度已保存</p>}
+                  {carouselErrorMessage && <p className="mt-2.5 flex items-start gap-1.5 rounded-lg border border-red-400/25 bg-red-500/10 px-2.5 py-2 text-[10px] font-bold text-red-100"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{carouselErrorMessage}</p>}
+                  <button type="button" onClick={() => void saveCarouselSettings()} disabled={savingCarouselSettings} className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-300/25 bg-gradient-to-r from-emerald-700 to-teal-700 text-[11px] font-black text-white shadow-md shadow-emerald-950/35 transition hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50"><Save className="h-3.5 w-3.5" />{savingCarouselSettings ? '保存中…' : '保存滚动速度'}</button>
                 </div>
               )}
             </div>
