@@ -760,7 +760,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
             </div>
           </div>
 
-          <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto p-2">
+          <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(14,116,144,0.08),transparent_34%)] p-1.5">
             {loading ? (
               <div className="py-10 text-center text-xs text-slate-500">正在加载公告…</div>
             ) : visibleAnnouncements.length === 0 ? (
@@ -777,17 +777,19 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                   type="button"
                   aria-pressed={active}
                   onClick={() => openPreview(announcement)}
-                  className={`relative mb-1.5 w-full overflow-hidden rounded-xl border p-2.5 text-left transition ${active ? 'border-cyan-400/55 bg-[linear-gradient(100deg,rgba(8,145,178,0.18),rgba(15,23,42,0.7))]' : 'border-slate-700/80 bg-slate-950/45 hover:border-slate-500 hover:bg-slate-800/75'}`}
+                  className={`group relative mb-1 w-full overflow-hidden rounded-lg border px-2.5 py-2 text-left shadow-sm transition duration-200 ${active ? 'border-cyan-300/55 bg-[linear-gradient(105deg,rgba(8,145,178,0.24),rgba(15,23,42,0.92)_72%)] shadow-cyan-950/35' : 'border-slate-700/65 bg-[linear-gradient(105deg,rgba(30,41,59,0.72),rgba(2,6,23,0.55))] shadow-slate-950/25 hover:border-cyan-700/60 hover:bg-[linear-gradient(105deg,rgba(30,58,75,0.8),rgba(15,23,42,0.78))]'}`}
                 >
-                  {active && <span className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-cyan-400" />}
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="line-clamp-2 min-w-0 flex-1 text-xs font-black leading-5 text-slate-100">{announcement.title}</h3>
-                    <ChevronRight className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${active ? 'text-cyan-300' : 'text-slate-600'}`} />
+                  {active && <span className="absolute bottom-1.5 left-0 top-1.5 w-0.5 rounded-r-full bg-gradient-to-b from-cyan-300 to-blue-500 shadow-[0_0_8px_rgba(34,211,238,0.7)]" />}
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <h3 className={`min-w-0 flex-1 truncate text-[11px] font-black leading-4 ${active ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>{announcement.title}</h3>
+                    <ChevronRight className={`h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 ${active ? 'text-cyan-300' : 'text-slate-600 group-hover:text-cyan-400'}`} />
                   </div>
-                  <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-slate-500">{stripMarkup(announcement.content) || '暂无正文内容'}</p>
-                  <div className="mt-2 flex items-end justify-between gap-2">
-                    {renderStatusBadges(announcement)}
-                    <span className="shrink-0 text-[9px] tabular-nums text-slate-600">{new Date(announcement.publish_at).toLocaleDateString()}</span>
+                  <div className="mt-1.5 flex min-w-0 items-center justify-between gap-1.5">
+                    <div className="min-w-0 overflow-hidden">{renderStatusBadges(announcement)}</div>
+                    <span className={`inline-flex h-5 shrink-0 items-center gap-1 rounded-md border px-1.5 text-[9px] font-black tabular-nums ${active ? 'border-cyan-300/25 bg-cyan-400/10 text-cyan-100' : 'border-slate-600/70 bg-slate-950/45 text-slate-300'}`}>
+                      <Calendar className="h-2.5 w-2.5" />
+                      {new Date(announcement.publish_at).toLocaleDateString()}
+                    </span>
                   </div>
                 </button>
               );
