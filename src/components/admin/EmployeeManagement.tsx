@@ -1929,13 +1929,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     return sorted;
   }, [sortByGroup]);
 
-  const getFilteredEmployeesForGroup = useCallback((group: EmployeeGroup, ignoreFinancialFilter = false) => {
+  const getFilteredEmployeesForGroup = useCallback((group: EmployeeGroup, ignoreFinancialFilter = false, ignoreInactiveDaysFilter = false) => {
     const selectedTags = selectedTagsByGroup.get(group.admin.id) || [];
     const activeFilter = activeFilterByGroup.get(group.admin.id) || 'all';
     const workStatusFilter = workStatusFilterByGroup.get(group.admin.id) || new Set<'online' | 'offline' | 'never_started'>();
     const summaryFilter = summaryFilterByGroup.get(group.admin.id) || null;
     const createdDateFilter = createdDateFilterByGroup.get(group.admin.id) || null;
     const financialFilter = ignoreFinancialFilter ? null : financialFilterByGroup.get(group.admin.id) || null;
+    const inactiveDaysRange = ignoreInactiveDaysFilter ? null : inactiveDaysFilterByGroup.get(group.admin.id) || null;
     const searchLower = searchTerm.toLowerCase();
     const today = new Date();
     const now = Date.now();
@@ -1964,7 +1965,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           (summaryFilter === 'new_today' && Boolean(emp.created_at) && new Date(emp.created_at).toDateString() === today.toDateString()) ||
           (summaryFilter === 'currently_working' && emp.workStatus === 'online');
 
-        const inactiveDaysRange = inactiveDaysFilterByGroup.get(group.admin.id);
         const matchesInactiveDays = !inactiveDaysRange || (() => {
           if (emp.workStatus !== 'never_started' || !emp.created_at) return false;
           const ageDays = (now - new Date(emp.created_at).getTime()) / (1000 * 60 * 60 * 24);
@@ -2166,6 +2166,23 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     };
   };
 
+  const getInactiveDaysFilterCounts = (adminId: string): Record<InactiveDaysRange, number> => {
+    const counts: Record<InactiveDaysRange, number> = { '2-3': 0, '3-7': 0, '7-15': 0, '15+': 0 };
+    const group = employeeGroups.find(item => item.admin.id === adminId);
+    if (!group) return counts;
+
+    const now = Date.now();
+    getFilteredEmployeesForGroup(group, false, true).forEach(employee => {
+      if (employee.workStatus !== 'never_started' || !employee.created_at) return;
+      const ageDays = (now - new Date(employee.created_at).getTime()) / (1000 * 60 * 60 * 24);
+      if (ageDays > 2 && ageDays <= 3) counts['2-3'] += 1;
+      else if (ageDays > 3 && ageDays <= 7) counts['3-7'] += 1;
+      else if (ageDays > 7 && ageDays <= 15) counts['7-15'] += 1;
+      else if (ageDays > 15) counts['15+'] += 1;
+    });
+    return counts;
+  };
+
   const renderFinancialFilterButton = (
     adminId: string,
     filter: FinancialFilter,
@@ -2360,13 +2377,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     ];
     const selectedRange = inactiveDaysFilterByGroup.get(adminId);
     const selectedRangeLabel = items.find(item => item.key === selectedRange)?.label;
+    const rangeCounts = getInactiveDaysFilterCounts(adminId);
     return createPortal(
       <div
         data-inactive-days-dropdown
         className="fixed z-[9999]"
         style={{ top: idleDaysDropdownPos.top, left: idleDaysDropdownPos.left }}
       >
-        <div className="w-[156px] overflow-hidden rounded-xl border border-[#4d8b5c] bg-[#07150b] shadow-2xl shadow-black/70 ring-1 ring-inset ring-emerald-200/10">
+        <div className="w-[190px] overflow-hidden rounded-xl border border-[#4d8b5c] bg-[#07150b] shadow-2xl shadow-black/70 ring-1 ring-inset ring-emerald-200/10">
           <div role="menu" aria-label="停工天数篩選" className="space-y-1 bg-[#07150b] p-1.5">
             {items.map(({ key, label, accent, badge }, index) => {
               const isSelected = selectedRange === key;
@@ -2398,6 +2416,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     {index + 1}
                   </span>
                   <span className="min-w-0 flex-1 truncate">{label}</span>
+                  <span className={`min-w-[34px] text-right text-[10px] font-bold tabular-nums ${isSelected ? 'text-white' : 'text-emerald-200/80'}`}>
+                    {rangeCounts[key]} 人
+                  </span>
                   {isSelected ? (
                     <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-100" />
                   ) : (
@@ -2445,7 +2466,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setCreatedDateDropdownOpen(null);
       setCreatedDateDropdownPos(null);
       const rect = e.currentTarget.getBoundingClientRect();
-      const menuWidth = 156;
+      const menuWidth = 190;
       const menuHeight = 194;
       const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
       const top = window.innerHeight - rect.bottom < menuHeight + 8
