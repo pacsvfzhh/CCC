@@ -1639,7 +1639,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
         /* Announcement content image styles */
         .announcement-content img {
-          margin: 1rem 0;
+          margin: 1rem auto;
           border-radius: 0.75rem;
           border: 1px solid #e2e8f0;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
@@ -1652,7 +1652,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
         @media (min-width: 640px) {
           .announcement-content img {
-            margin: 1.5rem 0;
+            margin: 1.5rem auto;
           }
           .announcement-content img:hover {
             border-color: #bfdbfe;

@@ -1061,7 +1061,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                       required
                     />
                   </div>
-                  <div className="min-h-0 flex-1 bg-white">
+                  <div className="announcement-editor-content min-h-0 flex-1 bg-white">
                     <TiptapEditor
                       key={`${editorMode}-${editingId || creatingForAdminId || selectedAdminId}`}
                       ref={editorRef}
@@ -1169,6 +1169,11 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
           border-radius: 999px;
           background: linear-gradient(180deg, rgb(6 182 212), rgb(37 99 235));
         }
+        .announcement-editor-content .ProseMirror img {
+          display: block;
+          margin-left: auto !important;
+          margin-right: auto !important;
+        }
         .announcement-preview img,
         .announcement-preview video {
           display: block;
@@ -1180,6 +1185,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
           background: rgb(248 250 252);
           box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
         }
+        .announcement-preview img { margin-left: auto; margin-right: auto; }
         .announcement-preview p { margin: 0.65rem 0; }
         .announcement-preview p:has(img),
         .announcement-preview p:has(video) { margin: 0; }

@@ -221,7 +221,7 @@ export default function AnnouncementDetailModal({
         .announcement-detail-content th,
         .announcement-detail-content td { padding: .625rem .75rem; border-bottom: 1px solid #f3f4f6; text-align: left; }
         .announcement-detail-content th { background: #f9fafb; color: #374151; font-size: 12px; font-weight: 600; }
-        .announcement-detail-content img { display: block; max-width: 100%; height: auto; margin: 1rem 0; border: 1px solid #e2e8f0; border-radius: .75rem; background: #f8fafc; box-shadow: 0 4px 8px rgba(0,0,0,.08); }
+        .announcement-detail-content img { display: block; max-width: 100%; height: auto; margin: 1rem auto; border: 1px solid #e2e8f0; border-radius: .75rem; background: #f8fafc; box-shadow: 0 4px 8px rgba(0,0,0,.08); }
         .announcement-detail-content .video-wrapper { display: block !important; width: fit-content !important; max-width: 100% !important; margin: 1rem auto !important; }
         .announcement-detail-content video { display: block; width: 100%; max-width: min(800px, 100%); height: auto; border: 1px solid #e2e8f0; border-radius: .75rem; background: #0f172a; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
         @media (max-width: 639px) {
