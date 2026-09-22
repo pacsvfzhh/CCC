@@ -745,13 +745,13 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                 </button>
               )}
             </div>
-            <div className="relative mt-2.5 grid grid-cols-4 gap-1.5">
+            <div className="relative mt-2 grid grid-cols-4 gap-1 rounded-xl border border-white/10 bg-slate-950/35 p-1 shadow-inner shadow-slate-950/50">
               {([
-                { value: 'all', label: '全部', icon: LayoutList, activeClass: 'border-sky-300/70 bg-gradient-to-b from-sky-500 to-blue-600 text-white shadow-sky-950/35', idleClass: 'border-sky-400/20 bg-sky-500/10 text-sky-200 hover:border-sky-300/40 hover:bg-sky-500/20' },
-                { value: 'pinned', label: '置顶', icon: Pin, activeClass: 'border-amber-200/70 bg-gradient-to-b from-amber-400 to-orange-600 text-white shadow-amber-950/35', idleClass: 'border-amber-400/20 bg-amber-500/10 text-amber-200 hover:border-amber-300/40 hover:bg-amber-500/20' },
-                { value: 'hidden', label: '隐藏', icon: EyeOff, activeClass: 'border-rose-300/70 bg-gradient-to-b from-rose-500 to-red-700 text-white shadow-rose-950/35', idleClass: 'border-rose-400/20 bg-rose-500/10 text-rose-200 hover:border-rose-300/40 hover:bg-rose-500/20' },
-                { value: 'global', label: '全局', icon: Globe, activeClass: 'border-violet-300/70 bg-gradient-to-b from-violet-500 to-indigo-700 text-white shadow-violet-950/35', idleClass: 'border-violet-400/20 bg-violet-500/10 text-violet-200 hover:border-violet-300/40 hover:bg-violet-500/20' },
-              ] as const).map(({ value, label, icon: FilterIcon, activeClass, idleClass }) => {
+                { value: 'all', label: '全部', activeClass: 'border-sky-300/60 bg-sky-500 text-white shadow-sky-950/40', idleClass: 'border-transparent text-sky-200 hover:bg-sky-500/15' },
+                { value: 'global', label: '全局', activeClass: 'border-violet-300/60 bg-violet-500 text-white shadow-violet-950/40', idleClass: 'border-transparent text-violet-200 hover:bg-violet-500/15' },
+                { value: 'pinned', label: '置顶', activeClass: 'border-amber-200/60 bg-amber-500 text-white shadow-amber-950/40', idleClass: 'border-transparent text-amber-200 hover:bg-amber-500/15' },
+                { value: 'hidden', label: '隐藏', activeClass: 'border-rose-300/60 bg-rose-600 text-white shadow-rose-950/40', idleClass: 'border-transparent text-rose-200 hover:bg-rose-500/15' },
+              ] as const).map(({ value, label, activeClass, idleClass }) => {
                 const active = statusFilter === value;
                 return (
                   <button
@@ -759,13 +759,10 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                     type="button"
                     onClick={() => setStatusFilter(value)}
                     aria-pressed={active}
-                    className={`group flex min-w-0 flex-col items-stretch rounded-xl border px-1.5 py-1.5 shadow-md transition duration-200 ${active ? activeClass : idleClass}`}
+                    className={`flex h-7 min-w-0 items-center justify-center gap-1 rounded-lg border px-1 text-[10px] font-black leading-none shadow-md transition duration-200 ${active ? activeClass : idleClass}`}
                   >
-                    <span className="flex items-center justify-center gap-1 text-[10px] font-black leading-none">
-                      <FilterIcon className="h-3 w-3 shrink-0" />
-                      {label}
-                    </span>
-                    <span className={`mt-1.5 flex h-5 min-w-0 items-center justify-center rounded-md border px-1 text-[10px] font-black tabular-nums ${active ? 'border-white/25 bg-white/20 text-white' : 'border-white/10 bg-slate-950/25 text-current'}`}>
+                    <span>{label}</span>
+                    <span className={`inline-flex min-w-4 items-center justify-center rounded px-1 py-0.5 text-[9px] font-black tabular-nums ${active ? 'bg-white/20 text-white' : 'bg-slate-950/35 text-current'}`}>
                       {statusCounts[value]}
                     </span>
                   </button>
