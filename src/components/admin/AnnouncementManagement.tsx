@@ -101,6 +101,8 @@ setOptions({ breaks: true, gfm: true, pedantic: false });
 export default function AnnouncementManagement({ admin }: AnnouncementManagementProps) {
   const isSuperAdmin = admin.role === 'super_admin';
   const editorRef = useRef<TiptapEditorRef>(null);
+  const groupMenuRef = useRef<HTMLDivElement>(null);
+  const carouselMenuRef = useRef<HTMLDivElement>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [secondaryAdmins, setSecondaryAdmins] = useState<SecondaryAdmin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -217,6 +219,30 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       document.body.style.overflow = 'unset';
     };
   }, [deletingId, pendingNavigation, pinOrderModalId, showEmployeePreview]);
+
+  useEffect(() => {
+    if (!groupMenuOpen && !carouselPanelOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (groupMenuOpen && !groupMenuRef.current?.contains(target)) setGroupMenuOpen(false);
+      if (carouselPanelOpen && !carouselMenuRef.current?.contains(target)) setCarouselPanelOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setGroupMenuOpen(false);
+        setCarouselPanelOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [carouselPanelOpen, groupMenuOpen]);
 
   const groupedAnnouncements = useMemo<AnnouncementGroup[]>(() => {
     if (!isSuperAdmin) {
@@ -542,7 +568,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
             <h2 className="whitespace-nowrap text-sm font-black text-white sm:text-base">公告内容管理</h2>
           </div>
 
-          <div className="relative">
+          <div ref={groupMenuRef} className="relative">
             <button
               type="button"
               onClick={() => {
@@ -588,7 +614,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
           </div>
 
           {isSuperAdmin && (
-            <div className="relative flex h-9 w-[250px] items-stretch overflow-visible rounded-xl border border-emerald-300/30 bg-[linear-gradient(100deg,rgba(6,78,59,0.28),rgba(15,23,42,0.5))] shadow-sm shadow-emerald-950/20">
+            <div ref={carouselMenuRef} className="relative flex h-9 w-[250px] items-stretch overflow-visible rounded-xl border border-emerald-300/30 bg-[linear-gradient(100deg,rgba(6,78,59,0.28),rgba(15,23,42,0.5))] shadow-sm shadow-emerald-950/20">
               <button
                 type="button"
                 onClick={() => void toggleCarouselEnabled()}
