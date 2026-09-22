@@ -975,8 +975,8 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                 </div>
               </div>
 
-              <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-4 xl:overflow-hidden">
-                <section className="flex min-h-[520px] flex-col overflow-hidden rounded-xl border border-cyan-300/25 bg-white shadow-2xl shadow-slate-950/30 xl:h-full xl:min-h-0">
+              <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto bg-white xl:overflow-hidden">
+                <section className="flex min-h-[520px] flex-col overflow-hidden bg-white xl:h-full xl:min-h-0">
                   <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-3">
                     <label htmlFor="announcement-title" className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.16em] text-cyan-700">公告标题</label>
                     <textarea
