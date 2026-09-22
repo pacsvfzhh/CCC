@@ -155,6 +155,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [hiddenConfirmId, setHiddenConfirmId] = useState<string | null>(null);
   const [pinOrderModalId, setPinOrderModalId] = useState<string | null>(null);
   const [pinOrderValue, setPinOrderValue] = useState(999);
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
@@ -247,7 +248,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   }, [isSuperAdmin, loadAnnouncements, loadCarouselSettings, loadSecondaryAdmins]);
 
   useEffect(() => {
-    if (deletingId || pinOrderModalId || pendingNavigation || showEmployeePreview) {
+    if (deletingId || hiddenConfirmId || pinOrderModalId || pendingNavigation || showEmployeePreview) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -255,7 +256,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [deletingId, pendingNavigation, pinOrderModalId, showEmployeePreview]);
+  }, [deletingId, hiddenConfirmId, pendingNavigation, pinOrderModalId, showEmployeePreview]);
 
   useEffect(() => {
     if (!groupMenuOpen && !carouselPanelOpen) return;
@@ -667,6 +668,9 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     };
   };
 
+  const hiddenConfirmAnnouncement = announcements.find(item => item.id === hiddenConfirmId) || null;
+  const deletingAnnouncement = announcements.find(item => item.id === deletingId) || null;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
       <div className="relative z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-300/20 bg-[linear-gradient(90deg,rgba(8,47,73,0.78),rgba(15,23,42,0.94))] px-3 py-2 sm:px-4">
@@ -1026,7 +1030,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                     <button type="button" onClick={() => togglePin(selectedAnnouncement)} className={`${actionButtonClass} border-amber-400/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20`} title={selectedAnnouncement.is_pinned ? '取消置顶' : '置顶'}>
                       {selectedAnnouncement.is_pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
                     </button>
-                    <button type="button" onClick={() => toggleHidden(selectedAnnouncement)} className={`${actionButtonClass} border-orange-400/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20`} title={selectedAnnouncement.is_hidden ? '显示公告' : '隐藏公告'}>
+                    <button type="button" onClick={() => setHiddenConfirmId(selectedAnnouncement.id)} className={`${actionButtonClass} border-orange-400/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20`} title={selectedAnnouncement.is_hidden ? '显示公告' : '隐藏公告'}>
                       {selectedAnnouncement.is_hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                     </button>
                     <button type="button" onClick={() => setShowEmployeePreview(true)} className={`${actionButtonClass} border-violet-400/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20`} title="员工端预览">
@@ -1197,15 +1201,71 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         document.body,
       )}
 
-      {deletingId && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md" onClick={() => setDeletingId(null)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="delete-announcement-title" className="w-full max-w-sm rounded-2xl border border-red-400/30 bg-slate-900 p-6 text-center shadow-2xl shadow-red-950/30" onClick={event => event.stopPropagation()}>
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-400/30 bg-red-500/15 text-red-300"><Trash2 className="h-6 w-6" /></span>
-            <h3 id="delete-announcement-title" className="mt-4 text-lg font-black text-white">删除这则公告？</h3>
-            <p className="mt-2 text-xs leading-5 text-slate-400">公告正文和关联媒体将被删除，此操作无法撤销。</p>
-            <div className="mt-5 flex gap-2">
-              <button type="button" onClick={() => setDeletingId(null)} className="flex-1 rounded-lg bg-slate-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-600">取消</button>
-              <button type="button" onClick={() => void deleteAnnouncement(deletingId)} className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-black text-white hover:bg-red-500">确认删除</button>
+      {hiddenConfirmAnnouncement && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md" onClick={() => setHiddenConfirmId(null)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="hidden-announcement-title" className={`w-full max-w-md overflow-hidden rounded-3xl border shadow-[0_28px_90px_rgba(0,0,0,0.72)] ${hiddenConfirmAnnouncement.is_hidden ? 'border-emerald-300/30 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.16),transparent_38%),linear-gradient(145deg,rgba(15,23,42,0.99),rgba(2,44,34,0.97))]' : 'border-orange-300/35 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.18),transparent_38%),linear-gradient(145deg,rgba(30,41,59,0.99),rgba(67,20,7,0.97))]'}`} onClick={event => event.stopPropagation()}>
+            <div className="flex items-start justify-between border-b border-white/10 px-5 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border text-white shadow-lg ${hiddenConfirmAnnouncement.is_hidden ? 'border-emerald-200/35 bg-gradient-to-br from-emerald-500 to-teal-700 shadow-emerald-950/40' : 'border-orange-200/35 bg-gradient-to-br from-orange-500 to-red-700 shadow-orange-950/40'}`}>
+                  {hiddenConfirmAnnouncement.is_hidden ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                </span>
+                <div className="min-w-0">
+                  <h3 id="hidden-announcement-title" className="text-base font-black text-white">{hiddenConfirmAnnouncement.is_hidden ? '恢复显示这则公告？' : '确认隐藏这则公告？'}</h3>
+                  <p className={`mt-1 text-[10px] font-bold ${hiddenConfirmAnnouncement.is_hidden ? 'text-emerald-100/70' : 'text-orange-100/70'}`}>{hiddenConfirmAnnouncement.is_hidden ? '恢复后员工可再次查看此公告' : '隐藏后员工端将立即停止显示'}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setHiddenConfirmId(null)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-950/30 text-slate-400 transition hover:bg-slate-800 hover:text-white" aria-label="关闭隐藏确认弹窗"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="p-5">
+              <div className="rounded-2xl border border-white/10 bg-slate-950/35 px-3.5 py-3">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">操作公告</p>
+                <p className="mt-1.5 line-clamp-2 text-xs font-black leading-5 text-white">{hiddenConfirmAnnouncement.title}</p>
+              </div>
+              <div className={`mt-3 flex items-start gap-2 rounded-xl border px-3 py-3 text-[11px] font-bold leading-5 ${hiddenConfirmAnnouncement.is_hidden ? 'border-emerald-300/20 bg-emerald-500/10 text-emerald-100/85' : 'border-orange-300/20 bg-orange-500/10 text-orange-100/85'}`}>
+                <AlertCircle className={`mt-0.5 h-4 w-4 shrink-0 ${hiddenConfirmAnnouncement.is_hidden ? 'text-emerald-300' : 'text-orange-300'}`} />
+                <p>{hiddenConfirmAnnouncement.is_hidden ? '恢复显示不会修改公告内容、置顶顺序或发布时间。' : '此操作不会删除公告内容，之后可随时从隐藏列表中恢复显示。'}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 border-t border-white/10 bg-slate-950/25 px-5 py-4">
+              <button type="button" onClick={() => setHiddenConfirmId(null)} className="h-10 rounded-xl border border-slate-500/45 bg-slate-800/80 text-xs font-black text-slate-200 transition hover:bg-slate-700 hover:text-white">取消</button>
+              <button type="button" onClick={() => { setHiddenConfirmId(null); void toggleHidden(hiddenConfirmAnnouncement); }} className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border text-xs font-black text-white shadow-lg transition ${hiddenConfirmAnnouncement.is_hidden ? 'border-emerald-200/35 bg-gradient-to-r from-emerald-500 to-teal-700 shadow-emerald-950/35 hover:from-emerald-400 hover:to-teal-600' : 'border-orange-200/35 bg-gradient-to-r from-orange-500 to-red-700 shadow-orange-950/35 hover:from-orange-400 hover:to-red-600'}`}>
+                {hiddenConfirmAnnouncement.is_hidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                {hiddenConfirmAnnouncement.is_hidden ? '恢复显示' : '确认隐藏'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {deletingAnnouncement && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md" onClick={() => setDeletingId(null)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="delete-announcement-title" className="w-full max-w-md overflow-hidden rounded-3xl border border-red-300/35 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.2),transparent_38%),linear-gradient(145deg,rgba(30,41,59,0.99),rgba(69,10,10,0.98))] shadow-[0_28px_90px_rgba(0,0,0,0.75),0_0_38px_rgba(239,68,68,0.1)]" onClick={event => event.stopPropagation()}>
+            <div className="flex items-start justify-between border-b border-red-300/15 px-5 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-red-200/35 bg-gradient-to-br from-red-500 to-rose-800 text-white shadow-lg shadow-red-950/45"><Trash2 className="h-5 w-5" /></span>
+                <div className="min-w-0">
+                  <h3 id="delete-announcement-title" className="text-base font-black text-white">永久删除这则公告？</h3>
+                  <p className="mt-1 text-[10px] font-bold text-red-100/70">此操作无法撤销或恢复</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setDeletingId(null)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-950/30 text-slate-400 transition hover:bg-slate-800 hover:text-white" aria-label="关闭删除确认弹窗"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="p-5">
+              <div className="rounded-2xl border border-red-300/15 bg-slate-950/35 px-3.5 py-3">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-red-300/70">即将删除</p>
+                <p className="mt-1.5 line-clamp-2 text-xs font-black leading-5 text-white">{deletingAnnouncement.title}</p>
+              </div>
+              <div className="mt-3 rounded-xl border border-red-300/20 bg-red-500/10 px-3 py-3">
+                <div className="flex items-start gap-2 text-[11px] font-bold leading-5 text-red-100/90">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
+                  <div><p className="font-black text-red-200">删除后将同时清理：</p><ul className="mt-1 list-inside list-disc space-y-0.5 text-red-100/75"><li>公告标题、正文及所有状态设置</li><li>正文关联的图片与媒体文件</li><li>员工端当前可访问的公告内容</li></ul></div>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 border-t border-white/10 bg-slate-950/25 px-5 py-4">
+              <button type="button" onClick={() => setDeletingId(null)} className="h-10 rounded-xl border border-slate-500/45 bg-slate-800/80 text-xs font-black text-slate-200 transition hover:bg-slate-700 hover:text-white">保留公告</button>
+              <button type="button" onClick={() => void deleteAnnouncement(deletingAnnouncement.id)} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-red-200/35 bg-gradient-to-r from-red-600 to-rose-800 text-xs font-black text-white shadow-lg shadow-red-950/40 transition hover:from-red-500 hover:to-rose-700"><Trash2 className="h-3.5 w-3.5" />确认永久删除</button>
             </div>
           </div>
         </div>,
