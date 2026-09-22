@@ -3416,7 +3416,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                       {plan ? <Bell className="h-3 w-3" /> : <X className="h-3 w-3" />}
                     </span>
                     <span className={`min-w-0 flex-1 truncate text-[11px] font-bold ${selected ? 'text-white' : 'text-slate-300'}`}>{plan?.name || '不指定方案'}</span>
-                    <span className="shrink-0 text-[9px] text-slate-500">{plan ? `${Number(plan.selected_task_count) || 0} 個任務` : '不加入'}</span>
+                    <span className={`shrink-0 text-[9px] font-bold ${selected ? (isSuperGroup ? 'text-amber-200' : 'text-cyan-200') : 'text-slate-300'}`}>{plan ? `${Number(plan.selected_task_count) || 0} 個任務` : '不加入'}</span>
                     {selected && <CheckCircle className={`h-3.5 w-3.5 shrink-0 ${isSuperGroup ? 'text-amber-300' : 'text-cyan-300'}`} />}
                   </button>
                 );
