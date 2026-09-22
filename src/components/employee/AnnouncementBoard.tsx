@@ -292,7 +292,10 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
   loadCategoriesRef.current = loadCategories;
 
   useEffect(() => {
+    let realtimeVersion = 0;
+
     const setupCarouselSettings = async () => {
+      const requestVersion = realtimeVersion;
       try {
         const [{ data: enabledData, error: enabledError }, { data: speedData, error: speedError }] = await Promise.all([
           supabase.from('system_configs').select('value').eq('key', 'announcement_carousel_enabled').maybeSingle(),
@@ -301,6 +304,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
         if (enabledError) throw enabledError;
         if (speedError) throw speedError;
+        if (requestVersion !== realtimeVersion) return;
 
         if (enabledData?.value !== undefined) {
           const enabled = enabledData.value === true;
@@ -317,14 +321,13 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
       }
     };
 
-    void setupCarouselSettings();
-
     const channel = supabase
       .channel('carousel_settings_changes')
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'system_configs' },
         (payload) => {
+          realtimeVersion += 1;
           const newRecord = payload.new as { key?: string; value?: unknown };
           if (newRecord.key === 'announcement_carousel_enabled') {
             const enabled = newRecord.value === true;
@@ -337,7 +340,9 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
           }
         }
       )
-      .subscribe();
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED' || status === 'CHANNEL_ERROR') void setupCarouselSettings();
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -598,6 +603,13 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
       if (!isScrolling) {
         isScrolling = true;
         container.classList.add('scrolling');
+      }
+
+      if (isCarouselPausedRef.current) {
+        if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+        touchTimeoutRef.current = setTimeout(() => {
+          isCarouselPausedRef.current = false;
+        }, 700);
       }
 
       // Clear existing timeout
@@ -1247,10 +1259,10 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                 }}
                 onTouchStart={() => {
                   isCarouselPausedRef.current = true;
-                  if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-                  touchTimeoutRef.current = setTimeout(() => {
-                    isCarouselPausedRef.current = false;
-                  }, 1400);
+                  if (touchTimeoutRef.current) {
+                    clearTimeout(touchTimeoutRef.current);
+                    touchTimeoutRef.current = null;
+                  }
                 }}
                 onTouchEnd={() => {
                   if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
@@ -1284,7 +1296,8 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                   { gradient: 'from-cyan-50 via-white to-blue-50', ring: 'ring-cyan-200/80', accent: 'from-cyan-500 via-blue-400 to-sky-400', iconBg: 'bg-gradient-to-br from-cyan-500 to-blue-500', patternColor: 'border-cyan-200', hoverShadow: 'hover:shadow-cyan-100/60' },
                 ];
                 const pinnedStyle = { gradient: 'from-amber-50 via-white to-orange-50', ring: 'ring-amber-200/80', accent: 'from-amber-500 via-orange-400 to-yellow-400', iconBg: 'bg-gradient-to-br from-amber-500 to-orange-500', patternColor: 'border-amber-200', hoverShadow: 'hover:shadow-amber-100/60' };
-                const cardStyle = announcement.is_pinned ? pinnedStyle : cardColorVariants[index % cardColorVariants.length];
+                const cardVariantIndex = (index % announcements.length) % cardColorVariants.length;
+                const cardStyle = announcement.is_pinned ? pinnedStyle : cardColorVariants[cardVariantIndex];
                 const CategoryIcon = getCategoryIcon(announcement);
                 const categoryColor = getCategoryColor(announcement);
 
