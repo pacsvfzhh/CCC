@@ -1161,8 +1161,13 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
       return;
     }
     if (form.triggerType === 'annual_date') {
-      showNotice('error', '每年指定日期任務目前尚未啟用，請先選擇其他條件類型');
-      return;
+      const annualMonth = Number(form.annualMonth);
+      const annualDay = Number(form.annualDay);
+      const maximumDay = new Date(2000, annualMonth, 0).getDate();
+      if (!Number.isInteger(annualMonth) || annualMonth < 1 || annualMonth > 12 || !Number.isInteger(annualDay) || annualDay < 1 || annualDay > maximumDay) {
+        showNotice('error', '請設定有效的每年指定日期');
+        return;
+      }
     }
     if (form.rewardEnabled && Number(form.rewardAmount) <= 0) {
       showNotice('error', '獎金金額必須大於零');
@@ -1190,10 +1195,12 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
         p_name: form.name.trim(),
         p_description: '',
         p_trigger_type: form.triggerType,
-        p_trigger_mode: form.triggerType === 'first_login' ? 'reach_once' : form.triggerMode,
-        p_threshold_value: form.triggerType === 'first_login' ? 1 : Number(form.thresholdValue),
+        p_trigger_mode: form.triggerType === 'first_login' || form.triggerType === 'annual_date' ? 'reach_once' : form.triggerMode,
+        p_threshold_value: form.triggerType === 'first_login' || form.triggerType === 'annual_date' ? 1 : Number(form.thresholdValue),
         p_minimum_daily_orders: form.triggerType === 'work_days' || form.triggerType === 'consecutive_work_days' ? Number(form.minimumDailyOrders) : null,
         p_minimum_daily_work_minutes: form.minimumDailyWorkMinutes ? Number(form.minimumDailyWorkMinutes) : null,
+        p_annual_month: form.triggerType === 'annual_date' ? Number(form.annualMonth) : null,
+        p_annual_day: form.triggerType === 'annual_date' ? Number(form.annualDay) : null,
         p_recipient_scope: form.planId === null ? form.recipientScope : 'selected',
         p_recipient_ids: form.planId === null && form.recipientScope === 'selected' ? form.recipientIds : [],
         p_title_template: form.titleTemplate.trim(),
@@ -1515,7 +1522,7 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
                   <span className="shrink-0 rounded-full border border-emerald-300/15 bg-emerald-400/[0.07] px-2 py-1 text-[8px] font-black tracking-wide text-emerald-200/75">即時規則</span>
                 </div>
                 <div className="relative z-10 grid gap-3 sm:h-[150px] sm:shrink-0 sm:grid-cols-3 sm:grid-rows-2">
-                  <div><span className="mb-1 block text-[11px] font-black tracking-wide text-cyan-50/90">條件類型</span><AutomationRuleSelect ariaLabel="條件類型" disabled={readOnly} accent value={form.triggerType} options={Object.entries(triggerLabels).map(([value, label]) => ({ value, label }))} onChange={value => { const triggerType = value as TriggerType; setContentCustomized(false); setForm(previous => ({ ...previous, triggerType, triggerMode: triggerType === 'first_login' ? 'reach_once' : previous.triggerMode, thresholdValue: triggerType === 'first_login' ? '1' : previous.thresholdValue })); }} /></div>
+                  <div><span className="mb-1 block text-[11px] font-black tracking-wide text-cyan-50/90">條件類型</span><AutomationRuleSelect ariaLabel="條件類型" disabled={readOnly} accent value={form.triggerType} options={Object.entries(triggerLabels).map(([value, label]) => ({ value, label }))} onChange={value => { const triggerType = value as TriggerType; const fixedThresholdTrigger = triggerType === 'first_login' || triggerType === 'annual_date'; setContentCustomized(false); setForm(previous => ({ ...previous, triggerType, triggerMode: fixedThresholdTrigger ? 'reach_once' : previous.triggerMode, thresholdValue: fixedThresholdTrigger ? '1' : previous.thresholdValue })); }} /></div>
                   {form.triggerType !== 'annual_date' && form.triggerType !== 'first_login' ? <>
                     <div><span className="mb-1 block text-[11px] font-black tracking-wide text-blue-100/80">觸發方式</span><AutomationRuleSelect ariaLabel="觸發方式" disabled={readOnly} value={form.triggerMode} options={[{ value: 'reach_once', label: '累計達到一次' }, { value: 'recurring', label: '每達到指定數量' }]} onChange={value => setForm(previous => ({ ...previous, triggerMode: value as TriggerMode }))} /></div>
                     <label><span className="mb-1 block text-[11px] font-black tracking-wide text-blue-100/80">{form.triggerType === 'commission_amount' ? `目標金額（${dashboard.currency}）` : form.triggerType.includes('work_days') ? '目標天數' : '目標訂單數'}</span><input disabled={readOnly} type="number" min={form.triggerType === 'commission_amount' ? '0.01' : '1'} step={form.triggerType === 'commission_amount' ? '0.01' : '1'} value={form.thresholdValue} onChange={event => setForm(previous => ({ ...previous, thresholdValue: event.target.value }))} className="h-9 w-full rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 text-sm font-black text-white shadow-[inset_0_1px_3px_rgba(2,6,23,0.55)] outline-none transition focus:border-cyan-300/65 focus:ring-2 focus:ring-cyan-400/10 disabled:opacity-60" /></label>
