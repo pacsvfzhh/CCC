@@ -167,6 +167,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const [draft, setDraft] = useState<AnnouncementDraft>(emptyDraft);
   const [initialDraftSnapshot, setInitialDraftSnapshot] = useState(JSON.stringify(emptyDraft()));
   const [savingAnnouncement, setSavingAnnouncement] = useState(false);
+  const [announcementSuccessMessage, setAnnouncementSuccessMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -527,6 +528,8 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       setEditingId(null);
       setCreatingForAdminId(null);
       setInitialDraftSnapshot(JSON.stringify({ ...draft, content: editorContent }));
+      setAnnouncementSuccessMessage(editingId ? '公告更新成功' : '公告新增成功');
+      window.setTimeout(() => setAnnouncementSuccessMessage(null), 3500);
     } catch (error) {
       console.error('Error saving announcement:', error);
       alert(`保存公告失败：${getErrorMessage(error, '未知错误')}`);
@@ -1220,7 +1223,32 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         .announcement-group-menu::-webkit-scrollbar-thumb:hover {
           background: linear-gradient(180deg, rgba(103, 232, 249, 0.92), rgba(6, 182, 212, 0.88));
         }
+        @keyframes announcement-save-notice {
+          from { transform: scaleX(1); }
+          to { transform: scaleX(0); }
+        }
       `}</style>
+
+      {announcementSuccessMessage && createPortal(
+        <div className="pointer-events-none fixed right-4 top-4 z-[100000] w-[min(360px,calc(100vw-32px))]" role="status" aria-live="polite">
+          <div className="pointer-events-auto overflow-hidden rounded-2xl border border-emerald-200/55 bg-[linear-gradient(135deg,rgba(5,150,105,0.98),rgba(13,148,136,0.98))] text-white shadow-[0_20px_55px_rgba(2,44,34,0.5)] ring-1 ring-white/15">
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/15 shadow-inner">
+                <CheckCircle2 className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black">{announcementSuccessMessage}</p>
+                <p className="mt-0.5 text-[10px] font-bold text-emerald-50/80">公告内容和显示设置均已保存</p>
+              </div>
+              <button type="button" onClick={() => setAnnouncementSuccessMessage(null)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-slate-950/10 text-white/75 transition hover:bg-white/15 hover:text-white" aria-label="关闭保存成功通知">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="h-1 bg-white/15"><div className="h-full w-full origin-left bg-white/65 [animation:announcement-save-notice_3.5s_linear_forwards]" /></div>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {pinOrderModalId && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md" onClick={() => setPinOrderModalId(null)}>
