@@ -580,20 +580,20 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const actionButtonClass = 'inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70';
   const lightInputClass = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20';
 
-  const renderStatusBadges = (announcement: Announcement) => (
+  const renderStatusBadges = (announcement: Announcement, highContrast = false) => (
     <div className="flex flex-wrap items-center gap-1.5">
       {announcement.is_pinned && (
-        <span className="inline-flex items-center gap-1 rounded-md border border-amber-400/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+        <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${highContrast ? 'border-white/35 bg-slate-950/35 text-white shadow-sm' : 'border-amber-400/30 bg-amber-500/10 text-amber-300'}`}>
           <Pin className="h-2.5 w-2.5" />置顶 {announcement.pin_order}
         </span>
       )}
       {announcement.is_global && (
-        <span className="inline-flex items-center gap-1 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">
+        <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${highContrast ? 'border-white/35 bg-slate-950/35 text-white shadow-sm' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300'}`}>
           <Globe className="h-2.5 w-2.5" />全局
         </span>
       )}
       {announcement.is_hidden && (
-        <span className="inline-flex items-center gap-1 rounded-md border border-red-400/35 bg-red-500/12 px-1.5 py-0.5 text-[10px] font-bold text-red-300">
+        <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${highContrast ? 'border-white/35 bg-slate-950/35 text-white shadow-sm' : 'border-red-400/35 bg-red-500/12 text-red-300'}`}>
           <EyeOff className="h-2.5 w-2.5" />隐藏
         </span>
       )}
@@ -606,7 +606,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         active: 'border-red-300/80 bg-[linear-gradient(105deg,rgba(220,38,38,0.95),rgba(153,27,27,0.94)_58%,rgba(76,5,25,0.96))] shadow-lg shadow-red-950/60',
         idle: 'border-red-900/60 bg-[linear-gradient(105deg,rgba(127,29,29,0.25),rgba(15,23,42,0.72))] shadow-red-950/20 hover:border-red-500/50 hover:bg-[linear-gradient(105deg,rgba(153,27,27,0.32),rgba(15,23,42,0.82))]',
         accent: 'from-red-300 to-rose-600 shadow-[0_0_8px_rgba(248,113,113,0.72)]',
-        icon: 'text-red-300',
+
         date: 'border-red-400/30 bg-red-500/10 text-red-100',
       };
     }
@@ -615,7 +615,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         active: 'border-amber-200/85 bg-[linear-gradient(105deg,rgba(217,119,6,0.96),rgba(180,83,9,0.94)_58%,rgba(69,26,3,0.97))] shadow-lg shadow-amber-950/60',
         idle: 'border-amber-800/55 bg-[linear-gradient(105deg,rgba(120,53,15,0.25),rgba(15,23,42,0.72))] shadow-amber-950/20 hover:border-amber-500/50 hover:bg-[linear-gradient(105deg,rgba(146,64,14,0.33),rgba(15,23,42,0.82))]',
         accent: 'from-amber-200 to-orange-500 shadow-[0_0_8px_rgba(251,191,36,0.72)]',
-        icon: 'text-amber-300',
         date: 'border-amber-400/30 bg-amber-500/10 text-amber-100',
       };
     }
@@ -624,7 +623,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         active: 'border-emerald-200/80 bg-[linear-gradient(105deg,rgba(5,150,105,0.96),rgba(4,120,87,0.94)_58%,rgba(2,44,34,0.97))] shadow-lg shadow-emerald-950/60',
         idle: 'border-emerald-900/55 bg-[linear-gradient(105deg,rgba(6,78,59,0.25),rgba(15,23,42,0.72))] shadow-emerald-950/20 hover:border-emerald-500/45 hover:bg-[linear-gradient(105deg,rgba(6,95,70,0.32),rgba(15,23,42,0.82))]',
         accent: 'from-emerald-300 to-teal-600 shadow-[0_0_8px_rgba(52,211,153,0.68)]',
-        icon: 'text-emerald-300',
         date: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100',
       };
     }
@@ -632,7 +630,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       active: 'border-cyan-200/80 bg-[linear-gradient(105deg,rgba(8,145,178,0.96),rgba(14,116,144,0.94)_58%,rgba(8,47,73,0.97))] shadow-lg shadow-cyan-950/60',
       idle: 'border-slate-700/65 bg-[linear-gradient(105deg,rgba(30,41,59,0.72),rgba(2,6,23,0.55))] shadow-slate-950/25 hover:border-cyan-700/60 hover:bg-[linear-gradient(105deg,rgba(30,58,75,0.8),rgba(15,23,42,0.78))]',
       accent: 'from-cyan-300 to-blue-500 shadow-[0_0_8px_rgba(34,211,238,0.7)]',
-      icon: 'text-cyan-300',
       date: 'border-slate-600/70 bg-slate-950/45 text-slate-300',
     };
   };
@@ -851,17 +848,17 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                 >
                   {active && <span className={`absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-gradient-to-b ${cardTone.accent}`} />}
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black tabular-nums ${cardTone.date} ${active ? 'ring-1 ring-white/30' : 'opacity-85 group-hover:opacity-100'}`}>
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black tabular-nums ${active ? 'border-white/40 bg-slate-950/40 text-white shadow-sm ring-1 ring-white/25' : `${cardTone.date} opacity-85 group-hover:opacity-100`}`}>
                       {index + 1}
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center gap-1.5">
-                        <h3 className={`min-w-0 flex-1 truncate text-[11px] font-black leading-4 ${active ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>{announcement.title}</h3>
-                        <ChevronRight className={`h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 ${active ? cardTone.icon : 'text-slate-600 group-hover:text-slate-300'}`} />
+                        <h3 className={`min-w-0 flex-1 truncate text-[11px] font-black leading-4 ${active ? 'text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.65)]' : 'text-slate-200 group-hover:text-white'}`}>{announcement.title}</h3>
+                        <ChevronRight className={`h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 ${active ? 'text-white drop-shadow-md' : 'text-slate-600 group-hover:text-slate-300'}`} />
                       </div>
                       <div className="mt-1.5 flex min-w-0 items-center justify-between gap-1.5">
-                        <div className="min-w-0 overflow-hidden">{renderStatusBadges(announcement)}</div>
-                        <span className={`inline-flex h-5 shrink-0 items-center gap-1 rounded-md border px-1.5 text-[9px] font-black tabular-nums ${cardTone.date}`}>
+                        <div className="min-w-0 overflow-hidden">{renderStatusBadges(announcement, active)}</div>
+                        <span className={`inline-flex h-5 shrink-0 items-center gap-1 rounded-md border px-1.5 text-[9px] font-black tabular-nums ${active ? 'border-white/35 bg-slate-950/35 text-white shadow-sm' : cardTone.date}`}>
                           <Calendar className="h-2.5 w-2.5" />
                           {new Date(announcement.publish_at).toLocaleDateString()}
                         </span>
