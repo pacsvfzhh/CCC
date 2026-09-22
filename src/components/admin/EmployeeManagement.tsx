@@ -84,6 +84,7 @@ interface EmployeeWithAdmin extends Employee {
 
 type SortField = 'totalOrders' | 'todayOrders' | 'todayCompletedOrders' | 'failedOrders' | 'walletBalance' | 'accountBalance' | 'todayCommission' | 'totalWorkMinutes' | 'todayWorkMinutes' | 'workDays' | 'created_at';
 type SummaryFilter = 'today_working' | 'new_today' | 'currently_working';
+type FinancialFilter = 'wallet' | 'today_commission';
 
 const AUTO_REFRESH_INTERVAL_MS = 180000;
 const AUTO_REFRESH_RETRY_MS = 5000;
@@ -109,6 +110,15 @@ const formatWithdrawalDate = (value: string) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getUTCDateKey = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
@@ -269,6 +279,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [pendingWithdrawalFilterByGroup, setPendingWithdrawalFilterByGroup] = useState<Set<string>>(new Set());
   // Summary filter per group
   const [summaryFilterByGroup, setSummaryFilterByGroup] = useState<Map<string, SummaryFilter>>(new Map());
+  const [createdDateFilterByGroup, setCreatedDateFilterByGroup] = useState<Map<string, string>>(new Map());
+  const [financialFilterByGroup, setFinancialFilterByGroup] = useState<Map<string, FinancialFilter>>(new Map());
+  const [createdDateDropdownOpen, setCreatedDateDropdownOpen] = useState<string | null>(null);
+  const [createdDateDropdownPos, setCreatedDateDropdownPos] = useState<{ top: number; left: number } | null>(null);
   // Action menu
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [resetFeedbackAdminId, setResetFeedbackAdminId] = useState<string | null>(null);
@@ -386,6 +400,29 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [inactiveDaysDropdownOpen]);
+
+  useEffect(() => {
+    if (!createdDateDropdownOpen) return;
+    const close = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-created-date-dropdown]')) {
+        setCreatedDateDropdownOpen(null);
+        setCreatedDateDropdownPos(null);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCreatedDateDropdownOpen(null);
+        setCreatedDateDropdownPos(null);
+      }
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [createdDateDropdownOpen]);
 
   useEffect(() => {
     if (!registrationCalendarOpen) return;
@@ -1658,6 +1695,16 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       next.delete(adminId);
       return next;
     });
+    setCreatedDateFilterByGroup(prev => {
+      const next = new Map(prev);
+      next.delete(adminId);
+      return next;
+    });
+    setFinancialFilterByGroup(prev => {
+      const next = new Map(prev);
+      next.delete(adminId);
+      return next;
+    });
     setSelectedTagsByGroup(prev => {
       const next = new Map(prev);
       next.delete(adminId);
@@ -1665,6 +1712,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     });
     setInactiveDaysDropdownOpen(null);
     setIdleDaysDropdownPos(null);
+    setCreatedDateDropdownOpen(null);
+    setCreatedDateDropdownPos(null);
   };
 
   const handleActiveFilter = (adminId: string, filter: 'all' | 'active' | 'inactive') => {
@@ -1869,6 +1918,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const activeFilter = activeFilterByGroup.get(group.admin.id) || 'all';
     const workStatusFilter = workStatusFilterByGroup.get(group.admin.id) || new Set<'online' | 'offline' | 'never_started'>();
     const summaryFilter = summaryFilterByGroup.get(group.admin.id) || null;
+    const createdDateFilter = createdDateFilterByGroup.get(group.admin.id) || null;
+    const financialFilter = financialFilterByGroup.get(group.admin.id) || null;
     const searchLower = searchTerm.toLowerCase();
     const today = new Date();
     const now = Date.now();
@@ -1911,13 +1962,19 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         })();
 
         const matchesPendingWithdrawal = !pendingWithdrawalFilterByGroup.has(group.admin.id) || emp.hasPendingWithdrawal;
+        const matchesCreatedDate = !createdDateFilter || getUTCDateKey(emp.created_at) === createdDateFilter;
+        const matchesFinancial = !financialFilter
+          || (financialFilter === 'wallet' && (emp.walletBalance || 0) > 0)
+          || (financialFilter === 'today_commission' && emp.todayCommission > 0);
 
-        return matchesSearch && matchesTags && matchesActive && matchesWorkStatus && matchesSummary && matchesInactiveDays && matchesPendingWithdrawal;
+        return matchesSearch && matchesTags && matchesActive && matchesWorkStatus && matchesSummary && matchesInactiveDays && matchesPendingWithdrawal && matchesCreatedDate && matchesFinancial;
       }),
       group.admin.id
     );
   }, [
     activeFilterByGroup,
+    createdDateFilterByGroup,
+    financialFilterByGroup,
     inactiveDaysFilterByGroup,
     pendingWithdrawalFilterByGroup,
     searchTerm,
@@ -2108,6 +2165,118 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
   const [idleDaysDropdownPos, setIdleDaysDropdownPos] = useState<{ top: number; left: number } | null>(null);
 
+  const getCreatedDateOptions = (adminId: string) => {
+    const groupEmployees = employeeGroups.find(group => group.admin.id === adminId)?.employees || [];
+    const counts = new Map<string, number>();
+    groupEmployees.forEach(employee => {
+      const dateKey = getUTCDateKey(employee.created_at);
+      if (dateKey) counts.set(dateKey, (counts.get(dateKey) || 0) + 1);
+    });
+    return Array.from(counts, ([date, count]) => ({ date, count }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  };
+
+  const renderCreatedDatePortal = (adminId: string) => {
+    if (createdDateDropdownOpen !== adminId || !createdDateDropdownPos) return null;
+    const options = getCreatedDateOptions(adminId);
+    const selectedDate = createdDateFilterByGroup.get(adminId);
+
+    return createPortal(
+      <div
+        data-created-date-dropdown
+        className="fixed z-[9999]"
+        style={{ top: createdDateDropdownPos.top, left: createdDateDropdownPos.left }}
+      >
+        <div className="w-[220px] overflow-hidden rounded-xl border border-sky-500/60 bg-[#07121d] shadow-2xl shadow-black/70 ring-1 ring-inset ring-sky-200/10">
+          <div className="border-b border-sky-900/80 px-3 py-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-sky-300">新建账户日期</p>
+          </div>
+          <div role="menu" aria-label="新建账户日期篩選" className="max-h-[280px] space-y-1 overflow-y-auto p-1.5">
+            {options.length > 0 ? options.map(({ date, count }) => {
+              const isSelected = selectedDate === date;
+              return (
+                <button
+                  key={date}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={isSelected}
+                  onClick={() => {
+                    setCreatedDateFilterByGroup(prev => {
+                      const next = new Map(prev);
+                      if (isSelected) next.delete(adminId);
+                      else next.set(adminId, date);
+                      return next;
+                    });
+                    setCreatedDateDropdownOpen(null);
+                    setCreatedDateDropdownPos(null);
+                  }}
+                  className={`flex h-9 w-full items-center gap-2 rounded-lg border px-2.5 text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 ${
+                    isSelected
+                      ? 'border-sky-300/80 bg-sky-600 text-white shadow-md shadow-sky-950/50'
+                      : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-500/60 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <CalendarDays className={`h-3.5 w-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-sky-400'}`} />
+                  <span className="min-w-0 flex-1 text-left tabular-nums">{date}</span>
+                  <span className={`min-w-[28px] rounded-full border px-1.5 py-0.5 text-center text-[10px] tabular-nums leading-none ${
+                    isSelected
+                      ? 'border-white/30 bg-white/20 text-white'
+                      : 'border-sky-400/35 bg-sky-500/10 text-sky-200'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            }) : (
+              <p className="px-2 py-5 text-center text-[11px] text-slate-500">暫無新建账户</p>
+            )}
+          </div>
+          {selectedDate && (
+            <div className="border-t border-sky-900/80 bg-sky-950/30 p-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setCreatedDateFilterByGroup(prev => {
+                    const next = new Map(prev);
+                    next.delete(adminId);
+                    return next;
+                  });
+                  setCreatedDateDropdownOpen(null);
+                  setCreatedDateDropdownPos(null);
+                }}
+                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-rose-400/45 bg-rose-950/75 px-2 text-[11px] font-semibold text-rose-200 transition-all hover:border-rose-300/75 hover:bg-rose-900/80 hover:text-rose-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50"
+              >
+                <X className="h-3.5 w-3.5" />
+                清除篩選
+              </button>
+            </div>
+          )}
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
+  const handleCreatedDateClick = (adminId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (createdDateDropdownOpen === adminId) {
+      setCreatedDateDropdownOpen(null);
+      setCreatedDateDropdownPos(null);
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 220;
+    const menuHeight = Math.min(360, 56 + getCreatedDateOptions(adminId).length * 40);
+    const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
+    const top = window.innerHeight - rect.bottom < menuHeight + 8
+      ? Math.max(8, rect.top - menuHeight - 6)
+      : rect.bottom + 6;
+    setInactiveDaysDropdownOpen(null);
+    setIdleDaysDropdownPos(null);
+    setCreatedDateDropdownPos({ top, left });
+    setCreatedDateDropdownOpen(adminId);
+  };
+
   const renderIdleDaysPortal = (adminId: string) => {
     if (inactiveDaysDropdownOpen !== adminId || !idleDaysDropdownPos) return null;
     const items = [
@@ -2194,6 +2363,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setInactiveDaysDropdownOpen(null);
       setIdleDaysDropdownPos(null);
     } else {
+      setCreatedDateDropdownOpen(null);
+      setCreatedDateDropdownPos(null);
       const rect = e.currentTarget.getBoundingClientRect();
       const menuWidth = 156;
       const menuHeight = 204;
@@ -2216,6 +2387,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const currentWorkStatus = getWorkStatusFilter(adminId);
     const hasIdleFilter = inactiveDaysFilterByGroup.has(adminId);
     const hasPendingFilter = pendingWithdrawalFilterByGroup.has(adminId);
+    const selectedCreatedDate = createdDateFilterByGroup.get(adminId);
+    const financialFilter = financialFilterByGroup.get(adminId);
     const pendingWithdrawalCount = groupEmployees.filter(employee => employee.hasPendingWithdrawal).length;
 
     const on = 'text-white font-semibold shadow-md border border-transparent';
@@ -2395,6 +2568,97 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           </div>
         </div>
         {renderIdleDaysPortal(adminId)}
+
+        <div data-created-date-dropdown className="ml-2 inline-flex items-center">
+          <div className={`inline-flex h-8 w-[178px] shrink-0 overflow-hidden rounded-lg border shadow-sm transition-all ${
+            selectedCreatedDate
+              ? 'border-sky-300/90 bg-sky-800 shadow-sky-950/40'
+              : createdDateDropdownOpen === adminId
+                ? 'border-sky-400/80 bg-sky-950 shadow-sky-950/30'
+                : 'border-sky-700/70 bg-slate-900 hover:border-sky-500/80 hover:bg-sky-950'
+          }`}>
+            <button
+              type="button"
+              onClick={(event) => handleCreatedDateClick(adminId, event)}
+              aria-haspopup="menu"
+              aria-expanded={createdDateDropdownOpen === adminId}
+              className={`flex h-full min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70 ${
+                selectedCreatedDate
+                  ? 'bg-sky-700 text-white hover:bg-sky-600'
+                  : createdDateDropdownOpen === adminId
+                    ? 'bg-sky-950 text-sky-100'
+                    : 'text-sky-200 hover:bg-sky-950 hover:text-sky-100'
+              }`}
+            >
+              <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+              <span className="min-w-0 truncate tabular-nums">{selectedCreatedDate || '新建日期'}</span>
+              <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${createdDateDropdownOpen === adminId ? 'rotate-180' : ''}`} />
+            </button>
+            {selectedCreatedDate && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCreatedDateFilterByGroup(prev => {
+                    const next = new Map(prev);
+                    next.delete(adminId);
+                    return next;
+                  });
+                  setCreatedDateDropdownOpen(null);
+                  setCreatedDateDropdownPos(null);
+                }}
+                aria-label="清除新建日期篩選"
+                title="清除新建日期篩選"
+                className="inline-flex h-full w-8 shrink-0 items-center justify-center border-l border-rose-200/30 bg-rose-600 text-white transition-colors hover:bg-rose-500 active:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/80"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+        {renderCreatedDatePortal(adminId)}
+
+        <button
+          type="button"
+          onClick={() => {
+            setFinancialFilterByGroup(prev => {
+              const next = new Map(prev);
+              if (financialFilter === 'wallet') next.delete(adminId);
+              else next.set(adminId, 'wallet');
+              return next;
+            });
+          }}
+          aria-pressed={financialFilter === 'wallet'}
+          className={`ml-2 inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 text-[11px] font-semibold shadow-sm transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/70 ${
+            financialFilter === 'wallet'
+              ? 'border-violet-200 bg-violet-600 text-white shadow-violet-950/50 ring-1 ring-violet-300/35'
+              : 'border-violet-600/70 bg-violet-950/45 text-violet-200 shadow-violet-950/30 hover:border-violet-400/90 hover:bg-violet-900/70 hover:text-white'
+          }`}
+        >
+          <Wallet className="h-3.5 w-3.5" />
+          <span>钱包有金额</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setFinancialFilterByGroup(prev => {
+              const next = new Map(prev);
+              if (financialFilter === 'today_commission') next.delete(adminId);
+              else next.set(adminId, 'today_commission');
+              return next;
+            });
+          }}
+          aria-pressed={financialFilter === 'today_commission'}
+          className={`ml-2 inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 text-[11px] font-semibold shadow-sm transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 ${
+            financialFilter === 'today_commission'
+              ? 'border-amber-200 bg-amber-500 text-amber-950 shadow-amber-950/50 ring-1 ring-amber-300/40'
+              : 'border-amber-600/70 bg-amber-950/45 text-amber-200 shadow-amber-950/30 hover:border-amber-400/90 hover:bg-amber-900/70 hover:text-amber-50'
+          }`}
+        >
+          <DollarSign className="h-3.5 w-3.5" />
+          <span>今日佣金</span>
+        </button>
+
         <button
           type="button"
           onClick={() => resetEmployeeListFilters(adminId)}
