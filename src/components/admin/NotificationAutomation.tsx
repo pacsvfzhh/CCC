@@ -1573,18 +1573,34 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
   const renderPlanCard = (plan: AutomationPlan, compact = false) => {
     const selected = selectedPlanId === plan.id;
     const statusTone = plan.status === 'active'
-      ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200'
+      ? 'border-emerald-300/40 bg-emerald-400/15 text-emerald-100'
       : plan.status === 'paused'
-        ? 'border-amber-300/25 bg-amber-400/10 text-amber-200'
-        : 'border-slate-600 bg-slate-800 text-slate-400';
+        ? 'border-amber-300/40 bg-amber-400/15 text-amber-100'
+        : 'border-slate-500/50 bg-slate-700/55 text-slate-200';
+    const accentTone = selected
+      ? 'bg-gradient-to-b from-cyan-200 via-cyan-400 to-blue-500 shadow-[0_0_12px_rgba(34,211,238,0.7)]'
+      : plan.status === 'active'
+        ? 'bg-emerald-500/80 group-hover:bg-emerald-300'
+        : plan.status === 'paused'
+          ? 'bg-amber-500/80 group-hover:bg-amber-300'
+          : 'bg-slate-600 group-hover:bg-slate-400';
+    const iconTone = selected
+      ? 'border-cyan-100/55 bg-gradient-to-br from-cyan-400/45 to-blue-500/35 text-white shadow-[0_6px_16px_rgba(8,145,178,0.3)]'
+      : plan.status === 'active'
+        ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300 group-hover:border-cyan-300/40 group-hover:bg-cyan-400/15 group-hover:text-cyan-100'
+        : plan.status === 'paused'
+          ? 'border-amber-400/25 bg-amber-500/10 text-amber-300 group-hover:border-cyan-300/40 group-hover:bg-cyan-400/15 group-hover:text-cyan-100'
+          : 'border-slate-600 bg-slate-800 text-slate-400 group-hover:border-cyan-300/40 group-hover:bg-cyan-400/15 group-hover:text-cyan-100';
 
-    return <button key={plan.id} type="button" onClick={() => selectPlan(plan.id)} className={`group relative w-full overflow-hidden rounded-xl border text-left transition-all duration-200 hover:-translate-y-0.5 ${compact ? 'px-2.5 py-2' : 'px-2.5 py-2.5'} ${selected ? 'border-cyan-200/65 bg-[linear-gradient(135deg,rgba(8,145,178,0.32),rgba(30,64,175,0.22),rgba(15,23,42,0.96))] shadow-[0_10px_24px_rgba(8,145,178,0.2)] ring-1 ring-cyan-300/25' : 'border-slate-700/90 bg-[linear-gradient(135deg,rgba(15,23,42,0.9),rgba(2,6,23,0.72))] shadow-[0_4px_12px_rgba(2,6,23,0.16)] hover:border-cyan-300/45 hover:bg-slate-800/90 hover:shadow-[0_10px_20px_rgba(2,6,23,0.28)]'}`}>
-      <span className={`absolute -right-5 -top-5 h-16 w-16 rounded-full blur-2xl transition-opacity ${selected ? 'bg-cyan-300/25 opacity-100' : 'bg-cyan-400/10 opacity-0 group-hover:opacity-100'}`} /><span className={`absolute inset-y-0 left-0 w-1 transition-colors ${selected ? 'bg-gradient-to-b from-cyan-200 via-cyan-400 to-blue-500' : 'bg-slate-700 group-hover:bg-cyan-500/70'}`} />
-      <div className="relative flex items-center gap-2">
-        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border shadow-sm ${selected ? 'border-cyan-100/30 bg-cyan-300/20 text-cyan-50 shadow-cyan-950/30' : 'border-slate-700 bg-slate-900 text-slate-400 group-hover:border-cyan-300/30 group-hover:bg-cyan-500/10 group-hover:text-cyan-100'}`}><Settings2 className="h-3.5 w-3.5" /></span>
-        <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className={`min-w-0 truncate text-xs font-black ${selected ? 'text-white' : 'text-slate-100'}`}>{plan.name}</span><span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-black tracking-wide ${statusTone}`}>{planStatusLabels[plan.status]}</span></span></span>
+    return <button key={plan.id} type="button" onClick={() => selectPlan(plan.id)} aria-pressed={selected} className={`group relative w-full overflow-hidden rounded-2xl border text-left outline-none transition-all duration-300 focus-visible:ring-2 focus-visible:ring-cyan-300/70 ${compact ? 'px-3 py-2.5' : 'px-3 py-3'} ${selected ? 'border-cyan-200/80 bg-[linear-gradient(135deg,rgba(8,145,178,0.46)_0%,rgba(30,64,175,0.38)_48%,rgba(15,23,42,0.98)_100%)] shadow-[0_12px_28px_rgba(6,182,212,0.22),inset_0_1px_0_rgba(207,250,254,0.18)] ring-1 ring-cyan-300/35' : 'border-slate-700/90 bg-[linear-gradient(145deg,rgba(30,41,59,0.82)_0%,rgba(2,6,23,0.94)_100%)] shadow-[0_5px_14px_rgba(2,6,23,0.28)] hover:-translate-y-0.5 hover:border-cyan-300/55 hover:bg-[linear-gradient(145deg,rgba(22,78,99,0.42)_0%,rgba(15,23,42,0.96)_100%)] hover:shadow-[0_12px_24px_rgba(8,145,178,0.16)]'}`}>
+      <span className={`pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent_18%,rgba(255,255,255,0.08)_48%,transparent_76%)] transition-transform duration-500 ${selected ? 'translate-x-0 opacity-70' : '-translate-x-full opacity-0 group-hover:translate-x-full group-hover:opacity-100'}`} />
+      <span className={`absolute inset-y-2 left-0 w-[3px] rounded-r-full transition-all duration-300 ${accentTone}`} />
+      <span className={`pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-3xl transition-opacity duration-300 ${selected ? 'bg-cyan-300/30 opacity-100' : 'bg-cyan-400/15 opacity-0 group-hover:opacity-100'}`} />
+      <div className="relative flex items-center gap-2.5">
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all duration-300 ${iconTone}`}><Settings2 className="h-4 w-4" /></span>
+        <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className={`min-w-0 truncate text-[13px] font-black tracking-[0.01em] ${selected ? 'text-white' : 'text-slate-100 group-hover:text-white'}`}>{plan.name}</span><span className="flex shrink-0 items-center gap-1.5">{selected && <CheckCircle2 className="h-3.5 w-3.5 text-cyan-100 drop-shadow" />}<span className={`rounded-full border px-2 py-0.5 text-[8px] font-black tracking-wide ${statusTone}`}>{planStatusLabels[plan.status]}</span></span></span></span>
       </div>
-      {!compact && <div className={`relative mt-2 grid h-7 grid-cols-2 divide-x divide-white/[0.08] overflow-hidden rounded-lg border ${selected ? 'border-cyan-200/15 bg-slate-950/45' : 'border-white/[0.08] bg-slate-950/35'}`}><span className="flex min-w-0 items-center justify-between gap-1.5 px-2"><span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-400"><Settings2 className="h-3 w-3 text-blue-300" />任務總數</span><strong className="text-[11px] font-black tabular-nums text-blue-100">{plan.task_count}</strong></span><span className="flex min-w-0 items-center justify-between gap-1.5 px-2"><span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-400"><Play className="h-3 w-3 text-emerald-300" />啟用任務</span><strong className="text-[11px] font-black tabular-nums text-emerald-200">{plan.active_task_count}</strong></span></div>}
+      {!compact && <div className="relative mt-2.5 grid grid-cols-2 gap-1.5"><span className={`flex min-w-0 items-center justify-between gap-1.5 rounded-lg border px-2 py-1.5 transition-colors ${selected ? 'border-blue-200/20 bg-slate-950/40' : 'border-slate-700/80 bg-slate-950/45 group-hover:border-cyan-300/15'}`}><span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-400"><Settings2 className="h-3 w-3 text-blue-300" />任務總數</span><strong className="text-xs font-black tabular-nums text-blue-100">{plan.task_count}</strong></span><span className={`flex min-w-0 items-center justify-between gap-1.5 rounded-lg border px-2 py-1.5 transition-colors ${selected ? 'border-emerald-200/20 bg-slate-950/40' : 'border-slate-700/80 bg-slate-950/45 group-hover:border-emerald-300/15'}`}><span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-400"><Play className="h-3 w-3 text-emerald-300" />啟用任務</span><strong className="text-xs font-black tabular-nums text-emerald-200">{plan.active_task_count}</strong></span></div>}
     </button>;
   };
 
