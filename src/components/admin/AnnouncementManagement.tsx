@@ -922,7 +922,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                       <p className="truncate text-sm font-black text-white">{editorMode === 'create' ? '新增公告' : '编辑公告'}</p>
                       <p className="mt-0.5 truncate text-[10px] font-bold text-cyan-100/65">所属管理员：<span className="text-white">{selectedAdminName}</span></p>
                     </div>
-                    {isDirty && <span className="hidden rounded-full border border-amber-300/25 bg-amber-500/15 px-2 py-0.5 text-[9px] font-black text-amber-200 sm:inline">未保存</span>}
+                    {editorMode === 'edit' && isDirty && <span className="hidden rounded-full border border-amber-300/25 bg-amber-500/15 px-2 py-0.5 text-[9px] font-black text-amber-200 sm:inline">未保存</span>}
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button type="button" onClick={() => setShowEmployeePreview(true)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-violet-300/25 bg-violet-500/10 px-2.5 text-[10px] font-black text-violet-100 transition hover:bg-violet-500/20">
