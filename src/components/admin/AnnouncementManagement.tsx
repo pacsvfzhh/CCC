@@ -1021,39 +1021,41 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                     </span>
                   </div>
                 </div>
-                <div className="relative flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                <div className="relative flex shrink-0 flex-col items-end gap-2">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button type="button" onClick={() => togglePin(selectedAnnouncement)} className={`${actionButtonClass} border-amber-400/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20`} title={selectedAnnouncement.is_pinned ? '取消置顶' : '置顶'}>
+                      {selectedAnnouncement.is_pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                    </button>
+                    <button type="button" onClick={() => toggleHidden(selectedAnnouncement)} className={`${actionButtonClass} border-orange-400/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20`} title={selectedAnnouncement.is_hidden ? '显示公告' : '隐藏公告'}>
+                      {selectedAnnouncement.is_hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                    <button type="button" onClick={() => setShowEmployeePreview(true)} className={`${actionButtonClass} border-violet-400/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20`} title="员工端预览">
+                      <Monitor className="h-3.5 w-3.5" />
+                    </button>
+                    <button type="button" onClick={() => startEdit(selectedAnnouncement)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/35 bg-cyan-600/25 px-2.5 text-[10px] font-black text-cyan-100 transition hover:bg-cyan-500/35">
+                      <Edit className="h-3.5 w-3.5" />编辑
+                    </button>
+                    <button type="button" onClick={() => setDeletingId(selectedAnnouncement.id)} className={`${actionButtonClass} border-red-400/30 bg-red-500/10 text-red-300 hover:bg-red-500/20`} title="删除公告">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   {isSuperAdmin && (
                     <button
                       type="button"
                       onClick={() => void toggleGlobal(selectedAnnouncement)}
                       aria-pressed={selectedAnnouncement.is_global}
-                      className={`inline-flex h-8 w-[124px] items-center justify-between rounded-lg border px-2 text-white shadow-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${selectedAnnouncement.is_global ? 'border-emerald-200/60 bg-gradient-to-r from-emerald-600 to-teal-700 shadow-emerald-950/45 hover:from-emerald-500 hover:to-teal-600' : 'border-red-300/55 bg-gradient-to-r from-red-700 to-rose-800 shadow-red-950/45 hover:from-red-600 hover:to-rose-700'}`}
+                      className={`inline-flex h-8 w-[184px] items-center justify-between gap-2 overflow-hidden rounded-lg border px-2.5 text-white shadow-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${selectedAnnouncement.is_global ? 'border-emerald-200/60 bg-gradient-to-r from-emerald-600 to-teal-700 shadow-emerald-950/45 hover:from-emerald-500 hover:to-teal-600' : 'border-red-300/55 bg-gradient-to-r from-red-700 to-rose-800 shadow-red-950/45 hover:from-red-600 hover:to-rose-700'}`}
                       title={selectedAnnouncement.is_global ? '点击关闭全局公告' : '点击开启全局公告'}
                     >
-                      <span className="inline-flex items-center gap-1 text-[10px] font-black">
-                        <Globe className="h-3.5 w-3.5" />全局
+                      <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-black">
+                        <Globe className="h-4 w-4" />全局
                       </span>
-                      <span className="text-[9px] font-black">{selectedAnnouncement.is_global ? '已开启' : '已关闭'}</span>
-                      <span className="relative h-4 w-7 rounded-full border border-white/25 bg-slate-950/30 shadow-inner">
-                        <span className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-transform ${selectedAnnouncement.is_global ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                      <span className="shrink-0 text-[11px] font-black">{selectedAnnouncement.is_global ? '已开启' : '已关闭'}</span>
+                      <span className="relative h-5 w-9 shrink-0 overflow-hidden rounded-full border border-white/30 bg-slate-950/30 shadow-inner">
+                        <span className={`absolute left-0 top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-md transition-transform ${selectedAnnouncement.is_global ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
                       </span>
                     </button>
                   )}
-                  <button type="button" onClick={() => togglePin(selectedAnnouncement)} className={`${actionButtonClass} border-amber-400/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20`} title={selectedAnnouncement.is_pinned ? '取消置顶' : '置顶'}>
-                    {selectedAnnouncement.is_pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
-                  </button>
-                  <button type="button" onClick={() => toggleHidden(selectedAnnouncement)} className={`${actionButtonClass} border-orange-400/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20`} title={selectedAnnouncement.is_hidden ? '显示公告' : '隐藏公告'}>
-                    {selectedAnnouncement.is_hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  </button>
-                  <button type="button" onClick={() => setShowEmployeePreview(true)} className={`${actionButtonClass} border-violet-400/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20`} title="员工端预览">
-                    <Monitor className="h-3.5 w-3.5" />
-                  </button>
-                  <button type="button" onClick={() => startEdit(selectedAnnouncement)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/35 bg-cyan-600/25 px-2.5 text-[10px] font-black text-cyan-100 transition hover:bg-cyan-500/35">
-                    <Edit className="h-3.5 w-3.5" />编辑
-                  </button>
-                  <button type="button" onClick={() => setDeletingId(selectedAnnouncement.id)} className={`${actionButtonClass} border-red-400/30 bg-red-500/10 text-red-300 hover:bg-red-500/20`} title="删除公告">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </div>
               </div>
               <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto bg-white">
