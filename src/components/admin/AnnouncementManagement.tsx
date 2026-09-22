@@ -6,7 +6,9 @@ import {
   Calendar,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
+  Clock,
   Eye,
   EyeOff,
   Gauge,
@@ -133,6 +135,19 @@ function sortAnnouncements(announcements: Announcement[]) {
   });
 }
 
+function parseLocalDateTime(value: string) {
+  const [datePart = '', timePart = ''] = value.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hours = 0, minutes = 0] = timePart.split(':').map(Number);
+  if (!year || !month || !day) return new Date();
+  return new Date(year, month - 1, day, hours, minutes);
+}
+
+function formatLocalDateTime(value: Date) {
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
+}
+
 setOptions({ breaks: true, gfm: true, pedantic: false });
 
 export default function AnnouncementManagement({ admin }: AnnouncementManagementProps) {
@@ -140,6 +155,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const editorRef = useRef<TiptapEditorRef>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
   const carouselMenuRef = useRef<HTMLDivElement>(null);
+  const publishPickerRef = useRef<HTMLDivElement>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [secondaryAdmins, setSecondaryAdmins] = useState<SecondaryAdmin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,6 +183,11 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const [carouselErrorMessage, setCarouselErrorMessage] = useState<string | null>(null);
   const [carouselPanelOpen, setCarouselPanelOpen] = useState(false);
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
+  const [publishPickerOpen, setPublishPickerOpen] = useState(false);
+  const [publishPickerMonth, setPublishPickerMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
 
   const isDirty = workspaceMode === 'edit' && JSON.stringify(draft) !== initialDraftSnapshot;
 
@@ -259,18 +280,20 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   }, [deletingId, hiddenConfirmId, pendingNavigation, pinOrderModalId, showEmployeePreview]);
 
   useEffect(() => {
-    if (!groupMenuOpen && !carouselPanelOpen) return;
+    if (!groupMenuOpen && !carouselPanelOpen && !publishPickerOpen) return;
 
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (groupMenuOpen && !groupMenuRef.current?.contains(target)) setGroupMenuOpen(false);
       if (carouselPanelOpen && !carouselMenuRef.current?.contains(target)) setCarouselPanelOpen(false);
+      if (publishPickerOpen && !publishPickerRef.current?.contains(target)) setPublishPickerOpen(false);
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setGroupMenuOpen(false);
         setCarouselPanelOpen(false);
+        setPublishPickerOpen(false);
       }
     };
 
@@ -280,7 +303,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [carouselPanelOpen, groupMenuOpen]);
+  }, [carouselPanelOpen, groupMenuOpen, publishPickerOpen]);
 
   const groupedAnnouncements = useMemo<AnnouncementGroup[]>(() => {
     if (!isSuperAdmin) {
@@ -304,6 +327,18 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const selectedGroup = groupedAnnouncements.find(group => group.adminId === selectedAdminId) || groupedAnnouncements[0];
   const selectedAnnouncement = announcements.find(item => item.id === selectedAnnouncementId) || null;
   const selectedAdminName = selectedGroup?.adminName || admin.username;
+  const selectedPublishDate = useMemo(() => parseLocalDateTime(draft.publishAt), [draft.publishAt]);
+  const publishCalendarDays = useMemo(() => {
+    const year = publishPickerMonth.getFullYear();
+    const month = publishPickerMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const gridStart = new Date(year, month, 1 - firstDay.getDay());
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(gridStart);
+      date.setDate(gridStart.getDate() + index);
+      return date;
+    });
+  }, [publishPickerMonth]);
 
   const searchMatchedAnnouncements = useMemo(() => (
     (selectedGroup?.announcements || []).filter(item => fuzzyMatches(item.title, searchQuery))
@@ -911,7 +946,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         <main className="min-h-0 min-w-0 overflow-hidden bg-[radial-gradient(circle_at_top_right,rgba(8,145,178,0.08),transparent_34%),#0f172a]">
           {workspaceMode === 'edit' ? (
             <form onSubmit={handleSubmit} className="flex h-full min-h-0 flex-col">
-              <div className="relative shrink-0 overflow-hidden border-b border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(8,145,178,0.2),transparent_38%),linear-gradient(105deg,rgba(8,47,73,0.88),rgba(15,23,42,0.98)_68%)] px-3 py-2.5 shadow-lg shadow-slate-950/20 sm:px-4">
+              <div className="relative z-20 shrink-0 border-b border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(8,145,178,0.2),transparent_38%),linear-gradient(105deg,rgba(8,47,73,0.88),rgba(15,23,42,0.98)_68%)] px-3 py-2.5 shadow-lg shadow-slate-950/20 sm:px-4">
                 <div className="pointer-events-none absolute -left-8 -top-12 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
                 <div className="relative flex flex-wrap items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">
@@ -935,11 +970,122 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                 </div>
 
                 <div className="relative mt-2 flex flex-wrap items-center gap-1.5">
-                  <label className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-blue-300/20 bg-slate-950/35 px-2 text-[10px] font-bold text-slate-200 transition focus-within:border-cyan-300/60 focus-within:ring-2 focus-within:ring-cyan-400/15">
-                    <Calendar className="h-3.5 w-3.5 shrink-0 text-blue-300" />
-                    <span className="shrink-0 text-slate-400">发布时间</span>
-                    <input type="datetime-local" value={draft.publishAt} onChange={event => setDraft(previous => ({ ...previous, publishAt: event.target.value }))} className="w-[148px] bg-transparent font-black text-white outline-none [color-scheme:dark]" />
-                  </label>
+                  <div ref={publishPickerRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPublishPickerMonth(new Date(selectedPublishDate.getFullYear(), selectedPublishDate.getMonth(), 1));
+                        setPublishPickerOpen(previous => !previous);
+                      }}
+                      aria-expanded={publishPickerOpen}
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-lg border bg-slate-950/35 px-2.5 text-[10px] font-bold text-slate-200 transition ${publishPickerOpen ? 'border-cyan-300/60 ring-2 ring-cyan-400/15' : 'border-blue-300/20 hover:border-cyan-300/40 hover:bg-cyan-500/10'}`}
+                    >
+                      <Calendar className="h-3.5 w-3.5 shrink-0 text-blue-300" />
+                      <span className="shrink-0 text-slate-400">发布时间</span>
+                      <strong className="font-black tabular-nums text-white">
+                        {selectedPublishDate.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
+                      </strong>
+                      <ChevronDown className={`h-3 w-3 text-cyan-200 transition-transform ${publishPickerOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {publishPickerOpen && (
+                      <div className="absolute left-0 top-10 z-[80] w-[min(326px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-cyan-300/25 bg-[linear-gradient(155deg,rgba(8,47,73,0.99),rgba(15,23,42,0.99)_58%,rgba(30,41,59,0.99))] text-white shadow-2xl shadow-slate-950/70">
+                        <div className="border-b border-cyan-300/15 bg-cyan-950/35 px-4 py-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-500/15 text-cyan-200"><Calendar className="h-4 w-4" /></span>
+                              <div>
+                                <p className="text-xs font-black">选择发布时间</p>
+                                <p className="mt-0.5 text-[9px] font-bold text-cyan-100/55">日期与时间将在保存后生效</p>
+                              </div>
+                            </div>
+                            <button type="button" onClick={() => setPublishPickerOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white" aria-label="关闭发布时间选择器"><X className="h-3.5 w-3.5" /></button>
+                          </div>
+                        </div>
+
+                        <div className="p-3">
+                          <div className="mb-2 flex items-center justify-between">
+                            <button type="button" onClick={() => setPublishPickerMonth(previous => new Date(previous.getFullYear(), previous.getMonth() - 1, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-600/60 bg-slate-800/70 text-slate-200 transition hover:border-cyan-400/40 hover:bg-cyan-500/15 hover:text-white" aria-label="上个月"><ChevronLeft className="h-4 w-4" /></button>
+                            <strong className="text-sm font-black tracking-wide text-white">{publishPickerMonth.getFullYear()} 年 {publishPickerMonth.getMonth() + 1} 月</strong>
+                            <button type="button" onClick={() => setPublishPickerMonth(previous => new Date(previous.getFullYear(), previous.getMonth() + 1, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-600/60 bg-slate-800/70 text-slate-200 transition hover:border-cyan-400/40 hover:bg-cyan-500/15 hover:text-white" aria-label="下个月"><ChevronRight className="h-4 w-4" /></button>
+                          </div>
+                          <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-black text-cyan-100/55">
+                            {['日', '一', '二', '三', '四', '五', '六'].map(day => <span key={day} className="py-1">{day}</span>)}
+                          </div>
+                          <div className="mt-1 grid grid-cols-7 gap-1">
+                            {publishCalendarDays.map(date => {
+                              const isCurrentMonth = date.getMonth() === publishPickerMonth.getMonth();
+                              const isSelected = date.getFullYear() === selectedPublishDate.getFullYear() && date.getMonth() === selectedPublishDate.getMonth() && date.getDate() === selectedPublishDate.getDate();
+                              const today = new Date();
+                              const isToday = date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
+                              return (
+                                <button
+                                  key={date.toISOString()}
+                                  type="button"
+                                  onClick={() => {
+                                    const nextDate = new Date(date);
+                                    nextDate.setHours(selectedPublishDate.getHours(), selectedPublishDate.getMinutes(), 0, 0);
+                                    setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(nextDate) }));
+                                    if (!isCurrentMonth) setPublishPickerMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+                                  }}
+                                  className={`relative flex h-8 items-center justify-center rounded-lg text-[11px] font-black tabular-nums transition ${isSelected ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-950/50 ring-1 ring-cyan-200/50' : isCurrentMonth ? 'text-slate-100 hover:bg-cyan-500/15 hover:text-white' : 'text-slate-600 hover:bg-slate-700/50 hover:text-slate-300'}`}
+                                >
+                                  {date.getDate()}
+                                  {isToday && !isSelected && <span className="absolute bottom-1 h-0.5 w-2 rounded-full bg-cyan-400" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="mt-3 flex items-center gap-2 rounded-xl border border-cyan-300/15 bg-slate-950/35 p-2.5">
+                            <Clock className="h-4 w-4 shrink-0 text-cyan-300" />
+                            <span className="text-[10px] font-black text-slate-300">时间</span>
+                            <select
+                              value={selectedPublishDate.getHours()}
+                              onChange={event => {
+                                const nextDate = new Date(selectedPublishDate);
+                                nextDate.setHours(Number(event.target.value));
+                                setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(nextDate) }));
+                              }}
+                              className="h-8 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-2 text-center text-xs font-black text-white outline-none focus:border-cyan-400"
+                              aria-label="发布小时"
+                            >
+                              {Array.from({ length: 24 }, (_, hour) => <option key={hour} value={hour}>{String(hour).padStart(2, '0')} 时</option>)}
+                            </select>
+                            <span className="font-black text-cyan-200">:</span>
+                            <select
+                              value={selectedPublishDate.getMinutes()}
+                              onChange={event => {
+                                const nextDate = new Date(selectedPublishDate);
+                                nextDate.setMinutes(Number(event.target.value));
+                                setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(nextDate) }));
+                              }}
+                              className="h-8 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-2 text-center text-xs font-black text-white outline-none focus:border-cyan-400"
+                              aria-label="发布分钟"
+                            >
+                              {Array.from({ length: 60 }, (_, minute) => <option key={minute} value={minute}>{String(minute).padStart(2, '0')} 分</option>)}
+                            </select>
+                          </div>
+
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            <button type="button" onClick={() => {
+                              const now = new Date();
+                              setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(now) }));
+                              setPublishPickerMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+                            }} className="h-8 rounded-lg border border-cyan-300/20 bg-cyan-500/10 text-[10px] font-black text-cyan-100 transition hover:bg-cyan-500/20">设为现在</button>
+                            <button type="button" onClick={() => {
+                              const tomorrow = new Date();
+                              tomorrow.setDate(tomorrow.getDate() + 1);
+                              tomorrow.setHours(9, 0, 0, 0);
+                              setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(tomorrow) }));
+                              setPublishPickerMonth(new Date(tomorrow.getFullYear(), tomorrow.getMonth(), 1));
+                            }} className="h-8 rounded-lg border border-blue-300/20 bg-blue-500/10 text-[10px] font-black text-blue-100 transition hover:bg-blue-500/20">明天 09:00</button>
+                          </div>
+                          <button type="button" onClick={() => setPublishPickerOpen(false)} className="mt-2.5 flex h-9 w-full items-center justify-center rounded-xl border border-cyan-200/30 bg-gradient-to-r from-cyan-600 to-blue-700 text-[11px] font-black text-white shadow-md shadow-cyan-950/40 transition hover:from-cyan-500 hover:to-blue-600">确认发布时间</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => setDraft(previous => ({ ...previous, isPinned: !previous.isPinned }))}
@@ -954,14 +1100,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                       <input type="number" min="1" max="999" value={draft.pinOrder} onChange={event => setDraft(previous => ({ ...previous, pinOrder: Number(event.target.value) || 999 }))} className="h-6 w-14 rounded-md border border-amber-300/25 bg-white px-1.5 text-center font-black text-slate-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20" aria-label="置顶顺序" />
                     </label>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setDraft(previous => ({ ...previous, isHidden: !previous.isHidden }))}
-                    aria-pressed={draft.isHidden}
-                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-black transition ${draft.isHidden ? 'border-orange-200/55 bg-gradient-to-r from-orange-600 to-red-700 text-white shadow-md shadow-red-950/40' : 'border-orange-300/25 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20'}`}
-                  >
-                    {draft.isHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}隐藏 {draft.isHidden ? '已开启' : '已关闭'}
-                  </button>
                   {isSuperAdmin && (creatingForAdminId || selectedAdminId) === admin.id && (
                     <button
                       type="button"
@@ -972,6 +1110,14 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                       <Globe className="h-3.5 w-3.5" />全局 {draft.isGlobal ? '已开启' : '已关闭'}
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setDraft(previous => ({ ...previous, isHidden: !previous.isHidden }))}
+                    aria-pressed={draft.isHidden}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-black transition ${draft.isHidden ? 'border-orange-200/55 bg-gradient-to-r from-orange-600 to-red-700 text-white shadow-md shadow-red-950/40' : 'border-orange-300/25 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20'}`}
+                  >
+                    {draft.isHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}隐藏 {draft.isHidden ? '已开启' : '已关闭'}
+                  </button>
                 </div>
               </div>
 
