@@ -558,29 +558,66 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
               <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
             </button>
             {groupMenuOpen && (
-              <div role="menu" className="absolute left-0 top-[calc(100%+6px)] z-50 max-h-[360px] w-full overflow-y-auto rounded-xl border border-cyan-300/25 bg-slate-950 p-1.5 shadow-2xl shadow-black/60">
-                <div className="mb-1 flex items-center justify-between px-2 py-1.5">
-                  <span className="text-[10px] font-black text-slate-300">管理员分组</span>
-                  <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold text-cyan-200">{announcements.length} 则公告</span>
+              <div role="menu" className="absolute left-0 top-[calc(100%+6px)] z-50 max-h-[380px] w-full overflow-y-auto rounded-2xl border border-cyan-300/30 bg-[linear-gradient(155deg,rgba(8,22,40,0.99),rgba(3,10,24,0.99))] p-2 shadow-[0_22px_60px_rgba(0,0,0,0.72),0_0_0_1px_rgba(34,211,238,0.08)] backdrop-blur-xl">
+                <div className="mb-2 flex items-center justify-between border-b border-cyan-300/15 px-1.5 pb-2 pt-0.5">
+                  <span className="flex items-center gap-1.5 text-[11px] font-black text-white"><Users className="h-3.5 w-3.5 text-cyan-300" />管理员分组</span>
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-cyan-300/20 bg-cyan-500/10 px-2 py-1 text-[10px] font-black text-cyan-100"><LayoutList className="h-3 w-3" />{announcements.length} 则</span>
                 </div>
-                {groupedAnnouncements.map(group => {
-                  const active = group.adminId === selectedAdminId;
-                  return (
-                    <button
-                      key={group.adminId}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={active}
-                      onClick={() => changeAdminGroup(group.adminId)}
-                      className={`relative flex w-full items-center gap-2 rounded-lg border px-2.5 py-2.5 text-left transition ${active ? 'border-cyan-400/45 bg-cyan-500/15 text-white' : 'border-transparent text-slate-400 hover:border-slate-700 hover:bg-slate-800 hover:text-white'}`}
-                    >
-                      {active && <span className="absolute bottom-1.5 left-0 top-1.5 w-1 rounded-r-full bg-cyan-400" />}
-                      {group.adminId === admin.id ? <Globe className="h-3.5 w-3.5 shrink-0 text-emerald-300" /> : <Users className="h-3.5 w-3.5 shrink-0 text-blue-300" />}
-                      <span className="min-w-0 flex-1 truncate text-xs font-bold">{group.adminName}</span>
-                      <span className="text-[10px] font-black tabular-nums text-slate-500">{group.announcements.length}</span>
-                    </button>
-                  );
-                })}
+                <div className="space-y-1.5">
+                  {groupedAnnouncements.map((group, index) => {
+                    const active = group.adminId === selectedAdminId;
+                    const accent = group.adminId === admin.id
+                      ? {
+                          card: 'border-emerald-400/30 bg-[linear-gradient(100deg,rgba(6,78,59,0.42),rgba(6,95,70,0.12))]',
+                          icon: 'border-emerald-300/25 bg-emerald-500/15 text-emerald-200',
+                          count: 'border-emerald-300/30 bg-emerald-500/20 text-emerald-100',
+                          rail: 'bg-emerald-400',
+                        }
+                      : [
+                          {
+                            card: 'border-blue-400/25 bg-[linear-gradient(100deg,rgba(30,64,175,0.32),rgba(30,58,138,0.1))]',
+                            icon: 'border-blue-300/25 bg-blue-500/15 text-blue-200',
+                            count: 'border-blue-300/30 bg-blue-500/20 text-blue-100',
+                            rail: 'bg-blue-400',
+                          },
+                          {
+                            card: 'border-violet-400/25 bg-[linear-gradient(100deg,rgba(91,33,182,0.3),rgba(76,29,149,0.1))]',
+                            icon: 'border-violet-300/25 bg-violet-500/15 text-violet-200',
+                            count: 'border-violet-300/30 bg-violet-500/20 text-violet-100',
+                            rail: 'bg-violet-400',
+                          },
+                          {
+                            card: 'border-amber-400/25 bg-[linear-gradient(100deg,rgba(146,64,14,0.3),rgba(120,53,15,0.08))]',
+                            icon: 'border-amber-300/25 bg-amber-500/15 text-amber-200',
+                            count: 'border-amber-300/30 bg-amber-500/20 text-amber-100',
+                            rail: 'bg-amber-400',
+                          },
+                          {
+                            card: 'border-rose-400/25 bg-[linear-gradient(100deg,rgba(159,18,57,0.28),rgba(136,19,55,0.08))]',
+                            icon: 'border-rose-300/25 bg-rose-500/15 text-rose-200',
+                            count: 'border-rose-300/30 bg-rose-500/20 text-rose-100',
+                            rail: 'bg-rose-400',
+                          },
+                        ][index % 4];
+                    return (
+                      <button
+                        key={group.adminId}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={active}
+                        onClick={() => changeAdminGroup(group.adminId)}
+                        className={`relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border px-2.5 py-2 text-left text-slate-200 transition-all hover:brightness-125 ${accent.card} ${active ? 'ring-1 ring-inset ring-white/25 shadow-lg' : 'opacity-85 hover:opacity-100'}`}
+                      >
+                        {active && <span className={`absolute bottom-1.5 left-0 top-1.5 w-1 rounded-r-full ${accent.rail}`} />}
+                        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${accent.icon}`}>
+                          {group.adminId === admin.id ? <Globe className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-xs font-black">{group.adminName}</span>
+                        <span className={`inline-flex min-w-8 shrink-0 items-center justify-center rounded-lg border px-1.5 py-1 text-[11px] font-black tabular-nums shadow-sm ${accent.count}`} title={`${group.announcements.length} 则公告`}>{group.announcements.length}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
