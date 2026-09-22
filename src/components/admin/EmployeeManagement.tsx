@@ -224,6 +224,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     automationPlanId: '',
   });
   const [selectedAdminForCreate, setSelectedAdminForCreate] = useState<string | null>(null);
+  const [createPlanMenuOpen, setCreatePlanMenuOpen] = useState(false);
+  const [createPlanMenuPosition, setCreatePlanMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const createPlanButtonRef = useRef<HTMLButtonElement>(null);
+  const createPlanMenuRef = useRef<HTMLDivElement>(null);
   const adminFilterRef = useRef<HTMLDivElement>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     show: boolean;
@@ -805,6 +809,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const openCreateEmployeeForm = (targetAdminId: string) => {
     setFormData(prev => ({ ...prev, automationPlanId: '' }));
     setCreateError(null);
+    setCreatePlanMenuOpen(false);
+    setCreatePlanMenuPosition(null);
     setSelectedAdminForCreate(targetAdminId);
     setShowCreateForm(true);
     setExpandedGroups(prev => new Set(prev).add(targetAdminId));
@@ -813,20 +819,77 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const closeCreateEmployeeForm = () => {
     setShowCreateForm(false);
     setCreateError(null);
+    setCreatePlanMenuOpen(false);
+    setCreatePlanMenuPosition(null);
     setFormData({ username: '', password: '', employeeId: '', remarks: '', automationPlanId: '' });
     setSelectedAdminForCreate(null);
+  };
+
+  const toggleCreatePlanMenu = (optionCount: number) => {
+    if (createPlanMenuOpen) {
+      setCreatePlanMenuOpen(false);
+      setCreatePlanMenuPosition(null);
+      return;
+    }
+
+    const button = createPlanButtonRef.current;
+    if (!button) return;
+
+    const rect = button.getBoundingClientRect();
+    const viewportPadding = 12;
+    const menuHeight = Math.min(292, 58 + optionCount * 52);
+    const width = Math.min(rect.width, window.innerWidth - viewportPadding * 2);
+    const left = Math.min(Math.max(viewportPadding, rect.left), window.innerWidth - width - viewportPadding);
+    const openAbove = window.innerHeight - rect.bottom < menuHeight + viewportPadding && rect.top > menuHeight;
+    const top = openAbove
+      ? Math.max(viewportPadding, rect.top - menuHeight - 8)
+      : Math.max(viewportPadding, Math.min(rect.bottom + 8, window.innerHeight - menuHeight - viewportPadding));
+
+    setCreatePlanMenuPosition({ top, left, width });
+    setCreatePlanMenuOpen(true);
   };
 
   useEffect(() => {
     if (!showCreateForm) return;
 
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !creating) closeCreateEmployeeForm();
+      if (event.key !== 'Escape') return;
+      if (createPlanMenuOpen) {
+        setCreatePlanMenuOpen(false);
+        setCreatePlanMenuPosition(null);
+      } else if (!creating) {
+        closeCreateEmployeeForm();
+      }
     };
 
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [showCreateForm, creating]);
+  }, [showCreateForm, createPlanMenuOpen, creating]);
+
+  useEffect(() => {
+    if (!createPlanMenuOpen) return;
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!createPlanButtonRef.current?.contains(target) && !createPlanMenuRef.current?.contains(target)) {
+        setCreatePlanMenuOpen(false);
+        setCreatePlanMenuPosition(null);
+      }
+    };
+    const closeOnViewportChange = () => {
+      setCreatePlanMenuOpen(false);
+      setCreatePlanMenuPosition(null);
+    };
+
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    window.addEventListener('resize', closeOnViewportChange);
+    window.addEventListener('scroll', closeOnViewportChange, true);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      window.removeEventListener('resize', closeOnViewportChange);
+      window.removeEventListener('scroll', closeOnViewportChange, true);
+    };
+  }, [createPlanMenuOpen]);
 
   const generateResetPassword = () => {
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
@@ -3164,41 +3227,48 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       plan.status === 'active' && plan.owner_admin_id === targetAdminId
     ));
     const fieldFocusClasses = isSuperGroup
-      ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
-      : 'focus:border-blue-500 focus:ring-blue-500/20';
+      ? 'focus:border-amber-400 focus:ring-4 focus:ring-amber-400/15'
+      : 'focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/15';
+    const selectedAutomationPlan = activePlansForGroup.find(plan => plan.id === formData.automationPlanId);
 
     return createPortal(
       <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200"
+        className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-[#020617]/88 p-3 backdrop-blur-xl sm:p-6 animate-in fade-in duration-200"
         onClick={() => {
           if (!creating) closeCreateEmployeeForm();
         }}
       >
+        <div aria-hidden="true" className={`pointer-events-none absolute -left-32 top-[-10rem] h-[32rem] w-[32rem] rounded-full blur-[100px] ${isSuperGroup ? 'bg-amber-500/10' : 'bg-blue-500/15'}`} />
+        <div aria-hidden="true" className={`pointer-events-none absolute -bottom-48 right-[-8rem] h-[36rem] w-[36rem] rounded-full blur-[120px] ${isSuperGroup ? 'bg-yellow-700/10' : 'bg-cyan-500/10'}`} />
         <form
           role="dialog"
           aria-modal="true"
           aria-labelledby="create-employee-title"
           onSubmit={handleCreateEmployee}
           onClick={(event) => event.stopPropagation()}
-          className={`max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] border shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200 ${isSuperGroup ? 'border-yellow-400/40 bg-gradient-to-br from-[#1a1307] via-[#261b0a] to-[#111827]' : 'border-blue-400/40 bg-gradient-to-br from-[#091827] via-[#0d2238] to-[#111827]'}`}
+          className={`relative flex max-h-[calc(100vh-2rem)] w-full max-w-[760px] flex-col overflow-hidden rounded-[2rem] border shadow-[0_36px_120px_rgba(0,0,0,0.72)] ring-1 ring-inset ring-white/[0.08] animate-in zoom-in-95 duration-200 ${isSuperGroup ? 'border-amber-300/35 bg-[#11100e]' : 'border-cyan-300/30 bg-[#08111f]'}`}
         >
-          <div className={`relative flex items-start justify-between gap-4 overflow-hidden border-b px-5 py-4 ${isSuperGroup ? 'border-yellow-400/20 bg-yellow-500/5' : 'border-blue-400/20 bg-blue-500/5'}`}>
-            <div className={`absolute inset-x-0 top-0 h-1 ${isSuperGroup ? 'bg-gradient-to-r from-yellow-600 via-amber-300 to-yellow-600' : 'bg-gradient-to-r from-blue-600 via-cyan-300 to-blue-600'}`} />
-            <div className="flex min-w-0 items-center gap-3">
-              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${isSuperGroup ? 'border-yellow-300/40 bg-yellow-500/15 text-yellow-200' : 'border-blue-300/40 bg-blue-500/15 text-blue-200'}`}>
-                <UserPlus className="h-5 w-5" />
+          <div className={`relative flex shrink-0 items-start justify-between gap-4 overflow-hidden border-b px-5 py-5 sm:px-7 sm:py-6 ${isSuperGroup ? 'border-amber-300/15 bg-[linear-gradient(110deg,#2a1b07_0%,#17140f_48%,#111827_100%)]' : 'border-cyan-300/15 bg-[linear-gradient(110deg,#0b2b4a_0%,#0b1f36_48%,#101827_100%)]'}`}>
+            <div className={`absolute inset-x-0 top-0 h-1 ${isSuperGroup ? 'bg-gradient-to-r from-amber-700 via-yellow-300 to-amber-600' : 'bg-gradient-to-r from-blue-700 via-cyan-300 to-blue-600'}`} />
+            <div aria-hidden="true" className={`absolute right-16 top-[-5rem] h-44 w-44 rounded-full blur-3xl ${isSuperGroup ? 'bg-amber-400/10' : 'bg-cyan-400/10'}`} />
+            <div className="relative flex min-w-0 items-center gap-4">
+              <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border shadow-lg ring-1 ring-inset ring-white/10 ${isSuperGroup ? 'border-amber-300/35 bg-gradient-to-br from-amber-400/25 to-amber-800/20 text-amber-100 shadow-amber-950/40' : 'border-cyan-300/35 bg-gradient-to-br from-cyan-400/25 to-blue-700/20 text-cyan-100 shadow-blue-950/50'}`}>
+                <UserPlus className="h-6 w-6" />
               </div>
               <div className="min-w-0">
-                <p className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${isSuperGroup ? 'text-yellow-300/80' : 'text-blue-300/80'}`}>存取權限配置</p>
-                <h3 id="create-employee-title" className="text-lg font-bold tracking-tight text-white">新增員工帳戶</h3>
-                <p className={`truncate text-xs ${isSuperGroup ? 'text-yellow-100/70' : 'text-blue-100/70'}`}>
-                  {groupAdmin ? <>建立於： <strong className="font-semibold text-white">{groupAdmin.username}</strong></> : '建立新的員工帳戶'}
+                <div className="mb-1.5 flex items-center gap-2">
+                  <span className={`h-1.5 w-1.5 rounded-full ${isSuperGroup ? 'bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.9)]' : 'bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.9)]'}`} />
+                  <p className={`text-[10px] font-bold uppercase tracking-[0.22em] ${isSuperGroup ? 'text-amber-300/85' : 'text-cyan-300/85'}`}>帳戶建立中心</p>
+                </div>
+                <h3 id="create-employee-title" className="text-xl font-black tracking-tight text-white sm:text-2xl">新增員工帳戶</h3>
+                <p className={`mt-1 truncate text-xs ${isSuperGroup ? 'text-amber-100/60' : 'text-cyan-100/60'}`}>
+                  {groupAdmin ? <>建立於 <strong className="font-bold text-white">{groupAdmin.username}</strong> 管理群組</> : '設定登入資訊與自動化通知方案'}
                 </p>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-[0.12em] ${isSuperGroup ? 'border-yellow-300/35 bg-yellow-500/10 text-yellow-200' : 'border-blue-300/35 bg-blue-500/10 text-blue-200'}`}>
-                安全設定
+              <span className={`hidden rounded-full border px-3 py-1.5 text-[10px] font-bold tracking-[0.14em] sm:inline-flex ${isSuperGroup ? 'border-amber-300/25 bg-amber-400/10 text-amber-200' : 'border-cyan-300/25 bg-cyan-400/10 text-cyan-200'}`}>
+                安全建立
               </span>
               <button
                 type="button"
@@ -3219,13 +3289,16 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </div>
           )}
 
-          <div className="p-5">
-            <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              <span className={`h-px flex-1 ${isSuperGroup ? 'bg-yellow-400/20' : 'bg-blue-400/20'}`} />
-              帳戶詳細資料
-              <span className={`h-px flex-1 ${isSuperGroup ? 'bg-yellow-400/20' : 'bg-blue-400/20'}`} />
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 dark-panel-scroll">
+            <div className={`rounded-2xl border p-4 shadow-inner sm:p-5 ${isSuperGroup ? 'border-amber-300/15 bg-gradient-to-br from-amber-950/20 to-slate-950/45' : 'border-blue-300/15 bg-gradient-to-br from-blue-950/25 to-slate-950/45'}`}>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${isSuperGroup ? 'text-amber-300/80' : 'text-cyan-300/80'}`}>01 · 基本資料</p>
+                  <p className="mt-1 text-xs text-slate-500">建立員工專屬的登入識別資訊</p>
+                </div>
+                <Key className={`h-4 w-4 ${isSuperGroup ? 'text-amber-300/70' : 'text-cyan-300/70'}`} />
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>使用者名稱</label>
                 <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} disabled={creating} required placeholder="輸入使用者名稱" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
@@ -3253,54 +3326,104 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 <label className={`mb-1.5 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>備註 <span className="font-normal normal-case tracking-normal text-slate-500">（選填）</span></label>
                 <input type="text" value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} disabled={creating} placeholder="新增內部備註" className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`} />
               </div>
+              </div>
             </div>
 
-            <div className={`mt-5 rounded-2xl border p-4 ${isSuperGroup ? 'border-yellow-300/20 bg-yellow-500/5' : 'border-cyan-300/20 bg-cyan-500/5'}`}>
+            <div className={`mt-4 rounded-2xl border p-4 shadow-inner sm:p-5 ${isSuperGroup ? 'border-amber-300/20 bg-gradient-to-br from-amber-950/25 to-slate-950/55' : 'border-cyan-300/20 bg-gradient-to-br from-cyan-950/25 to-slate-950/55'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <label htmlFor={`create-automation-plan-${targetAdminId}`} className={`block text-[11px] font-bold uppercase tracking-[0.14em] ${isSuperGroup ? 'text-yellow-100/80' : 'text-cyan-100/80'}`}>自動化通知方案</label>
-                  <p className="mt-1 text-[11px] leading-5 text-slate-400">選擇後，員工帳號會直接加入方案，並套用方案內的通知任務。</p>
+                  <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${isSuperGroup ? 'text-amber-300/80' : 'text-cyan-300/80'}`}>02 · 自動化通知方案</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">員工建立後會直接加入所選方案，立即套用方案內的通知任務。</p>
                 </div>
                 <Bell className={`mt-0.5 h-4 w-4 shrink-0 ${isSuperGroup ? 'text-yellow-300' : 'text-cyan-300'}`} />
               </div>
               {activePlansForGroup.length > 0 ? (
                 <>
-                  <select
+                  <button
+                    ref={createPlanButtonRef}
                     id={`create-automation-plan-${targetAdminId}`}
-                    value={formData.automationPlanId}
-                    onChange={(event) => setFormData({ ...formData, automationPlanId: event.target.value })}
+                    type="button"
+                    aria-haspopup="listbox"
+                    aria-expanded={createPlanMenuOpen}
+                    onClick={() => toggleCreatePlanMenu(activePlansForGroup.length + 1)}
                     disabled={creating}
-                    className={`mt-3 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 shadow-sm outline-none transition-colors ${fieldFocusClasses} disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100`}
+                    className={`group mt-4 flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left shadow-lg outline-none transition-all disabled:cursor-not-allowed disabled:opacity-50 ${createPlanMenuOpen ? (isSuperGroup ? 'border-amber-300/60 bg-amber-400/10 ring-4 ring-amber-400/10' : 'border-cyan-300/60 bg-cyan-400/10 ring-4 ring-cyan-400/10') : 'border-slate-600/80 bg-slate-900/90 hover:border-slate-400 hover:bg-slate-800/95'}`}
                   >
-                    <option value="">不指定方案</option>
-                    {activePlansForGroup.map(plan => (
-                      <option key={plan.id} value={plan.id}>
-                        {plan.name}（{Number(plan.selected_task_count) || 0} 個通知任務）
-                      </option>
-                    ))}
-                  </select>
-                  {formData.automationPlanId && (
-                    <p className="mt-2 rounded-lg border border-cyan-300/15 bg-cyan-500/5 px-3 py-2 text-[11px] leading-5 text-cyan-100/75">
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${selectedAutomationPlan ? (isSuperGroup ? 'border-amber-300/35 bg-amber-400/15 text-amber-200' : 'border-cyan-300/35 bg-cyan-400/15 text-cyan-200') : 'border-slate-600 bg-slate-800 text-slate-400'}`}>
+                      <Bell className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-white">{selectedAutomationPlan?.name || '不指定方案'}</span>
+                      <span className="mt-0.5 block truncate text-[11px] text-slate-500">{selectedAutomationPlan ? `${Number(selectedAutomationPlan.selected_task_count) || 0} 個通知任務` : '稍後可在員工資料中設定'}</span>
+                    </span>
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${createPlanMenuOpen ? 'rotate-180 text-white' : 'group-hover:text-white'}`} />
+                  </button>
+                  {selectedAutomationPlan && (
+                    <div className={`mt-3 flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-[11px] leading-5 ${isSuperGroup ? 'border-amber-300/15 bg-amber-400/5 text-amber-100/75' : 'border-cyan-300/15 bg-cyan-400/5 text-cyan-100/75'}`}>
+                      <CheckCircle className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${isSuperGroup ? 'text-amber-300' : 'text-cyan-300'}`} />
                       建立成功後，此員工會出現在所選方案的「管理員工」名單中。
-                    </p>
+                    </div>
                   )}
                 </>
               ) : (
-                <p className="mt-3 rounded-lg border border-dashed border-slate-600/60 bg-slate-950/20 px-3 py-2 text-[11px] text-slate-500">此群組目前沒有可用的自動化通知方案。</p>
+                <p className="mt-4 rounded-xl border border-dashed border-slate-600/60 bg-slate-950/30 px-3 py-3 text-[11px] text-slate-500">此群組目前沒有可用的自動化通知方案。</p>
               )}
             </div>
 
-            <div className="mt-5 flex items-center justify-end gap-2 border-t border-slate-700/70 pt-4">
-              <button type="button" onClick={closeCreateEmployeeForm} disabled={creating} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
-                <X className="h-4 w-4" />
-                取消
-              </button>
-              <button type="submit" disabled={creating || !formData.username.trim() || !formData.password || !formData.employeeId.trim()} className={`inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isSuperGroup ? 'border-yellow-300/60 bg-yellow-600 hover:bg-yellow-500' : 'border-blue-300/60 bg-blue-600 hover:bg-blue-500'}`}>
-                {creating ? (<><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />建立中……</>) : (<><UserPlus className="h-4 w-4" />建立員工</>)}
-              </button>
+            <div className="mt-5 flex flex-col-reverse items-stretch justify-between gap-3 border-t border-slate-700/60 pt-5 sm:flex-row sm:items-center">
+              <p className="text-center text-[10px] leading-4 text-slate-600 sm:text-left">帳戶建立後可隨時修改方案與員工資料</p>
+              <div className="flex items-center justify-end gap-2">
+                <button type="button" onClick={closeCreateEmployeeForm} disabled={creating} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-all hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
+                  取消
+                </button>
+                <button type="submit" disabled={creating || !formData.username.trim() || !formData.password || !formData.employeeId.trim()} className={`inline-flex min-w-[132px] items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-40 ${isSuperGroup ? 'border-amber-300/60 bg-gradient-to-r from-amber-700 to-yellow-600 shadow-amber-950/40 hover:from-amber-600 hover:to-yellow-500' : 'border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 shadow-blue-950/50 hover:from-blue-500 hover:to-cyan-500'}`}>
+                  {creating ? (<><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />建立中……</>) : (<><UserPlus className="h-4 w-4" />建立員工</>)}
+                </button>
+              </div>
             </div>
           </div>
         </form>
+        {createPlanMenuOpen && createPlanMenuPosition && createPortal(
+          <div
+            ref={createPlanMenuRef}
+            role="listbox"
+            aria-label="自動化通知方案"
+            className={`fixed z-[10050] overflow-hidden rounded-2xl border bg-[#08111f]/98 p-1.5 shadow-[0_24px_70px_rgba(0,0,0,0.72)] backdrop-blur-xl ring-1 ring-inset ring-white/[0.08] animate-in fade-in zoom-in-95 duration-150 ${isSuperGroup ? 'border-amber-300/35' : 'border-cyan-300/35'}`}
+            style={{ top: createPlanMenuPosition.top, left: createPlanMenuPosition.left, width: createPlanMenuPosition.width }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="max-h-[276px] space-y-1 overflow-y-auto dark-panel-scroll">
+              {[null, ...activePlansForGroup].map(plan => {
+                const value = plan?.id || '';
+                const selected = formData.automationPlanId === value;
+                return (
+                  <button
+                    key={value || 'none'}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, automationPlanId: value }));
+                      setCreatePlanMenuOpen(false);
+                      setCreatePlanMenuPosition(null);
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all ${selected ? (isSuperGroup ? 'border-amber-300/45 bg-gradient-to-r from-amber-500/20 to-yellow-500/5' : 'border-cyan-300/45 bg-gradient-to-r from-cyan-500/20 to-blue-500/5') : 'border-transparent hover:border-slate-600 hover:bg-slate-800/90'}`}
+                  >
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${selected ? (isSuperGroup ? 'border-amber-300/35 bg-amber-400/15 text-amber-200' : 'border-cyan-300/35 bg-cyan-400/15 text-cyan-200') : 'border-slate-700 bg-slate-900 text-slate-500'}`}>
+                      {plan ? <Bell className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={`block truncate text-xs font-bold ${selected ? 'text-white' : 'text-slate-300'}`}>{plan?.name || '不指定方案'}</span>
+                      <span className="mt-0.5 block text-[10px] text-slate-500">{plan ? `${Number(plan.selected_task_count) || 0} 個通知任務` : '建立後暫不加入自動化方案'}</span>
+                    </span>
+                    {selected && <CheckCircle className={`h-4 w-4 shrink-0 ${isSuperGroup ? 'text-amber-300' : 'text-cyan-300'}`} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>,
+          document.body,
+        )}
       </div>,
       document.body,
     );
