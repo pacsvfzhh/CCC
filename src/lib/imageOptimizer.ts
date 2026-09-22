@@ -18,7 +18,7 @@ function estimateBase64Size(base64: string): number {
   return Math.floor(base64.length * 0.75);
 }
 
-async function compressImage(blob: Blob): Promise<Blob> {
+export async function optimizeImageForWeb(blob: Blob): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(blob);
@@ -118,7 +118,7 @@ export async function processContentImages(
     try {
       const mimeType = `image/${match.mimeSubType === 'jpg' ? 'jpeg' : match.mimeSubType}`;
       const blob = base64ToBlob(match.data, mimeType);
-      const compressed = await compressImage(blob);
+      const compressed = await optimizeImageForWeb(blob);
       const publicUrl = await uploadToStorage(compressed, folder);
 
       if (publicUrl) {

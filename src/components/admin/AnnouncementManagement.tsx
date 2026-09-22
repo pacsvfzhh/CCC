@@ -67,6 +67,8 @@ type StatusFilter = 'all' | 'pinned' | 'hidden' | 'global';
 type WorkspaceMode = 'preview' | 'edit';
 type EditorMode = 'create' | 'edit';
 
+const MAX_ANNOUNCEMENT_CONTENT_BYTES = 500 * 1024;
+
 const emptyDraft = (): AnnouncementDraft => ({
   title: '',
   content: '',
@@ -489,6 +491,10 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     try {
       const rawContent = editorRef.current?.getContent() || draft.content;
       const editorContent = await processContentImages(rawContent, 'announcements');
+      const contentSize = new Blob([editorContent]).size;
+      if (contentSize > MAX_ANNOUNCEMENT_CONTENT_BYTES) {
+        throw new Error('公告正文资料超过 500KB，请减少内嵌内容或重新上传过大的媒体');
+      }
       const publishAtUtc = parseLocalDateTime(draft.publishAt).toISOString();
       let savedAnnouncementId = editingId;
 

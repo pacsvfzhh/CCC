@@ -52,13 +52,16 @@ export async function uploadStorageObjectWithProgress({
       reject(new Error(message));
     });
 
-    xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+    xhr.addEventListener('error', () => reject(new Error('上传连接中断，请检查网络后重试')));
     xhr.addEventListener('abort', () => reject(new DOMException('Upload aborted', 'AbortError')));
+    xhr.addEventListener('timeout', () => reject(new Error('上传超时，请压缩文件或更换稳定网络后重试')));
 
     xhr.open('POST', `${supabaseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`);
+    xhr.timeout = 10 * 60 * 1000;
     xhr.setRequestHeader('apikey', anonKey);
     xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
     xhr.setRequestHeader('Content-Type', contentType);
+    xhr.setRequestHeader('cache-control', 'max-age=31536000');
     xhr.setRequestHeader('x-upsert', String(upsert));
     onProgress?.(0, 0, body.size);
     xhr.send(body);

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Calendar, Pin, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -36,11 +36,87 @@ export default function AnnouncementDetailModal({
   isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 600,
   isIOS = false,
 }: AnnouncementDetailModalProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
   const sanitizedContent = useMemo(() => {
     if (!content) return '';
     const rendered = content.trim().startsWith('<') ? content : marked(content);
     return sanitizeAnnouncementContent(typeof rendered === 'string' ? rendered : '');
   }, [content]);
+
+  useEffect(() => {
+    const container = contentRef.current;
+    if (!container) return;
+
+    container.querySelectorAll('video').forEach(video => {
+      video.controls = true;
+      video.preload = 'metadata';
+      video.playsInline = true;
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
+      if (video.parentElement?.classList.contains('announcement-video-shell')) return;
+
+      const shell = document.createElement('div');
+      shell.className = 'announcement-video-shell';
+      const status = document.createElement('div');
+      status.className = 'announcement-video-status';
+      status.textContent = video.poster ? '正在载入影片…' : '正在建立影片预览…';
+      video.parentNode?.insertBefore(shell, video);
+      shell.append(video, status);
+
+      const hideStatus = () => status.classList.add('is-hidden');
+      const showStatus = (message: string, isError = false) => {
+        status.replaceChildren(document.createTextNode(message));
+        if (isError && (video.currentSrc || video.src)) {
+          const fallbackLink = document.createElement('a');
+          fallbackLink.href = video.currentSrc || video.src;
+          fallbackLink.target = '_blank';
+          fallbackLink.rel = 'noopener noreferrer';
+          fallbackLink.textContent = '打开原始影片';
+          fallbackLink.className = 'announcement-video-fallback';
+          status.appendChild(fallbackLink);
+        }
+        status.classList.toggle('is-error', isError);
+        status.classList.remove('is-hidden');
+      };
+      const captureLegacyPoster = () => {
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          shell.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+        }
+        if (video.poster || !Number.isFinite(video.duration) || video.duration <= 0) {
+          hideStatus();
+          return;
+        }
+        const captureTime = Math.min(Math.max(video.duration * 0.05, 0.1), 2);
+        const capture = () => {
+          try {
+            const width = Math.min(video.videoWidth, 960);
+            const height = Math.max(1, Math.round(video.videoHeight * (width / video.videoWidth)));
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const context = canvas.getContext('2d');
+            if (!context || width <= 0) throw new Error('Frame unavailable');
+            context.drawImage(video, 0, 0, width, height);
+            video.poster = canvas.toDataURL('image/jpeg', 0.75);
+          } catch {
+            showStatus('影片已就绪，点击播放', false);
+            return;
+          }
+          video.currentTime = 0;
+          hideStatus();
+        };
+        video.addEventListener('seeked', capture, { once: true });
+        video.currentTime = captureTime;
+      };
+
+      video.addEventListener('loadedmetadata', captureLegacyPoster, { once: true });
+      video.addEventListener('canplay', hideStatus);
+      video.addEventListener('playing', hideStatus);
+      video.addEventListener('waiting', () => showStatus('正在缓冲影片…'));
+      video.addEventListener('error', () => showStatus('此影片无法播放，请使用 MP4（H.264/AAC）格式', true));
+      if (video.readyState >= 1) captureLegacyPoster();
+    });
+  }, [sanitizedContent]);
 
   return createPortal(
     <div
@@ -159,6 +235,7 @@ export default function AnnouncementDetailModal({
               </div>
             ) : (
               <div
+                ref={contentRef}
                 className="announcement-detail-content relative"
                 style={{ fontSize: '15px', lineHeight: '1.6', color: '#374151' }}
                 dangerouslySetInnerHTML={{ __html: sanitizedContent }}
@@ -223,7 +300,14 @@ export default function AnnouncementDetailModal({
         .announcement-detail-content th { background: #f9fafb; color: #374151; font-size: 12px; font-weight: 600; }
         .announcement-detail-content img { display: block; max-width: 100%; height: auto; margin: 1rem auto; border: 1px solid #e2e8f0; border-radius: .75rem; background: #f8fafc; box-shadow: 0 4px 8px rgba(0,0,0,.08); }
         .announcement-detail-content .video-wrapper { display: block !important; width: fit-content !important; max-width: 100% !important; margin: 1rem auto !important; }
-        .announcement-detail-content video { display: block; width: 100%; max-width: min(800px, 100%); height: auto; border: 1px solid #e2e8f0; border-radius: .75rem; background: #0f172a; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        .announcement-video-shell { position: relative; width: 100%; max-width: 800px; margin: 1rem auto; overflow: hidden; border: 1px solid #cbd5e1; border-radius: .75rem; background: #0f172a; aspect-ratio: 16 / 9; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        .announcement-detail-content .announcement-video-shell video { display: block; width: 100%; height: 100%; min-height: 180px; margin: 0; border: 0; border-radius: 0; background: #0f172a; object-fit: contain; box-shadow: none; }
+        .announcement-video-status { pointer-events: none; position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .75rem; padding: 1rem; background: linear-gradient(135deg,rgba(15,23,42,.76),rgba(30,41,59,.58)); color: #e0f2fe; font-size: 12px; font-weight: 700; text-align: center; transition: opacity .2s ease; }
+        .announcement-video-status.is-hidden { opacity: 0; visibility: hidden; }
+        .announcement-video-status.is-error { pointer-events: auto; background: linear-gradient(135deg,rgba(69,10,10,.9),rgba(127,29,29,.82)); color: #fee2e2; }
+        .announcement-video-fallback { border: 1px solid rgba(254,202,202,.45); border-radius: .5rem; background: rgba(255,255,255,.12); padding: .4rem .75rem; color: #fff; font-size: 11px; font-weight: 800; text-decoration: none; }
+        .announcement-video-fallback:hover { background: rgba(255,255,255,.2); }
+        .announcement-detail-content video:not(.announcement-video-shell video) { display: block; width: 100%; max-width: min(800px, 100%); height: auto; margin: 1rem auto; border: 1px solid #e2e8f0; border-radius: .75rem; background: #0f172a; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
         @media (max-width: 639px) {
           .announcement-detail-content { padding: 0 4px; font-size: 15px !important; line-height: 1.6 !important; letter-spacing: .005em; }
           .announcement-detail-content h1 { font-size: 1.375rem; }
@@ -233,6 +317,8 @@ export default function AnnouncementDetailModal({
           .announcement-detail-content blockquote { padding: .75rem 1rem; font-size: 14px; }
           .announcement-detail-content table { display: block; width: 100%; overflow-x: auto; font-size: 13px; }
           .announcement-detail-content .video-wrapper { width: 100% !important; margin: 1.5rem 0 !important; }
+          .announcement-video-shell { margin: 1rem 0; }
+          .announcement-detail-content .announcement-video-shell video { min-height: 160px; }
         }
       `}</style>
     </div>,

@@ -30,11 +30,124 @@ import {
 } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { uploadStorageObjectWithProgress } from '../../lib/storageUpload';
+import { optimizeImageForWeb } from '../../lib/imageOptimizer';
 
 // Custom Video extension for Tiptap
 type VideoChain = {
-  setVideo: (options: { src: string }) => { run: () => boolean };
+  setVideo: (options: { src: string; poster?: string }) => { run: () => boolean };
 };
+
+const MAX_ANNOUNCEMENT_VIDEO_BYTES = 80 * 1024 * 1024;
+const MAX_ANNOUNCEMENT_VIDEO_DURATION = 30 * 60;
+const MAX_ANNOUNCEMENT_VIDEO_LONG_EDGE = 1920;
+const MAX_ANNOUNCEMENT_VIDEO_SHORT_EDGE = 1080;
+const MAX_ANNOUNCEMENT_VIDEOS = 3;
+const MAX_ANNOUNCEMENT_IMAGES = 30;
+
+interface VideoUploadMetadata {
+  duration: number;
+  width: number;
+  height: number;
+  poster: Blob;
+}
+
+async function validateMp4VideoCodec(file: File) {
+  const sampleSize = Math.min(file.size, 2 * 1024 * 1024);
+  const head = await file.slice(0, sampleSize).arrayBuffer();
+  const tail = file.size > sampleSize
+    ? await file.slice(Math.max(0, file.size - sampleSize)).arrayBuffer()
+    : new ArrayBuffer(0);
+  const decoder = new TextDecoder('latin1');
+  const codecMarkers = `${decoder.decode(head)}${decoder.decode(tail)}`;
+  const hasH264 = codecMarkers.includes('avc1') || codecMarkers.includes('avc3');
+  const hasHevc = codecMarkers.includes('hvc1') || codecMarkers.includes('hev1');
+  if (!hasH264) {
+    throw new Error(hasHevc
+      ? '检测到 HEVC/H.265 编码，部分 Android 与浏览器会黑屏；请转换为 H.264/AAC MP4'
+      : '无法确认影片使用 H.264 编码，请重新导出为 H.264/AAC MP4');
+  }
+  if (codecMarkers.includes('soun') && !codecMarkers.includes('mp4a')) {
+    throw new Error('影片音轨不是通用 AAC 编码，请重新导出为 H.264/AAC MP4');
+  }
+}
+
+function inspectVideoForUpload(file: File): Promise<VideoUploadMetadata> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    let settled = false;
+    const timeoutId = window.setTimeout(() => finishWithError('读取影片资料超时，请检查影片是否损坏'), 20000);
+
+    const cleanup = () => {
+      window.clearTimeout(timeoutId);
+      video.removeAttribute('src');
+      video.load();
+      URL.revokeObjectURL(objectUrl);
+    };
+    const finishWithError = (message: string) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error(message));
+    };
+
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.addEventListener('error', () => finishWithError('此 MP4 的影片编码无法在当前浏览器解码，请使用 H.264/AAC 格式'), { once: true });
+    video.addEventListener('loadedmetadata', () => {
+      const duration = video.duration;
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+      if (!Number.isFinite(duration) || duration <= 0 || width <= 0 || height <= 0) {
+        finishWithError('无法读取影片时长或画面尺寸，请重新导出影片');
+        return;
+      }
+      if (duration > MAX_ANNOUNCEMENT_VIDEO_DURATION) {
+        finishWithError('影片最长支持 30 分钟，请先剪辑后再上传');
+        return;
+      }
+      if (Math.max(width, height) > MAX_ANNOUNCEMENT_VIDEO_LONG_EDGE || Math.min(width, height) > MAX_ANNOUNCEMENT_VIDEO_SHORT_EDGE) {
+        finishWithError('影片最高支持横屏或竖屏 1080p，请降低分辨率后再上传');
+        return;
+      }
+
+      video.currentTime = Math.min(Math.max(duration * 0.05, 0.1), 3);
+      video.addEventListener('seeked', () => {
+        const posterWidth = Math.min(width, 960);
+        const posterHeight = Math.max(1, Math.round(height * (posterWidth / width)));
+        const canvas = document.createElement('canvas');
+        canvas.width = posterWidth;
+        canvas.height = posterHeight;
+        const context = canvas.getContext('2d');
+        if (!context) {
+          finishWithError('无法建立影片预览图');
+          return;
+        }
+
+        try {
+          context.drawImage(video, 0, 0, posterWidth, posterHeight);
+        } catch {
+          finishWithError('无法读取影片画面，请确认影片编码兼容浏览器');
+          return;
+        }
+
+        canvas.toBlob(blob => {
+          if (settled) return;
+          if (!blob) {
+            finishWithError('无法建立影片预览图');
+            return;
+          }
+          settled = true;
+          cleanup();
+          resolve({ duration, width, height, poster: blob });
+        }, 'image/jpeg', 0.78);
+      }, { once: true });
+    }, { once: true });
+    video.src = objectUrl;
+    video.load();
+  });
+}
 type TextSizeChain = {
   toggleTextSize: (size: string) => { run: () => boolean };
 };
@@ -63,6 +176,15 @@ const Video = Node.create({
       width: {
         default: '100%',
       },
+      poster: {
+        default: null,
+      },
+      preload: {
+        default: 'metadata',
+      },
+      playsinline: {
+        default: 'true',
+      },
     };
   },
 
@@ -74,6 +196,9 @@ const Video = Node.create({
           if (typeof element === 'string') return false;
           return {
             src: element.getAttribute('src'),
+            poster: element.getAttribute('poster'),
+            preload: element.getAttribute('preload') || 'metadata',
+            playsinline: element.getAttribute('playsinline') || 'true',
           };
         },
       },
@@ -84,13 +209,16 @@ const Video = Node.create({
     return ['video', mergeAttributes(HTMLAttributes, {
       class: 'max-w-full h-auto rounded-lg my-4',
       controls: 'true',
+      preload: 'metadata',
+      playsinline: 'true',
       src: HTMLAttributes.src,
+      poster: HTMLAttributes.poster,
     })];
   },
 
   addCommands() {
     return {
-      setVideo: (options: { src: string }) => ({ commands }: CommandProps) => {
+      setVideo: (options: { src: string; poster?: string }) => ({ commands }: CommandProps) => {
         return commands.insertContent({
           type: this.name,
           attrs: options,
@@ -414,7 +542,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
   }, [content, editor]);
 
   const uploadFileWithProgress = async (
-    file: File,
+    file: Blob,
     fileName: string,
     bucketName: string,
     onProgress: (progress: number, loaded: number, total: number) => void
@@ -441,6 +569,13 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
     if (!files || files.length === 0) {
       console.log('No files selected');
+      return;
+    }
+
+    const existingImageCount = editor ? (editor.getHTML().match(/<img\b/gi) || []).length : 0;
+    if (existingImageCount + files.length > MAX_ANNOUNCEMENT_IMAGES) {
+      setUploadStatus(`錯誤：每则内容最多 ${MAX_ANNOUNCEMENT_IMAGES} 张图片`);
+      setTimeout(() => setUploadStatus(''), 4000);
       return;
     }
 
@@ -472,12 +607,14 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
           continue;
         }
 
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${adminId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        setUploadStatus(`正在优化图片 ${i + 1}/${files.length}：${file.name}`);
+        const optimizedFile = file.type === 'image/gif' ? file : await optimizeImageForWeb(file);
+        const optimizedExtension = optimizedFile.type === 'image/png' ? 'png' : optimizedFile.type === 'image/webp' ? 'webp' : file.type === 'image/gif' ? 'gif' : 'jpg';
+        const fileName = `${adminId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${optimizedExtension}`;
         console.log('Uploading to storage:', fileName);
 
         const { data: uploadData, error: uploadError } = await uploadFileWithProgress(
-          file,
+          optimizedFile,
           fileName,
           'announcement-images',
           (fileProgress, loaded, total) => {
@@ -485,7 +622,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             setUploadProgress(Math.round(totalProgress));
             const loadedMB = (loaded / (1024 * 1024)).toFixed(2);
             const totalMB = (total / (1024 * 1024)).toFixed(2);
-            setUploadStatus(`正在上傳圖片 ${i + 1}/${files.length}：${file.name} - ${loadedMB}MB / ${totalMB}MB（${fileProgress}%）`);;
+            setUploadStatus(`正在上傳优化后的图片 ${i + 1}/${files.length}：${loadedMB}MB / ${totalMB}MB（${fileProgress}%）`);
           }
         );
 
@@ -537,102 +674,91 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    console.log('Video upload triggered, files:', files);
+    if (!files || files.length === 0) return;
 
-    if (!files || files.length === 0) {
-      console.log('No files selected');
+    const existingVideoCount = editor ? (editor.getHTML().match(/<video\b/gi) || []).length : 0;
+    if (existingVideoCount + files.length > MAX_ANNOUNCEMENT_VIDEOS) {
+      setUploadStatus(`錯誤：每则公告最多 ${MAX_ANNOUNCEMENT_VIDEOS} 段影片`);
+      setTimeout(() => setUploadStatus(''), 4000);
       return;
     }
 
     setUploading(true);
     setUploadProgress(0);
-    setUploadStatus(`正在上傳 ${files.length} 個影片……`);
 
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        const hasMp4Extension = file.name.toLowerCase().endsWith('.mp4');
+        const isMp4 = file.type === 'video/mp4' || (file.type === '' && hasMp4Extension);
+        if (!isMp4) throw new Error(`${file.name} 不是 MP4。为确保手机与电脑兼容，请使用 H.264/AAC MP4`);
+        if (file.size > MAX_ANNOUNCEMENT_VIDEO_BYTES) throw new Error(`${file.name} 超过 80MB，请压缩为 1080p 网页版本后上传`);
+        if (document.createElement('video').canPlayType('video/mp4') === '') throw new Error('当前浏览器不支持 MP4 影片上传预览');
+
+        setUploadStatus(`正在检查影片 ${i + 1}/${files.length}：${file.name}（${fileSizeMB}MB）`);
+        await validateMp4VideoCodec(file);
+        const metadata = await inspectVideoForUpload(file);
+        const durationMinutes = Math.ceil(metadata.duration / 60);
+        const uploadToken = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        const videoPath = `${adminId}/${uploadToken}.mp4`;
+        const posterPath = `${adminId}/${uploadToken}-poster.jpg`;
         const baseProgress = (i / files.length) * 100;
         const fileProgressRange = 100 / files.length;
 
-        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-        console.log(`Processing file: ${file.name}, type: ${file.type}, size: ${fileSizeMB}MB`);
-        setUploadStatus(`正在上傳影片 ${i + 1}/${files.length}：${file.name}（${fileSizeMB}MB）`);
-
-        if (!file.type.startsWith('video/') && !file.type.startsWith('image/')) {
-          console.log('File type rejected:', file.type);
-          setUploadStatus(`錯誤：${file.name} 不是影片或圖片檔案`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          continue;
-        }
-
-        if (file.size > 100 * 1024 * 1024) {
-          console.log('File too large:', file.size);
-          setUploadStatus(`錯誤：${file.name} 超過 100MB`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          continue;
-        }
-
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${adminId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        console.log('Uploading to storage:', fileName);
-
-        const { data: uploadData, error: uploadError } = await uploadFileWithProgress(
+        setUploadStatus(`正在上傳影片 ${i + 1}/${files.length}：${metadata.width}×${metadata.height} · 约 ${durationMinutes} 分钟`);
+        const { error: videoUploadError } = await uploadFileWithProgress(
           file,
-          fileName,
+          videoPath,
           'announcement-images',
           (fileProgress, loaded, total) => {
-            const totalProgress = baseProgress + (fileProgress / 100) * fileProgressRange;
+            const totalProgress = baseProgress + (fileProgress / 100) * fileProgressRange * 0.95;
             setUploadProgress(Math.round(totalProgress));
-            const loadedMB = (loaded / (1024 * 1024)).toFixed(2);
-            const totalMB = (total / (1024 * 1024)).toFixed(2);
-            setUploadStatus(`正在上傳影片 ${i + 1}/${files.length}：${file.name} - ${loadedMB}MB / ${totalMB}MB（${fileProgress}%）`);;
+            const loadedMB = (loaded / (1024 * 1024)).toFixed(1);
+            const totalMB = (total / (1024 * 1024)).toFixed(1);
+            setUploadStatus(`正在上傳影片 ${i + 1}/${files.length}：${loadedMB} / ${totalMB}MB（${fileProgress}%）`);
           }
         );
+        if (videoUploadError) throw new Error(videoUploadError.message);
 
-        console.log('Upload result:', { uploadData, uploadError });
-
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          setUploadStatus(`上傳 ${file.name} 時發生錯誤：${uploadError.message}`);
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          continue;
+        setUploadStatus(`正在建立影片预览图 ${i + 1}/${files.length}……`);
+        const optimizedPoster = await optimizeImageForWeb(metadata.poster);
+        const { error: posterUploadError } = await uploadFileWithProgress(
+          optimizedPoster,
+          posterPath,
+          'announcement-images',
+          () => undefined,
+        );
+        if (posterUploadError) {
+          await supabase.storage.from('announcement-images').remove([videoPath]);
+          throw new Error(`预览图上传失败：${posterUploadError.message}`);
         }
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('announcement-images')
-          .getPublicUrl(fileName);
-
-        console.log('Public URL:', publicUrl);
-
+        const storage = supabase.storage.from('announcement-images');
+        const videoUrl = storage.getPublicUrl(videoPath).data.publicUrl;
+        const posterUrl = storage.getPublicUrl(posterPath).data.publicUrl;
+        setUploadProgress(Math.round(baseProgress + fileProgressRange));
         if (editor) {
-          if (file.type.startsWith('video/')) {
-            console.log('Inserting video into editor');
-            (editor.chain().focus() as unknown as VideoChain).setVideo({ src: publicUrl }).run();
-          } else {
-            console.log('Inserting image into editor');
-            editor.chain().focus().setImage({ src: publicUrl }).run();
-          }
+          (editor.chain().focus() as unknown as VideoChain).setVideo({ src: videoUrl, poster: posterUrl }).run();
         }
       }
 
       setUploadProgress(100);
-      setUploadStatus('上傳完成！');
+      setUploadStatus('影片与预览图上传完成！');
       setTimeout(() => {
         setUploadStatus('');
         setUploadProgress(0);
-      }, 2000);
+      }, 2500);
     } catch (error: unknown) {
       console.error('Error uploading video:', error);
       setUploadStatus(`錯誤：${formatSupabaseError(error)}`);
       setTimeout(() => {
         setUploadStatus('');
         setUploadProgress(0);
-      }, 3000);
+      }, 5000);
     } finally {
       setUploading(false);
-      if (videoInputRef.current) {
-        videoInputRef.current.value = '';
-      }
+      if (videoInputRef.current) videoInputRef.current.value = '';
     }
   };
 
@@ -704,11 +830,17 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
 
       const result = await mammoth.convertToHtml({ arrayBuffer }, convertOptions);
       let importedHtml = result.value;
-      const totalImageBytes = pendingImages.reduce((total, image) => total + image.blob.size, 0);
+      setUploadStatus('正在优化 Word 图片……');
+      const preparedImages = await Promise.all(pendingImages.map(async image => {
+        if (image.contentType === 'image/gif') return image;
+        const optimizedBlob = await optimizeImageForWeb(image.blob);
+        return { ...image, blob: optimizedBlob, contentType: optimizedBlob.type || image.contentType };
+      }));
+      const totalImageBytes = preparedImages.reduce((total, image) => total + image.blob.size, 0);
       let uploadedImageBytes = 0;
 
-      for (let index = 0; index < pendingImages.length; index++) {
-        const image = pendingImages[index];
+      for (let index = 0; index < preparedImages.length; index++) {
+        const image = preparedImages[index];
         let ext = image.contentType.split('/')[1] || 'png';
         if (ext === 'jpeg') ext = 'jpg';
         const fileName = `${adminId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -725,7 +857,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
               setUploadProgress(25 + Math.round(imageProgress * 65));
               const loadedMB = (transferred / (1024 * 1024)).toFixed(2);
               const totalMB = (totalImageBytes / (1024 * 1024)).toFixed(2);
-              setUploadStatus(`正在上傳 Word 圖片 ${index + 1}/${pendingImages.length}：${loadedMB}MB / ${totalMB}MB`);
+              setUploadStatus(`正在上傳 Word 圖片 ${index + 1}/${preparedImages.length}：${loadedMB}MB / ${totalMB}MB`);
             },
           });
           const { data: { publicUrl } } = supabase.storage
@@ -749,8 +881,8 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
           editor.chain().focus().insertContent(importedHtml).run();
         }
         setUploadProgress(100);
-        setUploadStatus(pendingImages.length > 0
-          ? `Word 文件已匯入，包含 ${pendingImages.length} 張圖片！`
+        setUploadStatus(preparedImages.length > 0
+          ? `Word 文件已匯入，包含 ${preparedImages.length} 張优化图片！`
           : 'Word 文件已成功匯入！');
       } else {
         setUploadStatus('錯誤：無法解析文件');
@@ -928,7 +1060,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       <input
         ref={videoInputRef}
         type="file"
-        accept="video/mp4,video/webm,video/ogg"
+        accept="video/mp4,.mp4"
         onChange={handleVideoUpload}
         multiple
         className="hidden"
@@ -1230,7 +1362,7 @@ const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             <MenuButton
               onClick={handleVideoButtonClick}
               disabled={uploading}
-              title={uploading ? uploadStatus : "上傳影片（MP4、WebM）"}
+              title={uploading ? uploadStatus : "上傳影片（MP4 · H.264/AAC · 最大 80MB · 1080p）"}
             >
               <VideoIcon className="w-4 h-4" />
             </MenuButton>

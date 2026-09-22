@@ -126,9 +126,9 @@ export function sanitizeAnnouncementContent(html: string): string {
     ],
     allowedAttributes: [
       'href', 'src', 'alt', 'title', 'class', 'style',
-      'target', 'rel', 'width', 'height', 'size', 'color',
+      'target', 'rel', 'width', 'height', 'size', 'color', 'loading', 'decoding',
       'controls', 'autoplay', 'loop', 'muted', 'poster', 'preload', 'playsinline',
-      'type', 'data-video-processed'
+      'crossorigin', 'type', 'data-video-processed'
     ]
   });
 
@@ -137,11 +137,18 @@ export function sanitizeAnnouncementContent(html: string): string {
   // each video with its own play button.
   let processed = sanitized;
 
+  processed = processed.replace(/<img(?![^>]*loading=)/gi, '<img loading="lazy"');
+  processed = processed.replace(/<img(?![^>]*decoding=)/gi, '<img decoding="async"');
+
   // Ensure all videos have preload="metadata" for poster frame loading
   processed = processed.replace(/<video(?![^>]*preload=)/gi, '<video preload="metadata"');
+  processed = processed.replace(/<video(?![^>]*controls)/gi, '<video controls');
 
   // Add playsinline for iOS compatibility
   processed = processed.replace(/<video(?![^>]*playsinline)/gi, '<video playsinline');
+
+  // Allow legacy videos to capture a poster frame when Storage CORS permits it.
+  processed = processed.replace(/<video(?![^>]*crossorigin=)/gi, '<video crossorigin="anonymous"');
 
   return processed;
 }
