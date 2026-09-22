@@ -1519,7 +1519,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('announcements') && (
-              <div className={activeTab === 'announcements' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
+              <div className={activeTab === 'announcements' ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'hidden'}>
                 <AnnouncementManagement admin={admin} />
               </div>
             )}

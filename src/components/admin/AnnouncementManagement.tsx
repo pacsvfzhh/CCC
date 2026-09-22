@@ -1,13 +1,39 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Pin, CreditCard as Edit, Trash2, Globe, Users, ChevronDown, ChevronRight, PinOff, Play, Pause, Gauge, Eye, EyeOff } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Gauge,
+  Globe,
+  LayoutList,
+  Monitor,
+  Pause,
+  Pin,
+  PinOff,
+  Play,
+  Plus,
+  Save,
+  Search,
+  Settings2,
+  SlidersHorizontal,
+  Trash2,
+  Users,
+  X,
+  CreditCard as Edit,
+} from 'lucide-react';
+import { parse as marked, setOptions } from 'marked';
 import { supabase } from '../../lib/supabase';
 import { Announcement, Admin } from '../../types';
-import { parse as marked, setOptions } from 'marked';
-import TiptapEditor, { TiptapEditorRef } from './TiptapEditor';
 import { sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import { processContentImages } from '../../lib/imageOptimizer';
 import { cleanupContentImages } from '../../lib/storageCleanup';
+import TiptapEditor, { TiptapEditorRef } from './TiptapEditor';
 
 interface AnnouncementManagementProps {
   admin: Admin;
@@ -18,15 +44,38 @@ interface SecondaryAdmin {
   username: string;
 }
 
-interface GroupedAnnouncements {
+interface AnnouncementGroup {
   adminId: string;
   adminName: string;
   announcements: Announcement[];
 }
 
+interface AnnouncementDraft {
+  title: string;
+  content: string;
+  isPinned: boolean;
+  isGlobal: boolean;
+  isHidden: boolean;
+  pinOrder: number;
+  publishAt: string;
+}
+
 type AnnouncementUpdate = Pick<Announcement, 'title' | 'content' | 'is_pinned' | 'is_hidden' | 'pin_order' | 'publish_at'>
   & Partial<Pick<Announcement, 'is_global'>>;
 type AnnouncementInsert = AnnouncementUpdate & Pick<Announcement, 'created_by'>;
+type StatusFilter = 'all' | 'pinned' | 'hidden' | 'global';
+type WorkspaceMode = 'preview' | 'edit';
+type EditorMode = 'create' | 'edit';
+
+const emptyDraft = (): AnnouncementDraft => ({
+  title: '',
+  content: '',
+  isPinned: false,
+  isGlobal: false,
+  isHidden: false,
+  pinOrder: 999,
+  publishAt: new Date().toISOString().slice(0, 16),
+});
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error) return error.message;
@@ -36,84 +85,69 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function stripMarkup(content: string) {
+  return content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function sortAnnouncements(announcements: Announcement[]) {
+  return [...announcements].sort((a, b) => {
+    if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+    if (a.is_pinned && b.is_pinned && a.pin_order !== b.pin_order) return a.pin_order - b.pin_order;
+    return new Date(b.publish_at).getTime() - new Date(a.publish_at).getTime();
+  });
+}
+
+setOptions({ breaks: true, gfm: true, pedantic: false });
+
 export default function AnnouncementManagement({ admin }: AnnouncementManagementProps) {
+  const isSuperAdmin = admin.role === 'super_admin';
+  const editorRef = useRef<TiptapEditorRef>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [secondaryAdmins, setSecondaryAdmins] = useState<SecondaryAdmin[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [selectedAdminId, setSelectedAdminId] = useState(admin.id);
+  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('preview');
+  const [editorMode, setEditorMode] = useState<EditorMode>('edit');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set([admin.id]));
   const [creatingForAdminId, setCreatingForAdminId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<AnnouncementDraft>(emptyDraft);
+  const [initialDraftSnapshot, setInitialDraftSnapshot] = useState(JSON.stringify(emptyDraft()));
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pinOrderModalId, setPinOrderModalId] = useState<string | null>(null);
-  const [pinOrderValue, setPinOrderValue] = useState<number>(999);
-  const editorRef = useRef<TiptapEditorRef>(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    content: '',
-    isPinned: false,
-    isGlobal: false,
-    isHidden: false,
-    pinOrder: 999,
-    publishAt: new Date().toISOString().slice(0, 16),
-  });
-
-  // Carousel settings
+  const [pinOrderValue, setPinOrderValue] = useState(999);
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  const [showEmployeePreview, setShowEmployeePreview] = useState(false);
   const [carouselEnabled, setCarouselEnabled] = useState(true);
   const [carouselSpeed, setCarouselSpeed] = useState(0.6);
   const [savingCarouselSettings, setSavingCarouselSettings] = useState(false);
   const [showCarouselSuccessMessage, setShowCarouselSuccessMessage] = useState(false);
   const [carouselErrorMessage, setCarouselErrorMessage] = useState<string | null>(null);
+  const [carouselPanelOpen, setCarouselPanelOpen] = useState(true);
+  const [showMobileConfiguration, setShowMobileConfiguration] = useState(false);
 
-  const isSuperAdmin = admin.role === 'super_admin';
+  const isDirty = workspaceMode === 'edit' && JSON.stringify(draft) !== initialDraftSnapshot;
 
-  setOptions({
-    breaks: true,
-    gfm: true,
-    pedantic: false,
-  });
-
-  const renderMarkdown = (content: string) => {
+  const renderMarkdown = useCallback((content: string) => {
     if (!content) return '';
-
-    // Process the content to better handle lists
-    // For ordered lists to work properly, they need a blank line before them
-    // OR they need to start at the beginning of the content
     const lines = content.split('\n');
     const processedLines: string[] = [];
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const prevLine = i > 0 ? lines[i - 1] : '';
-
-      // Check if current line looks like a list item (1. or 1) format)
+    lines.forEach((line, index) => {
+      const previousLine = index > 0 ? lines[index - 1] : '';
       const isOrderedList = /^\s*\d+[.)]\s/.test(line);
-
-      if (isOrderedList && prevLine.trim() !== '' && i > 0) {
-        // Add a blank line before the list if there isn't one
-        if (!(/^\s*\d+[.)]\s/.test(prevLine)) && prevLine.trim() !== '') {
-          processedLines.push('');
-        }
+      if (isOrderedList && index > 0 && previousLine.trim() && !/^\s*\d+[.)]\s/.test(previousLine)) {
+        processedLines.push('');
       }
-
       processedLines.push(line);
-    }
+    });
 
     const rendered = marked(processedLines.join('\n'));
     return typeof rendered === 'string' ? rendered : '';
-  };
-
-  useEffect(() => {
-    if (deletingId || pinOrderModalId) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [deletingId, pinOrderModalId]);
+  }, []);
 
   const loadSecondaryAdmins = useCallback(async () => {
     try {
@@ -123,7 +157,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         .eq('role', 'secondary_admin')
         .eq('is_active', true)
         .order('username');
-
       if (error) throw error;
       setSecondaryAdmins(data || []);
     } catch (error) {
@@ -133,96 +166,35 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
 
   const loadCarouselSettings = useCallback(async () => {
     try {
-      // Load carousel enabled setting
-      const { data: enabledData, error: enabledError } = await supabase
-        .from('system_configs')
-        .select('value')
-        .eq('key', 'announcement_carousel_enabled')
-        .maybeSingle();
-
+      const [{ data: enabledData, error: enabledError }, { data: speedData, error: speedError }] = await Promise.all([
+        supabase.from('system_configs').select('value').eq('key', 'announcement_carousel_enabled').maybeSingle(),
+        supabase.from('system_configs').select('value').eq('key', 'announcement_carousel_speed').maybeSingle(),
+      ]);
       if (enabledError) throw enabledError;
-      if (enabledData?.value !== undefined) {
-        setCarouselEnabled(enabledData.value === true);
-      }
-
-      // Load carousel speed setting
-      const { data: speedData, error: speedError } = await supabase
-        .from('system_configs')
-        .select('value')
-        .eq('key', 'announcement_carousel_speed')
-        .maybeSingle();
-
       if (speedError) throw speedError;
+      if (enabledData?.value !== undefined) setCarouselEnabled(enabledData.value === true);
       if (speedData?.value !== undefined) {
-        const speed = typeof speedData.value === 'number' ? speedData.value : 0.6;
-        setCarouselSpeed(speed);
+        setCarouselSpeed(typeof speedData.value === 'number' ? speedData.value : 0.6);
       }
     } catch (error) {
       console.error('Error loading carousel settings:', error);
     }
   }, []);
 
-  const saveCarouselSettings = async () => {
-    setSavingCarouselSettings(true);
-    setCarouselErrorMessage(null);
-    try {
-      // Update carousel enabled setting
-      const { error: enabledError } = await supabase
-        .from('system_configs')
-        .update({
-          value: carouselEnabled,
-          updated_at: new Date().toISOString()
-        })
-        .eq('key', 'announcement_carousel_enabled');
-
-      if (enabledError) throw enabledError;
-
-      // Update carousel speed setting
-      const { error: speedError } = await supabase
-        .from('system_configs')
-        .update({
-          value: carouselSpeed,
-          updated_at: new Date().toISOString()
-        })
-        .eq('key', 'announcement_carousel_speed');
-
-      if (speedError) throw speedError;
-
-      // Show success message
-      setShowCarouselSuccessMessage(true);
-      setTimeout(() => {
-        setShowCarouselSuccessMessage(false);
-      }, 3000);
-    } catch (error: unknown) {
-      console.error('Error saving carousel settings:', error);
-      setCarouselErrorMessage(getErrorMessage(error, 'Failed to save carousel settings'));
-      setTimeout(() => {
-        setCarouselErrorMessage(null);
-      }, 5000);
-    } finally {
-      setSavingCarouselSettings(false);
-    }
-  };
-
   const loadAnnouncements = useCallback(async () => {
     try {
-      let query = supabase
-        .from('announcements')
-        .select('*');
-
-      if (!isSuperAdmin) {
-        query = query.eq('created_by', admin.id);
-      }
-
+      let query = supabase.from('announcements').select('*');
+      if (!isSuperAdmin) query = query.eq('created_by', admin.id);
       const { data, error } = await query
         .order('is_pinned', { ascending: false })
         .order('pin_order', { ascending: true })
         .order('publish_at', { ascending: false });
-
       if (error) throw error;
       setAnnouncements(data || []);
+      return data || [];
     } catch (error) {
       console.error('Error loading announcements:', error);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -234,1026 +206,816 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       void loadSecondaryAdmins();
       void loadCarouselSettings();
     }
-  }, [isSuperAdmin, loadAnnouncements, loadSecondaryAdmins, loadCarouselSettings]);
+  }, [isSuperAdmin, loadAnnouncements, loadCarouselSettings, loadSecondaryAdmins]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (deletingId || pinOrderModalId || pendingNavigation || showEmployeePreview || showMobileConfiguration) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [deletingId, pendingNavigation, pinOrderModalId, showEmployeePreview, showMobileConfiguration]);
 
-    // Validate title
-    if (!formData.title.trim()) {
-      alert('Please enter a title');
+  const groupedAnnouncements = useMemo<AnnouncementGroup[]>(() => {
+    if (!isSuperAdmin) {
+      return [{ adminId: admin.id, adminName: admin.username || '我的公告', announcements: sortAnnouncements(announcements) }];
+    }
+
+    return [
+      {
+        adminId: admin.id,
+        adminName: `${admin.username}（超级管理员）`,
+        announcements: sortAnnouncements(announcements.filter(item => item.created_by === admin.id)),
+      },
+      ...secondaryAdmins.map(secondaryAdmin => ({
+        adminId: secondaryAdmin.id,
+        adminName: secondaryAdmin.username,
+        announcements: sortAnnouncements(announcements.filter(item => item.created_by === secondaryAdmin.id)),
+      })),
+    ];
+  }, [admin.id, admin.username, announcements, isSuperAdmin, secondaryAdmins]);
+
+  const selectedGroup = groupedAnnouncements.find(group => group.adminId === selectedAdminId) || groupedAnnouncements[0];
+  const selectedAnnouncement = announcements.find(item => item.id === selectedAnnouncementId) || null;
+  const selectedAdminName = selectedGroup?.adminName || admin.username;
+
+  const visibleAnnouncements = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    return (selectedGroup?.announcements || []).filter(item => {
+      const matchesQuery = !normalizedQuery
+        || item.title.toLowerCase().includes(normalizedQuery)
+        || stripMarkup(item.content).toLowerCase().includes(normalizedQuery);
+      const matchesStatus = statusFilter === 'all'
+        || (statusFilter === 'pinned' && item.is_pinned)
+        || (statusFilter === 'hidden' && item.is_hidden)
+        || (statusFilter === 'global' && item.is_global);
+      return matchesQuery && matchesStatus;
+    });
+  }, [searchQuery, selectedGroup, statusFilter]);
+
+  useEffect(() => {
+    if (!selectedGroup && groupedAnnouncements.length > 0) {
+      setSelectedAdminId(groupedAnnouncements[0].adminId);
+    }
+  }, [groupedAnnouncements, selectedGroup]);
+
+  const requestNavigation = (action: () => void) => {
+    if (isDirty) {
+      setPendingNavigation(() => action);
+      return;
+    }
+    action();
+  };
+
+  const openPreview = (announcement: Announcement) => {
+    requestNavigation(() => {
+      setSelectedAdminId(announcement.created_by);
+      setSelectedAnnouncementId(announcement.id);
+      setWorkspaceMode('preview');
+      setEditingId(null);
+      setCreatingForAdminId(null);
+    });
+  };
+
+  const startEdit = (announcement: Announcement) => {
+    requestNavigation(() => {
+      const nextDraft: AnnouncementDraft = {
+        title: announcement.title,
+        content: announcement.content,
+        isPinned: announcement.is_pinned,
+        isGlobal: announcement.is_global || false,
+        isHidden: announcement.is_hidden || false,
+        pinOrder: announcement.pin_order || 999,
+        publishAt: new Date(announcement.publish_at).toISOString().slice(0, 16),
+      };
+      setSelectedAdminId(announcement.created_by);
+      setSelectedAnnouncementId(announcement.id);
+      setEditingId(announcement.id);
+      setCreatingForAdminId(announcement.created_by);
+      setEditorMode('edit');
+      setDraft(nextDraft);
+      setInitialDraftSnapshot(JSON.stringify(nextDraft));
+      setWorkspaceMode('edit');
+    });
+  };
+
+  const startCreateForAdmin = (adminId: string) => {
+    requestNavigation(() => {
+      const nextDraft = emptyDraft();
+      setSelectedAdminId(adminId);
+      setSelectedAnnouncementId(null);
+      setEditingId(null);
+      setCreatingForAdminId(adminId);
+      setEditorMode('create');
+      setDraft(nextDraft);
+      setInitialDraftSnapshot(JSON.stringify(nextDraft));
+      setWorkspaceMode('edit');
+    });
+  };
+
+  const leaveEditor = () => {
+    requestNavigation(() => {
+      setWorkspaceMode('preview');
+      setEditingId(null);
+      setCreatingForAdminId(null);
+    });
+  };
+
+  const changeAdminGroup = (adminId: string) => {
+    requestNavigation(() => {
+      setSelectedAdminId(adminId);
+      setSelectedAnnouncementId(null);
+      setWorkspaceMode('preview');
+      setEditingId(null);
+      setCreatingForAdminId(null);
+      setSearchQuery('');
+      setStatusFilter('all');
+    });
+  };
+
+  const saveCarouselSettings = async () => {
+    setSavingCarouselSettings(true);
+    setCarouselErrorMessage(null);
+    try {
+      const { error: enabledError } = await supabase
+        .from('system_configs')
+        .update({ value: carouselEnabled, updated_at: new Date().toISOString() })
+        .eq('key', 'announcement_carousel_enabled');
+      if (enabledError) throw enabledError;
+
+      const { error: speedError } = await supabase
+        .from('system_configs')
+        .update({ value: carouselSpeed, updated_at: new Date().toISOString() })
+        .eq('key', 'announcement_carousel_speed');
+      if (speedError) throw speedError;
+
+      setShowCarouselSuccessMessage(true);
+      window.setTimeout(() => setShowCarouselSuccessMessage(false), 3000);
+    } catch (error) {
+      console.error('Error saving carousel settings:', error);
+      setCarouselErrorMessage(getErrorMessage(error, '保存轮播设置失败'));
+      window.setTimeout(() => setCarouselErrorMessage(null), 5000);
+    } finally {
+      setSavingCarouselSettings(false);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!draft.title.trim()) {
+      alert('请输入公告标题');
       return;
     }
 
+    setSavingAnnouncement(true);
     try {
-      // Get the latest content from the editor
-      const rawContent = editorRef.current?.getContent() || formData.content;
+      const rawContent = editorRef.current?.getContent() || draft.content;
       const editorContent = await processContentImages(rawContent, 'announcements');
+      let savedAnnouncementId = editingId;
 
       if (editingId) {
         const updateData: AnnouncementUpdate = {
-          title: formData.title,
+          title: draft.title.trim(),
           content: editorContent,
-          is_pinned: formData.isPinned,
-          is_hidden: formData.isHidden,
-          pin_order: formData.pinOrder,
-          publish_at: formData.publishAt,
+          is_pinned: draft.isPinned,
+          is_hidden: draft.isHidden,
+          pin_order: draft.pinOrder,
+          publish_at: draft.publishAt,
         };
-
-        if (isSuperAdmin) {
-          updateData.is_global = formData.isGlobal;
-        }
-
-        console.log('Updating announcement:', updateData);
-        const { data, error } = await supabase
-          .from('announcements')
-          .update(updateData)
-          .eq('id', editingId)
-          .select();
-
-        if (error) {
-          console.error('Update error:', error);
-          throw error;
-        }
-        console.log('Update successful:', data);
+        if (isSuperAdmin) updateData.is_global = draft.isGlobal;
+        const { error } = await supabase.from('announcements').update(updateData).eq('id', editingId);
+        if (error) throw error;
       } else {
         const insertData: AnnouncementInsert = {
-          title: formData.title,
+          title: draft.title.trim(),
           content: editorContent,
-          is_pinned: formData.isPinned,
-          is_hidden: formData.isHidden,
-          pin_order: formData.pinOrder,
-          publish_at: formData.publishAt,
-          created_by: creatingForAdminId || admin.id,
-          is_global: isSuperAdmin ? formData.isGlobal : false,
+          is_pinned: draft.isPinned,
+          is_hidden: draft.isHidden,
+          pin_order: draft.pinOrder,
+          publish_at: draft.publishAt,
+          created_by: creatingForAdminId || selectedAdminId || admin.id,
+          is_global: isSuperAdmin ? draft.isGlobal : false,
         };
-
-        console.log('Inserting announcement:', insertData);
-        const { data, error } = await supabase
-          .from('announcements')
-          .insert(insertData)
-          .select();
-
-        if (error) {
-          console.error('Insert error:', error);
-          throw error;
-        }
-        console.log('Insert successful:', data);
+        const { data, error } = await supabase.from('announcements').insert(insertData).select('*').single();
+        if (error) throw error;
+        savedAnnouncementId = data.id;
       }
 
-      // Reset form
-      setFormData({
-        title: '',
-        content: '',
-        isPinned: false,
-        isGlobal: false,
-        isHidden: false,
-        pinOrder: 999,
-        publishAt: new Date().toISOString().slice(0, 16),
-      });
-      setShowForm(false);
+      const refreshed = await loadAnnouncements();
+      const savedAnnouncement = refreshed.find(item => item.id === savedAnnouncementId);
+      setSelectedAnnouncementId(savedAnnouncementId);
+      if (savedAnnouncement) setSelectedAdminId(savedAnnouncement.created_by);
+      setWorkspaceMode('preview');
       setEditingId(null);
       setCreatingForAdminId(null);
-
-      // Reload announcements
-      await loadAnnouncements();
-
-      console.log('Announcement saved successfully');
-    } catch (error: unknown) {
+      setInitialDraftSnapshot(JSON.stringify({ ...draft, content: editorContent }));
+    } catch (error) {
       console.error('Error saving announcement:', error);
-      alert(`Failed to save announcement: ${getErrorMessage(error, 'Unknown error')}`);
+      alert(`保存公告失败：${getErrorMessage(error, '未知错误')}`);
+    } finally {
+      setSavingAnnouncement(false);
     }
   };
 
   const deleteAnnouncement = async (id: string) => {
     try {
-      const ann = announcements.find(a => a.id === id);
-      if (ann?.content) {
-        await cleanupContentImages(ann.content).catch(() => {});
-      }
+      const announcement = announcements.find(item => item.id === id);
+      if (announcement?.content) await cleanupContentImages(announcement.content).catch(() => undefined);
       const { error } = await supabase.from('announcements').delete().eq('id', id);
       if (error) throw error;
       setDeletingId(null);
-      loadAnnouncements();
+      if (selectedAnnouncementId === id) {
+        setSelectedAnnouncementId(null);
+        setWorkspaceMode('preview');
+      }
+      await loadAnnouncements();
     } catch (error) {
       console.error('Error deleting announcement:', error);
     }
   };
 
   const toggleHidden = async (announcement: Announcement) => {
+    const nextHiddenState = !announcement.is_hidden;
+    setAnnouncements(previous => previous.map(item => (
+      item.id === announcement.id ? { ...item, is_hidden: nextHiddenState } : item
+    )));
     try {
-      const newHiddenState = !announcement.is_hidden;
-
-      // Optimistic update
-      setAnnouncements(prev =>
-        prev.map(a => (a.id === announcement.id ? { ...a, is_hidden: newHiddenState } : a))
-      );
-
       const { error } = await supabase
         .from('announcements')
-        .update({ is_hidden: newHiddenState })
+        .update({ is_hidden: nextHiddenState })
         .eq('id', announcement.id);
-
       if (error) throw error;
     } catch (error) {
       console.error('Error toggling hidden state:', error);
-      // Revert optimistic update on error
-      loadAnnouncements();
+      await loadAnnouncements();
     }
   };
 
   const togglePin = async (announcement: Announcement) => {
-    if (announcement.is_pinned) {
-      // Unpin directly
-      const newPinnedState = false;
-      setAnnouncements(prev =>
-        prev.map(a =>
-          a.id === announcement.id
-            ? { ...a, is_pinned: newPinnedState }
-            : a
-        )
-      );
-
-      try {
-        const { error } = await supabase
-          .from('announcements')
-          .update({ is_pinned: newPinnedState })
-          .eq('id', announcement.id);
-
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error toggling pin:', error);
-        setAnnouncements(prev =>
-          prev.map(a =>
-            a.id === announcement.id
-              ? { ...a, is_pinned: true }
-              : a
-          )
-        );
-        alert('Failed to update pin status');
-      }
-    } else {
-      // Show order selection modal for pinning
+    if (!announcement.is_pinned) {
       setPinOrderModalId(announcement.id);
       setPinOrderValue(announcement.pin_order || 999);
+      return;
+    }
+
+    setAnnouncements(previous => previous.map(item => (
+      item.id === announcement.id ? { ...item, is_pinned: false } : item
+    )));
+    try {
+      const { error } = await supabase.from('announcements').update({ is_pinned: false }).eq('id', announcement.id);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error toggling pin:', error);
+      await loadAnnouncements();
+      alert('更新置顶状态失败');
     }
   };
 
   const confirmPin = async () => {
     if (!pinOrderModalId) return;
-
-    const announcement = announcements.find(a => a.id === pinOrderModalId);
+    const announcement = announcements.find(item => item.id === pinOrderModalId);
     if (!announcement) return;
 
-    // Optimistic update
-    setAnnouncements(prev =>
-      prev.map(a =>
-        a.id === pinOrderModalId
-          ? { ...a, is_pinned: true, pin_order: pinOrderValue }
-          : a
-      )
-    );
-
+    setAnnouncements(previous => previous.map(item => (
+      item.id === pinOrderModalId ? { ...item, is_pinned: true, pin_order: pinOrderValue } : item
+    )));
     try {
       const { error } = await supabase
         .from('announcements')
         .update({ is_pinned: true, pin_order: pinOrderValue })
         .eq('id', pinOrderModalId);
-
       if (error) throw error;
       setPinOrderModalId(null);
     } catch (error) {
       console.error('Error pinning announcement:', error);
-      // Revert on error
-      setAnnouncements(prev =>
-        prev.map(a =>
-          a.id === pinOrderModalId
-            ? { ...a, is_pinned: false, pin_order: announcement.pin_order }
-            : a
-        )
-      );
-      alert('Failed to pin announcement');
+      await loadAnnouncements();
       setPinOrderModalId(null);
+      alert('置顶公告失败');
     }
   };
 
-  const startEdit = (announcement: Announcement) => {
-    setEditingId(announcement.id);
-    setCreatingForAdminId(announcement.created_by);
-    setFormData({
-      title: announcement.title,
-      content: announcement.content,
-      isPinned: announcement.is_pinned,
-      isGlobal: announcement.is_global || false,
-      isHidden: announcement.is_hidden || false,
-      pinOrder: announcement.pin_order || 999,
-      publishAt: new Date(announcement.publish_at).toISOString().slice(0, 16),
-    });
+  const actionButtonClass = 'inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70';
+  const lightInputClass = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20';
 
-    setShowForm(true);
-
-    // Expand the group containing this announcement
-    const newExpanded = new Set(expandedGroups);
-    newExpanded.add(announcement.created_by);
-    setExpandedGroups(newExpanded);
-  };
-
-  const toggleGroup = (groupId: string) => {
-    const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(groupId)) {
-      newExpanded.delete(groupId);
-    } else {
-      newExpanded.add(groupId);
-    }
-    setExpandedGroups(newExpanded);
-  };
-
-  const startCreateForAdmin = (adminId: string) => {
-    setCreatingForAdminId(adminId);
-    setEditingId(null);
-    setFormData({
-      title: '',
-      content: '',
-      isPinned: false,
-      isGlobal: false,
-      isHidden: false,
-      pinOrder: 999,
-      publishAt: new Date().toISOString().slice(0, 16),
-    });
-    setShowForm(true);
-
-    // Expand the group
-    const newExpanded = new Set(expandedGroups);
-    newExpanded.add(adminId);
-    setExpandedGroups(newExpanded);
-  };
-
-  const sortAnnouncementsForEmployeeView = (announcements: Announcement[]) => {
-    return [...announcements].sort((a, b) => {
-      // First, sort by pinned status (pinned first)
-      if (a.is_pinned !== b.is_pinned) {
-        return a.is_pinned ? -1 : 1;
-      }
-
-      // If both are pinned, sort by pin_order (ascending)
-      if (a.is_pinned && b.is_pinned) {
-        if (a.pin_order !== b.pin_order) {
-          return a.pin_order - b.pin_order;
-        }
-      }
-
-      // Finally, sort by publish_at (descending - newest first)
-      return new Date(b.publish_at).getTime() - new Date(a.publish_at).getTime();
-    });
-  };
-
-  const getGroupedAnnouncements = (): GroupedAnnouncements[] => {
-    if (!isSuperAdmin) {
-      return [{
-        adminId: admin.id,
-        adminName: 'My Announcements',
-        announcements: sortAnnouncementsForEmployeeView(announcements),
-      }];
-    }
-
-    const groups: GroupedAnnouncements[] = [];
-
-    // Super Admin group first (includes all announcements created by super admin)
-    const superAdminAnnouncements = announcements.filter(
-      a => a.created_by === admin.id
-    );
-    groups.push({
-      adminId: admin.id,
-      adminName: admin.username + ' (Super Admin)',
-      announcements: sortAnnouncementsForEmployeeView(superAdminAnnouncements),
-    });
-
-    // All secondary admins (even if they have no announcements)
-    secondaryAdmins.forEach(secAdmin => {
-      const adminAnnouncements = announcements.filter(
-        a => a.created_by === secAdmin.id
-      );
-      groups.push({
-        adminId: secAdmin.id,
-        adminName: secAdmin.username,
-        announcements: sortAnnouncementsForEmployeeView(adminAnnouncements),
-      });
-    });
-
-    return groups;
-  };
-
-  const groupedAnnouncements = getGroupedAnnouncements();
+  const renderStatusBadges = (announcement: Announcement) => (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {announcement.is_pinned && (
+        <span className="inline-flex items-center gap-1 rounded-md border border-amber-400/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+          <Pin className="h-2.5 w-2.5" />置顶 {announcement.pin_order}
+        </span>
+      )}
+      {announcement.is_global && (
+        <span className="inline-flex items-center gap-1 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">
+          <Globe className="h-2.5 w-2.5" />全局
+        </span>
+      )}
+      {announcement.is_hidden && (
+        <span className="inline-flex items-center gap-1 rounded-md border border-orange-400/30 bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-bold text-orange-300">
+          <EyeOff className="h-2.5 w-2.5" />隐藏
+        </span>
+      )}
+    </div>
+  );
 
   return (
-    <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-6">
-
-      {/* Carousel Settings - Only for Super Admin */}
-      {isSuperAdmin && (
-        <div className="mb-6 bg-gradient-to-br from-blue-900/30 to-cyan-900/20 border border-blue-500/30 rounded-xl p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-              <Gauge className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white">Employee Announcement Carousel</h3>
-              <p className="text-xs text-slate-400">Control auto-scroll behavior on employee dashboard</p>
-            </div>
-          </div>
-
-          {/* Success Message */}
-          {showCarouselSuccessMessage && (
-            <div className="mb-4 p-4 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-green-400 font-semibold text-sm">Carousel Settings Saved!</p>
-                <p className="text-green-300/70 text-xs mt-0.5">Changes will take effect immediately on employee dashboards</p>
-              </div>
-            </div>
-          )}
-
-          {/* Error Message */}
-          {carouselErrorMessage && (
-            <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-red-400 font-semibold text-sm">Failed to Save Settings</p>
-                <p className="text-red-300/70 text-xs mt-0.5">{carouselErrorMessage}</p>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {/* Enable/Disable Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-              <div className="flex items-center gap-3">
-                {carouselEnabled ? (
-                  <Play className="w-5 h-5 text-green-400" />
-                ) : (
-                  <Pause className="w-5 h-5 text-orange-400" />
-                )}
-                <div>
-                  <p className="text-sm font-semibold text-white">Auto-Scroll Carousel</p>
-                  <p className="text-xs text-slate-400">
-                    {carouselEnabled ? 'Announcements will auto-scroll' : 'Announcements will be static'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setCarouselEnabled(!carouselEnabled)}
-                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
-                  carouselEnabled ? 'bg-green-500' : 'bg-slate-600'
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${
-                    carouselEnabled ? 'translate-x-8' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {/* Speed Control */}
-            {carouselEnabled && (
-              <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-white">Scroll Speed</p>
-                    <p className="text-xs text-slate-400">Adjust how fast announcements scroll</p>
-                  </div>
-                  <span className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 font-mono text-sm">
-                    {carouselSpeed.toFixed(1)}x
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  <input
-                    type="range"
-                    min="0.1"
-                    max="5.0"
-                    step="0.1"
-                    value={carouselSpeed}
-                    onChange={(e) => setCarouselSpeed(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-0"
-                  />
-                  <div className="flex justify-between text-xs text-slate-500">
-                    <span>0.1x (Very Slow)</span>
-                    <span>2.5x (Medium)</span>
-                    <span>5.0x (Very Fast)</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-5 gap-2 mt-3">
-                  {[0.3, 0.6, 1.0, 2.0, 3.0].map((speed) => (
-                    <button
-                      key={speed}
-                      onClick={() => setCarouselSpeed(speed)}
-                      className={`px-2 py-1.5 rounded text-xs font-medium transition-all ${
-                        Math.abs(carouselSpeed - speed) < 0.05
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                      }`}
-                    >
-                      {speed}x
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Save Button */}
-            <button
-              onClick={saveCarouselSettings}
-              disabled={savingCarouselSettings}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-blue-500/30"
-            >
-              {savingCarouselSettings ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Gauge className="w-4 h-4" />
-                  Save Carousel Settings
-                </>
-              )}
-            </button>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-cyan-300/20 bg-[linear-gradient(90deg,rgba(8,47,73,0.78),rgba(15,23,42,0.94))] px-3 py-2.5 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-200">
+            <LayoutList className="h-4.5 w-4.5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="truncate text-sm font-black text-white sm:text-base">公告内容管理</h2>
+            <p className="truncate text-[10px] text-cyan-100/55 sm:text-xs">选择管理员分组，并在右侧编辑公告内容</p>
           </div>
         </div>
-      )}
+        <button
+          type="button"
+          onClick={() => startCreateForAdmin(selectedAdminId)}
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 px-3 text-xs font-black text-white shadow-lg shadow-cyan-950/30 transition hover:from-cyan-500 hover:to-blue-600"
+        >
+          <Plus className="h-4 w-4" />新增公告
+        </button>
+      </div>
 
+      <div className="shrink-0 border-b border-slate-700 bg-slate-900 p-2 lg:hidden">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-2">
+          <select
+            value={selectedAdminId}
+            onChange={event => changeAdminGroup(event.target.value)}
+            className="min-w-0 rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-xs font-bold text-white outline-none focus:border-cyan-400"
+          >
+            {groupedAnnouncements.map(group => (
+              <option key={group.adminId} value={group.adminId}>{group.adminName}</option>
+            ))}
+          </select>
+          <select
+            value={selectedAnnouncementId || ''}
+            onChange={event => {
+              const announcement = announcements.find(item => item.id === event.target.value);
+              if (announcement) openPreview(announcement);
+            }}
+            className="min-w-0 rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-xs font-bold text-white outline-none focus:border-cyan-400"
+          >
+            <option value="">选择公告</option>
+            {(selectedGroup?.announcements || []).map(announcement => (
+              <option key={announcement.id} value={announcement.id}>{announcement.title}</option>
+            ))}
+          </select>
+        </div>
+        {isSuperAdmin && (
+          <button
+            type="button"
+            onClick={() => setShowMobileConfiguration(true)}
+            className="mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-cyan-400/25 bg-cyan-500/10 text-[10px] font-black text-cyan-200"
+          >
+            <Settings2 className="h-3.5 w-3.5" />管理员分组与公告栏自动滚动配置
+          </button>
+        )}
+      </div>
 
-      {loading ? (
-        <div className="text-center py-8 text-slate-400">Loading announcements...</div>
-      ) : groupedAnnouncements.length === 0 ? (
-        <div className="text-center py-8 text-slate-400">No announcements yet</div>
-      ) : (
-        <div className="space-y-4">
-          {groupedAnnouncements.map((group) => (
-            <div key={group.adminId} className="border border-slate-700 rounded-lg overflow-hidden">
-              <button
-                onClick={() => toggleGroup(group.adminId)}
-                className="flex items-center gap-3 w-full px-4 py-3 bg-slate-800/70 hover:bg-slate-800 transition-all"
-              >
-                {group.adminId === admin.id ? (
-                  <Globe className="w-5 h-5 text-green-400" />
-                ) : (
-                  <Users className="w-5 h-5 text-blue-400" />
-                )}
-                <span className="font-semibold text-white">{group.adminName}</span>
-                <span className="text-sm text-slate-400">
-                  ({group.announcements.length} announcement{group.announcements.length !== 1 ? 's' : ''})
-                </span>
-                <div className="ml-auto">
-                  {expandedGroups.has(group.adminId) ? (
-                    <ChevronDown className="w-5 h-5 text-slate-400" />
-                  ) : (
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
-                  )}
-                </div>
-              </button>
-
-              {expandedGroups.has(group.adminId) && (
-                <div className="p-4 space-y-3 bg-slate-900/30">
+      <div className="grid min-h-0 flex-1 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="hidden min-h-0 flex-col border-r border-slate-700 bg-slate-900/95 lg:flex">
+          <div className="shrink-0 border-b border-slate-700 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-black text-slate-200">
+                <Users className="h-3.5 w-3.5 text-cyan-300" />管理员分组
+              </div>
+              <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-200">{announcements.length}</span>
+            </div>
+            <div className="space-y-1">
+              {groupedAnnouncements.map(group => {
+                const active = group.adminId === selectedAdminId;
+                return (
                   <button
-                    onClick={() => startCreateForAdmin(group.adminId)}
-                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all shadow-lg shadow-blue-500/30"
+                    key={group.adminId}
+                    type="button"
+                    onClick={() => changeAdminGroup(group.adminId)}
+                    className={`relative flex w-full items-center gap-2 overflow-hidden rounded-lg border px-2.5 py-2 text-left transition ${active ? 'border-cyan-400/50 bg-cyan-500/12 text-white' : 'border-transparent bg-slate-950/35 text-slate-400 hover:border-slate-600 hover:bg-slate-800 hover:text-white'}`}
                   >
-                    <Plus className="w-4 h-4" />
-                    <span>Add New Announcement</span>
+                    {active && <span className="absolute bottom-1.5 left-0 top-1.5 w-1 rounded-r-full bg-cyan-400" />}
+                    {group.adminId === admin.id ? <Globe className="h-3.5 w-3.5 shrink-0 text-emerald-300" /> : <Users className="h-3.5 w-3.5 shrink-0 text-blue-300" />}
+                    <span className="min-w-0 flex-1 truncate text-xs font-bold">{group.adminName}</span>
+                    <span className="text-[10px] font-black tabular-nums text-slate-500">{group.announcements.length}</span>
                   </button>
-                  {showForm && creatingForAdminId === group.adminId && !editingId && (
-                    <form onSubmit={handleSubmit} className="bg-slate-800/50 rounded-lg p-4 mb-3 space-y-4 border border-blue-500/30">
-                      {!editingId && (
-                        <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                          <span className="text-sm text-blue-400">
-                            Creating announcement for: <span className="font-semibold">
-                              {creatingForAdminId === admin.id
-                                ? 'Super Admin'
-                                : secondaryAdmins.find(a => a.id === creatingForAdminId)?.username || 'Unknown'}
-                            </span>
-                          </span>
-                        </div>
-                      )}
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="shrink-0 border-b border-slate-700 p-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+              <input
+                value={searchQuery}
+                onChange={event => setSearchQuery(event.target.value)}
+                placeholder="搜索标题或内容"
+                className="h-9 w-full rounded-lg border border-slate-700 bg-slate-950 pl-8 pr-8 text-xs text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-400/70"
+              />
+              {searchQuery && (
+                <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white" aria-label="清除搜索">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="mt-2 grid grid-cols-4 gap-1">
+              {([
+                ['all', '全部'],
+                ['pinned', '置顶'],
+                ['hidden', '隐藏'],
+                ['global', '全局'],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setStatusFilter(value)}
+                  className={`rounded-md px-1 py-1.5 text-[10px] font-black transition ${statusFilter === value ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto p-2">
+            {loading ? (
+              <div className="py-10 text-center text-xs text-slate-500">正在加载公告…</div>
+            ) : visibleAnnouncements.length === 0 ? (
+              <div className="flex min-h-40 flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-950/30 px-4 text-center">
+                <LayoutList className="mb-2 h-7 w-7 text-slate-600" />
+                <p className="text-xs font-bold text-slate-400">当前分组没有符合条件的公告</p>
+                <button type="button" onClick={() => startCreateForAdmin(selectedAdminId)} className="mt-3 text-[11px] font-bold text-cyan-300 hover:text-cyan-200">新增第一则公告</button>
+              </div>
+            ) : visibleAnnouncements.map(announcement => {
+              const active = announcement.id === selectedAnnouncementId;
+              return (
+                <button
+                  key={announcement.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => openPreview(announcement)}
+                  className={`relative mb-1.5 w-full overflow-hidden rounded-xl border p-2.5 text-left transition ${active ? 'border-cyan-400/55 bg-[linear-gradient(100deg,rgba(8,145,178,0.18),rgba(15,23,42,0.7))]' : 'border-slate-700/80 bg-slate-950/45 hover:border-slate-500 hover:bg-slate-800/75'}`}
+                >
+                  {active && <span className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-cyan-400" />}
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="line-clamp-2 min-w-0 flex-1 text-xs font-black leading-5 text-slate-100">{announcement.title}</h3>
+                    <ChevronRight className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${active ? 'text-cyan-300' : 'text-slate-600'}`} />
+                  </div>
+                  <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-slate-500">{stripMarkup(announcement.content) || '暂无正文内容'}</p>
+                  <div className="mt-2 flex items-end justify-between gap-2">
+                    {renderStatusBadges(announcement)}
+                    <span className="shrink-0 text-[9px] tabular-nums text-slate-600">{new Date(announcement.publish_at).toLocaleDateString()}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {isSuperAdmin && (
+            <div className="shrink-0 border-t border-slate-700 bg-slate-950/40">
+              <button
+                type="button"
+                onClick={() => setCarouselPanelOpen(value => !value)}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-black text-slate-200 hover:bg-slate-800"
+              >
+                <Settings2 className="h-3.5 w-3.5 text-cyan-300" />公告栏自动滚动
+                <span className={`ml-auto rounded-full px-1.5 py-0.5 text-[9px] ${carouselEnabled ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-700 text-slate-400'}`}>{carouselEnabled ? '开启' : '关闭'}</span>
+                {carouselPanelOpen ? <ChevronDown className="h-3.5 w-3.5 text-slate-500" /> : <ChevronRight className="h-3.5 w-3.5 text-slate-500" />}
+              </button>
+              {carouselPanelOpen && (
+                <div className="space-y-2.5 border-t border-slate-800 p-3">
+                  <button
+                    type="button"
+                    onClick={() => setCarouselEnabled(value => !value)}
+                    className="flex w-full items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-2 text-left"
+                  >
+                    {carouselEnabled ? <Play className="h-3.5 w-3.5 text-emerald-300" /> : <Pause className="h-3.5 w-3.5 text-orange-300" />}
+                    <span className="flex-1 text-[11px] font-bold text-slate-300">自动滚动公告</span>
+                    <span className={`relative h-5 w-9 rounded-full transition ${carouselEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}>
+                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${carouselEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                    </span>
+                  </button>
+                  {carouselEnabled && (
+                    <div className="rounded-lg border border-slate-700 bg-slate-900 p-2.5">
+                      <div className="mb-2 flex items-center justify-between text-[10px] font-bold text-slate-400">
+                        <span className="flex items-center gap-1"><Gauge className="h-3 w-3" />滚动速度</span>
+                        <span className="font-mono text-cyan-300">{carouselSpeed.toFixed(1)}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="5"
+                        step="0.1"
+                        value={carouselSpeed}
+                        onChange={event => setCarouselSpeed(Number(event.target.value))}
+                        className="h-1.5 w-full cursor-pointer accent-cyan-500"
+                      />
+                      <div className="mt-2 grid grid-cols-5 gap-1">
+                        {[0.3, 0.6, 1, 2, 3].map(speed => (
+                          <button key={speed} type="button" onClick={() => setCarouselSpeed(speed)} className={`rounded py-1 text-[9px] font-black ${Math.abs(carouselSpeed - speed) < 0.05 ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>{speed}x</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {showCarouselSuccessMessage && <p className="flex items-center gap-1 text-[10px] font-bold text-emerald-300"><CheckCircle2 className="h-3 w-3" />设置已保存</p>}
+                  {carouselErrorMessage && <p className="flex items-start gap-1 text-[10px] font-bold text-red-300"><AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />{carouselErrorMessage}</p>}
+                  <button
+                    type="button"
+                    onClick={saveCarouselSettings}
+                    disabled={savingCarouselSettings}
+                    className="flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-cyan-700 text-[10px] font-black text-white transition hover:bg-cyan-600 disabled:opacity-50"
+                  >
+                    <Save className="h-3.5 w-3.5" />{savingCarouselSettings ? '保存中…' : '保存滚动设置'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </aside>
+
+        <main className="min-h-0 min-w-0 overflow-hidden bg-[radial-gradient(circle_at_top_right,rgba(8,145,178,0.08),transparent_34%),#0f172a]">
+          {workspaceMode === 'edit' ? (
+            <form onSubmit={handleSubmit} className="flex h-full min-h-0 flex-col">
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700 bg-slate-900/90 px-3 py-2 sm:px-4">
+                <div className="flex min-w-0 items-center gap-2">
+                  <button type="button" onClick={leaveEditor} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-600 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white" aria-label="返回公告预览">
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-black text-white">{editorMode === 'create' ? '新增公告' : '编辑公告'}</p>
+                    <p className="truncate text-[10px] text-slate-500">归属：{selectedAdminName}</p>
+                  </div>
+                  {isDirty && <span className="hidden rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold text-amber-300 sm:inline">未保存</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setShowEmployeePreview(true)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-2.5 text-[10px] font-black text-slate-200 hover:bg-slate-700">
+                    <Monitor className="h-3.5 w-3.5" />员工端预览
+                  </button>
+                  <button type="submit" disabled={savingAnnouncement} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 px-3 text-[10px] font-black text-white shadow-md disabled:opacity-50">
+                    <Save className="h-3.5 w-3.5" />{savingAnnouncement ? '保存中…' : '保存公告'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-4 xl:overflow-hidden">
+                <div className="grid min-h-full gap-3 xl:h-full xl:min-h-0 xl:grid-cols-[270px_minmax(0,1fr)]">
+                  <section className="rounded-xl border border-slate-700 bg-slate-900/90 p-3 xl:overflow-y-auto">
+                    <div className="mb-3 flex items-center gap-2 border-b border-slate-700 pb-2.5">
+                      <SlidersHorizontal className="h-4 w-4 text-cyan-300" />
+                      <h3 className="text-xs font-black text-white">公告设置</h3>
+                    </div>
+                    <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Title</label>
+                        <label className="mb-1.5 block text-[11px] font-bold text-slate-300">公告标题</label>
                         <input
                           type="text"
-                          value={formData.title}
-                          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                            }
-                          }}
+                          value={draft.title}
+                          onChange={event => setDraft(previous => ({ ...previous, title: event.target.value }))}
+                          onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }}
+                          placeholder="请输入公告标题"
+                          className={lightInputClass}
                           required
-                          className="w-full px-4 py-2 bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                          Content
-                          <span className="text-xs text-slate-500 ml-2 font-normal">
-                            (Plain text or Markdown format)
-                          </span>
+                        <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold text-slate-300"><Calendar className="h-3 w-3" />发布时间</label>
+                        <input type="datetime-local" value={draft.publishAt} onChange={event => setDraft(previous => ({ ...previous, publishAt: event.target.value }))} className={lightInputClass} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2.5">
+                          <span className="flex items-center gap-2 text-[11px] font-bold text-slate-200"><Pin className="h-3.5 w-3.5 text-amber-300" />置顶公告</span>
+                          <input type="checkbox" checked={draft.isPinned} onChange={event => setDraft(previous => ({ ...previous, isPinned: event.target.checked }))} className="h-4 w-4 accent-cyan-500" />
                         </label>
-
-
-                        <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-2">Content</label>
-                          <TiptapEditor
-                            ref={editorRef}
-                            content={formData.content}
-                            onChange={(content) => setFormData({ ...formData, content })}
-                            placeholder="Start typing your announcement..."
-                            adminId={admin.id}
-                          />
-                        </div>
-
-                        <div className="mt-2 text-xs text-slate-500 space-y-1">
-                          <div>💡 <strong>Tips:</strong></div>
-                          <div className="ml-4">• Select text and click format buttons (Bold, Italic, Heading)</div>
-                          <div className="ml-4">• Click the image icon to upload images (max 5MB each)</div>
-                          <div className="ml-4">• Press Enter once for line break, twice for paragraph</div>
-                          <div className="ml-4">• Use the list buttons for bullet or numbered lists</div>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Publish At</label>
-                          <input
-                            type="datetime-local"
-                            value={formData.publishAt}
-                            onChange={(e) => setFormData({ ...formData, publishAt: e.target.value })}
-                            className="w-full px-4 py-2 bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                        <div className="flex flex-col justify-end gap-2">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.isPinned}
-                              onChange={(e) => setFormData({ ...formData, isPinned: e.target.checked })}
-                              className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 checked:bg-blue-600 checked:border-blue-600"
-                            />
-                            <span className="text-slate-300">Pin to top</span>
-                          </label>
-                          {isSuperAdmin && creatingForAdminId === admin.id && (
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={formData.isGlobal}
-                                onChange={(e) => setFormData({ ...formData, isGlobal: e.target.checked })}
-                                className="w-4 h-4 text-green-600 bg-slate-700 border-slate-600 rounded focus:ring-green-500 checked:bg-green-600 checked:border-green-600"
-                              />
-                              <span className="text-slate-300 flex items-center gap-1">
-                                <Globe className="w-3.5 h-3.5" />
-                                Global (visible to all employees)
-                              </span>
-                            </label>
-                          )}
-                        </div>
-                      </div>
-                      {formData.isPinned && (
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">
-                            Pin Order (1-999, lower = higher priority)
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="999"
-                            value={formData.pinOrder}
-                            onChange={(e) => setFormData({ ...formData, pinOrder: parseInt(e.target.value) || 999 })}
-                            className="w-full px-4 py-2 bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <p className="text-xs text-slate-500 mt-1">
-                            Employee view order: Pinned announcements sorted by this number (ascending), then by publish date
-                          </p>
-                        </div>
-                      )}
-                      <div className="flex gap-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowForm(false);
-                            setEditingId(null);
-                            setCreatingForAdminId(null);
-                                                }}
-                          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all"
-                        >
-                          {editingId ? 'Update' : 'Create'}
-                        </button>
-                      </div>
-                    </form>
-                  )}
-
-                  {group.announcements.length === 0 && (!showForm || creatingForAdminId !== group.adminId) ? (
-                    <div className="text-center py-6 text-slate-500">
-                      No announcements yet
-                    </div>
-                  ) : (
-                    group.announcements.map((announcement) => (
-                    <div key={announcement.id}>
-                      {editingId === announcement.id && showForm ? (
-                        <form onSubmit={handleSubmit} className="bg-slate-800/50 rounded-lg p-4 space-y-3 border border-blue-500/50 transition-all">
-                          <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            {formData.isPinned && (
-                              <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-500/20 rounded border border-yellow-500/30">
-                                <Pin className="w-3 h-3 text-yellow-400" />
-                                <span className="text-xs text-yellow-400">Pinned</span>
-                              </div>
-                            )}
-                            {formData.isGlobal && (
-                              <div className="flex items-center gap-1 px-2 py-0.5 bg-green-500/20 rounded border border-green-500/30">
-                                <Globe className="w-3 h-3 text-green-400" />
-                                <span className="text-xs text-green-400">Global</span>
-                              </div>
-                            )}
-                            {formData.isHidden && (
-                              <div className="flex items-center gap-1 px-2 py-0.5 bg-orange-500/20 rounded border border-orange-500/30">
-                                <EyeOff className="w-3 h-3 text-orange-400" />
-                                <span className="text-xs text-orange-400">Hidden</span>
-                              </div>
-                            )}
-                            <span className="text-xs text-blue-400">Editing...</span>
-                          </div>
-
-                          <input
-                            type="text"
-                            value={formData.title}
-                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                              }
-                            }}
-                            required
-                            placeholder="Title"
-                            className="w-full px-3 py-2 bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-
-
+                        {draft.isPinned && (
                           <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Content</label>
-                            <TiptapEditor
-                              ref={editorRef}
-                              content={formData.content}
-                              onChange={(content) => setFormData({ ...formData, content })}
-                              placeholder="Type or paste your content here"
-                              adminId={admin.id}
-                            />
+                            <label className="mb-1.5 block text-[11px] font-bold text-slate-300">置顶顺序</label>
+                            <input type="number" min="1" max="999" value={draft.pinOrder} onChange={event => setDraft(previous => ({ ...previous, pinOrder: Number(event.target.value) || 999 }))} className={lightInputClass} />
+                            <p className="mt-1 text-[9px] leading-4 text-slate-500">数字越小，员工端显示位置越靠前。</p>
                           </div>
-
-                          <div className="flex flex-wrap gap-3 text-xs">
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-400">Publish:</span>
-                              <input
-                                type="datetime-local"
-                                value={formData.publishAt}
-                                onChange={(e) => setFormData({ ...formData, publishAt: e.target.value })}
-                                className="px-2 py-1 bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              />
-                            </div>
-
-                            <label className="flex items-center gap-1.5 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={formData.isPinned}
-                                onChange={(e) => setFormData({ ...formData, isPinned: e.target.checked })}
-                                className="w-3.5 h-3.5 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 checked:bg-blue-600 checked:border-blue-600"
-                              />
-                              <Pin className="w-3 h-3 text-slate-400" />
-                              <span className="text-slate-300">Pin</span>
-                            </label>
-
-                            {formData.isPinned && (
-                              <input
-                                type="number"
-                                min="1"
-                                max="999"
-                                value={formData.pinOrder}
-                                onChange={(e) => setFormData({ ...formData, pinOrder: parseInt(e.target.value) || 999 })}
-                                placeholder="Order"
-                                className="w-16 px-2 py-1 bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              />
-                            )}
-
-                            {isSuperAdmin && announcement.created_by === admin.id && (
-                              <label className="flex items-center gap-1.5 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.isGlobal}
-                                  onChange={(e) => setFormData({ ...formData, isGlobal: e.target.checked })}
-                                  className="w-3.5 h-3.5 text-green-600 bg-slate-700 border-slate-600 rounded focus:ring-green-500 checked:bg-green-600 checked:border-green-600"
-                                />
-                                <Globe className="w-3 h-3 text-slate-400" />
-                                <span className="text-slate-300">Global</span>
-                              </label>
-                            )}
-                          </div>
-
-                          <div className="flex gap-2 pt-2">
-                            <button
-                              type="submit"
-                              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-all"
-                            >
-                              Save
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowForm(false);
-                                setEditingId(null);
-                                setCreatingForAdminId(null);
-                                                        }}
-                              className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-all"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 hover:border-blue-500/50 transition-all">
-                          <div className="flex justify-between items-start gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                {announcement.is_pinned && (
-                                  <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-500/20 rounded border border-yellow-500/30">
-                                    <Pin className="w-3 h-3 text-yellow-400" />
-                                    <span className="text-xs text-yellow-400">Pinned #{announcement.pin_order}</span>
-                                  </div>
-                                )}
-                                {announcement.is_global && (
-                                  <div className="flex items-center gap-1 px-2 py-0.5 bg-green-500/20 rounded border border-green-500/30">
-                                    <Globe className="w-3 h-3 text-green-400" />
-                                    <span className="text-xs text-green-400">Global</span>
-                                  </div>
-                                )}
-                                {announcement.is_hidden && (
-                                  <div className="flex items-center gap-1 px-2 py-0.5 bg-orange-500/20 rounded border border-orange-500/30">
-                                    <EyeOff className="w-3 h-3 text-orange-400" />
-                                    <span className="text-xs text-orange-400">Hidden</span>
-                                  </div>
-                                )}
-                                <h3 className="font-semibold text-white">{announcement.title}</h3>
-                              </div>
-                              <div
-                                className="max-h-48 overflow-y-auto mb-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50 prose prose-invert prose-sm max-w-none announcement-preview"
-                                dangerouslySetInnerHTML={{ __html: sanitizeAnnouncementContent(renderMarkdown(announcement.content)) }}
-                              />
-                              <div className="text-slate-500 text-xs">
-                                Publish: {new Date(announcement.publish_at).toLocaleString()}
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => togglePin(announcement)}
-                                className="p-2 hover:bg-slate-700 rounded transition-all"
-                                title={announcement.is_pinned ? "Unpin" : "Pin to top"}
-                              >
-                                {announcement.is_pinned ? (
-                                  <PinOff className="w-4 h-4 text-yellow-400" />
-                                ) : (
-                                  <Pin className="w-4 h-4 text-slate-400 hover:text-yellow-400" />
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => toggleHidden(announcement)}
-                                className="p-2 hover:bg-slate-700 rounded transition-all"
-                                title={announcement.is_hidden ? "Show announcement" : "Hide announcement"}
-                              >
-                                {announcement.is_hidden ? (
-                                  <EyeOff className="w-4 h-4 text-orange-400" />
-                                ) : (
-                                  <Eye className="w-4 h-4 text-slate-400 hover:text-green-400" />
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => startEdit(announcement)}
-                                className="p-2 hover:bg-slate-700 rounded transition-all"
-                              >
-                                <Edit className="w-4 h-4 text-blue-400" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDeletingId(announcement.id)}
-                                className="p-2 hover:bg-slate-700 rounded transition-all"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-400" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                        )}
+                        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2.5">
+                          <span className="flex items-center gap-2 text-[11px] font-bold text-slate-200"><EyeOff className="h-3.5 w-3.5 text-orange-300" />隐藏公告</span>
+                          <input type="checkbox" checked={draft.isHidden} onChange={event => setDraft(previous => ({ ...previous, isHidden: event.target.checked }))} className="h-4 w-4 accent-cyan-500" />
+                        </label>
+                        {isSuperAdmin && (creatingForAdminId || selectedAdminId) === admin.id && (
+                          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2.5">
+                            <span className="flex items-center gap-2 text-[11px] font-bold text-slate-200"><Globe className="h-3.5 w-3.5 text-emerald-300" />全局公告</span>
+                            <input type="checkbox" checked={draft.isGlobal} onChange={event => setDraft(previous => ({ ...previous, isGlobal: event.target.checked }))} className="h-4 w-4 accent-cyan-500" />
+                          </label>
+                        )}
+                      </div>
                     </div>
-                  )))}
+                  </section>
+
+                  <section className="flex min-h-[520px] flex-col overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-100 shadow-2xl shadow-slate-950/30 xl:min-h-0">
+                    <div className="flex shrink-0 items-center justify-between border-b border-slate-300 bg-white px-3 py-2">
+                      <div>
+                        <h3 className="text-xs font-black text-slate-900">公告正文</h3>
+                        <p className="text-[9px] text-slate-500">支持富文本、图片、影片及 Word 文件导入</p>
+                      </div>
+                      <span className="rounded-md border border-cyan-200 bg-cyan-50 px-2 py-1 text-[9px] font-bold text-cyan-700">浅色编辑模式</span>
+                    </div>
+                    <div className="min-h-0 flex-1 bg-white">
+                      <TiptapEditor
+                        ref={editorRef}
+                        content={draft.content}
+                        onChange={content => setDraft(previous => ({ ...previous, content }))}
+                        placeholder="开始输入公告内容……"
+                        adminId={admin.id}
+                        theme="light"
+                      />
+                    </div>
+                  </section>
                 </div>
-              )}
+              </div>
+            </form>
+          ) : selectedAnnouncement ? (
+            <div className="flex h-full min-h-0 flex-col">
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700 bg-slate-900/90 px-3 py-2 sm:px-4">
+                <div className="min-w-0">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">{renderStatusBadges(selectedAnnouncement)}</div>
+                  <h2 className="truncate text-sm font-black text-white sm:text-base">{selectedAnnouncement.title}</h2>
+                  <p className="mt-0.5 text-[10px] text-slate-500">{selectedAdminName} · {new Date(selectedAnnouncement.publish_at).toLocaleString()}</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => togglePin(selectedAnnouncement)} className={`${actionButtonClass} border-amber-400/25 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20`} title={selectedAnnouncement.is_pinned ? '取消置顶' : '置顶'}>
+                    {selectedAnnouncement.is_pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                  </button>
+                  <button type="button" onClick={() => toggleHidden(selectedAnnouncement)} className={`${actionButtonClass} border-orange-400/25 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20`} title={selectedAnnouncement.is_hidden ? '显示公告' : '隐藏公告'}>
+                    {selectedAnnouncement.is_hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                  <button type="button" onClick={() => setShowEmployeePreview(true)} className={`${actionButtonClass} border-violet-400/25 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20`} title="员工端预览">
+                    <Monitor className="h-3.5 w-3.5" />
+                  </button>
+                  <button type="button" onClick={() => startEdit(selectedAnnouncement)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/15 px-2.5 text-[10px] font-black text-cyan-200 hover:bg-cyan-500/25">
+                    <Edit className="h-3.5 w-3.5" />编辑
+                  </button>
+                  <button type="button" onClick={() => setDeletingId(selectedAnnouncement.id)} className={`${actionButtonClass} border-red-400/25 bg-red-500/10 text-red-300 hover:bg-red-500/20`} title="删除公告">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+              <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
+                <article className="mx-auto min-h-full max-w-5xl rounded-2xl border border-slate-200 bg-white p-5 text-slate-800 shadow-2xl shadow-slate-950/25 sm:p-8">
+                  <div
+                    className="announcement-preview prose prose-slate max-w-none text-slate-800"
+                    dangerouslySetInnerHTML={{ __html: sanitizeAnnouncementContent(renderMarkdown(selectedAnnouncement.content)) }}
+                  />
+                </article>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+          ) : (
+            <div className="flex h-full min-h-[360px] flex-col items-center justify-center px-6 text-center">
+              <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-300">
+                <LayoutList className="h-7 w-7" />
+              </span>
+              <h3 className="text-base font-black text-white">选择一则公告开始管理</h3>
+              <p className="mt-2 max-w-md text-xs leading-5 text-slate-500">从左侧公告列表选择内容进行预览和编辑，或为当前管理员分组新增公告。</p>
+              <button type="button" onClick={() => startCreateForAdmin(selectedAdminId)} className="mt-5 inline-flex h-9 items-center gap-1.5 rounded-lg bg-cyan-700 px-4 text-xs font-black text-white hover:bg-cyan-600">
+                <Plus className="h-4 w-4" />新增公告
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
 
       <style>{`
-        /* Announcement preview image styles */
-        .announcement-preview img {
-          margin: 0.75rem 0;
-          border-radius: 0.5rem;
-          border: 1px solid rgba(59, 130, 246, 0.2);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-          max-width: 100%;
-          height: auto;
-          display: block;
-          background: rgba(15, 23, 42, 0.3);
-        }
-
-        /* Video styles */
+        .announcement-preview img,
         .announcement-preview video {
-          margin: 0.75rem 0;
-          border-radius: 0.5rem;
-          border: 1px solid rgba(59, 130, 246, 0.2);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          display: block;
           max-width: 100%;
           height: auto;
-          display: block;
-          background: rgba(0, 0, 0, 0.5);
+          margin: 1rem 0;
+          border-radius: 0.75rem;
+          border: 1px solid rgb(203 213 225);
+          background: rgb(248 250 252);
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
         }
-
-        .announcement-preview p {
-          margin: 0.5rem 0;
-        }
-
-        .announcement-preview p:has(img) {
-          margin: 0;
-        }
-
-        .announcement-preview p:has(video) {
-          margin: 0;
-        }
-
-        .announcement-preview > *:first-child {
-          margin-top: 0;
-        }
-
-        .announcement-preview > *:last-child {
-          margin-bottom: 0;
-        }
-
-        /* Ordered and unordered list styles */
+        .announcement-preview p { margin: 0.65rem 0; }
+        .announcement-preview p:has(img),
+        .announcement-preview p:has(video) { margin: 0; }
+        .announcement-preview > *:first-child { margin-top: 0; }
+        .announcement-preview > *:last-child { margin-bottom: 0; }
         .announcement-preview ol,
-        .announcement-preview ul {
-          margin: 0.75rem 0;
-          padding-left: 2rem;
-          list-style-position: outside;
-        }
-
-        .announcement-preview ol {
-          list-style-type: decimal;
-        }
-
-        .announcement-preview ul {
-          list-style-type: disc;
-        }
-
-        .announcement-preview li {
-          margin: 0.25rem 0;
-          padding-left: 0.25rem;
-        }
-
-        .announcement-preview ol ol {
-          list-style-type: lower-alpha;
-        }
-
-        .announcement-preview ol ol ol {
-          list-style-type: lower-roman;
-        }
+        .announcement-preview ul { margin: 0.75rem 0; padding-left: 2rem; list-style-position: outside; }
+        .announcement-preview ol { list-style-type: decimal; }
+        .announcement-preview ul { list-style-type: disc; }
+        .announcement-preview li { margin: 0.25rem 0; padding-left: 0.25rem; }
       `}</style>
 
-      {/* Pin Order Modal */}
-      {pinOrderModalId && (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setPinOrderModalId(null)}>
-        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-          <h3 className="text-xl font-bold text-white mb-4">Set Pin Order</h3>
-          <p className="text-slate-300 mb-4">
-            Set the display order for this pinned announcement. Lower numbers appear first.
-          </p>
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Pin Order (1-999)
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="999"
-              value={pinOrderValue}
-              onChange={(e) => setPinOrderValue(parseInt(e.target.value) || 999)}
-              className="w-full px-4 py-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-              autoFocus
-            />
-            <p className="text-xs text-slate-500 mt-2">
-              Employee view: Pinned announcements appear at the top, sorted by this order number (1, 2, 3...), then regular announcements by publish date.
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setPinOrderModalId(null)}
-              className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={confirmPin}
-              className="flex-1 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-all"
-            >
-              Pin
-            </button>
-          </div>
-        </div>
-      </div>
-      )}
-
-      {/* Enhanced Delete Confirmation Dialog - Using Portal for proper positioning */}
-      {deletingId && createPortal(
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999] p-4 animate-fadeIn"
-          onClick={() => setDeletingId(null)}
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-        >
-          <div
-            className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-red-500/20 animate-scaleIn relative overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Background Effects */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(239,68,68,0.1),transparent_50%)]"></div>
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
-
-            {/* Warning Icon */}
-            <div className="relative flex items-center justify-center mb-6">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 bg-red-500/20 rounded-full blur-xl animate-pulse"></div>
-              </div>
-              <div className="relative w-16 h-16 bg-gradient-to-br from-red-500/20 to-red-600/20 rounded-full flex items-center justify-center border-2 border-red-500/40">
-                <Trash2 className="w-8 h-8 text-red-400" />
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="relative">
-              <h3 className="text-2xl font-black text-white mb-3 text-center bg-gradient-to-r from-white to-red-200 bg-clip-text text-transparent">
-                Confirm Deletion
-              </h3>
-              <p className="text-slate-300 mb-8 text-center leading-relaxed">
-                Are you sure you want to delete this announcement?
-                <span className="block mt-2 text-red-400 font-semibold">This action cannot be undone.</span>
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setDeletingId(null)}
-                  className="relative flex-1 px-6 py-3 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-xl transition-all font-semibold border border-slate-600/50 hover:border-slate-500 group overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-400/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
-                  <span className="relative">Cancel</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => deleteAnnouncement(deletingId)}
-                  className="relative flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-xl transition-all font-bold shadow-lg shadow-red-500/30 hover:shadow-red-500/50 border border-red-500/50 hover:border-red-400 group overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
-                  <span className="relative flex items-center justify-center gap-2">
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </span>
-                </button>
-              </div>
+      {pinOrderModalId && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setPinOrderModalId(null)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="pin-order-title" className="w-full max-w-sm rounded-2xl border border-amber-400/25 bg-slate-900 p-5 shadow-2xl" onClick={event => event.stopPropagation()}>
+            <h3 id="pin-order-title" className="text-base font-black text-white">设置置顶顺序</h3>
+            <p className="mt-1 text-xs leading-5 text-slate-400">数字越小，公告在员工端的位置越靠前。</p>
+            <input type="number" min="1" max="999" value={pinOrderValue} onChange={event => setPinOrderValue(Number(event.target.value) || 999)} className={`${lightInputClass} mt-4`} autoFocus />
+            <div className="mt-4 flex gap-2">
+              <button type="button" onClick={() => setPinOrderModalId(null)} className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-xs font-bold text-white hover:bg-slate-600">取消</button>
+              <button type="button" onClick={confirmPin} className="flex-1 rounded-lg bg-amber-600 px-4 py-2 text-xs font-black text-white hover:bg-amber-500">确认置顶</button>
             </div>
           </div>
         </div>,
-        document.body
+        document.body,
+      )}
+
+      {deletingId && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md" onClick={() => setDeletingId(null)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="delete-announcement-title" className="w-full max-w-sm rounded-2xl border border-red-400/30 bg-slate-900 p-6 text-center shadow-2xl shadow-red-950/30" onClick={event => event.stopPropagation()}>
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-400/30 bg-red-500/15 text-red-300"><Trash2 className="h-6 w-6" /></span>
+            <h3 id="delete-announcement-title" className="mt-4 text-lg font-black text-white">删除这则公告？</h3>
+            <p className="mt-2 text-xs leading-5 text-slate-400">公告正文和关联媒体将被删除，此操作无法撤销。</p>
+            <div className="mt-5 flex gap-2">
+              <button type="button" onClick={() => setDeletingId(null)} className="flex-1 rounded-lg bg-slate-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-600">取消</button>
+              <button type="button" onClick={() => void deleteAnnouncement(deletingId)} className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-black text-white hover:bg-red-500">确认删除</button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {pendingNavigation && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md">
+          <div role="dialog" aria-modal="true" aria-labelledby="discard-title" className="w-full max-w-sm rounded-2xl border border-amber-400/30 bg-slate-900 p-6 shadow-2xl">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-500/15 text-amber-300"><AlertCircle className="h-5 w-5" /></span>
+            <h3 id="discard-title" className="mt-4 text-base font-black text-white">放弃未保存的修改？</h3>
+            <p className="mt-2 text-xs leading-5 text-slate-400">当前公告内容尚未保存，离开后这些修改将会丢失。</p>
+            <div className="mt-5 flex gap-2">
+              <button type="button" onClick={() => setPendingNavigation(null)} className="flex-1 rounded-lg bg-slate-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-600">继续编辑</button>
+              <button type="button" onClick={() => { const action = pendingNavigation; setPendingNavigation(null); action(); }} className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 text-xs font-black text-white hover:bg-amber-500">放弃修改</button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {showMobileConfiguration && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/80 p-2 backdrop-blur-md sm:items-center" onClick={() => setShowMobileConfiguration(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="mobile-configuration-title" className="w-full max-w-md overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl" onClick={event => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
+              <div>
+                <h3 id="mobile-configuration-title" className="text-sm font-black text-white">功能配置</h3>
+                <p className="text-[10px] text-slate-500">管理员分组与公告栏自动滚动</p>
+              </div>
+              <button type="button" onClick={() => setShowMobileConfiguration(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-600 bg-slate-800 text-slate-400 hover:text-white" aria-label="关闭配置"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <label className="mb-1.5 block text-[11px] font-bold text-slate-300">管理员分组</label>
+                <select value={selectedAdminId} onChange={event => changeAdminGroup(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 text-xs font-bold text-white outline-none focus:border-cyan-400">
+                  {groupedAnnouncements.map(group => <option key={group.adminId} value={group.adminId}>{group.adminName}（{group.announcements.length}）</option>)}
+                </select>
+              </div>
+              <button type="button" onClick={() => setCarouselEnabled(value => !value)} className="flex w-full items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-3 text-left">
+                {carouselEnabled ? <Play className="h-4 w-4 text-emerald-300" /> : <Pause className="h-4 w-4 text-orange-300" />}
+                <span className="flex-1 text-xs font-bold text-slate-200">自动滚动公告栏</span>
+                <span className={`relative h-6 w-11 rounded-full transition ${carouselEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${carouselEnabled ? 'translate-x-6' : 'translate-x-1'}`} /></span>
+              </button>
+              {carouselEnabled && (
+                <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+                  <div className="mb-3 flex items-center justify-between text-xs font-bold text-slate-300"><span>滚动速度</span><span className="font-mono text-cyan-300">{carouselSpeed.toFixed(1)}x</span></div>
+                  <input type="range" min="0.1" max="5" step="0.1" value={carouselSpeed} onChange={event => setCarouselSpeed(Number(event.target.value))} className="h-2 w-full cursor-pointer accent-cyan-500" />
+                  <div className="mt-3 grid grid-cols-5 gap-1.5">
+                    {[0.3, 0.6, 1, 2, 3].map(speed => <button key={speed} type="button" onClick={() => setCarouselSpeed(speed)} className={`rounded-md py-1.5 text-[10px] font-black ${Math.abs(carouselSpeed - speed) < 0.05 ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-500'}`}>{speed}x</button>)}
+                  </div>
+                </div>
+              )}
+              {showCarouselSuccessMessage && <p className="flex items-center gap-1 text-[10px] font-bold text-emerald-300"><CheckCircle2 className="h-3 w-3" />设置已保存</p>}
+              {carouselErrorMessage && <p className="flex items-start gap-1 text-[10px] font-bold text-red-300"><AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />{carouselErrorMessage}</p>}
+              <button type="button" onClick={saveCarouselSettings} disabled={savingCarouselSettings} className="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-cyan-700 text-xs font-black text-white hover:bg-cyan-600 disabled:opacity-50"><Save className="h-4 w-4" />{savingCarouselSettings ? '保存中…' : '保存功能配置'}</button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {showEmployeePreview && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-3 backdrop-blur-md" onClick={() => setShowEmployeePreview(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="employee-preview-title" className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl" onClick={event => event.stopPropagation()}>
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-700 px-4 py-3">
+              <div>
+                <h3 id="employee-preview-title" className="text-sm font-black text-white">员工端公告预览</h3>
+                <p className="text-[10px] text-slate-500">预览发布后的标题、状态和正文效果</p>
+              </div>
+              <button type="button" onClick={() => setShowEmployeePreview(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-600 bg-slate-800 text-slate-400 hover:text-white" aria-label="关闭预览"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto bg-slate-950 p-3 sm:p-5">
+              <article className="mx-auto rounded-2xl border border-slate-200 bg-white p-5 text-slate-800 shadow-2xl sm:p-7">
+                <div className="mb-4 border-b border-slate-200 pb-4">
+                  <h2 className="text-xl font-black text-slate-900">{workspaceMode === 'edit' ? draft.title || '未命名公告' : selectedAnnouncement?.title || '未命名公告'}</h2>
+                  <p className="mt-1 text-xs text-slate-500">{new Date(workspaceMode === 'edit' ? draft.publishAt : selectedAnnouncement?.publish_at || Date.now()).toLocaleString()}</p>
+                </div>
+                <div
+                  className="announcement-preview prose prose-slate max-w-none text-slate-800"
+                  dangerouslySetInnerHTML={{ __html: sanitizeAnnouncementContent(renderMarkdown(workspaceMode === 'edit' ? draft.content : selectedAnnouncement?.content || '')) }}
+                />
+              </article>
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
