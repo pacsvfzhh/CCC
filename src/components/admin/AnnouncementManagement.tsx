@@ -661,9 +661,9 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     }
     return {
       active: 'border-cyan-200/80 bg-[linear-gradient(105deg,rgba(8,145,178,0.96),rgba(14,116,144,0.94)_58%,rgba(8,47,73,0.97))] shadow-lg shadow-cyan-950/60',
-      idle: 'border-slate-700/65 bg-[linear-gradient(105deg,rgba(30,41,59,0.72),rgba(2,6,23,0.55))] shadow-slate-950/25 hover:border-cyan-700/60 hover:bg-[linear-gradient(105deg,rgba(30,58,75,0.8),rgba(15,23,42,0.78))]',
+      idle: 'border-blue-700/60 bg-[linear-gradient(105deg,rgba(30,64,175,0.34),rgba(8,47,73,0.68)_62%,rgba(15,23,42,0.78))] shadow-blue-950/25 hover:border-cyan-400/55 hover:bg-[linear-gradient(105deg,rgba(37,99,235,0.42),rgba(14,116,144,0.72),rgba(15,23,42,0.82))]',
       accent: 'from-cyan-300 to-blue-500 shadow-[0_0_8px_rgba(34,211,238,0.7)]',
-      date: 'border-slate-600/70 bg-slate-950/45 text-slate-300',
+      date: 'border-blue-400/30 bg-blue-950/45 text-blue-100',
     };
   };
 
