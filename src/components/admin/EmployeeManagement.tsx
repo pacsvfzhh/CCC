@@ -876,7 +876,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         setCreatePlanMenuPosition(null);
       }
     };
-    const closeOnViewportChange = () => {
+    const closeOnViewportChange = (event: Event) => {
+      if (event.type === 'scroll' && createPlanMenuRef.current?.contains(event.target as Node)) return;
       setCreatePlanMenuOpen(false);
       setCreatePlanMenuPosition(null);
     };
