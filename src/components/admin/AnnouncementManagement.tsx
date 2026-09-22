@@ -1007,21 +1007,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                             </label>
                           </div>
 
-                          <p className="mb-1.5 mt-3 text-[9px] font-black uppercase tracking-[0.14em] text-cyan-100/45">快捷选择</p>
-                          <div className="grid grid-cols-3 gap-1.5">
-                            <button type="button" onClick={() => setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(new Date()) }))} className="h-8 rounded-lg border border-cyan-300/20 bg-cyan-500/10 text-[10px] font-black text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-500/20">现在</button>
-                            <button type="button" onClick={() => {
-                              const today = new Date();
-                              today.setHours(18, 0, 0, 0);
-                              setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(today) }));
-                            }} className="h-8 rounded-lg border border-sky-300/20 bg-sky-500/10 text-[10px] font-black text-sky-100 transition hover:border-sky-300/40 hover:bg-sky-500/20">今天 18:00</button>
-                            <button type="button" onClick={() => {
-                              const tomorrow = new Date();
-                              tomorrow.setDate(tomorrow.getDate() + 1);
-                              tomorrow.setHours(9, 0, 0, 0);
-                              setDraft(previous => ({ ...previous, publishAt: formatLocalDateTime(tomorrow) }));
-                            }} className="h-8 rounded-lg border border-blue-300/20 bg-blue-500/10 text-[10px] font-black text-blue-100 transition hover:border-blue-300/40 hover:bg-blue-500/20">明天 09:00</button>
-                          </div>
                           <button type="button" onClick={() => setPublishPickerOpen(false)} className="mt-3 flex h-9 w-full items-center justify-center rounded-xl border border-cyan-200/30 bg-gradient-to-r from-cyan-600 to-blue-700 text-[11px] font-black text-white shadow-md shadow-cyan-950/40 transition hover:from-cyan-500 hover:to-blue-600">确认发布时间</button>
                         </div>
                       </div>
