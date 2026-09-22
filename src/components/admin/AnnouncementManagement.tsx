@@ -1016,13 +1016,15 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                     type="button"
                     onClick={() => setDraft(previous => ({ ...previous, isPinned: !previous.isPinned }))}
                     aria-pressed={draft.isPinned}
-                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-black transition ${draft.isPinned ? 'border-amber-200/55 bg-amber-500 text-white shadow-md shadow-amber-950/40' : 'border-amber-300/25 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'}`}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2 text-[10px] font-black shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 ${draft.isPinned ? 'border-amber-200/75 bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-amber-950/45 hover:from-amber-400 hover:to-orange-500' : 'border-amber-300/45 bg-slate-950/65 text-amber-100 hover:border-amber-200/65 hover:bg-amber-950/70'}`}
                   >
-                    <Pin className="h-3.5 w-3.5" />置顶 {draft.isPinned ? '已开启' : '已关闭'}
+                    <Pin className={`h-3.5 w-3.5 ${draft.isPinned ? 'text-white' : 'text-amber-300'}`} />
+                    <span>置顶</span>
+                    <span className={`rounded-md border px-1.5 py-0.5 leading-none ${draft.isPinned ? 'border-white/30 bg-white/20 text-white' : 'border-amber-300/30 bg-amber-300/10 text-amber-100'}`}>{draft.isPinned ? '已开启' : '已关闭'}</span>
                   </button>
                   {draft.isPinned && (
-                    <label className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-300/25 bg-slate-950/35 px-2 text-[10px] font-bold text-amber-100">
-                      <span className="shrink-0">顺序</span>
+                    <label className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-300/45 bg-amber-950/65 px-2 text-[10px] font-black text-amber-50 shadow-sm shadow-amber-950/30">
+                      <span className="shrink-0 text-amber-100">顺序</span>
                       <input type="number" min="1" max="999" value={draft.pinOrder} onChange={event => setDraft(previous => ({ ...previous, pinOrder: Number(event.target.value) || 999 }))} className="h-6 w-14 rounded-md border border-amber-300/25 bg-white px-1.5 text-center font-black text-slate-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20" aria-label="置顶顺序" />
                     </label>
                   )}
@@ -1031,18 +1033,22 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                       type="button"
                       onClick={() => setDraft(previous => ({ ...previous, isGlobal: !previous.isGlobal }))}
                       aria-pressed={draft.isGlobal}
-                      className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-black transition ${draft.isGlobal ? 'border-emerald-200/55 bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md shadow-emerald-950/40' : 'border-red-300/35 bg-red-500/10 text-red-200 hover:bg-red-500/20'}`}
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2 text-[10px] font-black shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70 ${draft.isGlobal ? 'border-emerald-200/70 bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-emerald-950/45 hover:from-emerald-500 hover:to-teal-600' : 'border-rose-300/45 bg-slate-950/65 text-rose-100 hover:border-rose-200/65 hover:bg-rose-950/65'}`}
                     >
-                      <Globe className="h-3.5 w-3.5" />全局 {draft.isGlobal ? '已开启' : '已关闭'}
+                      <Globe className={`h-3.5 w-3.5 ${draft.isGlobal ? 'text-white' : 'text-rose-300'}`} />
+                      <span>全局</span>
+                      <span className={`rounded-md border px-1.5 py-0.5 leading-none ${draft.isGlobal ? 'border-white/30 bg-white/20 text-white' : 'border-rose-300/30 bg-rose-300/10 text-rose-100'}`}>{draft.isGlobal ? '已开启' : '已关闭'}</span>
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={() => setDraft(previous => ({ ...previous, isHidden: !previous.isHidden }))}
                     aria-pressed={draft.isHidden}
-                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-black transition ${draft.isHidden ? 'border-orange-200/55 bg-gradient-to-r from-orange-600 to-red-700 text-white shadow-md shadow-red-950/40' : 'border-orange-300/25 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20'}`}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2 text-[10px] font-black shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200/70 ${draft.isHidden ? 'border-orange-200/70 bg-gradient-to-r from-orange-600 to-red-700 text-white shadow-red-950/45 hover:from-orange-500 hover:to-red-600' : 'border-slate-400/55 bg-slate-950/65 text-slate-100 hover:border-orange-300/55 hover:bg-slate-800/90'}`}
                   >
-                    {draft.isHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}隐藏 {draft.isHidden ? '已开启' : '已关闭'}
+                    {draft.isHidden ? <EyeOff className="h-3.5 w-3.5 text-white" /> : <Eye className="h-3.5 w-3.5 text-orange-300" />}
+                    <span>隐藏</span>
+                    <span className={`rounded-md border px-1.5 py-0.5 leading-none ${draft.isHidden ? 'border-white/30 bg-white/20 text-white' : 'border-slate-400/35 bg-slate-700/70 text-slate-100'}`}>{draft.isHidden ? '已开启' : '已关闭'}</span>
                   </button>
                 </div>
               </div>
