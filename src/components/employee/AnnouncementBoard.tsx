@@ -27,6 +27,11 @@ const CACHE_KEYS = {
 // Cache duration: 5 minutes
 const CACHE_DURATION = 5 * 60 * 1000;
 
+const normalizeCarouselSpeed = (value: unknown) => {
+  const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value));
+  return Number.isFinite(parsed) ? Math.min(5, Math.max(0.1, parsed)) : 0.6;
+};
+
 export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
   const { deviceType } = useDeviceOptimization();
   const { t, dateLocale } = useLanguage();
@@ -52,6 +57,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
   // Tablet-specific detection for optimized layout
   const isTabletDevice = deviceType === 'tablet';
+  const supportsHover = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   const [announcements, setAnnouncements] = useState<AnnouncementListItem[]>(() => {
     try {
@@ -96,34 +102,20 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     const cachedUserId = sessionStorage.getItem(CACHE_KEYS.CACHE_USER_ID);
     return cachedUserId === userId && sessionStorage.getItem(CACHE_KEYS.ADMIN_ID) !== null;
   });
-  const [isHovering, setIsHovering] = useState(false);
-  const isHoveringRef = useRef(false);
+  const isCarouselPausedRef = useRef(false);
   const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Keep ref in sync with state for use in closures
-  useEffect(() => {
-    isHoveringRef.current = isHovering;
-  }, [isHovering]);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const carouselLoopMarkerRef = useRef<HTMLDivElement | null>(null);
   const isLoadingRef = useRef(false);
   const backgroundRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [isPageVisible, setIsPageVisible] = useState(() => {
-    // Initialize with actual visibility state
-    return typeof document !== 'undefined' ? !document.hidden : true;
-  });
-  const isPageVisibleRef = useRef(isPageVisible);
-
-  // Keep ref in sync with state for use in closures
-  useEffect(() => {
-    isPageVisibleRef.current = isPageVisible;
-  }, [isPageVisible]);
+  const isPageVisibleRef = useRef(typeof document !== 'undefined' ? !document.hidden : true);
   const [carouselEnabled, setCarouselEnabled] = useState(() => {
     const cached = sessionStorage.getItem(CACHE_KEYS.CAROUSEL_ENABLED);
     return cached !== null ? cached === 'true' : true;
   });
   const [carouselSpeed, setCarouselSpeed] = useState(() => {
     const cached = sessionStorage.getItem(CACHE_KEYS.CAROUSEL_SPEED);
-    return cached ? parseFloat(cached) : 0.6;
+    return normalizeCarouselSpeed(cached);
   });
   const [categories, setCategories] = useState<Map<string, { icon_name: string; color_scheme: string }>>(() => {
     // Load from cache
@@ -248,20 +240,14 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     };
   }, [userId]);
 
-  // iOS optimization: Pause animations when page is not visible
   useEffect(() => {
-    if (!isIOS) return;
-
     const handleVisibilityChange = () => {
-      setIsPageVisible(!document.hidden);
+      isPageVisibleRef.current = !document.hidden;
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isIOS]);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -305,82 +291,55 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
 
   loadCategoriesRef.current = loadCategories;
 
-  // Load and subscribe to carousel settings
   useEffect(() => {
     const setupCarouselSettings = async () => {
       try {
-        // Check if we already have cached values
-        const cachedEnabled = sessionStorage.getItem(CACHE_KEYS.CAROUSEL_ENABLED);
-        const cachedSpeed = sessionStorage.getItem(CACHE_KEYS.CAROUSEL_SPEED);
+        const [{ data: enabledData, error: enabledError }, { data: speedData, error: speedError }] = await Promise.all([
+          supabase.from('system_configs').select('value').eq('key', 'announcement_carousel_enabled').maybeSingle(),
+          supabase.from('system_configs').select('value').eq('key', 'announcement_carousel_speed').maybeSingle(),
+        ]);
 
-        // Only fetch if we don't have cached values
-        if (cachedEnabled === null) {
-          // Load carousel enabled setting
-          const { data: enabledData, error: enabledError } = await supabase
-            .from('system_configs')
-            .select('value')
-            .eq('key', 'announcement_carousel_enabled')
-            .maybeSingle();
+        if (enabledError) throw enabledError;
+        if (speedError) throw speedError;
 
-          if (enabledError) throw enabledError;
-          if (enabledData?.value !== undefined) {
-            const enabled = enabledData.value === true;
-            setCarouselEnabled(enabled);
-            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_ENABLED, enabled.toString());
-          }
+        if (enabledData?.value !== undefined) {
+          const enabled = enabledData.value === true;
+          setCarouselEnabled(enabled);
+          sessionStorage.setItem(CACHE_KEYS.CAROUSEL_ENABLED, enabled.toString());
         }
-
-        if (cachedSpeed === null) {
-          // Load carousel speed setting
-          const { data: speedData, error: speedError } = await supabase
-          .from('system_configs')
-          .select('value')
-          .eq('key', 'announcement_carousel_speed')
-          .maybeSingle();
-
-          if (speedError) throw speedError;
-          if (speedData?.value !== undefined) {
-            const speed = typeof speedData.value === 'number' ? speedData.value : 0.6;
-            setCarouselSpeed(speed);
-            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_SPEED, speed.toString());
-          }
+        if (speedData?.value !== undefined) {
+          const speed = normalizeCarouselSpeed(speedData.value);
+          setCarouselSpeed(speed);
+          sessionStorage.setItem(CACHE_KEYS.CAROUSEL_SPEED, speed.toString());
         }
       } catch (error) {
         console.error('Error loading carousel settings:', error);
       }
     };
 
-    setupCarouselSettings();
+    void setupCarouselSettings();
 
-    // Subscribe to real-time updates for carousel settings
     const channel = supabase
       .channel('carousel_settings_changes')
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'system_configs',
-          filter: 'key=in.(announcement_carousel_enabled,announcement_carousel_speed)'
-        },
+        { event: 'UPDATE', schema: 'public', table: 'system_configs' },
         (payload) => {
           const newRecord = payload.new as { key?: string; value?: unknown };
-
           if (newRecord.key === 'announcement_carousel_enabled') {
-            const newValue = newRecord.value === true;
-            setCarouselEnabled(newValue);
-            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_ENABLED, newValue.toString());
+            const enabled = newRecord.value === true;
+            setCarouselEnabled(enabled);
+            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_ENABLED, enabled.toString());
           } else if (newRecord.key === 'announcement_carousel_speed') {
-            const newSpeed = typeof newRecord.value === 'number' ? newRecord.value : 0.6;
-            setCarouselSpeed(newSpeed);
-            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_SPEED, newSpeed.toString());
+            const speed = normalizeCarouselSpeed(newRecord.value);
+            setCarouselSpeed(speed);
+            sessionStorage.setItem(CACHE_KEYS.CAROUSEL_SPEED, speed.toString());
           }
         }
       )
       .subscribe();
 
     return () => {
-      console.log('[Carousel] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, []);
@@ -587,189 +546,45 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     };
   }, [adminResolved, userAdminId]);
 
-  // Auto-scroll functionality - Controlled by database configuration
   useEffect(() => {
     const container = scrollContainerRef.current;
+    if (!container || announcements.length <= 1 || !carouselEnabled || selectedAnnouncement) return;
 
-    // Don't start scrolling if carousel is disabled, no announcements, or only one announcement
-    if (!container || announcements.length <= 1 || !carouselEnabled || selectedAnnouncement) {
-      return;
-    }
-
-    // iOS-specific optimization: Use CSS-based smooth scrolling instead of RAF
-    if (isIOS) {
-      console.log('[AnnouncementBoard] iOS carousel starting:', {
-        announcementsCount: announcements.length,
-        carouselEnabled,
-        isPageVisible,
-        isPageVisibleRef: isPageVisibleRef.current,
-        isHovering,
-        isHoveringRef: isHoveringRef.current
-      });
-
-      let scrollInterval: NodeJS.Timeout | null = null;
-
-      const startScroll = () => {
-        if (scrollInterval) return; // Already running
-
-        console.log('[AnnouncementBoard] iOS carousel interval started', {
-          initialIsPageVisible: isPageVisibleRef.current,
-          initialIsHovering: isHoveringRef.current
-        });
-
-        let tickCount = 0;
-        scrollInterval = setInterval(() => {
-          // Use refs to get current values (avoid closure trap)
-          const currentIsHovering = isHoveringRef.current;
-          const currentIsPageVisible = isPageVisibleRef.current;
-
-          // Pause scrolling when hovering or page not visible
-          if (currentIsHovering || !currentIsPageVisible) {
-            if (tickCount % 60 === 0) { // Log every ~1 second
-              console.log('[AnnouncementBoard] iOS carousel paused:', {
-                isHovering: currentIsHovering,
-                isPageVisible: currentIsPageVisible
-              });
-            }
-            tickCount++;
-            return;
-          }
-
-          tickCount++;
-
-          const { scrollTop, scrollHeight, clientHeight } = container;
-
-          // Only scroll if content is actually scrollable
-          if (scrollHeight <= clientHeight) {
-            console.log('[AnnouncementBoard] iOS carousel: content not scrollable', {
-              scrollHeight,
-              clientHeight
-            });
-            return;
-          }
-
-          const contentHeight = scrollHeight / 2;
-          const scrollStep = carouselSpeed * 0.5; // Slower, smoother on iOS
-          const newScrollTop = scrollTop + scrollStep;
-
-          // Log first scroll and every 3 seconds after
-          if (tickCount === 1 || tickCount % 180 === 0) {
-            console.log('[AnnouncementBoard] iOS carousel scrolling:', {
-              tick: tickCount,
-              scrollTop: Math.round(scrollTop),
-              scrollHeight,
-              clientHeight,
-              contentHeight,
-              scrollStep,
-              newScrollTop: Math.round(newScrollTop)
-            });
-          }
-
-          // Seamless loop
-          if (newScrollTop >= contentHeight) {
-            container.scrollTop = newScrollTop - contentHeight;
-          } else {
-            container.scrollTop = newScrollTop;
-          }
-        }, 16); // ~60fps
-      };
-
-      // Start scrolling after a short delay to allow content to render
-      const startTimer = setTimeout(startScroll, 500);
-
-      return () => {
-        console.log('[AnnouncementBoard] iOS carousel cleanup');
-        clearTimeout(startTimer);
-        if (scrollInterval) {
-          clearInterval(scrollInterval);
-          scrollInterval = null;
-        }
-      };
-    }
-
-    // Standard RAF-based scrolling for non-iOS devices
-    let animationFrameId: number;
-    let lastScrollHeight = 0;
-    let isScrolling = false;
-    let startTime = 0;
-    let startScrollTop = 0;
-    let lastFrameTime = 0;
+    let animationFrameId = 0;
+    let lastTimestamp: number | null = null;
+    let scrollPosition = container.scrollTop;
 
     const autoScroll = (timestamp: number) => {
-      // Use ref to get current value (avoid closure trap)
-      const currentIsHovering = isHoveringRef.current;
+      const loopStart = carouselLoopMarkerRef.current?.offsetTop ?? container.scrollHeight / 2;
+      const canScroll = loopStart > 0 && container.scrollHeight > container.clientHeight;
 
-      // Pause scrolling when hovering
-      if (currentIsHovering) {
-        startTime = 0;
-        lastFrameTime = 0;
+      if (!canScroll || isCarouselPausedRef.current || !isPageVisibleRef.current) {
+        scrollPosition = container.scrollTop;
+        lastTimestamp = timestamp;
         animationFrameId = requestAnimationFrame(autoScroll);
         return;
       }
 
-      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (lastTimestamp === null) lastTimestamp = timestamp;
+      const deltaSeconds = Math.min((timestamp - lastTimestamp) / 1000, 0.05);
+      lastTimestamp = timestamp;
+      scrollPosition += carouselSpeed * 48 * deltaSeconds;
 
-      // Check if content height changed
-      if (scrollHeight !== lastScrollHeight) {
-        lastScrollHeight = scrollHeight;
-        startTime = 0;
-        lastFrameTime = 0;
-      }
-
-      // Only scroll if content is actually scrollable
-      if (scrollHeight <= clientHeight) {
-        animationFrameId = requestAnimationFrame(autoScroll);
-        return;
-      }
-
-      if (!isScrolling) {
-        isScrolling = true;
-      }
-
-      // Initialize start time and position
-      if (!startTime) {
-        startTime = timestamp;
-        startScrollTop = scrollTop;
-        lastFrameTime = timestamp;
-      }
-
-      // Throttle updates to ~60fps max
-      const deltaTime = timestamp - lastFrameTime;
-      if (deltaTime < 16) {
-        animationFrameId = requestAnimationFrame(autoScroll);
-        return;
-      }
-      lastFrameTime = timestamp;
-
-      const elapsedTime = (timestamp - startTime) / 1000;
-      const pixelsPerSecond = carouselSpeed * 60;
-      const newScrollTop = startScrollTop + (elapsedTime * pixelsPerSecond);
-      const contentHeight = scrollHeight / 2;
-
-      // Seamless loop
-      if (newScrollTop >= contentHeight) {
-        const overflow = newScrollTop - contentHeight;
-        container.scrollTop = overflow;
-        startTime = timestamp;
-        startScrollTop = overflow;
-      } else {
-        container.scrollTop = Math.round(newScrollTop * 100) / 100;
-      }
-
+      if (scrollPosition >= loopStart) scrollPosition %= loopStart;
+      container.scrollTop = scrollPosition;
       animationFrameId = requestAnimationFrame(autoScroll);
     };
 
-    const startTimer = setTimeout(() => {
+    const startTimer = window.setTimeout(() => {
+      scrollPosition = container.scrollTop;
       animationFrameId = requestAnimationFrame(autoScroll);
-    }, 500);
+    }, 700);
 
     return () => {
-      clearTimeout(startTimer);
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
+      window.clearTimeout(startTimer);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
-  }, [announcements.length, carouselEnabled, carouselSpeed, selectedAnnouncement, isIOS, isHovering, isPageVisible]);
+  }, [announcements.length, carouselEnabled, carouselSpeed, selectedAnnouncement]);
 
   // Detect manual scrolling and add class to disable animations
   useEffect(() => {
@@ -1424,31 +1239,30 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
             <div className="relative flex-1 min-h-0 flex flex-col">
               <div
                 ref={scrollContainerRef}
-                onMouseEnter={() => !isIOS && setIsHovering(true)}
-                onMouseLeave={() => !isIOS && setIsHovering(false)}
+                onMouseEnter={() => {
+                  if (supportsHover) isCarouselPausedRef.current = true;
+                }}
+                onMouseLeave={() => {
+                  if (supportsHover) isCarouselPausedRef.current = false;
+                }}
                 onTouchStart={() => {
-                  if (isIOS) {
-                    // On iOS, only pause temporarily during touch
-                    setIsHovering(true);
-                    // Clear any existing timeout
-                    if (touchTimeoutRef.current) {
-                      clearTimeout(touchTimeoutRef.current);
-                    }
-                    // Auto-resume after 2 seconds
-                    touchTimeoutRef.current = setTimeout(() => {
-                      setIsHovering(false);
-                    }, 2000);
-                  } else {
-                    setIsHovering(true);
-                  }
+                  isCarouselPausedRef.current = true;
+                  if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+                  touchTimeoutRef.current = setTimeout(() => {
+                    isCarouselPausedRef.current = false;
+                  }, 1400);
                 }}
                 onTouchEnd={() => {
-                  if (!isIOS) {
-                    setIsHovering(false);
-                  }
-                  // On iOS, let the timeout handle it
+                  if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+                  touchTimeoutRef.current = setTimeout(() => {
+                    isCarouselPausedRef.current = false;
+                  }, 500);
                 }}
-                className={`overflow-y-auto hide-scrollbar flex-1 min-h-0
+                onTouchCancel={() => {
+                  if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+                  isCarouselPausedRef.current = false;
+                }}
+                className={`relative overflow-y-auto hide-scrollbar flex-1 min-h-0
                   max-sm:px-6 max-sm:pb-2
                   sm:px-6 sm:pb-2
                   md:px-6 md:pb-2
@@ -1463,7 +1277,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                 }}
               >
               {/* Render announcements - duplicate for carousel when enabled */}
-              {(carouselEnabled && announcements.length > 1 && !isTabletDevice ? [...announcements, ...announcements] : announcements).map((announcement, index) => {
+              {(carouselEnabled && announcements.length > 1 ? [...announcements, ...announcements] : announcements).map((announcement, index) => {
                 const cardColorVariants = [
                   { gradient: 'from-blue-50 via-white to-sky-50', ring: 'ring-blue-200/80', accent: 'from-blue-500 via-sky-400 to-cyan-400', iconBg: 'bg-gradient-to-br from-blue-500 to-sky-500', patternColor: 'border-blue-200', hoverShadow: 'hover:shadow-blue-100/60' },
                   { gradient: 'from-sky-50 via-white to-cyan-50', ring: 'ring-sky-200/80', accent: 'from-sky-500 via-cyan-400 to-teal-400', iconBg: 'bg-gradient-to-br from-sky-500 to-cyan-500', patternColor: 'border-sky-200', hoverShadow: 'hover:shadow-sky-100/60' },
@@ -1477,6 +1291,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                 return (
                 <div
                   key={`${announcement.id}-${index}`}
+                  ref={index === announcements.length ? carouselLoopMarkerRef : undefined}
                   onClick={() => handleAnnouncementClick(announcement)}
                   className={`group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.98] hover:-translate-y-0.5 hover:shadow-xl bg-gradient-to-br ${cardStyle.gradient} ring-1 ${cardStyle.ring} shadow-sm ${cardStyle.hoverShadow}`}
                   style={{
