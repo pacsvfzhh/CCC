@@ -2613,7 +2613,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
         {/* Idle Days */}
         <div data-inactive-days-dropdown className="ml-2 inline-flex items-center">
-          <div className={`inline-flex h-8 w-[156px] shrink-0 overflow-hidden rounded-lg border shadow-sm transition-all ${
+          <div className={`inline-flex h-8 w-[180px] shrink-0 overflow-hidden rounded-lg border shadow-sm transition-all ${
             hasIdleFilter
               ? 'border-emerald-400/90 bg-emerald-900/90 shadow-emerald-950/40'
               : inactiveDaysDropdownOpen === adminId
@@ -2638,7 +2638,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 {hasIdleFilter
                   ? (() => {
                       const r = inactiveDaysFilterByGroup.get(adminId);
-                      return r === '2-3' ? '2-3d' : r === '3-7' ? '3-7d' : r === '7-15' ? '7-15d' : '15d+';
+                      return r === '2-3' ? '停工 2-3 天' : r === '3-7' ? '停工 3-7 天' : r === '7-15' ? '停工 7-15 天' : '停工 15 天以上';
                     })()
                   : '停工天数'
                 }
