@@ -20,7 +20,6 @@ import {
   Plus,
   Save,
   Search,
-  Settings2,
   SlidersHorizontal,
   Trash2,
   Users,
@@ -126,8 +125,8 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const [savingCarouselSettings, setSavingCarouselSettings] = useState(false);
   const [showCarouselSuccessMessage, setShowCarouselSuccessMessage] = useState(false);
   const [carouselErrorMessage, setCarouselErrorMessage] = useState<string | null>(null);
-  const [carouselPanelOpen, setCarouselPanelOpen] = useState(true);
-  const [showMobileConfiguration, setShowMobileConfiguration] = useState(false);
+  const [carouselPanelOpen, setCarouselPanelOpen] = useState(false);
+  const [groupMenuOpen, setGroupMenuOpen] = useState(false);
 
   const isDirty = workspaceMode === 'edit' && JSON.stringify(draft) !== initialDraftSnapshot;
 
@@ -209,7 +208,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   }, [isSuperAdmin, loadAnnouncements, loadCarouselSettings, loadSecondaryAdmins]);
 
   useEffect(() => {
-    if (deletingId || pinOrderModalId || pendingNavigation || showEmployeePreview || showMobileConfiguration) {
+    if (deletingId || pinOrderModalId || pendingNavigation || showEmployeePreview) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -217,7 +216,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [deletingId, pendingNavigation, pinOrderModalId, showEmployeePreview, showMobileConfiguration]);
+  }, [deletingId, pendingNavigation, pinOrderModalId, showEmployeePreview]);
 
   const groupedAnnouncements = useMemo<AnnouncementGroup[]>(() => {
     if (!isSuperAdmin) {
@@ -333,16 +332,17 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       setCreatingForAdminId(null);
       setSearchQuery('');
       setStatusFilter('all');
+      setGroupMenuOpen(false);
     });
   };
 
-  const saveCarouselSettings = async () => {
+  const saveCarouselSettings = async (enabled = carouselEnabled) => {
     setSavingCarouselSettings(true);
     setCarouselErrorMessage(null);
     try {
       const { error: enabledError } = await supabase
         .from('system_configs')
-        .update({ value: carouselEnabled, updated_at: new Date().toISOString() })
+        .update({ value: enabled, updated_at: new Date().toISOString() })
         .eq('key', 'announcement_carousel_enabled');
       if (enabledError) throw enabledError;
 
@@ -354,13 +354,24 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
 
       setShowCarouselSuccessMessage(true);
       window.setTimeout(() => setShowCarouselSuccessMessage(false), 3000);
+      return true;
     } catch (error) {
       console.error('Error saving carousel settings:', error);
       setCarouselErrorMessage(getErrorMessage(error, '保存轮播设置失败'));
       window.setTimeout(() => setCarouselErrorMessage(null), 5000);
+      return false;
     } finally {
       setSavingCarouselSettings(false);
     }
+  };
+
+  const toggleCarouselEnabled = async () => {
+    if (savingCarouselSettings) return;
+    const previousValue = carouselEnabled;
+    const nextValue = !previousValue;
+    setCarouselEnabled(nextValue);
+    const saved = await saveCarouselSettings(nextValue);
+    if (!saved) setCarouselEnabled(previousValue);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -522,16 +533,111 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-cyan-300/20 bg-[linear-gradient(90deg,rgba(8,47,73,0.78),rgba(15,23,42,0.94))] px-3 py-2.5 sm:px-4">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-200">
-            <LayoutList className="h-4.5 w-4.5" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="truncate text-sm font-black text-white sm:text-base">公告内容管理</h2>
-            <p className="truncate text-[10px] text-cyan-100/55 sm:text-xs">选择管理员分组，并在右侧编辑公告内容</p>
+      <div className="relative z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-300/20 bg-[linear-gradient(90deg,rgba(8,47,73,0.78),rgba(15,23,42,0.94))] px-3 py-2 sm:px-4">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-200">
+              <LayoutList className="h-4.5 w-4.5" />
+            </span>
+            <h2 className="whitespace-nowrap text-sm font-black text-white sm:text-base">公告内容管理</h2>
           </div>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setGroupMenuOpen(value => !value);
+                setCarouselPanelOpen(false);
+              }}
+              className="inline-flex h-9 max-w-[210px] items-center gap-2 rounded-xl border border-cyan-300/25 bg-slate-950/45 px-3 text-left shadow-sm transition hover:border-cyan-300/45 hover:bg-slate-900"
+              aria-expanded={groupMenuOpen}
+              aria-haspopup="menu"
+            >
+              <Users className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[9px] font-bold leading-none text-slate-500">切换分组</span>
+                <span className="mt-1 block truncate text-[11px] font-black leading-none text-white">{selectedAdminName}</span>
+              </span>
+              <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {groupMenuOpen && (
+              <div role="menu" className="absolute left-0 top-[calc(100%+6px)] z-50 max-h-[360px] w-[260px] overflow-y-auto rounded-xl border border-cyan-300/25 bg-slate-950 p-1.5 shadow-2xl shadow-black/60">
+                <div className="mb-1 flex items-center justify-between px-2 py-1.5">
+                  <span className="text-[10px] font-black text-slate-300">管理员分组</span>
+                  <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold text-cyan-200">{announcements.length} 则公告</span>
+                </div>
+                {groupedAnnouncements.map(group => {
+                  const active = group.adminId === selectedAdminId;
+                  return (
+                    <button
+                      key={group.adminId}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={active}
+                      onClick={() => changeAdminGroup(group.adminId)}
+                      className={`relative flex w-full items-center gap-2 rounded-lg border px-2.5 py-2.5 text-left transition ${active ? 'border-cyan-400/45 bg-cyan-500/15 text-white' : 'border-transparent text-slate-400 hover:border-slate-700 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                      {active && <span className="absolute bottom-1.5 left-0 top-1.5 w-1 rounded-r-full bg-cyan-400" />}
+                      {group.adminId === admin.id ? <Globe className="h-3.5 w-3.5 shrink-0 text-emerald-300" /> : <Users className="h-3.5 w-3.5 shrink-0 text-blue-300" />}
+                      <span className="min-w-0 flex-1 truncate text-xs font-bold">{group.adminName}</span>
+                      <span className="text-[10px] font-black tabular-nums text-slate-500">{group.announcements.length}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {isSuperAdmin && (
+            <div className="relative flex h-9 items-stretch overflow-visible rounded-xl border border-emerald-300/25 bg-slate-950/45 shadow-sm">
+              <button
+                type="button"
+                onClick={() => void toggleCarouselEnabled()}
+                disabled={savingCarouselSettings}
+                className="flex items-center gap-2 rounded-l-xl px-2.5 text-left transition hover:bg-slate-900 disabled:opacity-60"
+              >
+                <span className={`flex h-6 w-6 items-center justify-center rounded-lg border ${carouselEnabled ? 'border-emerald-300/30 bg-emerald-500/15 text-emerald-300' : 'border-slate-600 bg-slate-800 text-slate-400'}`}>
+                  {carouselEnabled ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
+                </span>
+                <span>
+                  <span className="block text-[9px] font-bold leading-none text-slate-500">公告栏</span>
+                  <span className="mt-1 block whitespace-nowrap text-[11px] font-black leading-none text-white">自动滚动</span>
+                </span>
+                <span className={`relative ml-1 h-5 w-9 rounded-full transition ${carouselEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}>
+                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${carouselEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCarouselPanelOpen(value => !value);
+                  setGroupMenuOpen(false);
+                }}
+                className="flex w-7 items-center justify-center rounded-r-xl border-l border-slate-700 text-slate-500 transition hover:bg-slate-900 hover:text-white"
+                aria-label="调整自动滚动速度"
+                aria-expanded={carouselPanelOpen}
+              >
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${carouselPanelOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {carouselPanelOpen && (
+                <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[260px] rounded-xl border border-emerald-300/25 bg-slate-950 p-3 shadow-2xl shadow-black/60">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs font-black text-white"><Gauge className="h-3.5 w-3.5 text-emerald-300" />滚动速度</span>
+                    <span className="rounded-md bg-emerald-500/10 px-2 py-1 font-mono text-[10px] font-black text-emerald-300">{carouselSpeed.toFixed(1)}x</span>
+                  </div>
+                  <input type="range" min="0.1" max="5" step="0.1" value={carouselSpeed} onChange={event => setCarouselSpeed(Number(event.target.value))} className="h-1.5 w-full cursor-pointer accent-emerald-500" />
+                  <div className="mt-3 grid grid-cols-5 gap-1">
+                    {[0.3, 0.6, 1, 2, 3].map(speed => <button key={speed} type="button" onClick={() => setCarouselSpeed(speed)} className={`rounded py-1.5 text-[9px] font-black ${Math.abs(carouselSpeed - speed) < 0.05 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>{speed}x</button>)}
+                  </div>
+                  {showCarouselSuccessMessage && <p className="mt-2 flex items-center gap-1 text-[10px] font-bold text-emerald-300"><CheckCircle2 className="h-3 w-3" />设置已保存</p>}
+                  {carouselErrorMessage && <p className="mt-2 flex items-start gap-1 text-[10px] font-bold text-red-300"><AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />{carouselErrorMessage}</p>}
+                  <button type="button" onClick={() => void saveCarouselSettings()} disabled={savingCarouselSettings} className="mt-3 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-700 text-[10px] font-black text-white transition hover:bg-emerald-600 disabled:opacity-50"><Save className="h-3.5 w-3.5" />{savingCarouselSettings ? '保存中…' : '保存滚动速度'}</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
         <button
           type="button"
           onClick={() => startCreateForAdmin(selectedAdminId)}
@@ -542,70 +648,23 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       </div>
 
       <div className="shrink-0 border-b border-slate-700 bg-slate-900 p-2 lg:hidden">
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-2">
-          <select
-            value={selectedAdminId}
-            onChange={event => changeAdminGroup(event.target.value)}
-            className="min-w-0 rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-xs font-bold text-white outline-none focus:border-cyan-400"
-          >
-            {groupedAnnouncements.map(group => (
-              <option key={group.adminId} value={group.adminId}>{group.adminName}</option>
-            ))}
-          </select>
-          <select
-            value={selectedAnnouncementId || ''}
-            onChange={event => {
-              const announcement = announcements.find(item => item.id === event.target.value);
-              if (announcement) openPreview(announcement);
-            }}
-            className="min-w-0 rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-xs font-bold text-white outline-none focus:border-cyan-400"
-          >
-            <option value="">选择公告</option>
-            {(selectedGroup?.announcements || []).map(announcement => (
-              <option key={announcement.id} value={announcement.id}>{announcement.title}</option>
-            ))}
-          </select>
-        </div>
-        {isSuperAdmin && (
-          <button
-            type="button"
-            onClick={() => setShowMobileConfiguration(true)}
-            className="mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-cyan-400/25 bg-cyan-500/10 text-[10px] font-black text-cyan-200"
-          >
-            <Settings2 className="h-3.5 w-3.5" />管理员分组与公告栏自动滚动配置
-          </button>
-        )}
+        <select
+          value={selectedAnnouncementId || ''}
+          onChange={event => {
+            const announcement = announcements.find(item => item.id === event.target.value);
+            if (announcement) openPreview(announcement);
+          }}
+          className="w-full min-w-0 rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-xs font-bold text-white outline-none focus:border-cyan-400"
+        >
+          <option value="">选择公告</option>
+          {(selectedGroup?.announcements || []).map(announcement => (
+            <option key={announcement.id} value={announcement.id}>{announcement.title}</option>
+          ))}
+        </select>
       </div>
 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="hidden min-h-0 flex-col border-r border-slate-700 bg-slate-900/95 lg:flex">
-          <div className="dark-panel-scroll max-h-[30%] shrink-0 overflow-y-auto border-b border-slate-700 p-3">
-            <div className="sticky top-0 z-10 mb-2 flex items-center justify-between bg-slate-900/95 pb-1">
-              <div className="flex items-center gap-2 text-xs font-black text-slate-200">
-                <Users className="h-3.5 w-3.5 text-cyan-300" />管理员分组
-              </div>
-              <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-200">{announcements.length}</span>
-            </div>
-            <div className="space-y-1">
-              {groupedAnnouncements.map(group => {
-                const active = group.adminId === selectedAdminId;
-                return (
-                  <button
-                    key={group.adminId}
-                    type="button"
-                    onClick={() => changeAdminGroup(group.adminId)}
-                    className={`relative flex w-full items-center gap-2 overflow-hidden rounded-lg border px-2.5 py-2 text-left transition ${active ? 'border-cyan-400/50 bg-cyan-500/12 text-white' : 'border-transparent bg-slate-950/35 text-slate-400 hover:border-slate-600 hover:bg-slate-800 hover:text-white'}`}
-                  >
-                    {active && <span className="absolute bottom-1.5 left-0 top-1.5 w-1 rounded-r-full bg-cyan-400" />}
-                    {group.adminId === admin.id ? <Globe className="h-3.5 w-3.5 shrink-0 text-emerald-300" /> : <Users className="h-3.5 w-3.5 shrink-0 text-blue-300" />}
-                    <span className="min-w-0 flex-1 truncate text-xs font-bold">{group.adminName}</span>
-                    <span className="text-[10px] font-black tabular-nums text-slate-500">{group.announcements.length}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           <div className="shrink-0 border-b border-slate-700 p-3">
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
@@ -674,66 +733,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
             })}
           </div>
 
-          {isSuperAdmin && (
-            <div className="shrink-0 border-t border-slate-700 bg-slate-950/40">
-              <button
-                type="button"
-                onClick={() => setCarouselPanelOpen(value => !value)}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-black text-slate-200 hover:bg-slate-800"
-              >
-                <Settings2 className="h-3.5 w-3.5 text-cyan-300" />公告栏自动滚动
-                <span className={`ml-auto rounded-full px-1.5 py-0.5 text-[9px] ${carouselEnabled ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-700 text-slate-400'}`}>{carouselEnabled ? '开启' : '关闭'}</span>
-                {carouselPanelOpen ? <ChevronDown className="h-3.5 w-3.5 text-slate-500" /> : <ChevronRight className="h-3.5 w-3.5 text-slate-500" />}
-              </button>
-              {carouselPanelOpen && (
-                <div className="space-y-2.5 border-t border-slate-800 p-3">
-                  <button
-                    type="button"
-                    onClick={() => setCarouselEnabled(value => !value)}
-                    className="flex w-full items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-2 text-left"
-                  >
-                    {carouselEnabled ? <Play className="h-3.5 w-3.5 text-emerald-300" /> : <Pause className="h-3.5 w-3.5 text-orange-300" />}
-                    <span className="flex-1 text-[11px] font-bold text-slate-300">自动滚动公告</span>
-                    <span className={`relative h-5 w-9 rounded-full transition ${carouselEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}>
-                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${carouselEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
-                    </span>
-                  </button>
-                  {carouselEnabled && (
-                    <div className="rounded-lg border border-slate-700 bg-slate-900 p-2.5">
-                      <div className="mb-2 flex items-center justify-between text-[10px] font-bold text-slate-400">
-                        <span className="flex items-center gap-1"><Gauge className="h-3 w-3" />滚动速度</span>
-                        <span className="font-mono text-cyan-300">{carouselSpeed.toFixed(1)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.1"
-                        max="5"
-                        step="0.1"
-                        value={carouselSpeed}
-                        onChange={event => setCarouselSpeed(Number(event.target.value))}
-                        className="h-1.5 w-full cursor-pointer accent-cyan-500"
-                      />
-                      <div className="mt-2 grid grid-cols-5 gap-1">
-                        {[0.3, 0.6, 1, 2, 3].map(speed => (
-                          <button key={speed} type="button" onClick={() => setCarouselSpeed(speed)} className={`rounded py-1 text-[9px] font-black ${Math.abs(carouselSpeed - speed) < 0.05 ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>{speed}x</button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {showCarouselSuccessMessage && <p className="flex items-center gap-1 text-[10px] font-bold text-emerald-300"><CheckCircle2 className="h-3 w-3" />设置已保存</p>}
-                  {carouselErrorMessage && <p className="flex items-start gap-1 text-[10px] font-bold text-red-300"><AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />{carouselErrorMessage}</p>}
-                  <button
-                    type="button"
-                    onClick={saveCarouselSettings}
-                    disabled={savingCarouselSettings}
-                    className="flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-cyan-700 text-[10px] font-black text-white transition hover:bg-cyan-600 disabled:opacity-50"
-                  >
-                    <Save className="h-3.5 w-3.5" />{savingCarouselSettings ? '保存中…' : '保存滚动设置'}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </aside>
 
         <main className="min-h-0 min-w-0 overflow-hidden bg-[radial-gradient(circle_at_top_right,rgba(8,145,178,0.08),transparent_34%),#0f172a]">
@@ -952,45 +951,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         document.body,
       )}
 
-      {showMobileConfiguration && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/80 p-2 backdrop-blur-md sm:items-center" onClick={() => setShowMobileConfiguration(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="mobile-configuration-title" className="flex max-h-[calc(100vh-1rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl" onClick={event => event.stopPropagation()}>
-            <div className="flex shrink-0 items-center justify-between border-b border-slate-700 px-4 py-3">
-              <div>
-                <h3 id="mobile-configuration-title" className="text-sm font-black text-white">功能配置</h3>
-                <p className="text-[10px] text-slate-500">管理员分组与公告栏自动滚动</p>
-              </div>
-              <button type="button" onClick={() => setShowMobileConfiguration(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-600 bg-slate-800 text-slate-400 hover:text-white" aria-label="关闭配置"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="dark-panel-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-              <div>
-                <label className="mb-1.5 block text-[11px] font-bold text-slate-300">管理员分组</label>
-                <select value={selectedAdminId} onChange={event => changeAdminGroup(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 text-xs font-bold text-white outline-none focus:border-cyan-400">
-                  {groupedAnnouncements.map(group => <option key={group.adminId} value={group.adminId}>{group.adminName}（{group.announcements.length}）</option>)}
-                </select>
-              </div>
-              <button type="button" onClick={() => setCarouselEnabled(value => !value)} className="flex w-full items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-3 text-left">
-                {carouselEnabled ? <Play className="h-4 w-4 text-emerald-300" /> : <Pause className="h-4 w-4 text-orange-300" />}
-                <span className="flex-1 text-xs font-bold text-slate-200">自动滚动公告栏</span>
-                <span className={`relative h-6 w-11 rounded-full transition ${carouselEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${carouselEnabled ? 'translate-x-6' : 'translate-x-1'}`} /></span>
-              </button>
-              {carouselEnabled && (
-                <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-                  <div className="mb-3 flex items-center justify-between text-xs font-bold text-slate-300"><span>滚动速度</span><span className="font-mono text-cyan-300">{carouselSpeed.toFixed(1)}x</span></div>
-                  <input type="range" min="0.1" max="5" step="0.1" value={carouselSpeed} onChange={event => setCarouselSpeed(Number(event.target.value))} className="h-2 w-full cursor-pointer accent-cyan-500" />
-                  <div className="mt-3 grid grid-cols-5 gap-1.5">
-                    {[0.3, 0.6, 1, 2, 3].map(speed => <button key={speed} type="button" onClick={() => setCarouselSpeed(speed)} className={`rounded-md py-1.5 text-[10px] font-black ${Math.abs(carouselSpeed - speed) < 0.05 ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-500'}`}>{speed}x</button>)}
-                  </div>
-                </div>
-              )}
-              {showCarouselSuccessMessage && <p className="flex items-center gap-1 text-[10px] font-bold text-emerald-300"><CheckCircle2 className="h-3 w-3" />设置已保存</p>}
-              {carouselErrorMessage && <p className="flex items-start gap-1 text-[10px] font-bold text-red-300"><AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />{carouselErrorMessage}</p>}
-              <button type="button" onClick={saveCarouselSettings} disabled={savingCarouselSettings} className="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-cyan-700 text-xs font-black text-white hover:bg-cyan-600 disabled:opacity-50"><Save className="h-4 w-4" />{savingCarouselSettings ? '保存中…' : '保存功能配置'}</button>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
 
       {showEmployeePreview && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-3 backdrop-blur-md" onClick={() => setShowEmployeePreview(false)}>
