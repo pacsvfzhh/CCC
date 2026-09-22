@@ -160,7 +160,7 @@ export default function AnnouncementDetailModal({
             ) : (
               <div
                 className="announcement-detail-content relative"
-                style={{ fontSize: '15px', lineHeight: '1.75', color: '#374151' }}
+                style={{ fontSize: '15px', lineHeight: '1.6', color: '#374151' }}
                 dangerouslySetInnerHTML={{ __html: sanitizedContent }}
               />
             )}
@@ -198,24 +198,25 @@ export default function AnnouncementDetailModal({
         .announcement-detail-content h1,
         .announcement-detail-content h2,
         .announcement-detail-content h3,
-        .announcement-detail-content h4 { color: #111827; font-weight: 700; margin-top: 1.5em; margin-bottom: .5em; }
+        .announcement-detail-content h4 { color: #111827; font-weight: 700; margin-top: 1.1em; margin-bottom: .35em; }
         .announcement-detail-content h1 { font-size: 1.5rem; line-height: 1.3; }
         .announcement-detail-content h2 { font-size: 1.25rem; line-height: 1.35; }
         .announcement-detail-content h3 { font-size: 1.125rem; line-height: 1.4; }
         .announcement-detail-content h4 { font-size: 1rem; line-height: 1.4; }
         .announcement-detail-content > *:first-child { margin-top: 0; }
         .announcement-detail-content > *:last-child { margin-bottom: 0; }
-        .announcement-detail-content p { margin: 0 0 1em; color: #374151; }
+        .announcement-detail-content p { margin: 0 0 .65em; color: #374151; }
+        .announcement-detail-content p:empty { display: none; }
         .announcement-detail-content ul,
-        .announcement-detail-content ol { margin: .5em 0 1em; padding-left: 1.5em; }
+        .announcement-detail-content ol { margin: .4em 0 .7em; padding-left: 1.5em; }
         .announcement-detail-content ul { list-style: disc; }
         .announcement-detail-content ol { list-style: decimal; }
-        .announcement-detail-content li { margin-bottom: .375em; color: #374151; }
+        .announcement-detail-content li { margin-bottom: .2em; color: #374151; }
         .announcement-detail-content strong,
         .announcement-detail-content b { color: #111827; font-weight: 700; }
         .announcement-detail-content a { color: #2563eb; text-decoration: none; border-bottom: 1px solid rgba(37,99,235,.3); }
-        .announcement-detail-content blockquote { margin: 1em 0; padding: .75em 1em; border-left: 3px solid #3b82f6; border-radius: 0 .375rem .375rem 0; background: #f8fafc; color: #4b5563; }
-        .announcement-detail-content hr { margin: 1.5em 0; border: 0; height: 1px; background: #e5e7eb; }
+        .announcement-detail-content blockquote { margin: .75em 0; padding: .65em .9em; border-left: 3px solid #3b82f6; border-radius: 0 .375rem .375rem 0; background: #f8fafc; color: #4b5563; }
+        .announcement-detail-content hr { margin: 1.1em 0; border: 0; height: 1px; background: #e5e7eb; }
         .announcement-detail-content table { display: block; width: 100%; max-width: 100%; margin: 1rem 0; overflow-x: auto; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: .5rem; }
         .announcement-detail-content th,
         .announcement-detail-content td { padding: .625rem .75rem; border-bottom: 1px solid #f3f4f6; text-align: left; }
@@ -224,11 +225,11 @@ export default function AnnouncementDetailModal({
         .announcement-detail-content .video-wrapper { display: block !important; width: fit-content !important; max-width: 100% !important; margin: 1rem auto !important; }
         .announcement-detail-content video { display: block; width: 100%; max-width: min(800px, 100%); height: auto; border: 1px solid #e2e8f0; border-radius: .75rem; background: #0f172a; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
         @media (max-width: 639px) {
-          .announcement-detail-content { padding: 0 4px; font-size: 15px !important; line-height: 1.75 !important; letter-spacing: .01em; }
+          .announcement-detail-content { padding: 0 4px; font-size: 15px !important; line-height: 1.6 !important; letter-spacing: .005em; }
           .announcement-detail-content h1 { font-size: 1.375rem; }
           .announcement-detail-content h2 { font-size: 1.2rem; }
           .announcement-detail-content h3 { font-size: 1.075rem; }
-          .announcement-detail-content p { margin-bottom: 1rem; font-size: 15px; line-height: 1.75; }
+          .announcement-detail-content p { margin-bottom: .65rem; font-size: 15px; line-height: 1.6; }
           .announcement-detail-content blockquote { padding: .75rem 1rem; font-size: 14px; }
           .announcement-detail-content table { display: block; width: 100%; overflow-x: auto; font-size: 13px; }
           .announcement-detail-content .video-wrapper { width: 100% !important; margin: 1.5rem 0 !important; }
