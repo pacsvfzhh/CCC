@@ -995,8 +995,8 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                   </button>
                 </div>
               </div>
-              <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
-                <article className="mx-auto min-h-full max-w-5xl rounded-2xl border border-slate-200 bg-white p-5 text-slate-800 shadow-2xl shadow-slate-950/25 sm:p-8">
+              <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto bg-white">
+                <article className="min-h-full w-full bg-white p-5 text-slate-800 sm:p-8">
                   <div
                     className="announcement-preview prose prose-slate max-w-none text-slate-800"
                     dangerouslySetInnerHTML={{ __html: sanitizeAnnouncementContent(renderMarkdown(selectedAnnouncement.content)) }}
