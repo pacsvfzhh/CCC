@@ -1913,13 +1913,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     return sorted;
   }, [sortByGroup]);
 
-  const getFilteredEmployeesForGroup = useCallback((group: EmployeeGroup) => {
+  const getFilteredEmployeesForGroup = useCallback((group: EmployeeGroup, ignoreFinancialFilter = false) => {
     const selectedTags = selectedTagsByGroup.get(group.admin.id) || [];
     const activeFilter = activeFilterByGroup.get(group.admin.id) || 'all';
     const workStatusFilter = workStatusFilterByGroup.get(group.admin.id) || new Set<'online' | 'offline' | 'never_started'>();
     const summaryFilter = summaryFilterByGroup.get(group.admin.id) || null;
     const createdDateFilter = createdDateFilterByGroup.get(group.admin.id) || null;
-    const financialFilter = financialFilterByGroup.get(group.admin.id) || null;
+    const financialFilter = ignoreFinancialFilter ? null : financialFilterByGroup.get(group.admin.id) || null;
     const searchLower = searchTerm.toLowerCase();
     const today = new Date();
     const now = Date.now();
@@ -2136,6 +2136,54 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       >
         <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : style.dot}`} />
         {label}: {count}
+      </button>
+    );
+  };
+
+  const getFinancialFilterCounts = (adminId: string) => {
+    const group = employeeGroups.find(item => item.admin.id === adminId);
+    if (!group) return { wallet: 0, todayCommission: 0 };
+    const employees = getFilteredEmployeesForGroup(group, true);
+    return {
+      wallet: employees.filter(employee => (employee.walletBalance || 0) > 0).length,
+      todayCommission: employees.filter(employee => employee.todayCommission > 0).length,
+    };
+  };
+
+  const renderFinancialFilterButton = (
+    adminId: string,
+    filter: FinancialFilter,
+    label: string,
+    count: number,
+  ) => {
+    const isSelected = financialFilterByGroup.get(adminId) === filter;
+    const isWallet = filter === 'wallet';
+
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setFinancialFilterByGroup(prev => {
+            const next = new Map(prev);
+            if (isSelected) next.delete(adminId);
+            else next.set(adminId, filter);
+            return next;
+          });
+        }}
+        aria-pressed={isSelected}
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold transition-all duration-150 ${
+          isSelected
+            ? isWallet
+              ? 'border-violet-200 bg-violet-600 text-white shadow-md shadow-violet-950/50 ring-1 ring-violet-300/35'
+              : 'border-amber-200 bg-amber-500 text-amber-950 shadow-md shadow-amber-950/50 ring-1 ring-amber-300/40'
+            : isWallet
+              ? 'border-violet-600/70 bg-violet-950/45 text-violet-200 hover:border-violet-400/90 hover:bg-violet-900/70 hover:text-white'
+              : 'border-amber-600/70 bg-amber-950/45 text-amber-200 hover:border-amber-400/90 hover:bg-amber-900/70 hover:text-amber-50'
+        }`}
+      >
+        <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? isWallet ? 'bg-white' : 'bg-amber-950' : isWallet ? 'bg-violet-400' : 'bg-amber-400'}`} />
+        <span className="whitespace-nowrap">{label}:</span>
+        <span className="min-w-[12px] text-right font-bold tabular-nums">{count}</span>
       </button>
     );
   };
@@ -2388,7 +2436,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const hasIdleFilter = inactiveDaysFilterByGroup.has(adminId);
     const hasPendingFilter = pendingWithdrawalFilterByGroup.has(adminId);
     const selectedCreatedDate = createdDateFilterByGroup.get(adminId);
-    const financialFilter = financialFilterByGroup.get(adminId);
     const pendingWithdrawalCount = groupEmployees.filter(employee => employee.hasPendingWithdrawal).length;
 
     const on = 'text-white font-semibold shadow-md border border-transparent';
@@ -2616,48 +2663,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           </div>
         </div>
         {renderCreatedDatePortal(adminId)}
-
-        <button
-          type="button"
-          onClick={() => {
-            setFinancialFilterByGroup(prev => {
-              const next = new Map(prev);
-              if (financialFilter === 'wallet') next.delete(adminId);
-              else next.set(adminId, 'wallet');
-              return next;
-            });
-          }}
-          aria-pressed={financialFilter === 'wallet'}
-          className={`ml-2 inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 text-[11px] font-semibold shadow-sm transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/70 ${
-            financialFilter === 'wallet'
-              ? 'border-violet-200 bg-violet-600 text-white shadow-violet-950/50 ring-1 ring-violet-300/35'
-              : 'border-violet-600/70 bg-violet-950/45 text-violet-200 shadow-violet-950/30 hover:border-violet-400/90 hover:bg-violet-900/70 hover:text-white'
-          }`}
-        >
-          <Wallet className="h-3.5 w-3.5" />
-          <span>钱包有金额</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setFinancialFilterByGroup(prev => {
-              const next = new Map(prev);
-              if (financialFilter === 'today_commission') next.delete(adminId);
-              else next.set(adminId, 'today_commission');
-              return next;
-            });
-          }}
-          aria-pressed={financialFilter === 'today_commission'}
-          className={`ml-2 inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 text-[11px] font-semibold shadow-sm transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 ${
-            financialFilter === 'today_commission'
-              ? 'border-amber-200 bg-amber-500 text-amber-950 shadow-amber-950/50 ring-1 ring-amber-300/40'
-              : 'border-amber-600/70 bg-amber-950/45 text-amber-200 shadow-amber-950/30 hover:border-amber-400/90 hover:bg-amber-900/70 hover:text-amber-50'
-          }`}
-        >
-          <DollarSign className="h-3.5 w-3.5" />
-          <span>今日佣金</span>
-        </button>
 
         <button
           type="button"
@@ -4105,6 +4110,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               {/* Summary stats */}
               {(() => {
                 const allEmps = employeeGroups[0]?.employees || [];
+                const financialCounts = getFinancialFilterCounts(flatAdminId);
                 return (
                   <div className="px-3 pb-1.5 pt-3 border-b border-blue-500/20 bg-blue-500/5">
                     <div className="flex items-center gap-3 flex-wrap">
@@ -4150,6 +4156,19 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                           '目前工作中',
                           allEmps.filter(e => e.workStatus === 'online').length,
 
+                        )}
+                        <span className="text-slate-500">&bull;</span>
+                        {renderFinancialFilterButton(
+                          flatAdminId,
+                          'today_commission',
+                          '今日有佣金',
+                          financialCounts.todayCommission,
+                        )}
+                        {renderFinancialFilterButton(
+                          flatAdminId,
+                          'wallet',
+                          '钱包有金额',
+                          financialCounts.wallet,
                         )}
                       </>
                     ) : (
@@ -4320,6 +4339,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                         {(() => {
                           const originalGroup = employeeGroups.find(g => g.admin.id === group.admin.id);
                           const allEmps = originalGroup?.employees || [];
+                          const financialCounts = getFinancialFilterCounts(group.admin.id);
                           return (
                             <>
                               <div className={`inline-flex items-center gap-3 rounded-xl border px-3 py-1 shadow-sm ${isSuperGroup ? 'border-yellow-400/35 bg-gradient-to-r from-yellow-950/90 via-amber-950/60 to-slate-900 shadow-yellow-950/30' : 'border-blue-400/35 bg-gradient-to-r from-blue-950/90 via-cyan-950/60 to-slate-900 shadow-blue-950/30'}`}>
@@ -4364,6 +4384,19 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                                     '目前工作中',
                                     allEmps.filter(e => e.workStatus === 'online').length,
 
+                                  )}
+                                  <span className="text-slate-500">•</span>
+                                  {renderFinancialFilterButton(
+                                    group.admin.id,
+                                    'today_commission',
+                                    '今日有佣金',
+                          financialCounts.todayCommission,
+                                  )}
+                                  {renderFinancialFilterButton(
+                                    group.admin.id,
+                                    'wallet',
+                                    '钱包有金额',
+                                    financialCounts.wallet,
                                   )}
                                 </>
                               )}
