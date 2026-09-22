@@ -1327,7 +1327,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`relative flex items-center gap-1.5 px-1.5 py-1.5 rounded-lg font-medium transition-all text-left ${
+                    className={`relative flex items-center gap-1.5 px-1.5 py-1.5 rounded-lg font-medium transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
                           ? 'bg-orange-700 text-white shadow-lg shadow-orange-900/40'
@@ -1337,7 +1337,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                         : tab.id === 'customerservice'
                           ? 'text-orange-400 hover:text-orange-100 hover:bg-orange-950/70'
                           : tab.id === 'cccservice'
-                            ? 'text-emerald-400 hover:text-emerald-100 hover:bg-emerald-950/70'
+                            ? 'border border-emerald-900/60 text-emerald-400 hover:border-emerald-700/70 hover:text-emerald-100 hover:bg-emerald-950/70'
                             : 'border border-transparent text-slate-300 hover:border-cyan-900/60 hover:bg-gradient-to-r hover:from-blue-950/90 hover:via-cyan-950/70 hover:to-amber-950/45 hover:text-white'
                     }`}
                   >
@@ -1405,7 +1405,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`relative flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                    className={`relative flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
                           ? 'bg-orange-700 text-white shadow-lg shadow-orange-900/40'
