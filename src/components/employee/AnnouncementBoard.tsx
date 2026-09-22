@@ -106,6 +106,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
   const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const carouselLoopMarkerRef = useRef<HTMLDivElement | null>(null);
+  const lastAutoScrollAtRef = useRef(0);
   const isLoadingRef = useRef(false);
   const backgroundRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isPageVisibleRef = useRef(typeof document !== 'undefined' ? !document.hidden : true);
@@ -558,11 +559,15 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     let animationFrameId = 0;
     let lastTimestamp: number | null = null;
     let scrollPosition = container.scrollTop;
+    let loopStart = 0;
+    let canScroll = false;
+
+    const updateLoopBoundary = () => {
+      loopStart = carouselLoopMarkerRef.current?.offsetTop ?? container.scrollHeight / 2;
+      canScroll = loopStart > 0 && container.scrollHeight > container.clientHeight;
+    };
 
     const autoScroll = (timestamp: number) => {
-      const loopStart = carouselLoopMarkerRef.current?.offsetTop ?? container.scrollHeight / 2;
-      const canScroll = loopStart > 0 && container.scrollHeight > container.clientHeight;
-
       if (!canScroll || isCarouselPausedRef.current || !isPageVisibleRef.current) {
         scrollPosition = container.scrollTop;
         lastTimestamp = timestamp;
@@ -571,22 +576,25 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
       }
 
       if (lastTimestamp === null) lastTimestamp = timestamp;
-      const deltaSeconds = Math.min((timestamp - lastTimestamp) / 1000, 0.05);
+      const deltaSeconds = Math.min((timestamp - lastTimestamp) / 1000, 1 / 30);
       lastTimestamp = timestamp;
       scrollPosition += carouselSpeed * 48 * deltaSeconds;
 
-      if (scrollPosition >= loopStart) scrollPosition %= loopStart;
+      if (scrollPosition >= loopStart) scrollPosition -= loopStart;
+      lastAutoScrollAtRef.current = performance.now();
       container.scrollTop = scrollPosition;
       animationFrameId = requestAnimationFrame(autoScroll);
     };
 
-    const startTimer = window.setTimeout(() => {
-      scrollPosition = container.scrollTop;
-      animationFrameId = requestAnimationFrame(autoScroll);
-    }, 700);
+    const resizeObserver = new ResizeObserver(updateLoopBoundary);
+    resizeObserver.observe(container);
+    if (carouselLoopMarkerRef.current) resizeObserver.observe(carouselLoopMarkerRef.current);
+
+    updateLoopBoundary();
+    animationFrameId = requestAnimationFrame(autoScroll);
 
     return () => {
-      window.clearTimeout(startTimer);
+      resizeObserver.disconnect();
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
   }, [announcements.length, carouselEnabled, carouselSpeed, selectedAnnouncement]);
@@ -600,6 +608,8 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
     let isScrolling = false;
 
     const handleScrollStart = () => {
+      if (performance.now() - lastAutoScrollAtRef.current < 80) return;
+
       if (!isScrolling) {
         isScrolling = true;
         container.classList.add('scrolling');
@@ -1286,6 +1296,7 @@ export default function AnnouncementBoard({ userId }: AnnouncementBoardProps) {
                   msOverflowStyle: 'none',
                   scrollBehavior: 'auto',
                   WebkitOverflowScrolling: 'touch',
+                  willChange: carouselEnabled && announcements.length > 1 ? 'scroll-position' : 'auto',
                 }}
               >
               {/* Render announcements - duplicate for carousel when enabled */}
