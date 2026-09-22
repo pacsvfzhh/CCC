@@ -88,6 +88,26 @@ function stripMarkup(content: string) {
   return content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+function normalizeSearchText(value: string) {
+  return value
+    .normalize('NFKC')
+    .toLocaleLowerCase()
+    .replace(/[\s\p{P}\p{S}]+/gu, '');
+}
+
+function fuzzyMatches(value: string, query: string) {
+  const normalizedValue = normalizeSearchText(value);
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery || normalizedValue.includes(normalizedQuery)) return true;
+
+  let queryIndex = 0;
+  for (const character of normalizedValue) {
+    if (character === normalizedQuery[queryIndex]) queryIndex += 1;
+    if (queryIndex === normalizedQuery.length) return true;
+  }
+  return false;
+}
+
 function sortAnnouncements(announcements: Announcement[]) {
   return [...announcements].sort((a, b) => {
     if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
@@ -267,14 +287,12 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const selectedAnnouncement = announcements.find(item => item.id === selectedAnnouncementId) || null;
   const selectedAdminName = selectedGroup?.adminName || admin.username;
 
-  const searchMatchedAnnouncements = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    return (selectedGroup?.announcements || []).filter(item => (
-      !normalizedQuery
-      || item.title.toLowerCase().includes(normalizedQuery)
-      || stripMarkup(item.content).toLowerCase().includes(normalizedQuery)
-    ));
-  }, [searchQuery, selectedGroup]);
+  const searchMatchedAnnouncements = useMemo(() => (
+    (selectedGroup?.announcements || []).filter(item => (
+      fuzzyMatches(item.title, searchQuery)
+      || fuzzyMatches(stripMarkup(item.content), searchQuery)
+    ))
+  ), [searchQuery, selectedGroup]);
 
   const statusCounts = useMemo<Record<StatusFilter, number>>(() => ({
     all: searchMatchedAnnouncements.length,
@@ -776,7 +794,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
               <input
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
-                placeholder="搜索标题或正文内容"
+                placeholder="模糊搜索标题或正文"
                 className="h-10 w-full rounded-xl border border-white/80 bg-slate-50 pl-9 pr-9 text-xs font-bold text-slate-800 shadow-[0_8px_22px_rgba(2,8,23,0.22),inset_0_1px_0_rgba(255,255,255,0.9)] outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-cyan-400 focus:bg-white focus:ring-2 focus:ring-cyan-400/20"
               />
               {searchQuery && (
