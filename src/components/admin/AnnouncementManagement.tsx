@@ -603,7 +603,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const getAnnouncementCardTone = (announcement: Announcement) => {
     if (announcement.is_hidden) {
       return {
-        active: 'border-red-300/60 bg-[linear-gradient(105deg,rgba(185,28,28,0.34),rgba(15,23,42,0.94)_74%)] shadow-red-950/45',
+        active: 'border-red-300/80 bg-[linear-gradient(105deg,rgba(220,38,38,0.95),rgba(153,27,27,0.94)_58%,rgba(76,5,25,0.96))] shadow-lg shadow-red-950/60',
         idle: 'border-red-900/60 bg-[linear-gradient(105deg,rgba(127,29,29,0.25),rgba(15,23,42,0.72))] shadow-red-950/20 hover:border-red-500/50 hover:bg-[linear-gradient(105deg,rgba(153,27,27,0.32),rgba(15,23,42,0.82))]',
         accent: 'from-red-300 to-rose-600 shadow-[0_0_8px_rgba(248,113,113,0.72)]',
         icon: 'text-red-300',
@@ -612,7 +612,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     }
     if (announcement.is_pinned) {
       return {
-        active: 'border-amber-200/65 bg-[linear-gradient(105deg,rgba(180,83,9,0.36),rgba(15,23,42,0.94)_74%)] shadow-amber-950/45',
+        active: 'border-amber-200/85 bg-[linear-gradient(105deg,rgba(217,119,6,0.96),rgba(180,83,9,0.94)_58%,rgba(69,26,3,0.97))] shadow-lg shadow-amber-950/60',
         idle: 'border-amber-800/55 bg-[linear-gradient(105deg,rgba(120,53,15,0.25),rgba(15,23,42,0.72))] shadow-amber-950/20 hover:border-amber-500/50 hover:bg-[linear-gradient(105deg,rgba(146,64,14,0.33),rgba(15,23,42,0.82))]',
         accent: 'from-amber-200 to-orange-500 shadow-[0_0_8px_rgba(251,191,36,0.72)]',
         icon: 'text-amber-300',
@@ -621,7 +621,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     }
     if (announcement.is_global) {
       return {
-        active: 'border-emerald-300/60 bg-[linear-gradient(105deg,rgba(5,150,105,0.3),rgba(15,23,42,0.94)_74%)] shadow-emerald-950/40',
+        active: 'border-emerald-200/80 bg-[linear-gradient(105deg,rgba(5,150,105,0.96),rgba(4,120,87,0.94)_58%,rgba(2,44,34,0.97))] shadow-lg shadow-emerald-950/60',
         idle: 'border-emerald-900/55 bg-[linear-gradient(105deg,rgba(6,78,59,0.25),rgba(15,23,42,0.72))] shadow-emerald-950/20 hover:border-emerald-500/45 hover:bg-[linear-gradient(105deg,rgba(6,95,70,0.32),rgba(15,23,42,0.82))]',
         accent: 'from-emerald-300 to-teal-600 shadow-[0_0_8px_rgba(52,211,153,0.68)]',
         icon: 'text-emerald-300',
@@ -629,7 +629,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       };
     }
     return {
-      active: 'border-cyan-300/55 bg-[linear-gradient(105deg,rgba(8,145,178,0.24),rgba(15,23,42,0.92)_72%)] shadow-cyan-950/35',
+      active: 'border-cyan-200/80 bg-[linear-gradient(105deg,rgba(8,145,178,0.96),rgba(14,116,144,0.94)_58%,rgba(8,47,73,0.97))] shadow-lg shadow-cyan-950/60',
       idle: 'border-slate-700/65 bg-[linear-gradient(105deg,rgba(30,41,59,0.72),rgba(2,6,23,0.55))] shadow-slate-950/25 hover:border-cyan-700/60 hover:bg-[linear-gradient(105deg,rgba(30,58,75,0.8),rgba(15,23,42,0.78))]',
       accent: 'from-cyan-300 to-blue-500 shadow-[0_0_8px_rgba(34,211,238,0.7)]',
       icon: 'text-cyan-300',
@@ -857,11 +857,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center gap-1.5">
                         <h3 className={`min-w-0 flex-1 truncate text-[11px] font-black leading-4 ${active ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>{announcement.title}</h3>
-                        {active && (
-                          <span className="shrink-0 rounded-md border border-white/25 bg-white/15 px-1.5 py-0.5 text-[8px] font-black text-white shadow-sm">
-                            已选
-                          </span>
-                        )}
                         <ChevronRight className={`h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 ${active ? cardTone.icon : 'text-slate-600 group-hover:text-slate-300'}`} />
                       </div>
                       <div className="mt-1.5 flex min-w-0 items-center justify-between gap-1.5">
