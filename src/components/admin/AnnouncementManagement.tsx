@@ -20,7 +20,6 @@ import {
   Plus,
   Save,
   Search,
-  SlidersHorizontal,
   Trash2,
   Users,
   X,
@@ -613,7 +612,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   };
 
   const actionButtonClass = 'inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70';
-  const lightInputClass = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20';
 
   const renderStatusBadges = (announcement: Announcement, highContrast = false) => (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -913,98 +911,96 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         <main className="min-h-0 min-w-0 overflow-hidden bg-[radial-gradient(circle_at_top_right,rgba(8,145,178,0.08),transparent_34%),#0f172a]">
           {workspaceMode === 'edit' ? (
             <form onSubmit={handleSubmit} className="flex h-full min-h-0 flex-col">
-              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700 bg-slate-900/90 px-3 py-2 sm:px-4">
-                <div className="flex min-w-0 items-center gap-2">
-                  <button type="button" onClick={leaveEditor} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-600 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white" aria-label="返回公告预览">
-                    <ArrowLeft className="h-4 w-4" />
-                  </button>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-black text-white">{editorMode === 'create' ? '新增公告' : '编辑公告'}</p>
-                    <p className="truncate text-[10px] text-slate-500">归属：{selectedAdminName}</p>
+              <div className="relative shrink-0 overflow-hidden border-b border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(8,145,178,0.2),transparent_38%),linear-gradient(105deg,rgba(8,47,73,0.88),rgba(15,23,42,0.98)_68%)] px-3 py-2.5 shadow-lg shadow-slate-950/20 sm:px-4">
+                <div className="pointer-events-none absolute -left-8 -top-12 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
+                <div className="relative flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <button type="button" onClick={leaveEditor} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-300/25 bg-slate-950/35 text-cyan-100 transition hover:border-cyan-300/45 hover:bg-cyan-500/15 hover:text-white" aria-label="返回公告预览">
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-white">{editorMode === 'create' ? '新增公告' : '编辑公告'}</p>
+                      <p className="mt-0.5 truncate text-[10px] font-bold text-cyan-100/65">所属管理员：<span className="text-white">{selectedAdminName}</span></p>
+                    </div>
+                    {isDirty && <span className="hidden rounded-full border border-amber-300/25 bg-amber-500/15 px-2 py-0.5 text-[9px] font-black text-amber-200 sm:inline">未保存</span>}
                   </div>
-                  {isDirty && <span className="hidden rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold text-amber-300 sm:inline">未保存</span>}
+                  <div className="flex items-center gap-1.5">
+                    <button type="button" onClick={() => setShowEmployeePreview(true)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-violet-300/25 bg-violet-500/10 px-2.5 text-[10px] font-black text-violet-100 transition hover:bg-violet-500/20">
+                      <Monitor className="h-3.5 w-3.5" />员工端预览
+                    </button>
+                    <button type="submit" disabled={savingAnnouncement} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-cyan-600 to-blue-700 px-3 text-[10px] font-black text-white shadow-md shadow-cyan-950/35 transition hover:from-cyan-500 hover:to-blue-600 disabled:opacity-50">
+                      <Save className="h-3.5 w-3.5" />{savingAnnouncement ? '保存中…' : '保存公告'}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => setShowEmployeePreview(true)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-2.5 text-[10px] font-black text-slate-200 hover:bg-slate-700">
-                    <Monitor className="h-3.5 w-3.5" />员工端预览
+
+                <div className="relative mt-2 flex flex-wrap items-center gap-1.5">
+                  <label className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-blue-300/20 bg-slate-950/35 px-2 text-[10px] font-bold text-slate-200 transition focus-within:border-cyan-300/60 focus-within:ring-2 focus-within:ring-cyan-400/15">
+                    <Calendar className="h-3.5 w-3.5 shrink-0 text-blue-300" />
+                    <span className="shrink-0 text-slate-400">发布时间</span>
+                    <input type="datetime-local" value={draft.publishAt} onChange={event => setDraft(previous => ({ ...previous, publishAt: event.target.value }))} className="w-[148px] bg-transparent font-black text-white outline-none [color-scheme:dark]" />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setDraft(previous => ({ ...previous, isPinned: !previous.isPinned }))}
+                    aria-pressed={draft.isPinned}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-black transition ${draft.isPinned ? 'border-amber-200/55 bg-amber-500 text-white shadow-md shadow-amber-950/40' : 'border-amber-300/25 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'}`}
+                  >
+                    <Pin className="h-3.5 w-3.5" />置顶 {draft.isPinned ? '已开启' : '已关闭'}
                   </button>
-                  <button type="submit" disabled={savingAnnouncement} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 px-3 text-[10px] font-black text-white shadow-md disabled:opacity-50">
-                    <Save className="h-3.5 w-3.5" />{savingAnnouncement ? '保存中…' : '保存公告'}
+                  {draft.isPinned && (
+                    <label className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-300/25 bg-slate-950/35 px-2 text-[10px] font-bold text-amber-100">
+                      <span className="shrink-0">顺序</span>
+                      <input type="number" min="1" max="999" value={draft.pinOrder} onChange={event => setDraft(previous => ({ ...previous, pinOrder: Number(event.target.value) || 999 }))} className="h-6 w-14 rounded-md border border-amber-300/25 bg-white px-1.5 text-center font-black text-slate-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20" aria-label="置顶顺序" />
+                    </label>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setDraft(previous => ({ ...previous, isHidden: !previous.isHidden }))}
+                    aria-pressed={draft.isHidden}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-black transition ${draft.isHidden ? 'border-orange-200/55 bg-gradient-to-r from-orange-600 to-red-700 text-white shadow-md shadow-red-950/40' : 'border-orange-300/25 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20'}`}
+                  >
+                    {draft.isHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}隐藏 {draft.isHidden ? '已开启' : '已关闭'}
                   </button>
+                  {isSuperAdmin && (creatingForAdminId || selectedAdminId) === admin.id && (
+                    <button
+                      type="button"
+                      onClick={() => setDraft(previous => ({ ...previous, isGlobal: !previous.isGlobal }))}
+                      aria-pressed={draft.isGlobal}
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-black transition ${draft.isGlobal ? 'border-emerald-200/55 bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md shadow-emerald-950/40' : 'border-red-300/35 bg-red-500/10 text-red-200 hover:bg-red-500/20'}`}
+                    >
+                      <Globe className="h-3.5 w-3.5" />全局 {draft.isGlobal ? '已开启' : '已关闭'}
+                    </button>
+                  )}
                 </div>
               </div>
 
               <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-4 xl:overflow-hidden">
-                <div className="grid min-h-full gap-3 xl:h-full xl:min-h-0 xl:grid-cols-[270px_minmax(0,1fr)]">
-                  <section className="rounded-xl border border-slate-700 bg-slate-900/90 p-3 xl:overflow-y-auto">
-                    <div className="mb-3 flex items-center gap-2 border-b border-slate-700 pb-2.5">
-                      <SlidersHorizontal className="h-4 w-4 text-cyan-300" />
-                      <h3 className="text-xs font-black text-white">公告设置</h3>
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-1.5 block text-[11px] font-bold text-slate-300">公告标题</label>
-                        <input
-                          type="text"
-                          value={draft.title}
-                          onChange={event => setDraft(previous => ({ ...previous, title: event.target.value }))}
-                          onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }}
-                          placeholder="请输入公告标题"
-                          className={lightInputClass}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold text-slate-300"><Calendar className="h-3 w-3" />发布时间</label>
-                        <input type="datetime-local" value={draft.publishAt} onChange={event => setDraft(previous => ({ ...previous, publishAt: event.target.value }))} className={lightInputClass} />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2.5">
-                          <span className="flex items-center gap-2 text-[11px] font-bold text-slate-200"><Pin className="h-3.5 w-3.5 text-amber-300" />置顶公告</span>
-                          <input type="checkbox" checked={draft.isPinned} onChange={event => setDraft(previous => ({ ...previous, isPinned: event.target.checked }))} className="h-4 w-4 accent-cyan-500" />
-                        </label>
-                        {draft.isPinned && (
-                          <div>
-                            <label className="mb-1.5 block text-[11px] font-bold text-slate-300">置顶顺序</label>
-                            <input type="number" min="1" max="999" value={draft.pinOrder} onChange={event => setDraft(previous => ({ ...previous, pinOrder: Number(event.target.value) || 999 }))} className={lightInputClass} />
-                            <p className="mt-1 text-[9px] leading-4 text-slate-500">数字越小，员工端显示位置越靠前。</p>
-                          </div>
-                        )}
-                        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2.5">
-                          <span className="flex items-center gap-2 text-[11px] font-bold text-slate-200"><EyeOff className="h-3.5 w-3.5 text-orange-300" />隐藏公告</span>
-                          <input type="checkbox" checked={draft.isHidden} onChange={event => setDraft(previous => ({ ...previous, isHidden: event.target.checked }))} className="h-4 w-4 accent-cyan-500" />
-                        </label>
-                        {isSuperAdmin && (creatingForAdminId || selectedAdminId) === admin.id && (
-                          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2.5">
-                            <span className="flex items-center gap-2 text-[11px] font-bold text-slate-200"><Globe className="h-3.5 w-3.5 text-emerald-300" />全局公告</span>
-                            <input type="checkbox" checked={draft.isGlobal} onChange={event => setDraft(previous => ({ ...previous, isGlobal: event.target.checked }))} className="h-4 w-4 accent-cyan-500" />
-                          </label>
-                        )}
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className="flex min-h-[520px] flex-col overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-100 shadow-2xl shadow-slate-950/30 xl:min-h-0">
-                    <div className="flex shrink-0 items-center justify-between border-b border-slate-300 bg-white px-3 py-2">
-                      <div>
-                        <h3 className="text-xs font-black text-slate-900">公告正文</h3>
-                        <p className="text-[9px] text-slate-500">支持富文本、图片、影片及 Word 文件导入</p>
-                      </div>
-                      <span className="rounded-md border border-cyan-200 bg-cyan-50 px-2 py-1 text-[9px] font-bold text-cyan-700">浅色编辑模式</span>
-                    </div>
-                    <div className="min-h-0 flex-1 bg-white">
-                      <TiptapEditor
-                        key={`${editorMode}-${editingId || creatingForAdminId || selectedAdminId}`}
-                        ref={editorRef}
-                        content={draft.content}
-                        onChange={content => setDraft(previous => ({ ...previous, content }))}
-                        placeholder="开始输入公告内容……"
-                        adminId={admin.id}
-                        theme="light"
-                      />
-                    </div>
-                  </section>
-                </div>
+                <section className="flex min-h-[520px] flex-col overflow-hidden rounded-xl border border-cyan-300/25 bg-white shadow-2xl shadow-slate-950/30 xl:h-full xl:min-h-0">
+                  <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-3">
+                    <label htmlFor="announcement-title" className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.16em] text-cyan-700">公告标题</label>
+                    <textarea
+                      id="announcement-title"
+                      rows={2}
+                      value={draft.title}
+                      onChange={event => setDraft(previous => ({ ...previous, title: event.target.value }))}
+                      placeholder="请输入公告标题"
+                      className="announcement-title-scroll h-[50px] max-h-[50px] w-full resize-none overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm font-black leading-[18px] text-slate-900 shadow-inner outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-500/20"
+                      required
+                    />
+                  </div>
+                  <div className="min-h-0 flex-1 bg-white">
+                    <TiptapEditor
+                      key={`${editorMode}-${editingId || creatingForAdminId || selectedAdminId}`}
+                      ref={editorRef}
+                      content={draft.content}
+                      onChange={content => setDraft(previous => ({ ...previous, content }))}
+                      placeholder="开始输入公告内容……"
+                      adminId={admin.id}
+                      theme="light"
+                    />
+                  </div>
+                </section>
               </div>
             </form>
           ) : selectedAnnouncement ? (
@@ -1088,6 +1084,19 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       </div>
 
       <style>{`
+        .announcement-title-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgb(6 182 212) rgb(226 232 240);
+        }
+        .announcement-title-scroll::-webkit-scrollbar { width: 6px; }
+        .announcement-title-scroll::-webkit-scrollbar-track {
+          border-radius: 999px;
+          background: rgb(226 232 240);
+        }
+        .announcement-title-scroll::-webkit-scrollbar-thumb {
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgb(6 182 212), rgb(37 99 235));
+        }
         .announcement-preview img,
         .announcement-preview video {
           display: block;
