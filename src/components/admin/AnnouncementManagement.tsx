@@ -720,17 +720,6 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         <aside className="hidden min-h-0 flex-col border-r border-cyan-950/70 bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(8,20,38,0.98))] lg:flex">
           <div className="relative shrink-0 overflow-hidden border-b border-cyan-900/45 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.13),transparent_42%),linear-gradient(145deg,rgba(15,23,42,0.98),rgba(8,47,73,0.4))] p-3">
             <div className="pointer-events-none absolute -right-8 -top-10 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl" />
-            <div className="relative mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-400/10 text-cyan-200">
-                  <SlidersHorizontal className="h-3 w-3" />
-                </span>
-                <span className="text-[11px] font-black tracking-wide text-slate-100">公告筛选</span>
-              </div>
-              <span className="rounded-md border border-cyan-300/15 bg-slate-950/35 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-cyan-100/80">
-                当前 {visibleAnnouncements.length} 则
-              </span>
-            </div>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
               <input
