@@ -2714,7 +2714,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     if (msg.message_type === 'rich_card') {
       return (
-        <div className="my-1.5 flex w-full justify-center">
+        <div className="my-1.5">
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); openRichCardViewer(msg); }}
@@ -4260,12 +4260,12 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                 {messages.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`flex group ${msg.message_type === 'rich_card' ? 'justify-center' : msg.sender_type === 'customer' ? 'justify-end' : 'justify-start'}`}
+                        className={`flex group ${msg.sender_type === 'customer' ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className={`relative flex items-start gap-2 min-w-0 ${msg.message_type === 'rich_card' ? 'w-full max-w-[80%] justify-center' : editingMessageId === msg.id ? 'max-w-[90%]' : 'max-w-[80%]'}`}>
+                        <div className={`flex items-start gap-2 min-w-0 ${editingMessageId === msg.id ? 'max-w-[90%]' : 'max-w-[80%]'}`}>
                           {/* Action buttons for customer (admin-sent) messages */}
                           {msg.sender_type === 'customer' && editingMessageId !== msg.id && msg.message_type !== 'tip' && msg.message_type !== 'rating_request' && msg.message_type !== 'rating_result' && (
-                            <div className={`${msg.message_type === 'rich_card' ? 'absolute right-0 top-0 z-20' : 'mt-1'} flex shrink-0 flex-col gap-1 rounded-xl border border-emerald-200/20 bg-slate-950/70 p-1 opacity-70 shadow-lg shadow-black/20 backdrop-blur-sm transition-all duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100`}>
+                            <div className="mt-1 flex shrink-0 flex-col gap-1 rounded-xl border border-emerald-200/20 bg-slate-950/70 p-1 opacity-70 shadow-lg shadow-black/20 backdrop-blur-sm transition-all duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                               {msg.message_type !== 'rich_card' && (
                                 <button
                                   type="button"
@@ -4290,7 +4290,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                           )}
                           {/* Action buttons for employee messages */}
                           {msg.sender_type === 'employee' && editingMessageId !== msg.id && msg.message_type !== 'tip' && msg.message_type !== 'rating_request' && msg.message_type !== 'rating_result' && (
-                            <div className={`${msg.message_type === 'rich_card' ? 'absolute left-0 top-0 z-20' : 'order-last mt-1'} flex shrink-0 flex-col gap-1 rounded-xl border border-emerald-200/20 bg-slate-950/70 p-1 opacity-70 shadow-lg shadow-black/20 backdrop-blur-sm transition-all duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100`}>
+                            <div className="order-last mt-1 flex shrink-0 flex-col gap-1 rounded-xl border border-emerald-200/20 bg-slate-950/70 p-1 opacity-70 shadow-lg shadow-black/20 backdrop-blur-sm transition-all duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                               {msg.message_type !== 'rich_card' && (
                                 <button
                                   type="button"
@@ -4314,9 +4314,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                             </div>
                           )}
                           {(msg.message_type === 'tip' || msg.message_type === 'rich_card') ? (
-                            <div className={`relative z-10 ${msg.message_type === 'rich_card' ? 'min-w-0 flex-1' : ''}`}>
+                            <div className="relative z-10">
                               {renderMessageContent(msg)}
-                              <div className={`text-[10px] mt-1.5 ${msg.message_type === 'rich_card' ? 'text-center text-slate-500' : msg.sender_type === 'customer' ? 'text-slate-500 text-right' : 'text-slate-500'}`}>
+                              <div className={`text-[10px] mt-1.5 ${msg.sender_type === 'customer' ? 'text-slate-500 text-right' : 'text-slate-500'}`}>
                                 {new Date(msg.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                               {msg.sender_type === 'customer' && (
@@ -5084,7 +5084,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                 </div>
               ) : (
                 <div
-                  className="announcement-content"
+                  className="announcement-content [&_img]:mx-auto [&_img]:block"
                   style={{ fontSize: '15px', lineHeight: '1.75', color: '#374151' }}
                   dangerouslySetInnerHTML={{ __html: sanitizeAnnouncementContent(richCardFullContent || viewingRichCard.message_content) }}
                 />
