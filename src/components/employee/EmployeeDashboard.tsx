@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, Lock, ChevronDown, Gift } from 'lucide-react';
 import { Employee } from '../../types';
 import { AUTH_STORAGE_KEY, getEmployeeFinancialSession, logout } from '../../lib/auth';
+import { logEmployeeLogin } from '../../lib/loginHistoryService';
 import { supabase } from '../../lib/supabase';
 import { useCompanyName } from '../../lib/useCompanyName';
 import { useResponsive } from '../../lib/useResponsive';
@@ -321,8 +322,26 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   }, [activeTab, loadedTabs]);
 
   useEffect(() => {
-    void loadUnreadCountRef.current?.();
-    void checkLoginPopupMessagesRef.current?.(false);
+    const reconcileLoginAndNotifications = async () => {
+      const storedAuth = sessionStorage.getItem(AUTH_STORAGE_KEY);
+      const sessionMarker = storedAuth
+        ? (JSON.parse(storedAuth) as { sessionToken?: string }).sessionToken
+        : undefined;
+
+      if (sessionMarker) {
+        await logEmployeeLogin(
+          employee.id,
+          employee.username,
+          employee.employee_id,
+          sessionMarker,
+        );
+      }
+
+      void loadUnreadCountRef.current?.();
+      void checkLoginPopupMessagesRef.current?.(false);
+    };
+
+    void reconcileLoginAndNotifications();
 
     const recoverWhileActive = () => {
       if (
@@ -402,7 +421,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       notificationChannelStatusRef.current = 'CLOSED';
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [employee.id]);
+  }, [employee.employee_id, employee.id, employee.username]);
 
 
 
