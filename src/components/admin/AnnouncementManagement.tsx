@@ -579,8 +579,8 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="hidden min-h-0 flex-col border-r border-slate-700 bg-slate-900/95 lg:flex">
-          <div className="shrink-0 border-b border-slate-700 p-3">
-            <div className="mb-2 flex items-center justify-between">
+          <div className="dark-panel-scroll max-h-[30%] shrink-0 overflow-y-auto border-b border-slate-700 p-3">
+            <div className="sticky top-0 z-10 mb-2 flex items-center justify-between bg-slate-900/95 pb-1">
               <div className="flex items-center gap-2 text-xs font-black text-slate-200">
                 <Users className="h-3.5 w-3.5 text-cyan-300" />管理员分组
               </div>
@@ -820,6 +820,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                     </div>
                     <div className="min-h-0 flex-1 bg-white">
                       <TiptapEditor
+                        key={`${editorMode}-${editingId || creatingForAdminId || selectedAdminId}`}
                         ref={editorRef}
                         content={draft.content}
                         onChange={content => setDraft(previous => ({ ...previous, content }))}
@@ -953,15 +954,15 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
 
       {showMobileConfiguration && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/80 p-2 backdrop-blur-md sm:items-center" onClick={() => setShowMobileConfiguration(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="mobile-configuration-title" className="w-full max-w-md overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl" onClick={event => event.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
+          <div role="dialog" aria-modal="true" aria-labelledby="mobile-configuration-title" className="flex max-h-[calc(100vh-1rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl" onClick={event => event.stopPropagation()}>
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-700 px-4 py-3">
               <div>
                 <h3 id="mobile-configuration-title" className="text-sm font-black text-white">功能配置</h3>
                 <p className="text-[10px] text-slate-500">管理员分组与公告栏自动滚动</p>
               </div>
               <button type="button" onClick={() => setShowMobileConfiguration(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-600 bg-slate-800 text-slate-400 hover:text-white" aria-label="关闭配置"><X className="h-4 w-4" /></button>
             </div>
-            <div className="space-y-4 p-4">
+            <div className="dark-panel-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
               <div>
                 <label className="mb-1.5 block text-[11px] font-bold text-slate-300">管理员分组</label>
                 <select value={selectedAdminId} onChange={event => changeAdminGroup(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 text-xs font-bold text-white outline-none focus:border-cyan-400">
