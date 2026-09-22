@@ -3424,7 +3424,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     </span>
                     <span className={`min-w-0 flex-1 truncate text-[11px] font-extrabold ${selectedAutomationPlan ? (isSuperGroup ? 'text-amber-50' : 'text-cyan-50') : 'text-white'}`}>{selectedAutomationPlan?.name || '不指定方案'}</span>
                     {selectedAutomationPlan && (
-                      <span className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${isSuperGroup ? 'border-amber-200/35 bg-amber-300/15 text-amber-100' : 'border-cyan-200/35 bg-cyan-300/15 text-cyan-100'}`}>{Number(selectedAutomationPlan.selected_task_count) || 0} 個任務</span>
+                      <>
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-300/35 bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-100">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_7px_rgba(110,231,183,0.9)]" />
+                          啟用中
+                        </span>
+                        <span className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${isSuperGroup ? 'border-amber-200/35 bg-amber-300/15 text-amber-100' : 'border-cyan-200/35 bg-cyan-300/15 text-cyan-100'}`}>{Number(selectedAutomationPlan.selected_task_count) || 0} 個任務</span>
+                      </>
                     )}
                     <ChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-200 ${createPlanMenuOpen ? 'rotate-180 text-white' : selectedAutomationPlan ? (isSuperGroup ? 'text-amber-200' : 'text-cyan-200') : 'text-slate-400 group-hover:text-white'}`} />
                   </button>
@@ -3484,6 +3490,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                       {plan ? <Bell className="h-3 w-3" /> : <X className="h-3 w-3" />}
                     </span>
                     <span className={`min-w-0 flex-1 truncate text-[11px] font-bold ${selected ? 'text-white' : 'text-slate-300'}`}>{plan?.name || '不指定方案'}</span>
+                    {plan && (
+                      <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-bold text-emerald-200">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+                        啟用
+                      </span>
+                    )}
                     <span className={`shrink-0 text-[9px] font-bold ${selected ? (isSuperGroup ? 'text-amber-200' : 'text-cyan-200') : 'text-slate-300'}`}>{plan ? `${Number(plan.selected_task_count) || 0} 個任務` : '不加入'}</span>
                     {selected && <CheckCircle className={`h-3.5 w-3.5 shrink-0 ${isSuperGroup ? 'text-amber-300' : 'text-cyan-300'}`} />}
                   </button>
@@ -4226,29 +4238,18 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 const activeOwnerPlans = automationPlans.filter(plan => (
                   plan.status === 'active' && plan.owner_admin_id === editingEmployee.created_by
                 ));
-                const currentPlanIsSelectable = currentAssignment
-                  ? activeOwnerPlans.some(plan => plan.id === currentAssignment.plan_id)
-                  : false;
                 const statusLabel = currentAssignment?.plan_status === 'archived'
                   ? '已封存'
                   : currentAssignment?.plan_status === 'paused'
                     ? '已暫停'
                     : '啟用中';
                 const selectedActivePlan = activeOwnerPlans.find(plan => plan.id === editingAutomationPlanId);
-                const selectedPlanName = editingAutomationPlanId
-                  ? selectedActivePlan?.name || (currentAssignment?.plan_id === editingAutomationPlanId ? currentAssignment.plan_name : '已選方案')
-                  : '不指定方案';
+                const selectedPlanName = selectedActivePlan?.name || '不指定方案';
                 const selectedPlanTaskCount = selectedActivePlan
                   ? Number(selectedActivePlan.selected_task_count) || 0
                   : null;
                 const planOptions = [
                   { id: '', name: '不指定方案', meta: '不加入', disabled: false },
-                  ...(currentAssignment && !currentPlanIsSelectable ? [{
-                    id: currentAssignment.plan_id,
-                    name: currentAssignment.plan_name,
-                    meta: `${statusLabel} · 歷史指派`,
-                    disabled: true,
-                  }] : []),
                   ...activeOwnerPlans.map(plan => ({
                     id: plan.id,
                     name: plan.name,
@@ -4260,12 +4261,25 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 return (
                   <div className="rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-950/30 to-slate-950/55 p-4 shadow-inner shadow-black/20">
                     <div className="flex items-start justify-between gap-3">
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <label htmlFor="edit-employee-automation-plan" className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300/80">02 · 自動化通知方案</label>
-                        <p className="mt-1 text-[11px] leading-5 text-slate-400">
-                          目前方案：<span className="font-semibold text-cyan-100">{currentAssignment ? currentAssignment.plan_name : '不指定方案'}</span>
-                          {currentAssignment && <span className="ml-1 text-slate-500">（{statusLabel}）</span>}
-                        </p>
+                        <div className={`mt-2 flex min-w-0 items-center gap-2 rounded-xl border px-2.5 py-2 shadow-inner ${currentAssignment ? 'border-cyan-300/25 bg-gradient-to-r from-cyan-500/15 to-blue-500/5 shadow-cyan-950/30' : 'border-slate-600/70 bg-gradient-to-r from-slate-800/90 to-slate-900/75 shadow-black/20'}`}>
+                          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${currentAssignment ? 'border-cyan-300/35 bg-cyan-400/15 text-cyan-200' : 'border-slate-600 bg-slate-800 text-slate-400'}`}>
+                            {currentAssignment ? <Bell className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">目前方案</span>
+                            <span className={`block truncate text-[11px] font-extrabold ${currentAssignment ? 'text-cyan-50' : 'text-slate-100'}`}>{currentAssignment ? currentAssignment.plan_name : '不指定方案'}</span>
+                          </span>
+                          {currentAssignment ? (
+                            <span className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${currentAssignment.plan_status === 'active' ? 'border-emerald-300/35 bg-emerald-400/15 text-emerald-100' : currentAssignment.plan_status === 'paused' ? 'border-amber-300/35 bg-amber-400/15 text-amber-100' : 'border-slate-500/40 bg-slate-500/15 text-slate-200'}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${currentAssignment.plan_status === 'active' ? 'bg-emerald-300 shadow-[0_0_7px_rgba(110,231,183,0.9)]' : currentAssignment.plan_status === 'paused' ? 'bg-amber-300' : 'bg-slate-400'}`} />
+                              {statusLabel}
+                            </span>
+                          ) : (
+                            <span className="shrink-0 rounded-md border border-slate-500/45 bg-slate-700/50 px-1.5 py-0.5 text-[9px] font-bold text-slate-200">未加入</span>
+                          )}
+                        </div>
                       </div>
                       <Bell className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
                     </div>
@@ -4277,21 +4291,27 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                       aria-expanded={editPlanMenuOpen}
                       onClick={() => toggleEditPlanMenu(planOptions.length)}
                       disabled={savingEmployeeEdit}
-                      className={`group mt-3 flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left shadow-lg outline-none transition-all disabled:cursor-not-allowed disabled:opacity-50 ${editPlanMenuOpen ? 'border-cyan-200/90 bg-cyan-400/20 ring-2 ring-cyan-300/20' : editingAutomationPlanId ? 'border-cyan-300/75 bg-gradient-to-r from-cyan-500/25 via-cyan-400/15 to-blue-500/10 shadow-cyan-950/50 ring-1 ring-cyan-200/20 hover:border-cyan-200' : 'border-slate-600/80 bg-slate-900/90 hover:border-slate-400 hover:bg-slate-800/95'}`}
+                      className={`group mt-3 flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left shadow-lg outline-none transition-all disabled:cursor-not-allowed disabled:opacity-50 ${editPlanMenuOpen ? 'border-cyan-200/90 bg-cyan-400/20 ring-2 ring-cyan-300/20' : selectedActivePlan ? 'border-cyan-300/75 bg-gradient-to-r from-cyan-500/25 via-cyan-400/15 to-blue-500/10 shadow-cyan-950/50 ring-1 ring-cyan-200/20 hover:border-cyan-200' : 'border-slate-600/80 bg-slate-900/90 hover:border-slate-400 hover:bg-slate-800/95'}`}
                     >
-                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${editingAutomationPlanId ? 'border-cyan-200/60 bg-cyan-300/20 text-cyan-100 shadow-sm shadow-cyan-950/40' : 'border-slate-600 bg-slate-800 text-slate-400'}`}>
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${selectedActivePlan ? 'border-cyan-200/60 bg-cyan-300/20 text-cyan-100 shadow-sm shadow-cyan-950/40' : 'border-slate-600 bg-slate-800 text-slate-400'}`}>
                         <Bell className="h-3.5 w-3.5" />
                       </span>
-                      <span className={`min-w-0 flex-1 truncate text-[11px] font-extrabold ${editingAutomationPlanId ? 'text-cyan-50' : 'text-white'}`}>{selectedPlanName}</span>
+                      <span className={`min-w-0 flex-1 truncate text-[11px] font-extrabold ${selectedActivePlan ? 'text-cyan-50' : 'text-white'}`}>{selectedPlanName}</span>
                       {selectedPlanTaskCount !== null && (
-                        <span className="shrink-0 rounded-md border border-cyan-200/35 bg-cyan-300/15 px-1.5 py-0.5 text-[9px] font-bold text-cyan-100">{selectedPlanTaskCount} 個任務</span>
+                        <>
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-300/35 bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-100">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_7px_rgba(110,231,183,0.9)]" />
+                            啟用中
+                          </span>
+                          <span className="shrink-0 rounded-md border border-cyan-200/35 bg-cyan-300/15 px-1.5 py-0.5 text-[9px] font-bold text-cyan-100">{selectedPlanTaskCount} 個任務</span>
+                        </>
                       )}
-                      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-200 ${editPlanMenuOpen ? 'rotate-180 text-white' : editingAutomationPlanId ? 'text-cyan-200' : 'text-slate-400 group-hover:text-white'}`} />
+                      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-200 ${editPlanMenuOpen ? 'rotate-180 text-white' : selectedActivePlan ? 'text-cyan-200' : 'text-slate-400 group-hover:text-white'}`} />
                     </button>
                     {activeOwnerPlans.length === 0 && !currentAssignment && (
                       <p className="mt-2 text-[11px] text-slate-500">此員工所屬群組目前沒有可指定的啟用方案。</p>
                     )}
-                    {editingAutomationPlanId && (
+                    {selectedActivePlan && (
                       <p className="mt-2 flex items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-cyan-400/10 px-2 py-1.5 text-[10px] font-bold text-cyan-100">
                         <CheckCircle className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
                         儲存後直接加入此方案
@@ -4329,6 +4349,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                                   {option.id ? <Bell className="h-3 w-3" /> : <X className="h-3 w-3" />}
                                 </span>
                                 <span className={`min-w-0 flex-1 truncate text-[11px] font-bold ${selected ? 'text-white' : 'text-slate-300'}`}>{option.name}</span>
+                                {option.id && (
+                                  <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-bold text-emerald-200">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+                                    啟用
+                                  </span>
+                                )}
                                 <span className={`shrink-0 text-[9px] font-bold ${selected ? 'text-cyan-200' : 'text-slate-300'}`}>{option.meta}</span>
                                 {selected && <CheckCircle className="h-3.5 w-3.5 shrink-0 text-cyan-300" />}
                               </button>
