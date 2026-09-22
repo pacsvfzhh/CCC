@@ -1638,12 +1638,6 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
             </div>
           </aside>
           <main className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-slate-900">
-            <section className="shrink-0 border-b border-cyan-300/15 bg-[radial-gradient(circle_at_top_right,rgba(6,182,212,0.14),transparent_42%),linear-gradient(90deg,#0f172a_0%,#0f172a_56%,#082f49_100%)] px-3 py-3 sm:px-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-xl font-black tracking-tight text-white">{currentSelectionName}</h2><span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${selectedPlan?.status === 'active' ? 'border-emerald-300/25 bg-emerald-500/10 text-emerald-300' : selectedPlan?.status === 'paused' ? 'border-amber-300/25 bg-amber-500/10 text-amber-300' : 'border-slate-600 bg-slate-800 text-slate-400'}`}>{selectedPlan ? planStatusLabels[selectedPlan.status] : '舊任務'}</span></div><p className="mt-1 max-w-3xl text-xs leading-5 text-slate-200">{selectedPlan?.description || (selectedPlan ? '尚未填寫方案說明' : '既有未分組任務，可繼續使用原本的個別員工名單。')}</p><p className="mt-1 text-[10px] font-bold text-cyan-100/65">{selectedPlan ? `最後更新 ${formatDateTime(selectedPlan.updated_at)}` : `${selectedOwnerName} · 未分組任務`}</p></div>
-
-              </div>
-            </section>
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700 bg-slate-950/50 px-3 py-2.5">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <div className="flex rounded-xl border border-slate-700 bg-slate-950 p-1">{[{ id: 'tasks' as const, label: '任務', icon: Settings2 }, { id: 'executions' as const, label: '執行記錄', icon: History }].map(tab => <button key={tab.id} type="button" onClick={() => setView(tab.id)} className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-black ${view === tab.id ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white' : 'text-slate-400 hover:bg-slate-800'}`}><tab.icon className="h-3.5 w-3.5" />{tab.label}</button>)}</div>
