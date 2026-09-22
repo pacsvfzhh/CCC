@@ -142,6 +142,33 @@
   background: #0f172a;
 }
 
+.employee-date-menu-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.72) rgba(8, 47, 73, 0.24);
+}
+
+.employee-date-menu-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.employee-date-menu-scrollbar::-webkit-scrollbar-track {
+  margin-block: 4px;
+  border-radius: 999px;
+  background: rgba(8, 47, 73, 0.24);
+}
+
+.employee-date-menu-scrollbar::-webkit-scrollbar-thumb {
+  border: 1px solid rgba(7, 18, 31, 0.72);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.9), rgba(14, 165, 233, 0.74), rgba(37, 99, 235, 0.68));
+  box-shadow: 0 0 7px rgba(56, 189, 248, 0.24);
+}
+
+.employee-date-menu-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(186, 230, 253, 0.98), rgba(56, 189, 248, 0.9), rgba(59, 130, 246, 0.82));
+  box-shadow: 0 0 9px rgba(56, 189, 248, 0.42);
+}
+
 .login-history-list-scrollbar {
   background-color: #020617;
   color-scheme: dark;

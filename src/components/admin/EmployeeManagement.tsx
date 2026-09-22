@@ -2235,11 +2235,18 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         className="fixed z-[9999]"
         style={{ top: createdDateDropdownPos.top, left: createdDateDropdownPos.left }}
       >
-        <div className="w-[220px] overflow-hidden rounded-xl border border-sky-500/60 bg-[#07121d] shadow-2xl shadow-black/70 ring-1 ring-inset ring-sky-200/10">
-          <div className="border-b border-sky-900/80 px-3 py-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-sky-300">新建账户日期</p>
+        <div className="w-[208px] overflow-hidden rounded-[14px] border border-sky-300/30 bg-[linear-gradient(145deg,rgba(8,22,40,0.98),rgba(5,13,27,0.99))] shadow-[0_18px_50px_rgba(2,8,23,0.72),0_0_0_1px_rgba(56,189,248,0.08)] backdrop-blur-xl">
+          <div className="flex items-center gap-2 border-b border-sky-400/15 bg-[linear-gradient(90deg,rgba(14,116,144,0.18),rgba(30,64,175,0.08))] px-2.5 py-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-sky-300/20 bg-sky-400/10 shadow-inner shadow-sky-200/5">
+              <CalendarDays className="h-3.5 w-3.5 text-sky-300" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold leading-none tracking-wide text-sky-100">入职日期</p>
+              <p className="mt-1 text-[9px] leading-none text-sky-300/60">按日期筛选员工</p>
+            </div>
+            <span className="text-[9px] font-semibold tabular-nums text-sky-300/65">{options.length} 天</span>
           </div>
-          <div role="menu" aria-label="新建账户日期篩選" className="max-h-[280px] space-y-1 overflow-y-auto p-1.5">
+          <div role="menu" aria-label="入职日期篩選" className="employee-date-menu-scrollbar max-h-[230px] space-y-0.5 overflow-y-auto overscroll-contain p-1.5 pr-1">
             {options.length > 0 ? options.map(({ date, count }) => {
               const isSelected = selectedDate === date;
               return (
@@ -2258,29 +2265,26 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     setCreatedDateDropdownOpen(null);
                     setCreatedDateDropdownPos(null);
                   }}
-                  className={`flex h-9 w-full items-center gap-2 rounded-lg border px-2.5 text-[11px] font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 ${
+                  className={`group relative flex h-7 w-full items-center gap-2 overflow-hidden rounded-md border px-2 text-[10px] font-semibold transition-all duration-150 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50 ${
                     isSelected
-                      ? 'border-sky-300/80 bg-sky-600 text-white shadow-md shadow-sky-950/50'
-                      : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-500/60 hover:bg-slate-800 hover:text-white'
+                      ? 'border-sky-300/55 bg-gradient-to-r from-sky-600/85 via-cyan-600/75 to-blue-600/70 text-white shadow-[0_4px_14px_rgba(14,165,233,0.2)]'
+                      : 'border-transparent bg-white/[0.025] text-slate-300 hover:border-sky-400/25 hover:bg-sky-400/10 hover:text-sky-50'
                   }`}
                 >
-                  <CalendarDays className={`h-3.5 w-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-sky-400'}`} />
-                  <span className="min-w-0 flex-1 text-left tabular-nums">{date}</span>
-                  <span className={`min-w-[28px] rounded-full border px-1.5 py-0.5 text-center text-[10px] tabular-nums leading-none ${
-                    isSelected
-                      ? 'border-white/30 bg-white/20 text-white'
-                      : 'border-sky-400/35 bg-sky-500/10 text-sky-200'
-                  }`}>
-                    {count}
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-all ${isSelected ? 'bg-white shadow-[0_0_7px_rgba(255,255,255,0.8)]' : 'bg-sky-400/65 group-hover:bg-sky-300'}`} />
+                  <span className="min-w-0 flex-1 text-left font-mono tabular-nums tracking-wide">{date}</span>
+                  <span className={`min-w-[30px] text-right text-[9px] font-bold tabular-nums ${isSelected ? 'text-white' : 'text-sky-300/75 group-hover:text-sky-200'}`}>
+                    {count} 人
                   </span>
+                  {isSelected && <CheckCircle className="h-3 w-3 shrink-0 text-sky-100" />}
                 </button>
               );
             }) : (
-              <p className="px-2 py-5 text-center text-[11px] text-slate-500">暫無新建账户</p>
+              <p className="px-2 py-5 text-center text-[10px] text-slate-500">暫無入职记录</p>
             )}
           </div>
           {selectedDate && (
-            <div className="border-t border-sky-900/80 bg-sky-950/30 p-1.5">
+            <div className="border-t border-sky-400/15 bg-sky-950/20 p-1.5">
               <button
                 type="button"
                 onClick={() => {
@@ -2292,7 +2296,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   setCreatedDateDropdownOpen(null);
                   setCreatedDateDropdownPos(null);
                 }}
-                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-rose-400/45 bg-rose-950/75 px-2 text-[11px] font-semibold text-rose-200 transition-all hover:border-rose-300/75 hover:bg-rose-900/80 hover:text-rose-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50"
+                className="inline-flex h-7 w-full items-center justify-center gap-1.5 rounded-md border border-rose-400/25 bg-rose-950/45 px-2 text-[10px] font-semibold text-rose-300 transition-all hover:border-rose-300/45 hover:bg-rose-900/55 hover:text-rose-100 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40"
               >
                 <X className="h-3.5 w-3.5" />
                 清除篩選
@@ -2313,8 +2317,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     }
 
     const rect = event.currentTarget.getBoundingClientRect();
-    const menuWidth = 220;
-    const menuHeight = Math.min(360, 56 + getCreatedDateOptions(adminId).length * 40);
+    const menuWidth = 208;
+    const menuHeight = Math.min(316, 52 + getCreatedDateOptions(adminId).length * 30 + (createdDateFilterByGroup.has(adminId) ? 34 : 0));
     const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
     const top = window.innerHeight - rect.bottom < menuHeight + 8
       ? Math.max(8, rect.top - menuHeight - 6)
@@ -2638,7 +2642,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               }`}
             >
               <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-              <span className="min-w-0 truncate tabular-nums">{selectedCreatedDate || '新建日期'}</span>
+              <span className="min-w-0 truncate tabular-nums">{selectedCreatedDate || '入职日期'}</span>
               <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${createdDateDropdownOpen === adminId ? 'rotate-180' : ''}`} />
             </button>
             {selectedCreatedDate && (
@@ -2653,8 +2657,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   setCreatedDateDropdownOpen(null);
                   setCreatedDateDropdownPos(null);
                 }}
-                aria-label="清除新建日期篩選"
-                title="清除新建日期篩選"
+                aria-label="清除入职日期篩選"
+                title="清除入职日期篩選"
                 className="inline-flex h-full w-8 shrink-0 items-center justify-center border-l border-rose-200/30 bg-rose-600 text-white transition-colors hover:bg-rose-500 active:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/80"
               >
                 <X className="h-3.5 w-3.5" />
