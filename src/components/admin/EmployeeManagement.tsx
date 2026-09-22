@@ -389,7 +389,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   }, [registrationCalendarOpen]);
 
   useEffect(() => {
-    const anyModalOpen = !!(showCreateSecondaryAdmin || adminFilterOpen || editingEmployee || editingRemarksOnly || showPasswordReset || deletingEmployee || editingTags || editingCreatedAt || pinConfirmEmployee || notification?.show || confirmDialog?.show || loginIPEmployee || walletEmployee);
+    const anyModalOpen = !!(showCreateForm || showCreateSecondaryAdmin || adminFilterOpen || editingEmployee || editingRemarksOnly || showPasswordReset || deletingEmployee || editingTags || editingCreatedAt || pinConfirmEmployee || notification?.show || confirmDialog?.show || loginIPEmployee || walletEmployee);
     if (anyModalOpen && !scrollLockRef.current) {
       scrollLockRef.current = true;
       document.documentElement.style.overflow = 'hidden';
@@ -399,7 +399,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     }
-  }, [showCreateSecondaryAdmin, adminFilterOpen, editingEmployee, editingRemarksOnly, showPasswordReset, deletingEmployee, editingTags, editingCreatedAt, pinConfirmEmployee, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
+  }, [showCreateForm, showCreateSecondaryAdmin, adminFilterOpen, editingEmployee, editingRemarksOnly, showPasswordReset, deletingEmployee, editingTags, editingCreatedAt, pinConfirmEmployee, notification?.show, confirmDialog?.show, loginIPEmployee, walletEmployee]);
 
   useEffect(() => {
     const scopeKey = `${admin.id}:${admin.role}`;
@@ -816,6 +816,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setFormData({ username: '', password: '', employeeId: '', remarks: '', automationPlanId: '' });
     setSelectedAdminForCreate(null);
   };
+
+  useEffect(() => {
+    if (!showCreateForm) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !creating) closeCreateEmployeeForm();
+    };
+
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [showCreateForm, creating]);
 
   const generateResetPassword = () => {
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
@@ -3156,25 +3167,49 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
       : 'focus:border-blue-500 focus:ring-blue-500/20';
 
-    return (
-      <div className={`border-t-2 px-3 py-3 ${isSuperGroup ? 'border-yellow-400/45 bg-gradient-to-r from-[#241805] via-[#352307] to-[#16120a]' : 'border-blue-400/45 bg-gradient-to-r from-[#071a2d] via-[#0b2945] to-[#101827]'}`}>
-        <form onSubmit={handleCreateEmployee} className={`overflow-hidden rounded-2xl border shadow-[0_18px_55px_rgba(2,6,23,0.55)] ${isSuperGroup ? 'border-yellow-400/40 bg-gradient-to-br from-[#1a1307] via-[#261b0a] to-[#111827]' : 'border-blue-400/40 bg-gradient-to-br from-[#091827] via-[#0d2238] to-[#111827]'}`}>
-          <div className={`flex items-start justify-between gap-4 border-b px-5 py-4 ${isSuperGroup ? 'border-yellow-400/20 bg-yellow-500/5' : 'border-blue-400/20 bg-blue-500/5'}`}>
+    return createPortal(
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200"
+        onClick={() => {
+          if (!creating) closeCreateEmployeeForm();
+        }}
+      >
+        <form
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-employee-title"
+          onSubmit={handleCreateEmployee}
+          onClick={(event) => event.stopPropagation()}
+          className={`max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] border shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200 ${isSuperGroup ? 'border-yellow-400/40 bg-gradient-to-br from-[#1a1307] via-[#261b0a] to-[#111827]' : 'border-blue-400/40 bg-gradient-to-br from-[#091827] via-[#0d2238] to-[#111827]'}`}
+        >
+          <div className={`relative flex items-start justify-between gap-4 overflow-hidden border-b px-5 py-4 ${isSuperGroup ? 'border-yellow-400/20 bg-yellow-500/5' : 'border-blue-400/20 bg-blue-500/5'}`}>
+            <div className={`absolute inset-x-0 top-0 h-1 ${isSuperGroup ? 'bg-gradient-to-r from-yellow-600 via-amber-300 to-yellow-600' : 'bg-gradient-to-r from-blue-600 via-cyan-300 to-blue-600'}`} />
             <div className="flex min-w-0 items-center gap-3">
               <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${isSuperGroup ? 'border-yellow-300/40 bg-yellow-500/15 text-yellow-200' : 'border-blue-300/40 bg-blue-500/15 text-blue-200'}`}>
                 <UserPlus className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <p className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${isSuperGroup ? 'text-yellow-300/80' : 'text-blue-300/80'}`}>存取權限配置</p>
-                <h3 className="text-lg font-bold tracking-tight text-white">新增員工帳戶</h3>
+                <h3 id="create-employee-title" className="text-lg font-bold tracking-tight text-white">新增員工帳戶</h3>
                 <p className={`truncate text-xs ${isSuperGroup ? 'text-yellow-100/70' : 'text-blue-100/70'}`}>
                   {groupAdmin ? <>建立於： <strong className="font-semibold text-white">{groupAdmin.username}</strong></> : '建立新的員工帳戶'}
                 </p>
               </div>
             </div>
-            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-[0.12em] ${isSuperGroup ? 'border-yellow-300/35 bg-yellow-500/10 text-yellow-200' : 'border-blue-300/35 bg-blue-500/10 text-blue-200'}`}>
-              安全設定
-            </span>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-[0.12em] ${isSuperGroup ? 'border-yellow-300/35 bg-yellow-500/10 text-yellow-200' : 'border-blue-300/35 bg-blue-500/10 text-blue-200'}`}>
+                安全設定
+              </span>
+              <button
+                type="button"
+                onClick={closeCreateEmployeeForm}
+                disabled={creating}
+                aria-label="關閉新增員工"
+                className={`rounded-xl border bg-slate-950/35 p-2 text-slate-400 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-50 ${isSuperGroup ? 'border-yellow-300/15 hover:border-yellow-300/40 hover:bg-yellow-400/10' : 'border-blue-300/15 hover:border-blue-300/40 hover:bg-blue-400/10'}`}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           {createError && (
@@ -3266,7 +3301,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </div>
           </div>
         </form>
-      </div>
+      </div>,
+      document.body,
     );
   };
 
