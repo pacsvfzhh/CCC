@@ -4100,8 +4100,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
       {editingEmployee && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={closeEmployeeEditor}>
-          <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-[1.75rem] border border-blue-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_24px_90px_rgba(2,6,23,0.78)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="relative overflow-hidden rounded-t-[1.75rem] border-b border-blue-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-5 py-5 sm:px-6">
+          <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-[820px] flex-col overflow-hidden rounded-[1.75rem] border border-blue-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_30px_110px_rgba(2,6,23,0.82)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="relative shrink-0 overflow-hidden rounded-t-[1.75rem] border-b border-blue-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-5 py-4 sm:px-6">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
@@ -4111,7 +4111,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-300">帳戶資料</p>
                     <h3 className="mt-1 text-xl font-bold tracking-tight text-white">編輯員工</h3>
-                    <p className="mt-1 text-xs text-blue-100/60">更新可識別資訊與內部備註。</p>
+                    <p className="mt-1 text-xs text-blue-100/60">更新帳戶資料與自動化通知方案。</p>
                   </div>
                 </div>
                 <button type="button" onClick={closeEmployeeEditor} disabled={savingEmployeeEdit} aria-label="關閉編輯員工" className="rounded-xl border border-blue-300/15 bg-slate-950/35 p-2 text-slate-400 transition-colors hover:border-blue-300/40 hover:bg-blue-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
@@ -4119,37 +4119,40 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 </button>
               </div>
             </div>
-            <div className="space-y-5 p-5 sm:p-6">
-              <div className="flex items-center gap-3 rounded-2xl border border-blue-300/15 bg-slate-950/45 px-4 py-3.5 shadow-inner shadow-black/20">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 dark-panel-scroll">
+              <div className="grid items-start gap-4 md:grid-cols-[1.08fr_0.92fr]">
+                <div className="rounded-2xl border border-blue-300/15 bg-gradient-to-br from-blue-950/30 to-slate-950/50 p-4 shadow-inner shadow-black/20">
+                  <div className="mb-4 flex items-center gap-3 rounded-xl border border-blue-300/15 bg-slate-950/45 px-3 py-2.5">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-200">
                   <Users className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">員工帳戶</p>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-300/75">01 · 基本資料</p>
                   <p className="mt-1 truncate text-sm font-bold text-white" title={editingEmployee.username}>{editingEmployee.username}</p>
                   <p className="mt-0.5 truncate text-[11px] font-medium tracking-wide text-cyan-200/70">目前 ID：{editingEmployee.employee_id}</p>
                 </div>
-              </div>
-              <div className="space-y-4">
+                  </div>
+                  <div className="space-y-3">
                 <div>
                   <label className="mb-2 flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[0.14em] text-blue-100" htmlFor="edit-employee-username">
                     使用者名稱
                     <span className="rounded-full border border-blue-300/20 bg-blue-400/10 px-2 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-blue-200">登入識別</span>
                   </label>
-                  <input id="edit-employee-username" type="text" value={editingEmployee.username} onChange={(e) => setEditingEmployee({ ...editingEmployee, username: e.target.value })} disabled={savingEmployeeEdit} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400" />
+                  <input id="edit-employee-username" type="text" value={editingEmployee.username} onChange={(e) => setEditingEmployee({ ...editingEmployee, username: e.target.value })} disabled={savingEmployeeEdit} className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400" />
                 </div>
                 <div>
                   <label className="mb-2 flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[0.14em] text-blue-100" htmlFor="edit-employee-id">
                     員工 ID
                     <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-cyan-200">內部識別</span>
                   </label>
-                  <input id="edit-employee-id" type="text" value={editingEmployee.employee_id} onChange={(e) => setEditingEmployee({ ...editingEmployee, employee_id: e.target.value })} disabled={savingEmployeeEdit} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400" />
+                  <input id="edit-employee-id" type="text" value={editingEmployee.employee_id} onChange={(e) => setEditingEmployee({ ...editingEmployee, employee_id: e.target.value })} disabled={savingEmployeeEdit} className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400" />
                 </div>
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-blue-100" htmlFor="edit-employee-remarks">備註</label>
-                  <input id="edit-employee-remarks" type="text" value={editingEmployee.remarks || ''} onChange={(e) => setEditingEmployee({ ...editingEmployee, remarks: e.target.value })} disabled={savingEmployeeEdit} placeholder="輸入管理員備註……" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400" />
+                  <input id="edit-employee-remarks" type="text" value={editingEmployee.remarks || ''} onChange={(e) => setEditingEmployee({ ...editingEmployee, remarks: e.target.value })} disabled={savingEmployeeEdit} placeholder="輸入管理員備註……" className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400" />
                 </div>
-              </div>
+                  </div>
+                </div>
               {(() => {
                 const currentAssignment = automationAssignmentsByEmployee.get(editingEmployee.id);
                 const activeOwnerPlans = automationPlans.filter(plan => (
@@ -4165,10 +4168,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     : '啟用中';
 
                 return (
-                  <div className="rounded-2xl border border-cyan-300/20 bg-cyan-500/5 p-4">
+                  <div className="rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-950/30 to-slate-950/55 p-4 shadow-inner shadow-black/20">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <label htmlFor="edit-employee-automation-plan" className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">自動化通知方案</label>
+                        <label htmlFor="edit-employee-automation-plan" className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300/80">02 · 自動化通知方案</label>
                         <p className="mt-1 text-[11px] leading-5 text-slate-400">
                           目前方案：<span className="font-semibold text-cyan-100">{currentAssignment ? currentAssignment.plan_name : '不指定方案'}</span>
                           {currentAssignment && <span className="ml-1 text-slate-500">（{statusLabel}）</span>}
@@ -4184,7 +4187,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                         setEditingAutomationPlanTouched(true);
                       }}
                       disabled={savingEmployeeEdit}
-                      className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                      className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                     >
                       <option value="">不指定方案</option>
                       {currentAssignment && !currentPlanIsSelectable && (
@@ -4208,20 +4211,21 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   </div>
                 );
               })()}
+              </div>
               {editEmployeeError && (
-                <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-red-400/35 bg-red-500/10 px-3.5 py-3 text-xs leading-5 text-red-200">
+                <div role="alert" className="mt-4 flex items-start gap-2.5 rounded-xl border border-red-400/35 bg-red-500/10 px-3.5 py-2.5 text-xs leading-5 text-red-200">
                   <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>{editEmployeeError}</span>
                 </div>
               )}
-              <div className="flex items-start gap-2.5 rounded-xl border border-blue-300/15 bg-blue-500/5 px-3.5 py-3 text-xs leading-5 text-slate-400">
+              <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-blue-300/15 bg-blue-500/5 px-3.5 py-2.5 text-[11px] leading-5 text-slate-400">
                 <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-300" />
                 <span>儲存後，員工清單與相關管理檢視會從伺服器重新載入最新資料。</span>
               </div>
             </div>
-            <div className="flex flex-col-reverse gap-2 overflow-hidden rounded-b-[1.75rem] border-t border-blue-300/15 bg-slate-950/45 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+            <div className="flex shrink-0 flex-col-reverse gap-2 overflow-hidden rounded-b-[1.75rem] border-t border-blue-300/15 bg-gradient-to-r from-slate-950/70 via-blue-950/25 to-slate-950/70 px-5 py-3.5 sm:flex-row sm:justify-end sm:px-6">
               <button type="button" onClick={closeEmployeeEditor} disabled={savingEmployeeEdit} className="rounded-xl border border-slate-600/80 bg-slate-800/70 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">取消</button>
-              <button type="button" onClick={() => void handleSaveEmployeeEdit()} disabled={savingEmployeeEdit || !editingEmployee.username.trim() || !editingEmployee.employee_id.trim()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300/40 bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-950/35 transition-colors hover:bg-blue-500 active:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="button" onClick={() => void handleSaveEmployeeEdit()} disabled={savingEmployeeEdit || !editingEmployee.username.trim() || !editingEmployee.employee_id.trim()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-300/45 bg-gradient-to-r from-blue-600 to-cyan-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-950/40 transition-all hover:-translate-y-0.5 hover:from-blue-500 hover:to-cyan-500 active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-50">
                 {savingEmployeeEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                 {savingEmployeeEdit ? '儲存中…' : '儲存變更'}
               </button>
