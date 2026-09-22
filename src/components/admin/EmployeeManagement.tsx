@@ -316,6 +316,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const scrollLockRef = useRef(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const registrationCalendarRef = useRef<HTMLDivElement>(null);
+  const createdDateOptionsRef = useRef<HTMLDivElement>(null);
+  const createdDateSelectedOptionRef = useRef<HTMLButtonElement>(null);
   const employeeGroupsScrollRef = useRef<HTMLDivElement>(null);
   const employeeGroupsRef = useRef<EmployeeGroup[]>([]);
   employeeGroupsRef.current = employeeGroups;
@@ -422,6 +424,20 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       document.removeEventListener('mousedown', close);
       document.removeEventListener('keydown', closeOnEscape);
     };
+  }, [createdDateDropdownOpen]);
+
+  useLayoutEffect(() => {
+    if (!createdDateDropdownOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      const container = createdDateOptionsRef.current;
+      const selectedOption = createdDateSelectedOptionRef.current;
+      if (!container || !selectedOption) return;
+      container.scrollTop = Math.max(
+        0,
+        selectedOption.offsetTop - (container.clientHeight - selectedOption.offsetHeight) / 2,
+      );
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [createdDateDropdownOpen]);
 
   useEffect(() => {
@@ -2246,12 +2262,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             </div>
             <span className="text-[9px] font-semibold tabular-nums text-sky-300/65">{options.length} 天</span>
           </div>
-          <div role="menu" aria-label="入职日期篩選" className="employee-date-menu-scrollbar max-h-[230px] space-y-0.5 overflow-y-auto overscroll-contain p-1.5 pr-1">
+          <div ref={createdDateOptionsRef} role="menu" aria-label="入职日期篩選" className="employee-date-menu-scrollbar max-h-[230px] space-y-0.5 overflow-y-auto overscroll-contain p-1.5 pr-1">
             {options.length > 0 ? options.map(({ date, count }) => {
               const isSelected = selectedDate === date;
               return (
                 <button
                   key={date}
+                  ref={isSelected ? createdDateSelectedOptionRef : undefined}
                   type="button"
                   role="menuitemradio"
                   aria-checked={isSelected}
@@ -2284,7 +2301,11 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             )}
           </div>
           {selectedDate && (
-            <div className="border-t border-sky-400/15 bg-sky-950/20 p-1.5">
+            <div className="flex items-center justify-between gap-2 border-t border-rose-400/20 bg-[linear-gradient(90deg,rgba(76,5,25,0.38),rgba(30,10,30,0.28))] px-2 py-1.5">
+              <div className="min-w-0 flex-1">
+                <p className="text-[8px] font-bold uppercase leading-none tracking-[0.12em] text-rose-300/65">当前筛选</p>
+                <p className="mt-1 truncate font-mono text-[9px] font-semibold leading-none tabular-nums text-rose-100/90">{selectedDate}</p>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -2296,10 +2317,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   setCreatedDateDropdownOpen(null);
                   setCreatedDateDropdownPos(null);
                 }}
-                className="inline-flex h-7 w-full items-center justify-center gap-1.5 rounded-md border border-rose-400/25 bg-rose-950/45 px-2 text-[10px] font-semibold text-rose-300 transition-all hover:border-rose-300/45 hover:bg-rose-900/55 hover:text-rose-100 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40"
+                className="inline-flex h-6 shrink-0 items-center justify-center gap-1 rounded-md border border-rose-400/35 bg-rose-600/15 px-2 text-[9px] font-bold text-rose-200 shadow-sm shadow-rose-950/20 transition-all hover:border-rose-300/60 hover:bg-rose-500/25 hover:text-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40"
               >
-                <X className="h-3.5 w-3.5" />
-                清除篩選
+                <X className="h-3 w-3" />
+                清除
               </button>
             </div>
           )}
