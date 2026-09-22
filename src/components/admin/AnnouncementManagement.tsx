@@ -316,6 +316,20 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     });
   };
 
+  const toggleAnnouncementSelection = (announcement: Announcement) => {
+    if (selectedAnnouncementId !== announcement.id) {
+      openPreview(announcement);
+      return;
+    }
+
+    requestNavigation(() => {
+      setSelectedAnnouncementId(null);
+      setWorkspaceMode('preview');
+      setEditingId(null);
+      setCreatingForAdminId(null);
+    });
+  };
+
   const startEdit = (announcement: Announcement) => {
     requestNavigation(() => {
       const nextDraft: AnnouncementDraft = {
@@ -806,7 +820,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                 <p className="text-xs font-bold text-slate-400">当前分组没有符合条件的公告</p>
                 <button type="button" onClick={() => startCreateForAdmin(selectedAdminId)} className="mt-3 text-[11px] font-bold text-cyan-300 hover:text-cyan-200">新增第一则公告</button>
               </div>
-            ) : visibleAnnouncements.map(announcement => {
+            ) : visibleAnnouncements.map((announcement, index) => {
               const active = announcement.id === selectedAnnouncementId;
               const cardTone = getAnnouncementCardTone(announcement);
               return (
@@ -814,20 +828,32 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                   key={announcement.id}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => openPreview(announcement)}
-                  className={`group relative mb-1 w-full overflow-hidden rounded-lg border px-2.5 py-2 text-left shadow-sm transition duration-200 ${active ? cardTone.active : cardTone.idle}`}
+                  onClick={() => toggleAnnouncementSelection(announcement)}
+                  className={`group relative mb-1 w-full overflow-hidden rounded-lg border px-2 py-2 text-left shadow-sm transition duration-200 hover:-translate-y-px hover:brightness-110 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${active ? `${cardTone.active} z-10 ring-1 ring-inset ring-white/25` : cardTone.idle}`}
                 >
-                  {active && <span className={`absolute bottom-1.5 left-0 top-1.5 w-0.5 rounded-r-full bg-gradient-to-b ${cardTone.accent}`} />}
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <h3 className={`min-w-0 flex-1 truncate text-[11px] font-black leading-4 ${active ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>{announcement.title}</h3>
-                    <ChevronRight className={`h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 ${active ? cardTone.icon : 'text-slate-600 group-hover:text-slate-300'}`} />
-                  </div>
-                  <div className="mt-1.5 flex min-w-0 items-center justify-between gap-1.5">
-                    <div className="min-w-0 overflow-hidden">{renderStatusBadges(announcement)}</div>
-                    <span className={`inline-flex h-5 shrink-0 items-center gap-1 rounded-md border px-1.5 text-[9px] font-black tabular-nums ${cardTone.date}`}>
-                      <Calendar className="h-2.5 w-2.5" />
-                      {new Date(announcement.publish_at).toLocaleDateString()}
+                  {active && <span className={`absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-gradient-to-b ${cardTone.accent}`} />}
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black tabular-nums ${cardTone.date} ${active ? 'ring-1 ring-white/30' : 'opacity-85 group-hover:opacity-100'}`}>
+                      {index + 1}
                     </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <h3 className={`min-w-0 flex-1 truncate text-[11px] font-black leading-4 ${active ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>{announcement.title}</h3>
+                        {active && (
+                          <span className="shrink-0 rounded-md border border-white/25 bg-white/15 px-1.5 py-0.5 text-[8px] font-black text-white shadow-sm">
+                            已选
+                          </span>
+                        )}
+                        <ChevronRight className={`h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 ${active ? cardTone.icon : 'text-slate-600 group-hover:text-slate-300'}`} />
+                      </div>
+                      <div className="mt-1.5 flex min-w-0 items-center justify-between gap-1.5">
+                        <div className="min-w-0 overflow-hidden">{renderStatusBadges(announcement)}</div>
+                        <span className={`inline-flex h-5 shrink-0 items-center gap-1 rounded-md border px-1.5 text-[9px] font-black tabular-nums ${cardTone.date}`}>
+                          <Calendar className="h-2.5 w-2.5" />
+                          {new Date(announcement.publish_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </button>
               );
