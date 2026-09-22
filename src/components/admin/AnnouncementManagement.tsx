@@ -1044,11 +1044,11 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
                       type="button"
                       onClick={() => void toggleGlobal(selectedAnnouncement)}
                       aria-pressed={selectedAnnouncement.is_global}
-                      className={`inline-flex h-8 w-[184px] items-center justify-between gap-2 overflow-hidden rounded-lg border px-2.5 text-white shadow-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${selectedAnnouncement.is_global ? 'border-emerald-200/60 bg-gradient-to-r from-emerald-600 to-teal-700 shadow-emerald-950/45 hover:from-emerald-500 hover:to-teal-600' : 'border-red-300/55 bg-gradient-to-r from-red-700 to-rose-800 shadow-red-950/45 hover:from-red-600 hover:to-rose-700'}`}
+                      className={`inline-flex h-8 w-[244px] items-center justify-between gap-2 overflow-hidden rounded-lg border px-3 text-white shadow-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${selectedAnnouncement.is_global ? 'border-emerald-200/60 bg-gradient-to-r from-emerald-600 to-teal-700 shadow-emerald-950/45 hover:from-emerald-500 hover:to-teal-600' : 'border-red-300/55 bg-gradient-to-r from-red-700 to-rose-800 shadow-red-950/45 hover:from-red-600 hover:to-rose-700'}`}
                       title={selectedAnnouncement.is_global ? '点击关闭全局公告' : '点击开启全局公告'}
                     >
                       <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-black">
-                        <Globe className="h-4 w-4" />全局
+                        <Globe className="h-4 w-4" />全局管理员显示
                       </span>
                       <span className="shrink-0 text-[11px] font-black">{selectedAnnouncement.is_global ? '已开启' : '已关闭'}</span>
                       <span className="relative h-5 w-9 shrink-0 overflow-hidden rounded-full border border-white/30 bg-slate-950/30 shadow-inner">
