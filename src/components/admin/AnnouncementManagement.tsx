@@ -75,7 +75,7 @@ const emptyDraft = (): AnnouncementDraft => ({
   isGlobal: false,
   isHidden: false,
   pinOrder: 999,
-  publishAt: new Date().toISOString().slice(0, 16),
+  publishAt: formatLocalDateTime(new Date()),
 });
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -407,7 +407,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         isGlobal: announcement.is_global || false,
         isHidden: announcement.is_hidden || false,
         pinOrder: announcement.pin_order || 999,
-        publishAt: new Date(announcement.publish_at).toISOString().slice(0, 16),
+        publishAt: formatLocalDateTime(new Date(announcement.publish_at)),
       };
       setSelectedAdminId(announcement.created_by);
       setSelectedAnnouncementId(announcement.id);
@@ -504,6 +504,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     try {
       const rawContent = editorRef.current?.getContent() || draft.content;
       const editorContent = await processContentImages(rawContent, 'announcements');
+      const publishAtUtc = parseLocalDateTime(draft.publishAt).toISOString();
       let savedAnnouncementId = editingId;
 
       if (editingId) {
@@ -513,7 +514,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
           is_pinned: draft.isPinned,
           is_hidden: draft.isHidden,
           pin_order: draft.pinOrder,
-          publish_at: draft.publishAt,
+          publish_at: publishAtUtc,
         };
         if (isSuperAdmin) updateData.is_global = draft.isGlobal;
         const { error } = await supabase.from('announcements').update(updateData).eq('id', editingId);
@@ -525,7 +526,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
           is_pinned: draft.isPinned,
           is_hidden: draft.isHidden,
           pin_order: draft.pinOrder,
-          publish_at: draft.publishAt,
+          publish_at: publishAtUtc,
           created_by: creatingForAdminId || selectedAdminId || admin.id,
           is_global: isSuperAdmin ? draft.isGlobal : false,
         };
