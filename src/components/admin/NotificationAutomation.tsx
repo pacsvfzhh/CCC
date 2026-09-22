@@ -653,7 +653,6 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<AutomationPlan | null>(null);
   const [planName, setPlanName] = useState('');
-  const [planDescription, setPlanDescription] = useState('');
   const [memberPickerOpen, setMemberPickerOpen] = useState(false);
   const [memberPickerSearch, setMemberPickerSearch] = useState('');
   const [memberPickerStatusFilter, setMemberPickerStatusFilter] = useState<EmployeePickerStatusFilter>('all');
@@ -667,7 +666,7 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
   const planInitialSnapshotRef = useRef('');
   const memberInitialSnapshotRef = useRef('');
   const editorDirty = editorOpen && editorInitialSnapshotRef.current !== serializeTaskForm(form);
-  const planDirty = planModalOpen && planInitialSnapshotRef.current !== JSON.stringify({ name: planName, description: planDescription });
+  const planDirty = planModalOpen && planInitialSnapshotRef.current !== planName;
   const membersDirty = memberPickerOpen && memberInitialSnapshotRef.current !== serializeMemberIds(pendingMemberIds);
   const hasUnsavedChanges = editorDirty || planDirty || membersDirty;
 
@@ -854,8 +853,7 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
     return dashboard.plans.filter(plan => {
       if (plan.status === 'archived') return false;
       const matchesQuery = !query
-        || plan.name.toLocaleLowerCase().includes(query)
-        || plan.description.toLocaleLowerCase().includes(query);
+        || plan.name.toLocaleLowerCase().includes(query);
       const matchesStatus = planStatusFilter === 'all' || plan.status === planStatusFilter;
       return matchesQuery && matchesStatus;
     });
@@ -864,7 +862,7 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
     const query = planSearch.trim().toLocaleLowerCase();
     return dashboard.plans.filter(plan => plan.status === 'archived'
       && (planStatusFilter === 'all' || planStatusFilter === 'archived')
-      && (!query || plan.name.toLocaleLowerCase().includes(query) || plan.description.toLocaleLowerCase().includes(query)));
+      && (!query || plan.name.toLocaleLowerCase().includes(query)));
   }, [dashboard.plans, planSearch, planStatusFilter]);
   const selectedEmployees = useMemo(
     () => legacyRecipientEmployees.filter(employee => form.recipientIds.includes(employee.id)),
@@ -938,11 +936,9 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
 
   const openPlanModal = (plan: AutomationPlan | null = null) => {
     const name = plan?.name || '';
-    const description = plan?.description || '';
     setEditingPlan(plan);
     setPlanName(name);
-    setPlanDescription(description);
-    planInitialSnapshotRef.current = JSON.stringify({ name, description });
+    planInitialSnapshotRef.current = name;
     setPlanModalOpen(true);
   };
 
@@ -967,7 +963,7 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
         p_owner_admin_id: dashboard.selected_owner_id,
         p_plan_id: editingPlan?.id || null,
         p_name: planName.trim(),
-        p_description: planDescription.trim(),
+        p_description: '',
       });
       if (error) throw error;
       const result = data as unknown as { plan?: AutomationPlan } | null;
@@ -1380,7 +1376,6 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
         </div>
         <div className="space-y-4 p-5">
           <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-300">方案名稱</span><input autoFocus maxLength={120} value={planName} onChange={event => setPlanName(event.target.value)} placeholder="例如：新進員工成長方案" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/25" /></label>
-          <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-300">方案說明</span><textarea rows={4} value={planDescription} onChange={event => setPlanDescription(event.target.value)} placeholder="說明這個方案的用途與適用對象" className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/25" /></label>
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-800 px-5 py-3">
           <button type="button" onClick={closePlanModal} disabled={saving} className="h-9 rounded-lg border border-slate-600 bg-slate-800 px-4 text-xs font-bold text-slate-200 disabled:opacity-50">取消</button>
@@ -1579,7 +1574,7 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
       <span className={`absolute -right-5 -top-5 h-16 w-16 rounded-full blur-2xl transition-opacity ${selected ? 'bg-cyan-300/25 opacity-100' : 'bg-cyan-400/10 opacity-0 group-hover:opacity-100'}`} /><span className={`absolute inset-y-0 left-0 w-1 transition-colors ${selected ? 'bg-gradient-to-b from-cyan-200 via-cyan-400 to-blue-500' : 'bg-slate-700 group-hover:bg-cyan-500/70'}`} />
       <div className="relative flex items-center gap-2">
         <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border shadow-sm ${selected ? 'border-cyan-100/30 bg-cyan-300/20 text-cyan-50 shadow-cyan-950/30' : 'border-slate-700 bg-slate-900 text-slate-400 group-hover:border-cyan-300/30 group-hover:bg-cyan-500/10 group-hover:text-cyan-100'}`}><Settings2 className="h-3.5 w-3.5" /></span>
-        <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className={`min-w-0 truncate text-xs font-black ${selected ? 'text-white' : 'text-slate-100'}`}>{plan.name}</span><span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-black tracking-wide ${statusTone}`}>{planStatusLabels[plan.status]}</span></span>{!compact && <span title={plan.description || '尚未填寫方案說明'} className={`mt-0.5 block truncate text-[10px] leading-4 ${selected ? 'text-cyan-50/90' : 'text-slate-300'}`}>{plan.description || '尚未填寫方案說明'}</span>}</span>
+        <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className={`min-w-0 truncate text-xs font-black ${selected ? 'text-white' : 'text-slate-100'}`}>{plan.name}</span><span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-black tracking-wide ${statusTone}`}>{planStatusLabels[plan.status]}</span></span></span>
       </div>
       {!compact && <div className={`relative mt-2 grid h-7 grid-cols-2 divide-x divide-white/[0.08] overflow-hidden rounded-lg border ${selected ? 'border-cyan-200/15 bg-slate-950/45' : 'border-white/[0.08] bg-slate-950/35'}`}><span className="flex min-w-0 items-center justify-between gap-1.5 px-2"><span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-400"><Settings2 className="h-3 w-3 text-blue-300" />任務總數</span><strong className="text-[11px] font-black tabular-nums text-blue-100">{plan.task_count}</strong></span><span className="flex min-w-0 items-center justify-between gap-1.5 px-2"><span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-400"><Play className="h-3 w-3 text-emerald-300" />啟用任務</span><strong className="text-[11px] font-black tabular-nums text-emerald-200">{plan.active_task_count}</strong></span></div>}
     </button>;
@@ -1627,7 +1622,7 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
                 <span className="flex h-6 items-center justify-between gap-1 rounded-md border border-emerald-300/15 bg-emerald-500/[0.08] px-2 text-emerald-100/75"><span className="truncate">執行中方案</span><strong className="shrink-0 text-[11px] font-black tabular-nums text-emerald-300">{dashboard.plans.filter(plan => plan.status === 'active').length}</strong></span>
                 <span className="flex h-6 items-center justify-between gap-1 rounded-md border border-cyan-300/15 bg-cyan-500/[0.08] px-2 text-cyan-100/75"><span className="truncate">全部自動化任務</span><strong className="shrink-0 text-[11px] font-black tabular-nums text-cyan-200">{dashboard.tasks.length}</strong></span>
               </div>
-              <label className="relative mt-2 block"><Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" /><input value={planSearch} onChange={event => setPlanSearch(event.target.value)} placeholder="搜尋方案名稱或說明" className="h-8 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-[11px] font-semibold text-slate-900 outline-none transition-colors placeholder:text-slate-400 shadow-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/25" /></label>
+              <label className="relative mt-2 block"><Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" /><input value={planSearch} onChange={event => setPlanSearch(event.target.value)} placeholder="搜尋方案名稱" className="h-8 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-[11px] font-semibold text-slate-900 outline-none transition-colors placeholder:text-slate-400 shadow-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/25" /></label>
               <div className="relative mt-2"><button type="button" onClick={() => setPlanStatusMenuOpen(previous => !previous)} aria-expanded={planStatusMenuOpen} aria-haspopup="menu" className={`flex h-8 w-full items-center justify-between rounded-lg border px-2.5 text-[10px] font-black transition-colors ${planStatusMenuOpen ? 'border-cyan-300/70 bg-cyan-500/15 text-cyan-100' : 'border-slate-700 bg-slate-950/70 text-slate-300 hover:border-cyan-300/40 hover:bg-slate-900'}`}><span className="inline-flex items-center gap-1.5"><SlidersHorizontal className="h-3.5 w-3.5 text-cyan-300" />{planStatusFilterLabels[planStatusFilter]}</span><ChevronDown className={`h-3.5 w-3.5 text-cyan-300 transition-transform ${planStatusMenuOpen ? 'rotate-180' : ''}`} /></button>{planStatusMenuOpen && <div role="menu" className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-950 p-1.5 shadow-[0_16px_32px_rgba(2,6,23,0.55)]">{(['all', 'active', 'paused', 'archived'] as const).map(status => <button key={status} type="button" role="menuitem" onClick={() => { setPlanStatusFilter(status); setPlanStatusMenuOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[10px] font-black transition-colors ${planStatusFilter === status ? 'bg-cyan-500/15 text-cyan-100' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><span>{planStatusFilterLabels[status]}</span>{planStatusFilter === status && <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300" />}</button>)}</div>}</div>
             </div>
             <div className="dark-panel-scroll min-h-0 flex-1 space-y-2.5 overflow-y-auto p-3">
