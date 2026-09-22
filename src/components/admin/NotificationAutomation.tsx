@@ -621,7 +621,6 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
   const [view, setView] = useState<'tasks' | 'executions'>('tasks');
   const [selectedAdminId, setSelectedAdminId] = useState(admin.id);
   const [selectedPlanId, setSelectedPlanId] = useState<string>(UNGROUPED_PLAN_ID);
-  const [planSearch, setPlanSearch] = useState('');
   const [planStatusFilter, setPlanStatusFilter] = useState<'all' | PlanStatus>('all');
   const [planStatusMenuOpen, setPlanStatusMenuOpen] = useState(false);
   const [adminGroupMenuOpen, setAdminGroupMenuOpen] = useState(false);
@@ -855,22 +854,13 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
         || employeeId.toLocaleLowerCase().includes(query);
     });
   }, [dashboard.employees, dashboard.executions, executionScope, executionSearch, isUngroupedSelected, selectedPlan]);
-  const activePlans = useMemo(() => {
-    const query = planSearch.trim().toLocaleLowerCase();
-    return dashboard.plans.filter(plan => {
-      if (plan.status === 'archived') return false;
-      const matchesQuery = !query
-        || plan.name.toLocaleLowerCase().includes(query);
-      const matchesStatus = planStatusFilter === 'all' || plan.status === planStatusFilter;
-      return matchesQuery && matchesStatus;
-    });
-  }, [dashboard.plans, planSearch, planStatusFilter]);
-  const archivedPlans = useMemo(() => {
-    const query = planSearch.trim().toLocaleLowerCase();
-    return dashboard.plans.filter(plan => plan.status === 'archived'
-      && (planStatusFilter === 'all' || planStatusFilter === 'archived')
-      && (!query || plan.name.toLocaleLowerCase().includes(query)));
-  }, [dashboard.plans, planSearch, planStatusFilter]);
+  const activePlans = useMemo(() => dashboard.plans.filter(plan => {
+    if (plan.status === 'archived') return false;
+    return planStatusFilter === 'all' || plan.status === planStatusFilter;
+  }), [dashboard.plans, planStatusFilter]);
+  const archivedPlans = useMemo(() => dashboard.plans.filter(plan => plan.status === 'archived'
+    && (planStatusFilter === 'all' || planStatusFilter === 'archived')),
+  [dashboard.plans, planStatusFilter]);
   const selectedEmployees = useMemo(
     () => legacyRecipientEmployees.filter(employee => form.recipientIds.includes(employee.id)),
     [form.recipientIds, legacyRecipientEmployees],
@@ -1645,7 +1635,6 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
                 <span className="flex h-6 items-center justify-between gap-1 rounded-md border border-emerald-300/15 bg-emerald-500/[0.08] px-2 text-emerald-100/75"><span className="truncate">執行中方案</span><strong className="shrink-0 text-[11px] font-black tabular-nums text-emerald-300">{dashboard.plans.filter(plan => plan.status === 'active').length}</strong></span>
                 <span className="flex h-6 items-center justify-between gap-1 rounded-md border border-cyan-300/15 bg-cyan-500/[0.08] px-2 text-cyan-100/75"><span className="truncate">全部自動化任務</span><strong className="shrink-0 text-[11px] font-black tabular-nums text-cyan-200">{dashboard.tasks.length}</strong></span>
               </div>
-              <label className="relative mt-2 block"><Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" /><input value={planSearch} onChange={event => setPlanSearch(event.target.value)} placeholder="搜尋方案名稱" className="h-8 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-[11px] font-semibold text-slate-900 outline-none transition-colors placeholder:text-slate-400 shadow-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/25" /></label>
               <div className="relative mt-2"><button type="button" onClick={() => setPlanStatusMenuOpen(previous => !previous)} aria-expanded={planStatusMenuOpen} aria-haspopup="menu" className={`flex h-8 w-full items-center justify-between rounded-lg border px-2.5 text-[10px] font-black transition-colors ${planStatusMenuOpen ? 'border-cyan-300/70 bg-cyan-500/15 text-cyan-100' : 'border-slate-700 bg-slate-950/70 text-slate-300 hover:border-cyan-300/40 hover:bg-slate-900'}`}><span className="inline-flex items-center gap-1.5"><SlidersHorizontal className="h-3.5 w-3.5 text-cyan-300" />{planStatusFilterLabels[planStatusFilter]}</span><ChevronDown className={`h-3.5 w-3.5 text-cyan-300 transition-transform ${planStatusMenuOpen ? 'rotate-180' : ''}`} /></button>{planStatusMenuOpen && <div role="menu" className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-950 p-1.5 shadow-[0_16px_32px_rgba(2,6,23,0.55)]">{(['all', 'active', 'paused', 'archived'] as const).map(status => <button key={status} type="button" role="menuitem" onClick={() => { setPlanStatusFilter(status); setPlanStatusMenuOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[10px] font-black transition-colors ${planStatusFilter === status ? 'bg-cyan-500/15 text-cyan-100' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><span>{planStatusFilterLabels[status]}</span>{planStatusFilter === status && <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300" />}</button>)}</div>}</div>
             </div>
             <div className="dark-panel-scroll min-h-0 flex-1 space-y-2.5 overflow-y-auto p-3">
