@@ -2358,6 +2358,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       { key: '7-15' as InactiveDaysRange, label: '7～15 天', accent: 'bg-amber-400', badge: 'border-amber-400/35 bg-amber-500/10 text-amber-200' },
       { key: '15+' as InactiveDaysRange, label: '15 天以上', accent: 'bg-rose-400', badge: 'border-rose-400/35 bg-rose-500/10 text-rose-200' },
     ];
+    const selectedRange = inactiveDaysFilterByGroup.get(adminId);
+    const selectedRangeLabel = items.find(item => item.key === selectedRange)?.label;
     return createPortal(
       <div
         data-inactive-days-dropdown
@@ -2367,7 +2369,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         <div className="w-[156px] overflow-hidden rounded-xl border border-[#4d8b5c] bg-[#07150b] shadow-2xl shadow-black/70 ring-1 ring-inset ring-emerald-200/10">
           <div role="menu" aria-label="停工天数篩選" className="space-y-1 bg-[#07150b] p-1.5">
             {items.map(({ key, label, accent, badge }, index) => {
-              const isSelected = inactiveDaysFilterByGroup.get(adminId) === key;
+              const isSelected = selectedRange === key;
               return (
                 <button
                   key={key}
@@ -2405,8 +2407,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               );
             })}
           </div>
-          {inactiveDaysFilterByGroup.has(adminId) && (
-            <div className="border-t border-[#1b4a2a] bg-[#0a1d11] p-1.5">
+          {selectedRange && (
+            <div className="flex h-[34px] items-stretch border-t border-rose-400/25 bg-[linear-gradient(90deg,rgba(76,5,25,0.4),rgba(30,10,30,0.3))]">
+              <div className="flex min-w-0 flex-1 flex-col justify-center px-2 py-1">
+                <p className="text-[7px] font-bold uppercase leading-none tracking-[0.12em] text-rose-300/65">当前筛选</p>
+                <p className="mt-1 truncate text-[9px] font-semibold leading-none text-rose-100/90">{selectedRangeLabel}</p>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -2418,10 +2424,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   setInactiveDaysDropdownOpen(null);
                   setIdleDaysDropdownPos(null);
                 }}
-                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-rose-400/45 bg-rose-950/75 px-2 text-[11px] font-semibold text-rose-200 transition-all hover:border-rose-300/75 hover:bg-rose-900/80 hover:text-rose-100 active:scale-[0.98] active:bg-rose-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50"
+                className="inline-flex min-w-[58px] shrink-0 items-center justify-center gap-1 border-l border-rose-300/35 bg-rose-600 px-2 text-[10px] font-bold text-white shadow-[-5px_0_16px_rgba(190,18,60,0.18)] transition-colors hover:bg-rose-500 active:bg-rose-700 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/60"
               >
-                <X className="h-3.5 w-3.5" />
-                清除篩選
+                <X className="h-3 w-3" />
+                清除
               </button>
             </div>
           )}
@@ -2440,7 +2446,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setCreatedDateDropdownPos(null);
       const rect = e.currentTarget.getBoundingClientRect();
       const menuWidth = 156;
-      const menuHeight = 204;
+      const menuHeight = 194;
       const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
       const top = window.innerHeight - rect.bottom < menuHeight + 8
         ? Math.max(8, rect.top - menuHeight - 6)
