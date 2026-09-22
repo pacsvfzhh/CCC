@@ -189,6 +189,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [editPlanMenuPosition, setEditPlanMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const editPlanButtonRef = useRef<HTMLButtonElement>(null);
   const editPlanMenuRef = useRef<HTMLDivElement>(null);
+  const editBackdropPressRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
   const editingEmployeeInitialRef = useRef<{ username: string; employeeId: string; remarks: string; planId: string } | null>(null);
   const [savingEmployeeEdit, setSavingEmployeeEdit] = useState(false);
   const [editEmployeeError, setEditEmployeeError] = useState<string | null>(null);
@@ -232,6 +233,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [createPlanMenuPosition, setCreatePlanMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const createPlanButtonRef = useRef<HTMLButtonElement>(null);
   const createPlanMenuRef = useRef<HTMLDivElement>(null);
+  const createBackdropPressRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
   const adminFilterRef = useRef<HTMLDivElement>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     show: boolean;
@@ -3303,8 +3305,24 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     return createPortal(
       <div
         className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-[#020617]/88 p-3 backdrop-blur-xl sm:p-6 animate-in fade-in duration-200"
-        onClick={() => {
+        onPointerDown={(event) => {
+          createBackdropPressRef.current = event.target === event.currentTarget
+            ? { pointerId: event.pointerId, x: event.clientX, y: event.clientY }
+            : null;
+        }}
+        onPointerUp={(event) => {
+          const press = createBackdropPressRef.current;
+          createBackdropPressRef.current = null;
+          if (
+            !press
+            || press.pointerId !== event.pointerId
+            || event.target !== event.currentTarget
+            || Math.hypot(event.clientX - press.x, event.clientY - press.y) > 6
+          ) return;
           if (!creating) closeCreateEmployeeForm();
+        }}
+        onPointerCancel={() => {
+          createBackdropPressRef.current = null;
         }}
       >
         <div aria-hidden="true" className={`pointer-events-none absolute -left-32 top-[-10rem] h-[32rem] w-[32rem] rounded-full blur-[100px] ${isSuperGroup ? 'bg-amber-500/10' : 'bg-blue-500/15'}`} />
@@ -4179,7 +4197,28 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       {/* ===== MODALS ===== */}
 
       {editingEmployee && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={closeEmployeeEditor}>
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200"
+          onPointerDown={(event) => {
+            editBackdropPressRef.current = event.target === event.currentTarget
+              ? { pointerId: event.pointerId, x: event.clientX, y: event.clientY }
+              : null;
+          }}
+          onPointerUp={(event) => {
+            const press = editBackdropPressRef.current;
+            editBackdropPressRef.current = null;
+            if (
+              !press
+              || press.pointerId !== event.pointerId
+              || event.target !== event.currentTarget
+              || Math.hypot(event.clientX - press.x, event.clientY - press.y) > 6
+            ) return;
+            closeEmployeeEditor();
+          }}
+          onPointerCancel={() => {
+            editBackdropPressRef.current = null;
+          }}
+        >
           <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-[820px] flex-col overflow-hidden rounded-[1.75rem] border border-blue-300/25 bg-gradient-to-b from-slate-900 via-slate-900 to-blue-950/35 shadow-[0_30px_110px_rgba(2,6,23,0.82)] ring-1 ring-inset ring-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="relative shrink-0 overflow-hidden rounded-t-[1.75rem] border-b border-blue-300/15 bg-gradient-to-r from-blue-950/80 via-cyan-950/35 to-slate-900/80 px-5 py-4 sm:px-6">
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-blue-500" />
