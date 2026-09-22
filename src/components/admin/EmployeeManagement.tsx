@@ -185,6 +185,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithAdmin | null>(null);
   const [editingAutomationPlanId, setEditingAutomationPlanId] = useState('');
   const [editingAutomationPlanTouched, setEditingAutomationPlanTouched] = useState(false);
+  const [editPlanMenuOpen, setEditPlanMenuOpen] = useState(false);
+  const [editPlanMenuPosition, setEditPlanMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const editPlanButtonRef = useRef<HTMLButtonElement>(null);
+  const editPlanMenuRef = useRef<HTMLDivElement>(null);
   const editingEmployeeInitialRef = useRef<{ username: string; employeeId: string; remarks: string; planId: string } | null>(null);
   const [savingEmployeeEdit, setSavingEmployeeEdit] = useState(false);
   const [editEmployeeError, setEditEmployeeError] = useState<string | null>(null);
@@ -1353,6 +1357,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setEditingEmployee(employee);
     setEditingAutomationPlanId(planId);
     setEditingAutomationPlanTouched(false);
+    setEditPlanMenuOpen(false);
+    setEditPlanMenuPosition(null);
     setEditEmployeeError(null);
   }, [automationAssignmentsByEmployee]);
 
@@ -1369,9 +1375,69 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setEditingEmployee(null);
     setEditingAutomationPlanId('');
     setEditingAutomationPlanTouched(false);
+    setEditPlanMenuOpen(false);
+    setEditPlanMenuPosition(null);
     editingEmployeeInitialRef.current = null;
     setEditEmployeeError(null);
   };
+
+  const toggleEditPlanMenu = (optionCount: number) => {
+    if (editPlanMenuOpen) {
+      setEditPlanMenuOpen(false);
+      setEditPlanMenuPosition(null);
+      return;
+    }
+
+    const button = editPlanButtonRef.current;
+    if (!button) return;
+
+    const rect = button.getBoundingClientRect();
+    const viewportPadding = 12;
+    const menuHeight = Math.min(280, 32 + optionCount * 34);
+    const width = Math.min(rect.width, window.innerWidth - viewportPadding * 2);
+    const left = Math.min(Math.max(viewportPadding, rect.left), window.innerWidth - width - viewportPadding);
+    const openAbove = window.innerHeight - rect.bottom < menuHeight + viewportPadding && rect.top > menuHeight;
+    const top = openAbove
+      ? Math.max(viewportPadding, rect.top - menuHeight - 8)
+      : Math.max(viewportPadding, Math.min(rect.bottom + 8, window.innerHeight - menuHeight - viewportPadding));
+
+    setEditPlanMenuPosition({ top, left, width });
+    setEditPlanMenuOpen(true);
+  };
+
+  useEffect(() => {
+    if (!editPlanMenuOpen) return;
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!editPlanButtonRef.current?.contains(target) && !editPlanMenuRef.current?.contains(target)) {
+        setEditPlanMenuOpen(false);
+        setEditPlanMenuPosition(null);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setEditPlanMenuOpen(false);
+        setEditPlanMenuPosition(null);
+      }
+    };
+    const closeOnViewportChange = (event: Event) => {
+      if (event.type === 'scroll' && editPlanMenuRef.current?.contains(event.target as Node)) return;
+      setEditPlanMenuOpen(false);
+      setEditPlanMenuPosition(null);
+    };
+
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('resize', closeOnViewportChange);
+    window.addEventListener('scroll', closeOnViewportChange, true);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+      window.removeEventListener('resize', closeOnViewportChange);
+      window.removeEventListener('scroll', closeOnViewportChange, true);
+    };
+  }, [editPlanMenuOpen]);
 
   const handleSaveEmployeeEdit = async () => {
     if (!editingEmployee || savingEmployeeEdit) return;
@@ -1437,6 +1503,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setEditingEmployee(null);
       setEditingAutomationPlanId('');
       setEditingAutomationPlanTouched(false);
+      setEditPlanMenuOpen(false);
+      setEditPlanMenuPosition(null);
       editingEmployeeInitialRef.current = null;
       setEditEmployeeError(null);
       setNotification({
@@ -4166,6 +4234,28 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   : currentAssignment?.plan_status === 'paused'
                     ? '已暫停'
                     : '啟用中';
+                const selectedActivePlan = activeOwnerPlans.find(plan => plan.id === editingAutomationPlanId);
+                const selectedPlanName = editingAutomationPlanId
+                  ? selectedActivePlan?.name || (currentAssignment?.plan_id === editingAutomationPlanId ? currentAssignment.plan_name : '已選方案')
+                  : '不指定方案';
+                const selectedPlanTaskCount = selectedActivePlan
+                  ? Number(selectedActivePlan.selected_task_count) || 0
+                  : null;
+                const planOptions = [
+                  { id: '', name: '不指定方案', meta: '不加入', disabled: false },
+                  ...(currentAssignment && !currentPlanIsSelectable ? [{
+                    id: currentAssignment.plan_id,
+                    name: currentAssignment.plan_name,
+                    meta: `${statusLabel} · 歷史指派`,
+                    disabled: true,
+                  }] : []),
+                  ...activeOwnerPlans.map(plan => ({
+                    id: plan.id,
+                    name: plan.name,
+                    meta: `${Number(plan.selected_task_count) || 0} 個任務`,
+                    disabled: false,
+                  })),
+                ];
 
                 return (
                   <div className="rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-950/30 to-slate-950/55 p-4 shadow-inner shadow-black/20">
@@ -4179,35 +4269,75 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                       </div>
                       <Bell className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
                     </div>
-                    <select
+                    <button
+                      ref={editPlanButtonRef}
                       id="edit-employee-automation-plan"
-                      value={editingAutomationPlanId}
-                      onChange={(event) => {
-                        setEditingAutomationPlanId(event.target.value);
-                        setEditingAutomationPlanTouched(true);
-                      }}
+                      type="button"
+                      aria-haspopup="listbox"
+                      aria-expanded={editPlanMenuOpen}
+                      onClick={() => toggleEditPlanMenu(planOptions.length)}
                       disabled={savingEmployeeEdit}
-                      className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] outline-none transition-colors focus:border-cyan-500 focus:ring-4 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                      className={`group mt-3 flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left shadow-lg outline-none transition-all disabled:cursor-not-allowed disabled:opacity-50 ${editPlanMenuOpen ? 'border-cyan-200/90 bg-cyan-400/20 ring-2 ring-cyan-300/20' : editingAutomationPlanId ? 'border-cyan-300/75 bg-gradient-to-r from-cyan-500/25 via-cyan-400/15 to-blue-500/10 shadow-cyan-950/50 ring-1 ring-cyan-200/20 hover:border-cyan-200' : 'border-slate-600/80 bg-slate-900/90 hover:border-slate-400 hover:bg-slate-800/95'}`}
                     >
-                      <option value="">不指定方案</option>
-                      {currentAssignment && !currentPlanIsSelectable && (
-                        <option value={currentAssignment.plan_id} disabled>
-                          {currentAssignment.plan_name}（{statusLabel}，僅保留歷史指派）
-                        </option>
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${editingAutomationPlanId ? 'border-cyan-200/60 bg-cyan-300/20 text-cyan-100 shadow-sm shadow-cyan-950/40' : 'border-slate-600 bg-slate-800 text-slate-400'}`}>
+                        <Bell className="h-3.5 w-3.5" />
+                      </span>
+                      <span className={`min-w-0 flex-1 truncate text-[11px] font-extrabold ${editingAutomationPlanId ? 'text-cyan-50' : 'text-white'}`}>{selectedPlanName}</span>
+                      {selectedPlanTaskCount !== null && (
+                        <span className="shrink-0 rounded-md border border-cyan-200/35 bg-cyan-300/15 px-1.5 py-0.5 text-[9px] font-bold text-cyan-100">{selectedPlanTaskCount} 個任務</span>
                       )}
-                      {activeOwnerPlans.map(plan => (
-                        <option key={plan.id} value={plan.id}>
-                          {plan.name}（{Number(plan.selected_task_count) || 0} 個通知任務）
-                        </option>
-                      ))}
-                    </select>
+                      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-200 ${editPlanMenuOpen ? 'rotate-180 text-white' : editingAutomationPlanId ? 'text-cyan-200' : 'text-slate-400 group-hover:text-white'}`} />
+                    </button>
                     {activeOwnerPlans.length === 0 && !currentAssignment && (
                       <p className="mt-2 text-[11px] text-slate-500">此員工所屬群組目前沒有可指定的啟用方案。</p>
                     )}
                     {editingAutomationPlanId && (
-                      <p className="mt-2 text-[11px] leading-5 text-cyan-100/70">儲存後，此員工會加入所選方案的「管理員工」名單。</p>
+                      <p className="mt-2 flex items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-cyan-400/10 px-2 py-1.5 text-[10px] font-bold text-cyan-100">
+                        <CheckCircle className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                        儲存後直接加入此方案
+                      </p>
                     )}
                     <p className="mt-3 border-t border-cyan-300/10 pt-3 text-[11px] leading-5 text-slate-400">變更會同步方案員工名單並影響後續通知任務；既有發送與執行歷史都會保留。</p>
+                    {editPlanMenuOpen && editPlanMenuPosition && createPortal(
+                      <div
+                        ref={editPlanMenuRef}
+                        role="listbox"
+                        aria-label="編輯員工自動化通知方案"
+                        className="fixed z-[10050] overflow-hidden rounded-2xl border border-cyan-300/35 bg-[#08111f]/98 p-1.5 shadow-[0_24px_70px_rgba(0,0,0,0.72)] backdrop-blur-xl ring-1 ring-inset ring-white/[0.08] animate-in fade-in zoom-in-95 duration-150"
+                        style={{ top: editPlanMenuPosition.top, left: editPlanMenuPosition.left, width: editPlanMenuPosition.width }}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <div className="max-h-[264px] space-y-0.5 overflow-y-auto dark-panel-scroll">
+                          {planOptions.map(option => {
+                            const selected = editingAutomationPlanId === option.id;
+                            return (
+                              <button
+                                key={option.id || 'none'}
+                                type="button"
+                                role="option"
+                                aria-selected={selected}
+                                disabled={option.disabled || savingEmployeeEdit}
+                                onClick={() => {
+                                  setEditingAutomationPlanId(option.id);
+                                  setEditingAutomationPlanTouched(true);
+                                  setEditPlanMenuOpen(false);
+                                  setEditPlanMenuPosition(null);
+                                }}
+                                className={`flex h-8 w-full items-center gap-2 rounded-lg border px-2 text-left transition-all disabled:cursor-not-allowed ${selected ? 'border-cyan-300/45 bg-gradient-to-r from-cyan-500/20 to-blue-500/5' : option.disabled ? 'border-transparent bg-slate-900/45 opacity-60' : 'border-transparent hover:border-slate-600 hover:bg-slate-800/90'}`}
+                              >
+                                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${selected ? 'border-cyan-300/35 bg-cyan-400/15 text-cyan-200' : 'border-slate-700 bg-slate-900 text-slate-500'}`}>
+                                  {option.id ? <Bell className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                                </span>
+                                <span className={`min-w-0 flex-1 truncate text-[11px] font-bold ${selected ? 'text-white' : 'text-slate-300'}`}>{option.name}</span>
+                                <span className={`shrink-0 text-[9px] font-bold ${selected ? 'text-cyan-200' : 'text-slate-300'}`}>{option.meta}</span>
+                                {selected && <CheckCircle className="h-3.5 w-3.5 shrink-0 text-cyan-300" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>,
+                      document.body,
+                    )}
                   </div>
                 );
               })()}
