@@ -548,6 +548,25 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     }
   };
 
+  const toggleGlobal = async (announcement: Announcement) => {
+    if (!isSuperAdmin) return;
+    const nextGlobalState = !announcement.is_global;
+    setAnnouncements(previous => previous.map(item => (
+      item.id === announcement.id ? { ...item, is_global: nextGlobalState } : item
+    )));
+    try {
+      const { error } = await supabase
+        .from('announcements')
+        .update({ is_global: nextGlobalState })
+        .eq('id', announcement.id);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error toggling global state:', error);
+      await loadAnnouncements();
+      alert('更新全局状态失败');
+    }
+  };
+
   const togglePin = async (announcement: Announcement) => {
     if (!announcement.is_pinned) {
       setPinOrderModalId(announcement.id);
@@ -594,14 +613,14 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
   const actionButtonClass = 'inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70';
   const lightInputClass = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20';
 
-  const renderStatusBadges = (announcement: Announcement, highContrast = false) => (
+  const renderStatusBadges = (announcement: Announcement, highContrast = false, hideGlobal = false) => (
     <div className="flex flex-wrap items-center gap-1.5">
       {announcement.is_pinned && (
         <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${highContrast ? 'border-white/35 bg-slate-950/35 text-white shadow-sm' : 'border-amber-400/30 bg-amber-500/10 text-amber-300'}`}>
           <Pin className="h-2.5 w-2.5" />置顶 {announcement.pin_order}
         </span>
       )}
-      {announcement.is_global && (
+      {announcement.is_global && !hideGlobal && (
         <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${highContrast ? 'border-white/35 bg-slate-950/35 text-white shadow-sm' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300'}`}>
           <Globe className="h-2.5 w-2.5" />全局
         </span>
@@ -985,26 +1004,52 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
             </form>
           ) : selectedAnnouncement ? (
             <div className="flex h-full min-h-0 flex-col">
-              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700 bg-slate-900/90 px-3 py-2 sm:px-4">
-                <div className="min-w-0">
-                  <div className="mb-1 flex flex-wrap items-center gap-2">{renderStatusBadges(selectedAnnouncement)}</div>
-                  <h2 className="truncate text-sm font-black text-white sm:text-base">{selectedAnnouncement.title}</h2>
-                  <p className="mt-0.5 text-[10px] text-slate-500">{selectedAdminName} · {new Date(selectedAnnouncement.publish_at).toLocaleString()}</p>
+              <div className="relative flex shrink-0 flex-wrap items-start justify-between gap-3 overflow-hidden border-b border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(8,145,178,0.2),transparent_38%),linear-gradient(105deg,rgba(8,47,73,0.88),rgba(15,23,42,0.98)_68%)] px-4 py-3 shadow-lg shadow-slate-950/20">
+                <div className="pointer-events-none absolute -left-8 -top-12 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
+                <div className="relative min-w-[240px] flex-1">
+                  {(selectedAnnouncement.is_pinned || selectedAnnouncement.is_hidden) && (
+                    <div className="mb-1.5 flex flex-wrap items-center gap-2">{renderStatusBadges(selectedAnnouncement, false, true)}</div>
+                  )}
+                  <h2 className="max-w-4xl break-words text-sm font-black leading-5 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.45)] sm:text-base sm:leading-6">{selectedAnnouncement.title}</h2>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/20 bg-slate-950/35 px-2 py-1 text-[10px] font-bold text-slate-200">
+                      <Users className="h-3 w-3 text-cyan-300" />
+                      <span className="text-slate-400">所属管理员</span>
+                      <strong className="font-black text-white">{selectedAdminName}</strong>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300/20 bg-slate-950/35 px-2 py-1 text-[10px] font-bold text-slate-200">
+                      <Calendar className="h-3 w-3 text-blue-300" />
+                      <span className="text-slate-400">发布时间</span>
+                      <strong className="font-black tabular-nums text-white">{new Date(selectedAnnouncement.publish_at).toLocaleString()}</strong>
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <button type="button" onClick={() => togglePin(selectedAnnouncement)} className={`${actionButtonClass} border-amber-400/25 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20`} title={selectedAnnouncement.is_pinned ? '取消置顶' : '置顶'}>
+                <div className="relative flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                  {isSuperAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => void toggleGlobal(selectedAnnouncement)}
+                      aria-pressed={selectedAnnouncement.is_global}
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 ${selectedAnnouncement.is_global ? 'border-emerald-300/50 bg-emerald-600 text-white shadow-md shadow-emerald-950/40' : 'border-slate-500/60 bg-slate-800/80 text-slate-300 hover:border-emerald-400/40 hover:bg-emerald-500/15 hover:text-emerald-200'}`}
+                      title={selectedAnnouncement.is_global ? '取消全局公告' : '设为全局公告'}
+                    >
+                      <Globe className="h-3.5 w-3.5" />全局
+                      <span className={`h-1.5 w-1.5 rounded-full ${selectedAnnouncement.is_global ? 'bg-emerald-200' : 'bg-slate-500'}`} />
+                    </button>
+                  )}
+                  <button type="button" onClick={() => togglePin(selectedAnnouncement)} className={`${actionButtonClass} border-amber-400/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20`} title={selectedAnnouncement.is_pinned ? '取消置顶' : '置顶'}>
                     {selectedAnnouncement.is_pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
                   </button>
-                  <button type="button" onClick={() => toggleHidden(selectedAnnouncement)} className={`${actionButtonClass} border-orange-400/25 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20`} title={selectedAnnouncement.is_hidden ? '显示公告' : '隐藏公告'}>
+                  <button type="button" onClick={() => toggleHidden(selectedAnnouncement)} className={`${actionButtonClass} border-orange-400/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20`} title={selectedAnnouncement.is_hidden ? '显示公告' : '隐藏公告'}>
                     {selectedAnnouncement.is_hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
-                  <button type="button" onClick={() => setShowEmployeePreview(true)} className={`${actionButtonClass} border-violet-400/25 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20`} title="员工端预览">
+                  <button type="button" onClick={() => setShowEmployeePreview(true)} className={`${actionButtonClass} border-violet-400/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20`} title="员工端预览">
                     <Monitor className="h-3.5 w-3.5" />
                   </button>
-                  <button type="button" onClick={() => startEdit(selectedAnnouncement)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/15 px-2.5 text-[10px] font-black text-cyan-200 hover:bg-cyan-500/25">
+                  <button type="button" onClick={() => startEdit(selectedAnnouncement)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/35 bg-cyan-600/25 px-2.5 text-[10px] font-black text-cyan-100 transition hover:bg-cyan-500/35">
                     <Edit className="h-3.5 w-3.5" />编辑
                   </button>
-                  <button type="button" onClick={() => setDeletingId(selectedAnnouncement.id)} className={`${actionButtonClass} border-red-400/25 bg-red-500/10 text-red-300 hover:bg-red-500/20`} title="删除公告">
+                  <button type="button" onClick={() => setDeletingId(selectedAnnouncement.id)} className={`${actionButtonClass} border-red-400/30 bg-red-500/10 text-red-300 hover:bg-red-500/20`} title="删除公告">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
