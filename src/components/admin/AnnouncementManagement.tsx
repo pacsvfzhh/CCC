@@ -561,12 +561,49 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         </span>
       )}
       {announcement.is_hidden && (
-        <span className="inline-flex items-center gap-1 rounded-md border border-orange-400/30 bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-bold text-orange-300">
+        <span className="inline-flex items-center gap-1 rounded-md border border-red-400/35 bg-red-500/12 px-1.5 py-0.5 text-[10px] font-bold text-red-300">
           <EyeOff className="h-2.5 w-2.5" />隐藏
         </span>
       )}
     </div>
   );
+
+  const getAnnouncementCardTone = (announcement: Announcement) => {
+    if (announcement.is_hidden) {
+      return {
+        active: 'border-red-300/60 bg-[linear-gradient(105deg,rgba(185,28,28,0.34),rgba(15,23,42,0.94)_74%)] shadow-red-950/45',
+        idle: 'border-red-900/60 bg-[linear-gradient(105deg,rgba(127,29,29,0.25),rgba(15,23,42,0.72))] shadow-red-950/20 hover:border-red-500/50 hover:bg-[linear-gradient(105deg,rgba(153,27,27,0.32),rgba(15,23,42,0.82))]',
+        accent: 'from-red-300 to-rose-600 shadow-[0_0_8px_rgba(248,113,113,0.72)]',
+        icon: 'text-red-300',
+        date: 'border-red-400/30 bg-red-500/10 text-red-100',
+      };
+    }
+    if (announcement.is_pinned) {
+      return {
+        active: 'border-amber-200/65 bg-[linear-gradient(105deg,rgba(180,83,9,0.36),rgba(15,23,42,0.94)_74%)] shadow-amber-950/45',
+        idle: 'border-amber-800/55 bg-[linear-gradient(105deg,rgba(120,53,15,0.25),rgba(15,23,42,0.72))] shadow-amber-950/20 hover:border-amber-500/50 hover:bg-[linear-gradient(105deg,rgba(146,64,14,0.33),rgba(15,23,42,0.82))]',
+        accent: 'from-amber-200 to-orange-500 shadow-[0_0_8px_rgba(251,191,36,0.72)]',
+        icon: 'text-amber-300',
+        date: 'border-amber-400/30 bg-amber-500/10 text-amber-100',
+      };
+    }
+    if (announcement.is_global) {
+      return {
+        active: 'border-emerald-300/60 bg-[linear-gradient(105deg,rgba(5,150,105,0.3),rgba(15,23,42,0.94)_74%)] shadow-emerald-950/40',
+        idle: 'border-emerald-900/55 bg-[linear-gradient(105deg,rgba(6,78,59,0.25),rgba(15,23,42,0.72))] shadow-emerald-950/20 hover:border-emerald-500/45 hover:bg-[linear-gradient(105deg,rgba(6,95,70,0.32),rgba(15,23,42,0.82))]',
+        accent: 'from-emerald-300 to-teal-600 shadow-[0_0_8px_rgba(52,211,153,0.68)]',
+        icon: 'text-emerald-300',
+        date: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100',
+      };
+    }
+    return {
+      active: 'border-cyan-300/55 bg-[linear-gradient(105deg,rgba(8,145,178,0.24),rgba(15,23,42,0.92)_72%)] shadow-cyan-950/35',
+      idle: 'border-slate-700/65 bg-[linear-gradient(105deg,rgba(30,41,59,0.72),rgba(2,6,23,0.55))] shadow-slate-950/25 hover:border-cyan-700/60 hover:bg-[linear-gradient(105deg,rgba(30,58,75,0.8),rgba(15,23,42,0.78))]',
+      accent: 'from-cyan-300 to-blue-500 shadow-[0_0_8px_rgba(34,211,238,0.7)]',
+      icon: 'text-cyan-300',
+      date: 'border-slate-600/70 bg-slate-950/45 text-slate-300',
+    };
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
@@ -771,22 +808,23 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
               </div>
             ) : visibleAnnouncements.map(announcement => {
               const active = announcement.id === selectedAnnouncementId;
+              const cardTone = getAnnouncementCardTone(announcement);
               return (
                 <button
                   key={announcement.id}
                   type="button"
                   aria-pressed={active}
                   onClick={() => openPreview(announcement)}
-                  className={`group relative mb-1 w-full overflow-hidden rounded-lg border px-2.5 py-2 text-left shadow-sm transition duration-200 ${active ? 'border-cyan-300/55 bg-[linear-gradient(105deg,rgba(8,145,178,0.24),rgba(15,23,42,0.92)_72%)] shadow-cyan-950/35' : 'border-slate-700/65 bg-[linear-gradient(105deg,rgba(30,41,59,0.72),rgba(2,6,23,0.55))] shadow-slate-950/25 hover:border-cyan-700/60 hover:bg-[linear-gradient(105deg,rgba(30,58,75,0.8),rgba(15,23,42,0.78))]'}`}
+                  className={`group relative mb-1 w-full overflow-hidden rounded-lg border px-2.5 py-2 text-left shadow-sm transition duration-200 ${active ? cardTone.active : cardTone.idle}`}
                 >
-                  {active && <span className="absolute bottom-1.5 left-0 top-1.5 w-0.5 rounded-r-full bg-gradient-to-b from-cyan-300 to-blue-500 shadow-[0_0_8px_rgba(34,211,238,0.7)]" />}
+                  {active && <span className={`absolute bottom-1.5 left-0 top-1.5 w-0.5 rounded-r-full bg-gradient-to-b ${cardTone.accent}`} />}
                   <div className="flex min-w-0 items-center gap-1.5">
                     <h3 className={`min-w-0 flex-1 truncate text-[11px] font-black leading-4 ${active ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>{announcement.title}</h3>
-                    <ChevronRight className={`h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 ${active ? 'text-cyan-300' : 'text-slate-600 group-hover:text-cyan-400'}`} />
+                    <ChevronRight className={`h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5 ${active ? cardTone.icon : 'text-slate-600 group-hover:text-slate-300'}`} />
                   </div>
                   <div className="mt-1.5 flex min-w-0 items-center justify-between gap-1.5">
                     <div className="min-w-0 overflow-hidden">{renderStatusBadges(announcement)}</div>
-                    <span className={`inline-flex h-5 shrink-0 items-center gap-1 rounded-md border px-1.5 text-[9px] font-black tabular-nums ${active ? 'border-cyan-300/25 bg-cyan-400/10 text-cyan-100' : 'border-slate-600/70 bg-slate-950/45 text-slate-300'}`}>
+                    <span className={`inline-flex h-5 shrink-0 items-center gap-1 rounded-md border px-1.5 text-[9px] font-black tabular-nums ${cardTone.date}`}>
                       <Calendar className="h-2.5 w-2.5" />
                       {new Date(announcement.publish_at).toLocaleDateString()}
                     </span>
