@@ -100,12 +100,33 @@ function fuzzyMatches(value: string, query: string) {
   const normalizedQuery = normalizeSearchText(query);
   if (!normalizedQuery || normalizedValue.includes(normalizedQuery)) return true;
 
-  let queryIndex = 0;
-  for (const character of normalizedValue) {
-    if (character === normalizedQuery[queryIndex]) queryIndex += 1;
-    if (queryIndex === normalizedQuery.length) return true;
+  const queryCharacters = Array.from(normalizedQuery);
+  const valueCharacters = Array.from(normalizedValue);
+  const maximumDistance = Math.floor(queryCharacters.length * 0.1);
+  if (maximumDistance === 0 || valueCharacters.length === 0) return false;
+
+  let previousRow = new Array<number>(valueCharacters.length + 1).fill(0);
+
+  for (let queryIndex = 1; queryIndex <= queryCharacters.length; queryIndex += 1) {
+    const currentRow = new Array<number>(valueCharacters.length + 1);
+    currentRow[0] = queryIndex;
+
+    for (let valueIndex = 1; valueIndex <= valueCharacters.length; valueIndex += 1) {
+      const substitutionCost = queryCharacters[queryIndex - 1] === valueCharacters[valueIndex - 1] ? 0 : 1;
+      currentRow[valueIndex] = Math.min(
+        previousRow[valueIndex] + 1,
+        currentRow[valueIndex - 1] + 1,
+        previousRow[valueIndex - 1] + substitutionCost
+      );
+    }
+
+    previousRow = currentRow;
   }
-  return false;
+
+  return previousRow.reduce(
+    (minimumDistance, distance) => Math.min(minimumDistance, distance),
+    Number.POSITIVE_INFINITY
+  ) <= maximumDistance;
 }
 
 function sortAnnouncements(announcements: Announcement[]) {
@@ -791,7 +812,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
               <input
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
-                placeholder="模糊搜索标题或正文"
+                placeholder="搜索标题或正文（相似度 ≥ 90%）"
                 className="h-10 w-full rounded-xl border border-white/80 bg-slate-50 pl-9 pr-9 text-xs font-bold text-slate-800 shadow-[0_8px_22px_rgba(2,8,23,0.22),inset_0_1px_0_rgba(255,255,255,0.9)] outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-cyan-400 focus:bg-white focus:ring-2 focus:ring-cyan-400/20"
               />
               {searchQuery && (
