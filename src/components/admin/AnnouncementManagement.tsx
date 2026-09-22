@@ -1125,16 +1125,74 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
       `}</style>
 
       {pinOrderModalId && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setPinOrderModalId(null)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="pin-order-title" className="w-full max-w-sm rounded-2xl border border-amber-400/25 bg-slate-900 p-5 shadow-2xl" onClick={event => event.stopPropagation()}>
-            <h3 id="pin-order-title" className="text-base font-black text-white">设置置顶顺序</h3>
-            <p className="mt-1 text-xs leading-5 text-slate-400">数字越小，公告在员工端的位置越靠前。</p>
-            <input type="number" min="1" max="999" value={pinOrderValue} onChange={event => setPinOrderValue(Number(event.target.value) || 999)} className={`${lightInputClass} mt-4`} autoFocus />
-            <div className="mt-4 flex gap-2">
-              <button type="button" onClick={() => setPinOrderModalId(null)} className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-xs font-bold text-white hover:bg-slate-600">取消</button>
-              <button type="button" onClick={confirmPin} className="flex-1 rounded-lg bg-amber-600 px-4 py-2 text-xs font-black text-white hover:bg-amber-500">确认置顶</button>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md" onClick={() => setPinOrderModalId(null)}>
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pin-order-title"
+            className="w-full max-w-md overflow-hidden rounded-3xl border border-amber-300/35 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.16),transparent_38%),linear-gradient(145deg,rgba(30,41,59,0.99),rgba(15,23,42,0.99)_58%,rgba(69,26,3,0.96))] shadow-[0_28px_90px_rgba(0,0,0,0.72),0_0_36px_rgba(245,158,11,0.12)]"
+            onClick={event => event.stopPropagation()}
+            onSubmit={event => {
+              event.preventDefault();
+              void confirmPin();
+            }}
+          >
+            <div className="relative flex items-center justify-between overflow-hidden border-b border-amber-300/20 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-transparent px-5 py-4">
+              <div className="pointer-events-none absolute -left-6 -top-10 h-24 w-24 rounded-full bg-amber-400/15 blur-2xl" />
+              <div className="relative flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-amber-200/40 bg-gradient-to-br from-amber-400 to-orange-600 text-white shadow-lg shadow-amber-950/40">
+                  <Pin className="h-5 w-5 fill-white/20" />
+                </span>
+                <div className="min-w-0">
+                  <h3 id="pin-order-title" className="text-base font-black text-white">设置置顶顺序</h3>
+                  <p className="mt-0.5 text-[10px] font-bold text-amber-100/70">调整公告在员工端置顶区域的排列位置</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setPinOrderModalId(null)} className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-950/30 text-slate-400 transition hover:border-white/20 hover:bg-slate-800 hover:text-white" aria-label="关闭置顶顺序弹窗">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          </div>
+
+            <div className="p-5">
+              <div className="rounded-2xl border border-amber-300/15 bg-slate-950/35 px-3.5 py-3">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-300/75">即将置顶</p>
+                <p className="mt-1.5 line-clamp-2 text-xs font-black leading-5 text-slate-100">
+                  {announcements.find(item => item.id === pinOrderModalId)?.title || '当前公告'}
+                </p>
+              </div>
+
+              <label className="mt-4 block">
+                <span className="mb-2 flex items-center justify-between text-[11px] font-black text-slate-100">
+                  <span>置顶优先顺序</span>
+                  <span className="rounded-lg border border-amber-300/25 bg-amber-500/10 px-2 py-1 text-[9px] text-amber-200">范围 1–999</span>
+                </span>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    max="999"
+                    value={pinOrderValue}
+                    onChange={event => setPinOrderValue(Number(event.target.value) || 999)}
+                    className="h-14 w-full rounded-2xl border border-amber-300/35 bg-white px-4 pr-16 text-center text-2xl font-black tabular-nums text-slate-900 shadow-[0_10px_28px_rgba(2,6,23,0.28),inset_0_1px_0_rgba(255,255,255,0.9)] outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-400/20"
+                    autoFocus
+                  />
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 rounded-lg bg-amber-100 px-2 py-1 text-[9px] font-black text-amber-800">顺序</span>
+                </div>
+              </label>
+
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300/15 bg-amber-500/10 px-3 py-2.5 text-[10px] font-bold leading-4 text-amber-100/80">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+                <p><strong className="text-amber-200">数字越小，优先级越高。</strong>顺序为 1 的公告会显示在所有置顶公告的最前方。</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 border-t border-white/10 bg-slate-950/25 px-5 py-4">
+              <button type="button" onClick={() => setPinOrderModalId(null)} className="h-10 rounded-xl border border-slate-500/45 bg-slate-800/80 text-xs font-black text-slate-200 transition hover:border-slate-400 hover:bg-slate-700 hover:text-white">取消</button>
+              <button type="submit" className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-amber-200/35 bg-gradient-to-r from-amber-500 to-orange-600 text-xs font-black text-white shadow-lg shadow-amber-950/35 transition hover:from-amber-400 hover:to-orange-500">
+                <Pin className="h-3.5 w-3.5" />确认置顶
+              </button>
+            </div>
+          </form>
         </div>,
         document.body,
       )}
