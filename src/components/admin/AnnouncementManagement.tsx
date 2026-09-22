@@ -558,7 +558,7 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
               <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${groupMenuOpen ? 'rotate-180' : ''}`} />
             </button>
             {groupMenuOpen && (
-              <div role="menu" className="absolute left-0 top-[calc(100%+6px)] z-50 max-h-[360px] w-full overflow-y-auto rounded-xl border border-cyan-300/25 bg-slate-950 p-1.5 shadow-2xl shadow-black/60">
+              <div role="menu" className="announcement-group-menu absolute left-0 top-[calc(100%+6px)] z-50 max-h-[360px] w-full overflow-y-auto rounded-xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(8,47,73,0.98),rgba(15,23,42,0.99)_55%,rgba(2,12,27,0.99))] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.62),0_0_24px_rgba(8,145,178,0.1)]">
                 <div className="mb-1 flex items-center justify-between px-2 py-1.5">
                   <span className="text-[10px] font-black text-slate-200">管理员分组</span>
                   <span className="rounded-full border border-cyan-300/20 bg-cyan-500/10 px-2 py-0.5 text-[9px] font-black text-cyan-100">{announcements.length} 则公告</span>
@@ -903,6 +903,24 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
         .announcement-preview ol { list-style-type: decimal; }
         .announcement-preview ul { list-style-type: disc; }
         .announcement-preview li { margin: 0.25rem 0; padding-left: 0.25rem; }
+        .announcement-group-menu {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(34, 211, 238, 0.62) rgba(8, 47, 73, 0.38);
+        }
+        .announcement-group-menu::-webkit-scrollbar { width: 7px; }
+        .announcement-group-menu::-webkit-scrollbar-track {
+          margin: 8px 0;
+          border-radius: 999px;
+          background: rgba(8, 47, 73, 0.38);
+        }
+        .announcement-group-menu::-webkit-scrollbar-thumb {
+          border: 1px solid rgba(103, 232, 249, 0.22);
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(34, 211, 238, 0.78), rgba(14, 116, 144, 0.78));
+        }
+        .announcement-group-menu::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, rgba(103, 232, 249, 0.92), rgba(6, 182, 212, 0.88));
+        }
       `}</style>
 
       {pinOrderModalId && createPortal(
