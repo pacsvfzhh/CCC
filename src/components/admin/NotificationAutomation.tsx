@@ -570,7 +570,7 @@ function ExecutionScopeSelect({ value, currentSelectionName, onChange }: Executi
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[9px] font-black uppercase leading-3 tracking-[0.12em] text-cyan-200/70">查詢範圍</span>
-          <span className="flex min-w-0 items-center gap-1 text-[11px] font-black leading-4 text-white"><span className="shrink-0">{selectedOption.label}</span><span className="truncate text-[9px] font-bold text-blue-100/55">· {selectedOption.detail}</span></span>
+          <span className="flex min-w-0 items-center gap-1 text-[11px] font-black leading-4 text-white"><span className="shrink-0">{selectedOption.label}</span><span className={`truncate text-[11px] font-black ${value === 'selected' ? 'text-amber-200' : 'text-cyan-100'}`}><span className="mr-1 text-cyan-200/45">·</span>{selectedOption.detail}</span></span>
         </span>
         <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-200 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -772,7 +772,6 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
     if (loading) return;
     const requestId = ++executionRequestIdRef.current;
     const ownerId = dashboard.selected_owner_id;
-    const planId = executionScope === 'all' || selectedPlanId === UNGROUPED_PLAN_ID ? null : selectedPlanId;
     setExecutionsLoading(true);
 
     const loadExecutions = async () => {
@@ -780,8 +779,8 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
         const { data, error } = await supabase.rpc('get_notification_automation_executions_v2', {
           p_admin_session_token: getAdminFinancialSessionToken(),
           p_owner_admin_id: ownerId,
-          p_plan_id: planId,
-          p_all_plans: executionScope === 'all',
+          p_plan_id: null,
+          p_all_plans: true,
           p_search_query: debouncedExecutionSearch || null,
         });
         if (requestId !== executionRequestIdRef.current) return;
@@ -802,7 +801,7 @@ export default function NotificationAutomation({ admin, employees, isActive = tr
     };
 
     void loadExecutions();
-  }, [dashboard.selected_owner_id, debouncedExecutionSearch, executionRefreshKey, executionScope, loading, selectedPlanId]);
+  }, [dashboard.selected_owner_id, debouncedExecutionSearch, executionRefreshKey, loading]);
 
   const selectedAdmin = dashboard.admin_groups.find(group => group.id === selectedAdminId);
   const selectedOwnerName = selectedAdmin?.username || (dashboard.selected_owner_id === admin.id ? admin.username : '管理員分組');
