@@ -2301,9 +2301,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             )}
           </div>
           {selectedDate && (
-            <div className="flex items-center justify-between gap-2 border-t border-rose-400/20 bg-[linear-gradient(90deg,rgba(76,5,25,0.38),rgba(30,10,30,0.28))] px-2 py-1.5">
-              <div className="min-w-0 flex-1">
-                <p className="text-[8px] font-bold uppercase leading-none tracking-[0.12em] text-rose-300/65">当前筛选</p>
+            <div className="flex h-[34px] items-stretch border-t border-rose-400/25 bg-[linear-gradient(90deg,rgba(76,5,25,0.4),rgba(30,10,30,0.3))]">
+              <div className="flex min-w-0 flex-1 flex-col justify-center px-2 py-1">
+                <p className="text-[7px] font-bold uppercase leading-none tracking-[0.12em] text-rose-300/65">当前筛选</p>
                 <p className="mt-1 truncate font-mono text-[9px] font-semibold leading-none tabular-nums text-rose-100/90">{selectedDate}</p>
               </div>
               <button
@@ -2317,9 +2317,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   setCreatedDateDropdownOpen(null);
                   setCreatedDateDropdownPos(null);
                 }}
-                className="inline-flex h-6 shrink-0 items-center justify-center gap-1 rounded-md border border-rose-400/35 bg-rose-600/15 px-2 text-[9px] font-bold text-rose-200 shadow-sm shadow-rose-950/20 transition-all hover:border-rose-300/60 hover:bg-rose-500/25 hover:text-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40"
+                className="inline-flex min-w-[68px] shrink-0 items-center justify-center gap-1.5 border-l border-rose-300/35 bg-rose-600 px-3 text-[11px] font-bold text-white shadow-[-5px_0_16px_rgba(190,18,60,0.18)] transition-colors hover:bg-rose-500 active:bg-rose-700 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/60"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
                 清除
               </button>
             </div>
