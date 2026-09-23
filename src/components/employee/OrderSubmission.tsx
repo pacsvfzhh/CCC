@@ -254,7 +254,8 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
         .from('product_types')
         .select('*')
         .eq('is_active', true)
-        .order('name');
+        .order('sort_order', { ascending: true })
+        .order('id', { ascending: true });
 
       if (error) throw error;
 
@@ -271,12 +272,13 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
         setFilteredProductTypes(newProductTypes);
       }
 
-      // Validate that selected product type is still active
       if (selectedProductType) {
-        const stillExists = newProductTypes.find(t => t.id === selectedProductType.id);
-        if (!stillExists) {
+        const currentProductType = newProductTypes.find(type => type.id === selectedProductType.id);
+        if (!currentProductType) {
           setSelectedProductType(null);
           setFormData(prev => ({ ...prev, productTypeId: '' }));
+        } else if (currentProductType.name !== selectedProductType.name) {
+          setSelectedProductType(currentProductType);
         }
       }
     } catch (error) {

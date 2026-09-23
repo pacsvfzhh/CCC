@@ -1200,6 +1200,7 @@ export interface Database {
           id: string;
           name: string;
           is_active: boolean;
+          sort_order: number;
           created_at: string;
           updated_at: string;
         };
@@ -1207,6 +1208,7 @@ export interface Database {
           id?: string;
           name: string;
           is_active?: boolean;
+          sort_order?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -1214,6 +1216,7 @@ export interface Database {
           id?: string;
           name?: string;
           is_active?: boolean;
+          sort_order?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -2167,6 +2170,10 @@ export interface Database {
       revoke_financial_session: {
         Args: { p_token: string };
         Returns: boolean;
+      };
+      reorder_product_types: {
+        Args: { p_admin_session_token: string; p_product_type_ids: string[] };
+        Returns: { success?: boolean; updated_count?: number; admin_id?: string };
       };
       admin_create_employee_account: {
         Args: {

@@ -257,6 +257,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [unreadCccServiceCount, setUnreadCccServiceCount] = useState(0);
   const [lockedAccountsCount, setLockedAccountsCount] = useState(0);
   const [nextLockedAccountExpiry, setNextLockedAccountExpiry] = useState<number | null>(null);
+  const [productOrderDirty, setProductOrderDirty] = useState(false);
   const pendingCountsRequestRef = useRef(0);
   const lockedCountsRequestRef = useRef(0);
   const realtimeUnreadMessageIdsRef = useRef(new Set<string>());
@@ -862,9 +863,18 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   }, []);
 
   const handleTabChange = useCallback((tabId: typeof activeTab) => {
+    if (
+      activeTab === 'products'
+      && tabId !== 'products'
+      && productOrderDirty
+      && !window.confirm('產品順序尚未儲存，確定要放棄變更並離開嗎？')
+    ) {
+      return;
+    }
+
     setActiveTab(tabId);
     setLoadedTabs(prev => prev.has(tabId) ? prev : new Set([...prev, tabId]));
-  }, []);
+  }, [activeTab, productOrderDirty]);
 
   const handleEmployeeQuickAction = useCallback((action: 'message' | 'customerservice' | 'cccservice', employee: QuickActionEmployee) => {
     const targetTab: AdminTabId = action === 'message'
@@ -1528,8 +1538,11 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             {admin.role === 'super_admin' && (
               <>
                 {loadedTabs.has('products') && (
-                  <div className={activeTab === 'products' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
-                    <ProductTypeManagement />
+                  <div className={activeTab === 'products' ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'hidden'}>
+                    <ProductTypeManagement
+                      isActive={activeTab === 'products'}
+                      onOrderDirtyChange={setProductOrderDirty}
+                    />
                   </div>
                 )}
                 {loadedTabs.has('validdata') && (
