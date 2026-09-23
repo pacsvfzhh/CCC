@@ -845,7 +845,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
         };
 
     return (
-      <article key={verification.id} className={`overflow-hidden rounded-xl border border-l-[3px] shadow-sm shadow-black/20 transition-colors duration-150 ${rowTheme.surface}`}>
+      <article key={verification.id} className={`overflow-hidden rounded-xl border border-l-[3px] shadow-sm shadow-black/20 transition-colors duration-150 lg:h-[74px] ${rowTheme.surface}`}>
         <div className="grid min-w-0 gap-2 px-3 py-2.5 sm:px-4 lg:grid-cols-[minmax(180px,1.25fr)_minmax(120px,0.8fr)_minmax(160px,1.1fr)_minmax(120px,0.7fr)_auto] lg:items-center">
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -867,13 +867,13 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           <div className="min-w-0">
             <p className={`text-[10px] font-black uppercase tracking-wider lg:hidden ${rowTheme.label}`}>联系方式</p>
             <p className={`truncate text-xs font-semibold ${rowTheme.value}`} title={verification.email || ''}>{verification.email || '未填写邮箱'}</p>
-            <p className={`mt-0.5 truncate font-mono text-[11px] ${rowTheme.secondary}`} title={verification.wallet_address || ''}>{verification.wallet_address || '未填写钱包'}</p>
+            <p className={`mt-0.5 line-clamp-2 break-all font-mono text-[10px] leading-[13px] ${verification.wallet_address ? rowTheme.secondary : 'text-cyan-300'}`} title={verification.wallet_address || ''}>{verification.wallet_address || '未填写钱包地址'}</p>
           </div>
 
           <div className="min-w-0">
             <p className={`text-[10px] font-black uppercase tracking-wider lg:hidden ${rowTheme.label}`}>提交时间</p>
-            <p className={`text-[10px] font-black ${rowTheme.time}`}>{new Date(verification.created_at).toLocaleDateString()}</p>
-            <p className={`mt-0.5 text-[10px] font-semibold ${rowTheme.timeSecondary}`}>{new Date(verification.created_at).toLocaleTimeString()}</p>
+            <p className={`truncate text-[9px] font-black ${rowTheme.time}`}>提交 {new Date(verification.created_at).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+            <p className={`mt-1 truncate text-[9px] font-semibold ${rowTheme.timeSecondary}`}>{verification.audited_at ? `审核 ${new Date(verification.audited_at).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : '尚未审核'}</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
@@ -895,7 +895,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
     const verification = verifications.find(item => item.user_id === employee.id && item.status === 'approved');
 
     return (
-      <article key={employee.id} className="overflow-hidden rounded-xl border border-emerald-500/15 border-l-[3px] border-l-emerald-500/60 bg-[linear-gradient(90deg,rgba(6,78,59,0.14),rgba(30,41,59,0.96)_26%,rgba(15,23,42,0.98))] shadow-sm shadow-black/20 transition-colors duration-150 hover:border-emerald-400/25">
+      <article key={employee.id} className="overflow-hidden rounded-xl border border-emerald-500/15 border-l-[3px] border-l-emerald-500/60 bg-[linear-gradient(90deg,rgba(6,78,59,0.14),rgba(30,41,59,0.96)_26%,rgba(15,23,42,0.98))] shadow-sm shadow-black/20 transition-colors duration-150 hover:border-emerald-400/25 lg:h-[74px]">
         <div className="grid min-w-0 gap-2 px-3 py-2.5 sm:px-4 lg:grid-cols-[minmax(180px,1.25fr)_minmax(120px,0.8fr)_minmax(160px,1.1fr)_minmax(120px,0.7fr)_auto] lg:items-center">
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -917,13 +917,13 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-wider text-emerald-200/70 lg:hidden">联系／账户信息</p>
             <p className={`truncate text-xs font-semibold ${verification?.email ? 'text-emerald-50/90' : 'text-cyan-300'}`} title={verification?.email || ''}>{verification?.email || '未填写邮箱'}</p>
-            <p className={`mt-0.5 truncate font-mono text-[11px] ${verification?.wallet_address ? 'text-emerald-100/65' : 'text-cyan-300'}`} title={verification?.wallet_address || ''}>{verification?.wallet_address || '未填写钱包地址'}</p>
+            <p className={`mt-0.5 line-clamp-2 break-all font-mono text-[10px] leading-[13px] ${verification?.wallet_address ? 'text-emerald-100/65' : 'text-cyan-300'}`} title={verification?.wallet_address || ''}>{verification?.wallet_address || '未填写钱包地址'}</p>
           </div>
 
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-wider text-emerald-200/70 lg:hidden">验证时间</p>
-            <p className="text-[10px] font-black text-emerald-200/90">{verification?.audited_at ? new Date(verification.audited_at).toLocaleDateString() : '—'}</p>
-            <p className="mt-0.5 text-[10px] font-semibold text-emerald-200/60">加入 {new Date(employee.created_at).toLocaleDateString()}</p>
+            <p className="truncate text-[9px] font-black text-emerald-200/90">提交 {verification ? new Date(verification.created_at).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</p>
+            <p className="mt-1 truncate text-[9px] font-semibold text-emerald-200/60">审核 {verification?.audited_at ? new Date(verification.audited_at).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</p>
           </div>
 
           <div className="flex items-center lg:justify-end">
