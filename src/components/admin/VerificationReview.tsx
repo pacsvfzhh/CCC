@@ -1237,7 +1237,8 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           </div>
         )}
 
-        <div className="grid min-h-0 flex-1 lg:grid-cols-[250px_minmax(0,1fr)]">
+        <div className={`grid min-h-0 flex-1 ${isSuperAdmin ? 'lg:grid-cols-[250px_minmax(0,1fr)]' : 'grid-cols-1'}`}>
+          {isSuperAdmin && (
           <aside className="hidden min-h-0 flex-col border-r border-cyan-300/15 bg-[linear-gradient(180deg,#07111f_0%,#040913_100%)] shadow-xl shadow-black/25 lg:flex">
             <div className="flex h-10 shrink-0 items-center justify-between border-b border-slate-700/70 bg-[linear-gradient(90deg,rgba(15,23,42,0.98),rgba(17,35,57,0.98))] px-3">
               <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100/80"><Users className="h-3.5 w-3.5" />管理员分组</span>
@@ -1286,6 +1287,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
             </div>
 
           </aside>
+          )}
 
           <main className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_top_right,rgba(8,145,178,0.08),transparent_32%),#0f172a]">
             <div className="shrink-0 border-b border-cyan-300/15 bg-[linear-gradient(105deg,rgba(15,23,42,0.98),rgba(8,47,73,0.82))] px-3 py-3 sm:px-4">
