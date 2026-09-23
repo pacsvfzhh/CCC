@@ -810,16 +810,28 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
     const ownerId = getVerificationOwnerId(verification);
     const isPending = verification.status === 'pending';
-    const rowTone = isPending
-      ? 'border-amber-400/25 border-l-amber-400 bg-[linear-gradient(90deg,rgba(120,53,15,0.2),rgba(15,23,42,0.92)_26%)]'
-      : 'border-rose-400/25 border-l-rose-400 bg-[linear-gradient(90deg,rgba(127,29,29,0.18),rgba(15,23,42,0.92)_26%)]';
+    const rowTheme = isPending
+      ? {
+          surface: 'border-amber-300/30 border-l-amber-400 bg-[linear-gradient(100deg,rgba(146,64,14,0.28),rgba(30,41,59,0.94)_30%,rgba(15,23,42,0.96))] hover:border-amber-300/50',
+          title: 'text-amber-50',
+          label: 'text-amber-200/70',
+          value: 'text-amber-50/90',
+          secondary: 'text-amber-100/70',
+        }
+      : {
+          surface: 'border-rose-300/30 border-l-rose-400 bg-[linear-gradient(100deg,rgba(136,19,55,0.25),rgba(30,41,59,0.94)_30%,rgba(15,23,42,0.96))] hover:border-rose-300/50',
+          title: 'text-rose-50',
+          label: 'text-rose-200/70',
+          value: 'text-rose-50/90',
+          secondary: 'text-rose-100/70',
+        };
 
     return (
-      <article key={verification.id} className={`overflow-hidden rounded-xl border border-l-4 shadow-md shadow-slate-950/15 transition hover:border-r-slate-600/70 ${rowTone}`}>
+      <article key={verification.id} className={`overflow-hidden rounded-xl border border-l-4 shadow-md shadow-slate-950/20 ring-1 ring-inset ring-white/[0.025] transition ${rowTheme.surface}`}>
         <div className="grid min-w-0 gap-2 px-3 py-2.5 sm:px-4 lg:grid-cols-[minmax(180px,1.25fr)_minmax(120px,0.8fr)_minmax(160px,1.1fr)_minmax(120px,0.7fr)_auto] lg:items-center">
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-              <span className="truncate text-xs font-black text-white">{employee.username}</span>
+              <span className={`truncate text-xs font-black ${rowTheme.title}`}>{employee.username}</span>
               {getStatusBadge(verification.status)}
             </div>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-bold text-slate-300">
@@ -829,19 +841,19 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           </div>
 
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">身份资料</p>
-            <p className={`truncate text-xs font-bold ${verification.real_name ? 'text-slate-200' : 'text-cyan-300'}`}>{verification.real_name || '未填写真实姓名'}</p>
-            <p className={`mt-0.5 truncate text-[11px] ${verification.phone ? 'text-slate-300' : 'font-bold text-cyan-300'}`}>{verification.phone || '未填写电话'}</p>
+            <p className={`text-[10px] font-black uppercase tracking-wider lg:hidden ${rowTheme.label}`}>身份资料</p>
+            <p className={`truncate text-xs font-bold ${verification.real_name ? rowTheme.value : 'text-cyan-300'}`}>{verification.real_name || '未填写真实姓名'}</p>
+            <p className={`mt-0.5 truncate text-[11px] ${verification.phone ? rowTheme.secondary : 'font-bold text-cyan-300'}`}>{verification.phone || '未填写电话'}</p>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">联系方式</p>
-            <p className="truncate text-xs font-semibold text-slate-300" title={verification.email || ''}>{verification.email || '未填写邮箱'}</p>
-            <p className="mt-0.5 truncate font-mono text-[11px] text-slate-300" title={verification.wallet_address || ''}>{verification.wallet_address || '未填写钱包'}</p>
+            <p className={`text-[10px] font-black uppercase tracking-wider lg:hidden ${rowTheme.label}`}>联系方式</p>
+            <p className={`truncate text-xs font-semibold ${rowTheme.value}`} title={verification.email || ''}>{verification.email || '未填写邮箱'}</p>
+            <p className={`mt-0.5 truncate font-mono text-[11px] ${rowTheme.secondary}`} title={verification.wallet_address || ''}>{verification.wallet_address || '未填写钱包'}</p>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">提交时间</p>
+            <p className={`text-[10px] font-black uppercase tracking-wider lg:hidden ${rowTheme.label}`}>提交时间</p>
             <p className="text-[10px] font-black text-emerald-300">{new Date(verification.created_at).toLocaleDateString()}</p>
             <p className="mt-0.5 text-[10px] font-semibold text-emerald-400/75">{new Date(verification.created_at).toLocaleTimeString()}</p>
           </div>
@@ -865,11 +877,11 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
     const verification = verifications.find(item => item.user_id === employee.id && item.status === 'approved');
 
     return (
-      <article key={employee.id} className="overflow-hidden rounded-xl border border-emerald-400/25 border-l-4 border-l-emerald-400 bg-[linear-gradient(90deg,rgba(6,78,59,0.18),rgba(15,23,42,0.92)_26%)] shadow-md shadow-slate-950/15 transition hover:border-r-slate-600/70">
+      <article key={employee.id} className="overflow-hidden rounded-xl border border-emerald-300/30 border-l-4 border-l-emerald-400 bg-[linear-gradient(100deg,rgba(6,95,70,0.25),rgba(30,41,59,0.94)_30%,rgba(15,23,42,0.96))] shadow-md shadow-slate-950/20 ring-1 ring-inset ring-white/[0.025] transition hover:border-emerald-300/50">
         <div className="grid min-w-0 gap-2 px-3 py-2.5 sm:px-4 lg:grid-cols-[minmax(180px,1.25fr)_minmax(120px,0.8fr)_minmax(160px,1.1fr)_minmax(120px,0.7fr)_auto] lg:items-center">
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-              <span className="truncate text-xs font-black text-white">{employee.username}</span>
+              <span className="truncate text-xs font-black text-emerald-50">{employee.username}</span>
               {getStatusBadge('approved')}
             </div>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-bold text-slate-300">
@@ -879,19 +891,19 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           </div>
 
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">身份资料</p>
-            <p className={`truncate text-xs font-bold ${verification?.real_name ? 'text-slate-200' : 'text-cyan-300'}`}>{verification?.real_name || '未填写真实姓名'}</p>
-            <p className={`mt-0.5 truncate text-[11px] ${verification?.phone ? 'text-slate-300' : 'font-bold text-cyan-300'}`}>{verification?.phone || '未填写电话'}</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-200/70 lg:hidden">身份资料</p>
+            <p className={`truncate text-xs font-bold ${verification?.real_name ? 'text-emerald-50/90' : 'text-cyan-300'}`}>{verification?.real_name || '未填写真实姓名'}</p>
+            <p className={`mt-0.5 truncate text-[11px] ${verification?.phone ? 'text-emerald-100/70' : 'font-bold text-cyan-300'}`}>{verification?.phone || '未填写电话'}</p>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">账户信息</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-200/70 lg:hidden">账户信息</p>
             <p className="text-xs font-black text-emerald-300">${(walletBalances.get(employee.id) || 0).toFixed(2)}</p>
-            <p className="mt-0.5 truncate text-[11px] text-slate-300" title={verification?.email || ''}>{verification?.email || '未填写邮箱'}</p>
+            <p className="mt-0.5 truncate text-[11px] text-emerald-100/70" title={verification?.email || ''}>{verification?.email || '未填写邮箱'}</p>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">验证时间</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-200/70 lg:hidden">验证时间</p>
             <p className="text-[10px] font-black text-emerald-300">{verification?.audited_at ? new Date(verification.audited_at).toLocaleDateString() : '—'}</p>
             <p className="mt-0.5 text-[10px] font-semibold text-emerald-400/75">加入 {new Date(employee.created_at).toLocaleDateString()}</p>
           </div>
