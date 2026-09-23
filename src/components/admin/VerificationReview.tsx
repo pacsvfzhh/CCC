@@ -1289,7 +1289,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                         <span className="block truncate text-xs font-black">{adminOption.username}</span>
                         <span className={`mt-0.5 block text-[9px] font-bold ${selected ? 'text-cyan-100/70' : 'text-slate-500'}`}>{adminOption.role === 'super_admin' ? '超级管理员' : '次要管理员'}</span>
                       </span>
-                      {stats.pending > 0 && <span className="inline-flex animate-pulse items-center gap-1 rounded-full border border-amber-100/80 bg-gradient-to-r from-orange-500 to-red-500 px-2 py-1 text-[10px] font-black text-white shadow-[0_0_14px_rgba(251,146,60,0.7)]"><AlertCircle className="h-3 w-3" />{stats.pending}</span>}
+                      {stats.pending > 0 && <span className="inline-flex animate-pulse items-center gap-1 rounded-full border border-amber-100/80 bg-gradient-to-r from-orange-500 to-red-500 px-2 py-1 text-[10px] font-black text-white shadow-[0_0_14px_rgba(251,146,60,0.7)]"><AlertCircle className="h-3 w-3" />待审核 {stats.pending}</span>}
                     </button>
                     <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[10px] font-black">
                       <button type="button" onClick={() => changeContext('requests', adminOption.id)} aria-pressed={selected && viewMode === 'requests'} className={`rounded px-1 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 ${selected && viewMode === 'requests' ? 'bg-amber-500 text-white shadow-md shadow-amber-950/40' : 'bg-amber-500/10 text-amber-200 hover:bg-amber-500/25'}`}>待审核 {stats.pending}</button>
