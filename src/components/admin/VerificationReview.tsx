@@ -915,9 +915,9 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           </div>
 
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-200/70 lg:hidden">账户信息</p>
-            <p className="text-xs font-black text-emerald-300">${(walletBalances.get(employee.id) || 0).toFixed(2)}</p>
-            <p className="mt-0.5 truncate text-[11px] text-emerald-100/70" title={verification?.email || ''}>{verification?.email || '未填写邮箱'}</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-200/70 lg:hidden">联系／账户信息</p>
+            <p className={`truncate text-xs font-semibold ${verification?.email ? 'text-emerald-50/90' : 'text-cyan-300'}`} title={verification?.email || ''}>{verification?.email || '未填写邮箱'}</p>
+            <p className={`mt-0.5 truncate font-mono text-[11px] ${verification?.wallet_address ? 'text-emerald-100/65' : 'text-cyan-300'}`} title={verification?.wallet_address || ''}>{verification?.wallet_address || '未填写钱包地址'}</p>
           </div>
 
           <div className="min-w-0">
