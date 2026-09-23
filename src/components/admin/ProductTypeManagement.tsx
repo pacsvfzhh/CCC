@@ -245,7 +245,7 @@ export default function ProductTypeManagement({
     try {
       const { data, error } = await supabase
         .from('product_types')
-        .update({ name: productName })
+        .update({ name: productName, updated_at: new Date().toISOString() })
         .eq('id', editingId)
         .select()
         .single();
@@ -300,7 +300,7 @@ export default function ProductTypeManagement({
 
           const { data, error } = await supabase
             .from('product_types')
-            .update({ is_active: true })
+            .update({ is_active: true, updated_at: new Date().toISOString() })
             .eq('id', existing.id)
             .select()
             .single();
@@ -354,7 +354,7 @@ export default function ProductTypeManagement({
     try {
       const { data, error } = await supabase
         .from('product_types')
-        .update({ is_active: nextStatus })
+        .update({ is_active: nextStatus, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single();
@@ -577,8 +577,10 @@ export default function ProductTypeManagement({
         aria-label={`${label}${direction === 'asc' ? '，目前升序' : direction === 'desc' ? '，目前降序' : ''}`}
         className={`${hidden ? 'hidden xl:inline-flex' : 'inline-flex'} items-center gap-1 rounded-md px-1.5 py-1 text-left text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
           isSelected
-            ? 'bg-white/10 text-white'
-            : 'text-current/70 hover:bg-white/10 hover:text-current'
+            ? key === 'created_at'
+              ? 'border border-blue-300 bg-blue-600 text-white shadow-sm'
+              : 'border border-cyan-300 bg-cyan-600 text-white shadow-sm'
+            : 'text-current/65 hover:bg-white/10 hover:text-current'
         } disabled:cursor-not-allowed disabled:opacity-50`}
       >
         <span>{label}</span>
@@ -809,7 +811,7 @@ export default function ProductTypeManagement({
           ) : (
             <>
               <div className="hidden min-h-0 flex-1 flex-col lg:flex">
-                <div className={`grid shrink-0 grid-cols-[72px_minmax(200px,1fr)_110px_140px_140px] items-center gap-3 border-b px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] xl:grid-cols-[72px_minmax(240px,1fr)_110px_140px_140px_140px] ${listHeaderTheme}`}>
+                <div className={`grid shrink-0 grid-cols-[72px_minmax(200px,1fr)_110px_140px_140px] items-center gap-3 border-b px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] xl:grid-cols-[72px_minmax(240px,1fr)_110px_140px_140px_140px] ${listHeaderTheme}`}>
                   <span>順序</span>
                   <span>產品</span>
                   <span>狀態</span>
