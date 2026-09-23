@@ -657,6 +657,14 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
         ? filteredVerifiedEmployees.length
         : filteredRejectedVerifications.length;
 
+  const listHeaderTheme = viewMode === 'all'
+    ? 'border-cyan-300/25 bg-[linear-gradient(90deg,rgba(8,47,73,0.98),rgba(15,23,42,0.98)_55%,rgba(8,47,73,0.92))] text-cyan-100'
+    : viewMode === 'requests'
+      ? 'border-amber-300/30 bg-[linear-gradient(90deg,rgba(120,53,15,0.96),rgba(30,41,59,0.98)_55%,rgba(120,53,15,0.88))] text-amber-100'
+      : viewMode === 'verified'
+        ? 'border-emerald-300/30 bg-[linear-gradient(90deg,rgba(6,78,59,0.96),rgba(30,41,59,0.98)_55%,rgba(6,78,59,0.88))] text-emerald-100'
+        : 'border-rose-300/30 bg-[linear-gradient(90deg,rgba(136,19,55,0.94),rgba(30,41,59,0.98)_55%,rgba(136,19,55,0.86))] text-rose-100';
+
   const clearReviewDraft = () => {
     setReviewing(null);
     setReviewAction(null);
@@ -1402,6 +1410,14 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           )}
 
           <main className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_top_right,rgba(8,145,178,0.08),transparent_32%),#0f172a]">
+            <div className={`hidden h-10 shrink-0 grid-cols-[minmax(180px,1.25fr)_minmax(120px,0.8fr)_minmax(160px,1.1fr)_minmax(120px,0.7fr)_auto] items-center gap-2 border-b px-8 text-[10px] font-black uppercase tracking-[0.12em] shadow-md shadow-slate-950/20 lg:grid ${listHeaderTheme}`}>
+              <span>员工与状态</span>
+              <span>身份资料</span>
+              <span>联系／账户信息</span>
+              <span>时间</span>
+              <span className="min-w-[168px] text-right">操作</span>
+            </div>
+
             <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4">
               {error && (
                 <div className="mb-3 flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-xs font-bold text-rose-200"><AlertCircle className="h-4 w-4 shrink-0" />{error}</div>
@@ -1419,24 +1435,15 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                   {searchQuery && <button type="button" onClick={() => setSearchQuery('')} className="mt-4 h-8 rounded-lg border border-cyan-400/25 bg-cyan-500/10 px-3 text-[10px] font-black text-cyan-200 hover:bg-cyan-500/20">清除搜索</button>}
                 </div>
               ) : (
-                <div>
-                  <div className="mb-1.5 hidden grid-cols-[minmax(180px,1.25fr)_minmax(120px,0.8fr)_minmax(160px,1.1fr)_minmax(120px,0.7fr)_auto] items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-950/45 px-4 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500 lg:grid">
-                    <span>员工与状态</span>
-                    <span>身份资料</span>
-                    <span>联系／账户信息</span>
-                    <span>时间</span>
-                    <span className="min-w-[168px] text-right">操作</span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {viewMode === 'all' && allFilteredItems.map(entry =>
-                      entry.type === 'employee'
-                        ? renderVerifiedEmployeeCard(entry.item)
-                        : renderVerificationCard(entry.item)
-                    )}
-                    {viewMode === 'requests' && filteredVerifications.map(renderVerificationCard)}
-                    {viewMode === 'verified' && filteredVerifiedEmployees.map(renderVerifiedEmployeeCard)}
-                    {viewMode === 'rejected' && filteredRejectedVerifications.map(renderVerificationCard)}
-                  </div>
+                <div className="space-y-1.5">
+                  {viewMode === 'all' && allFilteredItems.map(entry =>
+                    entry.type === 'employee'
+                      ? renderVerifiedEmployeeCard(entry.item)
+                      : renderVerificationCard(entry.item)
+                  )}
+                  {viewMode === 'requests' && filteredVerifications.map(renderVerificationCard)}
+                  {viewMode === 'verified' && filteredVerifiedEmployees.map(renderVerifiedEmployeeCard)}
+                  {viewMode === 'rejected' && filteredRejectedVerifications.map(renderVerificationCard)}
                 </div>
               )}
             </div>
