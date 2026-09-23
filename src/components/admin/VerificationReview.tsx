@@ -1230,25 +1230,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
         <div className="grid min-h-0 flex-1 lg:grid-cols-[300px_minmax(0,1fr)]">
           <aside className="hidden min-h-0 flex-col border-r border-cyan-950/70 bg-[linear-gradient(180deg,rgba(15,23,42,0.99),rgba(8,20,38,0.99))] lg:flex">
             <div className="shrink-0 border-b border-cyan-900/45 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_42%)] p-3">
-              <div className="grid grid-cols-3 gap-1 rounded-xl border border-white/10 bg-slate-950/45 p-1 shadow-inner shadow-slate-950/50">
-                {([
-                  { value: 'requests', label: '待审核', count: selectedGroupStats.pending, Icon: Clock, active: 'border-amber-300/50 bg-amber-600 text-white shadow-amber-950/40', idle: 'border-transparent text-amber-200 hover:bg-amber-500/15' },
-                  { value: 'verified', label: '已验证', count: selectedGroupStats.approved, Icon: CheckCircle, active: 'border-emerald-300/50 bg-emerald-600 text-white shadow-emerald-950/40', idle: 'border-transparent text-emerald-200 hover:bg-emerald-500/15' },
-                  { value: 'rejected', label: '已拒绝', count: selectedGroupStats.rejected, Icon: XCircle, active: 'border-rose-300/50 bg-rose-600 text-white shadow-rose-950/40', idle: 'border-transparent text-rose-200 hover:bg-rose-500/15' },
-                ] as const).map(({ value, label, count, Icon, active, idle }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => changeContext(value, selectedAdminId)}
-                    aria-pressed={viewMode === value}
-                    className={`flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg border text-[10px] font-black shadow-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${viewMode === value ? active : idle}`}
-                  >
-                    <span className="flex items-center gap-1"><Icon className="h-3.5 w-3.5" />{label}</span>
-                    <span className={`rounded px-1.5 py-0.5 text-[9px] tabular-nums ${viewMode === value ? 'bg-white/20' : 'bg-slate-950/40'}`}>{count}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="relative mt-2.5">
+              <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                 <input
                   value={searchQuery}
@@ -1267,51 +1249,54 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
             <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto p-1.5">
               {isSuperAdmin && (
-                <button
-                  type="button"
-                  onClick={() => changeContext(viewMode, 'all')}
-                  aria-pressed={selectedAdminId === 'all'}
-                  className={`group relative mb-1.5 w-full overflow-hidden rounded-xl border p-2.5 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${selectedAdminId === 'all' ? 'border-cyan-300/55 bg-gradient-to-r from-cyan-700 via-blue-800 to-slate-800 text-white shadow-lg shadow-cyan-950/35' : 'border-slate-700/70 bg-slate-900/65 text-slate-300 hover:border-cyan-600/50 hover:bg-cyan-950/30'}`}
-                >
+                <div className={`group relative mb-1.5 w-full overflow-hidden rounded-xl border p-2.5 transition ${selectedAdminId === 'all' ? 'border-cyan-300/55 bg-gradient-to-r from-cyan-700 via-blue-800 to-slate-800 text-white shadow-lg shadow-cyan-950/35' : 'border-slate-700/70 bg-slate-900/65 text-slate-300 hover:border-cyan-600/50 hover:bg-cyan-950/30'}`}>
                   {selectedAdminId === 'all' && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-cyan-300" />}
-                  <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => changeContext(viewMode, 'all')}
+                    aria-pressed={selectedAdminId === 'all'}
+                    className="flex w-full items-center justify-between gap-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+                  >
                     <span className="flex items-center gap-2 text-xs font-black"><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-slate-950/25"><Users className="h-3.5 w-3.5" /></span>全部管理员</span>
-                    <span className="text-[9px] font-black text-cyan-100">汇总</span>
-                  </div>
+                    {overallStats.pending > 0 ? (
+                      <span className="inline-flex animate-pulse items-center gap-1 rounded-full border border-amber-100/80 bg-gradient-to-r from-orange-500 to-red-500 px-2 py-1 text-[10px] font-black text-white shadow-[0_0_14px_rgba(251,146,60,0.7)]"><AlertCircle className="h-3 w-3" />待审核 {overallStats.pending}</span>
+                    ) : (
+                      <span className="text-[9px] font-black text-cyan-100">汇总</span>
+                    )}
+                  </button>
                   <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[10px] font-black">
-                    <span className="rounded bg-amber-500/15 px-1 py-1 text-amber-200">待审核 {overallStats.pending}</span>
-                    <span className="rounded bg-emerald-500/15 px-1 py-1 text-emerald-200">已验证 {overallStats.approved}</span>
-                    <span className="rounded bg-rose-500/15 px-1 py-1 text-rose-200">已拒绝 {overallStats.rejected}</span>
+                    <button type="button" onClick={() => changeContext('requests', 'all')} aria-pressed={selectedAdminId === 'all' && viewMode === 'requests'} className={`rounded px-1 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 ${selectedAdminId === 'all' && viewMode === 'requests' ? 'bg-amber-500 text-white shadow-md shadow-amber-950/40' : 'bg-amber-500/15 text-amber-200 hover:bg-amber-500/30'}`}>待审核 {overallStats.pending}</button>
+                    <button type="button" onClick={() => changeContext('verified', 'all')} aria-pressed={selectedAdminId === 'all' && viewMode === 'verified'} className={`rounded px-1 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70 ${selectedAdminId === 'all' && viewMode === 'verified' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/40' : 'bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/30'}`}>已验证 {overallStats.approved}</button>
+                    <button type="button" onClick={() => changeContext('rejected', 'all')} aria-pressed={selectedAdminId === 'all' && viewMode === 'rejected'} className={`rounded px-1 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/70 ${selectedAdminId === 'all' && viewMode === 'rejected' ? 'bg-rose-600 text-white shadow-md shadow-rose-950/40' : 'bg-rose-500/15 text-rose-200 hover:bg-rose-500/30'}`}>已拒绝 {overallStats.rejected}</button>
                   </div>
-                </button>
+                </div>
               )}
 
               {adminOptions.map(adminOption => {
                 const stats = getAdminStats(adminOption.id);
                 const selected = selectedAdminId === adminOption.id;
                 return (
-                  <button
-                    key={adminOption.id}
-                    type="button"
-                    onClick={() => changeContext(viewMode, adminOption.id)}
-                    aria-pressed={selected}
-                    className={`group relative mb-1.5 w-full overflow-hidden rounded-xl border p-2.5 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${selected ? 'border-cyan-300/55 bg-gradient-to-r from-blue-700 via-cyan-800 to-slate-800 text-white shadow-lg shadow-cyan-950/35' : 'border-slate-700/70 bg-slate-900/65 text-slate-300 hover:border-cyan-600/50 hover:bg-cyan-950/30'}`}
-                  >
+                  <div key={adminOption.id} className={`group relative mb-1.5 w-full overflow-hidden rounded-xl border p-2.5 transition ${selected ? 'border-cyan-300/55 bg-gradient-to-r from-blue-700 via-cyan-800 to-slate-800 text-white shadow-lg shadow-cyan-950/35' : 'border-slate-700/70 bg-slate-900/65 text-slate-300 hover:border-cyan-600/50 hover:bg-cyan-950/30'}`}>
                     {selected && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-cyan-300" />}
-                    <div className="flex min-w-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => changeContext(viewMode, adminOption.id)}
+                      aria-pressed={selected}
+                      className="flex w-full min-w-0 items-center gap-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+                    >
                       <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${selected ? 'border-white/25 bg-slate-950/25 text-white' : 'border-slate-700 bg-slate-950/40 text-cyan-300'}`}><User className="h-3.5 w-3.5" /></span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-black">{adminOption.username}</p>
-                        <p className={`mt-0.5 text-[9px] font-bold ${selected ? 'text-cyan-100/70' : 'text-slate-500'}`}>{adminOption.role === 'super_admin' ? '超级管理员' : '次要管理员'}</p>
-                      </div>
-                      {stats.pending > 0 && <span className="rounded-full border border-amber-300/30 bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-black text-amber-200">{stats.pending}</span>}
-                    </div>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-black">{adminOption.username}</span>
+                        <span className={`mt-0.5 block text-[9px] font-bold ${selected ? 'text-cyan-100/70' : 'text-slate-500'}`}>{adminOption.role === 'super_admin' ? '超级管理员' : '次要管理员'}</span>
+                      </span>
+                      {stats.pending > 0 && <span className="inline-flex animate-pulse items-center gap-1 rounded-full border border-amber-100/80 bg-gradient-to-r from-orange-500 to-red-500 px-2 py-1 text-[10px] font-black text-white shadow-[0_0_14px_rgba(251,146,60,0.7)]"><AlertCircle className="h-3 w-3" />{stats.pending}</span>}
+                    </button>
                     <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[10px] font-black">
-                      <span className="rounded bg-amber-500/10 px-1 py-1 text-amber-200">待审核 {stats.pending}</span>
-                      <span className="rounded bg-emerald-500/10 px-1 py-1 text-emerald-200">已验证 {stats.approved}</span>
-                      <span className="rounded bg-rose-500/10 px-1 py-1 text-rose-200">已拒绝 {stats.rejected}</span>
+                      <button type="button" onClick={() => changeContext('requests', adminOption.id)} aria-pressed={selected && viewMode === 'requests'} className={`rounded px-1 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 ${selected && viewMode === 'requests' ? 'bg-amber-500 text-white shadow-md shadow-amber-950/40' : 'bg-amber-500/10 text-amber-200 hover:bg-amber-500/25'}`}>待审核 {stats.pending}</button>
+                      <button type="button" onClick={() => changeContext('verified', adminOption.id)} aria-pressed={selected && viewMode === 'verified'} className={`rounded px-1 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70 ${selected && viewMode === 'verified' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/40' : 'bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/25'}`}>已验证 {stats.approved}</button>
+                      <button type="button" onClick={() => changeContext('rejected', adminOption.id)} aria-pressed={selected && viewMode === 'rejected'} className={`rounded px-1 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/70 ${selected && viewMode === 'rejected' ? 'bg-rose-600 text-white shadow-md shadow-rose-950/40' : 'bg-rose-500/10 text-rose-200 hover:bg-rose-500/25'}`}>已拒绝 {stats.rejected}</button>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
