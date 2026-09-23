@@ -40,6 +40,16 @@ const formatFinancialCorrectionRemark = (remark: string | null) =>
 type FilterStatus = 'all' | 'today' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'processed';
 type SortOption = 'submit_time_desc' | 'submit_time_asc' | 'audit_time_desc' | 'audit_time_asc';
 
+const withdrawalTableHeaderThemes: Record<FilterStatus, string> = {
+  all: 'border-cyan-300/25 bg-[linear-gradient(90deg,rgba(8,47,73,0.98),rgba(15,23,42,0.98)_55%,rgba(8,47,73,0.92))] text-cyan-100',
+  today: 'border-amber-300/30 bg-[linear-gradient(90deg,rgba(120,53,15,0.96),rgba(30,41,59,0.98)_55%,rgba(120,53,15,0.88))] text-amber-100',
+  pending: 'border-orange-300/30 bg-[linear-gradient(90deg,rgba(124,45,18,0.96),rgba(30,41,59,0.98)_55%,rgba(124,45,18,0.88))] text-orange-100',
+  approved: 'border-emerald-300/30 bg-[linear-gradient(90deg,rgba(6,78,59,0.96),rgba(30,41,59,0.98)_55%,rgba(6,78,59,0.88))] text-emerald-100',
+  rejected: 'border-rose-300/30 bg-[linear-gradient(90deg,rgba(136,19,55,0.94),rgba(30,41,59,0.98)_55%,rgba(136,19,55,0.86))] text-rose-100',
+  cancelled: 'border-slate-400/30 bg-[linear-gradient(90deg,rgba(51,65,85,0.98),rgba(15,23,42,0.98)_55%,rgba(51,65,85,0.92))] text-slate-100',
+  processed: 'border-sky-300/30 bg-[linear-gradient(90deg,rgba(7,89,133,0.96),rgba(30,41,59,0.98)_55%,rgba(7,89,133,0.88))] text-sky-100',
+};
+
 const sortOptions: Array<{ key: SortOption; label: string; description: string }> = [
   { key: 'submit_time_desc', label: '最新提交', description: '按提交時間從新到舊' },
   { key: 'submit_time_asc', label: '最早提交', description: '按提交時間從舊到新' },
@@ -1412,25 +1422,25 @@ export default function WithdrawalReview({ admin }: WithdrawalReviewProps) {
         {/* Data table */}
         <div className="min-h-0 flex-1 overflow-x-auto overflow-y-scroll bg-slate-950/30 dark-panel-scroll" style={{ scrollbarGutter: 'stable' }}>
           <table className={`w-full ${showAdminColumn ? 'min-w-[1032px]' : 'min-w-[920px]'} border-separate border-spacing-0 text-left text-sm`}>
-            <thead className="sticky top-0 z-20 isolate border-b-2 border-blue-300/40 bg-blue-900 shadow-[0_2px_4px_rgba(0,0,0,0.35)]">
-              <tr className="h-[40px] text-xs uppercase tracking-wider text-white">
-                <th className="h-[40px] w-10 px-3 py-1 text-center text-xs font-semibold text-white">
+            <thead className={`sticky top-0 z-20 isolate border-b shadow-md shadow-slate-950/25 ${withdrawalTableHeaderThemes[filterStatus]}`}>
+              <tr className="h-[40px] text-[10px] font-black uppercase tracking-[0.12em]">
+                <th className="h-[40px] w-10 px-3 py-1 text-center">
                   <input
                     ref={selectAllRef}
                     type="checkbox"
-                    className="h-3.5 w-3.5 accent-blue-500"
+                    className="h-3.5 w-3.5 accent-current"
                     checked={allPendingSelected}
                     onChange={toggleSelectAll}
                     disabled={pendingInView.length === 0}
                     aria-label="選取目前檢視中的所有待審核提現"
                   />
                 </th>
-                {showAdminColumn && <th className="h-[40px] w-[112px] px-1.5 py-1 text-left text-xs font-semibold uppercase tracking-wider text-white">所屬管理員</th>}
-                <th className="h-[40px] px-3 py-1 text-left text-xs font-semibold uppercase tracking-wider text-white">員工</th>
-                <th className="h-[40px] px-3 py-1 text-left text-xs font-semibold uppercase tracking-wider text-white">金額</th>
-                <th className="h-[40px] px-3 py-1 text-left text-xs font-semibold uppercase tracking-wider text-white">狀態</th>
-                <th className="h-[40px] w-[42%] min-w-[440px] px-3 py-1 text-left text-xs font-semibold uppercase tracking-wider text-white">審核資訊</th>
-                <th className="h-[40px] px-3 py-1 text-right text-xs font-semibold uppercase tracking-wider text-white">操作</th>
+                {showAdminColumn && <th className="h-[40px] w-[112px] px-1.5 py-1 text-left">所屬管理員</th>}
+                <th className="h-[40px] px-3 py-1 text-left">員工</th>
+                <th className="h-[40px] px-3 py-1 text-left">金額</th>
+                <th className="h-[40px] px-3 py-1 text-left">狀態</th>
+                <th className="h-[40px] w-[42%] min-w-[440px] px-3 py-1 text-left">審核資訊</th>
+                <th className="h-[40px] px-3 py-1 text-right">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/70">
