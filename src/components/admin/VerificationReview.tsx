@@ -822,28 +822,28 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               <span className="truncate text-xs font-black text-white">{employee.username}</span>
               {getStatusBadge(verification.status)}
             </div>
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-bold text-slate-500">
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-bold text-slate-300">
               <span className="truncate">{employee.employee_id}</span>
               {isSuperAdmin && ownerId && <span className="truncate text-cyan-300/75">· {getAdminName(ownerId)}</span>}
             </div>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">身份资料</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">身份资料</p>
             <p className="truncate text-xs font-bold text-slate-200">{verification.real_name || '未填写真实姓名'}</p>
-            <p className="mt-0.5 truncate text-[10px] text-slate-500">{verification.phone || '未填写电话'}</p>
+            <p className="mt-0.5 truncate text-[11px] text-slate-300">{verification.phone || '未填写电话'}</p>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">联系方式</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">联系方式</p>
             <p className="truncate text-xs font-semibold text-slate-300" title={verification.email || ''}>{verification.email || '未填写邮箱'}</p>
-            <p className="mt-0.5 truncate font-mono text-[10px] text-slate-500" title={verification.wallet_address || ''}>{verification.wallet_address || '未填写钱包'}</p>
+            <p className="mt-0.5 truncate font-mono text-[11px] text-slate-300" title={verification.wallet_address || ''}>{verification.wallet_address || '未填写钱包'}</p>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">提交时间</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">提交时间</p>
             <p className="text-[10px] font-bold text-slate-300">{new Date(verification.created_at).toLocaleDateString()}</p>
-            <p className="mt-0.5 text-[9px] text-slate-600">{new Date(verification.created_at).toLocaleTimeString()}</p>
+            <p className="mt-0.5 text-[10px] text-slate-400">{new Date(verification.created_at).toLocaleTimeString()}</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
@@ -872,28 +872,28 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               <span className="truncate text-xs font-black text-white">{employee.username}</span>
               {getStatusBadge('approved')}
             </div>
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-bold text-slate-500">
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-bold text-slate-300">
               <span className="truncate">{employee.employee_id}</span>
               {isSuperAdmin && <span className="truncate text-cyan-300/75">· {getAdminName(employee.created_by)}</span>}
             </div>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">身份资料</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">身份资料</p>
             <p className="truncate text-xs font-bold text-slate-200">{verification?.real_name || '未填写真实姓名'}</p>
-            <p className="mt-0.5 truncate text-[10px] text-slate-500">{verification?.phone || '未填写电话'}</p>
+            <p className="mt-0.5 truncate text-[11px] text-slate-300">{verification?.phone || '未填写电话'}</p>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">账户信息</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">账户信息</p>
             <p className="text-xs font-black text-emerald-300">${(walletBalances.get(employee.id) || 0).toFixed(2)}</p>
-            <p className="mt-0.5 truncate text-[10px] text-slate-500" title={verification?.email || ''}>{verification?.email || '未填写邮箱'}</p>
+            <p className="mt-0.5 truncate text-[11px] text-slate-300" title={verification?.email || ''}>{verification?.email || '未填写邮箱'}</p>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">验证时间</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">验证时间</p>
             <p className="text-[10px] font-bold text-slate-300">{verification?.audited_at ? new Date(verification.audited_at).toLocaleDateString() : '—'}</p>
-            <p className="mt-0.5 text-[9px] text-slate-600">加入 {new Date(employee.created_at).toLocaleDateString()}</p>
+            <p className="mt-0.5 text-[10px] text-slate-400">加入 {new Date(employee.created_at).toLocaleDateString()}</p>
           </div>
 
           <div className="flex items-center lg:justify-end">
