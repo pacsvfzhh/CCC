@@ -1194,22 +1194,46 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               </div>
             </div>
 
-            <div className="grid min-w-0 flex-1 grid-cols-4 gap-1 rounded-xl border border-slate-700/80 bg-slate-950/50 p-1 lg:max-w-[430px]">
+            <div className="grid min-w-0 flex-1 grid-cols-4 gap-1.5 rounded-xl border border-slate-600/70 bg-[linear-gradient(135deg,rgba(2,6,23,0.72),rgba(15,23,42,0.82))] p-1 shadow-inner shadow-black/20 lg:ml-6 lg:max-w-[430px]">
               {([
-                { value: 'all', label: '全部', count: selectedGroupStats.pending + selectedGroupStats.approved + selectedGroupStats.rejected, active: 'border-cyan-300/60 bg-gradient-to-r from-blue-600 to-cyan-600 text-white' },
-                { value: 'requests', label: '待审核', count: selectedGroupStats.pending, active: 'border-amber-300/60 bg-amber-600 text-white' },
-                { value: 'verified', label: '已验证', count: selectedGroupStats.approved, active: 'border-emerald-300/60 bg-emerald-600 text-white' },
-                { value: 'rejected', label: '已拒绝', count: selectedGroupStats.rejected, active: 'border-rose-300/60 bg-rose-600 text-white' },
+                {
+                  value: 'all',
+                  label: '全部',
+                  count: selectedGroupStats.pending + selectedGroupStats.approved + selectedGroupStats.rejected,
+                  active: 'border-cyan-200/70 bg-gradient-to-r from-blue-600 to-cyan-600 text-white',
+                  idle: 'border-blue-400/25 bg-blue-500/10 text-blue-200 hover:border-blue-300/50 hover:bg-blue-500/20',
+                },
+                {
+                  value: 'requests',
+                  label: '待审核',
+                  count: selectedGroupStats.pending,
+                  active: 'border-amber-200/70 bg-gradient-to-r from-amber-500 to-orange-600 text-white',
+                  idle: 'border-amber-400/25 bg-amber-500/10 text-amber-200 hover:border-amber-300/50 hover:bg-amber-500/20',
+                },
+                {
+                  value: 'verified',
+                  label: '已验证',
+                  count: selectedGroupStats.approved,
+                  active: 'border-emerald-200/70 bg-gradient-to-r from-emerald-500 to-teal-600 text-white',
+                  idle: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-200 hover:border-emerald-300/50 hover:bg-emerald-500/20',
+                },
+                {
+                  value: 'rejected',
+                  label: '已拒绝',
+                  count: selectedGroupStats.rejected,
+                  active: 'border-rose-200/70 bg-gradient-to-r from-rose-500 to-red-600 text-white',
+                  idle: 'border-rose-400/25 bg-rose-500/10 text-rose-200 hover:border-rose-300/50 hover:bg-rose-500/20',
+                },
               ] as const).map(item => (
                 <button
                   key={item.value}
                   type="button"
                   onClick={() => changeContext(item.value, selectedAdminId)}
                   aria-pressed={viewMode === item.value}
-                  className={`flex h-9 min-w-0 items-center justify-center gap-1 rounded-lg border px-1.5 text-[10px] font-black transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70 ${viewMode === item.value ? item.active : 'border-transparent text-slate-400 hover:border-slate-600 hover:bg-slate-800 hover:text-white'}`}
+                  className={`flex h-9 min-w-0 items-center justify-center gap-1 rounded-lg border px-1.5 text-[10px] font-black transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60 ${viewMode === item.value ? item.active : item.idle}`}
                 >
                   <span className="truncate">{item.label}</span>
-                  <span className={`rounded-md px-1.5 py-0.5 text-[9px] ${viewMode === item.value ? 'bg-black/20 text-white' : 'bg-slate-800 text-slate-300'}`}>{item.count}</span>
+                  <span className={`min-w-5 rounded-md px-1.5 py-0.5 text-center text-[11px] leading-none ${viewMode === item.value ? 'bg-black/20 text-white' : 'bg-black/20 text-current'}`}>{item.count}</span>
                 </button>
               ))}
             </div>
