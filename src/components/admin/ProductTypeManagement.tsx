@@ -152,6 +152,12 @@ export default function ProductTypeManagement({
     ));
   }, [draftOrder, isSorting, searchMatchedProducts, statusFilter]);
 
+  const listHeaderTheme = {
+    all: 'border-blue-400/25 bg-blue-950/35 text-blue-100',
+    active: 'border-emerald-400/25 bg-emerald-950/35 text-emerald-100',
+    disabled: 'border-amber-400/25 bg-amber-950/35 text-amber-100',
+  }[statusFilter];
+
   const openCreateForm = () => {
     setEditingId(null);
     setFormData({ name: '' });
@@ -668,8 +674,8 @@ export default function ProductTypeManagement({
         )}
       </header>
 
-      <main className="min-h-0 flex-1 overflow-hidden px-3 pb-3 pt-2 sm:px-5 sm:pb-5 lg:px-6">
-        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/50 shadow-[0_18px_50px_rgba(2,6,23,0.22)]">
+      <main className="min-h-0 flex-1 overflow-hidden">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-950/35">
           {loading ? (
             <div className="flex flex-1 items-center justify-center">
               <div className="flex flex-col items-center gap-3 text-slate-400">
@@ -706,7 +712,7 @@ export default function ProductTypeManagement({
           ) : (
             <>
               <div className="hidden min-h-0 flex-1 flex-col lg:flex">
-                <div className="grid shrink-0 grid-cols-[72px_minmax(200px,1fr)_110px_140px_140px] items-center gap-3 border-b border-slate-800 bg-slate-950/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 xl:grid-cols-[72px_minmax(240px,1fr)_110px_140px_140px_140px]">
+                <div className={`grid shrink-0 grid-cols-[72px_minmax(200px,1fr)_110px_140px_140px] items-center gap-3 border-b px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] xl:grid-cols-[72px_minmax(240px,1fr)_110px_140px_140px_140px] ${listHeaderTheme}`}>
                   <span>順序</span>
                   <span>產品</span>
                   <span>狀態</span>
@@ -730,7 +736,9 @@ export default function ProductTypeManagement({
                       className={`grid min-h-[68px] grid-cols-[72px_minmax(200px,1fr)_110px_140px_140px] items-center gap-3 border-b px-4 py-2.5 transition xl:grid-cols-[72px_minmax(240px,1fr)_110px_140px_140px_140px] ${
                         dragOverId === productType.id
                           ? 'border-cyan-400/70 bg-cyan-400/[0.07]'
-                          : 'border-slate-800/80 hover:bg-slate-800/45'
+                          : productType.is_active
+                            ? 'border-emerald-900/50 bg-emerald-950/[0.10] hover:bg-emerald-900/20'
+                            : 'border-amber-900/40 bg-amber-950/[0.08] hover:bg-amber-900/15'
                       } ${draggedId === productType.id ? 'opacity-45' : ''}`}
                     >
                       <div className="flex items-center gap-2">
@@ -760,9 +768,9 @@ export default function ProductTypeManagement({
                       <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
                         productType.is_active
                           ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                          : 'border-slate-600/50 bg-slate-800 text-slate-400'
+                          : 'border-amber-400/25 bg-amber-950/50 text-amber-300'
                       }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${productType.is_active ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                        <span className={`h-1.5 w-1.5 rounded-full ${productType.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                         {productType.is_active ? '已啟用' : '已停用'}
                       </span>
 
@@ -778,7 +786,10 @@ export default function ProductTypeManagement({
                 {visibleProducts.map((productType, index) => (
                   <article
                     key={productType.id}
-                    className="rounded-xl border border-slate-800 bg-slate-950/55 p-3"
+                    className={`rounded-xl border p-3 ${productType.is_active
+                      ? 'border-emerald-900/50 bg-emerald-950/[0.12]'
+                      : 'border-amber-900/40 bg-amber-950/[0.10]'
+                    }`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 font-mono text-xs font-bold text-cyan-200">
@@ -793,7 +804,7 @@ export default function ProductTypeManagement({
                           <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${
                             productType.is_active
                               ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                              : 'border-slate-600/50 bg-slate-800 text-slate-400'
+                              : 'border-amber-400/25 bg-amber-950/50 text-amber-300'
                           }`}>
                             {productType.is_active ? '已啟用' : '已停用'}
                           </span>
