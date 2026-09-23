@@ -505,16 +505,17 @@ export default function ProductTypeManagement({
         </div>
       )}
 
-      <header className="shrink-0 border-b border-slate-800/90 bg-slate-950/80 px-3 py-2 backdrop-blur-xl sm:px-4 lg:px-5">
-        <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
+      <header className="relative shrink-0 overflow-hidden border-b border-cyan-400/15 bg-gradient-to-r from-slate-950 via-blue-950/90 to-cyan-950/70 px-3 py-2 shadow-[0_8px_30px_rgba(8,47,73,0.18)] backdrop-blur-xl sm:px-4 lg:px-5">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/50 to-transparent" />
+        <div className="relative flex flex-col gap-2 xl:flex-row xl:items-center">
           <div className="flex shrink-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-400/20 bg-gradient-to-br from-blue-500/20 to-cyan-400/10 text-cyan-300">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-300/30 bg-gradient-to-br from-blue-500/40 to-cyan-400/20 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.12)]">
               <Package className="h-4 w-4" />
             </div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-semibold tracking-tight text-white sm:text-lg">產品管理</h1>
+              <h1 className="bg-gradient-to-r from-white to-cyan-100 bg-clip-text text-base font-semibold tracking-tight text-transparent sm:text-lg">產品管理</h1>
               {isSorting && (
-                <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-200">排序模式</span>
+                <span className="rounded-full border border-cyan-300/30 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-100">排序模式</span>
               )}
             </div>
           </div>
@@ -533,7 +534,7 @@ export default function ProductTypeManagement({
                   type="button"
                   onClick={requestCancelSorting}
                   disabled={savingOrder}
-                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 text-xs font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50"
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-600/70 bg-slate-950/50 px-3 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50"
                 >
                   <RotateCcw className="h-4 w-4" />
                   取消
@@ -542,7 +543,7 @@ export default function ProductTypeManagement({
                   type="button"
                   onClick={() => void saveOrder()}
                   disabled={!isOrderDirty || savingOrder}
-                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-semibold text-white transition hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-blue-600 to-cyan-500 px-3 text-xs font-semibold text-white shadow-[0_5px_16px_rgba(6,182,212,0.18)] transition hover:from-blue-500 hover:to-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {savingOrder ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   {savingOrder ? '儲存中…' : '儲存順序'}
@@ -550,15 +551,60 @@ export default function ProductTypeManagement({
               </div>
             </div>
           ) : (
-            <div className="flex min-w-0 flex-1 flex-col gap-2 lg:flex-row lg:items-center xl:justify-end">
-              <div className="relative w-full lg:max-w-xs 2xl:max-w-sm">
+            <div className="flex min-w-0 flex-1 flex-col gap-2 md:flex-row md:flex-wrap md:items-center xl:flex-nowrap xl:justify-end">
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="flex min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950/45 p-1 shadow-inner backdrop-blur-sm md:flex-none">
+                  {([
+                    ['all', '全部', 'border-blue-200/70 bg-blue-500/45 text-white ring-1 ring-blue-300/50 shadow-[0_4px_16px_rgba(59,130,246,0.28)]', 'border-blue-400/20 bg-blue-500/10 text-blue-200/80 hover:border-blue-300/40 hover:bg-blue-500/20 hover:text-blue-100', 'text-blue-100'],
+                    ['active', '已啟用', 'border-emerald-200/70 bg-emerald-500/40 text-white ring-1 ring-emerald-300/50 shadow-[0_4px_16px_rgba(16,185,129,0.25)]', 'border-emerald-400/20 bg-emerald-500/10 text-emerald-200/80 hover:border-emerald-300/40 hover:bg-emerald-500/20 hover:text-emerald-100', 'text-emerald-100'],
+                    ['disabled', '已停用', 'border-amber-200/70 bg-amber-500/35 text-white ring-1 ring-amber-300/50 shadow-[0_4px_16px_rgba(245,158,11,0.24)]', 'border-amber-400/20 bg-amber-500/10 text-amber-200/80 hover:border-amber-300/40 hover:bg-amber-500/20 hover:text-amber-100', 'text-amber-100'],
+                  ] as const).map(([value, label, activeClass, inactiveClass, countClass]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setStatusFilter(value)}
+                      className={`flex min-h-7 flex-1 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 md:flex-none ${
+                        statusFilter === value ? activeClass : inactiveClass
+                      }`}
+                    >
+                      {label}
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] leading-none ${countClass} ${statusFilter === value ? 'bg-white/20' : 'bg-black/20'}`}>
+                        {statusCounts[value]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <span className="hidden shrink-0 text-[11px] text-cyan-100/50 2xl:inline">顯示 {visibleProducts.length} 項</span>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={startSorting}
+                  disabled={loading || productTypes.length < 2}
+                  className="group inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-violet-300/30 bg-gradient-to-r from-violet-500/20 to-blue-500/20 px-3 text-xs font-semibold text-violet-50 shadow-[0_4px_14px_rgba(124,58,237,0.12)] transition hover:border-violet-300/50 hover:from-violet-500/30 hover:to-blue-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <SlidersHorizontal className="h-4 w-4 text-violet-200 transition group-hover:text-white" />
+                  調整順序
+                </button>
+                <button
+                  type="button"
+                  onClick={openCreateForm}
+                  className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-cyan-200/30 bg-gradient-to-r from-blue-600 to-cyan-500 px-3 text-xs font-semibold text-white shadow-[0_5px_16px_rgba(6,182,212,0.18)] transition hover:from-blue-500 hover:to-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                >
+                  <Plus className="h-4 w-4" />
+                  新增產品
+                </button>
+              </div>
+
+              <div className="relative w-full md:ml-auto md:w-72 xl:ml-1 xl:w-80 2xl:w-96">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
                   type="search"
                   value={searchQuery}
                   onChange={event => setSearchQuery(event.target.value)}
                   placeholder="搜尋產品名稱"
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 pl-9 pr-9 text-sm font-medium text-slate-900 placeholder:text-slate-500 shadow-inner transition focus:border-cyan-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400/20"
+                  className="h-9 w-full rounded-lg border border-white/80 bg-slate-50 pl-9 pr-9 text-sm font-medium text-slate-900 shadow-[0_4px_14px_rgba(15,23,42,0.18)] transition placeholder:text-slate-500 focus:border-cyan-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
                 />
                 {searchQuery && (
                   <button
@@ -570,48 +616,6 @@ export default function ProductTypeManagement({
                     <X className="h-4 w-4" />
                   </button>
                 )}
-              </div>
-
-              <div className="flex min-w-0 items-center gap-2">
-                <div className="flex min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/80 p-0.5 lg:flex-none">
-                  {([
-                    ['all', '全部'],
-                    ['active', '已啟用'],
-                    ['disabled', '已停用'],
-                  ] as const).map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setStatusFilter(value)}
-                      className={`flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md px-2.5 text-[11px] font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 lg:flex-none ${
-                        statusFilter === value
-                          ? 'bg-slate-700 text-white shadow-sm'
-                          : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-                      }`}
-                    >
-                      {label}
-                      <span className="text-[10px] opacity-70">{statusCounts[value]}</span>
-                    </button>
-                  ))}
-                </div>
-                <span className="hidden shrink-0 text-[11px] text-slate-500 2xl:inline">顯示 {visibleProducts.length} 項</span>
-                <button
-                  type="button"
-                  onClick={startSorting}
-                  disabled={loading || productTypes.length < 2}
-                  className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 text-xs font-medium text-slate-200 transition hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  調整順序
-                </button>
-                <button
-                  type="button"
-                  onClick={openCreateForm}
-                  className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-blue-300/25 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-semibold text-white transition hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-                >
-                  <Plus className="h-4 w-4" />
-                  新增產品
-                </button>
               </div>
             </div>
           )}
