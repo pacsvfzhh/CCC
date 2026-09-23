@@ -922,8 +922,8 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-wider text-emerald-200/70 lg:hidden">验证时间</p>
-            <p className="truncate text-[9px] font-black text-emerald-200/90">提交 {verification ? new Date(verification.created_at).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</p>
-            <p className="mt-1 truncate text-[9px] font-semibold text-emerald-200/60">审核 {verification?.audited_at ? new Date(verification.audited_at).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</p>
+            <p className="truncate text-[9px] font-black text-emerald-200/90">提交 {verification ? new Date(verification.created_at).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '未记录'}</p>
+            <p className="mt-1 truncate text-[9px] font-semibold text-emerald-200/60">审核 {verification?.audited_at ? new Date(verification.audited_at).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '未记录'}</p>
           </div>
 
           <div className="flex items-center lg:justify-end">
