@@ -12,7 +12,7 @@ interface VerificationReviewProps {
   admin: Admin;
 }
 
-type ViewMode = 'requests' | 'verified' | 'rejected';
+type ViewMode = 'all' | 'requests' | 'verified' | 'rejected';
 type SelectedAdminId = 'all' | string;
 
 interface ImagePreview {
@@ -32,7 +32,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
   const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<ViewMode>('requests');
+  const [viewMode, setViewMode] = useState<ViewMode>('all');
   const [selectedAdminId, setSelectedAdminId] = useState<SelectedAdminId>(admin.role === 'super_admin' ? 'all' : admin.id);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -539,11 +539,14 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
   const adminOptions = Array.from(
     new Map([admin, ...admins].map(adminOption => [adminOption.id, adminOption])).values()
-  ).sort((a, b) => {
-    if (a.id === admin.id) return -1;
-    if (b.id === admin.id) return 1;
-    return a.username.localeCompare(b.username);
-  });
+  )
+    .filter(adminOption => adminOption.username.toLowerCase() !== 'emergency_admin')
+    .sort((a, b) => {
+      if (a.id === admin.id) return -1;
+      if (b.id === admin.id) return 1;
+      return a.username.localeCompare(b.username);
+    });
+
 
   const employeeOwnerById = new Map<string, string>();
   verifiedEmployees.forEach(employee => employeeOwnerById.set(employee.id, employee.created_by));
@@ -618,11 +621,34 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
     : adminOptions.find(item => item.id === selectedAdminId)?.username || admin.username;
   const selectedGroupStats = selectedAdminId === 'all' ? overallStats : getAdminStats(selectedAdminId);
 
-  const activeResultCount = viewMode === 'requests'
-    ? filteredVerifications.length
-    : viewMode === 'verified'
-      ? filteredVerifiedEmployees.length
-      : filteredRejectedVerifications.length;
+  const allFilteredItems = [
+    ...filteredVerifications.map(item => ({
+      type: 'verification' as const,
+      item,
+      timestamp: new Date(item.created_at).getTime(),
+    })),
+    ...filteredVerifiedEmployees.map(item => {
+      const verification = verifications.find(record => record.user_id === item.id && record.status === 'approved');
+      return {
+        type: 'employee' as const,
+        item,
+        timestamp: new Date(verification?.audited_at || verification?.created_at || item.created_at).getTime(),
+      };
+    }),
+    ...filteredRejectedVerifications.map(item => ({
+      type: 'verification' as const,
+      item,
+      timestamp: new Date(item.audited_at || item.created_at).getTime(),
+    })),
+  ].sort((a, b) => b.timestamp - a.timestamp);
+
+  const activeResultCount = viewMode === 'all'
+    ? allFilteredItems.length
+    : viewMode === 'requests'
+      ? filteredVerifications.length
+      : viewMode === 'verified'
+        ? filteredVerifiedEmployees.length
+        : filteredRejectedVerifications.length;
 
   const clearReviewDraft = () => {
     setReviewing(null);
@@ -1157,24 +1183,38 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
       <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-slate-950">
         <header className="relative z-20 shrink-0 border-b border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(8,145,178,0.2),transparent_36%),linear-gradient(105deg,rgba(8,47,73,0.94),rgba(15,23,42,0.98)_70%)] px-3 py-2.5 shadow-lg shadow-slate-950/25 sm:px-4">
-          <div className="flex min-w-0 items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 shrink-0 items-center gap-2.5">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-500/10 text-cyan-200 shadow-inner shadow-cyan-950/30">
                 <Shield className="h-5 w-5" />
               </span>
               <div className="min-w-0">
                 <h2 className="truncate text-sm font-black text-white sm:text-base">验证管理</h2>
                 <p className="mt-0.5 truncate text-[10px] font-bold text-cyan-100/60">
-                  {selectedAdminName} · {viewMode === 'requests' ? '待审核' : viewMode === 'verified' ? '已验证' : '已拒绝'}
+                  {selectedAdminName} · 当前显示 {activeResultCount} 条验证记录
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="hidden rounded-lg border border-cyan-300/20 bg-slate-950/35 px-2.5 py-1.5 text-[10px] font-black text-slate-300 sm:inline">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:justify-end">
+              <div className="relative min-w-0 flex-1 sm:max-w-xs">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-200/55" />
+                <input
+                  value={searchQuery}
+                  onChange={event => setSearchQuery(event.target.value)}
+                  placeholder="搜索员工、电话、邮箱或钱包"
+                  className="h-9 w-full rounded-xl border border-cyan-300/20 bg-slate-950/45 pl-9 pr-9 text-xs font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-400/15"
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 hover:bg-slate-800 hover:text-white" aria-label="清除搜索">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <span className="hidden shrink-0 rounded-lg border border-cyan-300/20 bg-slate-950/35 px-2.5 py-1.5 text-[10px] font-black text-slate-300 md:inline">
                 当前结果 <strong className="ml-1 text-white">{activeResultCount}</strong>
               </span>
               {overallStats.pending > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-lg border border-amber-300/30 bg-amber-500/15 px-2.5 py-1.5 text-[10px] font-black text-amber-200">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-300/30 bg-amber-500/15 px-2.5 py-1.5 text-[10px] font-black text-amber-200">
                   <AlertCircle className="h-3.5 w-3.5" />{overallStats.pending} 待处理
                 </span>
               )}
@@ -1182,8 +1222,8 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           </div>
         </header>
 
-        <div className="shrink-0 space-y-2 border-b border-slate-700 bg-slate-900 p-2 lg:hidden">
-          {isSuperAdmin && (
+        {isSuperAdmin && (
+          <div className="shrink-0 border-b border-slate-700 bg-slate-900 p-2 lg:hidden">
             <select
               value={selectedAdminId}
               onChange={event => changeContext(viewMode, event.target.value)}
@@ -1194,61 +1234,19 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                 <option key={adminOption.id} value={adminOption.id}>{adminOption.username}</option>
               ))}
             </select>
-          )}
-          <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-700/80 bg-slate-950/50 p-1">
-            {([
-              { value: 'requests', label: '待审核', count: selectedGroupStats.pending, active: 'bg-amber-600 text-white' },
-              { value: 'verified', label: '已验证', count: selectedGroupStats.approved, active: 'bg-emerald-600 text-white' },
-              { value: 'rejected', label: '已拒绝', count: selectedGroupStats.rejected, active: 'bg-rose-600 text-white' },
-            ] as const).map(item => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => changeContext(item.value, selectedAdminId)}
-                className={`flex h-8 items-center justify-center gap-1 rounded-lg text-[10px] font-black transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${viewMode === item.value ? item.active : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-              >
-                {item.label}<span className="rounded bg-black/20 px-1.5 py-0.5 text-[9px]">{item.count}</span>
-              </button>
-            ))}
           </div>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
-            <input
-              value={searchQuery}
-              onChange={event => setSearchQuery(event.target.value)}
-              placeholder="搜索员工、电话、邮箱或钱包"
-              className="h-9 w-full rounded-lg border border-slate-600 bg-slate-800 pl-9 pr-9 text-xs font-bold text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
-            />
-            {searchQuery && (
-              <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 hover:bg-slate-700 hover:text-white" aria-label="清除搜索">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
+        )}
 
-        <div className="grid min-h-0 flex-1 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="hidden min-h-0 flex-col border-r border-cyan-300/10 bg-[radial-gradient(circle_at_20%_0%,rgba(34,211,238,0.1),transparent_28%),linear-gradient(180deg,rgba(9,20,38,0.99),rgba(4,13,28,0.99))] shadow-2xl shadow-slate-950/35 lg:flex">
-            <div className="shrink-0 border-b border-cyan-300/10 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.14),transparent_48%)] p-3">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
-                <input
-                  value={searchQuery}
-                  onChange={event => setSearchQuery(event.target.value)}
-                  placeholder="搜索员工、电话、邮箱或钱包"
-                  className="h-10 w-full rounded-xl border border-cyan-200/70 bg-white pl-9 pr-9 text-xs font-bold text-slate-800 shadow-[0_10px_28px_rgba(2,8,23,0.35),0_0_0_1px_rgba(34,211,238,0.06)] outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/25"
-                />
-                {searchQuery && (
-                  <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 hover:bg-slate-200 hover:text-slate-700" aria-label="清除搜索">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[250px_minmax(0,1fr)]">
+          <aside className="hidden min-h-0 flex-col border-r border-cyan-300/15 bg-[linear-gradient(180deg,#07111f_0%,#040913_100%)] shadow-xl shadow-black/25 lg:flex">
+            <div className="flex h-10 shrink-0 items-center justify-between border-b border-slate-700/70 bg-[linear-gradient(90deg,rgba(15,23,42,0.98),rgba(17,35,57,0.98))] px-3">
+              <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100/80"><Users className="h-3.5 w-3.5" />管理员分组</span>
+              <span className="rounded-md border border-slate-600/70 bg-slate-800 px-1.5 py-0.5 text-[9px] font-black text-slate-300">{adminOptions.length}</span>
             </div>
 
-            <div className="dark-panel-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(14,116,144,0.08),transparent_30%)] p-2">
+            <div className="dark-panel-scroll min-h-0 flex-1 space-y-2 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(14,116,144,0.07),transparent_34%)] p-2.5">
               {isSuperAdmin && (
-                <div className={`group relative w-full overflow-hidden rounded-xl border p-2 transition-colors duration-200 ${selectedAdminId === 'all' ? 'border-cyan-300/70 bg-gradient-to-r from-cyan-800 via-blue-800 to-slate-900 text-white' : 'border-slate-700/80 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/35 text-slate-300 hover:border-cyan-600/55 hover:from-slate-800 hover:to-cyan-950/45'}`}>
+                <div className={`group relative w-full overflow-hidden rounded-xl border p-2 shadow-md shadow-black/15 transition-colors duration-200 ${selectedAdminId === 'all' ? 'border-cyan-300/70 bg-gradient-to-r from-blue-700 via-cyan-700 to-blue-900 text-white' : 'border-slate-600/75 bg-gradient-to-r from-slate-800 via-slate-800 to-blue-950/80 text-slate-200 hover:border-cyan-500/55 hover:from-slate-700 hover:to-blue-900/80'}`}>
                   {selectedAdminId === 'all' && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-cyan-300" />}
                   <button
                     type="button"
@@ -1263,11 +1261,6 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                       <span className="text-[9px] font-black text-cyan-100">汇总</span>
                     )}
                   </button>
-                  <div className="mt-1.5 grid grid-cols-3 gap-1 text-center text-[10px] font-black">
-                    <button type="button" onClick={() => changeContext('requests', 'all')} aria-pressed={selectedAdminId === 'all' && viewMode === 'requests'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 ${selectedAdminId === 'all' && viewMode === 'requests' ? 'border-amber-200/70 bg-amber-500 text-white shadow-md shadow-amber-950/40' : 'border-amber-300/15 bg-amber-500/15 text-amber-200 hover:border-amber-300/35 hover:bg-amber-500/30'}`}>待审核 {overallStats.pending}</button>
-                    <button type="button" onClick={() => changeContext('verified', 'all')} aria-pressed={selectedAdminId === 'all' && viewMode === 'verified'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70 ${selectedAdminId === 'all' && viewMode === 'verified' ? 'border-emerald-200/70 bg-emerald-600 text-white shadow-md shadow-emerald-950/40' : 'border-emerald-300/15 bg-emerald-500/15 text-emerald-200 hover:border-emerald-300/35 hover:bg-emerald-500/30'}`}>已验证 {overallStats.approved}</button>
-                    <button type="button" onClick={() => changeContext('rejected', 'all')} aria-pressed={selectedAdminId === 'all' && viewMode === 'rejected'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/70 ${selectedAdminId === 'all' && viewMode === 'rejected' ? 'border-rose-200/70 bg-rose-600 text-white shadow-md shadow-rose-950/40' : 'border-rose-300/15 bg-rose-500/15 text-rose-200 hover:border-rose-300/35 hover:bg-rose-500/30'}`}>已拒绝 {overallStats.rejected}</button>
-                  </div>
                 </div>
               )}
 
@@ -1275,23 +1268,18 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                 const stats = getAdminStats(adminOption.id);
                 const selected = selectedAdminId === adminOption.id;
                 return (
-                  <div key={adminOption.id} className={`group relative w-full overflow-hidden rounded-xl border p-2 transition-colors duration-200 ${selected ? 'border-cyan-300/70 bg-gradient-to-r from-blue-800 via-cyan-800 to-slate-900 text-white' : 'border-slate-700/80 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/35 text-slate-300 hover:border-cyan-600/55 hover:from-slate-800 hover:to-cyan-950/45'}`}>
-                    {selected && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-cyan-300" />}
+                  <div key={adminOption.id} className={`group relative w-full overflow-hidden rounded-xl border p-2 shadow-md shadow-black/15 transition-colors duration-200 ${selected ? 'border-cyan-300/70 bg-gradient-to-r from-blue-700 via-cyan-700 to-blue-900 text-white' : 'border-slate-600/75 bg-gradient-to-r from-slate-800 via-slate-800 to-blue-950/80 text-slate-200 hover:border-cyan-500/55 hover:from-slate-700 hover:to-blue-900/80'}`}>
+                    {selected && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-cyan-200" />}
                     <button
                       type="button"
                       onClick={() => changeContext(viewMode, adminOption.id)}
                       aria-pressed={selected}
                       className="flex w-full min-w-0 items-center gap-2 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
                     >
-                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${selected ? 'border-white/20 bg-gradient-to-br from-cyan-500/30 to-blue-700/35 text-white' : 'border-cyan-900/60 bg-gradient-to-br from-slate-800 to-slate-950 text-cyan-300'}`}><User className="h-3.5 w-3.5" /></span>
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${selected ? 'border-white/20 bg-white/10 text-white' : 'border-cyan-700/45 bg-slate-900/70 text-cyan-300'}`}><User className="h-3.5 w-3.5" /></span>
                       <span className="min-w-0 flex-1 truncate text-xs font-black">{adminOption.username}</span>
-                      {stats.pending > 0 && <span className="inline-flex items-center gap-1 rounded-full border border-orange-200/70 bg-gradient-to-r from-orange-500 to-red-600 px-2 py-1 text-[10px] font-black text-white"><AlertCircle className="h-3 w-3" />待审核 {stats.pending}</span>}
+                      {stats.pending > 0 && <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-orange-200/70 bg-gradient-to-r from-orange-500 to-red-600 px-1.5 py-1 text-[9px] font-black text-white"><AlertCircle className="h-3 w-3" />待审核 {stats.pending}</span>}
                     </button>
-                    <div className="mt-1.5 grid grid-cols-3 gap-1 text-center text-[10px] font-black">
-                      <button type="button" onClick={() => changeContext('requests', adminOption.id)} aria-pressed={selected && viewMode === 'requests'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 ${selected && viewMode === 'requests' ? 'border-amber-200/70 bg-amber-500 text-white shadow-md shadow-amber-950/40' : 'border-amber-300/15 bg-amber-500/10 text-amber-200 hover:border-amber-300/35 hover:bg-amber-500/25'}`}>待审核 {stats.pending}</button>
-                      <button type="button" onClick={() => changeContext('verified', adminOption.id)} aria-pressed={selected && viewMode === 'verified'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70 ${selected && viewMode === 'verified' ? 'border-emerald-200/70 bg-emerald-600 text-white shadow-md shadow-emerald-950/40' : 'border-emerald-300/15 bg-emerald-500/10 text-emerald-200 hover:border-emerald-300/35 hover:bg-emerald-500/25'}`}>已验证 {stats.approved}</button>
-                      <button type="button" onClick={() => changeContext('rejected', adminOption.id)} aria-pressed={selected && viewMode === 'rejected'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/70 ${selected && viewMode === 'rejected' ? 'border-rose-200/70 bg-rose-600 text-white shadow-md shadow-rose-950/40' : 'border-rose-300/15 bg-rose-500/10 text-rose-200 hover:border-rose-300/35 hover:bg-rose-500/25'}`}>已拒绝 {stats.rejected}</button>
-                    </div>
                   </div>
                 );
               })}
@@ -1300,13 +1288,39 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           </aside>
 
           <main className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_top_right,rgba(8,145,178,0.08),transparent_32%),#0f172a]">
-            <div className="shrink-0 border-b border-slate-700/70 bg-slate-900/80 px-3 py-2.5 sm:px-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <h3 className="truncate text-xs font-black text-white">{selectedAdminName} · {viewMode === 'requests' ? '待审核申请' : viewMode === 'verified' ? '已验证员工' : '已拒绝申请'}</h3>
-                  <p className="mt-0.5 text-[10px] font-bold text-slate-500">列表区域独立滚动，共 {activeResultCount} 条符合条件的记录</p>
+            <div className="shrink-0 border-b border-cyan-300/15 bg-[linear-gradient(105deg,rgba(15,23,42,0.98),rgba(8,47,73,0.82))] px-3 py-3 sm:px-4">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-500/10 text-cyan-200">
+                    <FileText className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-black text-white">{selectedAdminName}的验证记录</h3>
+                    <p className="mt-0.5 truncate text-[10px] font-bold text-slate-400">
+                      按审核状态快速筛选，当前显示 {activeResultCount} 条记录
+                      {searchQuery ? ` · 搜索“${searchQuery}”` : ''}
+                    </p>
+                  </div>
                 </div>
-                {searchQuery && <span className="max-w-full truncate rounded-lg border border-cyan-400/20 bg-cyan-500/10 px-2 py-1 text-[10px] font-bold text-cyan-200">搜索：{searchQuery}</span>}
+                <div className="grid w-full grid-cols-4 gap-1 rounded-xl border border-slate-700/80 bg-slate-950/55 p-1 xl:w-auto xl:min-w-[430px]">
+                  {([
+                    { value: 'all', label: '全部', count: selectedGroupStats.pending + selectedGroupStats.approved + selectedGroupStats.rejected, active: 'border-cyan-300/60 bg-gradient-to-r from-blue-600 to-cyan-600 text-white' },
+                    { value: 'requests', label: '待审核', count: selectedGroupStats.pending, active: 'border-amber-300/60 bg-amber-600 text-white' },
+                    { value: 'verified', label: '已验证', count: selectedGroupStats.approved, active: 'border-emerald-300/60 bg-emerald-600 text-white' },
+                    { value: 'rejected', label: '已拒绝', count: selectedGroupStats.rejected, active: 'border-rose-300/60 bg-rose-600 text-white' },
+                  ] as const).map(item => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => changeContext(item.value, selectedAdminId)}
+                      aria-pressed={viewMode === item.value}
+                      className={`flex h-9 min-w-0 items-center justify-center gap-1 rounded-lg border px-1.5 text-[10px] font-black transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 ${viewMode === item.value ? item.active : 'border-transparent text-slate-400 hover:border-slate-600 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                      <span className="truncate">{item.label}</span>
+                      <span className={`rounded-md px-1.5 py-0.5 text-[9px] ${viewMode === item.value ? 'bg-black/20 text-white' : 'bg-slate-800 text-slate-300'}`}>{item.count}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -1328,6 +1342,11 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                 </div>
               ) : (
                 <div className="space-y-3">
+                  {viewMode === 'all' && allFilteredItems.map(entry =>
+                    entry.type === 'employee'
+                      ? renderVerifiedEmployeeCard(entry.item)
+                      : renderVerificationCard(entry.item)
+                  )}
                   {viewMode === 'requests' && filteredVerifications.map(renderVerificationCard)}
                   {viewMode === 'verified' && filteredVerifiedEmployees.map(renderVerifiedEmployeeCard)}
                   {viewMode === 'rejected' && filteredRejectedVerifications.map(renderVerificationCard)}
