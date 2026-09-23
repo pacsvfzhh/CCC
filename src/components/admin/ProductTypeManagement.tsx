@@ -459,7 +459,7 @@ export default function ProductTypeManagement({
         type="button"
         onClick={() => startEdit(productType)}
         aria-label={`編輯 ${productType.name}`}
-        className="rounded-md border border-blue-400/25 bg-blue-950/45 p-1.5 text-blue-300 transition hover:border-blue-300/60 hover:bg-blue-900 hover:text-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+        className="rounded-md p-1.5 text-blue-300 transition hover:bg-blue-500/15 hover:text-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
       >
         <Pencil className="h-4 w-4" />
       </button>
@@ -468,9 +468,9 @@ export default function ProductTypeManagement({
         onClick={() => void toggleStatus(productType.id, productType.is_active)}
         disabled={togglingId !== null}
         aria-label={`${productType.is_active ? '停用' : '啟用'} ${productType.name}`}
-        className={`rounded-md border p-1.5 transition focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40 ${productType.is_active
-          ? 'border-amber-400/25 bg-amber-950/45 text-amber-300 hover:border-amber-300/60 hover:bg-amber-900 hover:text-amber-100 focus-visible:ring-amber-400'
-          : 'border-emerald-400/25 bg-emerald-950/45 text-emerald-300 hover:border-emerald-300/60 hover:bg-emerald-900 hover:text-emerald-100 focus-visible:ring-emerald-400'
+        className={`rounded-md p-1.5 transition focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40 ${productType.is_active
+          ? 'text-amber-300 hover:bg-amber-500/15 hover:text-amber-100 focus-visible:ring-amber-400'
+          : 'text-emerald-300 hover:bg-emerald-500/15 hover:text-emerald-100 focus-visible:ring-emerald-400'
         }`}
       >
         {togglingId === productType.id ? (
@@ -486,7 +486,7 @@ export default function ProductTypeManagement({
         onClick={() => requestDelete(productType)}
         disabled={!productType.is_active}
         aria-label={`移除 ${productType.name}`}
-        className="rounded-md border border-rose-400/25 bg-rose-950/45 p-1.5 text-rose-300 transition hover:border-rose-300/60 hover:bg-rose-900 hover:text-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 disabled:cursor-not-allowed disabled:opacity-25"
+        className="rounded-md p-1.5 text-rose-300 transition hover:bg-rose-500/15 hover:text-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 disabled:cursor-not-allowed disabled:opacity-25"
       >
         <Trash2 className="h-4 w-4" />
       </button>
@@ -760,7 +760,7 @@ export default function ProductTypeManagement({
                             <GripVertical className="h-4 w-4" />
                           </button>
                         )}
-                        <span className="font-mono text-sm font-semibold text-slate-300">{String(index + 1).padStart(2, '0')}</span>
+                        <span className="font-mono text-sm font-semibold text-cyan-300">{String(index + 1).padStart(2, '0')}</span>
                       </div>
 
                       <div className="min-w-0">
@@ -772,7 +772,7 @@ export default function ProductTypeManagement({
                           ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
                           : 'border-amber-400/25 bg-amber-950/50 text-amber-300'
                       }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${productType.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                        <span className={`h-1 w-1 rounded-full ${productType.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                         {productType.is_active ? '已啟用' : '已停用'}
                       </span>
 
