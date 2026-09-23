@@ -1194,7 +1194,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               </div>
             </div>
 
-            <div className="grid min-w-0 flex-1 grid-cols-4 gap-1.5 rounded-xl border border-slate-600/70 bg-[linear-gradient(135deg,rgba(2,6,23,0.72),rgba(15,23,42,0.82))] p-1 shadow-inner shadow-black/20 lg:ml-6 lg:max-w-[430px]">
+            <div className="grid min-w-0 flex-1 grid-cols-4 gap-1.5 rounded-xl border border-slate-600/70 bg-[linear-gradient(135deg,rgba(2,6,23,0.72),rgba(15,23,42,0.82))] p-1 shadow-inner shadow-black/20 lg:ml-auto lg:max-w-[430px]">
               {([
                 {
                   value: 'all',
@@ -1238,7 +1238,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               ))}
             </div>
 
-            <div className="relative min-w-0 flex-1 lg:ml-auto lg:max-w-xs">
+            <div className="relative min-w-0 flex-1 lg:max-w-xs">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-200/55" />
               <input
                 value={searchQuery}
