@@ -823,15 +823,15 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               {getStatusBadge(verification.status)}
             </div>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-bold text-slate-300">
-              <span className="truncate">{employee.employee_id}</span>
-              {isSuperAdmin && ownerId && <span className="truncate text-cyan-300/75">· {getAdminName(ownerId)}</span>}
+              <span className="truncate text-cyan-300">{employee.employee_id}</span>
+              {isSuperAdmin && ownerId && <span className="inline-flex max-w-full items-center gap-1 truncate rounded-md border border-cyan-400/20 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] text-cyan-200"><Users className="h-3 w-3 shrink-0" />{getAdminName(ownerId)}</span>}
             </div>
           </div>
 
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">身份资料</p>
-            <p className="truncate text-xs font-bold text-slate-200">{verification.real_name || '未填写真实姓名'}</p>
-            <p className="mt-0.5 truncate text-[11px] text-slate-300">{verification.phone || '未填写电话'}</p>
+            <p className={`truncate text-xs font-bold ${verification.real_name ? 'text-slate-200' : 'text-cyan-300'}`}>{verification.real_name || '未填写真实姓名'}</p>
+            <p className={`mt-0.5 truncate text-[11px] ${verification.phone ? 'text-slate-300' : 'font-bold text-cyan-300'}`}>{verification.phone || '未填写电话'}</p>
           </div>
 
           <div className="min-w-0">
@@ -842,8 +842,8 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">提交时间</p>
-            <p className="text-[10px] font-bold text-slate-300">{new Date(verification.created_at).toLocaleDateString()}</p>
-            <p className="mt-0.5 text-[10px] text-slate-400">{new Date(verification.created_at).toLocaleTimeString()}</p>
+            <p className="text-[10px] font-black text-emerald-300">{new Date(verification.created_at).toLocaleDateString()}</p>
+            <p className="mt-0.5 text-[10px] font-semibold text-emerald-400/75">{new Date(verification.created_at).toLocaleTimeString()}</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
@@ -873,15 +873,15 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               {getStatusBadge('approved')}
             </div>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-bold text-slate-300">
-              <span className="truncate">{employee.employee_id}</span>
-              {isSuperAdmin && <span className="truncate text-cyan-300/75">· {getAdminName(employee.created_by)}</span>}
+              <span className="truncate text-cyan-300">{employee.employee_id}</span>
+              {isSuperAdmin && <span className="inline-flex max-w-full items-center gap-1 truncate rounded-md border border-cyan-400/20 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] text-cyan-200"><Users className="h-3 w-3 shrink-0" />{getAdminName(employee.created_by)}</span>}
             </div>
           </div>
 
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">身份资料</p>
-            <p className="truncate text-xs font-bold text-slate-200">{verification?.real_name || '未填写真实姓名'}</p>
-            <p className="mt-0.5 truncate text-[11px] text-slate-300">{verification?.phone || '未填写电话'}</p>
+            <p className={`truncate text-xs font-bold ${verification?.real_name ? 'text-slate-200' : 'text-cyan-300'}`}>{verification?.real_name || '未填写真实姓名'}</p>
+            <p className={`mt-0.5 truncate text-[11px] ${verification?.phone ? 'text-slate-300' : 'font-bold text-cyan-300'}`}>{verification?.phone || '未填写电话'}</p>
           </div>
 
           <div className="min-w-0">
@@ -892,8 +892,8 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 lg:hidden">验证时间</p>
-            <p className="text-[10px] font-bold text-slate-300">{verification?.audited_at ? new Date(verification.audited_at).toLocaleDateString() : '—'}</p>
-            <p className="mt-0.5 text-[10px] text-slate-400">加入 {new Date(employee.created_at).toLocaleDateString()}</p>
+            <p className="text-[10px] font-black text-emerald-300">{verification?.audited_at ? new Date(verification.audited_at).toLocaleDateString() : '—'}</p>
+            <p className="mt-0.5 text-[10px] font-semibold text-emerald-400/75">加入 {new Date(employee.created_at).toLocaleDateString()}</p>
           </div>
 
           <div className="flex items-center lg:justify-end">
