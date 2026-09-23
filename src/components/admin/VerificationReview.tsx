@@ -1246,9 +1246,9 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               </div>
             </div>
 
-            <div className="dark-panel-scroll min-h-0 flex-1 space-y-2 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(14,116,144,0.08),transparent_30%)] p-2">
+            <div className="dark-panel-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(14,116,144,0.08),transparent_30%)] p-2">
               {isSuperAdmin && (
-                <div className={`group relative w-full overflow-hidden rounded-2xl border p-3 transition duration-200 ${selectedAdminId === 'all' ? 'border-cyan-200/55 bg-[radial-gradient(circle_at_top_right,rgba(103,232,249,0.2),transparent_38%),linear-gradient(135deg,rgba(8,145,178,0.86),rgba(30,64,175,0.82)_52%,rgba(15,23,42,0.96))] text-white shadow-[0_14px_30px_rgba(8,47,73,0.42)] ring-1 ring-inset ring-white/10' : 'border-slate-700/70 bg-[linear-gradient(145deg,rgba(30,41,59,0.82),rgba(15,23,42,0.9))] text-slate-300 shadow-lg shadow-slate-950/20 hover:-translate-y-px hover:border-cyan-500/45 hover:shadow-cyan-950/25'}`}>
+                <div className={`group relative w-full overflow-hidden rounded-xl border p-2 transition-colors duration-200 ${selectedAdminId === 'all' ? 'border-cyan-300/70 bg-gradient-to-r from-cyan-800 via-blue-800 to-slate-900 text-white' : 'border-slate-700/80 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/35 text-slate-300 hover:border-cyan-600/55 hover:from-slate-800 hover:to-cyan-950/45'}`}>
                   {selectedAdminId === 'all' && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-cyan-300" />}
                   <button
                     type="button"
@@ -1256,14 +1256,14 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                     aria-pressed={selectedAdminId === 'all'}
                     className="flex w-full items-center justify-between gap-2 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
                   >
-                    <span className="flex items-center gap-2.5 text-xs font-black"><span className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/25 bg-gradient-to-br from-cyan-300/30 to-blue-700/35 text-white shadow-inner shadow-white/10"><Users className="h-4 w-4" /></span>全部管理员</span>
+                    <span className="flex items-center gap-2 text-xs font-black"><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/20 bg-gradient-to-br from-cyan-500/30 to-blue-700/35 text-white"><Users className="h-3.5 w-3.5" /></span>全部管理员</span>
                     {overallStats.pending > 0 ? (
-                      <span className="inline-flex animate-pulse items-center gap-1 rounded-full border border-amber-100/80 bg-gradient-to-r from-orange-500 to-red-500 px-2 py-1 text-[10px] font-black text-white shadow-[0_0_14px_rgba(251,146,60,0.7)]"><AlertCircle className="h-3 w-3" />待审核 {overallStats.pending}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-orange-200/70 bg-gradient-to-r from-orange-500 to-red-600 px-2 py-1 text-[10px] font-black text-white"><AlertCircle className="h-3 w-3" />待审核 {overallStats.pending}</span>
                     ) : (
                       <span className="text-[9px] font-black text-cyan-100">汇总</span>
                     )}
                   </button>
-                  <div className="mt-2.5 grid grid-cols-3 gap-1.5 text-center text-[10px] font-black">
+                  <div className="mt-1.5 grid grid-cols-3 gap-1 text-center text-[10px] font-black">
                     <button type="button" onClick={() => changeContext('requests', 'all')} aria-pressed={selectedAdminId === 'all' && viewMode === 'requests'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 ${selectedAdminId === 'all' && viewMode === 'requests' ? 'border-amber-200/70 bg-amber-500 text-white shadow-md shadow-amber-950/40' : 'border-amber-300/15 bg-amber-500/15 text-amber-200 hover:border-amber-300/35 hover:bg-amber-500/30'}`}>待审核 {overallStats.pending}</button>
                     <button type="button" onClick={() => changeContext('verified', 'all')} aria-pressed={selectedAdminId === 'all' && viewMode === 'verified'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70 ${selectedAdminId === 'all' && viewMode === 'verified' ? 'border-emerald-200/70 bg-emerald-600 text-white shadow-md shadow-emerald-950/40' : 'border-emerald-300/15 bg-emerald-500/15 text-emerald-200 hover:border-emerald-300/35 hover:bg-emerald-500/30'}`}>已验证 {overallStats.approved}</button>
                     <button type="button" onClick={() => changeContext('rejected', 'all')} aria-pressed={selectedAdminId === 'all' && viewMode === 'rejected'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/70 ${selectedAdminId === 'all' && viewMode === 'rejected' ? 'border-rose-200/70 bg-rose-600 text-white shadow-md shadow-rose-950/40' : 'border-rose-300/15 bg-rose-500/15 text-rose-200 hover:border-rose-300/35 hover:bg-rose-500/30'}`}>已拒绝 {overallStats.rejected}</button>
@@ -1275,22 +1275,19 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                 const stats = getAdminStats(adminOption.id);
                 const selected = selectedAdminId === adminOption.id;
                 return (
-                  <div key={adminOption.id} className={`group relative w-full overflow-hidden rounded-2xl border p-3 transition duration-200 ${selected ? 'border-cyan-200/55 bg-[radial-gradient(circle_at_top_right,rgba(103,232,249,0.2),transparent_38%),linear-gradient(135deg,rgba(29,78,216,0.84),rgba(14,116,144,0.8)_52%,rgba(15,23,42,0.96))] text-white shadow-[0_14px_30px_rgba(8,47,73,0.42)] ring-1 ring-inset ring-white/10' : 'border-slate-700/70 bg-[linear-gradient(145deg,rgba(30,41,59,0.82),rgba(15,23,42,0.9))] text-slate-300 shadow-lg shadow-slate-950/20 hover:-translate-y-px hover:border-cyan-500/45 hover:shadow-cyan-950/25'}`}>
+                  <div key={adminOption.id} className={`group relative w-full overflow-hidden rounded-xl border p-2 transition-colors duration-200 ${selected ? 'border-cyan-300/70 bg-gradient-to-r from-blue-800 via-cyan-800 to-slate-900 text-white' : 'border-slate-700/80 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/35 text-slate-300 hover:border-cyan-600/55 hover:from-slate-800 hover:to-cyan-950/45'}`}>
                     {selected && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-cyan-300" />}
                     <button
                       type="button"
                       onClick={() => changeContext(viewMode, adminOption.id)}
                       aria-pressed={selected}
-                      className="flex w-full min-w-0 items-center gap-2.5 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
+                      className="flex w-full min-w-0 items-center gap-2 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
                     >
-                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border shadow-inner ${selected ? 'border-white/25 bg-gradient-to-br from-cyan-300/30 to-blue-700/35 text-white shadow-white/10' : 'border-cyan-900/60 bg-gradient-to-br from-slate-800 to-slate-950 text-cyan-300 shadow-slate-950/40'}`}><User className="h-4 w-4" /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-black">{adminOption.username}</span>
-                        <span className={`mt-0.5 block text-[9px] font-bold ${selected ? 'text-cyan-100/70' : 'text-slate-500'}`}>{adminOption.role === 'super_admin' ? '超级管理员' : '次要管理员'}</span>
-                      </span>
-                      {stats.pending > 0 && <span className="inline-flex animate-pulse items-center gap-1 rounded-full border border-amber-100/80 bg-gradient-to-r from-orange-500 to-red-500 px-2 py-1 text-[10px] font-black text-white shadow-[0_0_14px_rgba(251,146,60,0.7)]"><AlertCircle className="h-3 w-3" />待审核 {stats.pending}</span>}
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${selected ? 'border-white/20 bg-gradient-to-br from-cyan-500/30 to-blue-700/35 text-white' : 'border-cyan-900/60 bg-gradient-to-br from-slate-800 to-slate-950 text-cyan-300'}`}><User className="h-3.5 w-3.5" /></span>
+                      <span className="min-w-0 flex-1 truncate text-xs font-black">{adminOption.username}</span>
+                      {stats.pending > 0 && <span className="inline-flex items-center gap-1 rounded-full border border-orange-200/70 bg-gradient-to-r from-orange-500 to-red-600 px-2 py-1 text-[10px] font-black text-white"><AlertCircle className="h-3 w-3" />待审核 {stats.pending}</span>}
                     </button>
-                    <div className="mt-2.5 grid grid-cols-3 gap-1.5 text-center text-[10px] font-black">
+                    <div className="mt-1.5 grid grid-cols-3 gap-1 text-center text-[10px] font-black">
                       <button type="button" onClick={() => changeContext('requests', adminOption.id)} aria-pressed={selected && viewMode === 'requests'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 ${selected && viewMode === 'requests' ? 'border-amber-200/70 bg-amber-500 text-white shadow-md shadow-amber-950/40' : 'border-amber-300/15 bg-amber-500/10 text-amber-200 hover:border-amber-300/35 hover:bg-amber-500/25'}`}>待审核 {stats.pending}</button>
                       <button type="button" onClick={() => changeContext('verified', adminOption.id)} aria-pressed={selected && viewMode === 'verified'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70 ${selected && viewMode === 'verified' ? 'border-emerald-200/70 bg-emerald-600 text-white shadow-md shadow-emerald-950/40' : 'border-emerald-300/15 bg-emerald-500/10 text-emerald-200 hover:border-emerald-300/35 hover:bg-emerald-500/25'}`}>已验证 {stats.approved}</button>
                       <button type="button" onClick={() => changeContext('rejected', adminOption.id)} aria-pressed={selected && viewMode === 'rejected'} className={`rounded-lg border px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/70 ${selected && viewMode === 'rejected' ? 'border-rose-200/70 bg-rose-600 text-white shadow-md shadow-rose-950/40' : 'border-rose-300/15 bg-rose-500/10 text-rose-200 hover:border-rose-300/35 hover:bg-rose-500/25'}`}>已拒绝 {stats.rejected}</button>
