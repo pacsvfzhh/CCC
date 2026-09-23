@@ -65,6 +65,7 @@ export default function ProductTypeManagement({
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [productTypeToDelete, setProductTypeToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [isSorting, setIsSorting] = useState(false);
   const [draftOrder, setDraftOrder] = useState<ProductType[]>([]);
   const [savingOrder, setSavingOrder] = useState(false);
@@ -157,24 +158,92 @@ export default function ProductTypeManagement({
     active: 'border-emerald-400/25 bg-emerald-950/35 text-emerald-100',
     disabled: 'border-amber-400/25 bg-amber-950/35 text-amber-100',
   }[statusFilter];
+  const editingProduct = editingId ? productTypes.find(item => item.id === editingId) : null;
 
   const openCreateForm = () => {
+    setShowEditConfirm(false);
     setEditingId(null);
     setFormData({ name: '' });
     setShowForm(true);
   };
 
   const startEdit = (productType: ProductType) => {
+    setShowForm(false);
+    setShowEditConfirm(false);
     setEditingId(productType.id);
     setFormData({ name: productType.name });
-    setShowForm(true);
   };
 
   const closeForm = () => {
     if (savingProduct) return;
     setShowForm(false);
+    setShowEditConfirm(false);
     setEditingId(null);
     setFormData({ name: '' });
+  };
+
+  const requestInlineEditConfirmation = () => {
+    if (!editingId) return;
+
+    const currentProduct = productTypes.find(item => item.id === editingId);
+    const productName = formData.name.trim();
+    if (!currentProduct) return;
+
+    if (!productName) {
+      setNotification({ type: 'error', message: '產品名稱不能留空' });
+      return;
+    }
+
+    if (productName === currentProduct.name) {
+      closeForm();
+      return;
+    }
+
+    setFormData({ name: productName });
+    setShowEditConfirm(true);
+  };
+
+  const confirmInlineEdit = async () => {
+    if (!editingId || savingProduct) return;
+
+    const currentProduct = productTypes.find(item => item.id === editingId);
+    const productName = formData.name.trim();
+    if (!currentProduct || !productName) return;
+
+    const previousProducts = productTypes;
+    setSavingProduct(true);
+    setShowEditConfirm(false);
+    setProductTypes(current => current.map(item => (
+      item.id === editingId ? { ...item, name: productName } : item
+    )));
+
+    try {
+      const { data, error } = await supabase
+        .from('product_types')
+        .update({ name: productName })
+        .eq('id', editingId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProductTypes(current => sortProductTypes(current.map(item => item.id === data.id ? data : item)));
+      setNotification({ type: 'success', message: '產品名稱已更新' });
+      setEditingId(null);
+      setFormData({ name: '' });
+    } catch (error: unknown) {
+      setProductTypes(previousProducts);
+      console.error('Error updating product name:', error);
+      const message = formatSupabaseError(error);
+      setNotification({
+        type: 'error',
+        message: message.includes('23505') || message.toLocaleLowerCase().includes('duplicate')
+          ? `「${productName}」已存在，請使用其他名稱`
+          : message || '更新產品名稱失敗',
+      });
+    } finally {
+      setSavingProduct(false);
+    }
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -189,28 +258,7 @@ export default function ProductTypeManagement({
     setSavingProduct(true);
 
     try {
-      if (editingId) {
-        const previousProducts = productTypes;
-        setProductTypes(current => current.map(item => (
-          item.id === editingId ? { ...item, name: productName } : item
-        )));
-
-        const { data, error } = await supabase
-          .from('product_types')
-          .update({ name: productName })
-          .eq('id', editingId)
-          .select()
-          .single();
-
-        if (error) {
-          setProductTypes(previousProducts);
-          throw error;
-        }
-
-        setProductTypes(current => sortProductTypes(current.map(item => item.id === data.id ? data : item)));
-        setNotification({ type: 'success', message: '產品名稱已更新' });
-      } else {
-        const { data: existing, error: existingError } = await supabase
+      const { data: existing, error: existingError } = await supabase
           .from('product_types')
           .select('*')
           .eq('name', productName)
@@ -249,12 +297,10 @@ export default function ProductTypeManagement({
           ...current.filter(item => item.id !== savedProduct.id),
           savedProduct,
         ]));
-        setNotification({
-          type: 'success',
-          message: existing ? '既有產品已重新啟用' : '產品已新增至列表末端',
-        });
-      }
-
+      setNotification({
+        type: 'success',
+        message: existing ? '既有產品已重新啟用' : '產品已新增至列表末端',
+      });
       closeForm();
     } catch (error: unknown) {
       console.error('Error saving product type:', error);
@@ -764,7 +810,47 @@ export default function ProductTypeManagement({
                       </div>
 
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-100">{productType.name}</p>
+                        {editingId === productType.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={formData.name}
+                              onChange={event => setFormData({ name: event.target.value })}
+                              onKeyDown={event => {
+                                if (event.key === 'Enter') {
+                                  event.preventDefault();
+                                  requestInlineEditConfirmation();
+                                }
+                                if (event.key === 'Escape') closeForm();
+                              }}
+                              maxLength={120}
+                              disabled={savingProduct}
+                              aria-label={`編輯 ${productType.name}`}
+                              className="h-8 min-w-0 flex-1 rounded-md border border-blue-300/60 bg-slate-100 px-2.5 text-sm font-medium text-slate-900 outline-none ring-blue-300/30 placeholder:text-slate-500 focus:ring-2 disabled:opacity-60"
+                            />
+                            <button
+                              type="button"
+                              onClick={requestInlineEditConfirmation}
+                              disabled={savingProduct}
+                              aria-label="確認修改產品名稱"
+                              className="rounded-md p-1.5 text-emerald-300 transition hover:bg-emerald-500/15 hover:text-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:opacity-40"
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={closeForm}
+                              disabled={savingProduct}
+                              aria-label="取消修改產品名稱"
+                              className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-700 hover:text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-40"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="truncate text-sm font-semibold text-slate-100">{productType.name}</p>
+                        )}
                       </div>
 
                       <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
@@ -799,8 +885,48 @@ export default function ProductTypeManagement({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <h2 className="truncate text-sm font-semibold text-white">{productType.name}</h2>
+                          <div className="min-w-0 flex-1">
+                            {editingId === productType.id ? (
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  value={formData.name}
+                                  onChange={event => setFormData({ name: event.target.value })}
+                                  onKeyDown={event => {
+                                    if (event.key === 'Enter') {
+                                      event.preventDefault();
+                                      requestInlineEditConfirmation();
+                                    }
+                                    if (event.key === 'Escape') closeForm();
+                                  }}
+                                  maxLength={120}
+                                  disabled={savingProduct}
+                                  aria-label={`編輯 ${productType.name}`}
+                                  className="h-8 min-w-0 w-full rounded-md border border-blue-300/60 bg-slate-100 px-2.5 text-sm font-medium text-slate-900 outline-none ring-blue-300/30 placeholder:text-slate-500 focus:ring-2 disabled:opacity-60"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={requestInlineEditConfirmation}
+                                  disabled={savingProduct}
+                                  aria-label="確認修改產品名稱"
+                                  className="rounded-md p-1.5 text-emerald-300 transition hover:bg-emerald-500/15 hover:text-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:opacity-40"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={closeForm}
+                                  disabled={savingProduct}
+                                  aria-label="取消修改產品名稱"
+                                  className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-700 hover:text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-40"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <h2 className="truncate text-sm font-semibold text-white">{productType.name}</h2>
+                            )}
                           </div>
                           <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${
                             productType.is_active
@@ -823,6 +949,57 @@ export default function ProductTypeManagement({
           )}
         </div>
       </main>
+
+      {showEditConfirm && editingProduct && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div role="dialog" aria-modal="true" aria-labelledby="edit-product-title" className="w-full max-w-xl overflow-hidden rounded-2xl border border-blue-400/30 bg-slate-900 shadow-2xl shadow-blue-950/40">
+            <div className="border-b border-blue-300/15 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-300/30 bg-blue-500/20 text-blue-200">
+                  <Pencil className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <h2 id="edit-product-title" className="text-base font-semibold text-white">確認修改產品名稱</h2>
+                  <p className="mt-1 text-xs text-blue-100/70">請確認以下變更內容，確認後將立即更新產品列表。</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3 p-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-slate-700 bg-slate-950/70 p-3">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">修改前</span>
+                  <p className="mt-2 truncate text-sm font-semibold text-slate-300">{editingProduct.name}</p>
+                </div>
+                <div className="rounded-xl border border-blue-400/30 bg-blue-950/40 p-3">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-300">修改後</span>
+                  <p className="mt-2 truncate text-sm font-semibold text-blue-50">{formData.name}</p>
+                </div>
+              </div>
+              <p className="rounded-lg border border-slate-700/80 bg-slate-950/45 px-3 py-2 text-xs text-slate-400">產品排序、啟用狀態與歷史訂單關聯不會受到影響。</p>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditConfirm(false)}
+                  disabled={savingProduct}
+                  className="min-h-10 flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm font-medium text-slate-300 transition hover:bg-slate-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50"
+                >
+                  返回修改
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void confirmInlineEdit()}
+                  disabled={savingProduct}
+                  className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-sm font-semibold text-white transition hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {savingProduct && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {savingProduct ? '儲存中…' : '確認修改'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {showDeleteConfirm && productTypeToDelete && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
