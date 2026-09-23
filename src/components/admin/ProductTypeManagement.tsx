@@ -555,9 +555,9 @@ export default function ProductTypeManagement({
               <div className="flex min-w-0 items-center gap-2">
                 <div className="inline-flex min-w-0 flex-1 items-center gap-0.5 rounded-2xl border border-slate-700 bg-slate-900 p-1 shadow-md md:flex-none">
                   {([
-                    ['all', '全部', Eye, 'border-blue-300 bg-blue-600 text-white shadow-sm', 'border-blue-900 bg-blue-950 text-blue-300 hover:border-blue-700 hover:bg-blue-900 hover:text-blue-100', 'text-blue-100'],
-                    ['active', '已啟用', CheckCircle, 'border-emerald-300 bg-emerald-600 text-white shadow-sm', 'border-emerald-900 bg-emerald-950 text-emerald-300 hover:border-emerald-700 hover:bg-emerald-900 hover:text-emerald-100', 'text-emerald-100'],
-                    ['disabled', '已停用', EyeOff, 'border-amber-300 bg-amber-600 text-white shadow-sm', 'border-amber-900 bg-amber-950 text-amber-300 hover:border-amber-700 hover:bg-amber-900 hover:text-amber-100', 'text-amber-100'],
+                    ['all', '全部', Eye, 'border-blue-300 bg-blue-600 text-white shadow-sm', 'border-transparent bg-slate-900 text-slate-500 hover:border-blue-900 hover:bg-slate-800 hover:text-blue-200', 'text-blue-100'],
+                    ['active', '已啟用', CheckCircle, 'border-emerald-300 bg-emerald-600 text-white shadow-sm', 'border-transparent bg-slate-900 text-slate-500 hover:border-emerald-900 hover:bg-slate-800 hover:text-emerald-200', 'text-emerald-100'],
+                    ['disabled', '已停用', EyeOff, 'border-amber-300 bg-amber-600 text-white shadow-sm', 'border-transparent bg-slate-900 text-slate-500 hover:border-amber-900 hover:bg-slate-800 hover:text-amber-200', 'text-amber-100'],
                   ] as const).map(([value, label, Icon, activeClass, inactiveClass, countClass]) => (
                     <button
                       key={value}
@@ -570,7 +570,7 @@ export default function ProductTypeManagement({
                     >
                       <Icon className="h-3.5 w-3.5 shrink-0" />
                       <span>{label}</span>
-                      <span className={`rounded-full bg-slate-950/40 px-1.5 py-0.5 text-[9px] font-bold leading-none ${countClass}`}>
+                      <span className={`inline-flex min-w-7 justify-center rounded-full px-2 py-1 text-[10px] font-bold leading-none transition-colors ${countClass} ${statusFilter === value ? 'bg-white/25' : 'bg-slate-950/70'}`}>
                         {statusCounts[value]}
                       </span>
                     </button>
