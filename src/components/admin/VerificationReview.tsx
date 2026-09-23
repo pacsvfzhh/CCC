@@ -1278,10 +1278,10 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                     <span className="flex items-center gap-2 text-xs font-black"><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-slate-950/25"><Users className="h-3.5 w-3.5" /></span>全部管理员</span>
                     <span className="text-[9px] font-black text-cyan-100">汇总</span>
                   </div>
-                  <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[9px] font-black">
-                    <span className="rounded bg-amber-500/15 px-1 py-1 text-amber-200">待 {overallStats.pending}</span>
-                    <span className="rounded bg-emerald-500/15 px-1 py-1 text-emerald-200">验 {overallStats.approved}</span>
-                    <span className="rounded bg-rose-500/15 px-1 py-1 text-rose-200">拒 {overallStats.rejected}</span>
+                  <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[10px] font-black">
+                    <span className="rounded bg-amber-500/15 px-1 py-1 text-amber-200">待审核 {overallStats.pending}</span>
+                    <span className="rounded bg-emerald-500/15 px-1 py-1 text-emerald-200">已验证 {overallStats.approved}</span>
+                    <span className="rounded bg-rose-500/15 px-1 py-1 text-rose-200">已拒绝 {overallStats.rejected}</span>
                   </div>
                 </button>
               )}
@@ -1306,10 +1306,10 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                       </div>
                       {stats.pending > 0 && <span className="rounded-full border border-amber-300/30 bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-black text-amber-200">{stats.pending}</span>}
                     </div>
-                    <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[9px] font-black">
-                      <span className="rounded bg-amber-500/10 px-1 py-1 text-amber-200">待 {stats.pending}</span>
-                      <span className="rounded bg-emerald-500/10 px-1 py-1 text-emerald-200">验 {stats.approved}</span>
-                      <span className="rounded bg-rose-500/10 px-1 py-1 text-rose-200">拒 {stats.rejected}</span>
+                    <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[10px] font-black">
+                      <span className="rounded bg-amber-500/10 px-1 py-1 text-amber-200">待审核 {stats.pending}</span>
+                      <span className="rounded bg-emerald-500/10 px-1 py-1 text-emerald-200">已验证 {stats.approved}</span>
+                      <span className="rounded bg-rose-500/10 px-1 py-1 text-rose-200">已拒绝 {stats.rejected}</span>
                     </div>
                   </button>
                 );
