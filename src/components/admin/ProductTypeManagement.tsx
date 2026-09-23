@@ -772,7 +772,7 @@ export default function ProductTypeManagement({
                           ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
                           : 'border-amber-400/25 bg-amber-950/50 text-amber-300'
                       }`}>
-                        <span className={`h-1 w-1 rounded-full ${productType.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                        <span className={`h-0.5 w-0.5 rounded-full ${productType.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                         {productType.is_active ? '已啟用' : '已停用'}
                       </span>
 
