@@ -553,15 +553,16 @@ export default function ProductTypeManagement({
           <Eye className="h-4 w-4" />
         )}
       </button>
-      <button
-        type="button"
-        onClick={() => requestDelete(productType)}
-        disabled={!productType.is_active}
-        aria-label={`移除 ${productType.name}`}
-        className="rounded-md p-1.5 text-rose-300 transition hover:bg-rose-500/15 hover:text-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 disabled:cursor-not-allowed disabled:opacity-25"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
+      {productType.is_active && (
+        <button
+          type="button"
+          onClick={() => requestDelete(productType)}
+          aria-label={`移除 ${productType.name}`}
+          className="rounded-md p-1.5 text-rose-300 transition hover:bg-rose-500/15 hover:text-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 
@@ -575,7 +576,7 @@ export default function ProductTypeManagement({
         onClick={() => toggleDateSort(key)}
         disabled={isSorting}
         aria-label={`${label}${direction === 'asc' ? '，目前升序' : direction === 'desc' ? '，目前降序' : ''}`}
-        className={`${hidden ? 'hidden xl:inline-flex' : 'inline-flex'} items-center gap-1 rounded-md px-1.5 py-1 text-left text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+        className={`${hidden ? 'hidden xl:flex' : 'flex'} h-11 min-h-0 w-[140px] max-w-full items-center justify-between gap-1 rounded-md px-2 text-left text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
           isSelected
             ? key === 'created_at'
               ? 'border border-blue-300 bg-blue-600 text-white shadow-sm'
@@ -811,7 +812,7 @@ export default function ProductTypeManagement({
           ) : (
             <>
               <div className="hidden min-h-0 flex-1 flex-col lg:flex">
-                <div className={`grid shrink-0 grid-cols-[72px_minmax(200px,1fr)_110px_140px_140px] items-center gap-3 border-b px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] xl:grid-cols-[72px_minmax(240px,1fr)_110px_140px_140px_140px] ${listHeaderTheme}`}>
+                <div className={`grid h-11 min-h-0 shrink-0 grid-cols-[72px_minmax(200px,1fr)_110px_140px_140px] items-center gap-3 border-b px-4 py-0 text-[10px] font-semibold uppercase tracking-[0.1em] xl:grid-cols-[72px_minmax(240px,1fr)_110px_140px_140px_140px] ${listHeaderTheme}`}>
                   <span>順序</span>
                   <span>產品</span>
                   <span>狀態</span>
