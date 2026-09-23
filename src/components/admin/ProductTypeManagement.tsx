@@ -553,24 +553,27 @@ export default function ProductTypeManagement({
           ) : (
             <div className="flex min-w-0 flex-1 flex-col gap-2 md:flex-row md:flex-wrap md:items-center xl:flex-nowrap xl:justify-end">
               <div className="flex min-w-0 items-center gap-2">
-                <div className="flex min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950/45 p-1 shadow-inner backdrop-blur-sm md:flex-none">
+                <div className="inline-flex min-w-0 flex-1 items-center gap-0.5 rounded-2xl border border-white/15 bg-gradient-to-b from-white/[0.08] to-slate-950/70 p-1 shadow-[0_8px_24px_rgba(2,6,23,0.28)] md:flex-none">
                   {([
-                    ['all', '全部', 'border-blue-200/70 bg-blue-500/45 text-white ring-1 ring-blue-300/50 shadow-[0_4px_16px_rgba(59,130,246,0.28)]', 'border-blue-400/20 bg-blue-500/10 text-blue-200/80 hover:border-blue-300/40 hover:bg-blue-500/20 hover:text-blue-100', 'text-blue-100'],
-                    ['active', '已啟用', 'border-emerald-200/70 bg-emerald-500/40 text-white ring-1 ring-emerald-300/50 shadow-[0_4px_16px_rgba(16,185,129,0.25)]', 'border-emerald-400/20 bg-emerald-500/10 text-emerald-200/80 hover:border-emerald-300/40 hover:bg-emerald-500/20 hover:text-emerald-100', 'text-emerald-100'],
-                    ['disabled', '已停用', 'border-amber-200/70 bg-amber-500/35 text-white ring-1 ring-amber-300/50 shadow-[0_4px_16px_rgba(245,158,11,0.24)]', 'border-amber-400/20 bg-amber-500/10 text-amber-200/80 hover:border-amber-300/40 hover:bg-amber-500/20 hover:text-amber-100', 'text-amber-100'],
-                  ] as const).map(([value, label, activeClass, inactiveClass, countClass]) => (
+                    ['all', '全部', Eye, 'border-blue-200/80 bg-gradient-to-b from-blue-400/50 to-blue-600/35 text-white ring-1 ring-inset ring-blue-200/60 shadow-[0_4px_16px_rgba(59,130,246,0.3)]', 'border-blue-400/20 bg-blue-500/[0.08] text-blue-200/75 hover:border-blue-300/40 hover:bg-blue-500/20 hover:text-blue-100', 'text-blue-100'],
+                    ['active', '已啟用', CheckCircle, 'border-emerald-200/80 bg-gradient-to-b from-emerald-400/50 to-emerald-600/35 text-white ring-1 ring-inset ring-emerald-200/60 shadow-[0_4px_16px_rgba(16,185,129,0.28)]', 'border-emerald-400/20 bg-emerald-500/[0.08] text-emerald-200/75 hover:border-emerald-300/40 hover:bg-emerald-500/20 hover:text-emerald-100', 'text-emerald-100'],
+                    ['disabled', '已停用', EyeOff, 'border-amber-200/80 bg-gradient-to-b from-amber-400/45 to-amber-600/30 text-white ring-1 ring-inset ring-amber-200/60 shadow-[0_4px_16px_rgba(245,158,11,0.28)]', 'border-amber-400/20 bg-amber-500/[0.08] text-amber-200/75 hover:border-amber-300/40 hover:bg-amber-500/20 hover:text-amber-100', 'text-amber-100'],
+                  ] as const).map(([value, label, Icon, activeClass, inactiveClass, countClass]) => (
                     <button
                       key={value}
                       type="button"
                       onClick={() => setStatusFilter(value)}
-                      className={`flex min-h-7 flex-1 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 md:flex-none ${
+                      aria-pressed={statusFilter === value}
+                      className={`group relative flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 text-[11px] font-semibold transition-all focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-cyan-300 md:flex-none ${
                         statusFilter === value ? activeClass : inactiveClass
                       }`}
                     >
-                      {label}
-                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] leading-none ${countClass} ${statusFilter === value ? 'bg-white/20' : 'bg-black/20'}`}>
+                      <Icon className="h-3.5 w-3.5 shrink-0 opacity-90 transition-transform group-hover:scale-105" />
+                      <span>{label}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none ${countClass} ${statusFilter === value ? 'bg-white/20' : 'bg-black/20'}`}>
                         {statusCounts[value]}
                       </span>
+                      {statusFilter === value && <span className="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-white/80" />}
                     </button>
                   ))}
                 </div>
