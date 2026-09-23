@@ -112,22 +112,26 @@ const isNetworkFetchError = (error: unknown) => {
 };
 
 const waitForNetworkRetry = (signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
-  if (signal?.aborted) {
-    reject(createSupabaseAbortError());
-    return;
-  }
+  let settled = false;
 
-  const timeoutId = globalThis.setTimeout(() => {
-    signal?.removeEventListener('abort', handleAbort);
-    resolve();
-  }, NETWORK_RETRY_DELAY_MS);
+  const cleanup = () => signal?.removeEventListener('abort', handleAbort);
   const handleAbort = () => {
+    if (settled) return;
+    settled = true;
     globalThis.clearTimeout(timeoutId);
-    signal?.removeEventListener('abort', handleAbort);
+    cleanup();
     reject(createSupabaseAbortError());
   };
 
+  const timeoutId = globalThis.setTimeout(() => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    resolve();
+  }, NETWORK_RETRY_DELAY_MS);
+
   signal?.addEventListener('abort', handleAbort, { once: true });
+  if (signal?.aborted) handleAbort();
 });
 
 const getRequestMethod = (input: RequestInfo | URL, init?: RequestInit) => (
@@ -162,31 +166,50 @@ const fetchWithXhrFallback: typeof fetch = async (input, init) => {
     new Headers(init.headers).forEach((value, key) => headers.set(key, value));
   }
 
-  const body = init?.body ?? (
-    request && method !== 'GET' && method !== 'HEAD'
-      ? await request.clone().text()
-      : undefined
-  );
+  if (signal?.aborted) throw createSupabaseAbortError();
+
+  let body: BodyInit | null | undefined;
+  try {
+    body = init?.body ?? (
+      request && method !== 'GET' && method !== 'HEAD'
+        ? await request.clone().text()
+        : undefined
+    );
+  } catch (error) {
+    if (signal?.aborted || isSupabaseAbortError(error)) throw createSupabaseAbortError();
+    throw error;
+  }
 
   if (signal?.aborted) throw createSupabaseAbortError();
 
   return new Promise<Response>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    let settled = false;
     const cleanup = () => signal?.removeEventListener('abort', handleAbort);
-    const handleAbort = () => {
-      xhr.abort();
+    const resolveOnce = (response: Response) => {
+      if (settled) return;
+      settled = true;
       cleanup();
-      reject(createSupabaseAbortError());
+      resolve(response);
+    };
+    const rejectOnce = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    const handleAbort = () => {
+      if (settled) return;
+      rejectOnce(createSupabaseAbortError());
+      xhr.abort();
     };
 
     xhr.open(method, url, true);
     xhr.timeout = REQUEST_TIMEOUT_MS;
     xhr.withCredentials = (init?.credentials || request?.credentials) === 'include';
     headers.forEach((value, key) => xhr.setRequestHeader(key, value));
-    signal?.addEventListener('abort', handleAbort, { once: true });
 
     xhr.onload = () => {
-      cleanup();
       const responseHeaders = new Headers();
       xhr.getAllResponseHeaders().trim().split(/[\\r\\n]+/).forEach(line => {
         const separator = line.indexOf(':');
@@ -201,27 +224,31 @@ const fetchWithXhrFallback: typeof fetch = async (input, init) => {
           }
         }
       });
-      resolve(new Response(xhr.responseText, {
+      resolveOnce(new Response(xhr.responseText, {
         status: xhr.status,
         statusText: xhr.statusText,
         headers: responseHeaders,
       }));
     };
-    xhr.onerror = () => {
-      cleanup();
-      reject(new TypeError('Failed to fetch'));
-    };
+    xhr.onerror = () => rejectOnce(new TypeError('Failed to fetch'));
     xhr.ontimeout = () => {
-      cleanup();
       const timeoutError = new Error('Supabase request timed out. Check your project URL and network connection.');
       timeoutError.name = 'SupabaseTimeoutError';
-      reject(timeoutError);
+      rejectOnce(timeoutError);
     };
-    xhr.onabort = () => {
-      cleanup();
-      reject(createSupabaseAbortError());
-    };
-    xhr.send(body as XMLHttpRequestBodyInit | Document | null | undefined);
+    xhr.onabort = () => rejectOnce(createSupabaseAbortError());
+
+    signal?.addEventListener('abort', handleAbort, { once: true });
+    if (signal?.aborted) {
+      handleAbort();
+      return;
+    }
+
+    try {
+      xhr.send(body as XMLHttpRequestBodyInit | Document | null | undefined);
+    } catch (error) {
+      rejectOnce(error);
+    }
   });
 };
 
@@ -247,9 +274,11 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
     let timedOut = false;
     const timeoutId = globalThis.setTimeout(() => {
       timedOut = true;
-      controller.abort();
+      const timeoutError = new Error('Supabase request timed out. Check your project URL and network connection.');
+      timeoutError.name = 'SupabaseTimeoutError';
+      controller.abort(timeoutError);
     }, REQUEST_TIMEOUT_MS);
-    const forwardCallerAbort = () => controller.abort();
+    const forwardCallerAbort = () => controller.abort(createSupabaseAbortError());
 
     callerSignal?.addEventListener('abort', forwardCallerAbort, { once: true });
 
