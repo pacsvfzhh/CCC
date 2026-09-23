@@ -68,7 +68,7 @@ export default function ProductTypeManagement({
   } | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [productTypeToDelete, setProductTypeToDelete] = useState<{ id: string; name: string; is_active: boolean } | null>(null);
+  const [productTypeToDelete, setProductTypeToDelete] = useState<{ id: string; name: string } | null>(null);
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [isSorting, setIsSorting] = useState(false);
   const [draftOrder, setDraftOrder] = useState<ProductType[]>([]);
@@ -372,7 +372,7 @@ export default function ProductTypeManagement({
   };
 
   const requestDelete = (productType: ProductType) => {
-    setProductTypeToDelete({ id: productType.id, name: productType.name, is_active: productType.is_active });
+    setProductTypeToDelete({ id: productType.id, name: productType.name });
     setShowDeleteConfirm(true);
   };
 
@@ -380,32 +380,16 @@ export default function ProductTypeManagement({
     if (!productTypeToDelete) return;
 
     const previousProducts = productTypes;
-    const permanentlyDelete = !productTypeToDelete.is_active;
-    setProductTypes(current => permanentlyDelete
-      ? current.filter(item => item.id !== productTypeToDelete.id)
-      : current.map(item => item.id === productTypeToDelete.id ? { ...item, is_active: false } : item));
+    setProductTypes(current => current.filter(item => item.id !== productTypeToDelete.id));
 
     try {
-      if (permanentlyDelete) {
-        const { error } = await supabase
-          .from('product_types')
-          .delete()
-          .eq('id', productTypeToDelete.id);
+      const { error } = await supabase
+        .from('product_types')
+        .delete()
+        .eq('id', productTypeToDelete.id);
 
-        if (error) throw error;
-        setNotification({ type: 'success', message: '產品已永久刪除' });
-      } else {
-        const { data, error } = await supabase
-          .from('product_types')
-          .update({ is_active: false, updated_at: new Date().toISOString() })
-          .eq('id', productTypeToDelete.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        setProductTypes(current => sortProductTypes(current.map(item => item.id === data.id ? data : item)));
-        setNotification({ type: 'success', message: '產品已移除，歷史訂單仍完整保留' });
-      }
+      if (error) throw error;
+      setNotification({ type: 'success', message: '產品已永久刪除' });
     } catch (error: unknown) {
       setProductTypes(previousProducts);
       console.error('Error removing product type:', error);
@@ -835,7 +819,7 @@ export default function ProductTypeManagement({
                   {renderDateSortHeader('updated_at', '更新時間')}
                   <span className="text-right">{isSorting ? '調整' : '操作'}</span>
                 </div>
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                <div className="product-type-list-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain" data-scroll-theme={statusFilter}>
                   {visibleProducts.map((productType, index) => (
                     <div
                       key={productType.id}
@@ -936,7 +920,7 @@ export default function ProductTypeManagement({
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2 lg:hidden">
+              <div className="product-type-list-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto p-2 lg:hidden" data-scroll-theme={statusFilter}>
                 {visibleProducts.map((productType, index) => (
                   <article
                     key={productType.id}
