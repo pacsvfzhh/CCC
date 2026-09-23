@@ -927,7 +927,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           </div>
 
           <div className="flex items-center lg:justify-end">
-            <button type="button" onClick={() => openDetailPanel(employee, verification)} disabled={!verification} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-950/30 px-2.5 text-[10px] font-black text-emerald-200 transition-colors hover:bg-emerald-900/35 disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" onClick={() => openDetailPanel(employee, verification)} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-950/30 px-2.5 text-[10px] font-black text-emerald-200 transition-colors hover:bg-emerald-900/35">
               <Eye className="h-3.5 w-3.5" />查看资料
             </button>
           </div>
