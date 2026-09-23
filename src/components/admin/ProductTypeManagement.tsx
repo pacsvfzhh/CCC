@@ -408,8 +408,8 @@ export default function ProductTypeManagement({
       }
     } catch (error: unknown) {
       setProductTypes(previousProducts);
-      console.error('Error removing product type:', error);
       const message = formatSupabaseError(error);
+      console.error('Error removing product type:', message);
       setNotification({
         type: 'error',
         message: message.includes('23503') || message.toLocaleLowerCase().includes('foreign key')

@@ -13,30 +13,35 @@ export const supabaseConfigurationError = !supabaseUrl || !supabaseAnonKey
     ? 'Supabase is still using a placeholder URL. Replace VITE_SUPABASE_URL with your real project URL.'
     : null;
 
-export function formatSupabaseError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-
-  if (error && typeof error === 'object') {
-    const details = error as {
-      message?: unknown;
-      code?: unknown;
-      details?: unknown;
-      hint?: unknown;
-    };
-    const parts = [details.message, details.code, details.details, details.hint]
-      .filter(value => typeof value === 'string' && value.length > 0)
-      .map(value => String(value));
-
-    if (parts.length > 0) return parts.join(' | ');
-
-    try {
-      return JSON.stringify(error);
-    } catch {
-      return 'Unknown Supabase error';
-    }
+const stringifySupabaseErrorValue = (value: unknown, seen = new Set<object>()): string | null => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed && trimmed !== '[object Object]' ? trimmed : null;
   }
 
-  return String(error);
+  if (typeof value === 'number' || typeof value === 'bigint') return String(value);
+
+  if (!value || typeof value !== 'object') return null;
+  if (seen.has(value)) return null;
+  seen.add(value);
+
+  const details = value as Record<string, unknown>;
+  const parts = ['message', 'code', 'details', 'hint']
+    .map(key => stringifySupabaseErrorValue(details[key], seen))
+    .filter((part): part is string => Boolean(part));
+
+  if (parts.length > 0) return [...new Set(parts)].join(' | ');
+
+  try {
+    const serialized = JSON.stringify(value);
+    return serialized && serialized !== '{}' ? serialized : null;
+  } catch {
+    return null;
+  }
+};
+
+export function formatSupabaseError(error: unknown): string {
+  return stringifySupabaseErrorValue(error) || 'Unknown Supabase error';
 }
 
 export function isSupabaseAbortError(error: unknown): boolean {
