@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { CheckCircle, XCircle, Clock, User, Wallet, Phone, Mail, Trash2, RotateCcw, AlertCircle, Eye, EyeOff, FileText, Image as ImageIcon, Shield, Calendar, Hash, Search, Users, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, User, Wallet, Phone, Mail, Trash2, RotateCcw, AlertCircle, Eye, EyeOff, FileText, Image as ImageIcon, Shield, Search, Users, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { VerificationRequest, Employee, Admin } from '../../types';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
@@ -13,7 +13,7 @@ interface VerificationReviewProps {
 }
 
 type ViewMode = 'requests' | 'verified' | 'rejected';
-type GroupMode = 'all' | 'by_admin';
+type SelectedAdminId = 'all' | string;
 
 interface ImagePreview {
   images: { url: string; label: string }[];
@@ -33,12 +33,11 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
   const [resetting, setResetting] = useState<string | null>(null);
   const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('requests');
-  const [groupMode, setGroupMode] = useState<GroupMode>('all');
+  const [selectedAdminId, setSelectedAdminId] = useState<SelectedAdminId>(admin.role === 'super_admin' ? 'all' : admin.id);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [walletBalances, setWalletBalances] = useState<Map<string, number>>(new Map());
   const [admins, setAdmins] = useState<Admin[]>([]);
-  const [expandedAdmins, setExpandedAdmins] = useState<Set<string>>(new Set());
   const [validationError, setValidationError] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -518,163 +517,148 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      pending: 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400',
-      approved: 'bg-green-500/10 border-green-500/50 text-green-400',
-      rejected: 'bg-red-500/10 border-red-500/50 text-red-400',
+      pending: 'border-amber-400/40 bg-amber-500/10 text-amber-300',
+      approved: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300',
+      rejected: 'border-rose-400/40 bg-rose-500/10 text-rose-300',
     };
-
+    const labels = { pending: '待审核', approved: '已验证', rejected: '已拒绝' };
     const icons = {
-      pending: <Clock className="w-4 h-4" />,
-      approved: <CheckCircle className="w-4 h-4" />,
-      rejected: <XCircle className="w-4 h-4" />,
+      pending: <Clock className="h-3.5 w-3.5" />,
+      approved: <CheckCircle className="h-3.5 w-3.5" />,
+      rejected: <XCircle className="h-3.5 w-3.5" />,
     };
+    const typedStatus = status as keyof typeof styles;
 
     return (
-      <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-sm font-medium ${styles[status as keyof typeof styles]}`}>
-        {icons[status as keyof typeof icons]}
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </div>
+      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-black ${styles[typedStatus]}`}>
+        {icons[typedStatus]}
+        {labels[typedStatus]}
+      </span>
     );
   };
 
-  const getOverallStats = () => {
-    const pending = verifications.filter(v => v.status === 'pending').length;
-    const approved = verifications.filter(v => v.status === 'approved').length;
-    const rejected = verifications.filter(v => v.status === 'rejected').length;
-    const processed = approved + rejected;
-    return { pending, approved, rejected, processed, total: verifications.length };
-  };
+  const adminOptions = Array.from(
+    new Map([admin, ...admins].map(adminOption => [adminOption.id, adminOption])).values()
+  ).sort((a, b) => {
+    if (a.id === admin.id) return -1;
+    if (b.id === admin.id) return 1;
+    return a.username.localeCompare(b.username);
+  });
 
-  // Filter verifications based on search query
-  const filterVerificationsBySearch = (verificationsList: VerificationWithEmployee[]) => {
-    if (!searchQuery.trim()) return verificationsList;
-
-    const query = searchQuery.toLowerCase().trim();
-    return verificationsList.filter(v => {
-      const employee = v.employee;
-      return (
-        // Search by Employee ID
-        employee?.id?.toLowerCase().includes(query) ||
-        // Search by Username
-        employee?.username?.toLowerCase().includes(query) ||
-        // Search by Phone (from verification request)
-        v.phone?.toLowerCase().includes(query) ||
-        // Search by Email/Address (from verification request)
-        v.email?.toLowerCase().includes(query) ||
-        // Search by Wallet Address
-        v.wallet_address?.toLowerCase().includes(query) ||
-        // Search by Real Name
-        v.real_name?.toLowerCase().includes(query)
-      );
-    });
-  };
-
-  // Filter verified employees based on search query
-  const filterEmployeesBySearch = (employeesList: Employee[]) => {
-    if (!searchQuery.trim()) return employeesList;
-
-    const query = searchQuery.toLowerCase().trim();
-    return employeesList.filter(employee => {
-      // Find the verification request for this employee
-      const verification = verifications.find(v => v.user_id === employee.id && v.status === 'approved');
-
-      return (
-        // Search by Employee ID
-        employee.id?.toLowerCase().includes(query) ||
-        // Search by Username
-        employee.username?.toLowerCase().includes(query) ||
-        // Search by Phone (from verification request)
-        verification?.phone?.toLowerCase().includes(query) ||
-        // Search by Email/Address (from verification request)
-        verification?.email?.toLowerCase().includes(query) ||
-        // Search by Wallet Address
-        verification?.wallet_address?.toLowerCase().includes(query) ||
-        // Search by Real Name
-        verification?.real_name?.toLowerCase().includes(query)
-      );
-    });
-  };
-
-  // Group verifications by admin for super_admin
-  const groupVerificationsByAdmin = () => {
-    const grouped = new Map<string, VerificationWithEmployee[]>();
-    const pending = verifications.filter(v => v.status === 'pending');
-
-    pending.forEach(verification => {
-      const employee = verification.employee;
-      if (employee) {
-        const adminId = employee.created_by;
-        if (!grouped.has(adminId)) {
-          grouped.set(adminId, []);
-        }
-        grouped.get(adminId)!.push(verification);
-      }
-    });
-
-    return grouped;
-  };
-
-  // Group verified employees by admin for super_admin
-  const groupVerifiedEmployeesByAdmin = () => {
-    const grouped = new Map<string, Employee[]>();
-
-    verifiedEmployees.forEach(employee => {
-      const adminId = employee.created_by;
-      if (!grouped.has(adminId)) {
-        grouped.set(adminId, []);
-      }
-      grouped.get(adminId)!.push(employee);
-    });
-
-    return grouped;
-  };
-
-  // Filter verifications based on view mode
-  const pendingVerifications = verifications.filter(v => v.status === 'pending');
-  const rejectedVerifications = verifications.filter(v => v.status === 'rejected');
-
-  const filteredVerifications = filterVerificationsBySearch(pendingVerifications);
-  const filteredRejectedVerifications = filterVerificationsBySearch(rejectedVerifications);
-  const filteredVerifiedEmployees = filterEmployeesBySearch(verifiedEmployees);
-
-  const groupedVerifications = groupVerificationsByAdmin();
-  const groupedVerifiedEmployees = groupVerifiedEmployeesByAdmin();
-
-  // Group rejected verifications by admin
-  const groupRejectedVerificationsByAdmin = () => {
-    const grouped = new Map<string, VerificationWithEmployee[]>();
-    const rejected = verifications.filter(v => v.status === 'rejected');
-
-    rejected.forEach(verification => {
-      const employee = verification.employee;
-      if (employee) {
-        const adminId = employee.created_by;
-        if (!grouped.has(adminId)) {
-          grouped.set(adminId, []);
-        }
-        grouped.get(adminId)!.push(verification);
-      }
-    });
-
-    return grouped;
-  };
-
-  const groupedRejectedVerifications = groupRejectedVerificationsByAdmin();
-
-  const toggleAdminGroup = (adminId: string) => {
-    const newExpanded = new Set(expandedAdmins);
-    if (newExpanded.has(adminId)) {
-      newExpanded.delete(adminId);
-    } else {
-      newExpanded.add(adminId);
+  const employeeOwnerById = new Map<string, string>();
+  verifiedEmployees.forEach(employee => employeeOwnerById.set(employee.id, employee.created_by));
+  verifications.forEach(verification => {
+    if (verification.employee?.created_by) {
+      employeeOwnerById.set(verification.user_id, verification.employee.created_by);
     }
-    setExpandedAdmins(newExpanded);
+  });
+
+  const getVerificationOwnerId = (verification: VerificationWithEmployee) =>
+    verification.employee?.created_by || employeeOwnerById.get(verification.user_id) || '';
+
+  const matchesVerificationSearch = (verification: VerificationWithEmployee) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+    const employee = verification.employee || verifiedEmployees.find(item => item.id === verification.user_id);
+    return [
+      employee?.id,
+      employee?.employee_id,
+      employee?.username,
+      verification.phone,
+      verification.email,
+      verification.wallet_address,
+      verification.real_name,
+    ].some(value => value?.toLowerCase().includes(query));
   };
 
-  const getAdminName = (adminId: string) => {
-    const adminUser = admins.find(a => a.id === adminId);
-    return adminUser?.username || adminId;
+  const matchesEmployeeSearch = (employee: Employee) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+    const verification = verifications.find(item => item.user_id === employee.id && item.status === 'approved');
+    return [
+      employee.id,
+      employee.employee_id,
+      employee.username,
+      verification?.phone,
+      verification?.email,
+      verification?.wallet_address,
+      verification?.real_name,
+    ].some(value => value?.toLowerCase().includes(query));
   };
+
+  const belongsToSelectedAdmin = (ownerId: string) =>
+    !isSuperAdmin || selectedAdminId === 'all' || ownerId === selectedAdminId;
+
+  const pendingVerifications = verifications.filter(item => item.status === 'pending');
+  const rejectedVerifications = verifications.filter(item => item.status === 'rejected');
+  const filteredVerifications = pendingVerifications.filter(item =>
+    belongsToSelectedAdmin(getVerificationOwnerId(item)) && matchesVerificationSearch(item)
+  );
+  const filteredRejectedVerifications = rejectedVerifications.filter(item =>
+    belongsToSelectedAdmin(getVerificationOwnerId(item)) && matchesVerificationSearch(item)
+  );
+  const filteredVerifiedEmployees = verifiedEmployees.filter(item =>
+    belongsToSelectedAdmin(item.created_by) && matchesEmployeeSearch(item)
+  );
+
+  const overallStats = {
+    pending: pendingVerifications.length,
+    approved: verifiedEmployees.length,
+    rejected: rejectedVerifications.length,
+  };
+
+  const getAdminStats = (adminId: string) => ({
+    pending: pendingVerifications.filter(item => getVerificationOwnerId(item) === adminId).length,
+    approved: verifiedEmployees.filter(item => item.created_by === adminId).length,
+    rejected: rejectedVerifications.filter(item => getVerificationOwnerId(item) === adminId).length,
+  });
+
+  const selectedAdminName = selectedAdminId === 'all'
+    ? '全部管理员'
+    : adminOptions.find(item => item.id === selectedAdminId)?.username || admin.username;
+  const selectedGroupStats = selectedAdminId === 'all' ? overallStats : getAdminStats(selectedAdminId);
+
+  const activeResultCount = viewMode === 'requests'
+    ? filteredVerifications.length
+    : viewMode === 'verified'
+      ? filteredVerifiedEmployees.length
+      : filteredRejectedVerifications.length;
+
+  const clearReviewDraft = () => {
+    setReviewing(null);
+    setReviewAction(null);
+    setAuditRemark('');
+    setValidationError(null);
+  };
+
+  const applyContextChange = (nextViewMode: ViewMode, nextAdminId: SelectedAdminId) => {
+    clearReviewDraft();
+    setExpandedDetails(new Set());
+    setSelectedEmployee(null);
+    setViewMode(nextViewMode);
+    setSelectedAdminId(nextAdminId);
+  };
+
+  const changeContext = (nextViewMode: ViewMode, nextAdminId: SelectedAdminId) => {
+    if (reviewing && (reviewAction || auditRemark.trim())) {
+      setConfirmDialog({
+        isOpen: true,
+        title: '放弃当前审核内容？',
+        message: '切换状态或管理员分组后，尚未提交的审核备注将被清除。',
+        confirmText: '放弃并切换',
+        confirmColor: 'amber',
+        onConfirm: () => {
+          setConfirmDialog(null);
+          applyContextChange(nextViewMode, nextAdminId);
+        },
+      });
+      return;
+    }
+    applyContextChange(nextViewMode, nextAdminId);
+  };
+
+  const getAdminName = (adminId: string) =>
+    adminOptions.find(item => item.id === adminId)?.username || adminId;
 
   const toggleDetails = (verificationId: string) => {
     const newExpanded = new Set(expandedDetails);
@@ -787,7 +771,187 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
     setIsDragging(false);
   };
 
-  const overallStats = getOverallStats();
+  const renderVerificationCard = (verification: VerificationWithEmployee) => {
+    const employee = verification.employee || verifiedEmployees.find(item => item.id === verification.user_id);
+    const isExpanded = expandedDetails.has(verification.id);
+    const ownerId = getVerificationOwnerId(verification);
+    const isPending = verification.status === 'pending';
+    const isRejected = verification.status === 'rejected';
+    const hasDocuments = Boolean(verification.id_front_url || verification.id_back_url || verification.selfie_url);
+    const tone = isPending
+      ? 'border-amber-400/30 bg-[linear-gradient(145deg,rgba(120,53,15,0.18),rgba(15,23,42,0.96)_42%)]'
+      : 'border-rose-400/30 bg-[linear-gradient(145deg,rgba(127,29,29,0.16),rgba(15,23,42,0.96)_42%)]';
+
+    return (
+      <article key={verification.id} className={`overflow-hidden rounded-2xl border shadow-lg shadow-slate-950/20 ${tone}`}>
+        <div className="flex flex-col xl:grid xl:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="min-w-0 p-3 sm:p-4">
+            <div className="flex flex-wrap items-start justify-between gap-2.5">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-sm font-black text-white">{employee?.username || '未知员工'}</span>
+                  <span className="rounded-md border border-slate-600/70 bg-slate-950/50 px-2 py-0.5 text-[10px] font-bold text-slate-300">{employee?.employee_id || verification.user_id}</span>
+                  {getStatusBadge(verification.status)}
+                  {isSuperAdmin && ownerId && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black text-cyan-200">
+                      <Users className="h-3 w-3" />{getAdminName(ownerId)}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-[10px] font-medium text-slate-500">提交于 {new Date(verification.created_at).toLocaleString()}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => toggleDetails(verification.id)}
+                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-blue-400/25 bg-blue-500/10 px-2.5 text-[10px] font-black text-blue-200 transition hover:border-blue-300/45 hover:bg-blue-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+              >
+                {isExpanded ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                {isExpanded ? '收起详情' : '查看详情'}
+              </button>
+            </div>
+
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">
+              {[
+                { icon: User, label: '真实姓名', value: verification.real_name },
+                { icon: Phone, label: '电话号码', value: verification.phone },
+                { icon: Mail, label: '邮箱地址', value: verification.email },
+                { icon: Wallet, label: '钱包地址', value: verification.wallet_address },
+              ].map(({ icon: Icon, label, value }) => (
+                <div key={label} className="min-w-0 rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2">
+                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-slate-500"><Icon className="h-3 w-3 text-cyan-400/70" />{label}</div>
+                  <div className={`mt-1 break-words text-xs font-semibold text-slate-200 ${label === '钱包地址' ? 'font-mono' : ''}`}>{value || '—'}</div>
+                </div>
+              ))}
+            </div>
+
+            {isExpanded && (
+              <div className="mt-3 rounded-xl border border-blue-400/20 bg-slate-950/45 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-300">验证资料</p>
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      {verification.audited_at ? `最近审核：${new Date(verification.audited_at).toLocaleString()}` : '尚未审核'}
+                    </p>
+                  </div>
+                  {hasDocuments && (
+                    <button
+                      type="button"
+                      onClick={() => openImagePreview(verification)}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 text-[10px] font-black text-cyan-200 transition hover:bg-cyan-500/20"
+                    >
+                      <ImageIcon className="h-3.5 w-3.5" />查看验证证件
+                    </button>
+                  )}
+                </div>
+                {verification.audit_remark && (
+                  <div className={`mt-3 rounded-lg border px-3 py-2 text-xs leading-5 ${isRejected ? 'border-rose-400/25 bg-rose-500/10 text-rose-100' : 'border-slate-700 bg-slate-900/70 text-slate-300'}`}>
+                    <span className="font-black">审核备注：</span>{verification.audit_remark}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-slate-700/60 bg-slate-950/25 p-3 xl:border-l xl:border-t-0 sm:p-4">
+            {isPending ? (
+              reviewing === verification.id ? (
+                <div className="space-y-2.5">
+                  {reviewAction ? (
+                    <>
+                      <div className={`rounded-lg border px-3 py-2 text-xs font-black ${reviewAction === 'approved' ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300' : 'border-rose-400/30 bg-rose-500/10 text-rose-300'}`}>
+                        {reviewAction === 'approved' ? '确认通过验证' : '填写拒绝原因'}
+                      </div>
+                      <textarea
+                        value={auditRemark}
+                        onChange={event => {
+                          setAuditRemark(event.target.value);
+                          if (validationError) setValidationError(null);
+                        }}
+                        rows={4}
+                        placeholder={reviewAction === 'approved' ? '审核备注（选填）' : '请填写拒绝原因及需要补充的资料'}
+                        className={`w-full resize-none rounded-lg border bg-slate-900/80 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:ring-2 ${validationError ? 'border-rose-500 focus:ring-rose-500/30' : 'border-slate-700 focus:border-cyan-500 focus:ring-cyan-500/20'}`}
+                      />
+                      {validationError && <p className="text-[10px] font-bold leading-4 text-rose-300">{validationError}</p>}
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
+                        <button type="button" onClick={() => void handleReview(verification.id, reviewAction)} className={`h-9 rounded-lg text-xs font-black text-white transition ${reviewAction === 'approved' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'}`}>
+                          {reviewAction === 'approved' ? '确认通过' : '确认拒绝'}
+                        </button>
+                        <button type="button" onClick={() => { setReviewAction(null); setAuditRemark(''); setValidationError(null); }} className="h-9 rounded-lg border border-slate-600 bg-slate-800 px-3 text-xs font-bold text-slate-200 hover:bg-slate-700">返回</button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[10px] font-bold leading-4 text-slate-500">选择审核结果后再提交，拒绝时必须填写原因。</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button type="button" onClick={() => setReviewAction('approved')} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 text-xs font-black text-white hover:bg-emerald-500"><CheckCircle className="h-4 w-4" />通过</button>
+                        <button type="button" onClick={() => setReviewAction('rejected')} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-rose-600 text-xs font-black text-white hover:bg-rose-500"><XCircle className="h-4 w-4" />拒绝</button>
+                      </div>
+                      <button type="button" onClick={clearReviewDraft} className="h-8 w-full rounded-lg border border-slate-700 bg-slate-900/60 text-[10px] font-bold text-slate-400 hover:text-white">取消审核</button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="flex h-full min-h-20 flex-col justify-center">
+                  <p className="mb-3 text-[10px] font-bold leading-4 text-slate-500">检查身份资料与证件后进行审核。</p>
+                  <button type="button" onClick={() => { clearReviewDraft(); setReviewing(verification.id); }} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-xs font-black text-white shadow-lg shadow-cyan-950/30 hover:from-blue-500 hover:to-cyan-500">
+                    <Shield className="h-4 w-4" />开始审核
+                  </button>
+                </div>
+              )
+            ) : (
+              <div className="flex h-full flex-col justify-center gap-2">
+                <button type="button" onClick={() => handleReset(verification.id)} disabled={resetting === verification.id} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-amber-600 text-xs font-black text-white hover:bg-amber-500 disabled:opacity-50"><RotateCcw className="h-4 w-4" />{resetting === verification.id ? '重置中…' : '重置为待审核'}</button>
+                <button type="button" onClick={() => handleDelete(verification.id)} disabled={deleting === verification.id} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-xs font-black text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"><Trash2 className="h-4 w-4" />{deleting === verification.id ? '删除中…' : '删除申请'}</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  };
+
+  const renderVerifiedEmployeeCard = (employee: Employee) => {
+    const verification = verifications.find(item => item.user_id === employee.id && item.status === 'approved');
+    const isExpanded = selectedEmployee?.id === employee.id;
+    const hasDocuments = Boolean(verification && (verification.id_front_url || verification.id_back_url || verification.selfie_url));
+
+    return (
+      <article key={employee.id} className="overflow-hidden rounded-2xl border border-emerald-400/25 bg-[linear-gradient(145deg,rgba(6,78,59,0.16),rgba(15,23,42,0.96)_42%)] shadow-lg shadow-slate-950/20">
+        <div className="flex flex-col xl:grid xl:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="min-w-0 p-3 sm:p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-300"><Shield className="h-4 w-4" /></span>
+              <span className="text-sm font-black text-white">{employee.username}</span>
+              <span className="rounded-md border border-slate-600/70 bg-slate-950/50 px-2 py-0.5 text-[10px] font-bold text-slate-300">{employee.employee_id}</span>
+              {getStatusBadge('approved')}
+              {isSuperAdmin && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black text-cyan-200"><Users className="h-3 w-3" />{getAdminName(employee.created_by)}</span>
+              )}
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2"><p className="text-[9px] font-black uppercase tracking-wider text-slate-500">真实姓名</p><p className="mt-1 text-xs font-semibold text-slate-200">{verification?.real_name || '—'}</p></div>
+              <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2"><p className="text-[9px] font-black uppercase tracking-wider text-slate-500">钱包余额</p><p className="mt-1 text-xs font-black text-emerald-300">${(walletBalances.get(employee.id) || 0).toFixed(2)}</p></div>
+              <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2"><p className="text-[9px] font-black uppercase tracking-wider text-slate-500">加入日期</p><p className="mt-1 text-xs font-semibold text-slate-200">{new Date(employee.created_at).toLocaleDateString()}</p></div>
+              <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2"><p className="text-[9px] font-black uppercase tracking-wider text-slate-500">验证日期</p><p className="mt-1 text-xs font-semibold text-slate-200">{verification?.audited_at ? new Date(verification.audited_at).toLocaleDateString() : '—'}</p></div>
+            </div>
+            {isExpanded && verification && (
+              <div className="mt-3 grid gap-2 rounded-xl border border-emerald-400/20 bg-slate-950/45 p-3 sm:grid-cols-2">
+                <p className="break-words text-xs text-slate-300"><span className="font-black text-slate-500">电话：</span>{verification.phone || '—'}</p>
+                <p className="break-words text-xs text-slate-300"><span className="font-black text-slate-500">邮箱：</span>{verification.email || '—'}</p>
+                <p className="break-all text-xs text-slate-300 sm:col-span-2"><span className="font-black text-slate-500">钱包：</span>{verification.wallet_address || '—'}</p>
+                {verification.audit_remark && <p className="text-xs text-slate-300 sm:col-span-2"><span className="font-black text-slate-500">审核备注：</span>{verification.audit_remark}</p>}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col justify-center gap-2 border-t border-slate-700/60 bg-slate-950/25 p-3 xl:border-l xl:border-t-0 sm:p-4">
+            <button type="button" onClick={() => setSelectedEmployee(isExpanded ? null : employee)} disabled={!verification} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-cyan-400/25 bg-cyan-500/10 text-xs font-black text-cyan-200 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40">{isExpanded ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{isExpanded ? '收起资料' : '查看资料'}</button>
+            {isExpanded && hasDocuments && verification && <button type="button" onClick={() => openImagePreview(verification)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-blue-400/25 bg-blue-500/10 text-xs font-black text-blue-200 hover:bg-blue-500/20"><ImageIcon className="h-4 w-4" />查看证件</button>}
+            {verification && <button type="button" onClick={() => handleReset(verification.id)} disabled={resetting === verification.id} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-amber-600 text-xs font-black text-white hover:bg-amber-500 disabled:opacity-50"><RotateCcw className="h-4 w-4" />{resetting === verification.id ? '重置中…' : '重置审核'}</button>}
+          </div>
+        </div>
+      </article>
+    );
+  };
 
   return (
     <>
@@ -834,60 +998,60 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
       {/* Image Preview Modal */}
       {imagePreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90">
-          <div className="relative max-w-7xl w-full h-[95vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-2 sm:p-4">
+          <div className="relative flex h-[96vh] w-full max-w-7xl flex-col sm:h-[95vh]">
             {/* Header */}
-            <div className="flex items-center justify-between mb-4 px-4 py-3 bg-slate-900/90 backdrop-blur rounded-t-xl border border-slate-700">
-              <div className="flex items-center gap-3">
-                <ImageIcon className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-lg font-bold text-white">
+            <div className="mb-2 flex items-center justify-between gap-2 rounded-t-xl border border-slate-700 bg-slate-900/90 px-2 py-2 backdrop-blur sm:mb-4 sm:px-4 sm:py-3">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                <ImageIcon className="h-4 w-4 shrink-0 text-cyan-400 sm:h-5 sm:w-5" />
+                <h3 className="truncate text-sm font-bold text-white sm:text-lg">
                   {imagePreview.images[imagePreview.currentIndex].label}
                 </h3>
-                <span className="text-sm text-slate-400">
+                <span className="shrink-0 text-xs text-slate-400 sm:text-sm">
                   {imagePreview.currentIndex + 1} / {imagePreview.images.length}
                 </span>
-                <span className="text-sm text-cyan-400 ml-2">
+                <span className="shrink-0 text-xs text-cyan-400 sm:ml-2 sm:text-sm">
                   {Math.round(imagePreview.scale * 100)}%
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
                 <button
                   onClick={zoomOut}
                   disabled={imagePreview.scale <= 0.5}
-                  className={`p-2 rounded-lg transition-all ${
+                  className={`rounded-lg p-1.5 transition-all sm:p-2 ${
                     imagePreview.scale <= 0.5
                       ? 'text-slate-600 cursor-not-allowed'
                       : 'hover:bg-slate-800 text-slate-400 hover:text-white'
                   }`}
                   title="Zoom Out"
                 >
-                  <ZoomOut className="w-5 h-5" />
+                  <ZoomOut className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
                 <button
                   onClick={resetZoom}
-                  className="p-2 hover:bg-slate-800 rounded-lg transition-all text-slate-400 hover:text-white"
+                  className="rounded-lg p-1.5 text-slate-400 transition-all hover:bg-slate-800 hover:text-white sm:p-2"
                   title="Reset Zoom"
                 >
-                  <Maximize2 className="w-5 h-5" />
+                  <Maximize2 className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
                 <button
                   onClick={zoomIn}
                   disabled={imagePreview.scale >= 3}
-                  className={`p-2 rounded-lg transition-all ${
+                  className={`rounded-lg p-1.5 transition-all sm:p-2 ${
                     imagePreview.scale >= 3
                       ? 'text-slate-600 cursor-not-allowed'
                       : 'hover:bg-slate-800 text-slate-400 hover:text-white'
                   }`}
                   title="Zoom In"
                 >
-                  <ZoomIn className="w-5 h-5" />
+                  <ZoomIn className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
-                <div className="w-px h-6 bg-slate-700 mx-2"></div>
+                <div className="mx-0.5 h-5 w-px bg-slate-700 sm:mx-2 sm:h-6" />
                 <button
                   onClick={closeImagePreview}
-                  className="p-2 hover:bg-slate-800 rounded-lg transition-all text-slate-400 hover:text-white"
+                  className="rounded-lg p-1.5 text-slate-400 transition-all hover:bg-slate-800 hover:text-white sm:p-2"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
               </div>
             </div>
@@ -935,31 +1099,31 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                   <button
                     onClick={prevImage}
                     disabled={imagePreview.currentIndex === 0}
-                    className={`absolute left-4 p-3 rounded-full backdrop-blur-sm transition-all z-10 ${
+                    className={`absolute left-2 z-10 rounded-full p-2 backdrop-blur-sm transition-all sm:left-4 sm:p-3 ${
                       imagePreview.currentIndex === 0
                         ? 'bg-slate-800/30 text-slate-600 cursor-not-allowed'
                         : 'bg-slate-800/80 text-white hover:bg-slate-700 hover:scale-110'
                     }`}
                   >
-                    <ChevronLeft className="w-6 h-6" />
+                    <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
                   </button>
                   <button
                     onClick={nextImage}
                     disabled={imagePreview.currentIndex === imagePreview.images.length - 1}
-                    className={`absolute right-4 p-3 rounded-full backdrop-blur-sm transition-all z-10 ${
+                    className={`absolute right-2 z-10 rounded-full p-2 backdrop-blur-sm transition-all sm:right-4 sm:p-3 ${
                       imagePreview.currentIndex === imagePreview.images.length - 1
                         ? 'bg-slate-800/30 text-slate-600 cursor-not-allowed'
                         : 'bg-slate-800/80 text-white hover:bg-slate-700 hover:scale-110'
                     }`}
                   >
-                    <ChevronRight className="w-6 h-6" />
+                    <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
                   </button>
                 </>
               )}
 
               {/* Zoom Instructions */}
               {imagePreview.scale > 1 && (
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-slate-900/80 backdrop-blur border border-slate-700 rounded-lg text-slate-300 text-sm">
+                <div className="absolute bottom-4 left-1/2 hidden -translate-x-1/2 rounded-lg border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm text-slate-300 backdrop-blur sm:block">
                   Click and drag to pan the image
                 </div>
               )}
@@ -967,7 +1131,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
             {/* Thumbnails */}
             {imagePreview.images.length > 1 && (
-              <div className="flex justify-center gap-2 mt-4">
+              <div className="mt-2 flex flex-wrap justify-center gap-1.5 sm:mt-4 sm:gap-2">
                 {imagePreview.images.map((img, index) => (
                   <button
                     key={index}
@@ -976,7 +1140,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                       setPosition({ x: 0, y: 0 });
                       setImageLoading(!loadedImages.has(img.url));
                     }}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all sm:px-4 sm:py-2 sm:text-sm ${
                       index === imagePreview.currentIndex
                         ? 'bg-cyan-600 text-white'
                         : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
@@ -991,1431 +1155,209 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
         </div>
       )}
 
-      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-blue-500/25 bg-slate-900/80 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
-        <div className="shrink-0 border-b border-slate-700/80 bg-gradient-to-r from-blue-950/90 via-slate-900/95 to-cyan-950/80 p-3 sm:p-4">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-500/10 text-cyan-300">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-slate-950">
+        <header className="relative z-20 shrink-0 border-b border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(8,145,178,0.2),transparent_36%),linear-gradient(105deg,rgba(8,47,73,0.94),rgba(15,23,42,0.98)_70%)] px-3 py-2.5 shadow-lg shadow-slate-950/25 sm:px-4">
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-500/10 text-cyan-200 shadow-inner shadow-cyan-950/30">
                 <Shield className="h-5 w-5" />
-              </div>
+              </span>
               <div className="min-w-0">
-                <h2 className="truncate text-base font-bold text-white sm:text-lg">Verification Center</h2>
-                <p className="truncate text-xs text-slate-400">Review requests, verified employees, and rejected submissions</p>
+                <h2 className="truncate text-sm font-black text-white sm:text-base">验证管理</h2>
+                <p className="mt-0.5 truncate text-[10px] font-bold text-cyan-100/60">
+                  {selectedAdminName} · {viewMode === 'requests' ? '待审核' : viewMode === 'verified' ? '已验证' : '已拒绝'}
+                </p>
               </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="hidden rounded-lg border border-cyan-300/20 bg-slate-950/35 px-2.5 py-1.5 text-[10px] font-black text-slate-300 sm:inline">
+                当前结果 <strong className="ml-1 text-white">{activeResultCount}</strong>
+              </span>
               {overallStats.pending > 0 && (
-                <div className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-orange-400/50 bg-orange-500/15 px-2.5 py-1 text-xs font-bold text-orange-200 xl:ml-2">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  {overallStats.pending} pending
-                </div>
+                <span className="inline-flex items-center gap-1 rounded-lg border border-amber-300/30 bg-amber-500/15 px-2.5 py-1.5 text-[10px] font-black text-amber-200">
+                  <AlertCircle className="h-3.5 w-3.5" />{overallStats.pending} 待处理
+                </span>
               )}
             </div>
-
-            <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-slate-700/80 bg-slate-950/45 p-1 sm:gap-2">
-              <button
-                onClick={() => setViewMode('requests')}
-                className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors sm:px-3 sm:text-sm ${
-                  viewMode === 'requests'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-950/50'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <FileText className="h-4 w-4 shrink-0" />
-                <span className="truncate">Requests</span>
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${viewMode === 'requests' ? 'bg-white/20' : 'bg-orange-500/20 text-orange-300'}`}>
-                  {overallStats.pending}
-                </span>
-              </button>
-              <button
-                onClick={() => setViewMode('verified')}
-                className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors sm:px-3 sm:text-sm ${
-                  viewMode === 'verified'
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/50'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <CheckCircle className="h-4 w-4 shrink-0" />
-                <span className="truncate">Verified</span>
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${viewMode === 'verified' ? 'bg-white/20' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                  {verifiedEmployees.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setViewMode('rejected')}
-                className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors sm:px-3 sm:text-sm ${
-                  viewMode === 'rejected'
-                    ? 'bg-red-600 text-white shadow-md shadow-red-950/50'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <XCircle className="h-4 w-4 shrink-0" />
-                <span className="truncate">Rejected</span>
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${viewMode === 'rejected' ? 'bg-white/20' : 'bg-red-500/20 text-red-300'}`}>
-                  {overallStats.rejected}
-                </span>
-              </button>
-            </div>
           </div>
+        </header>
 
-          <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:items-start">
-            {admin.role === 'super_admin' && (
-              <div className="flex shrink-0 rounded-lg border border-slate-700/80 bg-slate-950/40 p-1">
-                <button
-                  onClick={() => setGroupMode('all')}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors lg:flex-none ${
-                    groupMode === 'all' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  }`}
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  All Together
-                </button>
-                <button
-                  onClick={() => setGroupMode('by_admin')}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors lg:flex-none ${
-                    groupMode === 'by_admin' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  }`}
-                >
-                  <Users className="h-3.5 w-3.5" />
-                  Group by Admin
-                </button>
-              </div>
+        <div className="shrink-0 space-y-2 border-b border-slate-700 bg-slate-900 p-2 lg:hidden">
+          {isSuperAdmin && (
+            <select
+              value={selectedAdminId}
+              onChange={event => changeContext(viewMode, event.target.value)}
+              className="h-9 w-full rounded-lg border border-slate-600 bg-slate-800 px-2 text-xs font-black text-white outline-none focus:border-cyan-400"
+            >
+              <option value="all">全部管理员</option>
+              {adminOptions.map(adminOption => (
+                <option key={adminOption.id} value={adminOption.id}>{adminOption.username}</option>
+              ))}
+            </select>
+          )}
+          <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-700/80 bg-slate-950/50 p-1">
+            {([
+              { value: 'requests', label: '待审核', count: selectedGroupStats.pending, active: 'bg-amber-600 text-white' },
+              { value: 'verified', label: '已验证', count: selectedGroupStats.approved, active: 'bg-emerald-600 text-white' },
+              { value: 'rejected', label: '已拒绝', count: selectedGroupStats.rejected, active: 'bg-rose-600 text-white' },
+            ] as const).map(item => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => changeContext(item.value, selectedAdminId)}
+                className={`flex h-8 items-center justify-center gap-1 rounded-lg text-[10px] font-black transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${viewMode === item.value ? item.active : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+              >
+                {item.label}<span className="rounded bg-black/20 px-1.5 py-0.5 text-[9px]">{item.count}</span>
+              </button>
+            ))}
+          </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+            <input
+              value={searchQuery}
+              onChange={event => setSearchQuery(event.target.value)}
+              placeholder="搜索员工、电话、邮箱或钱包"
+              className="h-9 w-full rounded-lg border border-slate-600 bg-slate-800 pl-9 pr-9 text-xs font-bold text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
+            />
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 hover:bg-slate-700 hover:text-white" aria-label="清除搜索">
+                <X className="h-3.5 w-3.5" />
+              </button>
             )}
+          </div>
+        </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="hidden min-h-0 flex-col border-r border-cyan-950/70 bg-[linear-gradient(180deg,rgba(15,23,42,0.99),rgba(8,20,38,0.99))] lg:flex">
+            <div className="shrink-0 border-b border-cyan-900/45 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_42%)] p-3">
+              <div className="grid grid-cols-3 gap-1 rounded-xl border border-white/10 bg-slate-950/45 p-1 shadow-inner shadow-slate-950/50">
+                {([
+                  { value: 'requests', label: '待审核', count: selectedGroupStats.pending, Icon: Clock, active: 'border-amber-300/50 bg-amber-600 text-white shadow-amber-950/40', idle: 'border-transparent text-amber-200 hover:bg-amber-500/15' },
+                  { value: 'verified', label: '已验证', count: selectedGroupStats.approved, Icon: CheckCircle, active: 'border-emerald-300/50 bg-emerald-600 text-white shadow-emerald-950/40', idle: 'border-transparent text-emerald-200 hover:bg-emerald-500/15' },
+                  { value: 'rejected', label: '已拒绝', count: selectedGroupStats.rejected, Icon: XCircle, active: 'border-rose-300/50 bg-rose-600 text-white shadow-rose-950/40', idle: 'border-transparent text-rose-200 hover:bg-rose-500/15' },
+                ] as const).map(({ value, label, count, Icon, active, idle }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => changeContext(value, selectedAdminId)}
+                    aria-pressed={viewMode === value}
+                    className={`flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg border text-[10px] font-black shadow-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${viewMode === value ? active : idle}`}
+                  >
+                    <span className="flex items-center gap-1"><Icon className="h-3.5 w-3.5" />{label}</span>
+                    <span className={`rounded px-1.5 py-0.5 text-[9px] tabular-nums ${viewMode === value ? 'bg-white/20' : 'bg-slate-950/40'}`}>{count}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="relative mt-2.5">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                 <input
-                  type="text"
-                  placeholder="Search employee, phone, email, wallet, or real name"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-slate-700 bg-slate-950/45 py-2 pl-9 pr-10 text-sm text-white placeholder-slate-500 transition-colors focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                  onChange={event => setSearchQuery(event.target.value)}
+                  placeholder="搜索员工、电话、邮箱或钱包"
+                  className="h-10 w-full rounded-xl border border-white/80 bg-slate-50 pl-9 pr-9 text-xs font-bold text-slate-800 shadow-lg shadow-slate-950/20 outline-none placeholder:font-medium placeholder:text-slate-400 focus:border-cyan-400 focus:bg-white focus:ring-2 focus:ring-cyan-400/20"
                 />
                 {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-white"
-                    aria-label="Clear search"
-                  >
-                    <XCircle className="h-4 w-4" />
+                  <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 hover:bg-slate-200 hover:text-slate-700" aria-label="清除搜索">
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>
-              {searchQuery && (
-                <div className="mt-1.5 text-xs text-slate-400">
-                  {viewMode === 'requests'
-                    ? `Found ${filteredVerifications.length} of ${pendingVerifications.length} pending requests`
-                    : viewMode === 'rejected'
-                      ? `Found ${filteredRejectedVerifications.length} of ${rejectedVerifications.length} rejected requests`
-                      : `Found ${filteredVerifiedEmployees.length} of ${verifiedEmployees.length} verified employees`}
+              <div className="mt-2 flex items-center justify-between text-[10px] font-bold text-slate-500"><span>管理员分组</span><span>{activeResultCount} 条结果</span></div>
+            </div>
+
+            <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto p-1.5">
+              {isSuperAdmin && (
+                <button
+                  type="button"
+                  onClick={() => changeContext(viewMode, 'all')}
+                  aria-pressed={selectedAdminId === 'all'}
+                  className={`group relative mb-1.5 w-full overflow-hidden rounded-xl border p-2.5 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${selectedAdminId === 'all' ? 'border-cyan-300/55 bg-gradient-to-r from-cyan-700 via-blue-800 to-slate-800 text-white shadow-lg shadow-cyan-950/35' : 'border-slate-700/70 bg-slate-900/65 text-slate-300 hover:border-cyan-600/50 hover:bg-cyan-950/30'}`}
+                >
+                  {selectedAdminId === 'all' && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-cyan-300" />}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 text-xs font-black"><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-slate-950/25"><Users className="h-3.5 w-3.5" /></span>全部管理员</span>
+                    <span className="text-[9px] font-black text-cyan-100">汇总</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[9px] font-black">
+                    <span className="rounded bg-amber-500/15 px-1 py-1 text-amber-200">待 {overallStats.pending}</span>
+                    <span className="rounded bg-emerald-500/15 px-1 py-1 text-emerald-200">验 {overallStats.approved}</span>
+                    <span className="rounded bg-rose-500/15 px-1 py-1 text-rose-200">拒 {overallStats.rejected}</span>
+                  </div>
+                </button>
+              )}
+
+              {adminOptions.map(adminOption => {
+                const stats = getAdminStats(adminOption.id);
+                const selected = selectedAdminId === adminOption.id;
+                return (
+                  <button
+                    key={adminOption.id}
+                    type="button"
+                    onClick={() => changeContext(viewMode, adminOption.id)}
+                    aria-pressed={selected}
+                    className={`group relative mb-1.5 w-full overflow-hidden rounded-xl border p-2.5 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${selected ? 'border-cyan-300/55 bg-gradient-to-r from-blue-700 via-cyan-800 to-slate-800 text-white shadow-lg shadow-cyan-950/35' : 'border-slate-700/70 bg-slate-900/65 text-slate-300 hover:border-cyan-600/50 hover:bg-cyan-950/30'}`}
+                  >
+                    {selected && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-cyan-300" />}
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${selected ? 'border-white/25 bg-slate-950/25 text-white' : 'border-slate-700 bg-slate-950/40 text-cyan-300'}`}><User className="h-3.5 w-3.5" /></span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-black">{adminOption.username}</p>
+                        <p className={`mt-0.5 text-[9px] font-bold ${selected ? 'text-cyan-100/70' : 'text-slate-500'}`}>{adminOption.role === 'super_admin' ? '超级管理员' : '次要管理员'}</p>
+                      </div>
+                      {stats.pending > 0 && <span className="rounded-full border border-amber-300/30 bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-black text-amber-200">{stats.pending}</span>}
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[9px] font-black">
+                      <span className="rounded bg-amber-500/10 px-1 py-1 text-amber-200">待 {stats.pending}</span>
+                      <span className="rounded bg-emerald-500/10 px-1 py-1 text-emerald-200">验 {stats.approved}</span>
+                      <span className="rounded bg-rose-500/10 px-1 py-1 text-rose-200">拒 {stats.rejected}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="shrink-0 border-t border-cyan-950/70 bg-slate-950/55 p-3">
+              <div className="flex items-center justify-between text-[10px] font-bold text-slate-500"><span>当前筛选</span><span className="font-black text-white">{activeResultCount}</span></div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500" style={{ width: `${Math.min(100, activeResultCount ? Math.max(8, activeResultCount) : 0)}%` }} /></div>
+            </div>
+          </aside>
+
+          <main className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_top_right,rgba(8,145,178,0.08),transparent_32%),#0f172a]">
+            <div className="shrink-0 border-b border-slate-700/70 bg-slate-900/80 px-3 py-2.5 sm:px-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="truncate text-xs font-black text-white">{selectedAdminName} · {viewMode === 'requests' ? '待审核申请' : viewMode === 'verified' ? '已验证员工' : '已拒绝申请'}</h3>
+                  <p className="mt-0.5 text-[10px] font-bold text-slate-500">列表区域独立滚动，共 {activeResultCount} 条符合条件的记录</p>
+                </div>
+                {searchQuery && <span className="max-w-full truncate rounded-lg border border-cyan-400/20 bg-cyan-500/10 px-2 py-1 text-[10px] font-bold text-cyan-200">搜索：{searchQuery}</span>}
+              </div>
+            </div>
+
+            <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4">
+              {error && (
+                <div className="mb-3 flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-xs font-bold text-rose-200"><AlertCircle className="h-4 w-4 shrink-0" />{error}</div>
+              )}
+              {loading ? (
+                <div className="flex h-full min-h-64 flex-col items-center justify-center text-center">
+                  <span className="mb-3 h-9 w-9 animate-spin rounded-full border-2 border-slate-700 border-t-cyan-400" />
+                  <p className="text-xs font-bold text-slate-400">正在加载验证资料…</p>
+                </div>
+              ) : activeResultCount === 0 ? (
+                <div className="flex h-full min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-slate-950/25 px-6 text-center">
+                  <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-500/10 text-cyan-300"><FileText className="h-5 w-5" /></span>
+                  <h3 className="text-sm font-black text-white">没有符合条件的记录</h3>
+                  <p className="mt-1.5 max-w-sm text-xs leading-5 text-slate-500">请切换管理员分组、审核状态，或调整搜索条件后再查看。</p>
+                  {searchQuery && <button type="button" onClick={() => setSearchQuery('')} className="mt-4 h-8 rounded-lg border border-cyan-400/25 bg-cyan-500/10 px-3 text-[10px] font-black text-cyan-200 hover:bg-cyan-500/20">清除搜索</button>}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {viewMode === 'requests' && filteredVerifications.map(renderVerificationCard)}
+                  {viewMode === 'verified' && filteredVerifiedEmployees.map(renderVerifiedEmployeeCard)}
+                  {viewMode === 'rejected' && filteredRejectedVerifications.map(renderVerificationCard)}
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
-      {viewMode === 'requests' && (
-        <>
-      {error && (
-        <div className="mb-4 p-4 bg-red-500/10 border border-red-500/50 rounded-lg">
-          <div className="flex items-center gap-2 text-red-400">
-            <AlertCircle className="w-5 h-5" />
-            <span className="font-medium">Error: {error}</span>
-          </div>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="text-center py-8 text-slate-400">Loading verifications...</div>
-      ) : filteredVerifications.length === 0 ? (
-        <div className="text-center py-8 text-slate-400">
-          {searchQuery ? 'No pending verification requests match your search' : 'No pending verification requests'}
-        </div>
-      ) : groupMode === 'by_admin' && admin.role === 'super_admin' && !searchQuery ? (
-        <div className="space-y-3">
-          {Array.from(groupedVerifications.entries())
-            .sort(([adminIdA], [adminIdB]) => getAdminName(adminIdA).localeCompare(getAdminName(adminIdB)))
-            .map(([adminId, adminVerifications]) => {
-              const isExpanded = expandedAdmins.has(adminId);
-              const pendingCount = adminVerifications.filter(v => v.status === 'pending').length;
-
-              return (
-                <div key={adminId} className="bg-slate-800/30 rounded-xl border border-slate-700/50 overflow-hidden">
-                  <button
-                    onClick={() => toggleAdminGroup(adminId)}
-                    className="flex w-full items-center justify-between gap-3 bg-slate-800/50 p-3 text-left transition-colors hover:bg-slate-800/70 sm:p-4"
-                  >
-                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                      <Users className="h-5 w-5 shrink-0 text-blue-400" />
-                      <span className="text-white font-semibold">{getAdminName(adminId)}</span>
-                      <span className="px-3 py-1 bg-blue-600/20 border border-blue-500/50 rounded-full text-blue-300 text-sm font-medium">
-                        {adminVerifications.length} request{adminVerifications.length !== 1 ? 's' : ''}
-                      </span>
-                      {pendingCount > 0 && (
-                        <span className="px-3 py-1 bg-orange-600/20 border border-orange-500/50 rounded-full text-orange-300 text-sm font-bold animate-pulse">
-                          {pendingCount} pending
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5 text-slate-400">
-                      <span className="text-sm">{isExpanded ? 'Hide' : 'Show'}</span>
-                      {isExpanded ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </div>
-                  </button>
-
-                  {isExpanded && (
-                    <div className="space-y-3 border-t border-slate-700/60 p-3 sm:p-4">
-                      {adminVerifications.map((verification) => {
-                        const isPending = verification.status === 'pending';
-                        const isDetailExpanded = expandedDetails.has(verification.id);
-                        return (
-                        <div
-                          key={verification.id}
-                          className={`rounded-lg p-4 transition-all ${
-                            isPending
-                              ? 'bg-gradient-to-r from-orange-900/30 to-red-900/30 border-2 border-orange-500/50 shadow-lg shadow-orange-500/20'
-                              : 'bg-slate-800/50 border border-slate-700'
-                          }`}
-                        >
-                          <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
-                            <div className="flex-1">
-                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="flex flex-wrap items-center gap-2.5">
-                                  <span className="text-white font-medium">{verification.employee?.username}</span>
-                                  <span className="text-slate-500 text-sm">{verification.employee?.employee_id}</span>
-                                  {getStatusBadge(verification.status)}
-                                </div>
-                                <button
-                                  onClick={() => toggleDetails(verification.id)}
-                                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 rounded-lg text-blue-300 text-sm font-medium transition-all"
-                                >
-                                  {isDetailExpanded ? (
-                                    <><EyeOff className="w-4 h-4" /> Hide Details</>
-                                  ) : (
-                                    <><Eye className="w-4 h-4" /> View Details</>
-                                  )}
-                                </button>
-                              </div>
-
-                              {isDetailExpanded && (
-                                <div className="mb-4 p-4 bg-slate-900/50 rounded-lg border border-blue-500/20">
-                                  <div className="flex items-center gap-2 mb-3">
-                                    <FileText className="w-4 h-4 text-blue-400" />
-                                    <h3 className="text-sm font-bold text-blue-300 uppercase tracking-wide">Verification Information</h3>
-                                  </div>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                      <div className="text-xs text-slate-500 uppercase tracking-wider">Real Name</div>
-                                      <div className="text-sm text-white font-medium">{verification.real_name}</div>
-                                    </div>
-                                    <div className="space-y-1">
-                                      <div className="text-xs text-slate-500 uppercase tracking-wider">Phone Number</div>
-                                      <div className="text-sm text-white font-medium">{verification.phone}</div>
-                                    </div>
-                                    <div className="space-y-1 md:col-span-2">
-                                      <div className="text-xs text-slate-500 uppercase tracking-wider">Email Address</div>
-                                      <div className="text-sm text-white font-medium">{verification.email}</div>
-                                    </div>
-                                    <div className="space-y-1 md:col-span-2">
-                                      <div className="text-xs text-slate-500 uppercase tracking-wider">Wallet Address</div>
-                                      <div className="text-sm text-white font-mono break-all bg-slate-800/50 p-2 rounded">{verification.wallet_address}</div>
-                                    </div>
-                                  </div>
-
-                                  {(verification.id_front_url || verification.id_back_url || verification.selfie_url) && (
-                                    <div className="mt-4 pt-4 border-t border-slate-700">
-                                      <div className="flex items-center gap-2 mb-3">
-                                        <ImageIcon className="w-4 h-4 text-blue-400" />
-                                        <h3 className="text-sm font-bold text-blue-300 uppercase tracking-wide">Supporting Documents</h3>
-                                      </div>
-                                      <button
-                                        onClick={() => openImagePreview(verification)}
-                                        className="w-full px-4 py-3 bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/30 hover:to-blue-600/30 border border-cyan-500/50 rounded-lg text-cyan-300 font-medium transition-all flex items-center justify-center gap-2"
-                                      >
-                                        <Eye className="w-4 h-4" />
-                                        View Verification Documents
-                                      </button>
-                                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
-                                        {verification.id_front_url && (
-                                          <div className="group relative bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-                                            <div className="flex items-center gap-2 mb-2">
-                                              <ImageIcon className="w-4 h-4 text-blue-400" />
-                                              <span className="text-xs font-medium text-slate-300">ID Front</span>
-                                            </div>
-                                          </div>
-                                        )}
-                                        {verification.id_back_url && (
-                                          <div className="group relative bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-                                            <div className="flex items-center gap-2 mb-2">
-                                              <ImageIcon className="w-4 h-4 text-blue-400" />
-                                              <span className="text-xs font-medium text-slate-300">ID Back</span>
-                                            </div>
-                                          </div>
-                                        )}
-                                        {verification.selfie_url && (
-                                          <div className="group relative bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-                                            <div className="flex items-center gap-2 mb-2">
-                                              <ImageIcon className="w-4 h-4 text-blue-400" />
-                                              <span className="text-xs font-medium text-slate-300">Selfie Photo</span>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                                <div className="flex items-start gap-2">
-                                  <User className="w-4 h-4 text-slate-400 mt-0.5" />
-                                  <div>
-                                    <div className="text-xs text-slate-500">Real Name</div>
-                                    <div className="text-sm text-slate-200">{verification.real_name}</div>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-start gap-2">
-                                  <Wallet className="w-4 h-4 text-slate-400 mt-0.5" />
-                                  <div>
-                                    <div className="text-xs text-slate-500">Wallet Address</div>
-                                    <div className="text-sm text-slate-200 font-mono break-all">{verification.wallet_address}</div>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-start gap-2">
-                                  <Phone className="w-4 h-4 text-slate-400 mt-0.5" />
-                                  <div>
-                                    <div className="text-xs text-slate-500">Phone</div>
-                                    <div className="text-sm text-slate-200">{verification.phone}</div>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-start gap-2">
-                                  <Mail className="w-4 h-4 text-slate-400 mt-0.5" />
-                                  <div>
-                                    <div className="text-xs text-slate-500">Email</div>
-                                    <div className="text-sm text-slate-200">{verification.email}</div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="text-slate-400 text-sm">
-                                Submitted: {new Date(verification.created_at).toLocaleString()}
-                              </div>
-
-                              {verification.audit_remark && (
-                                <div className="mt-2 p-2 bg-slate-900 rounded text-slate-300 text-sm">
-                                  <strong>Audit Note:</strong> {verification.audit_remark}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="xl:w-72 xl:flex-none">
-                              {verification.status === 'pending' ? (
-                                reviewing === verification.id ? (
-                                  <div className="space-y-3">
-                                    {reviewAction ? (
-                                      <>
-                                        <div className={`p-3 rounded-lg ${
-                                          reviewAction === 'approved'
-                                            ? 'bg-green-500/10 border border-green-500/30'
-                                            : 'bg-red-500/10 border border-red-500/30'
-                                        }`}>
-                                          <div className={`text-sm font-medium mb-2 ${
-                                            reviewAction === 'approved' ? 'text-green-400' : 'text-red-400'
-                                          }`}>
-                                            {reviewAction === 'approved' ? 'Approving Verification' : 'Rejecting Verification'}
-                                          </div>
-                                          <div className="text-xs text-slate-400">
-                                            {reviewAction === 'approved'
-                                              ? 'Optional: Add approval notes'
-                                              : 'Required: Explain rejection reason and what documents are needed'}
-                                          </div>
-                                        </div>
-                                        <textarea
-                                          value={auditRemark}
-                                          onChange={(e) => {
-                                            setAuditRemark(e.target.value);
-                                            if (validationError) setValidationError(null);
-                                          }}
-                                          placeholder={
-                                            reviewAction === 'approved'
-                                              ? 'Approval notes (optional)'
-                                              : 'Please specify: 1) Why rejected 2) What documents/info needed (required)'
-                                          }
-                                          className={`w-full px-3 py-2 bg-slate-900/50 backdrop-blur-sm border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 resize-none text-sm ${
-                                            validationError && reviewing === verification.id
-                                              ? 'border-red-500 focus:ring-red-500'
-                                              : 'border-slate-700 focus:ring-blue-500'
-                                          }`}
-                                          rows={4}
-                                        />
-                                        {validationError && reviewing === verification.id && (
-                                          <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
-                                            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                                            <span>{validationError}</span>
-                                          </div>
-                                        )}
-                                        <div className="flex gap-2">
-                                          <button
-                                            onClick={() => handleReview(verification.id, reviewAction)}
-                                            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-white rounded-lg text-sm font-medium transition-all ${
-                                              reviewAction === 'approved'
-                                                ? 'bg-green-600 hover:bg-green-700'
-                                                : 'bg-red-600 hover:bg-red-700'
-                                            }`}
-                                          >
-                                            {reviewAction === 'approved' ? (
-                                              <><CheckCircle className="w-4 h-4" /> Confirm Approval</>
-                                            ) : (
-                                              <><XCircle className="w-4 h-4" /> Confirm Rejection</>
-                                            )}
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              setReviewAction(null);
-                                              setAuditRemark('');
-                                              setValidationError(null);
-                                            }}
-                                            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-all"
-                                          >
-                                            Back
-                                          </button>
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <div className="flex gap-2">
-                                          <button
-                                            onClick={() => setReviewAction('approved')}
-                                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all"
-                                          >
-                                            <CheckCircle className="w-4 h-4" />
-                                            Approve
-                                          </button>
-                                          <button
-                                            onClick={() => setReviewAction('rejected')}
-                                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all"
-                                          >
-                                            <XCircle className="w-4 h-4" />
-                                            Reject
-                                          </button>
-                                        </div>
-                                        <button
-                                          onClick={() => {
-                                            setReviewing(null);
-                                            setAuditRemark('');
-                                            setValidationError(null);
-                                          }}
-                                          className="w-full px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-all"
-                                        >
-                                          Cancel
-                                        </button>
-                                      </>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => setReviewing(verification.id)}
-                                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all"
-                                  >
-                                    Review Request
-                                  </button>
-                                )
-                              ) : (
-                                <div className="space-y-2">
-                                  <button
-                                    onClick={() => handleReset(verification.id)}
-                                    disabled={resetting === verification.id}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    <RotateCcw className="w-4 h-4" />
-                                    {resetting === verification.id ? 'Resetting...' : 'Reset to Pending'}
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(verification.id)}
-                                    disabled={deleting === verification.id}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                    {deleting === verification.id ? 'Deleting...' : 'Delete Request'}
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredVerifications.map((verification) => {
-            const isPending = verification.status === 'pending';
-            const isExpanded = expandedDetails.has(verification.id);
-            const adminId = verification.employee?.created_by;
-            return (
-            <div
-              key={verification.id}
-              className={`rounded-lg p-4 transition-all ${
-                isPending
-                  ? 'bg-gradient-to-r from-orange-900/30 to-red-900/30 border-2 border-orange-500/50 shadow-lg shadow-orange-500/20'
-                  : 'bg-slate-800/50 border border-slate-700'
-              }`}
-            >
-              <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
-                <div className="flex-1">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="text-white font-medium">{verification.employee?.username}</span>
-                      <span className="text-slate-500 text-sm">{verification.employee?.employee_id}</span>
-                      {getStatusBadge(verification.status)}
-                      {admin.role === 'super_admin' && adminId && (
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-600/20 border border-blue-500/50 rounded-full text-blue-300 text-xs font-medium">
-                          <Users className="w-3 h-3" />
-                          <span>Admin: {getAdminName(adminId)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => toggleDetails(verification.id)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 rounded-lg text-blue-300 text-sm font-medium transition-all"
-                    >
-                      {isExpanded ? (
-                        <><EyeOff className="w-4 h-4" /> Hide Details</>
-                      ) : (
-                        <><Eye className="w-4 h-4" /> View Details</>
-                      )}
-                    </button>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="mb-4 p-4 bg-slate-900/50 rounded-lg border border-blue-500/20">
-                      <div className="flex items-center gap-2 mb-3">
-                        <FileText className="w-4 h-4 text-blue-400" />
-                        <h3 className="text-sm font-bold text-blue-300 uppercase tracking-wide">Verification Information</h3>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <div className="text-xs text-slate-500 uppercase tracking-wider">Real Name</div>
-                          <div className="text-sm text-white font-medium">{verification.real_name}</div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="text-xs text-slate-500 uppercase tracking-wider">Phone Number</div>
-                          <div className="text-sm text-white font-medium">{verification.phone}</div>
-                        </div>
-                        <div className="space-y-1 md:col-span-2">
-                          <div className="text-xs text-slate-500 uppercase tracking-wider">Email Address</div>
-                          <div className="text-sm text-white font-medium">{verification.email}</div>
-                        </div>
-                        <div className="space-y-1 md:col-span-2">
-                          <div className="text-xs text-slate-500 uppercase tracking-wider">Wallet Address</div>
-                          <div className="text-sm text-white font-mono break-all bg-slate-800/50 p-2 rounded">{verification.wallet_address}</div>
-                        </div>
-                      </div>
-
-                      {(verification.id_front_url || verification.id_back_url || verification.selfie_url) && (
-                        <div className="mt-4 pt-4 border-t border-slate-700">
-                          <div className="flex items-center gap-2 mb-3">
-                            <ImageIcon className="w-4 h-4 text-blue-400" />
-                            <h3 className="text-sm font-bold text-blue-300 uppercase tracking-wide">Supporting Documents</h3>
-                          </div>
-                          <button
-                            onClick={() => openImagePreview(verification)}
-                            className="w-full px-4 py-3 bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/30 hover:to-blue-600/30 border border-cyan-500/50 rounded-lg text-cyan-300 font-medium transition-all flex items-center justify-center gap-2"
-                          >
-                            <Eye className="w-4 h-4" />
-                            View Verification Documents
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                    <div className="flex items-start gap-2">
-                      <User className="w-4 h-4 text-slate-400 mt-0.5" />
-                      <div>
-                        <div className="text-xs text-slate-500">Real Name</div>
-                        <div className="text-sm text-slate-200">{verification.real_name}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Wallet className="w-4 h-4 text-slate-400 mt-0.5" />
-                      <div>
-                        <div className="text-xs text-slate-500">Wallet Address</div>
-                        <div className="text-sm text-slate-200 font-mono break-all">{verification.wallet_address}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Phone className="w-4 h-4 text-slate-400 mt-0.5" />
-                      <div>
-                        <div className="text-xs text-slate-500">Phone</div>
-                        <div className="text-sm text-slate-200">{verification.phone}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Mail className="w-4 h-4 text-slate-400 mt-0.5" />
-                      <div>
-                        <div className="text-xs text-slate-500">Email</div>
-                        <div className="text-sm text-slate-200">{verification.email}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-slate-400 text-sm">
-                    Submitted: {new Date(verification.created_at).toLocaleString()}
-                  </div>
-
-                  {verification.audit_remark && (
-                    <div className="mt-2 p-2 bg-slate-900 rounded text-slate-300 text-sm">
-                      <strong>Audit Note:</strong> {verification.audit_remark}
-                    </div>
-                  )}
-                </div>
-
-                <div className="xl:w-72 xl:flex-none">
-                  {verification.status === 'pending' ? (
-                    reviewing === verification.id ? (
-                      <div className="space-y-3">
-                        {reviewAction ? (
-                          <>
-                            <div className={`p-3 rounded-lg ${
-                              reviewAction === 'approved'
-                                ? 'bg-green-500/10 border border-green-500/30'
-                                : 'bg-red-500/10 border border-red-500/30'
-                            }`}>
-                              <div className={`text-sm font-medium mb-2 ${
-                                reviewAction === 'approved' ? 'text-green-400' : 'text-red-400'
-                              }`}>
-                                {reviewAction === 'approved' ? 'Approving Verification' : 'Rejecting Verification'}
-                              </div>
-                              <div className="text-xs text-slate-400">
-                                {reviewAction === 'approved'
-                                  ? 'Optional: Add approval notes'
-                                  : 'Required: Explain rejection reason and what documents are needed'}
-                              </div>
-                            </div>
-                            <textarea
-                              value={auditRemark}
-                              onChange={(e) => {
-                                setAuditRemark(e.target.value);
-                                if (validationError) setValidationError(null);
-                              }}
-                              placeholder={
-                                reviewAction === 'approved'
-                                  ? 'Approval notes (optional)'
-                                  : 'Please specify: 1) Why rejected 2) What documents/info needed (required)'
-                              }
-                              className={`w-full px-3 py-2 bg-slate-900/50 backdrop-blur-sm border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 resize-none text-sm ${
-                                validationError && reviewing === verification.id
-                                  ? 'border-red-500 focus:ring-red-500'
-                                  : 'border-slate-700 focus:ring-blue-500'
-                              }`}
-                              rows={4}
-                            />
-                            {validationError && reviewing === verification.id && (
-                              <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
-                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                                <span>{validationError}</span>
-                              </div>
-                            )}
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleReview(verification.id, reviewAction)}
-                                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-white rounded-lg text-sm font-medium transition-all ${
-                                  reviewAction === 'approved'
-                                    ? 'bg-green-600 hover:bg-green-700'
-                                    : 'bg-red-600 hover:bg-red-700'
-                                }`}
-                              >
-                                {reviewAction === 'approved' ? (
-                                  <><CheckCircle className="w-4 h-4" /> Confirm Approval</>
-                                ) : (
-                                  <><XCircle className="w-4 h-4" /> Confirm Rejection</>
-                                )}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setReviewAction(null);
-                                  setAuditRemark('');
-                                  setValidationError(null);
-                                }}
-                                className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-all"
-                              >
-                                Back
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => setReviewAction('approved')}
-                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => setReviewAction('rejected')}
-                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all"
-                              >
-                                <XCircle className="w-4 h-4" />
-                                Reject
-                              </button>
-                            </div>
-                            <button
-                              onClick={() => {
-                                setReviewing(null);
-                                setAuditRemark('');
-                                setValidationError(null);
-                              }}
-                              className="w-full px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-all"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setReviewing(verification.id)}
-                        className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all"
-                      >
-                        Review Request
-                      </button>
-                    )
-                  ) : (
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => handleReset(verification.id)}
-                        disabled={resetting === verification.id}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                        {resetting === verification.id ? 'Resetting...' : 'Reset to Pending'}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(verification.id)}
-                        disabled={deleting === verification.id}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        {deleting === verification.id ? 'Deleting...' : 'Delete Request'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            );
-          })}
-        </div>
-      )}
-        </>
-      )}
-
-      {/* Verified Employees View */}
-      {viewMode === 'verified' && (
-        <>
-          {loading ? (
-            <div className="text-center py-8 text-slate-400">Loading verified employees...</div>
-          ) : filteredVerifiedEmployees.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
-              {searchQuery ? 'No verified employees match your search' : 'No verified employees found'}
-            </div>
-          ) : groupMode === 'by_admin' && admin.role === 'super_admin' && !searchQuery ? (
-            <div className="space-y-3">
-              {Array.from(groupedVerifiedEmployees.entries())
-                .sort(([adminIdA], [adminIdB]) => getAdminName(adminIdA).localeCompare(getAdminName(adminIdB)))
-                .map(([adminId, adminEmployees]) => {
-                  const isExpanded = expandedAdmins.has(adminId);
-
-                  return (
-                    <div key={adminId} className="bg-slate-800/30 rounded-xl border border-slate-700/50 overflow-hidden">
-                      <button
-                        onClick={() => toggleAdminGroup(adminId)}
-                        className="flex w-full items-center justify-between gap-3 bg-slate-800/50 p-3 text-left transition-colors hover:bg-slate-800/70 sm:p-4"
-                      >
-                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                          <Users className="h-5 w-5 shrink-0 text-green-400" />
-                          <span className="text-white font-semibold">{getAdminName(adminId)}</span>
-                          <span className="px-3 py-1 bg-green-600/20 border border-green-500/50 rounded-full text-green-300 text-sm font-medium">
-                            {adminEmployees.length} verified
-                          </span>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1.5 text-slate-400">
-                          <span className="text-sm">{isExpanded ? 'Hide' : 'Show'}</span>
-                          {isExpanded ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                        </div>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="space-y-3 border-t border-slate-700/60 p-3 sm:p-4">
-                          {adminEmployees.map((employee) => {
-                            const verification = verifications.find(v => v.user_id === employee.id && v.status === 'approved');
-                            const isDetailExpanded = selectedEmployee?.id === employee.id;
-
-                            return (
-                              <div
-                                key={employee.id}
-                                className="bg-slate-800/50 border border-green-500/30 rounded-lg p-4 hover:border-green-500/50 transition-all"
-                              >
-                                <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
-                                  <div className="flex-1">
-                                    <div className="mb-3 flex flex-wrap items-center gap-2.5">
-                                      <div className="flex items-center gap-2">
-                                        <Shield className="w-5 h-5 text-green-400" />
-                                        <span className="text-white font-medium">{employee.username}</span>
-                                      </div>
-                                      <span className="text-slate-500 text-sm">{employee.employee_id}</span>
-                                      <div className="flex items-center gap-2 px-3 py-1 rounded-full border bg-green-500/10 border-green-500/50 text-green-400 text-sm font-medium">
-                                        <CheckCircle className="w-4 h-4" />
-                                        Verified
-                                      </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                                      <div className="flex items-center gap-2 text-slate-300">
-                                        <Hash className="w-4 h-4 text-slate-500" />
-                                        <span className="text-slate-500">Employee ID:</span>
-                                        <span>{employee.employee_id}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2 text-slate-300">
-                                        <User className="w-4 h-4 text-slate-500" />
-                                        <span className="text-slate-500">Username:</span>
-                                        <span>{employee.username}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2 text-slate-300">
-                                        <Wallet className="w-4 h-4 text-slate-500" />
-                                        <span className="text-slate-500">Balance:</span>
-                                        <span className="text-green-400 font-medium">${(walletBalances.get(employee.id) || 0).toFixed(2)}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2 text-slate-300">
-                                        <Calendar className="w-4 h-4 text-slate-500" />
-                                        <span className="text-slate-500">Joined:</span>
-                                        <span>{new Date(employee.created_at).toLocaleDateString()}</span>
-                                      </div>
-                                    </div>
-
-                                    {verification ? (
-                                      <div className="mt-4 pt-4 border-t border-slate-700">
-                                        <div className="flex items-center justify-between mb-3">
-                                          <h4 className="text-sm font-semibold text-slate-300">Verification Information</h4>
-                                          <button
-                                            onClick={() => setSelectedEmployee(isDetailExpanded ? null : employee)}
-                                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 rounded-lg text-blue-300 text-xs font-medium transition-all"
-                                          >
-                                            {isDetailExpanded ? (
-                                              <><EyeOff className="w-3 h-3" /> Hide Documents</>
-                                            ) : (
-                                              <><Eye className="w-3 h-3" /> View Documents</>
-                                            )}
-                                          </button>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                                          <div className="flex items-start gap-2 text-slate-300">
-                                            <User className="w-4 h-4 text-slate-500 mt-0.5" />
-                                            <div>
-                                              <span className="text-slate-500">Real Name:</span>
-                                              <span className="ml-2 text-white font-medium">{verification.real_name}</span>
-                                            </div>
-                                          </div>
-                                          <div className="flex items-start gap-2 text-slate-300">
-                                            <Phone className="w-4 h-4 text-slate-500 mt-0.5" />
-                                            <div>
-                                              <span className="text-slate-500">Phone:</span>
-                                              <span className="ml-2 text-white">{verification.phone}</span>
-                                            </div>
-                                          </div>
-                                          <div className="flex items-start gap-2 text-slate-300">
-                                            <Wallet className="w-4 h-4 text-slate-500 mt-0.5" />
-                                            <div className="flex flex-col">
-                                              <span className="text-slate-500">Wallet Address:</span>
-                                              <span className="text-white font-mono text-xs break-all mt-1">{verification.wallet_address}</span>
-                                            </div>
-                                          </div>
-                                          <div className="flex items-start gap-2 text-slate-300">
-                                            <Mail className="w-4 h-4 text-slate-500 mt-0.5" />
-                                            <div>
-                                              <span className="text-slate-500">Address:</span>
-                                              <span className="ml-2 text-white">{verification.email}</span>
-                                            </div>
-                                          </div>
-                                          <div className="flex items-start gap-2 text-slate-300">
-                                            <Calendar className="w-4 h-4 text-slate-500 mt-0.5" />
-                                            <div>
-                                              <span className="text-slate-500">Verified On:</span>
-                                              <span className="ml-2 text-white">
-                                                {verification.audited_at ? new Date(verification.audited_at).toLocaleString() : 'N/A'}
-                                              </span>
-                                            </div>
-                                          </div>
-                                          {verification.audited_by && (
-                                            <div className="flex items-start gap-2 text-slate-300">
-                                              <User className="w-4 h-4 text-slate-500 mt-0.5" />
-                                              <div>
-                                                <span className="text-slate-500">Verified By:</span>
-                                                <span className="ml-2 text-white">{verification.audited_by}</span>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className="mt-4 pt-4 border-t border-slate-700">
-                                        <div className="flex items-center gap-2 text-yellow-400 text-sm">
-                                          <AlertCircle className="w-4 h-4" />
-                                          <span>Verification information not found for this employee</span>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {isDetailExpanded && verification && (verification.id_front_url || verification.id_back_url || verification.selfie_url) && (
-                                  <div className="mt-4 pt-4 border-t border-slate-700">
-                                    <h4 className="text-sm font-semibold text-slate-300 mb-3">Verification Documents</h4>
-                                    <button
-                                      onClick={() => openImagePreview(verification as VerificationWithEmployee)}
-                                      className="w-full px-4 py-3 bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/30 hover:to-blue-600/30 border border-cyan-500/50 rounded-lg text-cyan-300 font-medium transition-all flex items-center justify-center gap-2"
-                                    >
-                                      <Eye className="w-4 h-4" />
-                                      View Verification Documents
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredVerifiedEmployees.map((employee) => {
-                const verification = verifications.find(v => v.user_id === employee.id && v.status === 'approved');
-                const isExpanded = selectedEmployee?.id === employee.id;
-                const adminId = employee.created_by;
-
-                return (
-                  <div
-                    key={employee.id}
-                    className="bg-slate-800/50 border border-green-500/30 rounded-lg p-4 hover:border-green-500/50 transition-all"
-                  >
-                    <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3 flex-wrap">
-                          <div className="flex items-center gap-2">
-                            <Shield className="w-5 h-5 text-green-400" />
-                            <span className="text-white font-medium">{employee.username}</span>
-                          </div>
-                          <span className="text-slate-500 text-sm">{employee.employee_id}</span>
-                          <div className="flex items-center gap-2 px-3 py-1 rounded-full border bg-green-500/10 border-green-500/50 text-green-400 text-sm font-medium">
-                            <CheckCircle className="w-4 h-4" />
-                            Verified
-                          </div>
-                          {admin.role === 'super_admin' && adminId && (
-                            <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-600/20 border border-blue-500/50 rounded-full text-blue-300 text-xs font-medium">
-                              <Users className="w-3 h-3" />
-                              <span>Admin: {getAdminName(adminId)}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                          <div className="flex items-center gap-2 text-slate-300">
-                            <Hash className="w-4 h-4 text-slate-500" />
-                            <span className="text-slate-500">Employee ID:</span>
-                            <span>{employee.employee_id}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-slate-300">
-                            <User className="w-4 h-4 text-slate-500" />
-                            <span className="text-slate-500">Username:</span>
-                            <span>{employee.username}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-slate-300">
-                            <Wallet className="w-4 h-4 text-slate-500" />
-                            <span className="text-slate-500">Balance:</span>
-                            <span className="text-green-400 font-medium">${(walletBalances.get(employee.id) || 0).toFixed(2)}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-slate-300">
-                            <Calendar className="w-4 h-4 text-slate-500" />
-                            <span className="text-slate-500">Joined:</span>
-                            <span>{new Date(employee.created_at).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-
-                        {/* Verification Information - Always Visible */}
-                        {verification ? (
-                          <div className="mt-4 pt-4 border-t border-slate-700">
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="text-sm font-semibold text-slate-300">Verification Information</h4>
-                              <button
-                                onClick={() => setSelectedEmployee(isExpanded ? null : employee)}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 rounded-lg text-blue-300 text-xs font-medium transition-all"
-                              >
-                                {isExpanded ? (
-                                  <><EyeOff className="w-3 h-3" /> Hide Documents</>
-                                ) : (
-                                  <><Eye className="w-3 h-3" /> View Documents</>
-                                )}
-                              </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                              <div className="flex items-start gap-2 text-slate-300">
-                                <User className="w-4 h-4 text-slate-500 mt-0.5" />
-                                <div>
-                                  <span className="text-slate-500">Real Name:</span>
-                                  <span className="ml-2 text-white font-medium">{verification.real_name}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-start gap-2 text-slate-300">
-                                <Phone className="w-4 h-4 text-slate-500 mt-0.5" />
-                                <div>
-                                  <span className="text-slate-500">Phone:</span>
-                                  <span className="ml-2 text-white">{verification.phone}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-start gap-2 text-slate-300">
-                                <Wallet className="w-4 h-4 text-slate-500 mt-0.5" />
-                                <div className="flex flex-col">
-                                  <span className="text-slate-500">Wallet Address:</span>
-                                  <span className="text-white font-mono text-xs break-all mt-1">{verification.wallet_address}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-start gap-2 text-slate-300">
-                                <Mail className="w-4 h-4 text-slate-500 mt-0.5" />
-                                <div>
-                                  <span className="text-slate-500">Address:</span>
-                                  <span className="ml-2 text-white">{verification.email}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-start gap-2 text-slate-300">
-                                <Calendar className="w-4 h-4 text-slate-500 mt-0.5" />
-                                <div>
-                                  <span className="text-slate-500">Verified On:</span>
-                                  <span className="ml-2 text-white">
-                                    {verification.audited_at ? new Date(verification.audited_at).toLocaleString() : 'N/A'}
-                                  </span>
-                                </div>
-                              </div>
-                              {verification.audited_by && (
-                                <div className="flex items-start gap-2 text-slate-300">
-                                  <User className="w-4 h-4 text-slate-500 mt-0.5" />
-                                  <div>
-                                    <span className="text-slate-500">Verified By:</span>
-                                    <span className="ml-2 text-white">{verification.audited_by}</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-4 pt-4 border-t border-slate-700">
-                            <div className="flex items-center gap-2 text-yellow-400 text-sm">
-                              <AlertCircle className="w-4 h-4" />
-                              <span>Verification information not found for this employee</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Verification Documents - Collapsible */}
-                    {isExpanded && verification && (verification.id_front_url || verification.id_back_url || verification.selfie_url) && (
-                      <div className="mt-4 pt-4 border-t border-slate-700">
-                        <h4 className="text-sm font-semibold text-slate-300 mb-3">Verification Documents</h4>
-                        <button
-                          onClick={() => openImagePreview(verification as VerificationWithEmployee)}
-                          className="w-full px-4 py-3 bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/30 hover:to-blue-600/30 border border-cyan-500/50 rounded-lg text-cyan-300 font-medium transition-all flex items-center justify-center gap-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View Verification Documents
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Rejected Requests View */}
-      {viewMode === 'rejected' && (
-        <>
-          {loading ? (
-            <div className="text-center py-8 text-slate-400">Loading rejected requests...</div>
-          ) : filteredRejectedVerifications.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
-              {searchQuery ? 'No rejected requests match your search' : 'No rejected requests found'}
-            </div>
-          ) : groupMode === 'by_admin' && admin.role === 'super_admin' && !searchQuery ? (
-            <div className="space-y-3">
-              {Array.from(groupedRejectedVerifications.entries())
-                .sort(([adminIdA], [adminIdB]) => getAdminName(adminIdA).localeCompare(getAdminName(adminIdB)))
-                .map(([adminId, adminVerifications]) => {
-                  const isExpanded = expandedAdmins.has(adminId);
-
-                  return (
-                    <div key={adminId} className="bg-slate-800/30 rounded-xl border border-slate-700/50 overflow-hidden">
-                      <button
-                        onClick={() => toggleAdminGroup(adminId)}
-                        className="flex w-full items-center justify-between gap-3 bg-slate-800/50 p-3 text-left transition-colors hover:bg-slate-800/70 sm:p-4"
-                      >
-                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                          <Users className="h-5 w-5 shrink-0 text-red-400" />
-                          <span className="text-white font-semibold">{getAdminName(adminId)}</span>
-                          <span className="px-3 py-1 bg-red-600/20 border border-red-500/50 rounded-full text-red-300 text-sm font-medium">
-                            {adminVerifications.length} rejected
-                          </span>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1.5 text-slate-400">
-                          <span className="text-sm">{isExpanded ? 'Hide' : 'Show'}</span>
-                          {isExpanded ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                        </div>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="space-y-3 border-t border-slate-700/60 p-3 sm:p-4">
-                          {adminVerifications.map((verification) => {
-                            const isDetailExpanded = expandedDetails.has(verification.id);
-                            return (
-                              <div
-                                key={verification.id}
-                                className="bg-slate-800/50 border border-red-500/30 rounded-lg p-4 hover:border-red-500/50 transition-all"
-                              >
-                                <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
-                                  <div className="flex-1">
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                      <div className="flex flex-wrap items-center gap-2.5">
-                                  <span className="text-white font-medium">{verification.employee?.username}</span>
-                                        <span className="text-slate-500 text-sm">{verification.employee?.employee_id}</span>
-                                        {getStatusBadge(verification.status)}
-                                      </div>
-                                      <button
-                                        onClick={() => toggleDetails(verification.id)}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 rounded-lg text-blue-300 text-sm font-medium transition-all"
-                                      >
-                                        {isDetailExpanded ? (
-                                          <><EyeOff className="w-4 h-4" /> Hide Details</>
-                                        ) : (
-                                          <><Eye className="w-4 h-4" /> View Details</>
-                                        )}
-                                      </button>
-                                    </div>
-
-                                    {isDetailExpanded && (
-                                      <div className="mb-4 p-4 bg-slate-900/50 rounded-lg border border-blue-500/20">
-                                        <div className="flex items-center gap-2 mb-3">
-                                          <FileText className="w-4 h-4 text-blue-400" />
-                                          <h3 className="text-sm font-bold text-blue-300 uppercase tracking-wide">Verification Information</h3>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                          <div className="space-y-1">
-                                            <div className="text-xs text-slate-500 uppercase tracking-wider">Real Name</div>
-                                            <div className="text-sm text-white font-medium">{verification.real_name}</div>
-                                          </div>
-                                          <div className="space-y-1">
-                                            <div className="text-xs text-slate-500 uppercase tracking-wider">Phone Number</div>
-                                            <div className="text-sm text-white font-medium">{verification.phone}</div>
-                                          </div>
-                                          <div className="space-y-1 md:col-span-2">
-                                            <div className="text-xs text-slate-500 uppercase tracking-wider">Email Address</div>
-                                            <div className="text-sm text-white font-medium">{verification.email}</div>
-                                          </div>
-                                          <div className="space-y-1 md:col-span-2">
-                                            <div className="text-xs text-slate-500 uppercase tracking-wider">Wallet Address</div>
-                                            <div className="text-sm text-white font-mono break-all bg-slate-800/50 p-2 rounded">{verification.wallet_address}</div>
-                                          </div>
-                                        </div>
-
-                                        {(verification.id_front_url || verification.id_back_url || verification.selfie_url) && (
-                                          <div className="mt-4 pt-4 border-t border-slate-700">
-                                            <div className="flex items-center gap-2 mb-3">
-                                              <ImageIcon className="w-4 h-4 text-blue-400" />
-                                              <h3 className="text-sm font-bold text-blue-300 uppercase tracking-wide">Supporting Documents</h3>
-                                            </div>
-                                            <button
-                                              onClick={() => openImagePreview(verification)}
-                                              className="w-full px-4 py-3 bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/30 hover:to-blue-600/30 border border-cyan-500/50 rounded-lg text-cyan-300 font-medium transition-all flex items-center justify-center gap-2"
-                                            >
-                                              <Eye className="w-4 h-4" />
-                                              View Verification Documents
-                                            </button>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                                      <div className="flex items-start gap-2">
-                                        <User className="w-4 h-4 text-slate-400 mt-0.5" />
-                                        <div>
-                                          <div className="text-xs text-slate-500">Real Name</div>
-                                          <div className="text-sm text-slate-200">{verification.real_name}</div>
-                                        </div>
-                                      </div>
-
-                                      <div className="flex items-start gap-2">
-                                        <Wallet className="w-4 h-4 text-slate-400 mt-0.5" />
-                                        <div>
-                                          <div className="text-xs text-slate-500">Wallet Address</div>
-                                          <div className="text-sm text-slate-200 font-mono break-all">{verification.wallet_address}</div>
-                                        </div>
-                                      </div>
-
-                                      <div className="flex items-start gap-2">
-                                        <Phone className="w-4 h-4 text-slate-400 mt-0.5" />
-                                        <div>
-                                          <div className="text-xs text-slate-500">Phone</div>
-                                          <div className="text-sm text-slate-200">{verification.phone}</div>
-                                        </div>
-                                      </div>
-
-                                      <div className="flex items-start gap-2">
-                                        <Mail className="w-4 h-4 text-slate-400 mt-0.5" />
-                                        <div>
-                                          <div className="text-xs text-slate-500">Email</div>
-                                          <div className="text-sm text-slate-200">{verification.email}</div>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    <div className="text-slate-400 text-sm mb-2">
-                                      Submitted: {new Date(verification.created_at).toLocaleString()}
-                                    </div>
-
-                                    {verification.audited_at && (
-                                      <div className="text-slate-400 text-sm mb-2">
-                                        Rejected: {new Date(verification.audited_at).toLocaleString()}
-                                      </div>
-                                    )}
-
-                                    {verification.audit_remark && (
-                                      <div className="mt-2 p-3 bg-red-900/30 border border-red-500/50 rounded-lg text-red-200 text-sm">
-                                        <div className="flex items-start gap-2">
-                                          <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-                                          <div>
-                                            <strong className="text-red-300">Rejection Reason:</strong>
-                                            <div className="mt-1">{verification.audit_remark}</div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <div className="xl:w-72 xl:flex-none">
-                                    <div className="space-y-2">
-                                      <button
-                                        onClick={() => handleReset(verification.id)}
-                                        disabled={resetting === verification.id}
-                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        <RotateCcw className="w-4 h-4" />
-                                        {resetting === verification.id ? 'Resetting...' : 'Reset to Pending'}
-                                      </button>
-                                      <button
-                                        onClick={() => handleDelete(verification.id)}
-                                        disabled={deleting === verification.id}
-                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                        {deleting === verification.id ? 'Deleting...' : 'Delete Request'}
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredRejectedVerifications.map((verification) => {
-                const isExpanded = expandedDetails.has(verification.id);
-                const adminId = verification.employee?.created_by;
-                return (
-                  <div
-                    key={verification.id}
-                    className="bg-slate-800/50 border border-red-500/30 rounded-lg p-4 hover:border-red-500/50 transition-all"
-                  >
-                    <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
-                      <div className="flex-1">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-white font-medium">{verification.employee?.username}</span>
-                            <span className="text-slate-500 text-sm">{verification.employee?.employee_id}</span>
-                            {getStatusBadge(verification.status)}
-                            {admin.role === 'super_admin' && adminId && (
-                              <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-600/20 border border-blue-500/50 rounded-full text-blue-300 text-xs font-medium">
-                                <Users className="w-3 h-3" />
-                                <span>Admin: {getAdminName(adminId)}</span>
-                              </div>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => toggleDetails(verification.id)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 rounded-lg text-blue-300 text-sm font-medium transition-all"
-                          >
-                            {isExpanded ? (
-                              <><EyeOff className="w-4 h-4" /> Hide Details</>
-                            ) : (
-                              <><Eye className="w-4 h-4" /> View Details</>
-                            )}
-                          </button>
-                        </div>
-
-                        {isExpanded && (
-                          <div className="mb-4 p-4 bg-slate-900/50 rounded-lg border border-blue-500/20">
-                            <div className="flex items-center gap-2 mb-3">
-                              <FileText className="w-4 h-4 text-blue-400" />
-                              <h3 className="text-sm font-bold text-blue-300 uppercase tracking-wide">Verification Information</h3>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <div className="text-xs text-slate-500 uppercase tracking-wider">Real Name</div>
-                                <div className="text-sm text-white font-medium">{verification.real_name}</div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="text-xs text-slate-500 uppercase tracking-wider">Phone Number</div>
-                                <div className="text-sm text-white font-medium">{verification.phone}</div>
-                              </div>
-                              <div className="space-y-1 md:col-span-2">
-                                <div className="text-xs text-slate-500 uppercase tracking-wider">Email Address</div>
-                                <div className="text-sm text-white font-medium">{verification.email}</div>
-                              </div>
-                              <div className="space-y-1 md:col-span-2">
-                                <div className="text-xs text-slate-500 uppercase tracking-wider">Wallet Address</div>
-                                <div className="text-sm text-white font-mono break-all bg-slate-800/50 p-2 rounded">{verification.wallet_address}</div>
-                              </div>
-                            </div>
-
-                            {(verification.id_front_url || verification.id_back_url || verification.selfie_url) && (
-                              <div className="mt-4 pt-4 border-t border-slate-700">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <ImageIcon className="w-4 h-4 text-blue-400" />
-                                  <h3 className="text-sm font-bold text-blue-300 uppercase tracking-wide">Supporting Documents</h3>
-                                </div>
-                                <button
-                                  onClick={() => openImagePreview(verification)}
-                                  className="w-full px-4 py-3 bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/30 hover:to-blue-600/30 border border-cyan-500/50 rounded-lg text-cyan-300 font-medium transition-all flex items-center justify-center gap-2"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                  View Verification Documents
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                          <div className="flex items-start gap-2">
-                            <User className="w-4 h-4 text-slate-400 mt-0.5" />
-                            <div>
-                              <div className="text-xs text-slate-500">Real Name</div>
-                              <div className="text-sm text-slate-200">{verification.real_name}</div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-2">
-                            <Wallet className="w-4 h-4 text-slate-400 mt-0.5" />
-                            <div>
-                              <div className="text-xs text-slate-500">Wallet Address</div>
-                              <div className="text-sm text-slate-200 font-mono break-all">{verification.wallet_address}</div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-2">
-                            <Phone className="w-4 h-4 text-slate-400 mt-0.5" />
-                            <div>
-                              <div className="text-xs text-slate-500">Phone</div>
-                              <div className="text-sm text-slate-200">{verification.phone}</div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-2">
-                            <Mail className="w-4 h-4 text-slate-400 mt-0.5" />
-                            <div>
-                              <div className="text-xs text-slate-500">Email</div>
-                              <div className="text-sm text-slate-200">{verification.email}</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="text-slate-400 text-sm mb-2">
-                          Submitted: {new Date(verification.created_at).toLocaleString()}
-                        </div>
-
-                        {verification.audited_at && (
-                          <div className="text-slate-400 text-sm mb-2">
-                            Rejected: {new Date(verification.audited_at).toLocaleString()}
-                          </div>
-                        )}
-
-                        {verification.audit_remark && (
-                          <div className="mt-2 p-3 bg-red-900/30 border border-red-500/50 rounded-lg text-red-200 text-sm">
-                            <div className="flex items-start gap-2">
-                              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <strong className="text-red-300">Rejection Reason:</strong>
-                                <div className="mt-1">{verification.audit_remark}</div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="xl:w-72 xl:flex-none">
-                        <div className="space-y-2">
-                          <button
-                            onClick={() => handleReset(verification.id)}
-                            disabled={resetting === verification.id}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                            {resetting === verification.id ? 'Resetting...' : 'Reset to Pending'}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(verification.id)}
-                            disabled={deleting === verification.id}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            {deleting === verification.id ? 'Deleting...' : 'Delete Request'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
+          </main>
         </div>
       </div>
     </>

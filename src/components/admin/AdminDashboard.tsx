@@ -1502,7 +1502,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('verifications') && (
-              <div className={activeTab === 'verifications' ? 'flex min-h-0 flex-1 flex-col overflow-hidden p-2 sm:p-3 lg:p-4' : 'hidden'}>
+              <div className={activeTab === 'verifications' ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'hidden'}>
                 <VerificationReview admin={admin} />
               </div>
             )}
