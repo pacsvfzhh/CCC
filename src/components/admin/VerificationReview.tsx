@@ -1290,7 +1290,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                   >
                     <span className="flex items-center gap-2 text-xs font-black"><span className={`flex h-7 w-7 items-center justify-center rounded-lg border ${selectedAdminId === 'all' ? 'border-emerald-100/30 bg-emerald-100/15 text-white' : 'border-slate-600/70 bg-slate-950/45 text-emerald-300'}`}><Users className="h-3.5 w-3.5" /></span>全部管理员</span>
                     {overallStats.pending > 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-400/15 px-2 py-1 text-[10px] font-black text-amber-100"><AlertCircle className="h-3 w-3" />待审核 {overallStats.pending}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-orange-200/70 bg-gradient-to-r from-orange-500 to-red-600 px-2 py-1 text-[10px] font-black text-white"><AlertCircle className="h-3 w-3" />待审核 {overallStats.pending}</span>
                     ) : (
                       <span className="text-[9px] font-black text-emerald-200">汇总</span>
                     )}
@@ -1312,7 +1312,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                     >
                       <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${selected ? 'border-emerald-100/30 bg-emerald-100/15 text-white' : 'border-slate-600/70 bg-slate-950/45 text-emerald-300'}`}><User className="h-3.5 w-3.5" /></span>
                       <span className="min-w-0 flex-1 truncate text-xs font-black">{adminOption.username}</span>
-                      {stats.pending > 0 && <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-300/35 bg-amber-400/15 px-1.5 py-1 text-[9px] font-black text-amber-100"><AlertCircle className="h-3 w-3" />待审核 {stats.pending}</span>}
+                      {stats.pending > 0 && <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-orange-200/70 bg-gradient-to-r from-orange-500 to-red-600 px-1.5 py-1 text-[9px] font-black text-white"><AlertCircle className="h-3 w-3" />待审核 {stats.pending}</span>}
                     </button>
                   </div>
                 );
