@@ -553,7 +553,7 @@ export default function ProductTypeManagement({
           ) : (
             <div className="flex min-w-0 flex-1 flex-col gap-2 md:flex-row md:flex-wrap md:items-center xl:flex-nowrap xl:justify-end">
               <div className="flex min-w-0 items-center gap-2">
-                <div className="grid min-w-0 flex-1 grid-cols-3 gap-0.5 rounded-xl border border-slate-700 bg-slate-950 p-0.5 shadow-md md:flex md:w-[360px] md:flex-none xl:w-[390px]">
+                <div className="grid min-w-0 flex-1 grid-cols-3 gap-0.5 rounded-xl border border-slate-700 bg-slate-950 p-0.5 shadow-md md:flex md:w-fit md:flex-none">
                   {([
                     ['all', '全部', Eye, 'bg-blue-950 text-blue-300', 'border-blue-300 bg-blue-600 text-white shadow-sm', 'text-blue-300'],
                     ['active', '已啟用', CheckCircle, 'bg-emerald-950 text-emerald-300', 'border-emerald-300 bg-emerald-600 text-white shadow-sm', 'text-emerald-300'],
