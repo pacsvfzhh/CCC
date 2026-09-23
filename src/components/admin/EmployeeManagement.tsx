@@ -26,6 +26,39 @@ interface WalletModalData {
   pending: number;
 }
 
+const getCreateEmployeeErrorMessage = (
+  error: unknown,
+  attemptedUsername: string,
+  attemptedEmployeeId: string,
+) => {
+  const message = formatSupabaseError(error);
+  const errorCode = error && typeof error === 'object' && 'code' in error
+    ? String(error.code)
+    : message.match(/\b(23505)\b/)?.[1];
+  const duplicateUsername = message.match(/Key \(username\)=\(([^)]+)\) already exists/i)?.[1]
+    || attemptedUsername;
+  const duplicateEmployeeId = message.match(/Key \(employee_id\)=\(([^)]+)\) already exists/i)?.[1]
+    || attemptedEmployeeId;
+
+  if (/users_username_key|Key \(username\)=/i.test(message)) {
+    return `新增員工失敗：使用者名稱「${duplicateUsername}」已存在，請更換其他使用者名稱後再試。\n錯誤代碼：${errorCode || '23505'}（使用者名稱重複）`;
+  }
+
+  if (/users_employee_id_key|Key \(employee_id\)=/i.test(message)) {
+    return `新增員工失敗：員工 ID「${duplicateEmployeeId}」已存在，請更換其他員工 ID 後再試。\n錯誤代碼：${errorCode || '23505'}（員工 ID 重複）`;
+  }
+
+  if (errorCode === '23505' || /duplicate key value violates unique constraint/i.test(message)) {
+    return '新增員工失敗：輸入的帳號資料已存在，請更換使用者名稱或員工 ID 後再試。\n錯誤代碼：23505（資料重複）';
+  }
+
+  if (/^(使用者名稱為必填|密碼至少需要 6 個字元|員工 ID 為必填)$/.test(message)) {
+    return message;
+  }
+
+  return `新增員工失敗：系統暫時無法建立帳號，請稍後再試。${errorCode ? `\n錯誤代碼：${errorCode}` : ''}`;
+};
+
 const loadWalletModalData = async (userId: string): Promise<WalletModalData> => {
   const [walletResult, pendingWithdrawalsResult] = await Promise.all([
     supabase
@@ -1165,7 +1198,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         p_automation_plan_id: formData.automationPlanId || null,
       });
 
-      if (error) throw new Error(formatSupabaseError(error));
+      if (error) throw error;
       if (!result?.success) throw new Error(result?.error || '建立員工失敗');
 
       setFormData({ username: '', password: '', employeeId: '', remarks: '', automationPlanId: '' });
@@ -1179,7 +1212,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         return;
       }
 
-      setCreateError(formatSupabaseError(error) || '建立員工失敗。');
+      console.error('Error creating employee:', formatSupabaseError(error));
+      setCreateError(getCreateEmployeeErrorMessage(
+        error,
+        formData.username.trim(),
+        formData.employeeId.trim(),
+      ));
     } finally {
       setCreating(false);
     }
@@ -3693,7 +3731,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           {createError && (
             <div className="mx-5 mt-4 flex items-start gap-2.5 rounded-xl border border-red-400/40 bg-red-500/10 px-3.5 py-3 text-sm text-red-200">
               <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-400" />
-              <span>{createError}</span>
+              <span className="whitespace-pre-line leading-5">{createError}</span>
             </div>
           )}
 
