@@ -51,6 +51,49 @@
   scrollbar-color: #3b82f6 transparent;
 }
 
+.product-type-list-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--product-scrollbar-thumb) var(--product-scrollbar-track);
+}
+
+.product-type-list-scrollbar[data-scroll-theme="all"] {
+  --product-scrollbar-thumb: #2563eb;
+  --product-scrollbar-thumb-hover: #3b82f6;
+  --product-scrollbar-track: #172554;
+}
+
+.product-type-list-scrollbar[data-scroll-theme="active"] {
+  --product-scrollbar-thumb: #059669;
+  --product-scrollbar-thumb-hover: #10b981;
+  --product-scrollbar-track: #052e22;
+}
+
+.product-type-list-scrollbar[data-scroll-theme="disabled"] {
+  --product-scrollbar-thumb: #d97706;
+  --product-scrollbar-thumb-hover: #f59e0b;
+  --product-scrollbar-track: #451a03;
+}
+
+.product-type-list-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.product-type-list-scrollbar::-webkit-scrollbar-track {
+  background: var(--product-scrollbar-track);
+  border-radius: 999px;
+}
+
+.product-type-list-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--product-scrollbar-thumb);
+  border: 2px solid var(--product-scrollbar-track);
+  border-radius: 999px;
+}
+
+.product-type-list-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--product-scrollbar-thumb-hover);
+}
+
 .employee-selection-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgba(34, 211, 238, 0.7) rgba(8, 47, 73, 0.35);
