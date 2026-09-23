@@ -991,141 +991,129 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
         </div>
       )}
 
-      <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-6">
-      <div className="flex items-center justify-between mb-6">
-        {viewMode === 'requests' && overallStats.pending > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-600/20 to-red-600/20 border-2 border-orange-500/50 rounded-lg animate-pulse">
-            <AlertCircle className="w-5 h-5 text-orange-400" />
-            <span className="text-orange-300 font-bold">
-              {overallStats.pending} Pending Request{overallStats.pending !== 1 ? 's' : ''}
-            </span>
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-blue-500/25 bg-slate-900/80 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
+        <div className="shrink-0 border-b border-slate-700/80 bg-gradient-to-r from-blue-950/90 via-slate-900/95 to-cyan-950/80 p-3 sm:p-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-500/10 text-cyan-300">
+                <Shield className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="truncate text-base font-bold text-white sm:text-lg">Verification Center</h2>
+                <p className="truncate text-xs text-slate-400">Review requests, verified employees, and rejected submissions</p>
+              </div>
+              {overallStats.pending > 0 && (
+                <div className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-orange-400/50 bg-orange-500/15 px-2.5 py-1 text-xs font-bold text-orange-200 xl:ml-2">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  {overallStats.pending} pending
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-slate-700/80 bg-slate-950/45 p-1 sm:gap-2">
+              <button
+                onClick={() => setViewMode('requests')}
+                className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors sm:px-3 sm:text-sm ${
+                  viewMode === 'requests'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-950/50'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <FileText className="h-4 w-4 shrink-0" />
+                <span className="truncate">Requests</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${viewMode === 'requests' ? 'bg-white/20' : 'bg-orange-500/20 text-orange-300'}`}>
+                  {overallStats.pending}
+                </span>
+              </button>
+              <button
+                onClick={() => setViewMode('verified')}
+                className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors sm:px-3 sm:text-sm ${
+                  viewMode === 'verified'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/50'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <CheckCircle className="h-4 w-4 shrink-0" />
+                <span className="truncate">Verified</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${viewMode === 'verified' ? 'bg-white/20' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                  {verifiedEmployees.length}
+                </span>
+              </button>
+              <button
+                onClick={() => setViewMode('rejected')}
+                className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors sm:px-3 sm:text-sm ${
+                  viewMode === 'rejected'
+                    ? 'bg-red-600 text-white shadow-md shadow-red-950/50'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <XCircle className="h-4 w-4 shrink-0" />
+                <span className="truncate">Rejected</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${viewMode === 'rejected' ? 'bg-white/20' : 'bg-red-500/20 text-red-300'}`}>
+                  {overallStats.rejected}
+                </span>
+              </button>
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* View Mode Toggle */}
-      <div className="mb-6 flex gap-3 border-b border-slate-700 pb-4">
-        <button
-          onClick={() => setViewMode('requests')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-            viewMode === 'requests'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50'
-              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          <span>Verification Requests</span>
-          {overallStats.pending > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-              viewMode === 'requests'
-                ? 'bg-white/20'
-                : 'bg-orange-500/20 text-orange-400'
-            }`}>
-              {overallStats.pending}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setViewMode('verified')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-            viewMode === 'verified'
-              ? 'bg-green-600 text-white shadow-lg shadow-green-500/50'
-              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
-          }`}
-        >
-          <Shield className="w-4 h-4" />
-          <span>Verified Employees</span>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-            viewMode === 'verified' ? 'bg-white/20' : 'bg-green-500/20 text-green-400'
-          }`}>
-            {verifiedEmployees.length}
-          </span>
-        </button>
-        <button
-          onClick={() => setViewMode('rejected')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-            viewMode === 'rejected'
-              ? 'bg-red-600 text-white shadow-lg shadow-red-500/50'
-              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
-          }`}
-        >
-          <XCircle className="w-4 h-4" />
-          <span>Rejected Requests</span>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-            viewMode === 'rejected' ? 'bg-white/20' : 'bg-red-500/20 text-red-400'
-          }`}>
-            {overallStats.rejected}
-          </span>
-        </button>
-      </div>
-
-      {/* Group Mode Toggle - Only for Super Admin */}
-      {admin.role === 'super_admin' && (
-        <div className="mb-6 flex gap-3 pb-4">
-          <button
-            onClick={() => setGroupMode('all')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-              groupMode === 'all'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50'
-                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            <span>All Together</span>
-          </button>
-          <button
-            onClick={() => setGroupMode('by_admin')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-              groupMode === 'by_admin'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50'
-                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Group by Admin</span>
-          </button>
-        </div>
-      )}
-
-      {/* Search Bar */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by Employee ID, Username, Phone, Email, Wallet Address, or Real Name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
-            >
-              <XCircle className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-        {searchQuery && (
-          <div className="mt-2 text-sm text-slate-400">
-            {viewMode === 'requests' ? (
-              <>
-                Found {filteredVerifications.length} of {pendingVerifications.length} pending request{pendingVerifications.length !== 1 ? 's' : ''}
-              </>
-            ) : viewMode === 'rejected' ? (
-              <>
-                Found {filteredRejectedVerifications.length} of {rejectedVerifications.length} rejected request{rejectedVerifications.length !== 1 ? 's' : ''}
-              </>
-            ) : (
-              <>
-                Found {filteredVerifiedEmployees.length} of {verifiedEmployees.length} verified employee{verifiedEmployees.length !== 1 ? 's' : ''}
-              </>
+          <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:items-start">
+            {admin.role === 'super_admin' && (
+              <div className="flex shrink-0 rounded-lg border border-slate-700/80 bg-slate-950/40 p-1">
+                <button
+                  onClick={() => setGroupMode('all')}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors lg:flex-none ${
+                    groupMode === 'all' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  All Together
+                </button>
+                <button
+                  onClick={() => setGroupMode('by_admin')}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors lg:flex-none ${
+                    groupMode === 'by_admin' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  Group by Admin
+                </button>
+              </div>
             )}
-          </div>
-        )}
-      </div>
 
+            <div className="min-w-0 flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search employee, phone, email, wallet, or real name"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-slate-700 bg-slate-950/45 py-2 pl-9 pr-10 text-sm text-white placeholder-slate-500 transition-colors focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-white"
+                    aria-label="Clear search"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {searchQuery && (
+                <div className="mt-1.5 text-xs text-slate-400">
+                  {viewMode === 'requests'
+                    ? `Found ${filteredVerifications.length} of ${pendingVerifications.length} pending requests`
+                    : viewMode === 'rejected'
+                      ? `Found ${filteredRejectedVerifications.length} of ${rejectedVerifications.length} rejected requests`
+                      : `Found ${filteredVerifiedEmployees.length} of ${verifiedEmployees.length} verified employees`}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="dark-panel-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
       {viewMode === 'requests' && (
         <>
       {error && (
@@ -1144,7 +1132,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           {searchQuery ? 'No pending verification requests match your search' : 'No pending verification requests'}
         </div>
       ) : groupMode === 'by_admin' && admin.role === 'super_admin' && !searchQuery ? (
-        <div className="space-y-6">
+        <div className="space-y-3">
           {Array.from(groupedVerifications.entries())
             .sort(([adminIdA], [adminIdB]) => getAdminName(adminIdA).localeCompare(getAdminName(adminIdB)))
             .map(([adminId, adminVerifications]) => {
@@ -1155,10 +1143,10 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                 <div key={adminId} className="bg-slate-800/30 rounded-xl border border-slate-700/50 overflow-hidden">
                   <button
                     onClick={() => toggleAdminGroup(adminId)}
-                    className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800/70 transition-all"
+                    className="flex w-full items-center justify-between gap-3 bg-slate-800/50 p-3 text-left transition-colors hover:bg-slate-800/70 sm:p-4"
                   >
-                    <div className="flex items-center gap-3">
-                      <Users className="w-5 h-5 text-blue-400" />
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                      <Users className="h-5 w-5 shrink-0 text-blue-400" />
                       <span className="text-white font-semibold">{getAdminName(adminId)}</span>
                       <span className="px-3 py-1 bg-blue-600/20 border border-blue-500/50 rounded-full text-blue-300 text-sm font-medium">
                         {adminVerifications.length} request{adminVerifications.length !== 1 ? 's' : ''}
@@ -1169,14 +1157,14 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-slate-400">
+                    <div className="flex shrink-0 items-center gap-1.5 text-slate-400">
                       <span className="text-sm">{isExpanded ? 'Hide' : 'Show'}</span>
                       {isExpanded ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </div>
                   </button>
 
                   {isExpanded && (
-                    <div className="p-4 space-y-4 max-h-[1200px] overflow-y-auto">
+                    <div className="space-y-3 border-t border-slate-700/60 p-3 sm:p-4">
                       {adminVerifications.map((verification) => {
                         const isPending = verification.status === 'pending';
                         const isDetailExpanded = expandedDetails.has(verification.id);
@@ -1189,10 +1177,10 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                               : 'bg-slate-800/50 border border-slate-700'
                           }`}
                         >
-                          <div className="flex flex-col lg:flex-row justify-between gap-4">
+                          <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
                             <div className="flex-1">
-                              <div className="flex items-center justify-between gap-3 mb-3">
-                                <div className="flex items-center gap-3">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex flex-wrap items-center gap-2.5">
                                   <span className="text-white font-medium">{verification.employee?.username}</span>
                                   <span className="text-slate-500 text-sm">{verification.employee?.employee_id}</span>
                                   {getStatusBadge(verification.status)}
@@ -1323,7 +1311,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                               )}
                             </div>
 
-                            <div className="lg:w-80">
+                            <div className="xl:w-72 xl:flex-none">
                               {verification.status === 'pending' ? (
                                 reviewing === verification.id ? (
                                   <div className="space-y-3">
@@ -1467,7 +1455,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
             })}
         </div>
       ) : (
-        <div className="space-y-4 max-h-[1200px] overflow-y-auto">
+        <div className="space-y-3">
           {filteredVerifications.map((verification) => {
             const isPending = verification.status === 'pending';
             const isExpanded = expandedDetails.has(verification.id);
@@ -1481,9 +1469,9 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                   : 'bg-slate-800/50 border border-slate-700'
               }`}
             >
-              <div className="flex flex-col lg:flex-row justify-between gap-4">
+              <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-white font-medium">{verification.employee?.username}</span>
                       <span className="text-slate-500 text-sm">{verification.employee?.employee_id}</span>
@@ -1595,7 +1583,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                   )}
                 </div>
 
-                <div className="lg:w-80">
+                <div className="xl:w-72 xl:flex-none">
                   {verification.status === 'pending' ? (
                     reviewing === verification.id ? (
                       <div className="space-y-3">
@@ -1747,7 +1735,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               {searchQuery ? 'No verified employees match your search' : 'No verified employees found'}
             </div>
           ) : groupMode === 'by_admin' && admin.role === 'super_admin' && !searchQuery ? (
-            <div className="space-y-6">
+            <div className="space-y-3">
               {Array.from(groupedVerifiedEmployees.entries())
                 .sort(([adminIdA], [adminIdB]) => getAdminName(adminIdA).localeCompare(getAdminName(adminIdB)))
                 .map(([adminId, adminEmployees]) => {
@@ -1757,23 +1745,23 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                     <div key={adminId} className="bg-slate-800/30 rounded-xl border border-slate-700/50 overflow-hidden">
                       <button
                         onClick={() => toggleAdminGroup(adminId)}
-                        className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800/70 transition-all"
+                        className="flex w-full items-center justify-between gap-3 bg-slate-800/50 p-3 text-left transition-colors hover:bg-slate-800/70 sm:p-4"
                       >
-                        <div className="flex items-center gap-3">
-                          <Users className="w-5 h-5 text-green-400" />
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                          <Users className="h-5 w-5 shrink-0 text-green-400" />
                           <span className="text-white font-semibold">{getAdminName(adminId)}</span>
                           <span className="px-3 py-1 bg-green-600/20 border border-green-500/50 rounded-full text-green-300 text-sm font-medium">
                             {adminEmployees.length} verified
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-400">
+                        <div className="flex shrink-0 items-center gap-1.5 text-slate-400">
                           <span className="text-sm">{isExpanded ? 'Hide' : 'Show'}</span>
                           {isExpanded ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </div>
                       </button>
 
                       {isExpanded && (
-                        <div className="p-4 space-y-4 max-h-[1200px] overflow-y-auto">
+                        <div className="space-y-3 border-t border-slate-700/60 p-3 sm:p-4">
                           {adminEmployees.map((employee) => {
                             const verification = verifications.find(v => v.user_id === employee.id && v.status === 'approved');
                             const isDetailExpanded = selectedEmployee?.id === employee.id;
@@ -1783,9 +1771,9 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                                 key={employee.id}
                                 className="bg-slate-800/50 border border-green-500/30 rounded-lg p-4 hover:border-green-500/50 transition-all"
                               >
-                                <div className="flex flex-col lg:flex-row justify-between gap-4">
+                                <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
                                   <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-3">
+                                    <div className="mb-3 flex flex-wrap items-center gap-2.5">
                                       <div className="flex items-center gap-2">
                                         <Shield className="w-5 h-5 text-green-400" />
                                         <span className="text-white font-medium">{employee.username}</span>
@@ -1918,7 +1906,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                 })}
             </div>
           ) : (
-            <div className="space-y-4 max-h-[1200px] overflow-y-auto">
+            <div className="space-y-3">
               {filteredVerifiedEmployees.map((employee) => {
                 const verification = verifications.find(v => v.user_id === employee.id && v.status === 'approved');
                 const isExpanded = selectedEmployee?.id === employee.id;
@@ -1929,7 +1917,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                     key={employee.id}
                     className="bg-slate-800/50 border border-green-500/30 rounded-lg p-4 hover:border-green-500/50 transition-all"
                   >
-                    <div className="flex flex-col lg:flex-row justify-between gap-4">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3 flex-wrap">
                           <div className="flex items-center gap-2">
@@ -2080,7 +2068,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               {searchQuery ? 'No rejected requests match your search' : 'No rejected requests found'}
             </div>
           ) : groupMode === 'by_admin' && admin.role === 'super_admin' && !searchQuery ? (
-            <div className="space-y-6">
+            <div className="space-y-3">
               {Array.from(groupedRejectedVerifications.entries())
                 .sort(([adminIdA], [adminIdB]) => getAdminName(adminIdA).localeCompare(getAdminName(adminIdB)))
                 .map(([adminId, adminVerifications]) => {
@@ -2090,23 +2078,23 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                     <div key={adminId} className="bg-slate-800/30 rounded-xl border border-slate-700/50 overflow-hidden">
                       <button
                         onClick={() => toggleAdminGroup(adminId)}
-                        className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800/70 transition-all"
+                        className="flex w-full items-center justify-between gap-3 bg-slate-800/50 p-3 text-left transition-colors hover:bg-slate-800/70 sm:p-4"
                       >
-                        <div className="flex items-center gap-3">
-                          <Users className="w-5 h-5 text-red-400" />
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                          <Users className="h-5 w-5 shrink-0 text-red-400" />
                           <span className="text-white font-semibold">{getAdminName(adminId)}</span>
                           <span className="px-3 py-1 bg-red-600/20 border border-red-500/50 rounded-full text-red-300 text-sm font-medium">
                             {adminVerifications.length} rejected
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-400">
+                        <div className="flex shrink-0 items-center gap-1.5 text-slate-400">
                           <span className="text-sm">{isExpanded ? 'Hide' : 'Show'}</span>
                           {isExpanded ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </div>
                       </button>
 
                       {isExpanded && (
-                        <div className="p-4 space-y-4 max-h-[1200px] overflow-y-auto">
+                        <div className="space-y-3 border-t border-slate-700/60 p-3 sm:p-4">
                           {adminVerifications.map((verification) => {
                             const isDetailExpanded = expandedDetails.has(verification.id);
                             return (
@@ -2114,11 +2102,11 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                                 key={verification.id}
                                 className="bg-slate-800/50 border border-red-500/30 rounded-lg p-4 hover:border-red-500/50 transition-all"
                               >
-                                <div className="flex flex-col lg:flex-row justify-between gap-4">
+                                <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
                                   <div className="flex-1">
-                                    <div className="flex items-center justify-between gap-3 mb-3">
-                                      <div className="flex items-center gap-3">
-                                        <span className="text-white font-medium">{verification.employee?.username}</span>
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                      <div className="flex flex-wrap items-center gap-2.5">
+                                  <span className="text-white font-medium">{verification.employee?.username}</span>
                                         <span className="text-slate-500 text-sm">{verification.employee?.employee_id}</span>
                                         {getStatusBadge(verification.status)}
                                       </div>
@@ -2234,7 +2222,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                                     )}
                                   </div>
 
-                                  <div className="lg:w-80">
+                                  <div className="xl:w-72 xl:flex-none">
                                     <div className="space-y-2">
                                       <button
                                         onClick={() => handleReset(verification.id)}
@@ -2265,7 +2253,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                 })}
             </div>
           ) : (
-            <div className="space-y-4 max-h-[1200px] overflow-y-auto">
+            <div className="space-y-3">
               {filteredRejectedVerifications.map((verification) => {
                 const isExpanded = expandedDetails.has(verification.id);
                 const adminId = verification.employee?.created_by;
@@ -2274,9 +2262,9 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                     key={verification.id}
                     className="bg-slate-800/50 border border-red-500/30 rounded-lg p-4 hover:border-red-500/50 transition-all"
                   >
-                    <div className="flex flex-col lg:flex-row justify-between gap-4">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center justify-between gap-3 mb-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex items-center gap-3 flex-wrap">
                             <span className="text-white font-medium">{verification.employee?.username}</span>
                             <span className="text-slate-500 text-sm">{verification.employee?.employee_id}</span>
@@ -2400,7 +2388,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                         )}
                       </div>
 
-                      <div className="lg:w-80">
+                      <div className="xl:w-72 xl:flex-none">
                         <div className="space-y-2">
                           <button
                             onClick={() => handleReset(verification.id)}
@@ -2428,6 +2416,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
           )}
         </>
       )}
+        </div>
       </div>
     </>
   );
