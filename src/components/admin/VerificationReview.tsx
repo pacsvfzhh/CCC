@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { CheckCircle, XCircle, Clock, User, Wallet, Phone, Mail, Trash2, RotateCcw, AlertCircle, Eye, EyeOff, FileText, Image as ImageIcon, Shield, Search, Users, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, User, Wallet, Phone, Mail, Trash2, RotateCcw, AlertCircle, Eye, FileText, Image as ImageIcon, Shield, Search, Users, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { VerificationRequest, Employee, Admin } from '../../types';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
@@ -21,6 +21,11 @@ interface ImagePreview {
   scale: number;
 }
 
+interface VerificationDetailPanel {
+  employee: Employee;
+  verification?: VerificationWithEmployee;
+}
+
 export default function VerificationReview({ admin }: VerificationReviewProps) {
   const [verifications, setVerifications] = useState<VerificationWithEmployee[]>([]);
   const [verifiedEmployees, setVerifiedEmployees] = useState<Employee[]>([]);
@@ -31,10 +36,9 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
   const [auditRemark, setAuditRemark] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
-  const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('all');
   const [selectedAdminId, setSelectedAdminId] = useState<SelectedAdminId>(admin.role === 'super_admin' ? 'all' : admin.id);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [detailPanel, setDetailPanel] = useState<VerificationDetailPanel | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [walletBalances, setWalletBalances] = useState<Map<string, number>>(new Map());
   const [admins, setAdmins] = useState<Admin[]>([]);
@@ -505,6 +509,9 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
           // Reload from server to ensure consistency
           await loadVerifications();
+          if (verification.status === 'approved') {
+            await loadVerifiedEmployees();
+          }
         } catch (error) {
           console.error('Error resetting verification:', error);
           setError('Failed to reset verification request');
@@ -659,8 +666,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
   const applyContextChange = (nextViewMode: ViewMode, nextAdminId: SelectedAdminId) => {
     clearReviewDraft();
-    setExpandedDetails(new Set());
-    setSelectedEmployee(null);
+    setDetailPanel(null);
     setViewMode(nextViewMode);
     setSelectedAdminId(nextAdminId);
   };
@@ -685,16 +691,6 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
   const getAdminName = (adminId: string) =>
     adminOptions.find(item => item.id === adminId)?.username || adminId;
-
-  const toggleDetails = (verificationId: string) => {
-    const newExpanded = new Set(expandedDetails);
-    if (newExpanded.has(verificationId)) {
-      newExpanded.delete(verificationId);
-    } else {
-      newExpanded.add(verificationId);
-    }
-    setExpandedDetails(newExpanded);
-  };
 
   const openImagePreview = (verification: VerificationWithEmployee) => {
     const images: { url: string; label: string }[] = [];
@@ -797,138 +793,67 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
     setIsDragging(false);
   };
 
+  const openReviewModal = (verification: VerificationWithEmployee) => {
+    clearReviewDraft();
+    setDetailPanel(null);
+    setReviewing(verification.id);
+  };
+
+  const openDetailPanel = (employee: Employee, verification?: VerificationWithEmployee) => {
+    clearReviewDraft();
+    setDetailPanel({ employee, verification });
+  };
+
   const renderVerificationCard = (verification: VerificationWithEmployee) => {
     const employee = verification.employee || verifiedEmployees.find(item => item.id === verification.user_id);
-    const isExpanded = expandedDetails.has(verification.id);
+    if (!employee) return null;
+
     const ownerId = getVerificationOwnerId(verification);
     const isPending = verification.status === 'pending';
-    const isRejected = verification.status === 'rejected';
-    const hasDocuments = Boolean(verification.id_front_url || verification.id_back_url || verification.selfie_url);
-    const tone = isPending
-      ? 'border-amber-400/30 bg-[linear-gradient(145deg,rgba(120,53,15,0.18),rgba(15,23,42,0.96)_42%)]'
-      : 'border-rose-400/30 bg-[linear-gradient(145deg,rgba(127,29,29,0.16),rgba(15,23,42,0.96)_42%)]';
+    const rowTone = isPending
+      ? 'border-amber-400/25 border-l-amber-400 bg-[linear-gradient(90deg,rgba(120,53,15,0.2),rgba(15,23,42,0.92)_26%)]'
+      : 'border-rose-400/25 border-l-rose-400 bg-[linear-gradient(90deg,rgba(127,29,29,0.18),rgba(15,23,42,0.92)_26%)]';
 
     return (
-      <article key={verification.id} className={`overflow-hidden rounded-2xl border shadow-lg shadow-slate-950/20 ${tone}`}>
-        <div className="flex flex-col xl:grid xl:grid-cols-[minmax(0,1fr)_280px]">
-          <div className="min-w-0 p-3 sm:p-4">
-            <div className="flex flex-wrap items-start justify-between gap-2.5">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-sm font-black text-white">{employee?.username || '未知员工'}</span>
-                  <span className="rounded-md border border-slate-600/70 bg-slate-950/50 px-2 py-0.5 text-[10px] font-bold text-slate-300">{employee?.employee_id || verification.user_id}</span>
-                  {getStatusBadge(verification.status)}
-                  {isSuperAdmin && ownerId && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black text-cyan-200">
-                      <Users className="h-3 w-3" />{getAdminName(ownerId)}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-[10px] font-medium text-slate-500">提交于 {new Date(verification.created_at).toLocaleString()}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => toggleDetails(verification.id)}
-                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-blue-400/25 bg-blue-500/10 px-2.5 text-[10px] font-black text-blue-200 transition hover:border-blue-300/45 hover:bg-blue-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
-              >
-                {isExpanded ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                {isExpanded ? '收起详情' : '查看详情'}
-              </button>
+      <article key={verification.id} className={`overflow-hidden rounded-xl border border-l-4 shadow-md shadow-slate-950/15 transition hover:border-r-slate-600/70 ${rowTone}`}>
+        <div className="grid min-w-0 gap-2 px-3 py-2.5 sm:px-4 lg:grid-cols-[minmax(180px,1.25fr)_minmax(120px,0.8fr)_minmax(160px,1.1fr)_minmax(120px,0.7fr)_auto] lg:items-center">
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <span className="truncate text-xs font-black text-white">{employee.username}</span>
+              {getStatusBadge(verification.status)}
             </div>
-
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">
-              {[
-                { icon: User, label: '真实姓名', value: verification.real_name },
-                { icon: Phone, label: '电话号码', value: verification.phone },
-                { icon: Mail, label: '邮箱地址', value: verification.email },
-                { icon: Wallet, label: '钱包地址', value: verification.wallet_address },
-              ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className="min-w-0 rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2">
-                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-slate-500"><Icon className="h-3 w-3 text-cyan-400/70" />{label}</div>
-                  <div className={`mt-1 break-words text-xs font-semibold text-slate-200 ${label === '钱包地址' ? 'font-mono' : ''}`}>{value || '—'}</div>
-                </div>
-              ))}
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-bold text-slate-500">
+              <span className="truncate">{employee.employee_id}</span>
+              {isSuperAdmin && ownerId && <span className="truncate text-cyan-300/75">· {getAdminName(ownerId)}</span>}
             </div>
-
-            {isExpanded && (
-              <div className="mt-3 rounded-xl border border-blue-400/20 bg-slate-950/45 p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-300">验证资料</p>
-                    <p className="mt-1 text-[10px] text-slate-500">
-                      {verification.audited_at ? `最近审核：${new Date(verification.audited_at).toLocaleString()}` : '尚未审核'}
-                    </p>
-                  </div>
-                  {hasDocuments && (
-                    <button
-                      type="button"
-                      onClick={() => openImagePreview(verification)}
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 text-[10px] font-black text-cyan-200 transition hover:bg-cyan-500/20"
-                    >
-                      <ImageIcon className="h-3.5 w-3.5" />查看验证证件
-                    </button>
-                  )}
-                </div>
-                {verification.audit_remark && (
-                  <div className={`mt-3 rounded-lg border px-3 py-2 text-xs leading-5 ${isRejected ? 'border-rose-400/25 bg-rose-500/10 text-rose-100' : 'border-slate-700 bg-slate-900/70 text-slate-300'}`}>
-                    <span className="font-black">审核备注：</span>{verification.audit_remark}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
-          <div className="border-t border-slate-700/60 bg-slate-950/25 p-3 xl:border-l xl:border-t-0 sm:p-4">
-            {isPending ? (
-              reviewing === verification.id ? (
-                <div className="space-y-2.5">
-                  {reviewAction ? (
-                    <>
-                      <div className={`rounded-lg border px-3 py-2 text-xs font-black ${reviewAction === 'approved' ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300' : 'border-rose-400/30 bg-rose-500/10 text-rose-300'}`}>
-                        {reviewAction === 'approved' ? '确认通过验证' : '填写拒绝原因'}
-                      </div>
-                      <textarea
-                        value={auditRemark}
-                        onChange={event => {
-                          setAuditRemark(event.target.value);
-                          if (validationError) setValidationError(null);
-                        }}
-                        rows={4}
-                        placeholder={reviewAction === 'approved' ? '审核备注（选填）' : '请填写拒绝原因及需要补充的资料'}
-                        className={`w-full resize-none rounded-lg border bg-slate-900/80 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:ring-2 ${validationError ? 'border-rose-500 focus:ring-rose-500/30' : 'border-slate-700 focus:border-cyan-500 focus:ring-cyan-500/20'}`}
-                      />
-                      {validationError && <p className="text-[10px] font-bold leading-4 text-rose-300">{validationError}</p>}
-                      <div className="grid grid-cols-[1fr_auto] gap-2">
-                        <button type="button" onClick={() => void handleReview(verification.id, reviewAction)} className={`h-9 rounded-lg text-xs font-black text-white transition ${reviewAction === 'approved' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'}`}>
-                          {reviewAction === 'approved' ? '确认通过' : '确认拒绝'}
-                        </button>
-                        <button type="button" onClick={() => { setReviewAction(null); setAuditRemark(''); setValidationError(null); }} className="h-9 rounded-lg border border-slate-600 bg-slate-800 px-3 text-xs font-bold text-slate-200 hover:bg-slate-700">返回</button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-[10px] font-bold leading-4 text-slate-500">选择审核结果后再提交，拒绝时必须填写原因。</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button type="button" onClick={() => setReviewAction('approved')} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 text-xs font-black text-white hover:bg-emerald-500"><CheckCircle className="h-4 w-4" />通过</button>
-                        <button type="button" onClick={() => setReviewAction('rejected')} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-rose-600 text-xs font-black text-white hover:bg-rose-500"><XCircle className="h-4 w-4" />拒绝</button>
-                      </div>
-                      <button type="button" onClick={clearReviewDraft} className="h-8 w-full rounded-lg border border-slate-700 bg-slate-900/60 text-[10px] font-bold text-slate-400 hover:text-white">取消审核</button>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="flex h-full min-h-20 flex-col justify-center">
-                  <p className="mb-3 text-[10px] font-bold leading-4 text-slate-500">检查身份资料与证件后进行审核。</p>
-                  <button type="button" onClick={() => { clearReviewDraft(); setReviewing(verification.id); }} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-xs font-black text-white shadow-lg shadow-cyan-950/30 hover:from-blue-500 hover:to-cyan-500">
-                    <Shield className="h-4 w-4" />开始审核
-                  </button>
-                </div>
-              )
-            ) : (
-              <div className="flex h-full flex-col justify-center gap-2">
-                <button type="button" onClick={() => handleReset(verification.id)} disabled={resetting === verification.id} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-amber-600 text-xs font-black text-white hover:bg-amber-500 disabled:opacity-50"><RotateCcw className="h-4 w-4" />{resetting === verification.id ? '重置中…' : '重置为待审核'}</button>
-                <button type="button" onClick={() => handleDelete(verification.id)} disabled={deleting === verification.id} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-xs font-black text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"><Trash2 className="h-4 w-4" />{deleting === verification.id ? '删除中…' : '删除申请'}</button>
-              </div>
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">身份资料</p>
+            <p className="truncate text-xs font-bold text-slate-200">{verification.real_name || '未填写真实姓名'}</p>
+            <p className="mt-0.5 truncate text-[10px] text-slate-500">{verification.phone || '未填写电话'}</p>
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">联系方式</p>
+            <p className="truncate text-xs font-semibold text-slate-300" title={verification.email || ''}>{verification.email || '未填写邮箱'}</p>
+            <p className="mt-0.5 truncate font-mono text-[10px] text-slate-500" title={verification.wallet_address || ''}>{verification.wallet_address || '未填写钱包'}</p>
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">提交时间</p>
+            <p className="text-[10px] font-bold text-slate-300">{new Date(verification.created_at).toLocaleDateString()}</p>
+            <p className="mt-0.5 text-[9px] text-slate-600">{new Date(verification.created_at).toLocaleTimeString()}</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
+            <button type="button" onClick={() => openDetailPanel(employee, verification)} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-cyan-400/25 bg-cyan-500/10 px-2.5 text-[10px] font-black text-cyan-200 transition hover:bg-cyan-500/20">
+              <Eye className="h-3.5 w-3.5" />查看资料
+            </button>
+            {isPending && (
+              <button type="button" onClick={() => openReviewModal(verification)} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 px-2.5 text-[10px] font-black text-white transition hover:from-amber-400 hover:to-orange-500">
+                <Shield className="h-3.5 w-3.5" />开始验证
+              </button>
             )}
           </div>
         </div>
@@ -938,49 +863,191 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
   const renderVerifiedEmployeeCard = (employee: Employee) => {
     const verification = verifications.find(item => item.user_id === employee.id && item.status === 'approved');
-    const isExpanded = selectedEmployee?.id === employee.id;
-    const hasDocuments = Boolean(verification && (verification.id_front_url || verification.id_back_url || verification.selfie_url));
 
     return (
-      <article key={employee.id} className="overflow-hidden rounded-2xl border border-emerald-400/25 bg-[linear-gradient(145deg,rgba(6,78,59,0.16),rgba(15,23,42,0.96)_42%)] shadow-lg shadow-slate-950/20">
-        <div className="flex flex-col xl:grid xl:grid-cols-[minmax(0,1fr)_220px]">
-          <div className="min-w-0 p-3 sm:p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-300"><Shield className="h-4 w-4" /></span>
-              <span className="text-sm font-black text-white">{employee.username}</span>
-              <span className="rounded-md border border-slate-600/70 bg-slate-950/50 px-2 py-0.5 text-[10px] font-bold text-slate-300">{employee.employee_id}</span>
+      <article key={employee.id} className="overflow-hidden rounded-xl border border-emerald-400/25 border-l-4 border-l-emerald-400 bg-[linear-gradient(90deg,rgba(6,78,59,0.18),rgba(15,23,42,0.92)_26%)] shadow-md shadow-slate-950/15 transition hover:border-r-slate-600/70">
+        <div className="grid min-w-0 gap-2 px-3 py-2.5 sm:px-4 lg:grid-cols-[minmax(180px,1.25fr)_minmax(120px,0.8fr)_minmax(160px,1.1fr)_minmax(120px,0.7fr)_auto] lg:items-center">
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <span className="truncate text-xs font-black text-white">{employee.username}</span>
               {getStatusBadge('approved')}
-              {isSuperAdmin && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black text-cyan-200"><Users className="h-3 w-3" />{getAdminName(employee.created_by)}</span>
-              )}
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2"><p className="text-[9px] font-black uppercase tracking-wider text-slate-500">真实姓名</p><p className="mt-1 text-xs font-semibold text-slate-200">{verification?.real_name || '—'}</p></div>
-              <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2"><p className="text-[9px] font-black uppercase tracking-wider text-slate-500">钱包余额</p><p className="mt-1 text-xs font-black text-emerald-300">${(walletBalances.get(employee.id) || 0).toFixed(2)}</p></div>
-              <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2"><p className="text-[9px] font-black uppercase tracking-wider text-slate-500">加入日期</p><p className="mt-1 text-xs font-semibold text-slate-200">{new Date(employee.created_at).toLocaleDateString()}</p></div>
-              <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2"><p className="text-[9px] font-black uppercase tracking-wider text-slate-500">验证日期</p><p className="mt-1 text-xs font-semibold text-slate-200">{verification?.audited_at ? new Date(verification.audited_at).toLocaleDateString() : '—'}</p></div>
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-bold text-slate-500">
+              <span className="truncate">{employee.employee_id}</span>
+              {isSuperAdmin && <span className="truncate text-cyan-300/75">· {getAdminName(employee.created_by)}</span>}
             </div>
-            {isExpanded && verification && (
-              <div className="mt-3 grid gap-2 rounded-xl border border-emerald-400/20 bg-slate-950/45 p-3 sm:grid-cols-2">
-                <p className="break-words text-xs text-slate-300"><span className="font-black text-slate-500">电话：</span>{verification.phone || '—'}</p>
-                <p className="break-words text-xs text-slate-300"><span className="font-black text-slate-500">邮箱：</span>{verification.email || '—'}</p>
-                <p className="break-all text-xs text-slate-300 sm:col-span-2"><span className="font-black text-slate-500">钱包：</span>{verification.wallet_address || '—'}</p>
-                {verification.audit_remark && <p className="text-xs text-slate-300 sm:col-span-2"><span className="font-black text-slate-500">审核备注：</span>{verification.audit_remark}</p>}
-              </div>
-            )}
           </div>
-          <div className="flex flex-col justify-center gap-2 border-t border-slate-700/60 bg-slate-950/25 p-3 xl:border-l xl:border-t-0 sm:p-4">
-            <button type="button" onClick={() => setSelectedEmployee(isExpanded ? null : employee)} disabled={!verification} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-cyan-400/25 bg-cyan-500/10 text-xs font-black text-cyan-200 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40">{isExpanded ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{isExpanded ? '收起资料' : '查看资料'}</button>
-            {isExpanded && hasDocuments && verification && <button type="button" onClick={() => openImagePreview(verification)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-blue-400/25 bg-blue-500/10 text-xs font-black text-blue-200 hover:bg-blue-500/20"><ImageIcon className="h-4 w-4" />查看证件</button>}
-            {verification && <button type="button" onClick={() => handleReset(verification.id)} disabled={resetting === verification.id} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-amber-600 text-xs font-black text-white hover:bg-amber-500 disabled:opacity-50"><RotateCcw className="h-4 w-4" />{resetting === verification.id ? '重置中…' : '重置审核'}</button>}
+
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">身份资料</p>
+            <p className="truncate text-xs font-bold text-slate-200">{verification?.real_name || '未填写真实姓名'}</p>
+            <p className="mt-0.5 truncate text-[10px] text-slate-500">{verification?.phone || '未填写电话'}</p>
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">账户信息</p>
+            <p className="text-xs font-black text-emerald-300">${(walletBalances.get(employee.id) || 0).toFixed(2)}</p>
+            <p className="mt-0.5 truncate text-[10px] text-slate-500" title={verification?.email || ''}>{verification?.email || '未填写邮箱'}</p>
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600 lg:hidden">验证时间</p>
+            <p className="text-[10px] font-bold text-slate-300">{verification?.audited_at ? new Date(verification.audited_at).toLocaleDateString() : '—'}</p>
+            <p className="mt-0.5 text-[9px] text-slate-600">加入 {new Date(employee.created_at).toLocaleDateString()}</p>
+          </div>
+
+          <div className="flex items-center lg:justify-end">
+            <button type="button" onClick={() => openDetailPanel(employee, verification)} disabled={!verification} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-2.5 text-[10px] font-black text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40">
+              <Eye className="h-3.5 w-3.5" />查看资料
+            </button>
           </div>
         </div>
       </article>
     );
   };
 
+  const reviewVerification = reviewing ? verifications.find(item => item.id === reviewing) : undefined;
+  const reviewEmployee = reviewVerification?.employee || verifiedEmployees.find(item => item.id === reviewVerification?.user_id);
+  const detailVerification = detailPanel?.verification;
+  const detailEmployee = detailPanel?.employee;
+  const detailHasDocuments = Boolean(detailVerification && (detailVerification.id_front_url || detailVerification.id_back_url || detailVerification.selfie_url));
+
   return (
     <>
+      {reviewVerification && reviewEmployee && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm sm:p-6">
+          <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-amber-300/25 bg-slate-900 shadow-2xl shadow-black/50">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-300/15 bg-[linear-gradient(110deg,rgba(120,53,15,0.5),rgba(15,23,42,0.98)_58%)] px-4 py-3 sm:px-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-300/30 bg-amber-500/15 text-amber-200"><Shield className="h-5 w-5" /></span>
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-black text-white sm:text-base">验证审核 · {reviewEmployee.username}</h3>
+                  <p className="mt-0.5 truncate text-[10px] font-bold text-amber-100/55">核对身份资料和证件后提交审核结果</p>
+                </div>
+              </div>
+              <button type="button" onClick={clearReviewDraft} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-600/70 bg-slate-950/40 text-slate-400 transition hover:bg-slate-800 hover:text-white" aria-label="关闭审核弹窗"><X className="h-4 w-4" /></button>
+            </div>
+
+            <div className="dark-panel-scroll grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_340px]">
+              <div className="space-y-3 p-4 sm:p-5">
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-700/70 bg-slate-950/40 px-3 py-2.5">
+                  <span className="text-sm font-black text-white">{reviewEmployee.username}</span>
+                  <span className="rounded-md border border-slate-600/70 bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-slate-300">{reviewEmployee.employee_id}</span>
+                  {getStatusBadge(reviewVerification.status)}
+                  {isSuperAdmin && <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black text-cyan-200"><Users className="h-3 w-3" />{getAdminName(getVerificationOwnerId(reviewVerification))}</span>}
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[
+                    { icon: User, label: '真实姓名', value: reviewVerification.real_name },
+                    { icon: Phone, label: '电话号码', value: reviewVerification.phone },
+                    { icon: Mail, label: '邮箱地址', value: reviewVerification.email },
+                    { icon: Wallet, label: '钱包地址', value: reviewVerification.wallet_address },
+                  ].map(({ icon: Icon, label, value }) => (
+                    <div key={label} className="min-w-0 rounded-xl border border-slate-700/60 bg-slate-950/35 p-3">
+                      <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-slate-500"><Icon className="h-3 w-3 text-amber-300/75" />{label}</p>
+                      <p className={`mt-1.5 break-words text-xs font-semibold text-slate-100 ${label === '钱包地址' ? 'font-mono' : ''}`}>{value || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-700/60 bg-slate-950/35 px-3 py-2.5">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">提交时间</p>
+                    <p className="mt-1 text-xs font-bold text-slate-200">{new Date(reviewVerification.created_at).toLocaleString()}</p>
+                  </div>
+                  {(reviewVerification.id_front_url || reviewVerification.id_back_url || reviewVerification.selfie_url) ? (
+                    <button type="button" onClick={() => openImagePreview(reviewVerification)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 text-[10px] font-black text-cyan-200 transition hover:bg-cyan-500/20"><ImageIcon className="h-3.5 w-3.5" />查看验证证件</button>
+                  ) : (
+                    <span className="text-[10px] font-bold text-slate-600">未上传证件</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t border-slate-700/70 bg-slate-950/35 p-4 lg:border-l lg:border-t-0 sm:p-5">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">审核结果</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => { setReviewAction('approved'); setValidationError(null); }} className={`flex h-11 items-center justify-center gap-2 rounded-xl border text-xs font-black transition ${reviewAction === 'approved' ? 'border-emerald-300/70 bg-emerald-600 text-white' : 'border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'}`}><CheckCircle className="h-4 w-4" />通过验证</button>
+                  <button type="button" onClick={() => { setReviewAction('rejected'); setValidationError(null); }} className={`flex h-11 items-center justify-center gap-2 rounded-xl border text-xs font-black transition ${reviewAction === 'rejected' ? 'border-rose-300/70 bg-rose-600 text-white' : 'border-rose-400/20 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20'}`}><XCircle className="h-4 w-4" />拒绝申请</button>
+                </div>
+
+                <label className="mt-4 block text-[10px] font-black text-slate-400">审核备注{reviewAction === 'rejected' ? '（必填）' : '（选填）'}</label>
+                <textarea
+                  value={auditRemark}
+                  onChange={event => { setAuditRemark(event.target.value); if (validationError) setValidationError(null); }}
+                  rows={6}
+                  placeholder={reviewAction === 'rejected' ? '请填写拒绝原因及需要补充的资料' : '可填写审核说明'}
+                  className={`mt-2 w-full resize-none rounded-xl border bg-slate-900/80 px-3 py-2.5 text-xs leading-5 text-white outline-none placeholder:text-slate-600 focus:ring-2 ${validationError ? 'border-rose-500 focus:ring-rose-500/25' : 'border-slate-700 focus:border-cyan-500 focus:ring-cyan-500/15'}`}
+                />
+                {validationError && <p className="mt-2 text-[10px] font-bold leading-4 text-rose-300">{validationError}</p>}
+
+                <div className="mt-4 grid grid-cols-[auto_1fr] gap-2">
+                  <button type="button" onClick={clearReviewDraft} className="h-10 rounded-xl border border-slate-600 bg-slate-800 px-4 text-xs font-bold text-slate-300 transition hover:bg-slate-700 hover:text-white">取消</button>
+                  <button type="button" disabled={!reviewAction} onClick={() => reviewAction && void handleReview(reviewVerification.id, reviewAction)} className={`h-10 rounded-xl text-xs font-black text-white transition disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500 ${reviewAction === 'rejected' ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500' : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500'}`}>{reviewAction === 'rejected' ? '确认拒绝' : reviewAction === 'approved' ? '确认通过' : '请选择审核结果'}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detailPanel && detailEmployee && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm sm:p-6">
+          <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-2xl shadow-black/50">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-cyan-300/15 bg-[linear-gradient(110deg,rgba(8,47,73,0.7),rgba(15,23,42,0.98)_62%)] px-4 py-3 sm:px-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-500/10 text-cyan-200"><FileText className="h-5 w-5" /></span>
+                <div className="min-w-0">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <h3 className="truncate text-sm font-black text-white sm:text-base">{detailEmployee.username} · 验证资料</h3>
+                    {detailVerification && getStatusBadge(detailVerification.status)}
+                  </div>
+                  <p className="mt-0.5 truncate text-[10px] font-bold text-cyan-100/50">员工编号 {detailEmployee.employee_id}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setDetailPanel(null)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-600/70 bg-slate-950/40 text-slate-400 transition hover:bg-slate-800 hover:text-white" aria-label="关闭资料弹窗"><X className="h-4 w-4" /></button>
+            </div>
+
+            <div className="dark-panel-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[
+                  { icon: User, label: '真实姓名', value: detailVerification?.real_name },
+                  { icon: Phone, label: '电话号码', value: detailVerification?.phone },
+                  { icon: Mail, label: '邮箱地址', value: detailVerification?.email },
+                  { icon: Wallet, label: '钱包地址', value: detailVerification?.wallet_address },
+                ].map(({ icon: Icon, label, value }) => (
+                  <div key={label} className="min-w-0 rounded-xl border border-slate-700/60 bg-slate-950/35 p-3">
+                    <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-slate-500"><Icon className="h-3 w-3 text-cyan-300/70" />{label}</p>
+                    <p className={`mt-1.5 break-words text-xs font-semibold text-slate-100 ${label === '钱包地址' ? 'font-mono' : ''}`}>{value || '—'}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 p-3"><p className="text-[9px] font-black uppercase tracking-wider text-slate-500">钱包余额</p><p className="mt-1.5 text-sm font-black text-emerald-300">${(walletBalances.get(detailEmployee.id) || 0).toFixed(2)}</p></div>
+                <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 p-3"><p className="text-[9px] font-black uppercase tracking-wider text-slate-500">提交时间</p><p className="mt-1.5 text-xs font-bold text-slate-200">{detailVerification ? new Date(detailVerification.created_at).toLocaleString() : '—'}</p></div>
+                <div className="rounded-xl border border-slate-700/60 bg-slate-950/35 p-3"><p className="text-[9px] font-black uppercase tracking-wider text-slate-500">审核时间</p><p className="mt-1.5 text-xs font-bold text-slate-200">{detailVerification?.audited_at ? new Date(detailVerification.audited_at).toLocaleString() : '—'}</p></div>
+              </div>
+
+              {detailVerification?.audit_remark && (
+                <div className={`rounded-xl border p-3 ${detailVerification.status === 'rejected' ? 'border-rose-400/25 bg-rose-500/10' : 'border-slate-700/60 bg-slate-950/35'}`}>
+                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">审核备注</p>
+                  <p className={`mt-1.5 text-xs leading-5 ${detailVerification.status === 'rejected' ? 'text-rose-100' : 'text-slate-200'}`}>{detailVerification.audit_remark}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-700/70 bg-slate-950/35 px-4 py-3 sm:px-5">
+              <button type="button" onClick={() => setDetailPanel(null)} className="h-9 rounded-lg border border-slate-600 bg-slate-800 px-3 text-[10px] font-bold text-slate-300 transition hover:bg-slate-700 hover:text-white">关闭</button>
+              {detailVerification && detailHasDocuments && <button type="button" onClick={() => openImagePreview(detailVerification)} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 text-[10px] font-black text-cyan-200 transition hover:bg-cyan-500/20"><ImageIcon className="h-3.5 w-3.5" />查看验证证件</button>}
+              {detailVerification?.status === 'pending' && <button type="button" onClick={() => openReviewModal(detailVerification)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 px-3 text-[10px] font-black text-white transition hover:from-amber-400 hover:to-orange-500"><Shield className="h-3.5 w-3.5" />开始验证</button>}
+              {detailVerification && detailVerification.status !== 'pending' && <button type="button" onClick={() => { setDetailPanel(null); handleReset(detailVerification.id); }} disabled={resetting === detailVerification.id} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-amber-600 px-3 text-[10px] font-black text-white transition hover:bg-amber-500 disabled:opacity-50"><RotateCcw className="h-3.5 w-3.5" />{resetting === detailVerification.id ? '重置中…' : '重置为待审核'}</button>}
+              {detailVerification?.status === 'rejected' && <button type="button" onClick={() => { setDetailPanel(null); handleDelete(detailVerification.id); }} disabled={deleting === detailVerification.id} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 text-[10px] font-black text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />{deleting === detailVerification.id ? '删除中…' : '删除申请'}</button>}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirmation Dialog */}
       {confirmDialog?.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
@@ -1340,15 +1407,24 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                   {searchQuery && <button type="button" onClick={() => setSearchQuery('')} className="mt-4 h-8 rounded-lg border border-cyan-400/25 bg-cyan-500/10 px-3 text-[10px] font-black text-cyan-200 hover:bg-cyan-500/20">清除搜索</button>}
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {viewMode === 'all' && allFilteredItems.map(entry =>
-                    entry.type === 'employee'
-                      ? renderVerifiedEmployeeCard(entry.item)
-                      : renderVerificationCard(entry.item)
-                  )}
-                  {viewMode === 'requests' && filteredVerifications.map(renderVerificationCard)}
-                  {viewMode === 'verified' && filteredVerifiedEmployees.map(renderVerifiedEmployeeCard)}
-                  {viewMode === 'rejected' && filteredRejectedVerifications.map(renderVerificationCard)}
+                <div>
+                  <div className="mb-1.5 hidden grid-cols-[minmax(180px,1.25fr)_minmax(120px,0.8fr)_minmax(160px,1.1fr)_minmax(120px,0.7fr)_auto] items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-950/45 px-4 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500 lg:grid">
+                    <span>员工与状态</span>
+                    <span>身份资料</span>
+                    <span>联系／账户信息</span>
+                    <span>时间</span>
+                    <span className="min-w-[168px] text-right">操作</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {viewMode === 'all' && allFilteredItems.map(entry =>
+                      entry.type === 'employee'
+                        ? renderVerifiedEmployeeCard(entry.item)
+                        : renderVerificationCard(entry.item)
+                    )}
+                    {viewMode === 'requests' && filteredVerifications.map(renderVerificationCard)}
+                    {viewMode === 'verified' && filteredVerifiedEmployees.map(renderVerifiedEmployeeCard)}
+                    {viewMode === 'rejected' && filteredRejectedVerifications.map(renderVerificationCard)}
+                  </div>
                 </div>
               )}
             </div>
