@@ -610,7 +610,7 @@ export default function ProductTypeManagement({
               <div className="relative w-full md:ml-auto md:w-72 xl:ml-1 xl:w-80 2xl:w-96">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
-                  type="search"
+                  type="text"
                   value={searchQuery}
                   onChange={event => setSearchQuery(event.target.value)}
                   placeholder="搜尋產品名稱"
