@@ -524,9 +524,9 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      pending: 'border-amber-400/40 bg-amber-500/10 text-amber-300',
-      approved: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300',
-      rejected: 'border-rose-400/40 bg-rose-500/10 text-rose-300',
+      pending: 'border-amber-500/25 bg-amber-950/45 text-amber-200/90',
+      approved: 'border-emerald-500/25 bg-emerald-950/45 text-emerald-200/90',
+      rejected: 'border-rose-500/25 bg-rose-950/45 text-rose-200/90',
     };
     const labels = { pending: '待审核', approved: '已验证', rejected: '已拒绝' };
     const icons = {
@@ -820,22 +820,32 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
     const isPending = verification.status === 'pending';
     const rowTheme = isPending
       ? {
-          surface: 'border-amber-300/30 border-l-amber-400 bg-[linear-gradient(100deg,rgba(146,64,14,0.28),rgba(30,41,59,0.94)_30%,rgba(15,23,42,0.96))] hover:border-amber-300/50',
-          title: 'text-amber-50',
-          label: 'text-amber-200/70',
+          surface: 'border-amber-500/15 border-l-amber-500/60 bg-[linear-gradient(90deg,rgba(120,53,15,0.16),rgba(30,41,59,0.96)_26%,rgba(15,23,42,0.98))] hover:border-amber-400/25',
+          title: 'text-amber-100',
+          label: 'text-amber-300/65',
           value: 'text-amber-50/90',
-          secondary: 'text-amber-100/70',
+          secondary: 'text-amber-100/65',
+          identity: 'text-amber-200/90',
+          admin: 'border-amber-500/20 bg-amber-950/35 text-amber-200/80',
+          time: 'text-amber-200/90',
+          timeSecondary: 'text-amber-200/60',
+          action: 'border-amber-500/20 bg-amber-950/30 text-amber-200 hover:bg-amber-900/35',
         }
       : {
-          surface: 'border-rose-300/30 border-l-rose-400 bg-[linear-gradient(100deg,rgba(136,19,55,0.25),rgba(30,41,59,0.94)_30%,rgba(15,23,42,0.96))] hover:border-rose-300/50',
-          title: 'text-rose-50',
-          label: 'text-rose-200/70',
+          surface: 'border-rose-500/15 border-l-rose-500/60 bg-[linear-gradient(90deg,rgba(136,19,55,0.14),rgba(30,41,59,0.96)_26%,rgba(15,23,42,0.98))] hover:border-rose-400/25',
+          title: 'text-rose-100',
+          label: 'text-rose-300/65',
           value: 'text-rose-50/90',
-          secondary: 'text-rose-100/70',
+          secondary: 'text-rose-100/65',
+          identity: 'text-rose-200/90',
+          admin: 'border-rose-500/20 bg-rose-950/35 text-rose-200/80',
+          time: 'text-rose-200/90',
+          timeSecondary: 'text-rose-200/60',
+          action: 'border-rose-500/20 bg-rose-950/30 text-rose-200 hover:bg-rose-900/35',
         };
 
     return (
-      <article key={verification.id} className={`overflow-hidden rounded-xl border border-l-4 shadow-md shadow-slate-950/20 ring-1 ring-inset ring-white/[0.025] transition ${rowTheme.surface}`}>
+      <article key={verification.id} className={`overflow-hidden rounded-xl border border-l-[3px] shadow-sm shadow-black/20 transition-colors duration-150 ${rowTheme.surface}`}>
         <div className="grid min-w-0 gap-2 px-3 py-2.5 sm:px-4 lg:grid-cols-[minmax(180px,1.25fr)_minmax(120px,0.8fr)_minmax(160px,1.1fr)_minmax(120px,0.7fr)_auto] lg:items-center">
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -843,8 +853,8 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               {getStatusBadge(verification.status)}
             </div>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-bold text-slate-300">
-              <span className="truncate text-cyan-300">{employee.employee_id}</span>
-              {isSuperAdmin && ownerId && <span className="inline-flex max-w-full items-center gap-1 truncate rounded-md border border-cyan-400/20 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] text-cyan-200"><Users className="h-3 w-3 shrink-0" />{getAdminName(ownerId)}</span>}
+              <span className={`truncate ${rowTheme.identity}`}>{employee.employee_id}</span>
+              {isSuperAdmin && ownerId && <span className={`inline-flex max-w-full items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[10px] ${rowTheme.admin}`}><Users className="h-3 w-3 shrink-0" />{getAdminName(ownerId)}</span>}
             </div>
           </div>
 
@@ -862,16 +872,16 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
           <div className="min-w-0">
             <p className={`text-[10px] font-black uppercase tracking-wider lg:hidden ${rowTheme.label}`}>提交时间</p>
-            <p className="text-[10px] font-black text-emerald-300">{new Date(verification.created_at).toLocaleDateString()}</p>
-            <p className="mt-0.5 text-[10px] font-semibold text-emerald-400/75">{new Date(verification.created_at).toLocaleTimeString()}</p>
+            <p className={`text-[10px] font-black ${rowTheme.time}`}>{new Date(verification.created_at).toLocaleDateString()}</p>
+            <p className={`mt-0.5 text-[10px] font-semibold ${rowTheme.timeSecondary}`}>{new Date(verification.created_at).toLocaleTimeString()}</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
-            <button type="button" onClick={() => openDetailPanel(employee, verification)} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-cyan-400/25 bg-cyan-500/10 px-2.5 text-[10px] font-black text-cyan-200 transition hover:bg-cyan-500/20">
+            <button type="button" onClick={() => openDetailPanel(employee, verification)} className={`inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-black transition-colors ${rowTheme.action}`}>
               <Eye className="h-3.5 w-3.5" />查看资料
             </button>
             {isPending && (
-              <button type="button" onClick={() => openReviewModal(verification)} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 px-2.5 text-[10px] font-black text-white transition hover:from-amber-400 hover:to-orange-500">
+              <button type="button" onClick={() => openReviewModal(verification)} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-800/70 px-2.5 text-[10px] font-black text-amber-50 transition-colors hover:bg-amber-700/80">
                 <Shield className="h-3.5 w-3.5" />开始验证
               </button>
             )}
@@ -885,7 +895,7 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
     const verification = verifications.find(item => item.user_id === employee.id && item.status === 'approved');
 
     return (
-      <article key={employee.id} className="overflow-hidden rounded-xl border border-emerald-300/30 border-l-4 border-l-emerald-400 bg-[linear-gradient(100deg,rgba(6,95,70,0.25),rgba(30,41,59,0.94)_30%,rgba(15,23,42,0.96))] shadow-md shadow-slate-950/20 ring-1 ring-inset ring-white/[0.025] transition hover:border-emerald-300/50">
+      <article key={employee.id} className="overflow-hidden rounded-xl border border-emerald-500/15 border-l-[3px] border-l-emerald-500/60 bg-[linear-gradient(90deg,rgba(6,78,59,0.14),rgba(30,41,59,0.96)_26%,rgba(15,23,42,0.98))] shadow-sm shadow-black/20 transition-colors duration-150 hover:border-emerald-400/25">
         <div className="grid min-w-0 gap-2 px-3 py-2.5 sm:px-4 lg:grid-cols-[minmax(180px,1.25fr)_minmax(120px,0.8fr)_minmax(160px,1.1fr)_minmax(120px,0.7fr)_auto] lg:items-center">
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -893,8 +903,8 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
               {getStatusBadge('approved')}
             </div>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-bold text-slate-300">
-              <span className="truncate text-cyan-300">{employee.employee_id}</span>
-              {isSuperAdmin && <span className="inline-flex max-w-full items-center gap-1 truncate rounded-md border border-cyan-400/20 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] text-cyan-200"><Users className="h-3 w-3 shrink-0" />{getAdminName(employee.created_by)}</span>}
+              <span className="truncate text-emerald-200/90">{employee.employee_id}</span>
+              {isSuperAdmin && <span className="inline-flex max-w-full items-center gap-1 truncate rounded-md border border-emerald-500/20 bg-emerald-950/35 px-1.5 py-0.5 text-[10px] text-emerald-200/80"><Users className="h-3 w-3 shrink-0" />{getAdminName(employee.created_by)}</span>}
             </div>
           </div>
 
@@ -912,12 +922,12 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-wider text-emerald-200/70 lg:hidden">验证时间</p>
-            <p className="text-[10px] font-black text-emerald-300">{verification?.audited_at ? new Date(verification.audited_at).toLocaleDateString() : '—'}</p>
-            <p className="mt-0.5 text-[10px] font-semibold text-emerald-400/75">加入 {new Date(employee.created_at).toLocaleDateString()}</p>
+            <p className="text-[10px] font-black text-emerald-200/90">{verification?.audited_at ? new Date(verification.audited_at).toLocaleDateString() : '—'}</p>
+            <p className="mt-0.5 text-[10px] font-semibold text-emerald-200/60">加入 {new Date(employee.created_at).toLocaleDateString()}</p>
           </div>
 
           <div className="flex items-center lg:justify-end">
-            <button type="button" onClick={() => openDetailPanel(employee, verification)} disabled={!verification} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-2.5 text-[10px] font-black text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" onClick={() => openDetailPanel(employee, verification)} disabled={!verification} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-950/30 px-2.5 text-[10px] font-black text-emerald-200 transition-colors hover:bg-emerald-900/35 disabled:cursor-not-allowed disabled:opacity-40">
               <Eye className="h-3.5 w-3.5" />查看资料
             </button>
           </div>
