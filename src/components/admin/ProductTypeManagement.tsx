@@ -752,41 +752,6 @@ export default function ProductTypeManagement({
           )}
         </div>
 
-        {showForm && !isSorting && (
-          <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-2 rounded-xl border border-blue-400/20 bg-slate-900/90 p-2.5 sm:flex-row sm:items-end">
-            <label className="min-w-0 flex-1">
-              <span className="mb-1 block text-xs font-medium text-slate-300">{editingId ? '編輯產品名稱' : '新產品名稱'}</span>
-              <input
-                autoFocus
-                type="text"
-                value={formData.name}
-                onChange={event => setFormData({ name: event.target.value })}
-                maxLength={120}
-                required
-                className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm font-medium text-slate-900 placeholder:text-slate-500 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400/20"
-                placeholder="輸入產品名稱"
-              />
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={closeForm}
-                disabled={savingProduct}
-                className="min-h-9 flex-1 rounded-lg border border-slate-700 px-3 text-xs font-medium text-slate-300 transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 sm:flex-none"
-              >
-                取消
-              </button>
-              <button
-                type="submit"
-                disabled={savingProduct}
-                className="inline-flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white transition hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50 sm:flex-none"
-              >
-                {savingProduct ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                {editingId ? '儲存修改' : '建立產品'}
-              </button>
-            </div>
-          </form>
-        )}
       </header>
 
       <main className="min-h-0 flex-1 overflow-hidden">
@@ -1015,6 +980,73 @@ export default function ProductTypeManagement({
           )}
         </div>
       </main>
+
+      {showForm && !isSorting && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <form onSubmit={handleSubmit} className="w-full max-w-lg overflow-hidden rounded-2xl border border-cyan-400/25 bg-slate-900 shadow-2xl shadow-blue-950/40">
+            <div className="border-b border-cyan-300/15 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 px-5 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-400/15 text-cyan-200 shadow-inner">
+                    <Plus className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold tracking-tight text-white">新增產品</h2>
+                    <p className="mt-1 text-xs text-cyan-100/70">建立新的產品類型並加入管理列表。</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  disabled={savingProduct}
+                  aria-label="關閉新增產品面板"
+                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="space-y-4 p-5">
+              <label className="block">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">產品名稱</span>
+                <input
+                  autoFocus
+                  type="text"
+                  value={formData.name}
+                  onChange={event => setFormData({ name: event.target.value })}
+                  maxLength={120}
+                  required
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 text-sm font-medium text-slate-900 shadow-inner outline-none transition placeholder:text-slate-500 focus:border-cyan-400 focus:bg-white focus:ring-2 focus:ring-cyan-400/25"
+                  placeholder="輸入產品名稱"
+                />
+              </label>
+              <div className="flex items-start gap-2 rounded-xl border border-slate-700/80 bg-slate-950/55 px-3 py-2.5 text-xs text-slate-400">
+                <Package className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
+                <span>新產品會自動加入列表末端，之後仍可在「調整順序」中重新排列。</span>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  disabled={savingProduct}
+                  className="min-h-10 flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm font-medium text-slate-300 transition hover:bg-slate-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProduct}
+                  className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(6,182,212,0.18)] transition hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {savingProduct ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  {savingProduct ? '建立中…' : '建立產品'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>,
+        document.body,
+      )}
 
       {showEditConfirm && editingProduct && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
