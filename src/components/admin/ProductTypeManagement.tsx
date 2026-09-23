@@ -131,9 +131,6 @@ export default function ProductTypeManagement({
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isOrderDirty]);
 
-  const activeCount = useMemo(() => productTypes.filter(item => item.is_active).length, [productTypes]);
-  const disabledCount = productTypes.length - activeCount;
-
   const searchMatchedProducts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
     if (!normalizedQuery) return productTypes;
@@ -508,60 +505,101 @@ export default function ProductTypeManagement({
         </div>
       )}
 
-      <header className="shrink-0 border-b border-slate-800/90 bg-slate-950/80 px-3 py-3 backdrop-blur-xl sm:px-5 lg:px-6">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-400/20 bg-gradient-to-br from-blue-500/20 to-cyan-400/10 text-cyan-300 shadow-[0_10px_30px_rgba(8,145,178,0.12)]">
-                <Package className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-lg font-semibold tracking-tight text-white sm:text-xl">產品管理</h1>
-                  {isSorting && (
-                    <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-2.5 py-0.5 text-[11px] font-semibold text-cyan-200">排序模式</span>
-                  )}
-                </div>
-                <p className="mt-0.5 text-xs text-slate-400">統一管理後台產品與員工端下拉選單順序</p>
-              </div>
+      <header className="shrink-0 border-b border-slate-800/90 bg-slate-950/80 px-3 py-2 backdrop-blur-xl sm:px-4 lg:px-5">
+        <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
+          <div className="flex shrink-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-400/20 bg-gradient-to-br from-blue-500/20 to-cyan-400/10 text-cyan-300">
+              <Package className="h-4 w-4" />
             </div>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-lg border border-slate-700/80 bg-slate-900/70 px-2.5 py-1 text-xs text-slate-300">全部 <strong className="ml-1 text-white">{productTypes.length}</strong></span>
-              <span className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-200">已啟用 <strong className="ml-1">{activeCount}</strong></span>
-              <span className="rounded-lg border border-slate-600/50 bg-slate-800/70 px-2.5 py-1 text-xs text-slate-400">已停用 <strong className="ml-1 text-slate-200">{disabledCount}</strong></span>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-semibold tracking-tight text-white sm:text-lg">產品管理</h1>
+              {isSorting && (
+                <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-200">排序模式</span>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {isSorting ? (
-              <>
+          {isSorting ? (
+            <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center xl:justify-end">
+              <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-cyan-100 xl:max-w-xl">
+                <GripVertical className="h-4 w-4 shrink-0 text-cyan-300" />
+                <span className="truncate">拖動列或使用上下按鈕調整順序，停用產品也會保留位置。</span>
+                <span className={`shrink-0 font-semibold ${isOrderDirty ? 'text-amber-300' : 'text-slate-500'}`}>
+                  {isOrderDirty ? '未儲存' : '未變更'}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
                   onClick={requestCancelSorting}
                   disabled={savingOrder}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50"
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 text-xs font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  取消調整
+                  取消
                 </button>
                 <button
                   type="button"
                   onClick={() => void saveOrder()}
                   disabled={!isOrderDirty || savingOrder}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-cyan-300/30 bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(8,145,178,0.18)] transition hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-cyan-300/30 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-semibold text-white transition hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {savingOrder ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   {savingOrder ? '儲存中…' : '儲存順序'}
                 </button>
-              </>
-            ) : (
-              <>
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-w-0 flex-1 flex-col gap-2 lg:flex-row lg:items-center xl:justify-end">
+              <div className="relative w-full lg:max-w-xs 2xl:max-w-sm">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={event => setSearchQuery(event.target.value)}
+                  placeholder="搜尋產品名稱"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 pl-9 pr-9 text-sm font-medium text-slate-900 placeholder:text-slate-500 shadow-inner transition focus:border-cyan-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400/20"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="清除搜尋"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="flex min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/80 p-0.5 lg:flex-none">
+                  {([
+                    ['all', '全部'],
+                    ['active', '已啟用'],
+                    ['disabled', '已停用'],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setStatusFilter(value)}
+                      className={`flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md px-2.5 text-[11px] font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 lg:flex-none ${
+                        statusFilter === value
+                          ? 'bg-slate-700 text-white shadow-sm'
+                          : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      {label}
+                      <span className="text-[10px] opacity-70">{statusCounts[value]}</span>
+                    </button>
+                  ))}
+                </div>
+                <span className="hidden shrink-0 text-[11px] text-slate-500 2xl:inline">顯示 {visibleProducts.length} 項</span>
                 <button
                   type="button"
                   onClick={startSorting}
                   disabled={loading || productTypes.length < 2}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 text-sm font-medium text-slate-200 transition hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 text-xs font-medium text-slate-200 transition hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <SlidersHorizontal className="h-4 w-4" />
                   調整順序
@@ -569,82 +607,20 @@ export default function ProductTypeManagement({
                 <button
                   type="button"
                   onClick={openCreateForm}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-blue-300/25 bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(37,99,235,0.2)] transition hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                  className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-blue-300/25 bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-semibold text-white transition hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
                 >
                   <Plus className="h-4 w-4" />
                   新增產品
                 </button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <section className="shrink-0 border-b border-slate-800/80 bg-slate-900/45 px-3 py-3 sm:px-5 lg:px-6">
-        {isSorting ? (
-          <div className="flex flex-col gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.06] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-2 text-sm text-cyan-100">
-              <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
-              <span>桌面端可拖動整列；手機與鍵盤操作可使用上移、下移按鈕。停用產品也會保留固定位置。</span>
-            </div>
-            <span className={`shrink-0 text-xs font-semibold ${isOrderDirty ? 'text-amber-300' : 'text-slate-400'}`}>
-              {isOrderDirty ? '有未儲存變更' : '順序尚未變更'}
-            </span>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full lg:max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={event => setSearchQuery(event.target.value)}
-                placeholder="搜尋產品名稱"
-                className="h-10 w-full rounded-xl border border-slate-700 bg-slate-950/80 pl-10 pr-10 text-sm text-white placeholder:text-slate-500 transition focus:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-400/15"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  aria-label="清除搜尋"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 transition hover:bg-slate-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="flex rounded-xl border border-slate-700 bg-slate-950/70 p-1">
-                {([
-                  ['all', '全部'],
-                  ['active', '已啟用'],
-                  ['disabled', '已停用'],
-                ] as const).map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setStatusFilter(value)}
-                    className={`flex min-h-8 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 sm:flex-none ${
-                      statusFilter === value
-                        ? 'bg-slate-700 text-white shadow-sm'
-                        : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
-                    }`}
-                  >
-                    {label}
-                    <span className="text-[10px] opacity-70">{statusCounts[value]}</span>
-                  </button>
-                ))}
               </div>
-              <span className="text-right text-xs text-slate-500">顯示 {visibleProducts.length} 項</span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {showForm && !isSorting && (
-          <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-3 rounded-xl border border-blue-400/20 bg-slate-950/80 p-3 sm:flex-row sm:items-end">
+          <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-2 rounded-xl border border-blue-400/20 bg-slate-900/90 p-2.5 sm:flex-row sm:items-end">
             <label className="min-w-0 flex-1">
-              <span className="mb-1.5 block text-xs font-medium text-slate-300">{editingId ? '編輯產品名稱' : '新產品名稱'}</span>
+              <span className="mb-1 block text-xs font-medium text-slate-300">{editingId ? '編輯產品名稱' : '新產品名稱'}</span>
               <input
                 autoFocus
                 type="text"
@@ -652,7 +628,7 @@ export default function ProductTypeManagement({
                 onChange={event => setFormData({ name: event.target.value })}
                 maxLength={120}
                 required
-                className="h-10 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-white placeholder:text-slate-500 focus:border-blue-400/60 focus:outline-none focus:ring-2 focus:ring-blue-400/15"
+                className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm font-medium text-slate-900 placeholder:text-slate-500 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400/20"
                 placeholder="輸入產品名稱"
               />
             </label>
@@ -661,14 +637,14 @@ export default function ProductTypeManagement({
                 type="button"
                 onClick={closeForm}
                 disabled={savingProduct}
-                className="min-h-10 flex-1 rounded-xl border border-slate-700 px-4 text-sm font-medium text-slate-300 transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 sm:flex-none"
+                className="min-h-9 flex-1 rounded-lg border border-slate-700 px-3 text-xs font-medium text-slate-300 transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 sm:flex-none"
               >
                 取消
               </button>
               <button
                 type="submit"
                 disabled={savingProduct}
-                className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50 sm:flex-none"
+                className="inline-flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white transition hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50 sm:flex-none"
               >
                 {savingProduct ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 {editingId ? '儲存修改' : '建立產品'}
@@ -676,7 +652,7 @@ export default function ProductTypeManagement({
             </div>
           </form>
         )}
-      </section>
+      </header>
 
       <main className="min-h-0 flex-1 overflow-hidden px-3 pb-3 pt-2 sm:px-5 sm:pb-5 lg:px-6">
         <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/50 shadow-[0_18px_50px_rgba(2,6,23,0.22)]">
