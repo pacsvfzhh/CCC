@@ -1272,25 +1272,25 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
         <div className={`grid min-h-0 flex-1 ${isSuperAdmin ? 'lg:grid-cols-[250px_minmax(0,1fr)]' : 'grid-cols-1'}`}>
           {isSuperAdmin && (
-          <aside className="hidden min-h-0 flex-col border-r border-indigo-300/25 bg-[radial-gradient(circle_at_15%_0%,rgba(59,130,246,0.22),transparent_32%),linear-gradient(165deg,#172554_0%,#111c35_42%,#070b16_100%)] shadow-xl shadow-black/30 lg:flex">
-            <div className="flex h-10 shrink-0 items-center justify-between border-b border-indigo-300/20 bg-[linear-gradient(90deg,rgba(30,58,138,0.52),rgba(30,41,59,0.88))] px-3">
-              <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100/80"><Users className="h-3.5 w-3.5" />管理员分组</span>
-              <span className="rounded-md border border-slate-600/70 bg-slate-800 px-1.5 py-0.5 text-[9px] font-black text-slate-300">{adminOptions.length}</span>
+          <aside className="hidden min-h-0 flex-col border-r border-emerald-200/15 bg-[radial-gradient(circle_at_12%_0%,rgba(16,185,129,0.13),transparent_30%),linear-gradient(165deg,#101c1a_0%,#0b1516_50%,#070d12_100%)] shadow-xl shadow-black/30 lg:flex">
+            <div className="flex h-10 shrink-0 items-center justify-between border-b border-emerald-200/10 bg-[linear-gradient(90deg,rgba(6,78,59,0.34),rgba(15,23,42,0.78))] px-3">
+              <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100/80"><Users className="h-3.5 w-3.5" />管理员分组</span>
+              <span className="rounded-md border border-emerald-400/20 bg-emerald-950/50 px-1.5 py-0.5 text-[9px] font-black text-emerald-200/75">{adminOptions.length}</span>
             </div>
 
-            <div className="dark-panel-scroll min-h-0 flex-1 space-y-2 overflow-y-auto bg-[radial-gradient(circle_at_100%_12%,rgba(99,102,241,0.14),transparent_34%),linear-gradient(180deg,rgba(15,23,42,0.18),rgba(2,6,23,0.5))] p-2.5">
+            <div className="dark-panel-scroll min-h-0 flex-1 space-y-2 overflow-y-auto bg-[radial-gradient(circle_at_100%_8%,rgba(16,185,129,0.08),transparent_34%),linear-gradient(180deg,rgba(15,23,42,0.08),rgba(2,6,23,0.34))] p-2.5">
               {isSuperAdmin && (
-                <div className={`group relative w-full overflow-hidden rounded-xl border p-2 shadow-md shadow-black/15 transition-colors duration-200 ${selectedAdminId === 'all' ? 'border-emerald-200/80 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-800 text-white ring-1 ring-inset ring-emerald-100/20' : 'border-emerald-500/25 bg-gradient-to-r from-emerald-950/90 via-slate-800 to-slate-800 text-emerald-50 hover:border-emerald-400/55 hover:from-emerald-900/90 hover:via-slate-700'}`}>
-                  {selectedAdminId === 'all' && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-emerald-100" />}
+                <div className={`group relative w-full overflow-hidden rounded-xl border p-2 shadow-md shadow-black/20 transition-colors duration-200 ${selectedAdminId === 'all' ? 'border-emerald-300/60 bg-[linear-gradient(135deg,rgba(6,95,70,0.98),rgba(13,148,136,0.86))] text-white' : 'border-white/10 bg-[linear-gradient(135deg,rgba(30,41,59,0.94),rgba(15,42,39,0.92))] text-slate-200 hover:border-emerald-400/35 hover:bg-[linear-gradient(135deg,rgba(30,54,52,0.96),rgba(15,52,46,0.94))]'}`}>
+                  {selectedAdminId === 'all' && <span className="absolute bottom-1.5 left-0 top-1.5 w-1 rounded-r-full bg-emerald-200" />}
                   <button
                     type="button"
                     onClick={() => changeContext(viewMode, 'all')}
                     aria-pressed={selectedAdminId === 'all'}
                     className="flex w-full items-center justify-between gap-2 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70"
                   >
-                    <span className="flex items-center gap-2 text-xs font-black"><span className={`flex h-7 w-7 items-center justify-center rounded-lg border ${selectedAdminId === 'all' ? 'border-emerald-100/35 bg-white/15 text-white' : 'border-emerald-500/35 bg-emerald-950/60 text-emerald-300'}`}><Users className="h-3.5 w-3.5" /></span>全部管理员</span>
+                    <span className="flex items-center gap-2 text-xs font-black"><span className={`flex h-7 w-7 items-center justify-center rounded-lg border ${selectedAdminId === 'all' ? 'border-emerald-100/30 bg-emerald-100/15 text-white' : 'border-slate-600/70 bg-slate-950/45 text-emerald-300'}`}><Users className="h-3.5 w-3.5" /></span>全部管理员</span>
                     {overallStats.pending > 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-orange-200/70 bg-gradient-to-r from-orange-500 to-red-600 px-2 py-1 text-[10px] font-black text-white"><AlertCircle className="h-3 w-3" />待审核 {overallStats.pending}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-400/15 px-2 py-1 text-[10px] font-black text-amber-100"><AlertCircle className="h-3 w-3" />待审核 {overallStats.pending}</span>
                     ) : (
                       <span className="text-[9px] font-black text-emerald-200">汇总</span>
                     )}
@@ -1302,17 +1302,17 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                 const stats = getAdminStats(adminOption.id);
                 const selected = selectedAdminId === adminOption.id;
                 return (
-                  <div key={adminOption.id} className={`group relative w-full overflow-hidden rounded-xl border p-2 shadow-md shadow-black/15 transition-colors duration-200 ${selected ? 'border-emerald-200/80 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-800 text-white ring-1 ring-inset ring-emerald-100/20' : 'border-emerald-500/25 bg-gradient-to-r from-emerald-950/90 via-slate-800 to-slate-800 text-emerald-50 hover:border-emerald-400/55 hover:from-emerald-900/90 hover:via-slate-700'}`}>
-                    {selected && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-emerald-100" />}
+                  <div key={adminOption.id} className={`group relative w-full overflow-hidden rounded-xl border p-2 shadow-md shadow-black/20 transition-colors duration-200 ${selected ? 'border-emerald-300/60 bg-[linear-gradient(135deg,rgba(6,95,70,0.98),rgba(13,148,136,0.86))] text-white' : 'border-white/10 bg-[linear-gradient(135deg,rgba(30,41,59,0.94),rgba(15,42,39,0.92))] text-slate-200 hover:border-emerald-400/35 hover:bg-[linear-gradient(135deg,rgba(30,54,52,0.96),rgba(15,52,46,0.94))]'}`}>
+                    {selected && <span className="absolute bottom-1.5 left-0 top-1.5 w-1 rounded-r-full bg-emerald-200" />}
                     <button
                       type="button"
                       onClick={() => changeContext(viewMode, adminOption.id)}
                       aria-pressed={selected}
                       className="flex w-full min-w-0 items-center gap-2 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70"
                     >
-                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${selected ? 'border-white/20 bg-white/10 text-white' : 'border-emerald-500/35 bg-emerald-950/60 text-emerald-300'}`}><User className="h-3.5 w-3.5" /></span>
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${selected ? 'border-emerald-100/30 bg-emerald-100/15 text-white' : 'border-slate-600/70 bg-slate-950/45 text-emerald-300'}`}><User className="h-3.5 w-3.5" /></span>
                       <span className="min-w-0 flex-1 truncate text-xs font-black">{adminOption.username}</span>
-                      {stats.pending > 0 && <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-orange-200/70 bg-gradient-to-r from-orange-500 to-red-600 px-1.5 py-1 text-[9px] font-black text-white"><AlertCircle className="h-3 w-3" />待审核 {stats.pending}</span>}
+                      {stats.pending > 0 && <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-300/35 bg-amber-400/15 px-1.5 py-1 text-[9px] font-black text-amber-100"><AlertCircle className="h-3 w-3" />待审核 {stats.pending}</span>}
                     </button>
                   </div>
                 );
