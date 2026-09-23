@@ -964,26 +964,26 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
                 </div>
               </div>
 
-              <div className="border-t border-slate-700/70 bg-slate-950/35 p-4 lg:border-l lg:border-t-0 sm:p-5">
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">审核结果</p>
+              <div className="border-t border-slate-600/70 bg-slate-900/85 p-4 lg:border-l lg:border-t-0 sm:p-5">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-200">审核结果</p>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => { setReviewAction('approved'); setValidationError(null); }} className={`flex h-11 items-center justify-center gap-2 rounded-xl border text-xs font-black transition ${reviewAction === 'approved' ? 'border-emerald-300/70 bg-emerald-600 text-white' : 'border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'}`}><CheckCircle className="h-4 w-4" />通过验证</button>
                   <button type="button" onClick={() => { setReviewAction('rejected'); setValidationError(null); }} className={`flex h-11 items-center justify-center gap-2 rounded-xl border text-xs font-black transition ${reviewAction === 'rejected' ? 'border-rose-300/70 bg-rose-600 text-white' : 'border-rose-400/20 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20'}`}><XCircle className="h-4 w-4" />拒绝申请</button>
                 </div>
 
-                <label className="mt-4 block text-[10px] font-black text-slate-400">审核备注{reviewAction === 'rejected' ? '（必填）' : '（选填）'}</label>
+                <label className="mt-4 block text-[10px] font-black text-slate-200">审核备注{reviewAction === 'rejected' ? '（必填）' : '（选填）'}</label>
                 <textarea
                   value={auditRemark}
                   onChange={event => { setAuditRemark(event.target.value); if (validationError) setValidationError(null); }}
                   rows={6}
                   placeholder={reviewAction === 'rejected' ? '请填写拒绝原因及需要补充的资料' : '可填写审核说明'}
-                  className={`mt-2 w-full resize-none rounded-xl border bg-slate-900/80 px-3 py-2.5 text-xs leading-5 text-white outline-none placeholder:text-slate-600 focus:ring-2 ${validationError ? 'border-rose-500 focus:ring-rose-500/25' : 'border-slate-700 focus:border-cyan-500 focus:ring-cyan-500/15'}`}
+                  className={`mt-2 w-full resize-none rounded-xl border bg-slate-100 px-3 py-2.5 text-xs font-semibold leading-5 text-slate-900 outline-none placeholder:text-slate-500 focus:ring-2 ${validationError ? 'border-rose-500 focus:ring-rose-500/25' : 'border-slate-300 focus:border-cyan-500 focus:ring-cyan-500/20'}`}
                 />
                 {validationError && <p className="mt-2 text-[10px] font-bold leading-4 text-rose-300">{validationError}</p>}
 
                 <div className="mt-4 grid grid-cols-[auto_1fr] gap-2">
-                  <button type="button" onClick={clearReviewDraft} className="h-10 rounded-xl border border-slate-600 bg-slate-800 px-4 text-xs font-bold text-slate-300 transition hover:bg-slate-700 hover:text-white">取消</button>
-                  <button type="button" disabled={!reviewAction} onClick={() => reviewAction && void handleReview(reviewVerification.id, reviewAction)} className={`h-10 rounded-xl text-xs font-black text-white transition disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500 ${reviewAction === 'rejected' ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500' : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500'}`}>{reviewAction === 'rejected' ? '确认拒绝' : reviewAction === 'approved' ? '确认通过' : '请选择审核结果'}</button>
+                  <button type="button" onClick={clearReviewDraft} className="h-10 rounded-xl border border-slate-500 bg-slate-700 px-4 text-xs font-black text-white transition hover:bg-slate-600">取消</button>
+                  <button type="button" disabled={!reviewAction} onClick={() => reviewAction && void handleReview(reviewVerification.id, reviewAction)} className={`h-10 rounded-xl border text-xs font-black transition ${!reviewAction ? 'cursor-not-allowed border-slate-300 bg-slate-100 text-slate-800' : reviewAction === 'rejected' ? 'border-rose-300/60 bg-gradient-to-r from-rose-600 to-red-600 text-white hover:from-rose-500 hover:to-red-500' : 'border-emerald-300/60 bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-500 hover:to-teal-500'}`}>{reviewAction === 'rejected' ? '确认拒绝' : reviewAction === 'approved' ? '确认通过' : '请选择审核结果'}</button>
                 </div>
               </div>
             </div>
