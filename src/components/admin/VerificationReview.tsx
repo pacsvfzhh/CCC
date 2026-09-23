@@ -1239,13 +1239,13 @@ export default function VerificationReview({ admin }: VerificationReviewProps) {
 
         <div className={`grid min-h-0 flex-1 ${isSuperAdmin ? 'lg:grid-cols-[250px_minmax(0,1fr)]' : 'grid-cols-1'}`}>
           {isSuperAdmin && (
-          <aside className="hidden min-h-0 flex-col border-r border-cyan-300/15 bg-[linear-gradient(180deg,#07111f_0%,#040913_100%)] shadow-xl shadow-black/25 lg:flex">
-            <div className="flex h-10 shrink-0 items-center justify-between border-b border-slate-700/70 bg-[linear-gradient(90deg,rgba(15,23,42,0.98),rgba(17,35,57,0.98))] px-3">
+          <aside className="hidden min-h-0 flex-col border-r border-indigo-300/25 bg-[radial-gradient(circle_at_15%_0%,rgba(59,130,246,0.22),transparent_32%),linear-gradient(165deg,#172554_0%,#111c35_42%,#070b16_100%)] shadow-xl shadow-black/30 lg:flex">
+            <div className="flex h-10 shrink-0 items-center justify-between border-b border-indigo-300/20 bg-[linear-gradient(90deg,rgba(30,58,138,0.52),rgba(30,41,59,0.88))] px-3">
               <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100/80"><Users className="h-3.5 w-3.5" />管理员分组</span>
               <span className="rounded-md border border-slate-600/70 bg-slate-800 px-1.5 py-0.5 text-[9px] font-black text-slate-300">{adminOptions.length}</span>
             </div>
 
-            <div className="dark-panel-scroll min-h-0 flex-1 space-y-2 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(14,116,144,0.07),transparent_34%)] p-2.5">
+            <div className="dark-panel-scroll min-h-0 flex-1 space-y-2 overflow-y-auto bg-[radial-gradient(circle_at_100%_12%,rgba(99,102,241,0.14),transparent_34%),linear-gradient(180deg,rgba(15,23,42,0.18),rgba(2,6,23,0.5))] p-2.5">
               {isSuperAdmin && (
                 <div className={`group relative w-full overflow-hidden rounded-xl border p-2 shadow-md shadow-black/15 transition-colors duration-200 ${selectedAdminId === 'all' ? 'border-cyan-300/70 bg-gradient-to-r from-blue-700 via-cyan-700 to-blue-900 text-white' : 'border-slate-600/75 bg-gradient-to-r from-slate-800 via-slate-800 to-blue-950/80 text-slate-200 hover:border-cyan-500/55 hover:from-slate-700 hover:to-blue-900/80'}`}>
                   {selectedAdminId === 'all' && <span className="absolute bottom-1 left-0 top-1 w-1 rounded-r-full bg-cyan-300" />}
