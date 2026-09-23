@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowDown,
   ArrowUp,
+  ArrowUpDown,
   Check,
   CheckCircle,
   Eye,
@@ -26,6 +27,8 @@ import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { ProductType } from '../../types';
 
 type StatusFilter = 'all' | 'active' | 'disabled';
+type DateSortKey = 'created_at' | 'updated_at';
+type DateSortDirection = 'asc' | 'desc';
 
 interface ProductTypeManagementProps {
   isActive: boolean;
@@ -54,6 +57,7 @@ export default function ProductTypeManagement({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [dateSort, setDateSort] = useState<{ key: DateSortKey; direction: DateSortDirection } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '' });
@@ -145,13 +149,32 @@ export default function ProductTypeManagement({
   }), [searchMatchedProducts]);
 
   const visibleProducts = useMemo(() => {
-    if (isSorting) return draftOrder;
-    return searchMatchedProducts.filter(item => (
-      statusFilter === 'all'
-      || (statusFilter === 'active' && item.is_active)
-      || (statusFilter === 'disabled' && !item.is_active)
-    ));
-  }, [draftOrder, isSorting, searchMatchedProducts, statusFilter]);
+    const filteredProducts = isSorting
+      ? draftOrder
+      : searchMatchedProducts.filter(item => (
+        statusFilter === 'all'
+        || (statusFilter === 'active' && item.is_active)
+        || (statusFilter === 'disabled' && !item.is_active)
+      ));
+
+    if (isSorting || !dateSort) return filteredProducts;
+
+    return [...filteredProducts].sort((left, right) => {
+      const difference = new Date(left[dateSort.key]).getTime() - new Date(right[dateSort.key]).getTime();
+      if (difference !== 0) return dateSort.direction === 'asc' ? difference : -difference;
+      return left.sort_order - right.sort_order || left.id.localeCompare(right.id);
+    });
+  }, [dateSort, draftOrder, isSorting, searchMatchedProducts, statusFilter]);
+
+  const toggleDateSort = (key: DateSortKey) => {
+    if (isSorting) return;
+
+    setDateSort(current => {
+      if (!current || current.key !== key) return { key, direction: 'asc' };
+      if (current.direction === 'asc') return { key, direction: 'desc' };
+      return null;
+    });
+  };
 
   const listHeaderTheme = {
     all: 'border-blue-400/25 bg-blue-950/35 text-blue-100',
@@ -162,6 +185,7 @@ export default function ProductTypeManagement({
 
   const openCreateForm = () => {
     setShowEditConfirm(false);
+    setDateSort(null);
     setEditingId(null);
     setFormData({ name: '' });
     setShowForm(true);
@@ -170,6 +194,7 @@ export default function ProductTypeManagement({
   const startEdit = (productType: ProductType) => {
     setShowForm(false);
     setShowEditConfirm(false);
+    setDateSort(null);
     setEditingId(productType.id);
     setFormData({ name: productType.name });
   };
@@ -384,6 +409,7 @@ export default function ProductTypeManagement({
     closeForm();
     setSearchQuery('');
     setStatusFilter('all');
+    setDateSort(null);
     setDraftOrder(sortProductTypes(productTypes));
     setIsSorting(true);
   };
@@ -538,6 +564,28 @@ export default function ProductTypeManagement({
       </button>
     </div>
   );
+
+  const renderDateSortHeader = (key: DateSortKey, label: string, hidden = false) => {
+    const isSelected = dateSort?.key === key;
+    const direction = isSelected ? dateSort.direction : null;
+
+    return (
+      <button
+        type="button"
+        onClick={() => toggleDateSort(key)}
+        disabled={isSorting}
+        aria-label={`${label}${direction === 'asc' ? '，目前升序' : direction === 'desc' ? '，目前降序' : ''}`}
+        className={`${hidden ? 'hidden xl:inline-flex' : 'inline-flex'} items-center gap-1 rounded-md px-1.5 py-1 text-left text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+          isSelected
+            ? 'bg-white/10 text-white'
+            : 'text-current/70 hover:bg-white/10 hover:text-current'
+        } disabled:cursor-not-allowed disabled:opacity-50`}
+      >
+        <span>{label}</span>
+        {direction === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : direction === 'desc' ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUpDown className="h-3.5 w-3.5" />}
+      </button>
+    );
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950/55">
@@ -765,8 +813,8 @@ export default function ProductTypeManagement({
                   <span>順序</span>
                   <span>產品</span>
                   <span>狀態</span>
-                  <span className="hidden xl:block">建立時間</span>
-                  <span>更新時間</span>
+                  {renderDateSortHeader('created_at', '建立時間', true)}
+                  {renderDateSortHeader('updated_at', '更新時間')}
                   <span className="text-right">{isSorting ? '調整' : '操作'}</span>
                 </div>
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
