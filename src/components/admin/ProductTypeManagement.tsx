@@ -553,28 +553,39 @@ export default function ProductTypeManagement({
           ) : (
             <div className="flex min-w-0 flex-1 flex-col gap-2 md:flex-row md:flex-wrap md:items-center xl:flex-nowrap xl:justify-end">
               <div className="flex min-w-0 items-center gap-2">
-                <div className="inline-flex min-w-0 flex-1 items-center gap-0.5 rounded-2xl border border-slate-700 bg-slate-900 p-1 shadow-md md:flex-none">
+                <div className="grid min-w-0 flex-1 grid-cols-3 gap-1 rounded-2xl border border-slate-700 bg-slate-950 p-1.5 shadow-md md:flex md:w-[356px] md:flex-none">
                   {([
-                    ['all', '全部', Eye, 'border-blue-300 bg-blue-600 text-white shadow-sm', 'border-transparent bg-slate-900 text-slate-500 hover:border-blue-900 hover:bg-slate-800 hover:text-blue-200', 'text-blue-100'],
-                    ['active', '已啟用', CheckCircle, 'border-emerald-300 bg-emerald-600 text-white shadow-sm', 'border-transparent bg-slate-900 text-slate-500 hover:border-emerald-900 hover:bg-slate-800 hover:text-emerald-200', 'text-emerald-100'],
-                    ['disabled', '已停用', EyeOff, 'border-amber-300 bg-amber-600 text-white shadow-sm', 'border-transparent bg-slate-900 text-slate-500 hover:border-amber-900 hover:bg-slate-800 hover:text-amber-200', 'text-amber-100'],
-                  ] as const).map(([value, label, Icon, activeClass, inactiveClass, countClass]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setStatusFilter(value)}
-                      aria-pressed={statusFilter === value}
-                      className={`group flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 text-[11px] font-semibold transition-colors focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-cyan-300 md:flex-none ${
-                        statusFilter === value ? activeClass : inactiveClass
-                      }`}
-                    >
-                      <Icon className="h-3.5 w-3.5 shrink-0" />
-                      <span>{label}</span>
-                      <span className={`inline-flex min-w-7 justify-center rounded-full px-2 py-1 text-[10px] font-bold leading-none transition-colors ${countClass} ${statusFilter === value ? 'bg-white/25' : 'bg-slate-950/70'}`}>
-                        {statusCounts[value]}
-                      </span>
-                    </button>
-                  ))}
+                    ['all', '全部', Eye, 'bg-blue-950 text-blue-300', 'border-blue-300 bg-blue-600 text-white shadow-sm', 'text-blue-300'],
+                    ['active', '已啟用', CheckCircle, 'bg-emerald-950 text-emerald-300', 'border-emerald-300 bg-emerald-600 text-white shadow-sm', 'text-emerald-300'],
+                    ['disabled', '已停用', EyeOff, 'bg-amber-950 text-amber-300', 'border-amber-300 bg-amber-600 text-white shadow-sm', 'text-amber-300'],
+                  ] as const).map(([value, label, Icon, iconClass, activeClass, countClass]) => {
+                    const isSelected = statusFilter === value;
+
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setStatusFilter(value)}
+                        aria-pressed={isSelected}
+                        className={`flex min-h-11 min-w-0 items-center gap-2 rounded-xl border px-2.5 text-left transition-colors focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-cyan-300 sm:px-3 ${
+                          isSelected
+                            ? activeClass
+                            : 'border-transparent bg-slate-900 text-slate-400 hover:border-slate-700 hover:bg-slate-800 hover:text-slate-200'
+                        }`}
+                      >
+                        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${isSelected ? 'bg-white/15 text-white' : iconClass}`}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[11px] font-semibold leading-4">{label}</span>
+                          <span className={`block text-[10px] leading-4 ${isSelected ? 'text-white/75' : 'text-slate-500'}`}>產品</span>
+                        </span>
+                        <span className={`text-sm font-bold tabular-nums ${isSelected ? 'text-white' : countClass}`}>
+                          {statusCounts[value]}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
                 <span className="hidden shrink-0 text-[11px] text-cyan-100/50 2xl:inline">顯示 {visibleProducts.length} 項</span>
               </div>
