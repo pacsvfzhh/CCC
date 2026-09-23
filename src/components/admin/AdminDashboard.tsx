@@ -1327,18 +1327,19 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`relative flex items-center gap-1.5 px-1.5 py-1.5 rounded-lg font-medium transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
+                    onMouseDown={(event) => event.preventDefault()}
+                    className={`relative flex items-center gap-1.5 rounded-lg border border-transparent px-1.5 py-1.5 text-left font-medium transition-colors outline-none focus:outline-none focus-visible:border-cyan-500/60 focus-visible:outline-none ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
                           ? 'bg-orange-700 text-white shadow-lg shadow-orange-900/40'
                           : tab.id === 'cccservice'
-                            ? 'border border-emerald-200/60 bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-lg shadow-emerald-900/50'
-                            : 'border border-cyan-700/55 bg-gradient-to-r from-blue-700 via-cyan-800 to-slate-800 text-white shadow-md shadow-slate-950/45'
+                            ? 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-lg shadow-emerald-900/50'
+                            : 'bg-gradient-to-r from-blue-700 via-cyan-800 to-slate-800 text-white shadow-md shadow-slate-950/45'
                         : tab.id === 'customerservice'
-                          ? 'text-orange-400 hover:text-orange-100 hover:bg-orange-950/70'
+                          ? 'text-orange-400 hover:bg-orange-950/70 hover:text-orange-100'
                           : tab.id === 'cccservice'
-                            ? 'border border-emerald-900/60 text-emerald-400 hover:border-emerald-700/70 hover:text-emerald-100 hover:bg-emerald-950/70'
-                            : 'border border-transparent text-slate-300 hover:border-cyan-900/60 hover:bg-gradient-to-r hover:from-blue-950/90 hover:via-cyan-950/70 hover:to-amber-950/45 hover:text-white'
+                            ? 'text-emerald-400 hover:bg-emerald-950/70 hover:text-emerald-100'
+                            : 'text-slate-300 hover:border-cyan-900/60 hover:bg-gradient-to-r hover:from-blue-950/90 hover:via-cyan-950/70 hover:to-amber-950/45 hover:text-white'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5 flex-shrink-0" />
@@ -1405,18 +1406,19 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`relative flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
+                    onMouseDown={(event) => event.preventDefault()}
+                    className={`relative flex flex-shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-transparent px-2 py-1.5 font-medium transition-colors outline-none focus:outline-none focus-visible:border-cyan-500/60 focus-visible:outline-none ${
                       activeTab === tab.id
                         ? tab.id === 'customerservice'
                           ? 'bg-orange-700 text-white shadow-lg shadow-orange-900/40'
                           : tab.id === 'cccservice'
-                            ? 'border border-emerald-200/60 bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-lg shadow-emerald-900/50'
+                            ? 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-lg shadow-emerald-900/50'
                             : 'bg-blue-600 text-white shadow-lg shadow-blue-500/50'
                         : tab.id === 'customerservice'
-                          ? 'bg-orange-950/70 text-orange-300 hover:text-orange-100 hover:bg-orange-950 border border-orange-700/50'
+                          ? 'bg-orange-950/70 text-orange-300 hover:bg-orange-950 hover:text-orange-100'
                           : tab.id === 'cccservice'
-                            ? 'bg-emerald-950/70 text-emerald-300 hover:text-emerald-100 hover:bg-emerald-950 border border-emerald-700/50'
-                            : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700'
+                            ? 'bg-emerald-950/70 text-emerald-300 hover:bg-emerald-950 hover:text-emerald-100'
+                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5 flex-shrink-0" />
