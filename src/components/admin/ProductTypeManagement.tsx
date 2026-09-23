@@ -459,7 +459,7 @@ export default function ProductTypeManagement({
         type="button"
         onClick={() => startEdit(productType)}
         aria-label={`編輯 ${productType.name}`}
-        className="rounded-lg p-2 text-slate-400 transition hover:bg-blue-500/10 hover:text-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+        className="rounded-md border border-blue-400/25 bg-blue-950/45 p-1.5 text-blue-300 transition hover:border-blue-300/60 hover:bg-blue-900 hover:text-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
       >
         <Pencil className="h-4 w-4" />
       </button>
@@ -468,7 +468,10 @@ export default function ProductTypeManagement({
         onClick={() => void toggleStatus(productType.id, productType.is_active)}
         disabled={togglingId !== null}
         aria-label={`${productType.is_active ? '停用' : '啟用'} ${productType.name}`}
-        className="rounded-lg p-2 text-slate-400 transition hover:bg-emerald-500/10 hover:text-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+        className={`rounded-md border p-1.5 transition focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40 ${productType.is_active
+          ? 'border-amber-400/25 bg-amber-950/45 text-amber-300 hover:border-amber-300/60 hover:bg-amber-900 hover:text-amber-100 focus-visible:ring-amber-400'
+          : 'border-emerald-400/25 bg-emerald-950/45 text-emerald-300 hover:border-emerald-300/60 hover:bg-emerald-900 hover:text-emerald-100 focus-visible:ring-emerald-400'
+        }`}
       >
         {togglingId === productType.id ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -483,7 +486,7 @@ export default function ProductTypeManagement({
         onClick={() => requestDelete(productType)}
         disabled={!productType.is_active}
         aria-label={`移除 ${productType.name}`}
-        className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 disabled:cursor-not-allowed disabled:opacity-25"
+        className="rounded-md border border-rose-400/25 bg-rose-950/45 p-1.5 text-rose-300 transition hover:border-rose-300/60 hover:bg-rose-900 hover:text-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 disabled:cursor-not-allowed disabled:opacity-25"
       >
         <Trash2 className="h-4 w-4" />
       </button>
@@ -733,7 +736,7 @@ export default function ProductTypeManagement({
                       }}
                       onDragLeave={() => setDragOverId(current => current === productType.id ? null : current)}
                       onDrop={event => handleDrop(event, productType.id)}
-                      className={`grid min-h-[68px] grid-cols-[72px_minmax(200px,1fr)_110px_140px_140px] items-center gap-3 border-b px-4 py-2.5 transition xl:grid-cols-[72px_minmax(240px,1fr)_110px_140px_140px_140px] ${
+                      className={`grid min-h-[44px] grid-cols-[72px_minmax(200px,1fr)_110px_140px_140px] items-center gap-3 border-b px-4 py-1.5 transition xl:grid-cols-[72px_minmax(240px,1fr)_110px_140px_140px_140px] ${
                         dragOverId === productType.id
                           ? 'border-cyan-400/70 bg-cyan-400/[0.07]'
                           : productType.is_active
@@ -762,7 +765,6 @@ export default function ProductTypeManagement({
 
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-slate-100">{productType.name}</p>
-                        <p className="mt-1 truncate font-mono text-[10px] text-slate-600">ID · {productType.id}</p>
                       </div>
 
                       <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
@@ -786,7 +788,7 @@ export default function ProductTypeManagement({
                 {visibleProducts.map((productType, index) => (
                   <article
                     key={productType.id}
-                    className={`rounded-xl border p-3 ${productType.is_active
+                    className={`rounded-lg border p-2 ${productType.is_active
                       ? 'border-emerald-900/50 bg-emerald-950/[0.12]'
                       : 'border-amber-900/40 bg-amber-950/[0.10]'
                     }`}
@@ -799,7 +801,6 @@ export default function ProductTypeManagement({
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <h2 className="truncate text-sm font-semibold text-white">{productType.name}</h2>
-                            <p className="mt-1 truncate font-mono text-[10px] text-slate-600">{productType.id}</p>
                           </div>
                           <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${
                             productType.is_active
@@ -809,7 +810,7 @@ export default function ProductTypeManagement({
                             {productType.is_active ? '已啟用' : '已停用'}
                           </span>
                         </div>
-                        <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-800 pt-2.5">
+                        <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-800 pt-2">
                           <span className="text-[11px] text-slate-500">更新 {formatDate(productType.updated_at)}</span>
                           {isSorting ? renderOrderControls(productType, index) : renderProductActions(productType)}
                         </div>
