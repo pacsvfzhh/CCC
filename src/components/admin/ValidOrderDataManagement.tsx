@@ -617,16 +617,16 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
           </div>
         )}
 
-        <div className="grid shrink-0 grid-cols-2 border-b border-cyan-400/20 bg-slate-900/35 sm:grid-cols-3">
-          <div className="col-span-2 border-b border-cyan-400/15 bg-cyan-400/[0.03] px-3 py-2.5 sm:col-span-1 sm:border-b-0 sm:border-r sm:px-5">
-            <div className="flex items-center gap-1.5 text-[11px] font-medium text-cyan-200">
+        <div className="grid shrink-0 grid-cols-2 border-b border-cyan-400/25 bg-slate-900/35 sm:grid-cols-3">
+          <div className="col-span-2 border-b border-cyan-300/30 bg-gradient-to-br from-blue-600/35 via-cyan-500/20 to-slate-900/60 px-3 py-2.5 sm:col-span-1 sm:border-b-0 sm:border-r sm:px-5">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-100">
               <Database className="h-3.5 w-3.5" /> Total Data Pool Size
             </div>
             <div className="mt-0.5 flex items-baseline gap-1.5 whitespace-nowrap">
               <span className="text-2xl font-bold tabular-nums text-white">{(activeCount + inactiveCount).toLocaleString()}</span>
-              <span className="text-xs text-slate-400">/ 500,000</span>
+              <span className="text-xs text-cyan-100/85">/ 500,000</span>
             </div>
-            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-700/70">
+            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-950/60">
               <div
                 className={`h-full rounded-full ${
                   (activeCount + inactiveCount) >= 500000 ? 'bg-red-400' :
@@ -636,25 +636,25 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                 style={{ width: `${Math.min(((activeCount + inactiveCount) / 500000) * 100, 100)}%` }}
               />
             </div>
-            <p className="mt-1 truncate text-[10px] text-slate-400">
+            <p className="mt-1 truncate text-[10px] text-cyan-100/85">
               {(activeCount + inactiveCount) >= 500000 ? 'Pool is full - new entries replace oldest records' :
                 (activeCount + inactiveCount) >= 450000 ? `Pool is ${Math.round(((activeCount + inactiveCount) / 500000) * 100)}% full - nearing capacity` :
                 `Pool has ${(500000 - (activeCount + inactiveCount)).toLocaleString()} slots available`}
             </p>
           </div>
-          <div className="border-r border-cyan-400/15 px-3 py-2.5 sm:px-5">
-            <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-300">
+          <div className="border-r border-emerald-300/30 bg-gradient-to-br from-emerald-600/35 via-teal-500/20 to-slate-900/60 px-3 py-2.5 sm:px-5">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-100">
               <CheckCircle className="h-3.5 w-3.5" /> Active Records
             </div>
             <div className="mt-1 text-2xl font-bold tabular-nums text-white">{activeCount.toLocaleString()}</div>
-            <div className="mt-1 text-[10px] text-emerald-200/60">Available for matching</div>
+            <div className="mt-1 text-[10px] text-emerald-100/85">Available for matching</div>
           </div>
-          <div className="px-3 py-2.5 sm:px-5">
-            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
+          <div className="bg-gradient-to-br from-amber-600/30 via-orange-500/15 to-slate-900/60 px-3 py-2.5 sm:px-5">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-100">
               <XCircle className="h-3.5 w-3.5" /> Inactive Records
             </div>
             <div className="mt-1 text-2xl font-bold tabular-nums text-white">{inactiveCount.toLocaleString()}</div>
-            <div className="mt-1 text-[10px] text-slate-400">Not currently in use</div>
+            <div className="mt-1 text-[10px] text-amber-100/85">Not currently in use</div>
           </div>
         </div>
 
