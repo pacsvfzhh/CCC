@@ -224,7 +224,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                   ? 'border-cyan-300/20 bg-gradient-to-br from-blue-600 to-cyan-700 text-cyan-50'
                   : 'border-amber-300/20 bg-gradient-to-br from-slate-600 to-amber-900/70 text-amber-100'
                 }`}>
-                  <Shield className="h-6 w-6" />
+                  <Shield className="h-5 w-5" />
                 </div>
                 <div className="flex min-w-0 items-center gap-2.5">
                   <h3 className="min-w-0 truncate text-base font-semibold tracking-wide text-white" title={secondaryAdmin.username}>{secondaryAdmin.username}</h3>
