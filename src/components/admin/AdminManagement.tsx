@@ -247,19 +247,19 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                 </button>
                 <button
                   onClick={() => openEditModal(secondaryAdmin)}
-                  className="rounded-lg border border-blue-400/20 bg-blue-500/10 p-2.5 text-blue-200 transition-colors hover:border-blue-400/40 hover:bg-blue-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                  className="inline-flex min-h-9 items-center justify-center rounded-md px-2.5 text-xs font-semibold text-blue-200 transition-colors hover:bg-blue-500/15 hover:text-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
                   title="編輯管理員"
                   aria-label={`編輯 ${secondaryAdmin.username}`}
                 >
-                  <Edit2 className="w-4 h-4" />
+                  編輯
                 </button>
                 <button
                   onClick={() => setDeletingAdminId(secondaryAdmin.id)}
-                  className="rounded-lg border border-rose-400/20 bg-rose-500/10 p-2.5 text-rose-200 transition-colors hover:border-rose-400/40 hover:bg-rose-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                  className="inline-flex min-h-9 items-center justify-center rounded-md px-2.5 text-xs font-semibold text-rose-200 transition-colors hover:bg-rose-500/15 hover:text-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
                   title="刪除管理員"
                   aria-label={`刪除 ${secondaryAdmin.username}`}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  刪除
                 </button>
               </div>
             </div>
