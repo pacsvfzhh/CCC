@@ -1133,25 +1133,53 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
       {deletingId && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-white mb-4">Confirm Deletion</h3>
-            <p className="text-slate-300 mb-6">
-              Are you sure you want to delete this valid order data? This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="valid-data-delete-title" aria-describedby="valid-data-delete-description" className="w-full max-w-md overflow-hidden rounded-2xl border border-rose-300/25 bg-[#0b192c] text-slate-100 shadow-[0_28px_80px_rgba(2,6,23,0.8)]">
+            <div className="h-1 bg-gradient-to-r from-cyan-500 via-amber-400 to-rose-500" />
+            <div className="flex items-start justify-between gap-4 border-b border-rose-400/15 bg-gradient-to-r from-rose-500/15 via-amber-500/5 to-transparent px-5 py-5 sm:px-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-rose-400/30 bg-rose-500/15 text-rose-200">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 id="valid-data-delete-title" className="text-base font-semibold text-white">Confirm Deletion</h3>
+                  <p className="mt-1 text-xs text-rose-200/85">Remove a record from the data pool</p>
+                </div>
+              </div>
               <button
+                type="button"
                 onClick={() => setDeletingId(null)}
-                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
+                aria-label="Close deletion confirmation"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-5 py-5 sm:px-6">
+              <p id="valid-data-delete-description" className="text-sm leading-relaxed text-slate-200">
+                Are you sure you want to delete this valid order data?
+              </p>
+              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-rose-400/25 bg-rose-500/10 px-3.5 py-3 text-xs leading-relaxed text-rose-100">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
+                This action cannot be undone.
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-cyan-400/15 bg-slate-950/45 px-5 py-4 sm:px-6">
+              <button
+                type="button"
+                onClick={() => setDeletingId(null)}
+                autoFocus
+                className="h-10 min-w-24 rounded-lg border border-slate-600 bg-slate-800/60 px-4 text-xs font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={() => handleDelete(deletingId)}
-                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all"
+                className="inline-flex h-10 min-w-28 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-rose-600 to-red-600 px-4 text-xs font-semibold text-white shadow-sm shadow-rose-950/40 transition-colors hover:from-rose-500 hover:to-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
               >
+                <Trash2 className="h-4 w-4" />
                 Delete
               </button>
             </div>
