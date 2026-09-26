@@ -4345,28 +4345,26 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   </tbody>
                 </table>
                 {flatFilteredEmployees.length === 0 && (
-                  <div className="flex min-h-[260px] flex-1 items-center justify-center bg-gradient-to-b from-blue-950/20 via-slate-900/40 to-slate-950/40 px-4 py-8">
-                    <div className="w-full max-w-md rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-blue-950/60 via-slate-900/90 to-cyan-950/30 px-6 py-8 text-center shadow-xl shadow-slate-950/30">
-                      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/25 bg-gradient-to-br from-blue-500/20 to-cyan-400/10 text-cyan-200">
-                        <Users className="h-7 w-7" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-white">
-                        {employeeGroups[0]?.employees.length ? '沒有符合條件的員工' : '目前沒有員工'}
-                      </h3>
-                      <p className="mt-2 text-sm text-slate-400">
-                        {employeeGroups[0]?.employees.length ? '試著調整上方的搜尋或篩選條件。' : '建立第一位員工，即可在這裡查看員工資料。'}
-                      </p>
-                      {!employeeGroups[0]?.employees.length && (
-                        <button
-                          type="button"
-                          onClick={() => openCreateEmployeeForm(admin.id)}
-                          className="mt-6 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-5 text-sm font-semibold text-white shadow-sm shadow-blue-950/40 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-                        >
-                          <UserPlus className="h-4 w-4" />
-                          建立員工
-                        </button>
-                      )}
+                  <div className="flex min-h-[260px] flex-1 flex-col items-center justify-center bg-gradient-to-b from-blue-950/20 via-slate-900/40 to-slate-950/40 px-4 py-8 text-center">
+                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/25 bg-gradient-to-br from-blue-500/20 to-cyan-400/10 text-cyan-200">
+                      <Users className="h-7 w-7" />
                     </div>
+                    <h3 className="text-lg font-semibold text-white">
+                      {employeeGroups[0]?.employees.length ? '沒有符合條件的員工' : '目前沒有員工'}
+                    </h3>
+                    <p className="mt-2 text-sm text-slate-400">
+                      {employeeGroups[0]?.employees.length ? '試著調整上方的搜尋或篩選條件。' : '建立第一位員工，即可在這裡查看員工資料。'}
+                    </p>
+                    {!employeeGroups[0]?.employees.length && (
+                      <button
+                        type="button"
+                        onClick={() => openCreateEmployeeForm(admin.id)}
+                        className="mt-6 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-5 text-sm font-semibold text-white shadow-sm shadow-blue-950/40 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        建立員工
+                      </button>
+                    )}
                   </div>
                 )}
                 <div aria-hidden="true" className="h-4 shrink-0 border-t border-blue-300/35 bg-gradient-to-r from-blue-950/10 via-blue-500/35 to-blue-950/10 shadow-[inset_0_1px_0_rgba(96,165,250,0.55),0_-4px_14px_rgba(59,130,246,0.18)]" />
