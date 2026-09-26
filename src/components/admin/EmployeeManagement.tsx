@@ -4200,7 +4200,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                           <span className="mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200">符合篩選的員工</span>
                         </div>
                       </div>
-                    {allEmps.length > 0 && (allEmps.every(employee => employee.statsLoaded) ? (
+                    {allEmps.every(employee => employee.statsLoaded) ? (
                       <>
                         <span className="text-slate-500">&bull;</span>
                         {renderSummaryFilterButton(
@@ -4247,7 +4247,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                       </>
                     ) : (
                       <span className="text-[10px] font-medium text-slate-500">統計資料載入中……</span>
-                    ))}
+                    )}
                     </div>
                     <div className="mt-1 flex items-center justify-between gap-2 flex-wrap">
                       {renderStatusFilterButtons(flatAdminId)}
@@ -4451,8 +4451,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                                   <span className={`mt-0.5 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.12em] ${isSuperGroup ? 'text-yellow-200' : 'text-cyan-200'}`}>符合篩選的員工</span>
                                 </div>
                               </div>
-                              {allEmps.length > 0 && (
-                                <>
                                   <span className="text-slate-500">•</span>
                                   {renderSummaryFilterButton(
                                     group.admin.id,
@@ -4495,8 +4493,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                                     '钱包有金额',
                                     financialCounts.wallet,
                                   )}
-                                </>
-                              )}
                             </>
                           );
                         })()}
