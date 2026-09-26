@@ -186,6 +186,8 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
     return null;
   }
 
+  const deletingAdmin = admins.find(item => item.id === deletingAdminId);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-gradient-to-br from-[#17243a] via-[#122838] to-[#102c33] text-slate-100">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-400/20 bg-gradient-to-r from-[#1b2d47] to-[#17343e] px-4 py-3 sm:px-6">
@@ -281,15 +283,22 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
           {admins.map((secondaryAdmin) => (
             <div
               key={secondaryAdmin.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-600/30 bg-gradient-to-r from-slate-800/35 to-cyan-950/15 px-4 py-3 transition-colors hover:bg-blue-900/20 sm:px-6"
+              className={`relative flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3.5 transition-colors sm:px-6 ${secondaryAdmin.is_active
+                ? 'border-cyan-400/15 bg-gradient-to-r from-blue-900/25 via-slate-800/25 to-cyan-950/20 hover:from-blue-900/40 hover:to-cyan-900/30'
+                : 'border-amber-400/15 bg-gradient-to-r from-amber-900/15 via-slate-800/20 to-slate-800/15 hover:from-amber-900/25 hover:to-slate-700/25'
+              }`}
             >
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-cyan-700">
-                  <Shield className="w-5 h-5 text-white" />
+              <span aria-hidden="true" className={`absolute inset-y-2 left-0 w-0.5 rounded-r ${secondaryAdmin.is_active ? 'bg-cyan-500/80' : 'bg-amber-500/70'}`} />
+              <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${secondaryAdmin.is_active
+                  ? 'border-cyan-300/20 bg-gradient-to-br from-blue-600 to-cyan-700 text-cyan-50'
+                  : 'border-amber-300/20 bg-gradient-to-br from-slate-600 to-amber-900/70 text-amber-100'
+                }`}>
+                  <Shield className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="truncate font-semibold text-white">{secondaryAdmin.username}</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="truncate text-sm font-semibold tracking-wide text-white" title={secondaryAdmin.username}>{secondaryAdmin.username}</h3>
+                  <p className="mt-0.5 text-xs text-slate-400">
                     建立於 {new Date(secondaryAdmin.created_at).toLocaleDateString('zh-TW')}
                   </p>
                 </div>
@@ -297,17 +306,18 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
               <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
                 <button
                   onClick={() => toggleAdminStatus(secondaryAdmin.id, secondaryAdmin.is_active)}
-                  className={`min-h-9 rounded-lg border px-3 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 ${
+                  className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 ${
                     secondaryAdmin.is_active
-                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 focus-visible:ring-emerald-400'
-                      : 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 focus-visible:ring-amber-400'
+                      ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20 focus-visible:ring-emerald-400'
+                      : 'border-amber-400/25 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 focus-visible:ring-amber-400'
                   }`}
                 >
+                  <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${secondaryAdmin.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                   {secondaryAdmin.is_active ? '使用中' : '已停用'}
                 </button>
                 <button
                   onClick={() => openEditModal(secondaryAdmin)}
-                  className="rounded-lg p-2.5 text-blue-300 transition-colors hover:bg-blue-500/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                  className="rounded-lg border border-blue-400/20 bg-blue-500/10 p-2.5 text-blue-200 transition-colors hover:border-blue-400/40 hover:bg-blue-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
                   title="編輯管理員"
                   aria-label={`編輯 ${secondaryAdmin.username}`}
                 >
@@ -315,7 +325,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                 </button>
                 <button
                   onClick={() => setDeletingAdminId(secondaryAdmin.id)}
-                  className="rounded-lg p-2.5 text-rose-300 transition-colors hover:bg-rose-500/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                  className="rounded-lg border border-rose-400/20 bg-rose-500/10 p-2.5 text-rose-200 transition-colors hover:border-rose-400/40 hover:bg-rose-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
                   title="刪除管理員"
                   aria-label={`刪除 ${secondaryAdmin.username}`}
                 >
@@ -328,46 +338,66 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
       )}
 
       {deletingAdminId && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-600 bg-gradient-to-br from-slate-800 to-slate-900 p-5 shadow-2xl sm:p-6">
-            <h3 className="mb-3 text-lg font-semibold text-white">刪除管理員</h3>
-            <p className="mb-5 text-sm leading-relaxed text-slate-300">
-              確定要刪除這位管理員嗎？此操作無法復原。
-            </p>
-
-            {deleteError && (
-              <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-950/40 p-3 text-sm text-rose-200">
-                {deleteError}
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div role="dialog" aria-modal="true" aria-labelledby="delete-admin-title" className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-rose-400/25 bg-slate-900 shadow-2xl shadow-slate-950/60">
+            <div className="flex items-center gap-3 border-b border-rose-400/20 bg-gradient-to-r from-rose-950/75 via-slate-900 to-slate-900 px-5 py-4 sm:px-6">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-rose-400/25 bg-rose-500/15 text-rose-200">
+                <Trash2 className="h-5 w-5" />
               </div>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setDeletingAdminId(null);
-                  setDeleteError(null);
-                }}
-                className="min-h-10 flex-1 rounded-lg border border-slate-600 bg-slate-700 px-4 text-sm text-white transition-colors hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-              >
-                取消
-              </button>
-              <button
-                onClick={() => handleDeleteAdmin(deletingAdminId)}
-                className="min-h-10 flex-1 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-rose-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
-              >
-                確認刪除
-              </button>
+              <div>
+                <h3 id="delete-admin-title" className="text-lg font-semibold text-white">刪除管理員</h3>
+                <p className="mt-0.5 text-xs text-rose-200/75">此操作無法復原</p>
+              </div>
+            </div>
+            <div className="space-y-5 p-5 sm:p-6">
+              <div>
+                <p className="text-sm text-slate-300">確定要刪除以下管理員嗎？</p>
+                <div className="mt-3 flex items-center gap-3 rounded-xl border border-rose-400/20 bg-rose-950/20 px-3.5 py-3">
+                  <Shield className="h-5 w-5 shrink-0 text-rose-300" />
+                  <span className="min-w-0 break-words text-sm font-semibold text-white">{deletingAdmin?.username}</span>
+                </div>
+              </div>
+              {deleteError && (
+                <div role="alert" className="rounded-lg border border-rose-500/30 bg-rose-950/40 p-3 text-sm text-rose-200">
+                  {deleteError}
+                </div>
+              )}
+              <div className="flex gap-3 border-t border-slate-700/70 pt-4">
+                <button
+                  onClick={() => {
+                    setDeletingAdminId(null);
+                    setDeleteError(null);
+                  }}
+                  className="min-h-10 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-4 text-sm text-slate-200 transition-colors hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => handleDeleteAdmin(deletingAdminId)}
+                  className="min-h-10 flex-1 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-rose-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+                >
+                  確認刪除
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {editingAdmin && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-600 bg-gradient-to-br from-slate-800 to-slate-900 p-5 shadow-2xl sm:p-6">
-            <h3 className="mb-4 text-lg font-semibold text-white">編輯管理員</h3>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div role="dialog" aria-modal="true" aria-labelledby="edit-admin-title" className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-cyan-400/25 bg-slate-900 shadow-2xl shadow-slate-950/60">
+            <div className="flex items-center gap-3 border-b border-cyan-400/20 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950/75 px-5 py-4 sm:px-6">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-400/25 bg-blue-500/15 text-cyan-200">
+                <Edit2 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h3 id="edit-admin-title" className="text-lg font-semibold text-white">編輯管理員</h3>
+                <p className="mt-0.5 truncate text-xs text-cyan-200/75">{editingAdmin.username}</p>
+              </div>
+            </div>
 
-            <form onSubmit={handleUpdateAdmin} className="space-y-4">
+            <form onSubmit={handleUpdateAdmin} className="space-y-5 p-5 sm:p-6">
               {editError && (
                 <div className="rounded-lg border border-rose-500/30 bg-rose-950/40 p-3 text-sm text-rose-200">
                   {editError}
@@ -375,18 +405,18 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
               )}
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-200">登入帳號</label>
+                <label className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">登入帳號</label>
                 <input
                   type="text"
                   value={editFormData.username}
                   onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value })}
                   required
-                  className="h-10 w-full rounded-lg border border-slate-600 bg-slate-950/60 px-3 text-white outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+                  className="h-11 w-full rounded-xl border border-slate-600 bg-slate-950/70 px-3.5 text-sm text-white outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">
                   新密碼 <span className="text-slate-400">（留空則保持不變）</span>
                 </label>
                 <div className="relative">
@@ -395,7 +425,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                     value={editFormData.password}
                     onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
                     placeholder="輸入新密碼"
-                    className="h-10 w-full rounded-lg border border-slate-600 bg-slate-950/60 px-3 pr-11 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+                    className="h-11 w-full rounded-xl border border-slate-600 bg-slate-950/70 px-3.5 pr-11 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
                   />
                   <button
                     type="button"
@@ -408,7 +438,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                 <p className="mt-1 text-xs text-slate-500">若修改密碼，至少需要 6 個字元</p>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 border-t border-slate-700/70 pt-4">
                 <button
                   type="button"
                   onClick={() => {
@@ -418,14 +448,14 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                     setEditError(null);
                   }}
                   disabled={updating}
-                  className="min-h-10 flex-1 rounded-lg border border-slate-600 bg-slate-700 px-4 text-sm text-white transition-colors hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-h-10 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-4 text-sm text-slate-200 transition-colors hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={updating || !editFormData.username.trim()}
-                  className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-semibold text-white transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {updating ? (
                     <>
