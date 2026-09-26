@@ -4186,8 +4186,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 const allEmps = employeeGroups[0]?.employees || [];
                 const financialCounts = getFinancialFilterCounts(flatAdminId);
                 return (
-                  <div className="px-3 pb-1.5 pt-3 border-b border-blue-500/20 bg-blue-500/5">
-                    <div className="flex items-center gap-3 flex-wrap">
+                  <div className="border-b border-blue-500/20 bg-blue-500/5 px-3 pb-1.5 pt-3">
+                    <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+                      <div className="flex min-w-0 flex-wrap items-center gap-3">
                       <div className="inline-flex items-center gap-3 rounded-xl border border-blue-400/35 bg-gradient-to-r from-blue-950/90 via-cyan-950/65 to-slate-900 px-3 py-1 shadow-sm shadow-blue-950/40">
                         <Users className="h-4 w-4 text-cyan-300" />
                         <div className="flex min-w-[82px] flex-col">
@@ -4248,11 +4249,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                     ) : (
                       <span className="text-[10px] font-medium text-slate-500">統計資料載入中……</span>
                     )}
-                    </div>
-                    <div className="mt-1 flex items-center justify-between gap-2 flex-wrap">
-                      {renderStatusFilterButtons(flatAdminId)}
-                      <div className="ml-auto flex h-8 items-center gap-2">
-                      <div className="group relative h-8 w-[168px] overflow-hidden rounded-xl border border-cyan-300/30 bg-gradient-to-r from-slate-950/80 via-blue-950/60 to-cyan-950/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_3px_10px_rgba(2,6,23,0.28)] transition-all focus-within:border-cyan-200/70 focus-within:from-blue-950/90 focus-within:via-cyan-950/55 focus-within:to-blue-950/65 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_14px_rgba(34,211,238,0.16)]">
+                      </div>
+                      <div className="flex h-8 w-full max-w-[300px] items-center gap-2 justify-self-end md:w-[300px]">
+                      <div className="group relative h-8 min-w-0 max-w-[168px] flex-1 overflow-hidden rounded-xl border border-cyan-300/30 bg-gradient-to-r from-slate-950/80 via-blue-950/60 to-cyan-950/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_3px_10px_rgba(2,6,23,0.28)] transition-all focus-within:border-cyan-200/70 focus-within:from-blue-950/90 focus-within:via-cyan-950/55 focus-within:to-blue-950/65 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_14px_rgba(34,211,238,0.16)]">
                         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-300/80 transition-all duration-200 group-focus-within:scale-110 group-focus-within:text-cyan-100" />
                         <input
                           type="text"
@@ -4269,7 +4268,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                         )}
                         <span className="pointer-events-none absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 bg-gradient-to-r from-cyan-300 via-blue-400 to-transparent transition-transform duration-300 group-focus-within:scale-x-100" />
                       </div>
-                      <div className="flex h-8 items-center overflow-hidden rounded-lg border border-cyan-300/45 bg-cyan-950/35 shadow-sm shadow-cyan-950/30">
+                      <div className="flex h-8 shrink-0 items-center overflow-hidden rounded-lg border border-cyan-300/45 bg-cyan-950/35 shadow-sm shadow-cyan-950/30">
                         <div className="flex h-full w-[82px] items-center justify-center gap-1.5 border-r border-cyan-300/30 bg-cyan-500/15 px-2">
                           <Clock className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
                           <span className="text-xs text-cyan-100 font-mono font-bold tabular-nums w-[34px] text-center"><RefreshCountdown nextRefreshAt={nextRefreshAt} /></span>
@@ -4290,9 +4289,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                           </span>
                         </button>
                       </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {renderStatusFilterButtons(flatAdminId)}
                     </div>
                   </div>
-                </div>
                 );
               })()}
               {/* Controls */}
