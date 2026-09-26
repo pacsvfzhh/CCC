@@ -213,18 +213,18 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
           {admins.map((secondaryAdmin) => (
             <div
               key={secondaryAdmin.id}
-              className={`relative flex flex-wrap items-center justify-between gap-3 border-b px-4 py-1 transition-colors sm:px-6 ${secondaryAdmin.is_active
+              className={`relative flex min-h-[57px] flex-wrap items-center justify-between gap-3 border-b px-4 py-1 transition-colors sm:px-6 ${secondaryAdmin.is_active
                 ? 'border-cyan-400/15 bg-gradient-to-r from-blue-900/25 via-slate-800/25 to-cyan-950/20 hover:from-blue-900/40 hover:to-cyan-900/30'
                 : 'border-amber-400/15 bg-gradient-to-r from-amber-900/15 via-slate-800/20 to-slate-800/15 hover:from-amber-900/25 hover:to-slate-700/25'
               }`}
             >
               <span aria-hidden="true" className={`absolute inset-y-2 left-0 w-0.5 rounded-r ${secondaryAdmin.is_active ? 'bg-cyan-500/80' : 'bg-amber-500/70'}`} />
               <div className="flex min-w-0 flex-1 items-center gap-3.5">
-                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${secondaryAdmin.is_active
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${secondaryAdmin.is_active
                   ? 'border-cyan-300/20 bg-gradient-to-br from-blue-600 to-cyan-700 text-cyan-50'
                   : 'border-amber-300/20 bg-gradient-to-br from-slate-600 to-amber-900/70 text-amber-100'
                 }`}>
-                  <Shield className="h-5 w-5" />
+                  <Shield className="h-4 w-4" />
                 </div>
                 <div className="flex min-w-0 items-center gap-2.5">
                   <h3 className="min-w-0 truncate text-base font-semibold tracking-wide text-white" title={secondaryAdmin.username}>{secondaryAdmin.username}</h3>
