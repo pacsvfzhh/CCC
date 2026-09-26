@@ -59,13 +59,13 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   }, []);
 
   useEffect(() => {
-    if (message) {
+    if (message && !(showAddModal && message.type === 'error')) {
       const timer = setTimeout(() => {
         setMessage(null);
       }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [message]);
+  }, [message, showAddModal]);
 
   useEffect(() => {
     if (!statusFilterOpen) return;
@@ -160,12 +160,31 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   const handleAddSingle = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
-    setAddingSingle(true);
 
+    const value = formData.productValue.trim();
+    const transactionId = formData.transactionId.trim();
+    if (!value) {
+      setMessage({ type: 'error', text: '請輸入產品金額。' });
+      return;
+    }
+    if (!Number.isFinite(Number(value)) || Number(value) <= 0) {
+      setMessage({ type: 'error', text: '產品金額須為大於 0 的數字。' });
+      return;
+    }
+    if (!/^(?:\d+(?:\.\d{1,2})?|\.\d{1,2})$/.test(value)) {
+      setMessage({ type: 'error', text: '產品金額格式錯誤，請輸入最多兩位小數的一般數字。' });
+      return;
+    }
+    if (!transactionId) {
+      setMessage({ type: 'error', text: '請輸入交易 ID。' });
+      return;
+    }
+
+    setAddingSingle(true);
     try {
       const { error } = await supabase.from('valid_order_data').insert({
-        product_value: parseFloat(formData.productValue),
-        transaction_id: formData.transactionId,
+        product_value: Number(value),
+        transaction_id: transactionId,
         created_by: adminId,
       });
 
@@ -178,7 +197,9 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       if (currentPage === 1) void loadValidDataRef.current?.();
       loadStatistics();
     } catch (error: unknown) {
-      setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to add valid order data' });
+      setMessage({ type: 'error', text: (error as { code?: string })?.code === '23505'
+        ? '資料與現有記錄衝突，請檢查輸入後重試。'
+        : '新增資料失敗，請稍後再試。' });
     } finally {
       setAddingSingle(false);
     }
@@ -189,12 +210,12 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
     const lines = bulkText.trim().split('\n').filter(line => line.trim());
     if (lines.length === 0) {
-      setMessage({ type: 'error', text: 'Please enter data in the format: product_value,transaction_id' });
+      setMessage({ type: 'error', text: '請輸入資料，每行格式為「產品金額,交易 ID」。' });
       return;
     }
 
     if (lines.length > 500000) {
-      setMessage({ type: 'error', text: `Cannot import more than 500,000 records at once. You are trying to import ${lines.length} records.` });
+      setMessage({ type: 'error', text: `單次最多可上傳 500,000 筆資料，目前輸入 ${lines.length.toLocaleString()} 筆。` });
       return;
     }
 
@@ -206,20 +227,20 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       const parts = line.split(',');
 
       if (parts.length !== 2) {
-        errors.push(`Line ${i + 1}: Invalid format (expected: value,id)`);
+        errors.push(`第 ${i + 1} 行：格式錯誤，請使用「產品金額,交易 ID」。`);
         continue;
       }
 
-      const productValue = parseFloat(parts[0].trim());
+      const productValue = Number(parts[0].trim());
       const transactionId = parts[1].trim();
 
-      if (isNaN(productValue) || productValue <= 0) {
-        errors.push(`Line ${i + 1}: Invalid product value`);
+      if (!Number.isFinite(productValue) || productValue <= 0) {
+        errors.push(`第 ${i + 1} 行：產品金額須為大於 0 的數字。`);
         continue;
       }
 
       if (!transactionId || transactionId.length === 0) {
-        errors.push(`Line ${i + 1}: Invalid transaction ID`);
+        errors.push(`第 ${i + 1} 行：請輸入交易 ID。`);
         continue;
       }
 
@@ -231,7 +252,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
     }
 
     if (errors.length > 0) {
-      setMessage({ type: 'error', text: `Errors found:\n${errors.join('\n')}` });
+      setMessage({ type: 'error', text: `發現以下資料錯誤：\n${errors.join('\n')}` });
       return;
     }
 
@@ -271,7 +292,9 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       if (currentPage === 1) void loadValidDataRef.current?.();
       loadStatistics();
     } catch (error: unknown) {
-      setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to upload bulk data' });
+      setMessage({ type: 'error', text: (error as { code?: string })?.code === '23505'
+        ? '部分資料與現有記錄衝突，請檢查後再上傳。'
+        : '批次上傳失敗，請稍後再試。' });
     } finally {
       setUploading(false);
       setUploadProgress({ current: 0, total: 0 });
@@ -932,7 +955,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                 <div role="alert" className="mb-4 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">{message.text}</div>
               )}
               {addMode === 'single' ? (
-                <form id="valid-data-single-form" onSubmit={handleAddSingle} className="space-y-4">
+                <form id="valid-data-single-form" onSubmit={handleAddSingle} noValidate className="space-y-4">
                   <div>
                     <label htmlFor="valid-data-value" className="mb-1.5 block text-xs font-semibold text-slate-300">Product Value ({currencyUnit})</label>
                     <input
