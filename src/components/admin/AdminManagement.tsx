@@ -217,8 +217,8 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
             <div
               key={secondaryAdmin.id}
               className={`relative flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3.5 transition-colors sm:px-5 ${secondaryAdmin.is_active
-                ? 'border-[#3d6884] bg-[#223b50] hover:bg-[#2b485f]'
-                : 'border-[#765750] bg-[#3b3335] hover:bg-[#4a3b3c]'
+                ? 'border-[#829aac] bg-[#455c70] hover:bg-[#506a80]'
+                : 'border-[#99847d] bg-[#5a4d4b] hover:bg-[#685956]'
               }`}
             >
               <span aria-hidden="true" className={`absolute inset-y-3 left-0 w-1 rounded-r ${secondaryAdmin.is_active ? 'bg-[#79adc2]' : 'bg-[#c69d71]'}`} />
@@ -230,8 +230,8 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                   <Shield className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="truncate text-sm font-semibold tracking-wide text-white" title={secondaryAdmin.username}>{secondaryAdmin.username}</h3>
-                  <p className="mt-0.5 text-xs text-slate-300">
+                  <h3 className="truncate text-base font-semibold tracking-wide text-white sm:text-lg" title={secondaryAdmin.username}>{secondaryAdmin.username}</h3>
+                  <p className="mt-0.5 text-xs text-slate-100/85">
                     建立於 {new Date(secondaryAdmin.created_at).toLocaleDateString('zh-TW')}
                   </p>
                 </div>
