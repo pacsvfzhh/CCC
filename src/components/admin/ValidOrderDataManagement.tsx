@@ -591,6 +591,8 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
             onClick={() => {
               setMessage(null);
               setAddError(null);
+              setFormData({ productValue: '', transactionId: '' });
+              setBulkText('');
               setAddMode('single');
               setShowAddModal(true);
             }}
