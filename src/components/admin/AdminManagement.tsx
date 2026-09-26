@@ -220,14 +220,14 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
             >
               <span aria-hidden="true" className={`absolute inset-y-2 left-0 w-0.5 rounded-r ${secondaryAdmin.is_active ? 'bg-cyan-500/80' : 'bg-amber-500/70'}`} />
               <div className="flex min-w-0 flex-1 items-center gap-3.5">
-                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${secondaryAdmin.is_active
+                <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border ${secondaryAdmin.is_active
                   ? 'border-cyan-300/20 bg-gradient-to-br from-blue-600 to-cyan-700 text-cyan-50'
                   : 'border-amber-300/20 bg-gradient-to-br from-slate-600 to-amber-900/70 text-amber-100'
                 }`}>
-                  <Shield className="h-5 w-5" />
+                  <Shield className="h-6 w-6" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="truncate text-sm font-semibold tracking-wide text-white" title={secondaryAdmin.username}>{secondaryAdmin.username}</h3>
+                  <h3 className="truncate text-base font-semibold tracking-wide text-white" title={secondaryAdmin.username}>{secondaryAdmin.username}</h3>
                   <p className="mt-0.5 text-xs text-slate-400">
                     建立於 {new Date(secondaryAdmin.created_at).toLocaleDateString('zh-TW')}
                   </p>
