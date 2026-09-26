@@ -4180,23 +4180,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           </button>
         </div>
       ) : admin.role === 'secondary_admin' ? (
-        // ===== SECONDARY ADMIN: flat list =====
-        <>
-          {flatFilteredEmployees.length === 0 && employeeGroups.length > 0 && employeeGroups[0].employees.length === 0 ? (
-            <div className="bg-gradient-to-br from-blue-500/5 via-slate-800/40 to-slate-800/40 border-2 border-blue-500/30 shadow-lg shadow-blue-500/10 rounded-xl overflow-hidden p-8 text-center">
-              <Users className="w-16 h-16 mx-auto mb-4 text-blue-500/30" />
-              <p className="text-slate-400 font-medium mb-2">找不到員工</p>
-              <p className="text-slate-500 text-sm mb-4">建立第一位員工以開始使用</p>
-              <button
-                onClick={() => openCreateEmployeeForm(admin.id)}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105"
-              >
-                <UserPlus className="w-5 h-5" /> 建立員工
-              </button>
-              {renderCreateForm(admin.id)}
-            </div>
-          ) : (
-            <div className="flex min-w-0 flex-1 min-h-0 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
               {/* Summary stats */}
               {(() => {
                 const allEmps = employeeGroups[0]?.employees || [];
@@ -4353,18 +4337,41 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               {renderCreateForm(admin.id)}
 
               {/* Table - fixed ~22 rows */}
-              <div className="-ml-1 min-w-0 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 flex-1 min-h-0 dark-panel-scroll">
-                <table className="w-full min-w-0 table-fixed">
+              <div className="-ml-1 flex min-h-0 min-w-0 flex-1 flex-col overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 pl-1 dark-panel-scroll">
+                <table className="w-full min-w-0 shrink-0 table-fixed">
                   {renderTableHeader(flatAdminId)}
                   <tbody>
                     {flatFilteredEmployees.map((emp, idx) => renderEmployeeRow(emp, idx, true))}
                   </tbody>
                 </table>
+                {flatFilteredEmployees.length === 0 && (
+                  <div className="flex min-h-[260px] flex-1 items-center justify-center bg-gradient-to-b from-blue-950/20 via-slate-900/40 to-slate-950/40 px-4 py-8">
+                    <div className="w-full max-w-md rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-blue-950/60 via-slate-900/90 to-cyan-950/30 px-6 py-8 text-center shadow-xl shadow-slate-950/30">
+                      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/25 bg-gradient-to-br from-blue-500/20 to-cyan-400/10 text-cyan-200">
+                        <Users className="h-7 w-7" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-white">
+                        {employeeGroups[0]?.employees.length ? '沒有符合條件的員工' : '目前沒有員工'}
+                      </h3>
+                      <p className="mt-2 text-sm text-slate-400">
+                        {employeeGroups[0]?.employees.length ? '試著調整上方的搜尋或篩選條件。' : '建立第一位員工，即可在這裡查看員工資料。'}
+                      </p>
+                      {!employeeGroups[0]?.employees.length && (
+                        <button
+                          type="button"
+                          onClick={() => openCreateEmployeeForm(admin.id)}
+                          className="mt-6 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-5 text-sm font-semibold text-white shadow-sm shadow-blue-950/40 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          建立員工
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div aria-hidden="true" className="h-4 shrink-0 border-t border-blue-300/35 bg-gradient-to-r from-blue-950/10 via-blue-500/35 to-blue-950/10 shadow-[inset_0_1px_0_rgba(96,165,250,0.55),0_-4px_14px_rgba(59,130,246,0.18)]" />
               </div>
             </div>
-          )}
-        </>
       ) : filteredGroups.length === 0 ? (
         <div className="text-center py-8 text-slate-400">找不到員工</div>
       ) : (
