@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Database, Upload, Trash2, Plus, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Database, Upload, Trash2, Plus, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle, X } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 
@@ -19,7 +19,9 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   const currencyUnit = useCurrencyUnit(adminId);
   const [validData, setValidData] = useState<ValidOrderData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addMode, setAddMode] = useState<'single' | 'bulk'>('single');
+  const [addingSingle, setAddingSingle] = useState(false);
   const [bulkText, setBulkText] = useState('');
   const [formData, setFormData] = useState({
     productValue: '',
@@ -41,8 +43,10 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   const [pageInput, setPageInput] = useState('');
   const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0, percentage: 0 });
   const loadValidDataRef = useRef<(() => Promise<void>) | null>(null);
+  const listScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    listScrollRef.current?.scrollTo({ top: 0 });
     void loadValidDataRef.current?.();
   }, [currentPage, statusFilter]);
 
@@ -58,6 +62,15 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       return () => clearTimeout(timer);
     }
   }, [message]);
+
+  useEffect(() => {
+    if (!showAddModal) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !uploading && !addingSingle) setShowAddModal(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAddModal, uploading, addingSingle]);
 
   const loadStatistics = async () => {
     try {
@@ -124,6 +137,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   const handleAddSingle = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
+    setAddingSingle(true);
 
     try {
       const { error } = await supabase.from('valid_order_data').insert({
@@ -136,12 +150,14 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
       setMessage({ type: 'success', text: 'Valid order data added successfully!' });
       setFormData({ productValue: '', transactionId: '' });
-      setShowAddForm(false);
+      setShowAddModal(false);
       setCurrentPage(1);
-      void loadValidDataRef.current?.();
+      if (currentPage === 1) void loadValidDataRef.current?.();
       loadStatistics();
     } catch (error: unknown) {
       setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to add valid order data' });
+    } finally {
+      setAddingSingle(false);
     }
   };
 
@@ -227,8 +243,9 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
       setMessage({ type: 'success', text: `Successfully uploaded ${dataToInsert.length.toLocaleString()} records! Total pool now has ${(activeCount + inactiveCount + dataToInsert.length).toLocaleString()} records.` });
       setBulkText('');
+      setShowAddModal(false);
       setCurrentPage(1);
-      void loadValidDataRef.current?.();
+      if (currentPage === 1) void loadValidDataRef.current?.();
       loadStatistics();
     } catch (error: unknown) {
       setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to upload bulk data' });
@@ -497,17 +514,6 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center bg-slate-950/75 text-center">
-        <div className="inline-flex items-center gap-2 text-slate-400">
-          <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-          <span>Loading valid order data...</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[radial-gradient(ellipse_at_top_left,rgba(14,116,144,0.12),transparent_42%),linear-gradient(160deg,#0b1729,#08111f_65%,#0c1726)] text-slate-100">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-400/20 bg-slate-900/65 px-3 py-2 sm:px-5">
@@ -533,7 +539,11 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
             </button>
           )}
           <button
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={() => {
+              setMessage(null);
+              setAddMode('single');
+              setShowAddModal(true);
+            }}
             className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-semibold text-white shadow-sm shadow-cyan-950/40 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -596,88 +606,6 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
           </div>
         </div>
 
-        {showAddForm && (
-          <div className="max-h-[45vh] shrink-0 overflow-y-auto border-b border-cyan-400/20 bg-slate-900/45 px-3 py-3 sm:px-5">
-            <div className="flex flex-col gap-4 lg:flex-row">
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-white mb-4">Add Single Entry</h3>
-                <form onSubmit={handleAddSingle} className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      Product Value ({currencyUnit})
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.productValue}
-                      onChange={(e) => setFormData({ ...formData, productValue: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      Transaction ID
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.transactionId}
-                      onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Entry
-                  </button>
-                </form>
-              </div>
-
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-white mb-4">Bulk Upload</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      Enter data (one per line: value,transaction_id) - Max 500,000 records per batch
-                    </label>
-                    <p className="text-xs text-slate-400 mb-2">
-                      Supports multiple imports: Upload batch A, then batch B. Total = A + B (up to 500,000 total records)
-                    </p>
-                    <textarea
-                      value={bulkText}
-                      onChange={(e) => setBulkText(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                      rows={5}
-                      placeholder="100.50,TXN12345678&#10;200.00,TXN87654321&#10;150.75,TXN11223344"
-                    />
-                  </div>
-                  <button
-                    onClick={handleBulkUpload}
-                    disabled={uploading}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {uploading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Uploading... {uploadProgress.current > 0 && `${Math.round((uploadProgress.current / uploadProgress.total) * 100)}%`}
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-4 h-4" />
-                        Upload Bulk Data
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-400/15 bg-slate-900/45 px-3 py-2 sm:px-5">
             <div className="flex items-center gap-2">
@@ -690,6 +618,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
               <select
                 id="valid-data-status-filter"
                 value={statusFilter}
+                disabled={loading}
                 onChange={(e) => {
                   setStatusFilter(e.target.value as 'all' | 'active' | 'inactive');
                   setCurrentPage(1);
@@ -704,14 +633,24 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
           </div>
 
           {validData.length === 0 ? (
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 py-10 text-center">
-              <FileSpreadsheet className="h-9 w-9 text-slate-500" />
-              <div className="text-sm text-slate-300">No valid order data yet</div>
-              <div className="text-xs text-slate-500">Add data using the button above</div>
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 py-10 text-center" aria-live="polite">
+              {loading ? (
+                <>
+                  <span className="h-7 w-7 animate-spin rounded-full border-2 border-cyan-400/30 border-t-cyan-300" />
+                  <span className="text-xs text-cyan-200">Loading records...</span>
+                </>
+              ) : (
+                <>
+                  <FileSpreadsheet className="h-9 w-9 text-slate-500" />
+                  <div className="text-sm text-slate-300">No valid order data yet</div>
+                  <div className="text-xs text-slate-500">Add data using the button above</div>
+                </>
+              )}
             </div>
           ) : (
             <>
-              <div className="min-h-0 flex-1 overflow-auto overscroll-contain dark-panel-scroll">
+              <div className="relative min-h-0 flex-1">
+                <div ref={listScrollRef} className="h-full overflow-auto overscroll-contain dark-panel-scroll">
                   <table className="w-full min-w-[800px] table-fixed">
                     <thead className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-sm">
                       <tr className="border-b border-cyan-400/20 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
@@ -772,6 +711,13 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                       ))}
                     </tbody>
                   </table>
+                </div>
+                {loading && (
+                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-slate-950/65 text-xs text-cyan-200" role="status">
+                    <span className="h-7 w-7 animate-spin rounded-full border-2 border-cyan-400/30 border-t-cyan-300" />
+                    Loading records...
+                  </div>
+                )}
               </div>
 
               {/* Pagination */}
@@ -784,7 +730,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                   <div className="flex flex-wrap items-center gap-1.5">
                     <button
                       onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
+                      disabled={loading || currentPage === 1}
                       className="rounded-md bg-slate-800 px-2 py-1 text-xs text-white transition-colors hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Previous
@@ -804,6 +750,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                             )}
                             <button
                               onClick={() => setCurrentPage(page)}
+                              disabled={loading}
                               className={`rounded-md px-2 py-1 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
                                 currentPage === page
                                   ? 'bg-blue-600 text-white'
@@ -817,7 +764,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                     </div>
                     <button
                       onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
+                      disabled={loading || currentPage === totalPages}
                       className="rounded-md bg-slate-800 px-2 py-1 text-xs text-white transition-colors hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Next
@@ -829,13 +776,15 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                         min="1"
                         max={totalPages}
                         value={pageInput}
+                        disabled={loading}
                         onChange={handlePageInputChange}
                         placeholder={`1-${totalPages}`}
                         className="w-16 rounded-md border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
                       />
                       <button
                         type="submit"
-                        className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                        disabled={loading}
+                        className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"
                       >
                         Go
                       </button>
@@ -847,6 +796,142 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
           )}
         </div>
       </div>
+
+      {showAddModal && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm sm:p-6"
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget && !uploading && !addingSingle) setShowAddModal(false);
+          }}
+        >
+          <div role="dialog" aria-modal="true" aria-labelledby="valid-data-add-title" className="flex max-h-[calc(100dvh-24px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-[#0b192c] text-slate-100 shadow-[0_28px_80px_rgba(2,6,23,0.8)] sm:max-h-[min(720px,calc(100dvh-48px))]">
+            <div className="h-1 shrink-0 bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400" />
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-cyan-400/15 bg-gradient-to-r from-blue-500/10 via-cyan-500/5 to-transparent px-4 py-4 sm:px-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-200">
+                  <Database className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 id="valid-data-add-title" className="text-base font-semibold tracking-wide text-white">Add Data</h2>
+                  <p className="mt-0.5 text-xs text-slate-400">Add records to the valid data pool</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                disabled={uploading || addingSingle}
+                aria-label="Close Add Data"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid shrink-0 grid-cols-2 gap-2 border-b border-cyan-400/15 px-4 py-3 sm:px-6">
+              <button
+                type="button"
+                onClick={() => { setAddMode('single'); setMessage(null); }}
+                disabled={uploading || addingSingle}
+                aria-pressed={addMode === 'single'}
+                className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${addMode === 'single' ? 'border-blue-400/60 bg-blue-500/20 text-blue-100' : 'border-slate-700 bg-slate-900/50 text-slate-400 hover:border-blue-400/30 hover:text-white'}`}
+              >
+                <Plus className="h-4 w-4" /> Single Entry
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAddMode('bulk'); setMessage(null); }}
+                disabled={uploading || addingSingle}
+                aria-pressed={addMode === 'bulk'}
+                className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${addMode === 'bulk' ? 'border-cyan-400/60 bg-cyan-500/20 text-cyan-100' : 'border-slate-700 bg-slate-900/50 text-slate-400 hover:border-cyan-400/30 hover:text-white'}`}
+              >
+                <Upload className="h-4 w-4" /> Bulk Upload
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+              {message?.type === 'error' && (
+                <div role="alert" className="mb-4 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">{message.text}</div>
+              )}
+              {addMode === 'single' ? (
+                <form id="valid-data-single-form" onSubmit={handleAddSingle} className="space-y-4">
+                  <div>
+                    <label htmlFor="valid-data-value" className="mb-1.5 block text-xs font-semibold text-slate-300">Product Value ({currencyUnit})</label>
+                    <input
+                      id="valid-data-value"
+                      type="number"
+                      step="0.01"
+                      value={formData.productValue}
+                      onChange={(event) => setFormData({ ...formData, productValue: event.target.value })}
+                      className="h-11 w-full rounded-lg border border-slate-600 bg-slate-100 px-3 text-sm text-slate-950 outline-none transition-colors focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
+                      placeholder="0.00"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="valid-data-transaction" className="mb-1.5 block text-xs font-semibold text-slate-300">Transaction ID</label>
+                    <input
+                      id="valid-data-transaction"
+                      type="text"
+                      value={formData.transactionId}
+                      onChange={(event) => setFormData({ ...formData, transactionId: event.target.value })}
+                      className="h-11 w-full rounded-lg border border-slate-600 bg-slate-100 px-3 text-sm text-slate-950 outline-none transition-colors focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
+                      placeholder="Enter a transaction ID"
+                      required
+                    />
+                  </div>
+                  <p className="rounded-lg border border-blue-400/15 bg-blue-500/5 px-3 py-2 text-xs text-blue-200/80">New entries are added to the data pool immediately.</p>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="valid-data-bulk" className="mb-1.5 block text-xs font-semibold text-slate-300">Records to upload</label>
+                    <p className="mb-3 text-xs leading-relaxed text-slate-400">One record per line: product value,transaction ID. Up to 500,000 records per batch.</p>
+                    <textarea
+                      id="valid-data-bulk"
+                      value={bulkText}
+                      onChange={(event) => setBulkText(event.target.value)}
+                      rows={8}
+                      placeholder={'100.50,TXN12345678\n200.00,TXN87654321\n150.75,TXN11223344'}
+                      className="min-h-40 w-full resize-y rounded-lg border border-slate-600 bg-slate-950/80 p-3 font-mono text-xs leading-6 text-cyan-100 outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
+                    />
+                  </div>
+                  <p className="rounded-lg border border-cyan-400/15 bg-cyan-500/5 px-3 py-2 text-xs leading-relaxed text-cyan-200/80">Multiple imports are supported. The data pool retains up to 500,000 records.</p>
+                </div>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-cyan-400/15 bg-slate-950/55 px-4 py-3 sm:px-6">
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                disabled={uploading || addingSingle}
+                className="h-9 rounded-lg border border-slate-600 px-4 text-xs font-semibold text-slate-300 transition-colors hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              {addMode === 'single' ? (
+                <button
+                  type="submit"
+                  form="valid-data-single-form"
+                  disabled={addingSingle}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-xs font-semibold text-white shadow-sm shadow-cyan-950/50 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-60"
+                >
+                  {addingSingle ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Plus className="h-4 w-4" />}
+                  {addingSingle ? 'Adding...' : 'Add Entry'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleBulkUpload}
+                  disabled={uploading}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 px-4 text-xs font-semibold text-white shadow-sm shadow-cyan-950/50 transition-colors hover:from-cyan-500 hover:to-teal-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-60"
+                >
+                  {uploading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Upload className="h-4 w-4" />}
+                  {uploading ? `Uploading ${uploadProgress.current > 0 ? `${Math.round((uploadProgress.current / uploadProgress.total) * 100)}%` : '...'}` : 'Upload Bulk Data'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDeleteAllModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
