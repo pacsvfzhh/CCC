@@ -28,6 +28,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
     transactionId: '',
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
@@ -59,13 +60,13 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   }, []);
 
   useEffect(() => {
-    if (message && !(showAddModal && message.type === 'error')) {
+    if (message) {
       const timer = setTimeout(() => {
         setMessage(null);
       }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [message, showAddModal]);
+  }, [message]);
 
   useEffect(() => {
     if (!statusFilterOpen) return;
@@ -159,24 +160,24 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
   const handleAddSingle = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(null);
+    setAddError(null);
 
     const value = formData.productValue.trim();
     const transactionId = formData.transactionId.trim();
     if (!value) {
-      setMessage({ type: 'error', text: '請輸入產品金額。' });
+      setAddError('請輸入產品金額。');
       return;
     }
     if (!Number.isFinite(Number(value)) || Number(value) <= 0) {
-      setMessage({ type: 'error', text: '產品金額須為大於 0 的數字。' });
+      setAddError('產品金額須為大於 0 的數字。');
       return;
     }
     if (!/^(?:\d+(?:\.\d{1,2})?|\.\d{1,2})$/.test(value)) {
-      setMessage({ type: 'error', text: '產品金額格式錯誤，請輸入最多兩位小數的一般數字。' });
+      setAddError('產品金額格式錯誤，請輸入最多兩位小數的一般數字。');
       return;
     }
     if (!transactionId) {
-      setMessage({ type: 'error', text: '請輸入交易 ID。' });
+      setAddError('請輸入交易 ID。');
       return;
     }
 
@@ -197,25 +198,26 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       if (currentPage === 1) void loadValidDataRef.current?.();
       loadStatistics();
     } catch (error: unknown) {
-      setMessage({ type: 'error', text: (error as { code?: string })?.code === '23505'
+      setAddError((error as { code?: string })?.code === '23505'
         ? '資料與現有記錄衝突，請檢查輸入後重試。'
-        : '新增資料失敗，請稍後再試。' });
+        : '新增資料失敗，請稍後再試。');
     } finally {
       setAddingSingle(false);
     }
   };
 
   const handleBulkUpload = async () => {
+    setAddError(null);
     setMessage(null);
 
     const lines = bulkText.trim().split('\n').filter(line => line.trim());
     if (lines.length === 0) {
-      setMessage({ type: 'error', text: '請輸入資料，每行格式為「產品金額,交易 ID」。' });
+      setAddError('請輸入資料，每行格式為「產品金額,交易 ID」。');
       return;
     }
 
     if (lines.length > 500000) {
-      setMessage({ type: 'error', text: `單次最多可上傳 500,000 筆資料，目前輸入 ${lines.length.toLocaleString()} 筆。` });
+      setAddError(`單次最多可上傳 500,000 筆資料，目前輸入 ${lines.length.toLocaleString()} 筆。`);
       return;
     }
 
@@ -252,7 +254,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
     }
 
     if (errors.length > 0) {
-      setMessage({ type: 'error', text: `發現以下資料錯誤：\n${errors.join('\n')}` });
+      setAddError(`發現以下資料錯誤：\n${errors.join('\n')}`);
       return;
     }
 
@@ -292,9 +294,10 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       if (currentPage === 1) void loadValidDataRef.current?.();
       loadStatistics();
     } catch (error: unknown) {
-      setMessage({ type: 'error', text: (error as { code?: string })?.code === '23505'
+      setMessage(null);
+      setAddError((error as { code?: string })?.code === '23505'
         ? '部分資料與現有記錄衝突，請檢查後再上傳。'
-        : '批次上傳失敗，請稍後再試。' });
+        : '批次上傳失敗，請稍後再試。');
     } finally {
       setUploading(false);
       setUploadProgress({ current: 0, total: 0 });
@@ -587,6 +590,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
           <button
             onClick={() => {
               setMessage(null);
+              setAddError(null);
               setAddMode('single');
               setShowAddModal(true);
             }}
@@ -933,7 +937,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
             <div className="grid shrink-0 grid-cols-2 gap-2 border-b border-cyan-400/15 px-4 py-3 sm:px-6">
               <button
                 type="button"
-                onClick={() => { setAddMode('single'); setMessage(null); }}
+                onClick={() => { setAddMode('single'); setAddError(null); }}
                 disabled={uploading || addingSingle}
                 aria-pressed={addMode === 'single'}
                 className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${addMode === 'single' ? 'border-blue-400/60 bg-blue-500/20 text-blue-100' : 'border-slate-700 bg-slate-900/50 text-slate-400 hover:border-blue-400/30 hover:text-white'}`}
@@ -942,7 +946,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
               </button>
               <button
                 type="button"
-                onClick={() => { setAddMode('bulk'); setMessage(null); }}
+                onClick={() => { setAddMode('bulk'); setAddError(null); }}
                 disabled={uploading || addingSingle}
                 aria-pressed={addMode === 'bulk'}
                 className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${addMode === 'bulk' ? 'border-cyan-400/60 bg-cyan-500/20 text-cyan-100' : 'border-slate-700 bg-slate-900/50 text-slate-400 hover:border-cyan-400/30 hover:text-white'}`}
@@ -951,12 +955,12 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
               </button>
             </div>
             <div className="valid-data-modal-scroll flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-5 [@media(max-height:560px)]:overflow-y-auto sm:px-6">
-              {message?.type === 'error' && (
+              {addError && (
                 <div role="alert" className="relative mb-4 max-h-32 min-h-0 shrink-0 overflow-hidden rounded-lg border border-red-400/30 bg-red-500/10 text-xs text-red-200">
-                  <div className="valid-data-modal-scroll max-h-32 overflow-y-auto whitespace-pre-wrap break-words py-2 pl-3 pr-12">{message.text}</div>
+                  <div className="valid-data-modal-scroll max-h-32 overflow-y-auto whitespace-pre-wrap break-words py-2 pl-3 pr-12">{addError}</div>
                   <button
                     type="button"
-                    onClick={() => setMessage(null)}
+                    onClick={() => setAddError(null)}
                     aria-label="關閉錯誤提示"
                     className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md border border-red-400/20 bg-[#251b2e] text-red-200 transition-colors hover:bg-red-500/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
                   >
