@@ -226,11 +226,11 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                 }`}>
                   <Shield className="h-6 w-6" />
                 </div>
-                <div className="min-w-0">
-                  <h3 className="truncate text-base font-semibold tracking-wide text-white" title={secondaryAdmin.username}>{secondaryAdmin.username}</h3>
-                  <p className="mt-0.5 text-xs text-slate-400">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <h3 className="min-w-0 truncate text-base font-semibold tracking-wide text-white" title={secondaryAdmin.username}>{secondaryAdmin.username}</h3>
+                  <span className="shrink-0 whitespace-nowrap text-xs text-slate-400">
                     建立於 {new Date(secondaryAdmin.created_at).toLocaleDateString('zh-TW')}
-                  </p>
+                  </span>
                 </div>
               </div>
               <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
