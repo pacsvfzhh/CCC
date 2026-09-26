@@ -4299,33 +4299,31 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               })()}
               {/* Controls */}
               <div className="flex min-h-8 items-center gap-2 border-b border-blue-500/30 bg-blue-500/5 px-3 py-0.5">
-                {getGroupTags(flatAdminId).length > 0 && (
-                  <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
-                    <div className="flex w-max min-w-full items-center gap-1.5">
-                      <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-yellow-300">
-                        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-yellow-500/20 text-yellow-300">
-                          <Tag className="h-3.5 w-3.5" />
-                        </span>
-                        標籤：
+                <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
+                  <div className="flex w-max min-w-full items-center gap-1.5">
+                    <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-yellow-300">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-yellow-500/20 text-yellow-300">
+                        <Tag className="h-3.5 w-3.5" />
                       </span>
-                      {getGroupTags(flatAdminId).map(tag => {
-                        const selectedTags = getSelectedTagsForGroup(flatAdminId);
-                        const isSelected = selectedTags.includes(tag);
-                        return (
-                          <button key={tag} onClick={() => {
-                            if (isSelected) setSelectedTagsForGroup(flatAdminId, selectedTags.filter(t => t !== tag));
-                            else setSelectedTagsForGroup(flatAdminId, [...selectedTags, tag]);
-                          }} className={`inline-flex h-6 shrink-0 items-center rounded-md border px-2 text-[11px] font-semibold transition-all ${isSelected ? 'border-yellow-200 bg-yellow-400 text-yellow-950 shadow-sm shadow-yellow-500/30 ring-1 ring-yellow-200/60' : 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300 hover:border-yellow-300/70 hover:bg-yellow-500/20 hover:text-yellow-100'}`}>
-                            {tag}
-                          </button>
-                        );
-                      })}
-                      {getSelectedTagsForGroup(flatAdminId).length > 0 && (
-                        <button onClick={() => setSelectedTagsForGroup(flatAdminId, [])} className="inline-flex h-6 shrink-0 items-center rounded-md border border-red-500/30 bg-red-600/15 px-2 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-600/30">清除</button>
-                      )}
-                    </div>
+                      標籤：
+                    </span>
+                    {getGroupTags(flatAdminId).map(tag => {
+                      const selectedTags = getSelectedTagsForGroup(flatAdminId);
+                      const isSelected = selectedTags.includes(tag);
+                      return (
+                        <button key={tag} onClick={() => {
+                          if (isSelected) setSelectedTagsForGroup(flatAdminId, selectedTags.filter(t => t !== tag));
+                          else setSelectedTagsForGroup(flatAdminId, [...selectedTags, tag]);
+                        }} className={`inline-flex h-6 shrink-0 items-center rounded-md border px-2 text-[11px] font-semibold transition-all ${isSelected ? 'border-yellow-200 bg-yellow-400 text-yellow-950 shadow-sm shadow-yellow-500/30 ring-1 ring-yellow-200/60' : 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300 hover:border-yellow-300/70 hover:bg-yellow-500/20 hover:text-yellow-100'}`}>
+                          {tag}
+                        </button>
+                      );
+                    })}
+                    {getSelectedTagsForGroup(flatAdminId).length > 0 && (
+                      <button onClick={() => setSelectedTagsForGroup(flatAdminId, [])} className="inline-flex h-6 shrink-0 items-center rounded-md border border-red-500/30 bg-red-600/15 px-2 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-600/30">清除</button>
+                    )}
                   </div>
-                )}
+                </div>
                 <div className="ml-auto flex shrink-0 items-center gap-2">
                   <button
                     onClick={() => openCreateEmployeeForm(admin.id)}
@@ -4529,33 +4527,31 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                       </button>
                     </div>
                     <div className={`flex min-h-8 flex-wrap items-center gap-2 border-b px-4 py-0.5 ${isSuperGroup ? 'border-yellow-500/20 bg-yellow-500/5' : 'border-blue-500/20 bg-blue-500/5'}`}>
-                      {getGroupTags(group.admin.id).length > 0 && (
-                        <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
-                          <div className="flex w-max min-w-full items-center gap-1.5">
-                            <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-yellow-300">
-                              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-yellow-500/20 text-yellow-300">
-                                <Tag className="h-3.5 w-3.5" />
-                              </span>
-                              標籤：
+                      <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
+                        <div className="flex w-max min-w-full items-center gap-1.5">
+                          <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-yellow-300">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-yellow-500/20 text-yellow-300">
+                              <Tag className="h-3.5 w-3.5" />
                             </span>
-                            {getGroupTags(group.admin.id).map(tag => {
-                              const selectedTags = getSelectedTagsForGroup(group.admin.id);
-                              const isSelected = selectedTags.includes(tag);
-                              return (
-                                <button key={tag} onClick={() => {
-                                  if (isSelected) setSelectedTagsForGroup(group.admin.id, selectedTags.filter(t => t !== tag));
-                                  else setSelectedTagsForGroup(group.admin.id, [...selectedTags, tag]);
-                                }} className={`inline-flex h-6 shrink-0 items-center rounded-md border px-2 text-[11px] font-semibold transition-all ${isSelected ? 'border-yellow-200 bg-yellow-400 text-yellow-950 shadow-sm shadow-yellow-500/30 ring-1 ring-yellow-200/60' : 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300 hover:border-yellow-300/70 hover:bg-yellow-500/20 hover:text-yellow-100'}`}>
-                                  {tag}
-                                </button>
-                              );
-                            })}
-                            {getSelectedTagsForGroup(group.admin.id).length > 0 && (
-                              <button onClick={() => setSelectedTagsForGroup(group.admin.id, [])} className="inline-flex h-6 shrink-0 items-center rounded-md border border-red-500/30 bg-red-600/15 px-2 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-600/30">清除</button>
-                            )}
-                          </div>
+                            標籤：
+                          </span>
+                          {getGroupTags(group.admin.id).map(tag => {
+                            const selectedTags = getSelectedTagsForGroup(group.admin.id);
+                            const isSelected = selectedTags.includes(tag);
+                            return (
+                              <button key={tag} onClick={() => {
+                                if (isSelected) setSelectedTagsForGroup(group.admin.id, selectedTags.filter(t => t !== tag));
+                                else setSelectedTagsForGroup(group.admin.id, [...selectedTags, tag]);
+                              }} className={`inline-flex h-6 shrink-0 items-center rounded-md border px-2 text-[11px] font-semibold transition-all ${isSelected ? 'border-yellow-200 bg-yellow-400 text-yellow-950 shadow-sm shadow-yellow-500/30 ring-1 ring-yellow-200/60' : 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300 hover:border-yellow-300/70 hover:bg-yellow-500/20 hover:text-yellow-100'}`}>
+                                {tag}
+                              </button>
+                            );
+                          })}
+                          {getSelectedTagsForGroup(group.admin.id).length > 0 && (
+                            <button onClick={() => setSelectedTagsForGroup(group.admin.id, [])} className="inline-flex h-6 shrink-0 items-center rounded-md border border-red-500/30 bg-red-600/15 px-2 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-600/30">清除</button>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
                     {group.employees.length > 0 ? (
                       <div className={`-ml-1 pl-1 overflow-x-auto overflow-y-auto overscroll-contain bg-slate-900/50 min-h-[300px] dark-panel-scroll ${selectedAdminFilter !== 'all' ? 'min-h-0 flex-1' : 'max-h-[calc(100vh-160px)]'}`}>
