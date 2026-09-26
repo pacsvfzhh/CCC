@@ -187,8 +187,8 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-gradient-to-br from-slate-950 via-[#101e32] to-[#142b36] p-3 text-slate-100 sm:p-5 lg:p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700/70 bg-gradient-to-r from-[#1b2d47] to-[#17343e] px-4 py-3 sm:px-5">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-gradient-to-br from-[#17243a] via-[#122838] to-[#102c33] text-slate-100">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-400/20 bg-gradient-to-r from-[#1b2d47] to-[#17343e] px-4 py-3 sm:px-6">
         <div>
           <h1 className="text-lg font-semibold text-white">二級管理員</h1>
           <p className="mt-0.5 text-xs text-slate-300">建立與管理二級管理員帳號</p>
@@ -205,7 +205,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
       </div>
 
       {showCreateForm && (
-        <form onSubmit={handleCreateAdmin} className="mb-4 space-y-4 rounded-xl border border-blue-400/20 bg-gradient-to-br from-slate-800/90 to-blue-950/60 p-4 sm:p-5">
+        <form onSubmit={handleCreateAdmin} className="shrink-0 space-y-4 border-b border-cyan-400/20 bg-gradient-to-r from-[#1b2d47] to-[#17343e] p-4 sm:px-6 sm:py-5">
           {error && (
             <div className="rounded-lg border border-rose-500/30 bg-rose-950/40 p-3 text-sm text-rose-200">
               {error}
@@ -275,13 +275,13 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
       )}
 
       {loading ? (
-        <div className="rounded-xl border border-slate-700/70 bg-slate-900/60 py-10 text-center text-sm text-slate-400">正在載入管理員…</div>
+        <div className="flex min-h-0 flex-1 items-center justify-center py-10 text-sm text-slate-400">正在載入管理員…</div>
       ) : (
-        <div className="min-h-0 flex-1 space-y-2 rounded-xl border border-slate-700/70 bg-slate-900/60 p-3 sm:p-4">
+        <div className="min-h-0 flex-1 bg-slate-900/15">
           {admins.map((secondaryAdmin) => (
             <div
               key={secondaryAdmin.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-700/70 bg-gradient-to-r from-slate-800/85 to-[#1a2f3c] p-3 transition-colors hover:border-blue-400/40 sm:p-4"
+              className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-600/30 bg-gradient-to-r from-slate-800/35 to-cyan-950/15 px-4 py-3 transition-colors hover:bg-blue-900/20 sm:px-6"
             >
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-cyan-700">
