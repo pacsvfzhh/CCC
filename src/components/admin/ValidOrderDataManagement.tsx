@@ -151,7 +151,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       setTotalCount(count || 0);
     } catch (error) {
       console.error('Error loading valid order data:', error);
-      setMessage({ type: 'error', text: 'Failed to load order data. Please try again.' });
+      setMessage({ type: 'error', text: '載入資料失敗，請稍後再試。' });
     } finally {
       setLoading(false);
     }
@@ -191,7 +191,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
       if (error) throw error;
 
-      setMessage({ type: 'success', text: 'Valid order data added successfully!' });
+      setMessage({ type: 'success', text: '資料新增成功。' });
       setFormData({ productValue: '', transactionId: '' });
       setShowAddModal(false);
       setCurrentPage(1);
@@ -278,16 +278,16 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
         if (dataToInsert.length > 5000) {
           setMessage({
             type: 'success',
-            text: `Uploading... ${uploadedCount.toLocaleString()} / ${dataToInsert.length.toLocaleString()} records (${Math.round((uploadedCount / dataToInsert.length) * 100)}%)`
+            text: `上傳中：${uploadedCount.toLocaleString()} / ${dataToInsert.length.toLocaleString()} 筆（${Math.round((uploadedCount / dataToInsert.length) * 100)}%）`
           });
         }
       }
 
       // After successful insert, ensure we only keep 500,000 most recent records
-      setMessage({ type: 'success', text: 'Upload complete. Checking data pool capacity...' });
+      setMessage({ type: 'success', text: '上傳完成，正在檢查資料池容量…' });
       await cleanupOldRecords();
 
-      setMessage({ type: 'success', text: `Successfully uploaded ${dataToInsert.length.toLocaleString()} records! Total pool now has ${(activeCount + inactiveCount + dataToInsert.length).toLocaleString()} records.` });
+      setMessage({ type: 'success', text: `已成功上傳 ${dataToInsert.length.toLocaleString()} 筆資料，資料池目前共有 ${(activeCount + inactiveCount + dataToInsert.length).toLocaleString()} 筆。` });
       setBulkText('');
       setShowAddModal(false);
       setCurrentPage(1);
@@ -384,9 +384,9 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
       if (error) throw error;
 
-      setMessage({ type: 'success', text: `Status updated successfully!` });
-    } catch (error: unknown) {
-      setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to update status' });
+      setMessage({ type: 'success', text: '資料狀態更新成功。' });
+    } catch {
+      setMessage({ type: 'error', text: '資料狀態更新失敗，請稍後再試。' });
       // Revert on error
       void loadValidDataRef.current?.();
       loadStatistics();
@@ -399,12 +399,12 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
   const handlePageInputSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const pageNum = parseInt(pageInput);
-    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+    const pageNum = Number(pageInput);
+    if (Number.isInteger(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
       setCurrentPage(pageNum);
       setPageInput('');
     } else {
-      setMessage({ type: 'error', text: `Please enter a valid page number (1-${totalPages})` });
+      setMessage({ type: 'error', text: `請輸入 1 至 ${totalPages} 之間的有效頁碼。` });
     }
   };
 
@@ -431,10 +431,10 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
       if (error) throw error;
 
-      setMessage({ type: 'success', text: 'Valid order data deleted successfully!' });
+      setMessage({ type: 'success', text: '資料刪除成功。' });
       setDeletingId(null);
-    } catch (error: unknown) {
-      setMessage({ type: 'error', text: formatSupabaseError(error) || 'Failed to delete valid order data' });
+    } catch {
+      setMessage({ type: 'error', text: '刪除資料失敗，請稍後再試。' });
       // Revert on error
       void loadValidDataRef.current?.();
       loadStatistics();
@@ -444,8 +444,8 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   const handleDeleteAll = async () => {
-    if (confirmText !== 'DELETE ALL') {
-      setMessage({ type: 'error', text: 'You must type "DELETE ALL" exactly to confirm.' });
+    if (confirmText !== '刪除全部資料') {
+      setMessage({ type: 'error', text: '請輸入「刪除全部資料」以確認操作。' });
       return;
     }
 
@@ -466,7 +466,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       console.log('[Delete All] Total records to delete:', totalToDelete);
 
       if (!totalToDelete || totalToDelete === 0) {
-        setMessage({ type: 'error', text: 'No records found to delete' });
+        setMessage({ type: 'error', text: '沒有可刪除的資料。' });
         setDeleting(false);
         setDeleteProgress({ current: 0, total: 0, percentage: 0 });
         return;
@@ -540,7 +540,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
       setMessage({
         type: 'success',
-        text: `Successfully deleted all ${totalToDelete.toLocaleString()} valid order data records!`
+        text: `已刪除全部 ${totalToDelete.toLocaleString()} 筆有效資料。`
       });
       setConfirmText('');
 
@@ -556,7 +556,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       console.error('[Delete All] Error:', formatSupabaseError(error));
       setMessage({
         type: 'error',
-        text: `Failed to delete records: ${formatSupabaseError(error) || 'Unknown error'}`
+        text: '刪除資料失敗，請稍後再試。'
       });
       setDeleting(false);
       setDeleteProgress({ current: 0, total: 0, percentage: 0 });
@@ -584,7 +584,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
               className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-400/30 bg-red-500/10 px-3 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <AlertTriangle className="h-3.5 w-3.5" />
-              {deleting ? 'Deleting...' : 'Delete All'}
+              {deleting ? '刪除中…' : '刪除全部'}
             </button>
           )}
           <button
@@ -599,7 +599,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
             className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-semibold text-white shadow-sm shadow-cyan-950/40 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
           >
             <Plus className="h-3.5 w-3.5" />
-            Add Data
+            新增資料
           </button>
         </div>
       </div>
@@ -610,6 +610,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
             <span className="flex-1">{message.text}</span>
             <button
               onClick={() => setMessage(null)}
+              aria-label="關閉通知"
               className="ml-3 text-white/60 hover:text-white transition-colors"
             >
               ×
@@ -620,7 +621,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
         <div className="grid shrink-0 grid-cols-2 border-b border-cyan-400/25 bg-slate-900/35 sm:grid-cols-3">
           <div className="col-span-2 border-b border-cyan-300/30 bg-gradient-to-br from-blue-600/35 via-cyan-500/20 to-slate-900/60 px-3 py-2.5 sm:col-span-1 sm:border-b-0 sm:border-r sm:px-5">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-100">
-              <Database className="h-3.5 w-3.5" /> Total Data Pool Size
+              <Database className="h-3.5 w-3.5" /> 資料池總量
             </div>
             <div className="mt-0.5 flex items-baseline gap-1.5 whitespace-nowrap">
               <span className="text-2xl font-bold tabular-nums text-white">{(activeCount + inactiveCount).toLocaleString()}</span>
@@ -637,24 +638,24 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
               />
             </div>
             <p className="mt-1 truncate text-[10px] text-cyan-100/85">
-              {(activeCount + inactiveCount) >= 500000 ? 'Pool is full - new entries replace oldest records' :
-                (activeCount + inactiveCount) >= 450000 ? `Pool is ${Math.round(((activeCount + inactiveCount) / 500000) * 100)}% full - nearing capacity` :
-                `Pool has ${(500000 - (activeCount + inactiveCount)).toLocaleString()} slots available`}
+              {(activeCount + inactiveCount) >= 500000 ? '資料池已滿，新資料將取代最舊記錄' :
+                (activeCount + inactiveCount) >= 450000 ? `資料池已使用 ${Math.round(((activeCount + inactiveCount) / 500000) * 100)}%，即將達到上限` :
+                `資料池尚可新增 ${(500000 - (activeCount + inactiveCount)).toLocaleString()} 筆`}
             </p>
           </div>
           <div className="border-r border-emerald-300/30 bg-gradient-to-br from-emerald-600/35 via-teal-500/20 to-slate-900/60 px-3 py-2.5 sm:px-5">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-100">
-              <CheckCircle className="h-3.5 w-3.5" /> Active Records
+              <CheckCircle className="h-3.5 w-3.5" /> 已啟用記錄
             </div>
             <div className="mt-1 text-2xl font-bold tabular-nums text-white">{activeCount.toLocaleString()}</div>
-            <div className="mt-1 text-[10px] text-emerald-100/85">Available for matching</div>
+            <div className="mt-1 text-[10px] text-emerald-100/85">可用於比對</div>
           </div>
           <div className="bg-gradient-to-br from-amber-600/30 via-orange-500/15 to-slate-900/60 px-3 py-2.5 sm:px-5">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-100">
-              <XCircle className="h-3.5 w-3.5" /> Inactive Records
+              <XCircle className="h-3.5 w-3.5" /> 已停用記錄
             </div>
             <div className="mt-1 text-2xl font-bold tabular-nums text-white">{inactiveCount.toLocaleString()}</div>
-            <div className="mt-1 text-[10px] text-amber-100/85">Not currently in use</div>
+            <div className="mt-1 text-[10px] text-amber-100/85">目前未使用</div>
           </div>
         </div>
 
@@ -662,18 +663,18 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
           <div className="relative z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-400/15 bg-slate-900/45 px-3 py-2 sm:px-5">
             <div className="flex items-center gap-2">
               <FileSpreadsheet className="h-4 w-4 text-cyan-300" />
-              <span className="text-xs font-semibold text-white">Records</span>
+              <span className="text-xs font-semibold text-white">資料記錄</span>
               <span className="rounded-md bg-cyan-400/10 px-1.5 py-0.5 text-[10px] tabular-nums text-cyan-200">{totalCount.toLocaleString()}</span>
             </div>
             <div ref={statusFilterRef} className="relative flex items-center gap-2" onBlur={(event) => {
               if (!event.currentTarget.contains(event.relatedTarget)) setStatusFilterOpen(false);
             }}>
-              <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Filter</span>
+              <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">篩選</span>
               <button
                 id="valid-data-status-filter"
                 ref={statusFilterButtonRef}
                 type="button"
-                aria-label={`Filter records by status: ${statusFilter === 'active' ? 'Active Only' : statusFilter === 'inactive' ? 'Inactive Only' : 'All Status'}`}
+                aria-label={`依狀態篩選資料：${statusFilter === 'active' ? '僅顯示已啟用' : statusFilter === 'inactive' ? '僅顯示已停用' : '全部狀態'}`}
                 aria-haspopup="listbox"
                 aria-expanded={statusFilterOpen}
                 disabled={loading}
@@ -689,7 +690,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
               >
                 <span className="flex min-w-0 items-center gap-1.5">
                   <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusFilter === 'active' ? 'bg-emerald-400' : statusFilter === 'inactive' ? 'bg-slate-400' : 'bg-cyan-300'}`} />
-                  <span>{statusFilter === 'active' ? 'Active Only' : statusFilter === 'inactive' ? 'Inactive Only' : 'All Status'}</span>
+                  <span>{statusFilter === 'active' ? '僅顯示已啟用' : statusFilter === 'inactive' ? '僅顯示已停用' : '全部狀態'}</span>
                 </span>
                 <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-300 transition-transform ${statusFilterOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -698,7 +699,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                   id="valid-data-status-options"
                   ref={statusFilterMenuRef}
                   role="listbox"
-                  aria-label="Record status"
+                  aria-label="資料狀態"
                   onKeyDown={(event) => {
                     const options = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="option"]'));
                     const index = options.indexOf(document.activeElement as HTMLButtonElement);
@@ -710,11 +711,11 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                   }}
                   className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-cyan-300/30 bg-[#0b192c] p-1.5 shadow-[0_16px_40px_rgba(2,6,23,0.75)] ring-1 ring-white/5"
                 >
-                  <div aria-hidden="true" className="border-b border-cyan-400/15 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wider text-cyan-300/80">Record status</div>
+                  <div aria-hidden="true" className="border-b border-cyan-400/15 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wider text-cyan-300/80">資料狀態</div>
                   {([
-                    { value: 'all' as const, label: 'All Status', description: 'Show all records', count: activeCount + inactiveCount, Icon: Database, color: 'text-cyan-300' },
-                    { value: 'active' as const, label: 'Active Only', description: 'Available records', count: activeCount, Icon: CheckCircle, color: 'text-emerald-300' },
-                    { value: 'inactive' as const, label: 'Inactive Only', description: 'Unavailable records', count: inactiveCount, Icon: XCircle, color: 'text-slate-300' },
+                    { value: 'all' as const, label: '全部狀態', description: '顯示所有記錄', count: activeCount + inactiveCount, Icon: Database, color: 'text-cyan-300' },
+                    { value: 'active' as const, label: '僅顯示已啟用', description: '可用記錄', count: activeCount, Icon: CheckCircle, color: 'text-emerald-300' },
+                    { value: 'inactive' as const, label: '僅顯示已停用', description: '不可用記錄', count: inactiveCount, Icon: XCircle, color: 'text-slate-300' },
                   ]).map(({ value, label, description, count, Icon, color }) => (
                     <button
                       key={value}
@@ -747,13 +748,13 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
               {loading ? (
                 <>
                   <span className="h-7 w-7 animate-spin rounded-full border-2 border-cyan-400/30 border-t-cyan-300" />
-                  <span className="text-xs text-cyan-200">Loading records...</span>
+                  <span className="text-xs text-cyan-200">正在載入記錄…</span>
                 </>
               ) : (
                 <>
                   <FileSpreadsheet className="h-9 w-9 text-slate-500" />
-                  <div className="text-sm text-slate-300">No valid order data yet</div>
-                  <div className="text-xs text-slate-500">Add data using the button above</div>
+                  <div className="text-sm text-slate-300">目前沒有有效資料</div>
+                  <div className="text-xs text-slate-500">可使用上方按鈕新增資料</div>
                 </>
               )}
             </div>
@@ -765,11 +766,11 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                     <thead className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-sm">
                       <tr className="border-b border-cyan-400/20 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                         <th className="w-14 px-3 py-2 text-left">#</th>
-                        <th className="w-40 px-3 py-2 text-left">Product Value ({currencyUnit})</th>
-                        <th className="px-3 py-2 text-left">Transaction ID</th>
-                        <th className="w-28 px-3 py-2 text-left">Status</th>
-                        <th className="w-32 px-3 py-2 text-left">Created At</th>
-                        <th className="w-40 px-3 py-2 text-right">Actions</th>
+                        <th className="w-40 px-3 py-2 text-left">產品金額（{currencyUnit}）</th>
+                        <th className="px-3 py-2 text-left">交易 ID</th>
+                        <th className="w-28 px-3 py-2 text-left">狀態</th>
+                        <th className="w-32 px-3 py-2 text-left">建立時間</th>
+                        <th className="w-40 px-3 py-2 text-right">操作</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -784,17 +785,17 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                             {data.is_active ? (
                               <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-300">
                                 <CheckCircle className="w-3 h-3" />
-                                Active
+                                已啟用
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 rounded-md bg-slate-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-slate-400">
                                 <XCircle className="w-3 h-3" />
-                                Inactive
+                                已停用
                               </span>
                             )}
                           </td>
                           <td className="px-3 py-1.5 tabular-nums text-slate-400">
-                            {new Date(data.created_at).toLocaleDateString()}
+                            {new Date(data.created_at).toLocaleDateString('zh-TW')}
                           </td>
                           <td className="px-3 py-1.5">
                             <div className="flex items-center justify-end gap-1">
@@ -806,11 +807,11 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                                     : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
                                 }`}
                               >
-                                {data.is_active ? 'Deactivate' : 'Activate'}
+                                {data.is_active ? '停用' : '啟用'}
                               </button>
                               <button
                                 onClick={() => setDeletingId(data.id)}
-                                aria-label={`Delete record ${data.transaction_id}`}
+                                aria-label={`刪除記錄 ${data.transaction_id}`}
                                 className="rounded-md p-1.5 text-red-400 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -825,7 +826,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                 {loading && (
                   <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-slate-950/65 text-xs text-cyan-200" role="status">
                     <span className="h-7 w-7 animate-spin rounded-full border-2 border-cyan-400/30 border-t-cyan-300" />
-                    Loading records...
+                    正在載入記錄…
                   </div>
                 )}
               </div>
@@ -834,8 +835,8 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
               {totalPages > 1 && (
                 <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-cyan-400/15 bg-slate-900/45 px-3 py-2 sm:px-5">
                   <div className="text-[11px] text-slate-400">
-                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} entries
-                    {statusFilter !== 'all' && <span className="text-slate-500"> (filtered)</span>}
+                    顯示第 {((currentPage - 1) * itemsPerPage) + 1} 至 {Math.min(currentPage * itemsPerPage, totalCount)} 筆，共 {totalCount} 筆
+                    {statusFilter !== 'all' && <span className="text-slate-500">（已篩選）</span>}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <button
@@ -843,7 +844,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                       disabled={loading || currentPage === 1}
                       className="rounded-md bg-slate-800 px-2 py-1 text-xs text-white transition-colors hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Previous
+                      上一頁
                     </button>
                     <div className="flex items-center gap-1">
                       {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -877,10 +878,10 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                       disabled={loading || currentPage === totalPages}
                       className="rounded-md bg-slate-800 px-2 py-1 text-xs text-white transition-colors hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Next
+                      下一頁
                     </button>
-                    <form onSubmit={handlePageInputSubmit} className="flex items-center gap-1.5 border-l border-slate-700 pl-2">
-                      <span className="text-xs text-slate-400">Go to:</span>
+                    <form onSubmit={handlePageInputSubmit} noValidate className="flex items-center gap-1.5 border-l border-slate-700 pl-2">
+                      <span className="text-xs text-slate-400">跳至：</span>
                       <input
                         type="number"
                         min="1"
@@ -896,7 +897,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                         disabled={loading}
                         className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"
                       >
-                        Go
+                        跳轉
                       </button>
                     </form>
                   </div>
@@ -922,15 +923,15 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                   <Database className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 id="valid-data-add-title" className="text-base font-semibold tracking-wide text-white">Add Data</h2>
-                  <p className="mt-0.5 text-xs text-slate-400">Add records to the valid data pool</p>
+                  <h2 id="valid-data-add-title" className="text-base font-semibold tracking-wide text-white">新增資料</h2>
+                  <p className="mt-0.5 text-xs text-slate-400">新增記錄至有效資料池</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
                 disabled={uploading || addingSingle}
-                aria-label="Close Add Data"
+                aria-label="關閉新增資料視窗"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"
               >
                 <X className="h-4 w-4" />
@@ -944,7 +945,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                 aria-pressed={addMode === 'single'}
                 className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${addMode === 'single' ? 'border-blue-400/60 bg-blue-500/20 text-blue-100' : 'border-slate-700 bg-slate-900/50 text-slate-400 hover:border-blue-400/30 hover:text-white'}`}
               >
-                <Plus className="h-4 w-4" /> Single Entry
+                <Plus className="h-4 w-4" /> 單筆新增
               </button>
               <button
                 type="button"
@@ -953,7 +954,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                 aria-pressed={addMode === 'bulk'}
                 className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${addMode === 'bulk' ? 'border-cyan-400/60 bg-cyan-500/20 text-cyan-100' : 'border-slate-700 bg-slate-900/50 text-slate-400 hover:border-cyan-400/30 hover:text-white'}`}
               >
-                <Upload className="h-4 w-4" /> Bulk Upload
+                <Upload className="h-4 w-4" /> 批量上傳
               </button>
             </div>
             <div className="valid-data-modal-scroll flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-5 [@media(max-height:560px)]:overflow-y-auto sm:px-6">
@@ -973,7 +974,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
               {addMode === 'single' ? (
                 <form id="valid-data-single-form" onSubmit={handleAddSingle} noValidate className="space-y-4">
                   <div>
-                    <label htmlFor="valid-data-value" className="mb-1.5 block text-xs font-semibold text-slate-300">Product Value ({currencyUnit})</label>
+                    <label htmlFor="valid-data-value" className="mb-1.5 block text-xs font-semibold text-slate-300">產品金額（{currencyUnit}）</label>
                     <input
                       id="valid-data-value"
                       type="number"
@@ -987,24 +988,24 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                     />
                   </div>
                   <div>
-                    <label htmlFor="valid-data-transaction" className="mb-1.5 block text-xs font-semibold text-slate-300">Transaction ID</label>
+                    <label htmlFor="valid-data-transaction" className="mb-1.5 block text-xs font-semibold text-slate-300">交易 ID</label>
                     <input
                       id="valid-data-transaction"
                       type="text"
                       value={formData.transactionId}
                       onChange={(event) => setFormData({ ...formData, transactionId: event.target.value })}
                       className="h-11 w-full rounded-lg border border-slate-600 bg-slate-100 px-3 text-sm text-slate-950 outline-none transition-colors focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
-                      placeholder="Enter a transaction ID"
+                      placeholder="請輸入交易 ID"
                       required
                     />
                   </div>
-                  <p className="rounded-lg border border-blue-400/15 bg-blue-500/5 px-3 py-2 text-xs text-blue-200/80">New entries are added to the data pool immediately.</p>
+                  <p className="rounded-lg border border-blue-400/15 bg-blue-500/5 px-3 py-2 text-xs text-blue-200/80">新增後，資料會立即加入資料池。</p>
                 </form>
               ) : (
                 <div className="flex min-h-0 flex-1 flex-col gap-4">
                   <div className="flex min-h-0 flex-1 flex-col">
-                    <label htmlFor="valid-data-bulk" className="mb-1.5 block text-xs font-semibold text-slate-300">Records to upload</label>
-                    <p className="mb-3 text-xs leading-relaxed text-slate-400">One record per line: product value,transaction ID. Up to 500,000 records per batch.</p>
+                    <label htmlFor="valid-data-bulk" className="mb-1.5 block text-xs font-semibold text-slate-300">上傳資料</label>
+                    <p className="mb-3 text-xs leading-relaxed text-slate-400">每行一筆資料，格式為「產品金額,交易 ID」，每次最多上傳 500,000 筆。</p>
                     <textarea
                       id="valid-data-bulk"
                       value={bulkText}
@@ -1014,7 +1015,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                       className="valid-data-modal-scroll min-h-0 w-full flex-1 resize-none rounded-lg border border-slate-300 bg-slate-50 p-4 font-mono text-sm leading-6 text-slate-900 shadow-inner shadow-slate-900/5 outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 [@media(max-height:560px)]:min-h-32"
                     />
                   </div>
-                  <p className="rounded-lg border border-cyan-400/15 bg-cyan-500/5 px-3 py-2 text-xs leading-relaxed text-cyan-200/80">Multiple imports are supported. The data pool retains up to 500,000 records.</p>
+                  <p className="rounded-lg border border-cyan-400/15 bg-cyan-500/5 px-3 py-2 text-xs leading-relaxed text-cyan-200/80">支援多次批量上傳，資料池最多保留 500,000 筆記錄。</p>
                 </div>
               )}
             </div>
@@ -1025,7 +1026,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                 disabled={uploading || addingSingle}
                 className="h-9 rounded-lg border border-slate-600 px-4 text-xs font-semibold text-slate-300 transition-colors hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"
               >
-                Cancel
+                取消
               </button>
               {addMode === 'single' ? (
                 <button
@@ -1035,7 +1036,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                   className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-xs font-semibold text-white shadow-sm shadow-cyan-950/50 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-60"
                 >
                   {addingSingle ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Plus className="h-4 w-4" />}
-                  {addingSingle ? 'Adding...' : 'Add Entry'}
+                  {addingSingle ? '新增中…' : '新增記錄'}
                 </button>
               ) : (
                 <button
@@ -1045,7 +1046,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                   className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 px-4 text-xs font-semibold text-white shadow-sm shadow-cyan-950/50 transition-colors hover:from-cyan-500 hover:to-teal-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-60"
                 >
                   {uploading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Upload className="h-4 w-4" />}
-                  {uploading ? `Uploading ${uploadProgress.current > 0 ? `${Math.round((uploadProgress.current / uploadProgress.total) * 100)}%` : '...'}` : 'Upload Bulk Data'}
+                  {uploading ? `上傳中${uploadProgress.current > 0 ? ` ${Math.round((uploadProgress.current / uploadProgress.total) * 100)}%` : '…'}` : '上傳批量資料'}
                 </button>
               )}
             </div>
@@ -1062,8 +1063,8 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                   <AlertTriangle className="w-6 h-6 text-red-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">Delete All Records</h3>
-                  <p className="text-sm text-red-300 mt-0.5">This action cannot be undone!</p>
+                  <h3 className="text-xl font-bold text-white">刪除全部記錄</h3>
+                  <p className="text-sm text-red-300 mt-0.5">此操作無法復原！</p>
                 </div>
               </div>
             </div>
@@ -1071,29 +1072,29 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
             <div className="p-6 space-y-4">
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
                 <p className="text-slate-200 text-sm leading-relaxed">
-                  You are about to permanently delete <span className="text-red-400 font-bold text-lg">{(activeCount + inactiveCount).toLocaleString()}</span> valid order data records.
+                  即將永久刪除 <span className="text-red-400 font-bold text-lg">{(activeCount + inactiveCount).toLocaleString()}</span> 筆有效資料記錄。
                 </p>
                 <p className="text-slate-300 text-sm mt-2">
-                  This will remove all transaction IDs and product values from the system.
+                  所有交易 ID 與產品金額資料都將從系統中移除。
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-slate-300 mb-2">
-                  Type <span className="text-red-400 font-mono">DELETE ALL</span> to confirm:
+                  請輸入 <span className="text-red-400 font-semibold">刪除全部資料</span> 以確認：
                 </label>
                 <input
                   type="text"
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
-                  placeholder="DELETE ALL"
+                  placeholder="刪除全部資料"
                   className="w-full px-4 py-3 bg-slate-900/80 border-2 border-slate-600 focus:border-red-500 rounded-lg text-white font-mono focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all"
                   disabled={deleting}
                   autoFocus
                 />
-                {message && message.type === 'error' && confirmText.length > 0 && confirmText !== 'DELETE ALL' && (
+                {message && message.type === 'error' && confirmText.length > 0 && confirmText !== '刪除全部資料' && (
                   <p className="text-red-400 text-xs mt-2">
-                    ⚠ Must match exactly: DELETE ALL
+                    請完整輸入「刪除全部資料」。
                   </p>
                 )}
               </div>
@@ -1108,22 +1109,22 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                   disabled={deleting}
                   className="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   onClick={handleDeleteAll}
-                  disabled={deleting || confirmText !== 'DELETE ALL'}
+                  disabled={deleting || confirmText !== '刪除全部資料'}
                   className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {deleting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Deleting...
+                      刪除中…
                     </>
                   ) : (
                     <>
                       <Trash2 className="w-4 h-4" />
-                      Delete All
+                      刪除全部
                     </>
                   )}
                 </button>
@@ -1143,14 +1144,14 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                   <Trash2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 id="valid-data-delete-title" className="text-base font-semibold text-white">Confirm Deletion</h3>
-                  <p className="mt-1 text-xs text-rose-200/85">Remove a record from the data pool</p>
+                  <h3 id="valid-data-delete-title" className="text-base font-semibold text-white">確認刪除</h3>
+                  <p className="mt-1 text-xs text-rose-200/85">從資料池中移除一筆記錄</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setDeletingId(null)}
-                aria-label="Close deletion confirmation"
+                aria-label="關閉刪除確認視窗"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
                 <X className="h-4 w-4" />
@@ -1158,11 +1159,11 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
             </div>
             <div className="px-5 py-5 sm:px-6">
               <p id="valid-data-delete-description" className="text-sm leading-relaxed text-slate-200">
-                Are you sure you want to delete this valid order data?
+                確定要刪除這筆有效資料嗎？
               </p>
               <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-rose-400/25 bg-rose-500/10 px-3.5 py-3 text-xs leading-relaxed text-rose-100">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
-                This action cannot be undone.
+                此操作無法復原。
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-cyan-400/15 bg-slate-950/45 px-5 py-4 sm:px-6">
@@ -1172,7 +1173,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                 autoFocus
                 className="h-10 min-w-24 rounded-lg border border-slate-600 bg-slate-800/60 px-4 text-xs font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                Cancel
+                取消
               </button>
               <button
                 type="button"
@@ -1180,7 +1181,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                 className="inline-flex h-10 min-w-28 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-rose-600 to-red-600 px-4 text-xs font-semibold text-white shadow-sm shadow-rose-950/40 transition-colors hover:from-rose-500 hover:to-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
               >
                 <Trash2 className="h-4 w-4" />
-                Delete
+                刪除
               </button>
             </div>
           </div>
@@ -1196,15 +1197,15 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                 <Trash2 className="w-7 h-7 text-red-500" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Deleting Records...</h3>
-                <p className="text-sm text-slate-400 mt-1">Please wait, this may take a moment</p>
+                <h3 className="text-xl font-bold text-white">正在刪除記錄…</h3>
+                <p className="text-sm text-slate-400 mt-1">請稍候，這可能需要一些時間</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="bg-slate-700/50 backdrop-blur-sm rounded-xl p-4 border border-slate-600">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-medium text-slate-300">Progress</span>
+                  <span className="text-sm font-medium text-slate-300">進度</span>
                   <span className="text-lg font-bold text-red-400">{deleteProgress.percentage}%</span>
                 </div>
 
@@ -1220,17 +1221,17 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
                 <div className="flex justify-between items-center mt-3">
                   <span className="text-xs text-slate-400">
-                    Deleted: <span className="font-semibold text-white">{deleteProgress.current.toLocaleString()}</span>
+                    已刪除：<span className="font-semibold text-white">{deleteProgress.current.toLocaleString()}</span>
                   </span>
                   <span className="text-xs text-slate-400">
-                    Total: <span className="font-semibold text-white">{deleteProgress.total.toLocaleString()}</span>
+                    總數：<span className="font-semibold text-white">{deleteProgress.total.toLocaleString()}</span>
                   </span>
                 </div>
               </div>
 
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
                 <p className="text-xs text-blue-300 text-center">
-                  🔒 Do not close this window or refresh the page
+                  請勿關閉此視窗或重新整理頁面
                 </p>
               </div>
             </div>
