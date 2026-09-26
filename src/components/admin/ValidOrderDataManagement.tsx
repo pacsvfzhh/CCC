@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Database, Upload, Trash2, Plus, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle, X } from 'lucide-react';
+import { Database, Upload, Trash2, Plus, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle, X, ChevronDown } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 
@@ -37,6 +37,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 500;
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilterOpen, setStatusFilterOpen] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
   const [inactiveCount, setInactiveCount] = useState(0);
@@ -44,6 +45,9 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0, percentage: 0 });
   const loadValidDataRef = useRef<(() => Promise<void>) | null>(null);
   const listScrollRef = useRef<HTMLDivElement>(null);
+  const statusFilterRef = useRef<HTMLDivElement>(null);
+  const statusFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const statusFilterMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     listScrollRef.current?.scrollTo({ top: 0 });
@@ -62,6 +66,25 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
       return () => clearTimeout(timer);
     }
   }, [message]);
+
+  useEffect(() => {
+    if (!statusFilterOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !statusFilterRef.current?.contains(event.target)) setStatusFilterOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setStatusFilterOpen(false);
+        statusFilterButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [statusFilterOpen]);
 
   useEffect(() => {
     if (!showAddModal) return;
@@ -552,7 +575,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col">
         {message && (
           <div className={`shrink-0 border-b px-3 py-2 text-xs flex items-start justify-between sm:px-5 ${message.type === 'success' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-red-500/30 bg-red-500/10 text-red-300'}`}>
             <span className="flex-1">{message.text}</span>
@@ -606,29 +629,87 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
           </div>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-400/15 bg-slate-900/45 px-3 py-2 sm:px-5">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="relative z-30 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-400/15 bg-slate-900/45 px-3 py-2 sm:px-5">
             <div className="flex items-center gap-2">
               <FileSpreadsheet className="h-4 w-4 text-cyan-300" />
               <span className="text-xs font-semibold text-white">Records</span>
               <span className="rounded-md bg-cyan-400/10 px-1.5 py-0.5 text-[10px] tabular-nums text-cyan-200">{totalCount.toLocaleString()}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <label htmlFor="valid-data-status-filter" className="text-xs text-slate-400">Filter</label>
-              <select
+            <div ref={statusFilterRef} className="relative flex items-center gap-2" onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setStatusFilterOpen(false);
+            }}>
+              <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Filter</span>
+              <button
                 id="valid-data-status-filter"
-                value={statusFilter}
+                ref={statusFilterButtonRef}
+                type="button"
+                aria-label={`Filter records by status: ${statusFilter === 'active' ? 'Active Only' : statusFilter === 'inactive' ? 'Inactive Only' : 'All Status'}`}
+                aria-haspopup="listbox"
+                aria-expanded={statusFilterOpen}
                 disabled={loading}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as 'all' | 'active' | 'inactive');
-                  setCurrentPage(1);
+                onClick={() => setStatusFilterOpen((open) => !open)}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    setStatusFilterOpen(true);
+                    requestAnimationFrame(() => statusFilterMenuRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus());
+                  }
                 }}
-                className="h-8 rounded-lg border border-slate-600 bg-slate-800 px-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+                className={`group inline-flex h-8 min-w-[136px] items-center justify-between gap-2 rounded-lg border bg-gradient-to-r px-2.5 text-xs font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-wait disabled:opacity-60 ${statusFilterOpen ? 'border-cyan-300/70 from-cyan-500/25 to-blue-500/15 text-cyan-50' : 'border-cyan-400/30 from-slate-800 to-slate-900 text-slate-100 hover:border-cyan-300/60 hover:from-cyan-950 hover:to-slate-800'}`}
               >
-                <option value="all">All Status</option>
-                <option value="active">Active Only</option>
-                <option value="inactive">Inactive Only</option>
-              </select>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusFilter === 'active' ? 'bg-emerald-400' : statusFilter === 'inactive' ? 'bg-slate-400' : 'bg-cyan-300'}`} />
+                  <span>{statusFilter === 'active' ? 'Active Only' : statusFilter === 'inactive' ? 'Inactive Only' : 'All Status'}</span>
+                </span>
+                <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-cyan-300 transition-transform ${statusFilterOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {statusFilterOpen && (
+                <div
+                  id="valid-data-status-options"
+                  ref={statusFilterMenuRef}
+                  role="listbox"
+                  aria-label="Record status"
+                  onKeyDown={(event) => {
+                    const options = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="option"]'));
+                    const index = options.indexOf(document.activeElement as HTMLButtonElement);
+                    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
+                      event.preventDefault();
+                      const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+                      options[next]?.focus();
+                    }
+                  }}
+                  className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-cyan-300/30 bg-[#0b192c] p-1.5 shadow-[0_16px_40px_rgba(2,6,23,0.75)] ring-1 ring-white/5"
+                >
+                  <div aria-hidden="true" className="border-b border-cyan-400/15 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wider text-cyan-300/80">Record status</div>
+                  {([
+                    { value: 'all' as const, label: 'All Status', description: 'Show all records', count: activeCount + inactiveCount, Icon: Database, color: 'text-cyan-300' },
+                    { value: 'active' as const, label: 'Active Only', description: 'Available records', count: activeCount, Icon: CheckCircle, color: 'text-emerald-300' },
+                    { value: 'inactive' as const, label: 'Inactive Only', description: 'Unavailable records', count: inactiveCount, Icon: XCircle, color: 'text-slate-300' },
+                  ]).map(({ value, label, description, count, Icon, color }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="option"
+                      aria-selected={statusFilter === value}
+                      onClick={() => {
+                        setStatusFilter(value);
+                        setCurrentPage(1);
+                        setStatusFilterOpen(false);
+                        statusFilterButtonRef.current?.focus();
+                      }}
+                      className={`mt-1 flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${statusFilter === value ? 'border-cyan-400/40 bg-cyan-400/15 text-white' : 'border-transparent text-slate-300 hover:border-cyan-400/20 hover:bg-white/5 hover:text-white'}`}
+                    >
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/5 ${color}`}><Icon className="h-3.5 w-3.5" /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11px] font-semibold">{label}</span>
+                        <span className="block text-[10px] text-slate-400">{description}</span>
+                      </span>
+                      <span className="text-[11px] font-semibold tabular-nums text-slate-300">{count.toLocaleString()}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
