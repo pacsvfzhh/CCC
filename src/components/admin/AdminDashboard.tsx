@@ -285,6 +285,8 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const [usernameSuccess, setUsernameSuccess] = useState(false);
   const [changingUsername, setChangingUsername] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const sidebarAccountMenuRef = useRef<HTMLDivElement>(null);
+  const mobileAccountMenuRef = useRef<HTMLDivElement>(null);
   const [showNavigationSettings, setShowNavigationSettings] = useState(false);
   const [navigationPreferences, setNavigationPreferences] = useState<NavigationPreferences>(() =>
     loadNavigationPreferences(navigationPreferencesOwnerId)
@@ -312,6 +314,20 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
   const navigationDragLastTargetRef = useRef<AdminTabId | null>(null);
   const navigationDragSuppressClickUntilRef = useRef(0);
   const { companyName } = useCompanyName(admin.id);
+
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!sidebarAccountMenuRef.current?.contains(target) && !mobileAccountMenuRef.current?.contains(target)) {
+        setAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [accountMenuOpen]);
 
   useEffect(() => {
     const localPreferences = loadNavigationPreferences(navigationPreferencesOwnerId);
@@ -1198,7 +1214,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     const isSidebar = variant === 'sidebar';
 
     return (
-      <div className={`relative ${isSidebar ? 'z-40 w-full' : 'shrink-0'}`}>
+      <div ref={isSidebar ? sidebarAccountMenuRef : mobileAccountMenuRef} className={`relative ${isSidebar ? 'z-40 w-full' : 'shrink-0'}`}>
         <button
           type="button"
           onClick={() => setAccountMenuOpen((open) => !open)}
