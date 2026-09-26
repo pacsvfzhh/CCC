@@ -885,7 +885,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
             if (event.target === event.currentTarget && !uploading && !addingSingle) setShowAddModal(false);
           }}
         >
-          <div role="dialog" aria-modal="true" aria-labelledby="valid-data-add-title" className="flex max-h-[calc(100dvh-24px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-[#0b192c] text-slate-100 shadow-[0_28px_80px_rgba(2,6,23,0.8)] sm:max-h-[min(720px,calc(100dvh-48px))]">
+          <div role="dialog" aria-modal="true" aria-labelledby="valid-data-add-title" className="flex h-[calc(100dvh-24px)] max-h-[540px] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-[#0b192c] text-slate-100 shadow-[0_28px_80px_rgba(2,6,23,0.8)] sm:h-[calc(100dvh-48px)] sm:max-h-[680px]">
             <div className="h-1 shrink-0 bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400" />
             <div className="flex shrink-0 items-start justify-between gap-4 border-b border-cyan-400/15 bg-gradient-to-r from-blue-500/10 via-cyan-500/5 to-transparent px-4 py-4 sm:px-6">
               <div className="flex items-center gap-3">
@@ -970,9 +970,9 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                       id="valid-data-bulk"
                       value={bulkText}
                       onChange={(event) => setBulkText(event.target.value)}
-                      rows={8}
+                      rows={12}
                       placeholder={'100.50,TXN12345678\n200.00,TXN87654321\n150.75,TXN11223344'}
-                      className="min-h-40 w-full resize-y rounded-lg border border-slate-600 bg-slate-950/80 p-3 font-mono text-xs leading-6 text-cyan-100 outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
+                      className="min-h-64 w-full resize-y rounded-lg border border-slate-300 bg-slate-50 p-4 font-mono text-sm leading-6 text-slate-900 shadow-inner shadow-slate-900/5 outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 sm:min-h-80"
                     />
                   </div>
                   <p className="rounded-lg border border-cyan-400/15 bg-cyan-500/5 px-3 py-2 text-xs leading-relaxed text-cyan-200/80">Multiple imports are supported. The data pool retains up to 500,000 records.</p>
