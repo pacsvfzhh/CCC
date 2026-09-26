@@ -197,84 +197,14 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
         </div>
         <button
           type="button"
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          aria-expanded={showCreateForm}
+          onClick={() => setShowCreateForm(true)}
+          aria-haspopup="dialog"
           className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
         >
           <UserPlus className="h-4 w-4" />
           新增二級管理員
         </button>
       </div>
-
-      {showCreateForm && (
-        <form onSubmit={handleCreateAdmin} className="shrink-0 space-y-4 border-b border-cyan-400/20 bg-gradient-to-r from-[#1b2d47] to-[#17343e] p-4 sm:px-6 sm:py-5">
-          {error && (
-            <div className="rounded-lg border border-rose-500/30 bg-rose-950/40 p-3 text-sm text-rose-200">
-              {error}
-            </div>
-          )}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-200">登入帳號</label>
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                required
-                className="h-10 w-full rounded-lg border border-slate-600 bg-slate-950/70 px-3 text-white outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-200">登入密碼</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  className="h-10 w-full rounded-lg border border-slate-600 bg-slate-950/70 px-3 pr-11 text-white outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setShowCreateForm(false);
-                setError(null);
-                setFormData({ username: '', password: '' });
-                setShowPassword(false);
-              }}
-              disabled={creating}
-              className="min-h-10 rounded-lg border border-slate-600 bg-slate-800 px-4 text-sm text-slate-200 transition-colors hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              disabled={creating || !formData.username.trim() || !formData.password}
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {creating ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  建立中…
-                </>
-              ) : (
-                '建立帳號'
-              )}
-            </button>
-          </div>
-        </form>
-      )}
 
       {loading ? (
         <div className="flex min-h-0 flex-1 items-center justify-center py-10 text-sm text-slate-400">正在載入管理員…</div>
@@ -337,6 +267,93 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
         </div>
       )}
 
+      {showCreateForm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div role="dialog" aria-modal="true" aria-labelledby="create-admin-title" className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-cyan-300/25 bg-[#18283d] shadow-2xl shadow-slate-950/70">
+            <div className="flex items-center gap-3 border-b border-cyan-300/20 bg-gradient-to-r from-[#1d3b61] via-[#1b3651] to-[#164752] px-5 py-5 sm:px-6">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-white/10 text-cyan-100 shadow-sm">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 id="create-admin-title" className="text-lg font-semibold text-white">新增二級管理員</h3>
+                <p className="mt-0.5 text-xs text-cyan-100/75">建立新的管理員帳號</p>
+              </div>
+            </div>
+            <form onSubmit={handleCreateAdmin} className="space-y-5 p-5 sm:p-6">
+              {error && (
+                <div role="alert" className="rounded-lg border border-rose-400/30 bg-rose-950/40 p-3 text-sm text-rose-100">
+                  {error}
+                </div>
+              )}
+              <div>
+                <label htmlFor="create-admin-username" className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">登入帳號</label>
+                <input
+                  id="create-admin-username"
+                  type="text"
+                  autoComplete="username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/30"
+                />
+              </div>
+              <div>
+                <label htmlFor="create-admin-password" className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">登入密碼</label>
+                <div className="relative">
+                  <input
+                    id="create-admin-password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 pr-11 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? '隱藏密碼' : '顯示密碼'}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 transition-colors hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-slate-400">密碼至少需要 6 個字元</p>
+              </div>
+              <div className="flex gap-3 border-t border-white/10 pt-5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setError(null);
+                    setFormData({ username: '', password: '' });
+                    setShowPassword(false);
+                  }}
+                  disabled={creating}
+                  className="min-h-11 flex-1 rounded-xl border border-slate-500/50 bg-white/5 px-4 text-sm font-medium text-slate-100 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating || !formData.username.trim() || !formData.password}
+                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-950/30 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {creating ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      建立中…
+                    </>
+                  ) : (
+                    '建立帳號'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {deletingAdminId && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
           <div role="dialog" aria-modal="true" aria-labelledby="delete-admin-title" className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-rose-400/25 bg-slate-900 shadow-2xl shadow-slate-950/60">
@@ -386,14 +403,14 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
 
       {editingAdmin && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div role="dialog" aria-modal="true" aria-labelledby="edit-admin-title" className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-cyan-400/25 bg-slate-900 shadow-2xl shadow-slate-950/60">
-            <div className="flex items-center gap-3 border-b border-cyan-400/20 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950/75 px-5 py-4 sm:px-6">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-400/25 bg-blue-500/15 text-cyan-200">
+          <div role="dialog" aria-modal="true" aria-labelledby="edit-admin-title" className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-cyan-300/25 bg-[#18283d] shadow-2xl shadow-slate-950/70">
+            <div className="flex items-center gap-3 border-b border-cyan-300/20 bg-gradient-to-r from-[#1d3b61] via-[#1b3651] to-[#164752] px-5 py-5 sm:px-6">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-white/10 text-cyan-100 shadow-sm">
                 <Edit2 className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <h3 id="edit-admin-title" className="text-lg font-semibold text-white">編輯管理員</h3>
-                <p className="mt-0.5 truncate text-xs text-cyan-200/75">{editingAdmin.username}</p>
+                <p className="mt-0.5 truncate text-xs text-cyan-100/75">{editingAdmin.username}</p>
               </div>
             </div>
 
@@ -405,40 +422,45 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
               )}
 
               <div>
-                <label className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">登入帳號</label>
+                <label htmlFor="edit-admin-username" className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">登入帳號</label>
                 <input
+                  id="edit-admin-username"
                   type="text"
+                  autoComplete="username"
                   value={editFormData.username}
                   onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value })}
                   required
-                  className="h-11 w-full rounded-xl border border-slate-600 bg-slate-950/70 px-3.5 text-sm text-white outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/30"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">
+                <label htmlFor="edit-admin-password" className="mb-2 block text-xs font-semibold tracking-wide text-slate-200">
                   新密碼 <span className="text-slate-400">（留空則保持不變）</span>
                 </label>
                 <div className="relative">
                   <input
+                    id="edit-admin-password"
                     type={showEditPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={editFormData.password}
                     onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
                     placeholder="輸入新密碼"
-                    className="h-11 w-full rounded-xl border border-slate-600 bg-slate-950/70 px-3.5 pr-11 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 pr-11 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/30"
                   />
                   <button
                     type="button"
                     onClick={() => setShowEditPassword(!showEditPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                    aria-label={showEditPassword ? '隱藏新密碼' : '顯示新密碼'}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 transition-colors hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
                   >
                     {showEditPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">若修改密碼，至少需要 6 個字元</p>
+                <p className="mt-1.5 text-xs text-slate-400">若修改密碼，至少需要 6 個字元</p>
               </div>
 
-              <div className="flex gap-3 border-t border-slate-700/70 pt-4">
+              <div className="flex gap-3 border-t border-white/10 pt-5">
                 <button
                   type="button"
                   onClick={() => {
@@ -448,14 +470,14 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                     setEditError(null);
                   }}
                   disabled={updating}
-                  className="min-h-10 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-4 text-sm text-slate-200 transition-colors hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-h-11 flex-1 rounded-xl border border-slate-500/50 bg-white/5 px-4 text-sm font-medium text-slate-100 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={updating || !editFormData.username.trim()}
-                  className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-semibold text-white transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-950/30 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {updating ? (
                     <>
