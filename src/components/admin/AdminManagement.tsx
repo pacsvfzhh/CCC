@@ -189,20 +189,20 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
   const deletingAdmin = admins.find(item => item.id === deletingAdminId);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[radial-gradient(ellipse_at_top_left,rgba(37,99,235,0.2),transparent_45%),radial-gradient(ellipse_at_bottom_right,rgba(6,182,212,0.12),transparent_50%),linear-gradient(145deg,#101c30,#102737_60%,#10212c)] text-slate-100">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-300/30 bg-gradient-to-r from-[#25476f] via-[#1c4362] to-[#15505a] px-4 py-3 shadow-[0_10px_28px_rgba(2,6,23,0.18)] sm:px-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#142235] text-slate-100">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-500/50 bg-[#22354b] px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-white/10 text-cyan-100 shadow-sm shadow-slate-950/20"><Shield className="h-5 w-5" /></span>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-400/40 bg-[#30475e] text-slate-100"><Shield className="h-5 w-5" /></span>
           <div>
             <h1 className="text-lg font-semibold text-white">二級管理員</h1>
-            <p className="mt-0.5 text-xs text-cyan-100/80">建立與管理二級管理員帳號</p>
+            <p className="mt-0.5 text-xs text-slate-200">建立與管理二級管理員帳號</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => setShowCreateForm(true)}
           aria-haspopup="dialog"
-          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-cyan-200/25 bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-semibold text-white shadow-sm shadow-slate-950/25 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#5684a4] bg-[#315779] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3c6488] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
         >
           <UserPlus className="h-4 w-4" />
           新增二級管理員
@@ -210,22 +210,22 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
       </div>
 
       {loading ? (
-        <div className="flex min-h-0 flex-1 items-center justify-center py-10 text-sm text-cyan-100/75">正在載入管理員…</div>
+        <div className="flex min-h-0 flex-1 items-center justify-center py-10 text-sm text-slate-200">正在載入管理員…</div>
       ) : (
-        <div className="min-h-0 flex-1 bg-gradient-to-b from-[#102539] via-[#0d1e31] to-[#0d202d]">
+        <div className="min-h-0 flex-1 bg-[#142235]">
           {admins.map((secondaryAdmin) => (
             <div
               key={secondaryAdmin.id}
-              className={`relative flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors sm:px-6 ${secondaryAdmin.is_active
-                ? 'border-cyan-300/20 bg-gradient-to-r from-[#1b3c5c]/90 via-[#173348]/85 to-[#124049]/80 hover:from-[#245173] hover:via-[#1d415a] hover:to-[#19515a]'
-                : 'border-amber-300/20 bg-gradient-to-r from-[#3a302e]/80 via-[#283040]/85 to-[#18303c]/85 hover:from-[#4a3a30] hover:via-[#323d4c] hover:to-[#213845]'
+              className={`relative flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3.5 transition-colors sm:px-6 ${secondaryAdmin.is_active
+                ? 'border-[#344b61] bg-[#1d3044] hover:bg-[#253a50]'
+                : 'border-[#544449] bg-[#302c31] hover:bg-[#3a3337]'
               }`}
             >
-              <span aria-hidden="true" className={`absolute inset-y-2 left-0 w-1 rounded-r ${secondaryAdmin.is_active ? 'bg-gradient-to-b from-blue-400 to-cyan-400' : 'bg-gradient-to-b from-amber-300 to-orange-500'}`} />
+              <span aria-hidden="true" className={`absolute inset-y-2 left-0 w-1 rounded-r ${secondaryAdmin.is_active ? 'bg-[#6da8b9]' : 'bg-[#bc9465]'}`} />
               <div className="flex min-w-0 flex-1 items-center gap-3.5">
                 <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${secondaryAdmin.is_active
-                  ? 'border-cyan-200/35 bg-gradient-to-br from-blue-500 to-cyan-700 text-white shadow-sm shadow-blue-950/40'
-                  : 'border-amber-200/30 bg-gradient-to-br from-amber-700 to-slate-700 text-amber-50 shadow-sm shadow-slate-950/30'
+                  ? 'border-[#47617a] bg-[#2b435d] text-slate-100'
+                  : 'border-[#6b5650] bg-[#473c3b] text-slate-100'
                 }`}>
                   <Shield className="h-5 w-5" />
                 </div>
@@ -241,16 +241,16 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                   onClick={() => toggleAdminStatus(secondaryAdmin.id, secondaryAdmin.is_active)}
                   className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 ${
                     secondaryAdmin.is_active
-                      ? 'border-emerald-300/35 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30 focus-visible:ring-emerald-400'
-                      : 'border-amber-300/35 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30 focus-visible:ring-amber-400'
+                      ? 'border-[#477562] bg-[#21463d] text-[#e7f5ef] hover:bg-[#295348] focus-visible:ring-slate-200'
+                      : 'border-[#846745] bg-[#594738] text-[#fff2df] hover:bg-[#695340] focus-visible:ring-slate-200'
                   }`}
                 >
-                  <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${secondaryAdmin.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                  <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${secondaryAdmin.is_active ? 'bg-[#9ecab4]' : 'bg-[#dfbf88]'}`} />
                   {secondaryAdmin.is_active ? '使用中' : '已停用'}
                 </button>
                 <button
                   onClick={() => openEditModal(secondaryAdmin)}
-                  className="rounded-lg border border-blue-300/30 bg-blue-400/15 p-2.5 text-blue-100 transition-colors hover:border-blue-300/50 hover:bg-blue-400/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+                  className="rounded-lg border border-[#476680] bg-[#29455e] p-2.5 text-slate-100 transition-colors hover:bg-[#35536b] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
                   title="編輯管理員"
                   aria-label={`編輯 ${secondaryAdmin.username}`}
                 >
@@ -258,7 +258,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                 </button>
                 <button
                   onClick={() => setDeletingAdminId(secondaryAdmin.id)}
-                  className="rounded-lg border border-rose-300/30 bg-rose-400/15 p-2.5 text-rose-100 transition-colors hover:border-rose-300/50 hover:bg-rose-400/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+                  className="rounded-lg border border-[#79565c] bg-[#49353d] p-2.5 text-rose-100 transition-colors hover:bg-[#604047] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
                   title="刪除管理員"
                   aria-label={`刪除 ${secondaryAdmin.username}`}
                 >
