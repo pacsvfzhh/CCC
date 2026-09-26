@@ -214,15 +214,15 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
             <div
               key={secondaryAdmin.id}
               className={`relative flex min-h-[57px] flex-wrap items-center justify-between gap-3 border-b px-4 py-1 transition-colors sm:px-6 ${secondaryAdmin.is_active
-                ? 'border-cyan-400/15 bg-gradient-to-r from-blue-900/25 via-slate-800/25 to-cyan-950/20 hover:from-blue-900/40 hover:to-cyan-900/30'
-                : 'border-amber-400/15 bg-gradient-to-r from-amber-900/15 via-slate-800/20 to-slate-800/15 hover:from-amber-900/25 hover:to-slate-700/25'
+                ? 'border-emerald-400/20 bg-gradient-to-r from-emerald-900/55 via-slate-800/30 to-emerald-950/35 hover:from-emerald-800/60 hover:to-emerald-900/45'
+                : 'border-rose-400/20 bg-gradient-to-r from-rose-950/55 via-slate-800/30 to-red-950/35 hover:from-rose-900/60 hover:to-red-900/45'
               }`}
             >
-              <span aria-hidden="true" className={`absolute inset-y-2 left-0 w-0.5 rounded-r ${secondaryAdmin.is_active ? 'bg-cyan-500/80' : 'bg-amber-500/70'}`} />
+              <span aria-hidden="true" className={`absolute inset-y-2 left-0 w-0.5 rounded-r ${secondaryAdmin.is_active ? 'bg-emerald-400/80' : 'bg-rose-400/80'}`} />
               <div className="flex min-w-0 flex-1 items-center gap-3.5">
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${secondaryAdmin.is_active
-                  ? 'border-cyan-300/20 bg-gradient-to-br from-blue-600 to-cyan-700 text-cyan-50'
-                  : 'border-amber-300/20 bg-gradient-to-br from-slate-600 to-amber-900/70 text-amber-100'
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border ${secondaryAdmin.is_active
+                  ? 'border-emerald-300/30 bg-gradient-to-br from-emerald-500 to-green-800 text-emerald-50'
+                  : 'border-rose-300/30 bg-gradient-to-br from-rose-500 to-red-900 text-rose-50'
                 }`}>
                   <Shield className="h-4 w-4" />
                 </div>
@@ -238,11 +238,11 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
                   onClick={() => toggleAdminStatus(secondaryAdmin.id, secondaryAdmin.is_active)}
                   className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 ${
                     secondaryAdmin.is_active
-                      ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20 focus-visible:ring-emerald-400'
-                      : 'border-amber-400/25 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 focus-visible:ring-amber-400'
+                      ? 'border-emerald-400/50 bg-emerald-600/30 text-emerald-100 hover:bg-emerald-500/40 focus-visible:ring-emerald-400'
+                      : 'border-rose-400/50 bg-rose-600/30 text-rose-100 hover:bg-rose-500/40 focus-visible:ring-rose-400'
                   }`}
                 >
-                  <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${secondaryAdmin.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                  <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${secondaryAdmin.is_active ? 'bg-emerald-400' : 'bg-rose-400'}`} />
                   {secondaryAdmin.is_active ? '使用中' : '已停用'}
                 </button>
                 <button
