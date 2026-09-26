@@ -499,7 +499,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8 text-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-slate-950/75 text-center">
         <div className="inline-flex items-center gap-2 text-slate-400">
           <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
           <span>Loading valid order data...</span>
@@ -509,38 +509,42 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl rounded-2xl border border-slate-700/50 shadow-xl">
-      <div className="bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-teal-500/10 border-b border-slate-700/50 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div></div>
-          <div className="flex items-center gap-3">
-            {(activeCount + inactiveCount) > 0 && (
-              <button
-                onClick={() => {
-                  console.log('[Delete All] Button clicked, opening modal...');
-                  setShowDeleteAllModal(true);
-                }}
-                disabled={deleting}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <AlertTriangle className="w-4 h-4" />
-                {deleting ? 'Deleting...' : 'Delete All'}
-              </button>
-            )}
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Add Data
-            </button>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[radial-gradient(ellipse_at_top_left,rgba(14,116,144,0.12),transparent_42%),linear-gradient(160deg,#0b1729,#08111f_65%,#0c1726)] text-slate-100">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-400/20 bg-slate-900/65 px-3 py-2 sm:px-5">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-400/10 text-cyan-300"><Database className="h-4 w-4" /></span>
+          <div>
+            <h2 className="text-sm font-semibold tracking-wide text-white">有效資料</h2>
+            <p className="text-[10px] text-slate-400">資料池與記錄管理</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {(activeCount + inactiveCount) > 0 && (
+            <button
+              onClick={() => {
+                console.log('[Delete All] Button clicked, opening modal...');
+                setShowDeleteAllModal(true);
+              }}
+              disabled={deleting}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-400/30 bg-red-500/10 px-3 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {deleting ? 'Deleting...' : 'Delete All'}
+            </button>
+          )}
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-3 text-xs font-semibold text-white shadow-sm shadow-cyan-950/40 transition-colors hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Data
+          </button>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 py-2 sm:px-4 sm:py-3">
         {message && (
-          <div className={`mb-4 p-4 rounded-lg flex items-start justify-between ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+          <div className={`mb-2 shrink-0 rounded-lg p-2.5 text-xs flex items-start justify-between ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
             <span className="flex-1">{message.text}</span>
             <button
               onClick={() => setMessage(null)}
@@ -551,68 +555,50 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
           </div>
         )}
 
-        {/* Data Pool Statistics Card */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-blue-500/10 via-cyan-500/10 to-teal-500/10 backdrop-blur-sm border border-blue-500/30 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <Database className="w-5 h-5 text-blue-400" />
-                  <span className="text-sm font-medium text-blue-300">Total Data Pool Size</span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold text-white">{(activeCount + inactiveCount).toLocaleString()}</span>
-                  <span className="text-lg text-slate-400">/ 500,000</span>
-                </div>
-                <div className="mt-3 w-full bg-slate-700/50 rounded-full h-2.5 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      (activeCount + inactiveCount) >= 500000 ? 'bg-red-500' :
-                      (activeCount + inactiveCount) >= 450000 ? 'bg-amber-500' :
-                      'bg-blue-500'
-                    }`}
-                    style={{ width: `${Math.min(((activeCount + inactiveCount) / 500000) * 100, 100)}%` }}
-                  ></div>
-                </div>
-                <p className="text-xs text-slate-400 mt-2">
-                  {(activeCount + inactiveCount) >= 500000 ? (
-                    <span className="text-red-400 font-semibold">Pool is full - new entries will replace oldest records</span>
-                  ) : (activeCount + inactiveCount) >= 450000 ? (
-                    <span className="text-amber-400 font-semibold">Pool is {Math.round(((activeCount + inactiveCount) / 500000) * 100)}% full - nearing capacity</span>
-                  ) : (
-                    <span className="text-blue-300">Pool has {(500000 - (activeCount + inactiveCount)).toLocaleString()} slots available</span>
-                  )}
-                </p>
-              </div>
+        <div className="mb-2 grid shrink-0 grid-cols-2 gap-2 sm:mb-3 sm:grid-cols-3">
+          <div className="col-span-2 rounded-xl border border-cyan-400/30 bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-slate-900/70 px-3 py-2.5 shadow-sm shadow-cyan-950/20 sm:col-span-1 sm:px-4">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-cyan-200">
+              <Database className="h-3.5 w-3.5" /> Total Data Pool Size
             </div>
+            <div className="mt-0.5 flex items-baseline gap-1.5 whitespace-nowrap">
+              <span className="text-2xl font-bold tabular-nums text-white">{(activeCount + inactiveCount).toLocaleString()}</span>
+              <span className="text-xs text-slate-400">/ 500,000</span>
+            </div>
+            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-700/70">
+              <div
+                className={`h-full rounded-full ${
+                  (activeCount + inactiveCount) >= 500000 ? 'bg-red-400' :
+                  (activeCount + inactiveCount) >= 450000 ? 'bg-amber-400' :
+                  'bg-cyan-400'
+                }`}
+                style={{ width: `${Math.min(((activeCount + inactiveCount) / 500000) * 100, 100)}%` }}
+              />
+            </div>
+            <p className="mt-1 truncate text-[10px] text-slate-400">
+              {(activeCount + inactiveCount) >= 500000 ? 'Pool is full - new entries replace oldest records' :
+                (activeCount + inactiveCount) >= 450000 ? `Pool is ${Math.round(((activeCount + inactiveCount) / 500000) * 100)}% full - nearing capacity` :
+                `Pool has ${(500000 - (activeCount + inactiveCount)).toLocaleString()} slots available`}
+            </p>
           </div>
-
-          <div className="grid grid-rows-2 gap-4">
-            <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/10 backdrop-blur-sm border border-emerald-500/30 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-medium text-emerald-300">Active Records</span>
-              </div>
-              <div className="text-3xl font-bold text-white">
-                {activeCount.toLocaleString()}
-              </div>
+          <div className="rounded-xl border border-emerald-400/25 bg-gradient-to-br from-emerald-500/10 to-slate-900/70 px-3 py-2.5 sm:px-4">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-300">
+              <CheckCircle className="h-3.5 w-3.5" /> Active Records
             </div>
-
-            <div className="bg-gradient-to-br from-slate-500/10 to-slate-600/10 backdrop-blur-sm border border-slate-500/30 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <XCircle className="w-4 h-4 text-slate-400" />
-                <span className="text-xs font-medium text-slate-300">Inactive Records</span>
-              </div>
-              <div className="text-3xl font-bold text-white">
-                {inactiveCount.toLocaleString()}
-              </div>
+            <div className="mt-1 text-2xl font-bold tabular-nums text-white">{activeCount.toLocaleString()}</div>
+            <div className="mt-1 text-[10px] text-emerald-200/60">Available for matching</div>
+          </div>
+          <div className="rounded-xl border border-slate-500/30 bg-gradient-to-br from-slate-500/10 to-slate-900/70 px-3 py-2.5 sm:px-4">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
+              <XCircle className="h-3.5 w-3.5" /> Inactive Records
             </div>
+            <div className="mt-1 text-2xl font-bold tabular-nums text-white">{inactiveCount.toLocaleString()}</div>
+            <div className="mt-1 text-[10px] text-slate-400">Not currently in use</div>
           </div>
         </div>
 
         {showAddForm && (
-          <div className="mb-6 space-y-4 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-            <div className="flex gap-4">
+          <div className="mb-2 max-h-[45vh] shrink-0 overflow-y-auto rounded-xl border border-cyan-400/20 bg-slate-900/80 p-3 sm:mb-3 sm:p-4">
+            <div className="flex flex-col gap-4 lg:flex-row">
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-white mb-4">Add Single Entry</h3>
                 <form onSubmit={handleAddSingle} className="space-y-3">
@@ -692,17 +678,23 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
           </div>
         )}
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-end mb-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-cyan-400/20 bg-slate-900/55 shadow-lg shadow-slate-950/20">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-400/15 bg-slate-900/80 px-3 py-2 sm:px-4">
             <div className="flex items-center gap-2">
-              <label className="text-sm text-slate-400">Filter:</label>
+              <FileSpreadsheet className="h-4 w-4 text-cyan-300" />
+              <span className="text-xs font-semibold text-white">Records</span>
+              <span className="rounded-md bg-cyan-400/10 px-1.5 py-0.5 text-[10px] tabular-nums text-cyan-200">{totalCount.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="valid-data-status-filter" className="text-xs text-slate-400">Filter</label>
               <select
+                id="valid-data-status-filter"
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value as 'all' | 'active' | 'inactive');
                   setCurrentPage(1);
                 }}
-                className="px-3 py-1.5 bg-slate-800/50 backdrop-blur-sm border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-8 rounded-lg border border-slate-600 bg-slate-800 px-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
               >
                 <option value="all">All Status</option>
                 <option value="active">Active Only</option>
@@ -712,57 +704,54 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
           </div>
 
           {validData.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="inline-flex flex-col items-center gap-3 p-8 rounded-xl bg-slate-800/30 border border-slate-700/50">
-                <FileSpreadsheet className="w-12 h-12 text-slate-500" />
-                <div className="text-slate-400 text-sm">No valid order data yet</div>
-                <div className="text-slate-500 text-xs">Add data using the button above</div>
-              </div>
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 py-10 text-center">
+              <FileSpreadsheet className="h-9 w-9 text-slate-500" />
+              <div className="text-sm text-slate-300">No valid order data yet</div>
+              <div className="text-xs text-slate-500">Add data using the button above</div>
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <div className="overflow-y-auto" style={{ maxHeight: '640px' }}>
-                  <table className="w-full">
-                    <thead className="sticky top-0 bg-slate-800/95 backdrop-blur-sm z-10">
-                      <tr className="border-b border-slate-700/50">
-                        <th className="text-left py-3 px-4 text-slate-400 font-semibold text-sm w-16">#</th>
-                        <th className="text-left py-3 px-4 text-slate-400 font-semibold text-sm">Product Value (USDT)</th>
-                        <th className="text-left py-3 px-4 text-slate-400 font-semibold text-sm">Transaction ID</th>
-                        <th className="text-left py-3 px-4 text-slate-400 font-semibold text-sm">Status</th>
-                        <th className="text-left py-3 px-4 text-slate-400 font-semibold text-sm">Created At</th>
-                        <th className="text-right py-3 px-4 text-slate-400 font-semibold text-sm">Actions</th>
+              <div className="min-h-0 flex-1 overflow-auto overscroll-contain dark-panel-scroll">
+                  <table className="w-full min-w-[800px] table-fixed">
+                    <thead className="sticky top-0 z-10 bg-slate-800/95 backdrop-blur-sm">
+                      <tr className="border-b border-cyan-400/20 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                        <th className="w-14 px-3 py-2 text-left">#</th>
+                        <th className="w-40 px-3 py-2 text-left">Product Value ({currencyUnit})</th>
+                        <th className="px-3 py-2 text-left">Transaction ID</th>
+                        <th className="w-28 px-3 py-2 text-left">Status</th>
+                        <th className="w-32 px-3 py-2 text-left">Created At</th>
+                        <th className="w-40 px-3 py-2 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {validData.map((data, index) => (
-                        <tr key={data.id} className="border-b border-slate-700/30 hover:bg-slate-800/30">
-                          <td className="py-3 px-4 text-slate-500 font-semibold text-sm">
+                        <tr key={data.id} className="border-b border-slate-700/25 text-xs transition-colors hover:bg-cyan-400/5">
+                          <td className="px-3 py-1.5 font-medium tabular-nums text-slate-500">
                             {(currentPage - 1) * itemsPerPage + index + 1}
                           </td>
-                          <td className="py-3 px-4 text-white font-semibold">${data.product_value.toFixed(2)}</td>
-                          <td className="py-3 px-4 text-slate-300 font-mono text-sm">{data.transaction_id}</td>
-                          <td className="py-3 px-4">
+                          <td className="px-3 py-1.5 font-semibold tabular-nums text-slate-100">${data.product_value.toFixed(2)}</td>
+                          <td className="truncate px-3 py-1.5 font-mono text-[11px] text-cyan-100/85" title={data.transaction_id}>{data.transaction_id}</td>
+                          <td className="px-3 py-1.5">
                             {data.is_active ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg text-xs font-semibold">
+                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-300">
                                 <CheckCircle className="w-3 h-3" />
                                 Active
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-500/10 text-slate-400 rounded-lg text-xs font-semibold">
+                              <span className="inline-flex items-center gap-1 rounded-md bg-slate-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-slate-400">
                                 <XCircle className="w-3 h-3" />
                                 Inactive
                               </span>
                             )}
                           </td>
-                          <td className="py-3 px-4 text-slate-400 text-sm">
+                          <td className="px-3 py-1.5 tabular-nums text-slate-400">
                             {new Date(data.created_at).toLocaleDateString()}
                           </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center justify-end gap-2">
+                          <td className="px-3 py-1.5">
+                            <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => handleToggleActive(data.id, data.is_active)}
-                                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                                className={`rounded-md px-2 py-1 text-[11px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
                                   data.is_active
                                     ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
                                     : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
@@ -772,7 +761,8 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                               </button>
                               <button
                                 onClick={() => setDeletingId(data.id)}
-                                className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                aria-label={`Delete record ${data.transaction_id}`}
+                                className="rounded-md p-1.5 text-red-400 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -782,21 +772,20 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                       ))}
                     </tbody>
                   </table>
-                </div>
               </div>
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between px-4 py-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                  <div className="text-sm text-slate-400">
+                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-cyan-400/15 bg-slate-900/80 px-3 py-2 sm:px-4">
+                  <div className="text-[11px] text-slate-400">
                     Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} entries
                     {statusFilter !== 'all' && <span className="text-slate-500"> (filtered)</span>}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <button
                       onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
-                      className="px-3 py-1 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      className="rounded-md bg-slate-800 px-2 py-1 text-xs text-white transition-colors hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Previous
                     </button>
@@ -815,7 +804,7 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                             )}
                             <button
                               onClick={() => setCurrentPage(page)}
-                              className={`px-3 py-1 rounded-lg text-sm font-semibold transition-colors ${
+                              className={`rounded-md px-2 py-1 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
                                 currentPage === page
                                   ? 'bg-blue-600 text-white'
                                   : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -829,12 +818,12 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                     <button
                       onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-1 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      className="rounded-md bg-slate-800 px-2 py-1 text-xs text-white transition-colors hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Next
                     </button>
-                    <form onSubmit={handlePageInputSubmit} className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-700">
-                      <span className="text-sm text-slate-400">Go to:</span>
+                    <form onSubmit={handlePageInputSubmit} className="flex items-center gap-1.5 border-l border-slate-700 pl-2">
+                      <span className="text-xs text-slate-400">Go to:</span>
                       <input
                         type="number"
                         min="1"
@@ -842,11 +831,11 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
                         value={pageInput}
                         onChange={handlePageInputChange}
                         placeholder={`1-${totalPages}`}
-                        className="w-20 px-2 py-1 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-16 rounded-md border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
                       />
                       <button
                         type="submit"
-                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+                        className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
                       >
                         Go
                       </button>
