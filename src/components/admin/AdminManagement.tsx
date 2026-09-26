@@ -190,7 +190,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#142235] text-slate-100">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-500/50 bg-[#22354b] px-4 py-3 sm:px-6">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#52728a] bg-gradient-to-r from-[#293d67] via-[#24506d] to-[#1b5a60] px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-400/40 bg-[#30475e] text-slate-100"><Shield className="h-5 w-5" /></span>
           <div>
@@ -202,7 +202,7 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
           type="button"
           onClick={() => setShowCreateForm(true)}
           aria-haspopup="dialog"
-          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#5684a4] bg-[#315779] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3c6488] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-blue-400/70 bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           <UserPlus className="h-4 w-4" />
           新增二級管理員
