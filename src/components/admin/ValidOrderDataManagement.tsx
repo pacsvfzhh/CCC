@@ -952,7 +952,17 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
             </div>
             <div className="valid-data-modal-scroll flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-5 [@media(max-height:560px)]:overflow-y-auto sm:px-6">
               {message?.type === 'error' && (
-                <div role="alert" className="valid-data-modal-scroll mb-4 max-h-32 min-h-0 shrink-0 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">{message.text}</div>
+                <div role="alert" className="relative mb-4 max-h-32 min-h-0 shrink-0 overflow-hidden rounded-lg border border-red-400/30 bg-red-500/10 text-xs text-red-200">
+                  <div className="valid-data-modal-scroll max-h-32 overflow-y-auto whitespace-pre-wrap break-words py-2 pl-3 pr-12">{message.text}</div>
+                  <button
+                    type="button"
+                    onClick={() => setMessage(null)}
+                    aria-label="關閉錯誤提示"
+                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md border border-red-400/20 bg-[#251b2e] text-red-200 transition-colors hover:bg-red-500/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               )}
               {addMode === 'single' ? (
                 <form id="valid-data-single-form" onSubmit={handleAddSingle} noValidate className="space-y-4">
