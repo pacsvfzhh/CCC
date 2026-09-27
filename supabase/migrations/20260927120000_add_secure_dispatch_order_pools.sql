@@ -153,6 +153,10 @@ ALTER TABLE public.dispatch_assignments
 CREATE INDEX dispatch_assignments_pool_idx ON public.dispatch_assignments(pool_id);
 CREATE INDEX dispatch_assignments_group_idx ON public.dispatch_assignments(group_id);
 
+-- Membership must be unique per employee so reassignment can update the same row.
+CREATE UNIQUE INDEX dispatch_group_members_one_group_per_user
+  ON public.dispatch_group_members(user_id);
+
 -- Historical groups may have members already. Only genuinely unmapped users
 -- enter the existing default group; an inactive membership never falls back.
 INSERT INTO public.dispatch_group_members (group_id, user_id)
