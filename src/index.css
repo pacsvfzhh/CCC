@@ -335,11 +335,11 @@
 
 @keyframes managerUnreadBlink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  50% { opacity: 0.55; }
 }
 
 .manager-unread-badge {
-  animation: managerUnreadBlink 1.25s ease-in-out infinite;
+  animation: managerUnreadBlink 3s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
