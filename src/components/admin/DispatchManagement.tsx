@@ -1345,23 +1345,43 @@ export default function DispatchManagement() {
 
             {pendingGroupActive !== null && groupSettingsOpen && selectedGroup && createPortal(
               <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
-                <div role="dialog" aria-modal="true" aria-labelledby="group-active-confirm-title" className="w-full max-w-md rounded-2xl border border-indigo-300/30 bg-slate-900 p-5 text-slate-100 shadow-2xl">
-                  <h3 id="group-active-confirm-title" className="text-lg font-semibold text-white">確認{pendingGroupActive ? '啟用' : '停用'}分組？</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                    確定要將「{groupDisplayName(selectedGroup)}」設為{pendingGroupActive ? '啟用' : '停用'}？確認後請按「儲存分組設定」，變更才會生效。
-                  </p>
-                  <div className="mt-5 flex justify-end gap-2">
-                    <button type="button" className={secondaryButton} onClick={() => setPendingGroupActive(null)}>取消</button>
-                    <button
-                      type="button"
-                      className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${pendingGroupActive ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'}`}
-                      onClick={() => {
-                        setGroupDraft((current) => ({ ...current, is_active: pendingGroupActive }));
-                        setPendingGroupActive(null);
-                      }}
-                    >
-                      確認{pendingGroupActive ? '啟用' : '停用'}
-                    </button>
+                <div role="dialog" aria-modal="true" aria-labelledby="group-active-confirm-title" aria-describedby="group-active-confirm-note" className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-600/70 bg-slate-900 text-slate-100 shadow-[0_28px_80px_rgba(2,6,23,0.7)]">
+                  <div className={`h-1 ${pendingGroupActive ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-rose-400 to-orange-500'}`} />
+                  <div className="p-5 sm:p-6">
+                    <div className="flex items-start gap-3">
+                      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${pendingGroupActive ? 'border-emerald-400/40 bg-emerald-400/15 text-emerald-300' : 'border-rose-400/40 bg-rose-400/15 text-rose-300'}`}>
+                        {pendingGroupActive ? <CheckCircle className="h-6 w-6" /> : <XCircle className="h-6 w-6" />}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 id="group-active-confirm-title" className="text-lg font-semibold text-white">確認{pendingGroupActive ? '啟用' : '停用'}分組</h3>
+                        <p className="mt-1 break-words text-sm text-slate-300">{groupDisplayName(selectedGroup)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-3 sm:px-4">
+                      <div className="min-w-0">
+                        <p className="text-xs text-slate-400">目前選擇</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-100">{groupDraft.is_active ? '已啟用' : '未啟用'}</p>
+                      </div>
+                      <span aria-hidden="true" className="text-lg text-slate-400">→</span>
+                      <div className="min-w-0 text-right">
+                        <p className="text-xs text-slate-400">確認後</p>
+                        <p className={`mt-1 text-sm font-semibold ${pendingGroupActive ? 'text-emerald-300' : 'text-rose-300'}`}>{pendingGroupActive ? '已啟用' : '未啟用'}</p>
+                      </div>
+                    </div>
+                    <p id="group-active-confirm-note" className="mt-4 border-l-2 border-blue-400 pl-3 text-sm leading-relaxed text-blue-100">確認後只會更新此表單，按「儲存分組設定」才正式生效。</p>
+                    <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                      <button type="button" className="min-h-10 rounded-lg border border-slate-600 bg-slate-800 px-5 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300" onClick={() => setPendingGroupActive(null)}>取消</button>
+                      <button
+                        type="button"
+                        className={`min-h-10 rounded-lg px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${pendingGroupActive ? 'bg-emerald-600 shadow-emerald-950/40 hover:bg-emerald-500' : 'bg-rose-600 shadow-rose-950/40 hover:bg-rose-500'}`}
+                        onClick={() => {
+                          setGroupDraft((current) => ({ ...current, is_active: pendingGroupActive }));
+                          setPendingGroupActive(null);
+                        }}
+                      >
+                        確認{pendingGroupActive ? '啟用' : '停用'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>, document.body,
