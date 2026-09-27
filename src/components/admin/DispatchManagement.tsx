@@ -1343,8 +1343,8 @@ export default function DispatchManagement() {
                           </span>
                           <span className="mt-0.5 block truncate text-[11px] leading-4 text-slate-300" title={groupDisplayDescription(group)}>{groupDisplayDescription(group)}</span>
                         </span>
-                        <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 text-[10px] leading-5 ${group.archived_at ? 'bg-rose-500/20 text-rose-100' : group.is_active ? 'bg-emerald-500/20 text-emerald-100' : 'bg-amber-500/20 text-amber-100'}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${group.archived_at ? 'bg-rose-400' : group.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                        <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 text-[10px] leading-5 ${group.archived_at ? 'bg-rose-500/20 text-rose-100' : group.is_active ? 'bg-emerald-500/20 text-emerald-100' : 'bg-rose-500/20 text-rose-200'}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${group.archived_at ? 'bg-rose-400' : group.is_active ? 'bg-emerald-400' : 'bg-rose-400'}`} />
                           {group.archived_at ? '已封存' : group.is_active ? '已啟用' : '未啟用'}
                         </span>
                       </span>
@@ -1600,8 +1600,9 @@ export default function DispatchManagement() {
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-indigo-300/20 bg-slate-950/50 px-4 py-2.5 sm:px-6">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     <span
-                      className={`rounded-full px-2 py-1 ${selectedGroup.archived_at ? 'bg-rose-500/20 text-rose-300' : selectedGroup.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-300'}`}
+                      className={`rounded-full px-2 py-1 ${selectedGroup.archived_at ? 'bg-rose-500/20 text-rose-300' : selectedGroup.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-200'}`}
                     >
+                      {!selectedGroup.is_active && !selectedGroup.archived_at && <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-rose-400 align-middle" />}
                       {selectedGroup.archived_at
                         ? '已封存'
                         : selectedGroup.is_active
