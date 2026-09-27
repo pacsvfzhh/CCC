@@ -202,6 +202,7 @@ export default function DispatchManagement() {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const [groupSaveStatus, setGroupSaveStatus] = useState<{ type: 'success' | 'error' } | null>(null);
   const [groupForm, setGroupForm] = useState<'create' | null>(null);
   const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
   const [pendingGroupActive, setPendingGroupActive] = useState<boolean | null>(null);
@@ -273,6 +274,23 @@ export default function DispatchManagement() {
   const notify = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
   };
+
+  const groupSaveFailed = (message: string) => {
+    setGroupSaveStatus({ type: 'error' });
+    notify('error', message);
+  };
+
+  useEffect(() => {
+    if (!notification) return;
+    const timer = setTimeout(() => setNotification(null), 5000);
+    return () => clearTimeout(timer);
+  }, [notification]);
+
+  useEffect(() => {
+    if (!groupSaveStatus) return;
+    const timer = setTimeout(() => setGroupSaveStatus(null), 4000);
+    return () => clearTimeout(timer);
+  }, [groupSaveStatus]);
 
   const loadWorkspace = async () => {
     const requestId = ++workspaceRequestRef.current;
@@ -543,6 +561,7 @@ export default function DispatchManagement() {
   const openGroupSettings = (group: DispatchGroup) => {
     switchGroup(group.id);
     setNotification(null);
+    setGroupSaveStatus(null);
     setGroupDraft({
       group_name: groupDisplayName(group),
       description: group.description ? groupDisplayDescription(group) : '',
@@ -574,14 +593,12 @@ export default function DispatchManagement() {
 
   const saveGroup = async (form: 'create' | 'edit' = 'create') => {
     if (!isSuperAdmin) return;
-    if (form === 'edit') setNotification(null);
+    setNotification(null);
+    setGroupSaveStatus(null);
     if (form === 'edit' && !selectedGroup)
-      return notify(
-        'error',
-        '目前未選取分組，請重新整理後再試。',
-      );
+      return groupSaveFailed('目前未選取分組，請重新整理後再試。');
     if (!groupDraft.group_name.trim())
-      return notify('error', '請填寫分組名稱。');
+      return groupSaveFailed('請填寫分組名稱。');
     const timeout = Number(groupDraft.session_timeout_minutes);
     const waitMin = Number(groupDraft.submit_wait_min_seconds);
     const waitMax = Number(groupDraft.submit_wait_max_seconds);
@@ -593,16 +610,16 @@ export default function DispatchManagement() {
         !Number.isFinite(withdrawalAmount) || withdrawalAmount > 999999999999.99 ||
         !/^\d{1,7}$/.test(groupDraft.withdrawal_orders_threshold.trim()) ||
         !Number.isInteger(withdrawalOrders) || withdrawalOrders < 1 || withdrawalOrders > 1000000) {
-      return notify('error', '提款門檻須為 0–999999999999.99，訂單數須為 1–1000000。');
+      return groupSaveFailed('提款門檻須為 0–999999999999.99，訂單數須為 1–1000000。');
     }
     if (!groupDraft.commission_rate.trim() || !Number.isFinite(commissionRate) || commissionRate < 0.00001 || commissionRate > 1 || !/^\d+(\.\d{1,8})?$/.test(groupDraft.commission_rate.trim()) ||
         !groupDraft.dispatch_success_rate.trim() || !Number.isInteger(successRate) || successRate < 0 || successRate > 100) {
-      return notify('error', '佣金率須為 0.00001–1（最多 8 位小數），成功率須為 0–100%。');
+      return groupSaveFailed('佣金率須為 0.00001–1（最多 8 位小數），成功率須為 0–100%。');
     }
     if (!groupDraft.session_timeout_minutes.trim() || !Number.isInteger(timeout) || timeout < 1 || timeout > 60 ||
         !groupDraft.submit_wait_min_seconds.trim() || !Number.isInteger(waitMin) || waitMin < 3 || waitMin > 120 ||
         !groupDraft.submit_wait_max_seconds.trim() || !Number.isInteger(waitMax) || waitMax < waitMin || waitMax > 300) {
-      return notify('error', '逾時須為 1–60 分鐘；提交等待最短 3–120 秒、最長 3–300 秒，且最短不得大於最長。');
+      return groupSaveFailed('逾時須為 1–60 分鐘；提交等待最短 3–120 秒、最長 3–300 秒，且最短不得大於最長。');
     }
     setBusy(true);
     try {
@@ -647,18 +664,17 @@ export default function DispatchManagement() {
       if (form === 'create') setGroupForm(null);
       setSelectedGroupId(savedGroup.id);
       if (form === 'create') setSelectedPoolId(null);
-      if (await loadWorkspace()) {
-        notify(
-          'success',
-          form === 'create'
-            ? '已建立分組及專屬基本池。'
-            : '分組設定已儲存成功。',
-        );
-      }
+      setGroupSaveStatus({ type: 'success' });
+      notify(
+        'success',
+        form === 'create'
+          ? '已建立分組及專屬基本池。'
+          : '分組設定已儲存成功。',
+      );
+      await loadWorkspace();
     } catch (error) {
       const message = formatSupabaseError(error);
-      notify(
-        'error',
+      groupSaveFailed(
         message.includes('Invalid dispatch group changes.')
           ? '儲存失敗：目前資料庫尚未支援分組時間、收益及提款設定；資料未變更，需先完成資料庫遷移。'
           : '儲存分組失敗：' + message,
@@ -1013,24 +1029,26 @@ export default function DispatchManagement() {
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col bg-slate-950/30 text-slate-100">
-      {notification && !groupSettingsOpen && (
+      {notification && createPortal(
         <div
-          role="alert"
-          className={`fixed right-4 top-4 z-[10000] flex max-w-[calc(100vw-2rem)] items-start gap-2 rounded-lg border px-4 py-3 text-sm shadow-2xl break-words ${notification.type === 'error' ? 'border-rose-500 bg-rose-950 text-rose-100' : 'border-emerald-500 bg-emerald-950 text-emerald-100'}`}
+          role={notification.type === 'error' ? 'alert' : 'status'}
+          className={`fixed left-4 right-4 top-4 z-[10020] flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl sm:left-auto sm:w-full sm:max-w-md ${notification.type === 'error' ? 'border-rose-400/70 bg-rose-950 text-rose-50' : 'border-emerald-400/70 bg-emerald-950 text-emerald-50'}`}
         >
           {notification.type === 'error' ? (
-            <XCircle className="h-4 w-4 shrink-0" />
+            <XCircle className="mt-0.5 h-5 w-5 shrink-0" />
           ) : (
-            <CheckCircle className="h-4 w-4 shrink-0" />
+            <CheckCircle className="mt-0.5 h-5 w-5 shrink-0" />
           )}
-          <span>{notification.message}</span>
+          <span className="min-w-0 flex-1 break-words">{notification.message}</span>
           <button
+            type="button"
             onClick={() => setNotification(null)}
             aria-label="關閉通知"
+            className="shrink-0 rounded p-0.5 hover:bg-white/10"
           >
             <X className="h-4 w-4" />
           </button>
-        </div>
+        </div>, document.body,
       )}
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-800/60 bg-gradient-to-r from-blue-950/70 via-slate-900/70 to-cyan-950/40 px-3 py-1.5 sm:px-4 lg:px-5">
         <div className="min-w-0">
@@ -1183,7 +1201,7 @@ export default function DispatchManagement() {
                         <span>{groupDraft.is_active ? '已啟用' : '未啟用'}</span>
                         {groupDraft.is_active !== selectedGroup.is_active && <span className="text-xs text-white/80">· 待儲存</span>}
                       </button>
-                      <button type="button" onClick={() => { setNotification(null); setGroupSettingsOpen(false); }} disabled={busy} aria-label="關閉分組設定" className="shrink-0 rounded-lg border border-white/10 bg-white/10 p-2 text-blue-100 transition-colors hover:bg-white/20 disabled:opacity-50"><X className="h-5 w-5" /></button>
+                      <button type="button" onClick={() => setGroupSettingsOpen(false)} disabled={busy} aria-label="關閉分組設定" className="shrink-0 rounded-lg border border-white/10 bg-white/10 p-2 text-blue-100 transition-colors hover:bg-white/20 disabled:opacity-50"><X className="h-5 w-5" /></button>
                     </div>
                   </div>
                   <div className="dispatch-group-settings-fields px-4 py-4 sm:px-6">
@@ -1325,13 +1343,6 @@ export default function DispatchManagement() {
                       </div>
                     </div>
                   </div>
-                  {notification && (
-                    <div role="alert" className={`mx-4 mb-3 flex items-start gap-2 rounded-xl border px-3 py-2.5 text-sm sm:mx-6 ${notification.type === 'error' ? 'border-rose-400/50 bg-rose-500/15 text-rose-100' : 'border-emerald-400/50 bg-emerald-500/15 text-emerald-100'}`}>
-                      {notification.type === 'error' ? <XCircle className="mt-0.5 h-4 w-4 shrink-0" /> : <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />}
-                      <span className="min-w-0 flex-1 break-words">{notification.message}</span>
-                      <button type="button" onClick={() => setNotification(null)} aria-label="關閉儲存提示" className="shrink-0 rounded p-0.5 hover:bg-white/10"><X className="h-4 w-4" /></button>
-                    </div>
-                  )}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-indigo-300/20 bg-slate-950/50 px-4 py-2.5 sm:px-6">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     <span
@@ -1374,12 +1385,12 @@ export default function DispatchManagement() {
                     </div>
                     {isSuperAdmin && (
                       <button
-                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        className={`inline-flex min-h-10 items-center justify-center rounded-xl px-5 py-2 text-sm font-semibold text-white shadow-lg transition-colors disabled:cursor-not-allowed ${!busy && groupSaveStatus?.type === 'success' ? 'bg-emerald-600 shadow-emerald-950/30' : !busy && groupSaveStatus?.type === 'error' ? 'bg-rose-600 shadow-rose-950/30' : 'bg-blue-600 shadow-blue-900/30 hover:bg-blue-500 disabled:opacity-50'}`}
                         disabled={busy || !!selectedGroup.archived_at || !groupDraftChanged}
                         onClick={() => void saveGroup('edit')}
                       >
-                        <Save className="mr-2 h-4 w-4" />
-                        {busy ? '儲存中…' : '儲存分組設定'}
+                        {busy ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : groupSaveStatus?.type === 'success' ? <CheckCircle className="mr-2 h-4 w-4" /> : groupSaveStatus?.type === 'error' ? <XCircle className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+                        <span aria-live="polite">{busy ? '儲存中…' : groupSaveStatus?.type === 'success' ? '儲存成功' : groupSaveStatus?.type === 'error' ? '儲存失敗' : '儲存分組設定'}</span>
                       </button>
                     )}
                   </div>
