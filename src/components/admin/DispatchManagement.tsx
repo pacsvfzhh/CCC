@@ -1534,7 +1534,7 @@ export default function DispatchManagement() {
                           <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400/20 text-xs font-bold text-emerald-200">04</span><h4 className="font-semibold text-emerald-100">訂單收益與成功率</h4></div>
                           <div className="grid min-w-0 gap-2 sm:grid-cols-3">
                             <label className="min-w-0 text-sm font-medium text-slate-200">
-                              <span className="block leading-5 sm:min-h-10">佣金率</span>
+                              <span className="block leading-5">佣金率</span>
                               <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1`}
                                 value={groupDraft.commission_rate}
                                 disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
@@ -1542,7 +1542,7 @@ export default function DispatchManagement() {
                               <span className="mt-1 block text-xs font-normal leading-relaxed text-emerald-300">小數比例，例如 0.00008 = 0.008%；僅成功訂單計算佣金。</span>
                             </label>
                             <label className="min-w-0 text-sm font-medium text-slate-200">
-                              <span className="block leading-5 sm:min-h-10">搶單成功率（%）</span>
+                              <span className="block leading-5">搶單成功率（%）</span>
                               <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
                                 value={groupDraft.grab_success_rate}
                                 disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
@@ -1550,7 +1550,7 @@ export default function DispatchManagement() {
                               <span className="mt-1 block text-xs font-normal leading-relaxed text-emerald-300">僅影響員工接單；新派單保存此機率。</span>
                             </label>
                             <label className="min-w-0 text-sm font-medium text-slate-200">
-                              <span className="block leading-5 sm:min-h-10">提交後訂單成功率（%）</span>
+                              <span className="block leading-5">提交後訂單成功率（%）</span>
                               <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
                                 value={groupDraft.dispatch_success_rate}
                                 disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
