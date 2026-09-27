@@ -977,7 +977,7 @@ export default function DispatchManagement() {
         </div>
         <button
           type="button"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
+          className="inline-flex h-8 w-32 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-blue-600 px-2 text-xs font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
           disabled={workspaceLoading || refreshing || busy}
           aria-busy={refreshing}
           onClick={() => void refreshWorkspace()}
