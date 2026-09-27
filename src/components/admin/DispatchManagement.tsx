@@ -1371,7 +1371,7 @@ export default function DispatchManagement() {
                           aria-pressed={groupDraft.withdrawal_condition_mode === option.value}
                           disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                           onClick={() => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: option.value })}
-                          className={`flex min-h-12 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold leading-5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 ${groupDraft.withdrawal_condition_mode === option.value ? option.activeClass : option.inactiveClass}`}
+                          className={`flex h-12 min-w-0 items-center justify-between gap-2 rounded-xl border px-2 py-1 text-left text-sm font-semibold leading-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 ${groupDraft.withdrawal_condition_mode === option.value ? option.activeClass : option.inactiveClass}`}
                         >
                           <span>{withdrawalModeLabels[option.value]}</span>
                           {groupDraft.withdrawal_condition_mode === option.value && <CheckCircle className="h-4 w-4 shrink-0" />}
@@ -2250,7 +2250,7 @@ export default function DispatchManagement() {
                           aria-pressed={groupDraft.withdrawal_condition_mode === option.value}
                           disabled={busy}
                           onClick={() => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: option.value })}
-                          className={`flex min-h-12 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold leading-5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 ${groupDraft.withdrawal_condition_mode === option.value ? option.activeClass : option.inactiveClass}`}
+                          className={`flex h-12 min-w-0 items-center justify-between gap-2 rounded-xl border px-2 py-1 text-left text-sm font-semibold leading-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 ${groupDraft.withdrawal_condition_mode === option.value ? option.activeClass : option.inactiveClass}`}
                         >
                           <span>{withdrawalModeLabels[option.value]}</span>
                           {groupDraft.withdrawal_condition_mode === option.value && <CheckCircle className="h-4 w-4 shrink-0" />}
