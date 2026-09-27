@@ -1224,20 +1224,20 @@ export default function DispatchManagement() {
                         <section className="grid min-w-0 gap-2 sm:grid-cols-2">
                           <div className="flex items-center gap-2 sm:col-span-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400/20 text-xs font-bold text-emerald-200">04</span><h4 className="font-semibold text-emerald-100">訂單收益</h4></div>
                     <label className="min-w-0 text-sm font-medium text-slate-200">
-                      Commission · 佣金率
+                      佣金率
                       <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1`}
                         value={groupDraft.commission_rate}
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
-                      <span className="mt-1 block text-xs font-normal leading-relaxed text-slate-300">小數比例，例如 0.00008 = 0.008%；僅成功訂單計算佣金。</span>
+                      <span className="mt-1 block text-xs font-normal leading-relaxed text-emerald-300">小數比例，例如 0.00008 = 0.008%；僅成功訂單計算佣金。</span>
                     </label>
                     <label className="min-w-0 text-sm font-medium text-slate-200">
-                      Success Rate · 訂單成功率（%）
+                      訂單成功率（%）
                       <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
                         value={groupDraft.dispatch_success_rate}
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
-                      <span className="mt-1 block text-xs font-normal text-slate-300">影響接單與訂單處理；新派單保存此分組的成功率。</span>
+                      <span className="mt-1 block text-xs font-normal text-emerald-300">影響接單與訂單處理；新派單保存此分組的成功率。</span>
                     </label>
                         </section>
                         <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
@@ -2055,18 +2055,18 @@ export default function DispatchManagement() {
                 <p className="text-xs text-slate-400">逾時從接單後計算；提交等待只影響動畫，新派訂單將保存當時設定。</p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <label className="min-w-0 text-sm">
-                    Commission · 佣金率
+                    佣金率
                     <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1`}
                       value={groupDraft.commission_rate}
                       onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
-                    <span className="mt-1 block text-xs text-slate-400">小數比例，如 0.00008 = 0.008%</span>
+                    <span className="mt-1 block text-xs text-emerald-300">小數比例，如 0.00008 = 0.008%</span>
                   </label>
                   <label className="min-w-0 text-sm">
-                    Success Rate · 訂單成功率（%）
+                    訂單成功率（%）
                     <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
                       value={groupDraft.dispatch_success_rate}
                       onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
-                    <span className="mt-1 block text-xs text-slate-400">新派訂單採用此分組的成功率</span>
+                    <span className="mt-1 block text-xs text-emerald-300">新派訂單採用此分組的成功率</span>
                   </label>
                 </div>
                 <div className="space-y-3 rounded-lg border border-amber-400/20 bg-slate-900/40 p-3">
