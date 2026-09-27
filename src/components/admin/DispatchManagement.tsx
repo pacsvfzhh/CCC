@@ -1426,7 +1426,7 @@ export default function DispatchManagement() {
                       分組名稱
                       <input
                         className={`${inputClass} mt-1 sm:ml-3 sm:max-w-40`}
-                                value={groupDraft.group_name}
+                                value={groupDraft.group_name ?? ''}
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, group_name: event.target.value })}
                       />
@@ -1435,7 +1435,7 @@ export default function DispatchManagement() {
                       說明
                       <textarea
                         className={`${inputClass} mt-1 min-h-14 resize-y`}
-                        value={groupDraft.description}
+                        value={groupDraft.description ?? ''}
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, description: event.target.value })}
                       />
@@ -1509,7 +1509,7 @@ export default function DispatchManagement() {
                               <label className="block text-sm font-medium text-slate-200">
                                 <span className="block leading-5">工作會話逾時（分鐘）</span>
                                 <input type="number" min="1" max="60" className={`${inputClass} mt-1 block sm:max-w-40`}
-                                  value={groupDraft.session_timeout_minutes}
+                                  value={groupDraft.session_timeout_minutes ?? ''}
                                   disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                                   onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
                               </label>
@@ -1521,14 +1521,14 @@ export default function DispatchManagement() {
                                 <label className="inline-flex items-center gap-2 whitespace-nowrap text-xs font-medium text-slate-200">
                                   最短
                                   <input type="number" min="3" max="120" className={`${inputClass} !w-20 !px-2`}
-                                    value={groupDraft.submit_wait_min_seconds}
+                                    value={groupDraft.submit_wait_min_seconds ?? ''}
                                     disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                                     onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_min_seconds: event.target.value })} />
                                 </label>
                                 <label className="inline-flex items-center gap-2 whitespace-nowrap text-xs font-medium text-slate-200">
                                   最長
                                   <input type="number" min="3" max="300" className={`${inputClass} !w-20 !px-2`}
-                                    value={groupDraft.submit_wait_max_seconds}
+                                    value={groupDraft.submit_wait_max_seconds ?? ''}
                                     disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                                     onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_max_seconds: event.target.value })} />
                                 </label>
@@ -1543,7 +1543,7 @@ export default function DispatchManagement() {
                             <label className="min-w-0 text-sm font-medium text-slate-200">
                               <span className="block leading-5">佣金率</span>
                               <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.commission_rate}
+                                value={groupDraft.commission_rate ?? ''}
                                 disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                                 onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
                               <span className="mt-1 block text-xs font-normal leading-4 text-emerald-300 sm:max-w-40">小數比例：0.00008 = 0.008%；成功訂單計佣。</span>
@@ -1551,7 +1551,7 @@ export default function DispatchManagement() {
                             <label className="min-w-0 text-sm font-medium text-slate-200">
                               <span className="block leading-5">搶單成功率（%）</span>
                               <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.grab_success_rate}
+                                value={groupDraft.grab_success_rate ?? ''}
                                 disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                                 onChange={(event) => setGroupDraft({ ...groupDraft, grab_success_rate: event.target.value })} />
                               <span className="mt-1 block text-xs font-normal leading-4 text-emerald-300 sm:max-w-40">僅影響接單；新派單保存機率。</span>
@@ -1559,7 +1559,7 @@ export default function DispatchManagement() {
                             <label className="min-w-0 text-sm font-medium text-slate-200">
                               <span className="block leading-5">提交後訂單成功率（%）</span>
                               <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.dispatch_success_rate}
+                                value={groupDraft.dispatch_success_rate ?? ''}
                                 disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                                 onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
                               <span className="mt-1 block text-xs font-normal leading-4 text-teal-300 sm:max-w-40">僅影響訂單結果；提交時保存機率。</span>
@@ -1573,7 +1573,7 @@ export default function DispatchManagement() {
                       <label className="min-w-0 text-sm font-medium text-slate-200">
                         最低提款餘額
                         <input type="number" min="0" max="999999999999.99" step="0.01" className={`${inputClass} mt-1 sm:ml-3 sm:max-w-40`}
-                                value={groupDraft.withdrawal_amount_threshold}
+                                value={groupDraft.withdrawal_amount_threshold ?? ''}
                           disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                           onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_amount_threshold: event.target.value })} />
                         <span className="mt-1 block text-xs font-normal leading-relaxed text-amber-200/90">按員工目前餘額是否達到此金額判斷。</span>
@@ -1581,7 +1581,7 @@ export default function DispatchManagement() {
                       <label className="min-w-0 text-sm font-medium text-slate-200">
                         最低訂單數
                         <input type="number" min="1" max="1000000" step="1" className={`${inputClass} mt-1 sm:ml-3 sm:max-w-40`}
-                                value={groupDraft.withdrawal_orders_threshold}
+                                value={groupDraft.withdrawal_orders_threshold ?? ''}
                           disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                           onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
                         <span className="mt-1 block text-xs font-normal leading-relaxed text-amber-200/90">按所有狀態的訂單筆數計算。</span>
@@ -2360,7 +2360,7 @@ export default function DispatchManagement() {
                   分組名稱 *
                   <input
                     className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.group_name}
+                                value={groupDraft.group_name ?? ''}
                     onChange={(event) =>
                       setGroupDraft({
                         ...groupDraft,
@@ -2373,7 +2373,7 @@ export default function DispatchManagement() {
                   說明
                   <textarea
                     className={`${inputClass} mt-1 min-h-20`}
-                    value={groupDraft.description}
+                    value={groupDraft.description ?? ''}
                     onChange={(event) =>
                       setGroupDraft({
                         ...groupDraft,
@@ -2411,20 +2411,20 @@ export default function DispatchManagement() {
                 <label className="block text-sm">
                   工作會話逾時（分鐘）
                   <input type="number" min="1" max="60" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.session_timeout_minutes}
+                                value={groupDraft.session_timeout_minutes ?? ''}
                     onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
                 </label>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <label className="min-w-0 text-sm">
                     提交等待時間 · 最短（秒）
                     <input type="number" min="3" max="120" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.submit_wait_min_seconds}
+                                value={groupDraft.submit_wait_min_seconds ?? ''}
                       onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_min_seconds: event.target.value })} />
                   </label>
                   <label className="min-w-0 text-sm">
                     提交等待時間 · 最長（秒）
                     <input type="number" min="3" max="300" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.submit_wait_max_seconds}
+                                value={groupDraft.submit_wait_max_seconds ?? ''}
                       onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_max_seconds: event.target.value })} />
                   </label>
                 </div>
@@ -2433,21 +2433,21 @@ export default function DispatchManagement() {
                   <label className="min-w-0 text-sm sm:col-span-2">
                     佣金率
                     <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1 sm:max-w-xs`}
-                      value={groupDraft.commission_rate}
+                      value={groupDraft.commission_rate ?? ''}
                       onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
                     <span className="mt-1 block text-xs text-emerald-300">小數比例，如 0.00008 = 0.008%</span>
                   </label>
                   <label className="min-w-0 text-sm">
                     搶單成功率（%）
                     <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.grab_success_rate}
+                                value={groupDraft.grab_success_rate ?? ''}
                       onChange={(event) => setGroupDraft({ ...groupDraft, grab_success_rate: event.target.value })} />
                     <span className="mt-1 block text-xs text-emerald-300">僅影響員工接單機率</span>
                   </label>
                   <label className="min-w-0 text-sm">
                     提交後訂單成功率（%）
                     <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.dispatch_success_rate}
+                                value={groupDraft.dispatch_success_rate ?? ''}
                       onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
                     <span className="mt-1 block text-xs text-teal-300">僅影響提交後訂單處理結果</span>
                   </label>
@@ -2458,14 +2458,14 @@ export default function DispatchManagement() {
                     <label className="min-w-0 text-sm">
                       最低提款餘額
                       <input type="number" min="0" max="999999999999.99" step="0.01" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.withdrawal_amount_threshold}
+                                value={groupDraft.withdrawal_amount_threshold ?? ''}
                         onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_amount_threshold: event.target.value })} />
                       <span className="mt-1 block text-xs font-normal text-slate-400">按員工目前餘額是否達到此金額判斷。</span>
                     </label>
                     <label className="min-w-0 text-sm">
                       最低訂單數
                       <input type="number" min="1" max="1000000" step="1" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.withdrawal_orders_threshold}
+                                value={groupDraft.withdrawal_orders_threshold ?? ''}
                         onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
                       <span className="mt-1 block text-xs font-normal text-slate-400">按所有狀態的訂單筆數計算。</span>
                     </label>
