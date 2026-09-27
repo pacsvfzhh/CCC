@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   CheckCircle,
   Edit2,
@@ -20,9 +19,6 @@ import {
 import { getAdminFinancialSessionToken, getStoredAuth } from '../../lib/auth';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 
-// The generated Database type predates the pool migration. Keep its untyped access local
-// until the database types can be regenerated after that migration is deployed.
-const dispatchDb = supabase as unknown as SupabaseClient;
 const PAGE_SIZE = 25;
 const IMPORT_BATCH_SIZE = 2000;
 const inputClass =
@@ -220,7 +216,7 @@ export default function DispatchManagement() {
           .select('*')
           .order('is_default', { ascending: false })
           .order('created_at'),
-        dispatchDb
+        supabase
           .from('dispatch_order_pools')
           .select('*')
           .order('is_base', { ascending: false })
@@ -479,7 +475,7 @@ export default function DispatchManagement() {
       return notify('error', 'Group name is required.');
     setBusy(true);
     try {
-      const { data, error } = await dispatchDb.rpc(
+      const { data, error } = await supabase.rpc(
         'admin_save_dispatch_group',
         {
           p_admin_session_token: getAdminFinancialSessionToken(),
@@ -493,10 +489,9 @@ export default function DispatchManagement() {
         },
       );
       if (error) throw error;
-      const result = data as { group?: DispatchGroup } | null;
-      if (!result?.group?.id) throw new Error('Group save returned no group.');
+      if (!data?.group?.id) throw new Error('Group save returned no group.');
       setGroupForm(null);
-      setSelectedGroupId(result.group.id);
+      setSelectedGroupId(data.group.id);
       setSelectedPoolId(null);
       if (await loadWorkspace())
         notify(
@@ -516,7 +511,7 @@ export default function DispatchManagement() {
     if (!isSuperAdmin || !selectedGroup || selectedGroup.archived_at) return;
     setBusy(true);
     try {
-      const { error } = await dispatchDb.rpc('admin_save_dispatch_group', {
+      const { error } = await supabase.rpc('admin_save_dispatch_group', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_group_id: selectedGroup.id,
         p_changes: { pool_selection_mode: modeDraft },
@@ -569,7 +564,7 @@ export default function DispatchManagement() {
     }
     setBusy(true);
     try {
-      const { data, error } = await dispatchDb.rpc('admin_save_dispatch_pool', {
+      const { data, error } = await supabase.rpc('admin_save_dispatch_pool', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_group_id: selectedGroup.id,
         p_pool_id: poolForm === 'edit' ? (selectedPool?.id ?? null) : null,
@@ -584,10 +579,9 @@ export default function DispatchManagement() {
         },
       });
       if (error) throw error;
-      const result = data as { pool?: DispatchPool } | null;
-      if (!result?.pool?.id) throw new Error('Pool save returned no pool.');
+      if (!data?.pool?.id) throw new Error('Pool save returned no pool.');
       setPoolForm(null);
-      setSelectedPoolId(result.pool.id);
+      setSelectedPoolId(data.pool.id);
       if (await loadWorkspace())
         notify(
           'success',
@@ -606,20 +600,22 @@ export default function DispatchManagement() {
     archive: boolean,
   ) => {
     if (!isSuperAdmin) return;
+    const targetPool = type === 'pool' ? pools.find((pool) => pool.id === id) : null;
+    if (type === 'pool' && !targetPool) return notify('error', 'Pool not found.');
     setBusy(true);
     try {
       const { error } =
         type === 'group'
-          ? await dispatchDb.rpc('admin_save_dispatch_group', {
+          ? await supabase.rpc('admin_save_dispatch_group', {
               p_admin_session_token: getAdminFinancialSessionToken(),
               p_group_id: id,
               p_changes: {
                 archived_at: archive ? new Date().toISOString() : null,
               },
             })
-          : await dispatchDb.rpc('admin_save_dispatch_pool', {
+          : await supabase.rpc('admin_save_dispatch_pool', {
               p_admin_session_token: getAdminFinancialSessionToken(),
-              p_group_id: selectedGroupId,
+              p_group_id: targetPool!.group_id,
               p_pool_id: id,
               p_changes: {
                 archived_at: archive ? new Date().toISOString() : null,
@@ -652,7 +648,7 @@ export default function DispatchManagement() {
       return;
     setBusy(true);
     try {
-      const { error } = await dispatchDb.rpc('admin_save_dispatch_pool', {
+      const { error } = await supabase.rpc('admin_save_dispatch_pool', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_group_id: selectedGroup.id,
         p_pool_id: pool.id,
@@ -689,7 +685,7 @@ export default function DispatchManagement() {
       const token = getAdminFinancialSessionToken();
       for (const id of ids) {
         try {
-          const { data, error } = await dispatchDb.rpc(
+          const { data, error } = await supabase.rpc(
             'admin_assign_dispatch_group_member',
             {
               p_admin_session_token: token,
@@ -749,7 +745,7 @@ export default function DispatchManagement() {
       );
     setBusy(true);
     try {
-      const { data, error } = await dispatchDb.rpc(
+      const { data, error } = await supabase.rpc(
         'admin_manage_dispatch_orders',
         {
           p_admin_session_token: getAdminFinancialSessionToken(),
@@ -808,7 +804,7 @@ export default function DispatchManagement() {
       const token = getAdminFinancialSessionToken();
       for (let index = 0; index < contents.length; index += IMPORT_BATCH_SIZE) {
         const batch = contents.slice(index, index + IMPORT_BATCH_SIZE);
-        const { data, error } = await dispatchDb.rpc(
+        const { data, error } = await supabase.rpc(
           'admin_manage_dispatch_orders',
           {
             p_admin_session_token: token,

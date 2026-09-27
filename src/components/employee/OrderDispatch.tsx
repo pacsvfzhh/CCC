@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { AUTH_STORAGE_KEY, getStoredAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { getTodayStartUTC } from '../../lib/dateUtils';
@@ -11,7 +12,7 @@ import type { Employee } from '../../types';
 
 interface DispatchAssignment {
   id: string;
-  dispatch_order_id: string;
+  dispatch_order_id: string | null;
   status: string;
   assigned_at: string;
   accepted_at?: string | null;
@@ -21,6 +22,9 @@ interface DispatchAssignment {
   order_submitted?: boolean;
   dispatch_session_id?: string | null;
   accept_deadline_at?: string | null;
+  session_timeout_minutes?: number | null;
+  session_timeout_minutes_snapshot?: number | null;
+  order_content_snapshot?: string | null;
   dispatch_orders: {
     id?: string;
     order_content: string;
@@ -34,18 +38,50 @@ interface WorkSession {
 }
 
 interface DispatchConfig {
-  dispatch_interval_min: number;
-  dispatch_interval_max: number;
   session_timeout_minutes: number;
-  dispatch_order_mode: 'random' | 'sequential';
 }
 
-interface DispatchGroupConfig extends DispatchConfig {
-  is_active: boolean;
+interface PreparedDispatch {
+  available: boolean;
+  message?: string;
+  auto_stopped?: boolean;
+  group_id?: string;
+  pool_id?: string;
+  due_at?: string;
+  config?: {
+    dispatch_interval_min: number;
+    dispatch_interval_max: number;
+    session_timeout_minutes: number;
+    dispatch_order_mode: 'random' | 'sequential';
+    dispatch_success_rate: number;
+  };
 }
+
+interface DispatchSelection {
+  sessionId: string;
+  groupId: string;
+  poolId: string;
+  dueAt: number;
+}
+
+interface DispatchAssignmentResult {
+  success: boolean;
+  message?: string;
+  auto_stopped?: boolean;
+  retry_selection?: boolean;
+  schedule_next?: boolean;
+  due_at?: string;
+  unaccepted_count?: number;
+  assignment?: (Omit<DispatchAssignment, 'dispatch_orders'> & { order_content: string }) | null;
+}
+
+// The generated Database type predates the approved pool migration.
+const dispatchDb = supabase as unknown as SupabaseClient;
+const PAUSED_DISPATCH_CHECK_MS = 5 * 60 * 1000;
 
 function getOrderDispatchErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Unknown error occurred';
+  return error instanceof Error ? error.message :
+    error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Unknown error occurred';
 }
 
 interface OrderDispatchProps {
@@ -60,68 +96,6 @@ interface Notification {
   title: string;
   message: string;
   duration?: number; // 0 = 不自动关闭
-}
-
-/**
- * Generate a truly random number with uniform distribution
- * Uses crypto.getRandomValues for better randomness when available
- * Ensures balanced distribution across the entire range, like a fair lottery
- *
- * @param min - Minimum value (inclusive)
- * @param max - Maximum value (inclusive)
- * @returns Random integer between min and max (inclusive)
- */
-function getEnhancedRandomSeconds(min: number, max: number): number {
-  const range = max - min;
-
-  // Use crypto.getRandomValues for cryptographically strong randomness
-  if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
-    // Generate multiple random values for true lottery-like randomness
-    const randomBuffer = new Uint32Array(3);
-    window.crypto.getRandomValues(randomBuffer);
-
-    // Use a combination of random sources with weighted distribution
-    // This creates more variation and unpredictability like a real lottery
-    const r1 = randomBuffer[0] / (0xffffffff + 1);
-    const r2 = randomBuffer[1] / (0xffffffff + 1);
-    const r3 = randomBuffer[2] / (0xffffffff + 1);
-
-    // Apply non-linear transformation for lottery-like distribution
-    // Use quadratic weighting to create more variation at extremes
-    const selector = randomBuffer[0] % 100;
-
-    let randomValue: number;
-    if (selector < 20) {
-      // 20% chance: favor minimum (fast delivery)
-      randomValue = Math.pow(r1, 2); // Skew towards lower values
-    } else if (selector < 40) {
-      // 20% chance: favor maximum (longer wait)
-      randomValue = 1 - Math.pow(1 - r2, 2); // Skew towards higher values
-    } else {
-      // 60% chance: truly random across full range
-      // Use multiple random sources mixed together
-      randomValue = (r1 + r2 + r3) / 3;
-    }
-
-    // Map to range with integer result
-    return Math.floor(randomValue * range) + min;
-  }
-
-  // Fallback to Math.random() with enhanced distribution
-  const r1 = Math.random();
-  const r2 = Math.random();
-  const selector = Math.floor(Math.random() * 100);
-
-  let randomValue: number;
-  if (selector < 20) {
-    randomValue = Math.pow(r1, 2);
-  } else if (selector < 40) {
-    randomValue = 1 - Math.pow(1 - r2, 2);
-  } else {
-    randomValue = (r1 + r2 + Math.random()) / 3;
-  }
-
-  return Math.floor(randomValue * range) + min;
 }
 
 function generateAssignmentId(): string {
@@ -160,18 +134,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorReason, setErrorReason] = useState('');
   const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [config, setConfig] = useState<DispatchConfig>({
-    dispatch_interval_min: 30,
-    dispatch_interval_max: 120,
-    session_timeout_minutes: 10,
-    dispatch_order_mode: 'random',
-  });
-  const [, setNextOrderTime] = useState<Date | null>(null);
+  const [config, setConfig] = useState<DispatchConfig>({ session_timeout_minutes: 10 });
+  const [nextOrderTime, setNextOrderTime] = useState<Date | null>(null);
   const [showOrderDetail, setShowOrderDetail] = useState(false);
   const [hasTimeout, setHasTimeout] = useState(false);
   const [hasFiveMinuteWarning, setHasFiveMinuteWarning] = useState(false);
   const [showTimeoutAlert, setShowTimeoutAlert] = useState(false);
-  const [waitingTime, setWaitingTime] = useState(0);
+  const [, setWaitingTime] = useState(0);
   const [, setTotalWorkTime] = useState(0);
   const [, setUnacceptedCount] = useState(0);
   const [showAutoStopModal, setShowAutoStopModal] = useState(false);
@@ -186,7 +155,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const [transitionType, setTransitionType] = useState<'start' | 'end' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
+  const [dispatchPause, setDispatchPause] = useState<{ type: 'unavailable' | 'error'; message: string } | null>(null);
+  const [timeoutStopMinutes, setTimeoutStopMinutes] = useState(10);
   // Debounce states for preventing duplicate requests
   const [isAccepting, setIsAccepting] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -252,12 +222,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const sessionIdRef = useRef<string | null>(null);
   const sessionActiveRef = useRef<boolean>(false);
   const unacceptedCountRef = useRef<number>(0);
-  const currentGroupConfigRef = useRef<DispatchConfig | null>(null);
+  const selectedDispatchRef = useRef<DispatchSelection | null>(null);
+  const preparingDispatchRef = useRef<{ sessionId: string; generation: number } | null>(null);
+  const assigningDispatchRef = useRef<{ sessionId: string; generation: number } | null>(null);
+  const dispatchPausedRef = useRef(false);
   const configRef = useRef(config);
   configRef.current = config;
   const isMobileRef = useRef(isMobile);
   isMobileRef.current = isMobile;
   const startTimeoutCheckRef = useRef<(() => void) | null>(null);
+  const processTimeoutInFlightRef = useRef(false);
   const startActivityMonitorRef = useRef<(() => void) | null>(null);
   const handleAcceptTimeoutRef = useRef<((assignmentId: string) => Promise<void>) | null>(null);
   const currentOrderRef = useRef<DispatchAssignment | null>(null);
@@ -314,41 +288,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     const workTimeInterval = setInterval(() => {
       loadTotalWorkTime();
     }, 60000);
-
-    // Hot reload configuration every 5 minutes for active sessions
-    const configReloadInterval = setInterval(async () => {
-      if (sessionActiveRef.current) {
-        // Store previous config from ref (more reliable than state)
-        const previousConfig = currentGroupConfigRef.current ?
-          { ...currentGroupConfigRef.current } :
-          { ...configRef.current };
-
-        await loadConfig();
-
-        // Get current config after reload
-        const currentConfig = currentGroupConfigRef.current || configRef.current;
-
-        // Check if config changed
-        const hasChanged =
-          previousConfig.dispatch_interval_min !== currentConfig.dispatch_interval_min ||
-          previousConfig.dispatch_interval_max !== currentConfig.dispatch_interval_max ||
-          previousConfig.session_timeout_minutes !== currentConfig.session_timeout_minutes ||
-          previousConfig.dispatch_order_mode !== currentConfig.dispatch_order_mode;
-
-        if (hasChanged) {
-          console.log('Configuration updated silently:', {
-            previous: previousConfig,
-            current: currentConfig
-          });
-
-          // If session timeout changed and we have a current order, restart timeout check
-          if (previousConfig.session_timeout_minutes !== currentConfig.session_timeout_minutes && currentOrderRef.current) {
-            console.log('Session timeout changed, restarting timeout check silently');
-            startTimeoutCheckRef.current?.();
-          }
-        }
-      }
-    }, 300000); // Check every 5 minutes
 
     // Handle page close/refresh - stop work session
     const stopDispatchSessionWithBeacon = () => {
@@ -445,7 +384,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       if (fiveMinuteWarningRef.current) clearTimeout(fiveMinuteWarningRef.current);
       if (grabFailedTimerRef.current) clearTimeout(grabFailedTimerRef.current);
       clearInterval(workTimeInterval);
-      clearInterval(configReloadInterval);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('pagehide', handlePageHide);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -487,6 +425,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       if (interval) clearInterval(interval);
     };
   }, [session.isWorking, currentOrder, showGrabFailedModal]);
+
+  // Keep the async timer guards in sync before setting up per-order timers.
+  useEffect(() => {
+    currentOrderRef.current = currentOrder;
+  }, [currentOrder]);
 
   useEffect(() => {
     if (currentOrder && currentOrder.status === 'pending') {
@@ -588,14 +531,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       clearTimeout(processTimeoutRef.current);
     }
 
-    if (!currentOrder || !currentOrder.accepted_at) {
-      console.log('startTimeoutCheck: No currentOrder or accepted_at, skipping timeout setup');
-      return;
-    }
+    const order = currentOrder;
+    if (!order || order.status !== 'accepted' || !order.accepted_at) return;
+    const sessionId = sessionIdRef.current;
+    const generation = lifecycleGenerationRef.current;
+    if (!sessionId) return;
 
-    // Get timeout configuration from group config or default config
-    const currentConfig = currentGroupConfigRef.current || configRef.current;
-    const timeoutMinutes = currentConfig.session_timeout_minutes;
+    // The server snapshots the pool timeout on assignment; recovery returns the same value.
+    const timeoutMinutes = order.session_timeout_minutes ?? order.session_timeout_minutes_snapshot ?? configRef.current.session_timeout_minutes;
+    const acceptedAt = new Date(order.accepted_at).getTime();
+    const elapsedMs = Math.max(0, Date.now() - acceptedAt);
     // Dynamic warning time: warn 3 minutes before timeout, with minimum of 3 minutes
     // BUT: if timeout is too short, warning should be at most 60% of timeout duration
     let warningMinutes = Math.max(3, timeoutMinutes - 3);
@@ -613,83 +558,40 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
     }
 
-    console.log(`startTimeoutCheck: Setting up ${warningMinutes}-minute warning and ${timeoutMinutes}-minute timeout for order:`, currentOrder.id);
-
-    // Set dynamic warning timer only if warning time is valid
-    if (warningMinutes > 0) {
-      fiveMinuteWarningRef.current = setTimeout(() => {
-        console.log(`${warningMinutes}-minute warning triggered for order:`, currentOrder.id);
-        setHasFiveMinuteWarning(true);
-      }, warningMinutes * 60 * 1000);
-    } else {
-      console.log('Warning timer disabled for this order due to short timeout');
+    const updateWarnings = () => {
+      if (!sessionActiveRef.current || currentOrderRef.current?.id !== order.id) return;
+      const minutesPassed = (Date.now() - acceptedAt) / 60000;
+      setHasFiveMinuteWarning(warningMinutes > 0 && minutesPassed >= warningMinutes);
+      setHasTimeout(minutesPassed >= timeoutMinutes);
+    };
+    updateWarnings();
+    if (warningMinutes > 0 && elapsedMs < warningMinutes * 60000) {
+      fiveMinuteWarningRef.current = setTimeout(updateWarnings, warningMinutes * 60000 - elapsedMs);
     }
 
-    // Set auto-cancel and end work timer based on configured timeout
     processTimeoutRef.current = setTimeout(async () => {
-      console.log(`${timeoutMinutes}-minute timeout triggered for order:`, currentOrder?.id);
-
-      // Check if work session is still active
-      if (!sessionActiveRef.current) {
-        console.log('Work session already stopped, skipping timeout handling');
-        return;
-      }
-
-      if (currentOrder && currentOrder.id) {
-        await handleProcessTimeout(currentOrder.id);
+      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== order.id || processTimeoutInFlightRef.current) return;
+      processTimeoutInFlightRef.current = true;
+      try {
+        await handleProcessTimeout(order.id, sessionId, generation);
+        if (!isCurrentDispatch(sessionId, generation)) return;
         // End work session after timeout. A failed stop keeps local work active for retry.
-        try {
-          await handleStopWork(false);
-        } catch {
-          return;
-        }
-
-        // Show page notification
+        setTimeoutStopMinutes(timeoutMinutes);
+        await handleStopWork(true);
         showNotification({
           type: 'error',
           title: t.dispatch.processingEnded,
           message: `Order not completed within ${timeoutMinutes} minutes. Session has been stopped.`,
-          duration: 0, // Don't auto-close
+          duration: 0,
         });
-
-        // Show timeout stop modal
-        setShowTimeoutStopModal(true);
+      } catch {
+        // The stop handler reports failures and keeps the session active.
+      } finally {
+        processTimeoutInFlightRef.current = false;
       }
-    }, timeoutMinutes * 60 * 1000);
+    }, Math.max(0, timeoutMinutes * 60000 - elapsedMs));
 
-    // Check every 10 seconds for display updates
-    timeoutCheckRef.current = setInterval(() => {
-      // Check if work session is still active
-      if (!sessionActiveRef.current) {
-        return;
-      }
-
-      if (currentOrder && currentOrder.status === 'accepted' && currentOrder.accepted_at) {
-        const acceptedTime = new Date(currentOrder.accepted_at);
-        const now = new Date();
-        const minutesPassed = (now.getTime() - acceptedTime.getTime()) / 1000 / 60;
-
-        // Get current config for accurate timeout checking
-        const checkConfig = currentGroupConfigRef.current || configRef.current;
-        const checkTimeoutMinutes = checkConfig.session_timeout_minutes;
-        let checkWarningMinutes = Math.max(3, checkTimeoutMinutes - 3); // Dynamic warning
-
-        // Safety check: warning must be less than timeout
-        if (checkWarningMinutes >= checkTimeoutMinutes) {
-          checkWarningMinutes = Math.max(0.5, Math.floor(checkTimeoutMinutes * 0.6 * 10) / 10);
-          if (checkWarningMinutes >= checkTimeoutMinutes - 0.5) {
-            checkWarningMinutes = 0; // Disable for very short timeouts
-          }
-        }
-
-        if (checkWarningMinutes > 0 && minutesPassed >= checkWarningMinutes && !hasFiveMinuteWarning) {
-          setHasFiveMinuteWarning(true);
-        }
-        if (minutesPassed >= checkTimeoutMinutes) {
-          setHasTimeout(true);
-        }
-      }
-    }, 10000);
+    timeoutCheckRef.current = setInterval(updateWarnings, 10000);
   };
   startTimeoutCheckRef.current = startTimeoutCheck;
 
@@ -746,6 +648,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       clearTimeout(dispatchTimerRef.current);
       dispatchTimerRef.current = null;
     }
+    selectedDispatchRef.current = null;
+    dispatchPausedRef.current = false;
+    if (grabFailedTimerRef.current) {
+      clearTimeout(grabFailedTimerRef.current);
+      grabFailedTimerRef.current = null;
+      setShowGrabFailedModal(false);
+    }
     if (activityTimerRef.current) {
       clearInterval(activityTimerRef.current);
       activityTimerRef.current = null;
@@ -774,6 +683,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       setSession({ isWorking: false, sessionId: null, startedAt: null });
       setUnacceptedCount(0);
       setNextOrderTime(null);
+      setDispatchPause(null);
       setHasTimeout(false);
       setHasFiveMinuteWarning(false);
       setShowTimeoutAlert(false);
@@ -786,17 +696,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       return visibilityRestartPromiseRef.current;
     }
 
-    const generation = lifecycleGenerationRef.current;
+    if (!componentMountedRef.current || !sessionActiveRef.current || document.hidden) return Promise.resolve();
+    const generation = ++lifecycleGenerationRef.current;
+    clearDispatchTimer();
+    selectedDispatchRef.current = null;
     let stoppedOldSession = false;
     const operation = (async () => {
-      if (
-        !componentMountedRef.current ||
-        !sessionActiveRef.current ||
-        document.hidden ||
-        lifecycleGenerationRef.current !== generation
-      ) {
-        return;
-      }
+      if (!isCurrentDispatch(sessionIdRef.current || '', generation) || document.hidden) return;
 
       const auth = getStoredAuth();
       const oldSessionId = sessionIdRef.current;
@@ -863,6 +769,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         return;
       }
 
+      clearTimeout(dispatchTimerRef.current ?? undefined);
+      dispatchTimerRef.current = null;
+      selectedDispatchRef.current = null;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
       sessionIdRef.current = newSession.session_id;
       unacceptedCountRef.current = newSession.unaccepted_count;
       setUnacceptedCount(newSession.unaccepted_count);
@@ -872,6 +783,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         startedAt: new Date(newSession.started_at),
       }));
       void sendHeartbeatRef.current?.();
+      if (!currentOrderRef.current) void scheduleNextOrder();
       void loadTotalWorkTime().catch(error => console.error('Failed to refresh work time:', error));
     })().catch(error => {
       console.error('Failed to restart work session after lifecycle gap:', error);
@@ -887,6 +799,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
       if (stoppedOldSession && currentSessionId && isCurrentLifecycle) {
         stopLocalWorkingState(currentSessionId);
+      } else if (currentSessionId && isCurrentLifecycle && sessionActiveRef.current && !currentOrderRef.current) {
+        dispatchPausedRef.current = false;
+        void scheduleNextOrder();
       }
     }).finally(() => {
       if (visibilityRestartPromiseRef.current === operation) {
@@ -960,6 +875,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   };
 
   const checkPendingOrder = async () => {
+    const generation = lifecycleGenerationRef.current;
+    const previousSessionId = sessionIdRef.current;
     try {
       const auth = getStoredAuth();
       if (auth?.userType !== 'employee') return;
@@ -973,9 +890,19 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         },
       );
       if (error) throw error;
-      if (!data?.recovered || !data.session_id || !data.started_at) return;
-      if (!componentMountedRef.current) return;
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== generation) return;
+      if (!data?.recovered || !data.session_id || !data.started_at) {
+        if (previousSessionId && sessionIdRef.current === previousSessionId) {
+          stopLocalWorkingState(previousSessionId);
+          showNotification({ type: 'error', title: 'Dispatch Session Ended', message: 'Your work session is no longer active. Start again to resume dispatch.', duration: 0 });
+        }
+        return;
+      }
 
+      clearDispatchTimer();
+      selectedDispatchRef.current = null;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
       sessionActiveRef.current = true;
       sessionIdRef.current = data.session_id;
       lastActivityRef.current = new Date();
@@ -991,10 +918,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       void loadTotalWorkTime();
 
       if (data.assignment) {
-        setCurrentOrder(data.assignment);
+        setCurrentOrder(data.assignment as DispatchAssignment);
         setShowOrderDetail(true);
       } else {
-        scheduleNextOrder();
+        void scheduleNextOrder();
       }
     } catch (error) {
       console.error('Failed to recover active assignment:', error);
@@ -1006,78 +933,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const loadConfig = async () => {
     try {
-      // Load global config first as fallback
+      // Global timeout is only for legacy assignments and idle activity; dispatch
+      // interval, group, pool, and mode always come from the secure server RPCs.
       const { data, error } = await supabase
         .from('dispatch_config')
-        .select('*');
-
+        .select('config_value')
+        .eq('config_key', 'session_timeout_minutes')
+        .maybeSingle();
       if (error) throw error;
+      setConfig({ session_timeout_minutes: Number(data?.config_value) || 10 });
 
-      const configMap: Record<string, number | string> = {};
-      data?.forEach(item => {
-        if (item.config_key === 'dispatch_order_mode') {
-          configMap[item.config_key] = item.config_value;
-        } else {
-          configMap[item.config_key] = parseInt(item.config_value);
-        }
-      });
-
-      const globalConfig: DispatchConfig = {
-        dispatch_interval_min: Number(configMap['dispatch_interval_min']) || 30,
-        dispatch_interval_max: Number(configMap['dispatch_interval_max']) || 120,
-        session_timeout_minutes: Number(configMap['session_timeout_minutes']) || 10,
-        dispatch_order_mode: configMap['dispatch_order_mode'] === 'sequential' ? 'sequential' : 'random',
-      };
-
-      setConfig(globalConfig);
-
-      // Try to load user's group config
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      if (auth) {
-        const userId = JSON.parse(auth).user.id;
-
-        const { data: membershipData } = await supabase
-          .from('dispatch_group_members')
-          .select('group_id, dispatch_groups(id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode, is_active)')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        if (membershipData && membershipData.dispatch_groups) {
-          const group = membershipData.dispatch_groups as unknown as DispatchGroupConfig;
-          if (group.is_active) {
-            const userGroupConfig = {
-              dispatch_interval_min: group.dispatch_interval_min,
-              dispatch_interval_max: group.dispatch_interval_max,
-              session_timeout_minutes: group.session_timeout_minutes,
-              dispatch_order_mode: group.dispatch_order_mode,
-            };
-            currentGroupConfigRef.current = userGroupConfig;
-            setConfig(userGroupConfig);
-            console.log('Loaded user group config on init:', userGroupConfig);
-            return;
-          }
-        }
-
-        // Try default group if no user group
-        const { data: defaultGroup } = await supabase
-          .from('dispatch_groups')
-          .select('id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode')
-          .eq('is_default', true)
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (defaultGroup) {
-          const defaultGroupConfig = {
-            dispatch_interval_min: defaultGroup.dispatch_interval_min,
-            dispatch_interval_max: defaultGroup.dispatch_interval_max,
-            session_timeout_minutes: defaultGroup.session_timeout_minutes,
-            dispatch_order_mode: defaultGroup.dispatch_order_mode,
-          };
-          currentGroupConfigRef.current = defaultGroupConfig;
-          setConfig(defaultGroupConfig);
-          console.log('Loaded default group config on init:', defaultGroupConfig);
-        }
-      }
     } catch (error) {
       console.error('Failed to load config:', error);
     }
@@ -1128,9 +993,17 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       // Stale pending/accepted orders are reconciled by the database
       // (auto_recover_stale_pending_orders cron); do not compute timeouts
       // against the browser clock here, as clock skew causes false cancels.
-      const finalData = data;
+      const finalData: DispatchAssignment[] = (data || []).map(row => {
+        // The generated table type predates snapshot columns in the pool migration.
+        const assignment = row as unknown as DispatchAssignment;
+        return {
+          ...assignment,
+          session_timeout_minutes: assignment.session_timeout_minutes_snapshot,
+          dispatch_orders: assignment.dispatch_orders || { order_content: assignment.order_content_snapshot || '' },
+        };
+      });
 
-      setTodayOrders(finalData || []);
+      setTodayOrders(finalData);
 
       const completed = finalData?.filter(o => o.status === 'completed').length || 0;
       const errorCount = finalData?.filter(o => o.status === 'error').length || 0;
@@ -1163,7 +1036,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       const now = new Date();
       const timeSinceLastActivity = (now.getTime() - lastActivityRef.current.getTime()) / 1000 / 60;
 
-      if (timeSinceLastActivity >= config.session_timeout_minutes) {
+      if (!currentOrderRef.current && !selectedDispatchRef.current && !dispatchPausedRef.current &&
+          timeSinceLastActivity >= configRef.current.session_timeout_minutes) {
         void handleStopWork(true).catch(() => {
           // The handler reports the failure and preserves active state for retry.
         });
@@ -1275,49 +1149,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       // Minimal animation duration - the loading state is shown immediately
       const animationPromise = new Promise(resolve => setTimeout(resolve, isMobile ? 100 : performanceSettings.transitionDuration));
 
-      // OPTIMIZED: Fetch read-only group data in parallel; the secure RPC handles session replacement atomically.
-      console.log('Starting optimized database operations...');
-
-      // Reset session ref immediately
+      // The secure RPC creates the session; group and pool selection happen on the server.
       sessionActiveRef.current = false;
-
-      const [membershipResult, defaultGroupResult] = await Promise.allSettled([
-        supabase.from('dispatch_group_members').select('group_id, dispatch_groups(id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode, is_active)').eq('user_id', userId).maybeSingle(),
-        supabase.from('dispatch_groups').select('id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode').eq('is_default', true).eq('is_active', true).maybeSingle()
-      ]);
-
-      if (!componentMountedRef.current || lifecycleGenerationRef.current !== startGeneration) {
-        return;
-      }
-
-      // Determine group config from parallel results
-      let groupConfig: DispatchConfig = config;
-
-      if (membershipResult.status === 'fulfilled' && membershipResult.value.data?.dispatch_groups) {
-        const group = membershipResult.value.data.dispatch_groups as unknown as DispatchGroupConfig;
-        if (group.is_active) {
-          groupConfig = {
-            dispatch_interval_min: group.dispatch_interval_min,
-            dispatch_interval_max: group.dispatch_interval_max,
-            session_timeout_minutes: group.session_timeout_minutes,
-            dispatch_order_mode: group.dispatch_order_mode,
-          };
-          console.log('Using user group config:', groupConfig);
-        }
-      } else if (defaultGroupResult.status === 'fulfilled' && defaultGroupResult.value.data) {
-        const defaultGroup = defaultGroupResult.value.data;
-        groupConfig = {
-          dispatch_interval_min: defaultGroup.dispatch_interval_min,
-          dispatch_interval_max: defaultGroup.dispatch_interval_max,
-          session_timeout_minutes: defaultGroup.session_timeout_minutes,
-          dispatch_order_mode: defaultGroup.dispatch_order_mode,
-        };
-        console.log('Using default group config:', groupConfig);
-      }
-
-      // Store config
-      currentGroupConfigRef.current = groupConfig;
-      setConfig(groupConfig);
 
       // Create one online dispatch session and its corresponding work session atomically.
       console.log('Creating new sessions...');
@@ -1374,22 +1207,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       // Start heartbeat to keep session alive
       startHeartbeat();
 
-      // Schedule with the group config using enhanced random distribution
-      const minSeconds = groupConfig.dispatch_interval_min;
-      const maxSeconds = groupConfig.dispatch_interval_max;
-      const randomSeconds = getEnhancedRandomSeconds(minSeconds, maxSeconds);
-      const nextTime = new Date(Date.now() + randomSeconds * 1000);
-
-      if (dispatchTimerRef.current) {
-        clearTimeout(dispatchTimerRef.current);
-      }
-
-      dispatchTimerRef.current = setTimeout(() => {
-        console.log('Dispatch timer triggered, calling dispatchNewOrder()');
-        dispatchNewOrder();
-      }, randomSeconds * 1000);
-
-      console.log(`Work session started. Next order will be dispatched in ${randomSeconds} seconds (using config: ${minSeconds}-${maxSeconds}s, mode: ${groupConfig.dispatch_order_mode})`);
+      selectedDispatchRef.current = null;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
+      void scheduleNextOrder();
 
       // Wait for animation to complete before updating UI state
       await animationPromise;
@@ -1414,7 +1235,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       setSession(newSession);
       setWaitingTime(0);
       setUnacceptedCount(0);
-      setNextOrderTime(nextTime);
 
       // Mobile: Show success toast
       if (isMobile) {
@@ -1456,6 +1276,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         startedAt: null,
       });
       sessionActiveRef.current = false;
+      selectedDispatchRef.current = null;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
+      setNextOrderTime(null);
 
       // Ensure all timers are cleared
       if (dispatchTimerRef.current) clearTimeout(dispatchTimerRef.current);
@@ -1477,10 +1301,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
   const handleStopWork = async (timeout: boolean = false) => {
     if (isProcessing && !timeout) return;
+    const stoppingSessionId = sessionIdRef.current;
 
     // Explicit lifecycle operations invalidate any older visibility restart.
     const stopGeneration = lifecycleGenerationRef.current + 1;
     lifecycleGenerationRef.current = stopGeneration;
+    clearDispatchTimer();
     const staleVisibilityRestart = visibilityRestartPromiseRef.current;
 
     // Show transition animation (unless auto-stopped by timeout)
@@ -1535,6 +1361,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         p_tab_id: auth.tabId,
         p_session_id: currentSessionId,
       });
+      if (!componentMountedRef.current || lifecycleGenerationRef.current !== stopGeneration ||
+          sessionIdRef.current !== currentSessionId) return;
       if (stopError) throw stopError;
       if (!stopResult?.success) {
         throw new Error('The work session could not be stopped. Please try again.');
@@ -1552,6 +1380,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         clearTimeout(dispatchTimerRef.current);
         dispatchTimerRef.current = null;
       }
+      selectedDispatchRef.current = null;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
       if (acceptTimeoutRef.current) {
         clearTimeout(acceptTimeoutRef.current);
         acceptTimeoutRef.current = null;
@@ -1641,13 +1472,19 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       void loadTodayOrders().catch(err => console.error('Failed to reload orders:', err));
     } catch (error: unknown) {
       console.error('Failed to stop work:', error);
-      if (componentMountedRef.current) {
+      if (componentMountedRef.current && lifecycleGenerationRef.current === stopGeneration) {
         showNotification({
           type: 'error',
           title: 'Failed to Stop',
           message: getOrderDispatchErrorMessage(error),
           duration: 5000,
         });
+        if (stoppingSessionId && sessionActiveRef.current && sessionIdRef.current === stoppingSessionId) {
+          const selection = selectedDispatchRef.current;
+          if (selection) armDispatchTimer(selection, stopGeneration);
+          else if (dispatchPausedRef.current) pauseDispatch(dispatchPause?.type || 'error', dispatchPause?.message || 'Dispatch is temporarily unavailable.', stoppingSessionId, stopGeneration);
+          else if (!currentOrderRef.current) void scheduleNextOrder();
+        }
       }
       throw error;
     } finally {
@@ -1659,298 +1496,197 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
   };
 
-  const scheduleNextOrder = (groupConfig?: DispatchConfig) => {
-    if (!sessionActiveRef.current) {
-      return;
-    }
+  const isCurrentDispatch = (sessionId: string, generation: number) =>
+    componentMountedRef.current && sessionActiveRef.current &&
+    sessionIdRef.current === sessionId && lifecycleGenerationRef.current === generation;
 
-    // Priority: provided config > ref config > state config
-    const currentConfig = groupConfig || currentGroupConfigRef.current || configRef.current;
-    const minSeconds = currentConfig.dispatch_interval_min;
-    const maxSeconds = currentConfig.dispatch_interval_max;
-
-    // Generate truly random interval using crypto API for uniform distribution
-    const randomSeconds = getEnhancedRandomSeconds(minSeconds, maxSeconds);
-
-    console.log(`🎲 Scheduling next order in ${randomSeconds} seconds (range: ${minSeconds}-${maxSeconds}s, truly random like lottery)`);
-
-    const nextTime = new Date(Date.now() + randomSeconds * 1000);
-    setNextOrderTime(nextTime);
-
-    if (dispatchTimerRef.current) {
-      clearTimeout(dispatchTimerRef.current);
-    }
-
-    dispatchTimerRef.current = setTimeout(() => {
-      dispatchNewOrder();
-    }, randomSeconds * 1000);
+  const clearDispatchTimer = () => {
+    if (dispatchTimerRef.current) clearTimeout(dispatchTimerRef.current);
+    dispatchTimerRef.current = null;
   };
 
-  const dispatchNewOrder = async () => {
-    console.log('dispatchNewOrder called, sessionActiveRef.current:', sessionActiveRef.current);
+  const armDispatchTimer = (selection: DispatchSelection, generation: number, minimumDelay = 0) => {
+    if (!isCurrentDispatch(selection.sessionId, generation) || selectedDispatchRef.current !== selection) return;
+    clearDispatchTimer();
+    setNextOrderTime(new Date(selection.dueAt));
+    dispatchTimerRef.current = setTimeout(() => {
+      dispatchTimerRef.current = null;
+      void dispatchNewOrder(selection, generation);
+    }, Math.max(minimumDelay, selection.dueAt - Date.now(), 0));
+  };
+
+  const pauseDispatch = (type: 'unavailable' | 'error', message: string, sessionId: string, generation: number) => {
+    if (!isCurrentDispatch(sessionId, generation)) return;
+    clearDispatchTimer();
+    selectedDispatchRef.current = null;
+    dispatchPausedRef.current = true;
+    setNextOrderTime(null);
+    setDispatchPause({ type, message });
+    // No rapid retry when a group/pool is unavailable or a request fails.
+    dispatchTimerRef.current = setTimeout(() => {
+      dispatchTimerRef.current = null;
+      if (!isCurrentDispatch(sessionId, generation)) return;
+      dispatchPausedRef.current = false;
+      if (type === 'error') {
+        // An uncertain assignment result may already have created an order.
+        void checkPendingOrderRef.current?.().catch(error => {
+          console.error('Failed to check dispatch assignment after a network error:', error);
+          pauseDispatch('error', getOrderDispatchErrorMessage(error), sessionId, generation);
+        });
+      } else {
+        void scheduleNextOrder();
+      }
+    }, PAUSED_DISPATCH_CHECK_MS);
+  };
+
+  const scheduleNextOrder = async () => {
+    const sessionId = sessionIdRef.current;
+    const generation = lifecycleGenerationRef.current;
+    if (!sessionId || !isCurrentDispatch(sessionId, generation) || dispatchPausedRef.current ||
+        (assigningDispatchRef.current?.sessionId === sessionId && assigningDispatchRef.current.generation === generation)) return;
+
+    const selection = selectedDispatchRef.current;
+    if (selection?.sessionId === sessionId) {
+      armDispatchTimer(selection, generation);
+      return;
+    }
+    if (preparingDispatchRef.current?.sessionId === sessionId &&
+        preparingDispatchRef.current.generation === generation) return;
+
+    const preparation = { sessionId, generation };
+    preparingDispatchRef.current = preparation;
     try {
-      // Check if session is still active using ref (avoids closure issues)
-      if (!sessionActiveRef.current) {
-        console.log('Dispatch cancelled: work session is not active');
-        return;
-      }
-
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      if (!auth) {
-        console.log('Dispatch cancelled: no auth found');
-        return;
-      }
-
-      const userId = JSON.parse(auth).user.id;
-      console.log('Dispatching order for user:', userId);
-
-      // Get user's group assignment
-      const { data: membershipData } = await supabase
-        .from('dispatch_group_members')
-        .select('group_id, dispatch_groups(id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode, is_active)')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      let userGroupId: string | null = null;
-      let groupConfig: DispatchConfig | null = null;
-
-      if (membershipData && membershipData.dispatch_groups) {
-        const group = membershipData.dispatch_groups as unknown as DispatchGroupConfig;
-        if (group.is_active) {
-          userGroupId = membershipData.group_id;
-          groupConfig = {
-            dispatch_interval_min: group.dispatch_interval_min,
-            dispatch_interval_max: group.dispatch_interval_max,
-            session_timeout_minutes: group.session_timeout_minutes,
-            dispatch_order_mode: group.dispatch_order_mode,
-          };
-          console.log('User is in group:', userGroupId, 'with config:', groupConfig);
-        }
-      }
-
-      // If no group or group inactive, use default group
-      if (!userGroupId) {
-        const { data: defaultGroup } = await supabase
-          .from('dispatch_groups')
-          .select('id, dispatch_interval_min, dispatch_interval_max, session_timeout_minutes, dispatch_order_mode')
-          .eq('is_default', true)
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (defaultGroup) {
-          userGroupId = defaultGroup.id;
-          groupConfig = {
-            dispatch_interval_min: defaultGroup.dispatch_interval_min,
-            dispatch_interval_max: defaultGroup.dispatch_interval_max,
-            session_timeout_minutes: defaultGroup.session_timeout_minutes,
-            dispatch_order_mode: defaultGroup.dispatch_order_mode,
-          };
-          console.log('User using default group:', userGroupId, 'with config:', groupConfig);
-        } else {
-          console.log('No active group found, cannot dispatch orders');
-          scheduleNextOrder(config);
-          return;
-        }
-      }
-
-      // Store group config in ref for immediate access
-      if (groupConfig) {
-        currentGroupConfigRef.current = groupConfig;
-      }
-
-      // Update config if different
-      if (groupConfig && (groupConfig.dispatch_interval_min !== config.dispatch_interval_min ||
-          groupConfig.dispatch_interval_max !== config.dispatch_interval_max ||
-          groupConfig.session_timeout_minutes !== config.session_timeout_minutes ||
-          groupConfig.dispatch_order_mode !== config.dispatch_order_mode)) {
-        setConfig(groupConfig);
-      }
-
-      // At this point, userGroupId must be valid (either user's group or default group)
-      if (!userGroupId) {
-        console.error('Critical error: userGroupId is null after group resolution');
-        scheduleNextOrder(groupConfig || config);
-        return;
-      }
-
-      // Use atomic assignment function to prevent race conditions
-      // This is critical for handling 1000+ concurrent users
-      const currentMode = groupConfig?.dispatch_order_mode || config.dispatch_order_mode;
-
-      const currentSessionId = sessionIdRef.current;
-      const storedAuth = getStoredAuth();
-      if (!currentSessionId || storedAuth?.userType !== 'employee') return;
-
-      const { data: assignmentResult, error: assignError } = await supabase.rpc(
-        'assign_next_dispatch_order_secure',
-        {
-          p_user_id: userId,
-          p_session_token: storedAuth.financialSessionToken,
-          p_tab_id: storedAuth.tabId,
-          p_session_id: currentSessionId,
-          p_group_id: userGroupId,
-          p_dispatch_mode: currentMode,
-        }
-      );
-
-      if (assignError) {
-        console.error('Error assigning order:', assignError);
-        throw assignError;
-      }
-
-      // Check if assignment was successful
-      if (assignmentResult?.auto_stopped) {
-        stopLocalWorkingState(currentSessionId);
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') throw new Error('Employee session has expired. Please sign in again.');
+      const { data, error } = await dispatchDb.rpc('prepare_next_dispatch_order_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: sessionId,
+      });
+      if (!isCurrentDispatch(sessionId, generation)) return;
+      if (error) throw error;
+      const prepared = data as PreparedDispatch | null;
+      if (prepared?.auto_stopped) {
+        stopLocalWorkingState(sessionId);
         setShowAutoStopModal(true);
         return;
       }
+      if (!prepared?.available) {
+        const message = prepared?.message || 'No eligible dispatch orders are available.';
+        pauseDispatch(message === 'An active dispatch assignment already exists.' ? 'error' : 'unavailable', message, sessionId, generation);
+        return;
+      }
+      const dueAt = Date.parse(prepared.due_at || '');
+      if (!prepared.group_id || !prepared.pool_id || !Number.isFinite(dueAt)) {
+        throw new Error('The dispatch server returned an invalid pool selection.');
+      }
+      const nextSelection = { sessionId, groupId: prepared.group_id, poolId: prepared.pool_id, dueAt };
+      selectedDispatchRef.current = nextSelection;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
+      armDispatchTimer(nextSelection, generation);
+    } catch (error) {
+      if (isCurrentDispatch(sessionId, generation)) {
+        console.error('Failed to prepare dispatch:', error);
+        pauseDispatch('error', getOrderDispatchErrorMessage(error), sessionId, generation);
+      }
+    } finally {
+      if (preparingDispatchRef.current === preparation) preparingDispatchRef.current = null;
+    }
+  };
 
-      if (!assignmentResult || !assignmentResult.success) {
-        console.log('No available orders to dispatch in group:', userGroupId);
-        console.log('Reason:', assignmentResult?.message || 'Unknown');
+  const dispatchNewOrder = async (selection: DispatchSelection, generation: number) => {
+    if (!isCurrentDispatch(selection.sessionId, generation) || selectedDispatchRef.current !== selection ||
+        (assigningDispatchRef.current?.sessionId === selection.sessionId && assigningDispatchRef.current.generation === generation)) return;
+    const assignmentAttempt = { sessionId: selection.sessionId, generation };
+    assigningDispatchRef.current = assignmentAttempt;
+    try {
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') throw new Error('Employee session has expired. Please sign in again.');
 
-        // 增加连续失败计数
-        const newFailureCount = consecutiveFailures + 1;
-        setConsecutiveFailures(newFailureCount);
-
-        // 根据失败原因显示不同提示
-        const reason = assignmentResult?.message || 'Unknown';
-
-        if (reason === 'No active orders in pool') {
-          // Real order-taking environment: Low order volume
-          if (newFailureCount === 1) {
-            showNotification({
-              type: 'info',
-              title: t.dispatch.lowOrderVolume,
-              message: t.dispatch.lowOrderMsg,
-              duration: 5000
-            });
-          } else if (newFailureCount === 5) {
-            showNotification({
-              type: 'warning',
-              title: t.dispatch.stillNoOrders,
-              message: t.dispatch.stillNoOrdersMsg,
-              duration: 6000
-            });
-          } else if (newFailureCount >= 10) {
-            showNotification({
-              type: 'warning',
-              title: t.dispatch.extendedWait,
-              message: t.dispatch.extendedWaitMsg,
-              duration: 0
-            });
-          }
-        } else if (reason === 'User has completed all available orders') {
-          // User completed all available orders
-          if (newFailureCount === 1) {
-            showNotification({
-              type: 'success',
-              title: t.dispatch.allCompleted,
-              message: t.dispatch.allCompletedMsg,
-              duration: 0
-            });
-          }
-
-          // Auto-stop after 10 consecutive attempts
-          if (newFailureCount >= 10) {
-            console.log('All orders completed for 10 attempts, auto-stopping work');
-            await handleStopWork(false);
-            return;
-          }
-        } else if (reason === 'All available orders currently locked') {
-          // Orders temporarily locked by other workers
-          if (newFailureCount === 1) {
-            showNotification({
-              type: 'info',
-              title: t.dispatch.highDemand,
-              message: t.dispatch.highDemandMsg,
-              duration: 4000
-            });
-          }
+      // The server's sticky selection is authoritative; legacy group/mode arguments are ignored.
+      const { data, error } = await dispatchDb.rpc('assign_next_dispatch_order_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_session_id: selection.sessionId,
+        p_group_id: null,
+        p_dispatch_mode: null,
+      });
+      if (!isCurrentDispatch(selection.sessionId, generation) || selectedDispatchRef.current !== selection) return;
+      if (error) throw error;
+      const result = data as DispatchAssignmentResult | null;
+      if (result?.auto_stopped) {
+        stopLocalWorkingState(selection.sessionId);
+        setShowAutoStopModal(true);
+        return;
+      }
+      if (!result?.success) {
+        if (result?.retry_selection) {
+          // The selected pool changed or emptied at due time. The next selection
+          // starts a fresh server interval; never assign immediately from another pool.
+          selectedDispatchRef.current = null;
+          setNextOrderTime(null);
+          assigningDispatchRef.current = null;
+          void scheduleNextOrder();
+        } else if (result?.due_at) {
+          const dueAt = Date.parse(result.due_at);
+          if (!Number.isFinite(dueAt)) throw new Error('The dispatch server returned an invalid due time.');
+          const updatedSelection = { ...selection, dueAt };
+          selectedDispatchRef.current = updatedSelection;
+          armDispatchTimer(updatedSelection, generation, 5000);
+        } else if (result?.message === 'An active dispatch assignment already exists.') {
+          pauseDispatch('error', 'An active assignment exists. Checking it again in five minutes.', selection.sessionId, generation);
+        } else {
+          pauseDispatch('unavailable', result?.message || 'No eligible dispatch orders are available.', selection.sessionId, generation);
         }
-
-        scheduleNextOrder(groupConfig || config);
         return;
       }
 
-      // 成功分配订单，重置失败计数
-      setConsecutiveFailures(0);
-      const serverUnacceptedCount = Number(assignmentResult.unaccepted_count || 0);
+      const assignment = result.assignment;
+      if (!assignment?.id || !assignment.session_timeout_minutes) {
+        throw new Error('The dispatch server returned an incomplete assignment.');
+      }
+      selectedDispatchRef.current = null;
+      setNextOrderTime(null);
+      setDispatchPause(null);
+      const serverUnacceptedCount = Number(result.unaccepted_count || 0);
       unacceptedCountRef.current = serverUnacceptedCount;
       setUnacceptedCount(serverUnacceptedCount);
-
-      // Extract assignment data
-      const assignmentData = assignmentResult.assignment;
-      if (!assignmentData) {
-        scheduleNextOrder(groupConfig || config);
-        return;
-      }
-      const newAssignment = {
-        id: assignmentData.id,
-        dispatch_order_id: assignmentData.dispatch_order_id,
-        user_id: userId,
-        status: assignmentData.status,
-        assigned_at: assignmentData.assigned_at,
-        dispatch_session_id: assignmentData.dispatch_session_id,
-        accept_deadline_at: assignmentData.accept_deadline_at,
-        dispatch_orders: {
-          order_content: assignmentData.order_content
-        }
+      const newAssignment: DispatchAssignment = {
+        ...assignment,
+        dispatch_orders: { order_content: assignment.order_content },
+        session_timeout_minutes: assignment.session_timeout_minutes,
       };
-
-      console.log('Order assigned successfully:', newAssignment.id, 'Order:', newAssignment.dispatch_order_id);
-
       setCurrentOrder(newAssignment);
       setShowOrderDetail(true);
       updateActivity();
-      loadTodayOrders();
-
-      // Play order notification sound
+      void loadTodayOrders();
       playOrderNotificationSound();
 
-      // Start 60-second accept timeout
-      if (acceptTimeoutRef.current) {
-        clearTimeout(acceptTimeoutRef.current);
-      }
+      // The 60-second accept deadline is server-generated, including for slow responses.
+      if (acceptTimeoutRef.current) clearTimeout(acceptTimeoutRef.current);
       acceptTimeoutRef.current = setTimeout(() => {
         void handleAcceptTimeoutRef.current?.(newAssignment.id);
-      }, 60000);
-    } catch (error: unknown) {
-      console.error('Failed to dispatch order:', error);
-
-      // Show error notifications based on error type
-      const errorMessage = getOrderDispatchErrorMessage(error);
-      if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch')) {
-        showNotification({
-          type: 'error',
-          title: t.dispatch.networkFailed,
-          message: t.dispatch.networkFailedMsg,
-          duration: 5000
-        });
-      } else if (errorMessage === 'Request timeout') {
-        showNotification({
-          type: 'warning',
-          title: t.dispatch.requestTimeout,
-          message: t.dispatch.requestTimeoutMsg,
-          duration: 4000
-        });
-      } else {
-        showNotification({
-          type: 'error',
-          title: t.dispatch.assignmentFailed,
-          message: getOrderDispatchErrorMessage(error) || 'Unknown error. The system will automatically retry.',
-          duration: 5000
-        });
+      }, newAssignment.accept_deadline_at
+        ? Math.max(0, Date.parse(newAssignment.accept_deadline_at) - Date.now()) : 60000);
+    } catch (error) {
+      if (isCurrentDispatch(selection.sessionId, generation)) {
+        console.error('Failed to dispatch order:', error);
+        pauseDispatch('error', getOrderDispatchErrorMessage(error), selection.sessionId, generation);
       }
-
-      scheduleNextOrder();
+    } finally {
+      if (assigningDispatchRef.current === assignmentAttempt) assigningDispatchRef.current = null;
     }
   };
 
   const handleAcceptTimeout = async (assignmentId: string) => {
     const auth = getStoredAuth();
     const currentSessionId = sessionIdRef.current;
-    if (auth?.userType !== 'employee' || !currentSessionId) return;
+    const generation = lifecycleGenerationRef.current;
+    if (auth?.userType !== 'employee' || !currentSessionId ||
+        !isCurrentDispatch(currentSessionId, generation) || currentOrderRef.current?.id !== assignmentId) return;
 
     try {
       const { data: result, error } = await supabase.rpc(
@@ -1963,6 +1699,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           p_assignment_id: assignmentId,
         },
       );
+      if (!isCurrentDispatch(currentSessionId, generation) || currentOrderRef.current?.id !== assignmentId) return;
       if (error) throw error;
 
       if (result?.reason === 'deadline_not_reached' && result.accept_deadline_at) {
@@ -1993,8 +1730,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         return;
       }
 
-      if (result?.schedule_next) scheduleNextOrder();
+      if (result?.schedule_next) void scheduleNextOrder();
     } catch (error: unknown) {
+      if (!isCurrentDispatch(currentSessionId, generation)) return;
       console.error('Failed to expire pending assignment:', error);
       showNotification({
         type: 'error',
@@ -2006,7 +1744,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   };
   handleAcceptTimeoutRef.current = handleAcceptTimeout;
 
-  const handleProcessTimeout = async (assignmentId: string) => {
+  const handleProcessTimeout = async (assignmentId: string, sessionId: string, generation: number) => {
     try {
       // Check if order is still being processed
       const { data: assignment, error: fetchError } = await supabase
@@ -2014,6 +1752,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         .select('status')
         .eq('id', assignmentId)
         .maybeSingle();
+      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== assignmentId) return;
 
       if (fetchError) {
         console.error('Failed to check assignment status:', fetchError);
@@ -2045,6 +1784,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
             p_remarks: 'Auto-skipped: Not completed within configured time',
           },
         );
+        if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== assignmentId) return;
         if (timeoutError) throw timeoutError;
         if (!timeoutResult?.success) return;
 
@@ -2079,6 +1819,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         // DO NOT schedule next order - timeout handler will stop work session
       }
     } catch (error: unknown) {
+      if (!isCurrentDispatch(sessionId, generation)) return;
       console.error('Failed to handle process timeout:', error);
       // Clear UI state but DO NOT schedule next order - work session will be stopped
       setCurrentOrder(null);
@@ -2453,6 +2194,10 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     setErrorReason('');
   };
 
+  // Re-rendered once a second by the waiting ticker, but derived only from the server due time.
+  const secondsUntilNextOrder = nextOrderTime
+    ? Math.max(0, Math.ceil((nextOrderTime.getTime() - Date.now()) / 1000)) : 0;
+
   const getStatusBadge = (status: string) => {
     const badges = {
       pending: { text: t.dispatch.statusPending, color: 'bg-white/15 text-white border border-white/25 backdrop-blur-sm' },
@@ -2485,11 +2230,6 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   };
 
   // Unified cleanup for all timers on component unmount
-  // Sync currentOrder state to ref for use in intervals/callbacks
-  useEffect(() => {
-    currentOrderRef.current = currentOrder;
-  }, [currentOrder]);
-
   // This prevents memory leaks and ensures proper cleanup
   useEffect(() => {
     return () => {
@@ -2892,7 +2632,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                   <XCircle className="w-3.5 h-3.5 text-amber-600" />
                 </div>
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  {t.dispatch.notCompletedWithin} <span className="font-semibold text-slate-800">{t.dispatch.notCompletedMinutes.replace('{min}', String(config.session_timeout_minutes))}</span>. {t.dispatch.orderAutoSkipped}
+                  {t.dispatch.notCompletedWithin} <span className="font-semibold text-slate-800">{t.dispatch.notCompletedMinutes.replace('{min}', String(timeoutStopMinutes))}</span>. {t.dispatch.orderAutoSkipped}
                 </p>
               </div>
 
@@ -2916,6 +2656,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           </div>
         </div>,
         document.body
+      )}
+
+      {session.isWorking && dispatchPause && (
+        <div role="status" className={`rounded-xl border px-4 py-3 text-sm font-medium ${dispatchPause.type === 'error' ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+          <strong>Dispatch paused.</strong> {dispatchPause.message} Checking again in five minutes. You can stop work at any time.
+        </div>
       )}
 
       {/* Work Control Panel - Premium Blue/White Design */}
@@ -3163,7 +2909,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                 {hasTimeout && (
                   <div className="mb-2 md:mb-5 p-1.5 md:p-3 bg-rose-500/15 border border-rose-500/40 rounded-lg md:rounded-xl flex items-center space-x-1.5 md:space-x-3">
                     <AlertTriangle className="w-3.5 h-3.5 md:w-5 md:h-5 text-rose-300 animate-pulse flex-shrink-0" />
-                    <div className="text-rose-200 text-[10px] md:text-sm font-semibold">{t.dispatch.exceededTimeout.replace('{min}', String(config.session_timeout_minutes))}</div>
+                    <div className="text-rose-200 text-[10px] md:text-sm font-semibold">{t.dispatch.exceededTimeout.replace('{min}', String(currentOrder.session_timeout_minutes ?? currentOrder.session_timeout_minutes_snapshot ?? config.session_timeout_minutes))}</div>
                   </div>
                 )}
 
@@ -3543,7 +3289,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                         <div className="absolute inset-0 bg-white/40 rounded-full blur-md animate-pulse"></div>
                         <div className="relative w-2.5 h-2.5 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.7)]"></div>
                       </div>
-                      <p className="text-sm font-bold text-white uppercase tracking-[0.2em]">{t.dispatch.waitingForOrder}</p>
+                      <p className="text-sm font-bold text-white uppercase tracking-[0.2em]">{dispatchPause ? 'Dispatch paused' : nextOrderTime ? 'Next order in' : 'Preparing dispatch'}</p>
                       <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 border border-white/25 rounded-full ml-2">
                         <div className="w-1.5 h-1.5 bg-emerald-300 rounded-full animate-pulse"></div>
                         <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">{t.dispatch.live}</span>
@@ -3556,7 +3302,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                       <div className="flex items-center justify-center gap-5">
                         <div className="text-center">
                           <div className="text-7xl lg:text-8xl font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif", textShadow: '0 0 20px rgba(56,189,248,0.5), 0 0 40px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {String(Math.floor(waitingTime / 60)).padStart(2, '0')}
+                            {nextOrderTime ? String(Math.floor(secondsUntilNextOrder / 60)).padStart(2, '0') : '--'}
                           </div>
                           <div className="text-xs text-blue-200 font-semibold mt-3 uppercase tracking-[0.25em]">{t.dispatch.min}</div>
                         </div>
@@ -3566,7 +3312,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                         </div>
                         <div className="text-center">
                           <div className="text-7xl lg:text-8xl font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif", textShadow: '0 0 20px rgba(56,189,248,0.5), 0 0 40px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {String(waitingTime % 60).padStart(2, '0')}
+                            {nextOrderTime ? String(secondsUntilNextOrder % 60).padStart(2, '0') : '--'}
                           </div>
                           <div className="text-xs text-blue-200 font-semibold mt-3 uppercase tracking-[0.25em]">{t.dispatch.sec}</div>
                         </div>
@@ -3978,7 +3724,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                           <div className={`absolute inset-0 bg-white/30 rounded-full blur-sm ${suppressAnimations ? '' : 'animate-pulse'}`}></div>
                           <div className="relative w-2 h-2 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.6)]"></div>
                         </div>
-                        <span className="text-[11px] font-bold text-white uppercase tracking-[0.12em]">{t.dispatch.waitingForOrder}</span>
+                        <span className="text-[11px] font-bold text-white uppercase tracking-[0.12em]">{dispatchPause ? 'Dispatch paused' : nextOrderTime ? 'Next order in' : 'Preparing dispatch'}</span>
                         <div className="flex items-center gap-1 px-1.5 py-0.5 bg-white/15 border border-white/25 rounded-md ml-1">
                           <div className={`w-1.5 h-1.5 bg-emerald-300 rounded-full ${suppressAnimations ? '' : 'animate-pulse'}`}></div>
                           <span className="text-[9px] font-bold text-emerald-300 uppercase">{t.dispatch.live}</span>
@@ -3989,7 +3735,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                       <div className="flex items-center justify-center gap-2.5 mb-4">
                         <div className="text-center">
                           <div className="text-[2.75rem] font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', -apple-system, system-ui, sans-serif", textShadow: '0 0 16px rgba(56,189,248,0.5), 0 0 32px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {String(Math.floor(waitingTime / 60)).padStart(2, '0')}
+                            {nextOrderTime ? String(Math.floor(secondsUntilNextOrder / 60)).padStart(2, '0') : '--'}
                           </div>
                           <div className="text-[8px] text-blue-200 font-semibold uppercase tracking-[0.2em] mt-1">{t.dispatch.min}</div>
                         </div>
@@ -3999,7 +3745,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                         </div>
                         <div className="text-center">
                           <div className="text-[2.75rem] font-black text-white tabular-nums leading-none tracking-tight" style={{ fontFamily: "'Inter', -apple-system, system-ui, sans-serif", textShadow: '0 0 16px rgba(56,189,248,0.5), 0 0 32px rgba(56,189,248,0.25), 0 2px 4px rgba(0,0,0,0.3)' }}>
-                            {String(waitingTime % 60).padStart(2, '0')}
+                            {nextOrderTime ? String(secondsUntilNextOrder % 60).padStart(2, '0') : '--'}
                           </div>
                           <div className="text-[8px] text-blue-200 font-semibold uppercase tracking-[0.2em] mt-1">{t.dispatch.sec}</div>
                         </div>
@@ -5203,7 +4949,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                     </div>
                     <div>
                       <span className="text-gray-400 uppercase tracking-wider text-[10px] font-semibold">{t.dispatch.orderId}</span>
-                      <div className="text-gray-600 font-mono mt-0.5 text-[11px] break-all leading-tight">{selectedOrderDetail.dispatch_orders.id?.slice(0, 8) || selectedOrderDetail.dispatch_order_id.slice(0, 8)}...</div>
+                      <div className="text-gray-600 font-mono mt-0.5 text-[11px] break-all leading-tight">{selectedOrderDetail.dispatch_orders.id?.slice(0, 8) || selectedOrderDetail.dispatch_order_id?.slice(0, 8) || selectedOrderDetail.id.slice(0, 8)}...</div>
                     </div>
                   </div>
                 </div>

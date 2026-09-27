@@ -176,7 +176,9 @@ export interface Database {
         Row: {
           id: string;
           group_name: string;
-          description: string;
+          description: string | null;
+          pool_selection_mode: 'base' | 'random';
+          archived_at: string | null;
           dispatch_interval_min: number;
           dispatch_interval_max: number;
           session_timeout_minutes: number;
@@ -192,6 +194,8 @@ export interface Database {
           id?: string;
           group_name: string;
           description?: string | null;
+          pool_selection_mode?: 'base' | 'random';
+          archived_at?: string | null;
           dispatch_interval_min?: number | null;
           dispatch_interval_max?: number | null;
           session_timeout_minutes?: number | null;
@@ -207,6 +211,8 @@ export interface Database {
           id?: string;
           group_name?: string;
           description?: string | null;
+          pool_selection_mode?: 'base' | 'random';
+          archived_at?: string | null;
           dispatch_interval_min?: number | null;
           dispatch_interval_max?: number | null;
           session_timeout_minutes?: number | null;
@@ -220,10 +226,96 @@ export interface Database {
         };
         Relationships: [];
       };
+      dispatch_order_pools: {
+        Row: {
+          id: string;
+          group_id: string;
+          pool_name: string;
+          is_base: boolean;
+          is_active: boolean;
+          dispatch_interval_min: number;
+          dispatch_interval_max: number;
+          session_timeout_minutes: number;
+          dispatch_order_mode: 'random' | 'sequential';
+          dispatch_success_rate: number;
+          archived_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          pool_name: string;
+          is_base?: boolean;
+          is_active?: boolean;
+          dispatch_interval_min?: number;
+          dispatch_interval_max?: number;
+          session_timeout_minutes?: number;
+          dispatch_order_mode?: 'random' | 'sequential';
+          dispatch_success_rate?: number;
+          archived_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          pool_name?: string;
+          is_base?: boolean;
+          is_active?: boolean;
+          dispatch_interval_min?: number;
+          dispatch_interval_max?: number;
+          session_timeout_minutes?: number;
+          dispatch_order_mode?: 'random' | 'sequential';
+          dispatch_success_rate?: number;
+          archived_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [{
+          foreignKeyName: 'dispatch_order_pools_group_id_fkey';
+          columns: ['group_id'];
+          isOneToOne: false;
+          referencedRelation: 'dispatch_groups';
+          referencedColumns: ['id'];
+        }];
+      };
+      dispatch_pool_selections: {
+        Row: {
+          session_id: string;
+          user_id: string;
+          group_id: string;
+          pool_id: string;
+          selected_at: string;
+          due_at: string;
+        };
+        Insert: {
+          session_id: string;
+          user_id: string;
+          group_id: string;
+          pool_id: string;
+          selected_at?: string;
+          due_at: string;
+        };
+        Update: {
+          session_id?: string;
+          user_id?: string;
+          group_id?: string;
+          pool_id?: string;
+          selected_at?: string;
+          due_at?: string;
+        };
+        Relationships: [];
+      };
       dispatch_group_orders: {
         Row: {
           id: string;
           group_id: string;
+          pool_id: string;
+          archived_at: string | null;
           order_content: string;
           is_active: boolean;
           created_by: string;
@@ -233,6 +325,8 @@ export interface Database {
         Insert: {
           id?: string;
           group_id: string;
+          pool_id: string;
+          archived_at?: string | null;
           order_content: string;
           is_active?: boolean | null;
           created_by?: string | null;
@@ -242,6 +336,8 @@ export interface Database {
         Update: {
           id?: string;
           group_id?: string;
+          pool_id?: string;
+          archived_at?: string | null;
           order_content?: string;
           is_active?: boolean | null;
           created_by?: string | null;
@@ -288,7 +384,12 @@ export interface Database {
       dispatch_assignments: {
         Row: {
           id: string;
-          dispatch_order_id: string;
+          dispatch_order_id: string | null;
+          group_id: string | null;
+          pool_id: string | null;
+          order_content_snapshot: string | null;
+          dispatch_success_rate_snapshot: number | null;
+          session_timeout_minutes_snapshot: number | null;
           user_id: string;
           status: string;
           assigned_at: string;
@@ -303,6 +404,11 @@ export interface Database {
         Insert: {
           id?: string;
           dispatch_order_id?: string | null;
+          group_id?: string | null;
+          pool_id?: string | null;
+          order_content_snapshot?: string | null;
+          dispatch_success_rate_snapshot?: number | null;
+          session_timeout_minutes_snapshot?: number | null;
           user_id?: string | null;
           status?: string | null;
           assigned_at?: string | null;
@@ -317,6 +423,11 @@ export interface Database {
         Update: {
           id?: string;
           dispatch_order_id?: string | null;
+          group_id?: string | null;
+          pool_id?: string | null;
+          order_content_snapshot?: string | null;
+          dispatch_success_rate_snapshot?: number | null;
+          session_timeout_minutes_snapshot?: number | null;
           user_id?: string | null;
           status?: string | null;
           assigned_at?: string | null;
@@ -2213,6 +2324,7 @@ export interface Database {
           p_password: string;
           p_remarks: string;
           p_username: string;
+          p_dispatch_group_id: string;
         };
         Returns: { success?: boolean; error?: string; user?: Record<string, unknown> };
       };
@@ -2224,7 +2336,8 @@ export interface Database {
           p_employee_id: string;
           p_created_by: string;
           p_remarks: string;
-          p_automation_plan_id?: string | null;
+          p_automation_plan_id: string | null;
+          p_dispatch_group_id: string;
         };
         Returns: {
           success?: boolean;
@@ -2547,18 +2660,61 @@ export interface Database {
           unsubmitted_timed_out?: number;
         };
       };
+      admin_save_dispatch_group: {
+        Args: { p_admin_session_token: string; p_group_id: string | null; p_changes: Record<string, unknown> };
+        Returns: { group: Database['public']['Tables']['dispatch_groups']['Row'] };
+      };
+      admin_save_dispatch_pool: {
+        Args: { p_admin_session_token: string; p_group_id: string; p_pool_id: string | null; p_changes: Record<string, unknown> };
+        Returns: { pool: Database['public']['Tables']['dispatch_order_pools']['Row'] };
+      };
+      admin_manage_dispatch_orders: {
+        Args: {
+          p_admin_session_token: string;
+          p_pool_id: string;
+          p_action: 'import' | 'edit' | 'toggle' | 'delete' | 'delete_all';
+          p_order_id?: string | null;
+          p_content?: string | null;
+          p_contents?: string[] | null;
+        };
+        Returns: { success: boolean; action: string; affected: number; order: Database['public']['Tables']['dispatch_group_orders']['Row'] | null };
+      };
+      admin_assign_dispatch_group_member: {
+        Args: { p_admin_session_token: string; p_user_id: string; p_group_id: string };
+        Returns: { member: Database['public']['Tables']['dispatch_group_members']['Row'] };
+      };
+      prepare_next_dispatch_order_secure: {
+        Args: { p_user_id: string; p_session_token: string; p_tab_id: string; p_session_id: string };
+        Returns: {
+          available: boolean;
+          group_id?: string;
+          pool_id?: string;
+          due_at?: string;
+          message?: string;
+          auto_stopped?: boolean;
+          config?: {
+            dispatch_interval_min: number;
+            dispatch_interval_max: number;
+            session_timeout_minutes: number;
+            dispatch_order_mode: 'random' | 'sequential';
+            dispatch_success_rate: number;
+          };
+        };
+      };
       assign_next_dispatch_order_secure: {
         Args: {
           p_user_id: string;
           p_session_token: string;
           p_tab_id: string;
           p_session_id: string;
-          p_group_id: string;
+          p_group_id: string | null;
           p_dispatch_mode?: string;
         };
         Returns: {
           success?: boolean;
           message?: string;
+          retry_selection?: boolean;
+          due_at?: string;
           auto_stopped?: boolean;
           schedule_next?: boolean;
           unaccepted_count?: number;
@@ -2570,6 +2726,9 @@ export interface Database {
             order_content: string;
             dispatch_session_id: string;
             accept_deadline_at: string;
+            group_id: string;
+            pool_id: string;
+            session_timeout_minutes: number;
           } | null;
         };
       };
