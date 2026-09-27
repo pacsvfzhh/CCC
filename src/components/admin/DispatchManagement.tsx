@@ -1504,31 +1504,38 @@ export default function DispatchManagement() {
                       <div className="min-w-0 space-y-4 lg:border-l lg:border-indigo-300/20 lg:pl-6">
                         <section className="min-w-0 space-y-2">
                           <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/20 text-xs font-bold text-cyan-200">03</span><h4 className="font-semibold text-cyan-100">工作與提交時間</h4></div>
-                    <label className="block text-sm font-medium text-slate-200">
-                      工作會話逾時（分鐘）
-                      <input type="number" min="1" max="60" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.session_timeout_minutes}
-                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
-                        onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
-                    </label>
-                    <p className="text-xs leading-relaxed text-cyan-100">接單後尚未提交的期限；已派訂單保留原設定。</p>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <label className="min-w-0 text-sm font-medium text-slate-200">
-                        提交等待時間 · 最短（秒）
-                        <input type="number" min="3" max="120" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.submit_wait_min_seconds}
-                          disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
-                          onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_min_seconds: event.target.value })} />
-                      </label>
-                      <label className="min-w-0 text-sm font-medium text-slate-200">
-                        提交等待時間 · 最長（秒）
-                        <input type="number" min="3" max="300" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.submit_wait_max_seconds}
-                          disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
-                          onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_max_seconds: event.target.value })} />
-                      </label>
-                    </div>
-                    <p className="text-xs text-cyan-100">僅影響提交頁進度動畫，不延長接單或實際處理期限。</p>
+                          <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-5">
+                            <div className="min-w-0">
+                              <label className="block text-sm font-medium text-slate-200">
+                                工作會話逾時（分鐘）
+                                <input type="number" min="1" max="60" className={`${inputClass} mt-1 sm:max-w-40`}
+                                  value={groupDraft.session_timeout_minutes}
+                                  disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                                  onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
+                              </label>
+                              <p className="mt-1 text-xs leading-relaxed text-cyan-100">接單後尚未提交的期限；已派訂單保留原設定。</p>
+                            </div>
+                            <fieldset className="min-w-0">
+                              <legend className="text-sm font-medium text-slate-200">提交等待時間（秒）</legend>
+                              <div className="mt-1 grid grid-cols-2 gap-2">
+                                <label className="min-w-0 text-xs font-medium text-slate-200">
+                                  最短
+                                  <input type="number" min="3" max="120" className={`${inputClass} mt-1`}
+                                    value={groupDraft.submit_wait_min_seconds}
+                                    disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                                    onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_min_seconds: event.target.value })} />
+                                </label>
+                                <label className="min-w-0 text-xs font-medium text-slate-200">
+                                  最長
+                                  <input type="number" min="3" max="300" className={`${inputClass} mt-1`}
+                                    value={groupDraft.submit_wait_max_seconds}
+                                    disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                                    onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_max_seconds: event.target.value })} />
+                                </label>
+                              </div>
+                              <p className="mt-1 text-xs leading-relaxed text-cyan-100">僅影響提交頁動畫，不延長接單或處理期限。</p>
+                            </fieldset>
+                          </div>
                         </section>
                         <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
                           <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400/20 text-xs font-bold text-emerald-200">04</span><h4 className="font-semibold text-emerald-100">訂單收益與成功率</h4></div>
