@@ -1252,14 +1252,14 @@ export default function DispatchManagement() {
                           onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_amount_threshold: event.target.value })} />
                       </label>
                       <label className="min-w-0 text-sm font-medium text-slate-200">
-                        Min Days · 最低訂單數
+                        最低訂單數
                         <input type="number" min="1" max="1000000" step="1" className={`${inputClass} mt-1`}
                           value={groupDraft.withdrawal_orders_threshold}
                           disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                           onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
                       </label>
                     </div>
-                    <p className="text-xs leading-relaxed text-amber-200/90">原「Min Days」實際按訂單筆數計算（沿用現有所有狀態的訂單數），不是天數。</p>
+                    <p className="text-xs leading-relaxed text-amber-200/90">按所有狀態的訂單筆數計算。</p>
                     <label className="block text-sm font-medium text-slate-200">
                       提款條件組合
                       <select className={`${inputClass} mt-1`} value={groupDraft.withdrawal_condition_mode}
@@ -2078,13 +2078,13 @@ export default function DispatchManagement() {
                         onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_amount_threshold: event.target.value })} />
                     </label>
                     <label className="min-w-0 text-sm">
-                      Min Days · 最低訂單數
+                      最低訂單數
                       <input type="number" min="1" max="1000000" step="1" className={`${inputClass} mt-1`}
                         value={groupDraft.withdrawal_orders_threshold}
                         onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
                     </label>
                   </div>
-                  <p className="text-xs text-slate-400">最低訂單數不是天數；按現有訂單筆數計算。</p>
+                  <p className="text-xs text-slate-400">按所有狀態的訂單筆數計算。</p>
                   <label className="block text-sm">
                     提款條件組合
                     <select className={`${inputClass} mt-1`} value={groupDraft.withdrawal_condition_mode}
