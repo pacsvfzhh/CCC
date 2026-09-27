@@ -42,7 +42,8 @@ ALTER TABLE public.dispatch_groups
       CHECK (submit_wait_min_seconds BETWEEN 3 AND 120),
   ADD COLUMN submit_wait_max_seconds integer NOT NULL DEFAULT 20
     CONSTRAINT dispatch_groups_submit_wait_max_seconds_check
-      CHECK (submit_wait_max_seconds BETWEEN 3 AND 300),
+      CHECK (submit_wait_max_seconds BETWEEN 3 AND 300);
+ALTER TABLE public.dispatch_groups
   ADD CONSTRAINT dispatch_groups_submit_wait_range_check
     CHECK (submit_wait_min_seconds <= submit_wait_max_seconds);
 
@@ -89,7 +90,8 @@ ALTER TABLE public.dispatch_assignments
       CHECK (submit_wait_min_seconds_snapshot BETWEEN 3 AND 120),
   ADD COLUMN submit_wait_max_seconds_snapshot integer
     CONSTRAINT dispatch_assignments_submit_wait_max_seconds_snapshot_check
-      CHECK (submit_wait_max_seconds_snapshot BETWEEN 3 AND 300),
+      CHECK (submit_wait_max_seconds_snapshot BETWEEN 3 AND 300);
+ALTER TABLE public.dispatch_assignments
   ADD CONSTRAINT dispatch_assignments_submit_wait_snapshot_range_check
     CHECK (submit_wait_min_seconds_snapshot <= submit_wait_max_seconds_snapshot);
 
