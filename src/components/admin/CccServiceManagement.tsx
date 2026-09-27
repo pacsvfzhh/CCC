@@ -6220,37 +6220,42 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
             aria-modal="true"
             aria-labelledby="conversation-annotation-title"
             onSubmit={(event) => { event.preventDefault(); void saveConversationAnnotation(); }}
-            className="w-full max-w-md min-w-0 overflow-hidden rounded-2xl border border-emerald-400/35 bg-slate-900 shadow-2xl shadow-black/50"
+            className={`max-h-[calc(100dvh-2rem)] w-full max-w-md min-w-0 overflow-y-auto rounded-2xl border bg-slate-900 shadow-2xl shadow-black/50 ${annotationDialog.kind === 'note' ? 'border-sky-400/40' : 'border-emerald-400/35'}`}
           >
-            <div className="flex items-center justify-between border-b border-emerald-400/20 bg-gradient-to-r from-emerald-950/70 to-slate-900 px-5 py-4">
-              <div className="flex items-center gap-2">
-                {annotationDialog.kind === 'special' ? <Star className="h-5 w-5 text-amber-300" /> : <Pencil className="h-5 w-5 text-emerald-300" />}
-                <h3 id="conversation-annotation-title" className="text-base font-bold text-white">{annotationDialog.kind === 'special' ? annotationDialog.nextSpecial ? '加入特別關注' : '移除特別關注' : '編輯對話備註'}</h3>
+            <div className={`flex items-start justify-between gap-3 border-b px-5 py-4 ${annotationDialog.kind === 'note' ? 'border-sky-400/25 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950/70' : 'border-emerald-400/20 bg-gradient-to-r from-emerald-950/70 to-slate-900'}`}>
+              <div className="flex min-w-0 items-center gap-3">
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${annotationDialog.kind === 'note' ? 'border-sky-400/40 bg-sky-500/15 text-sky-300' : 'border-amber-400/40 bg-amber-500/15 text-amber-300'}`}>
+                  {annotationDialog.kind === 'special' ? <Star className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
+                </span>
+                <div className="min-w-0">
+                  <h3 id="conversation-annotation-title" className="text-base font-bold text-white">{annotationDialog.kind === 'special' ? annotationDialog.nextSpecial ? '加入特別關注' : '移除特別關注' : '編輯對話備註'}</h3>
+                  {annotationDialog.kind === 'note' && <p className="mt-0.5 text-xs text-sky-200/80">只記錄這段經理與員工的對話</p>}
+                </div>
               </div>
-              <button type="button" disabled={savingAnnotation} onClick={() => setAnnotationDialog(null)} aria-label="關閉面板" className="rounded-lg p-1.5 text-slate-300 hover:bg-slate-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:opacity-50"><X className="h-4 w-4" /></button>
+              <button type="button" disabled={savingAnnotation} onClick={() => setAnnotationDialog(null)} aria-label="關閉面板" className="shrink-0 rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 disabled:opacity-50"><X className="h-4 w-4" /></button>
             </div>
             <div className="space-y-4 px-5 py-5">
-              <div className="min-w-0 rounded-xl border border-slate-600/60 bg-slate-800/80 p-3 text-sm">
+              <div className={`min-w-0 rounded-xl border p-4 text-sm ${annotationDialog.kind === 'note' ? 'border-sky-400/25 bg-gradient-to-br from-slate-800 to-sky-950/40' : 'border-slate-600/60 bg-slate-800/80'}`}>
                 <p className="font-semibold text-white">員工：{annotationDialog.history.employee_username}</p>
-                <p className="mt-1 break-all text-xs text-emerald-200">員工編號：{annotationDialog.history.employee_number || '—'}</p>
+                <p className="mt-1 break-all text-xs text-sky-200">員工編號：{annotationDialog.history.employee_number || '—'}</p>
                 <p className="mt-1 break-all text-xs text-slate-400">員工 ID：{annotationDialog.history.employee_id}</p>
-                <p className="mt-3 border-t border-slate-600/60 pt-2 text-xs text-slate-300">經理：{annotationDialog.history.customer_name || '—'}（{customers.find(customer => customer.id === annotationDialog.history.customer_id)?.customer_id || annotationDialog.history.customer_id}）</p>
+                <p className="mt-3 border-t border-white/10 pt-2 text-xs text-slate-200">經理：{annotationDialog.history.customer_name || '—'}（{customers.find(customer => customer.id === annotationDialog.history.customer_id)?.customer_id || annotationDialog.history.customer_id}）</p>
               </div>
               {annotationDialog.kind === 'special' ? (
                 <p className="text-sm leading-relaxed text-slate-200">{annotationDialog.nextSpecial ? '確認將這段對話加入特別關注？加入後可在上方集中查看。' : '確認將這段對話移出特別關注？對話備註不會被刪除。'}</p>
               ) : (
                 <div>
-                  <label htmlFor="conversation-note" className="mb-2 block text-sm font-semibold text-slate-200">此對話的獨立備註</label>
-                  <textarea id="conversation-note" autoFocus rows={5} maxLength={2000} value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="輸入這段對話的備註……" className="w-full resize-y rounded-xl border border-slate-600 bg-slate-950 p-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/25" />
+                  <label htmlFor="conversation-note" className="mb-2 block text-sm font-semibold text-sky-100">此對話的獨立備註</label>
+                  <textarea id="conversation-note" autoFocus rows={5} maxLength={2000} value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="輸入這段對話的備註……" className="block w-full resize-y rounded-xl border border-sky-200 bg-slate-50 p-3.5 text-sm leading-relaxed text-slate-900 shadow-inner shadow-slate-400/10 outline-none placeholder:text-slate-500 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/35" />
                   <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-400">
-                    <button type="button" onClick={() => setNoteDraft('')} disabled={savingAnnotation || !noteDraft} className="text-rose-300 hover:text-rose-200 disabled:opacity-40">清空備註</button>
-                    <span>{noteDraft.length}/2000</span>
+                    <button type="button" onClick={() => setNoteDraft('')} disabled={savingAnnotation || !noteDraft} className="rounded-md px-2 py-1 font-medium text-rose-300 transition-colors hover:bg-rose-500/10 hover:text-rose-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-40">清空備註</button>
+                    <span className="tabular-nums">{noteDraft.length}/2000</span>
                   </div>
                 </div>
               )}
-              <div className="flex flex-wrap justify-end gap-2 pt-1">
+              <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-4">
                 <button type="button" disabled={savingAnnotation} onClick={() => setAnnotationDialog(null)} className="min-h-10 rounded-lg border border-slate-500 bg-slate-700 px-4 text-sm font-semibold text-white hover:bg-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50">取消</button>
-                <button type="submit" autoFocus={annotationDialog.kind === 'special'} disabled={savingAnnotation} className={`min-h-10 rounded-lg px-4 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50 ${annotationDialog.kind === 'special' ? 'bg-amber-600 hover:bg-amber-500 focus-visible:ring-amber-300' : 'bg-emerald-600 hover:bg-emerald-500 focus-visible:ring-emerald-300'}`}>{savingAnnotation ? '儲存中……' : annotationDialog.kind === 'note' ? '儲存備註' : annotationDialog.nextSpecial ? '確認加入' : '確認移除'}</button>
+                <button type="submit" autoFocus={annotationDialog.kind === 'special'} disabled={savingAnnotation} className={`min-h-10 rounded-lg px-5 text-sm font-semibold text-white shadow-md focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50 ${annotationDialog.kind === 'special' ? 'bg-amber-600 shadow-amber-950/30 hover:bg-amber-500 focus-visible:ring-amber-300' : 'bg-blue-600 shadow-blue-950/40 hover:bg-blue-500 focus-visible:ring-sky-300'}`}>{savingAnnotation ? '儲存中……' : annotationDialog.kind === 'note' ? '儲存備註' : annotationDialog.nextSpecial ? '確認加入' : '確認移除'}</button>
               </div>
             </div>
           </form>
