@@ -4146,12 +4146,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                       hasUnread ? 'text-orange-300 font-bold' : 'text-emerald-200/90 font-semibold'
                                     }`}>{timeStr}</span>
                                   </div>
-                                  {hasUnread && (
-                                    <div className="absolute right-3 top-1/2 z-10 flex min-w-[30px] h-[30px] -translate-y-1/2 items-center justify-center rounded-full border-2 border-slate-900 bg-gradient-to-br from-orange-500 to-red-500 px-2 shadow-md shadow-orange-500/40 ">
-                                      <span className="text-[12px] font-black leading-none text-white drop-shadow-sm">{history.unread_count > 99 ? '99+' : history.unread_count}</span>
-                                    </div>
-                                  )}
-
                                   <div className="flex items-center gap-1.5 mb-1">
                                     <span className={`text-xs font-semibold truncate ${isSelected ? 'text-slate-200' : 'text-slate-300'}`}>{history.employee_username}</span>
                                     <span className="text-[10px] text-emerald-200/90 font-mono flex-shrink-0">編號： {history.employee_number || '—'}</span>
@@ -4199,8 +4193,13 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                   <Pencil className="h-3 w-3" /> 對話備註
                                 </button>
                               </div>
-                              {annotation?.note && <p className="min-w-0 flex-1 truncate text-right text-[10px] text-cyan-300" title={annotation.note}>備註：{annotation.note}</p>}
+                              {annotation?.note && <p className={`min-w-0 flex-1 truncate text-right text-[10px] text-cyan-300 ${hasUnread ? 'pr-9' : ''}`} title={annotation.note}>備註：{annotation.note}</p>}
                             </div>
+                            {hasUnread && (
+                              <div className="pointer-events-none absolute right-3 top-1/2 z-10 flex h-[30px] min-w-[30px] -translate-y-1/2 items-center justify-center rounded-full border-2 border-slate-900 bg-gradient-to-br from-orange-500 to-red-500 px-2 shadow-md shadow-orange-500/40">
+                                <span className="text-[12px] font-black leading-none text-white drop-shadow-sm">{history.unread_count > 99 ? '99+' : history.unread_count}</span>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
