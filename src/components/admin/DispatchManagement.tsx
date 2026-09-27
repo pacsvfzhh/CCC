@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { getAdminFinancialSessionToken, getStoredAuth } from '../../lib/auth';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
+import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 
 const PAGE_SIZE = 25;
 const IMPORT_BATCH_SIZE = 2000;
@@ -163,6 +164,7 @@ export default function DispatchManagement() {
   const auth = getStoredAuth();
   const admin = auth?.userType === 'admin' ? auth.user : null;
   const isSuperAdmin = admin?.role === 'super_admin';
+  const currencyUnit = useCurrencyUnit(admin?.id);
   const [groups, setGroups] = useState<DispatchGroup[]>([]);
   const [pools, setPools] = useState<DispatchPool[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -1121,12 +1123,14 @@ export default function DispatchManagement() {
                       <span className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-1 border-t border-white/15 pt-1.5 text-[11px] leading-4">
                         <span className="min-w-0 truncate text-cyan-200">提交 <strong className="font-semibold text-white">{group.submit_wait_min_seconds == null || group.submit_wait_max_seconds == null ? '—' : `${group.submit_wait_min_seconds}–${group.submit_wait_max_seconds} 秒`}</strong></span>
                         <span className="min-w-0 truncate text-emerald-200">佣金 <strong className="font-semibold text-white">{group.commission_rate == null ? '—' : `${Number((group.commission_rate * 100).toFixed(6))}%`}</strong></span>
-                        <span className="min-w-0 truncate text-emerald-200">成功率 <strong className="font-semibold text-white">{group.dispatch_success_rate == null ? '—' : `${group.dispatch_success_rate}%`}</strong></span>
-                        <span className="min-w-0 truncate text-amber-200" title={`最低提款餘額：${group.withdrawal_amount_threshold ?? '—'}`}>
-                          提款 <strong className="font-semibold text-white">{group.withdrawal_amount_threshold == null ? '—' : group.withdrawal_amount_threshold.toLocaleString('en-US', { maximumFractionDigits: 2 })}</strong>
+                        <span className="col-span-2 text-emerald-200">成功率 <strong className="font-semibold text-white">{group.dispatch_success_rate == null ? '—' : `${group.dispatch_success_rate}%`}</strong></span>
+                        <span className="col-span-2 grid grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)] gap-x-2">
+                          <span className="min-w-0 break-words text-amber-200" title={`提款要求：${group.withdrawal_amount_threshold ?? '—'} ${currencyUnit}`}>
+                            提款要求 <strong className="font-semibold text-white">{group.withdrawal_amount_threshold == null ? '—' : `${group.withdrawal_amount_threshold.toLocaleString('en-US', { maximumFractionDigits: 2 })} ${currencyUnit}`}</strong>
+                          </span>
+                          <span className="min-w-0 break-words text-amber-200">訂單要求 <strong className="font-semibold text-white">{group.withdrawal_orders_threshold ?? '—'}</strong></span>
                         </span>
-                        <span className="min-w-0 truncate text-amber-200">訂單 <strong className="font-semibold text-white">{group.withdrawal_orders_threshold ?? '—'}</strong></span>
-                        <span className="min-w-0 truncate text-amber-200" title={`提款條件：${withdrawalModeLabels[group.withdrawal_condition_mode] ?? '—'}`}>提款條件 <strong className="font-semibold text-white">{withdrawalModeLabels[group.withdrawal_condition_mode] ?? '—'}</strong></span>
+                        <span className="col-span-2 text-amber-200">提款條件 <strong className="font-semibold text-white">{withdrawalModeLabels[group.withdrawal_condition_mode] ?? '—'}</strong></span>
                       </span>
                     </button>
                     <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-white/15 pt-2">
