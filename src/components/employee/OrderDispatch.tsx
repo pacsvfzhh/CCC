@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { AUTH_STORAGE_KEY, getStoredAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { getTodayStartUTC } from '../../lib/dateUtils';
@@ -41,22 +40,6 @@ interface DispatchConfig {
   session_timeout_minutes: number;
 }
 
-interface PreparedDispatch {
-  available: boolean;
-  message?: string;
-  auto_stopped?: boolean;
-  group_id?: string;
-  pool_id?: string;
-  due_at?: string;
-  config?: {
-    dispatch_interval_min: number;
-    dispatch_interval_max: number;
-    session_timeout_minutes: number;
-    dispatch_order_mode: 'random' | 'sequential';
-    dispatch_success_rate: number;
-  };
-}
-
 interface DispatchSelection {
   sessionId: string;
   groupId: string;
@@ -64,19 +47,10 @@ interface DispatchSelection {
   dueAt: number;
 }
 
-interface DispatchAssignmentResult {
-  success: boolean;
-  message?: string;
-  auto_stopped?: boolean;
-  retry_selection?: boolean;
-  schedule_next?: boolean;
-  due_at?: string;
-  unaccepted_count?: number;
-  assignment?: (Omit<DispatchAssignment, 'dispatch_orders'> & { order_content: string }) | null;
-}
+type RecoveryOutcome =
+  | { state: 'active'; assignment: DispatchAssignment }
+  | { state: 'idle' | 'ended' | 'stale' };
 
-// The generated Database type predates the approved pool migration.
-const dispatchDb = supabase as unknown as SupabaseClient;
 const PAUSED_DISPATCH_CHECK_MS = 5 * 60 * 1000;
 
 function getOrderDispatchErrorMessage(error: unknown) {
@@ -243,6 +217,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const restartSessionRef = useRef<(() => Promise<void>) | null>(null);
   const sendHeartbeatRef = useRef<(() => Promise<void>) | null>(null);
   const checkPendingOrderRef = useRef<(() => Promise<void>) | null>(null);
+  const recoveryInFlightRef = useRef<Promise<RecoveryOutcome> | null>(null);
 
   // 通知系统
   const showNotification = (notification: Omit<Notification, 'id'>) => {
@@ -677,6 +652,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
 
     unacceptedCountRef.current = 0;
+    currentOrderRef.current = null;
     if (componentMountedRef.current) {
       setCurrentOrder(null);
       setShowOrderDetail(false);
@@ -691,6 +667,78 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
   };
 
+  const recoverDispatchState = async (expectedSessionId: string | null, generation: number): Promise<RecoveryOutcome> => {
+    const priorRecovery = recoveryInFlightRef.current;
+    if (priorRecovery) {
+      try { await priorRecovery; } catch { /* A fresh attempt may still succeed. */ }
+    }
+    const isCurrentRecovery = () => componentMountedRef.current &&
+      lifecycleGenerationRef.current === generation &&
+      sessionIdRef.current === expectedSessionId;
+    if (!isCurrentRecovery()) return { state: 'stale' };
+
+    const operation = (async (): Promise<RecoveryOutcome> => {
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee') throw new Error('Employee session has expired. Please sign in again.');
+      const { data, error } = await supabase.rpc('recover_employee_dispatch_assignment_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+      });
+      if (!isCurrentRecovery()) return { state: 'stale' };
+      if (error) throw error;
+      if (!data?.success) throw new Error('The dispatch server could not confirm the work session.');
+      if (!data.recovered) {
+        if (expectedSessionId) {
+          stopLocalWorkingState(expectedSessionId);
+          showNotification({
+            type: 'error', title: 'Dispatch Session Ended',
+            message: 'Your work session is no longer active. Start again to resume dispatch.', duration: 0,
+          });
+        }
+        return { state: 'ended' };
+      }
+      if (!data.session_id || !data.started_at) throw new Error('Incomplete dispatch recovery response.');
+
+      clearDispatchTimer();
+      selectedDispatchRef.current = null;
+      dispatchPausedRef.current = false;
+      setDispatchPause(null);
+      setNextOrderTime(null);
+      if (grabFailedTimerRef.current) clearTimeout(grabFailedTimerRef.current);
+      grabFailedTimerRef.current = null;
+      setShowGrabFailedModal(false);
+      sessionActiveRef.current = true;
+      sessionIdRef.current = data.session_id;
+      lastActivityRef.current = new Date();
+      const count = Number(data.unaccepted_count || 0);
+      unacceptedCountRef.current = count;
+      setUnacceptedCount(count);
+      setSession({ isWorking: true, sessionId: data.session_id, startedAt: new Date(data.started_at) });
+      if (data.session_id !== expectedSessionId || !heartbeatTimerRef.current) startHeartbeat();
+      void loadTotalWorkTime();
+      void loadTodayOrders();
+
+      const assignment = data.assignment;
+      currentOrderRef.current = assignment || null;
+      setCurrentOrder(assignment || null);
+      setShowOrderDetail(Boolean(assignment));
+      if (assignment?.status !== 'accepted') {
+        setShowErrorModal(false);
+        setErrorReason('');
+      }
+      if (assignment) return { state: 'active', assignment };
+      void scheduleNextOrder();
+      return { state: 'idle' };
+    })();
+    recoveryInFlightRef.current = operation;
+    try {
+      return await operation;
+    } finally {
+      if (recoveryInFlightRef.current === operation) recoveryInFlightRef.current = null;
+    }
+  };
+
   const restartSessionAfterLifecycleGap = (): Promise<void> => {
     if (visibilityRestartPromiseRef.current) {
       return visibilityRestartPromiseRef.current;
@@ -700,108 +748,20 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     const generation = ++lifecycleGenerationRef.current;
     clearDispatchTimer();
     selectedDispatchRef.current = null;
-    let stoppedOldSession = false;
+    const oldSessionId = sessionIdRef.current;
     const operation = (async () => {
-      if (!isCurrentDispatch(sessionIdRef.current || '', generation) || document.hidden) return;
-
-      const auth = getStoredAuth();
-      const oldSessionId = sessionIdRef.current;
-      if (auth?.userType !== 'employee' || !oldSessionId) return;
-
-      const { data: stopResult, error: stopError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
-        p_user_id: auth.user.id,
-        p_session_token: auth.financialSessionToken,
-        p_tab_id: auth.tabId,
-        p_session_id: oldSessionId,
-      });
-      if (stopError) throw stopError;
-      if (!stopResult?.success) throw new Error('Failed to stop the stale dispatch session.');
-      stoppedOldSession = true;
-
-      if (
-        !componentMountedRef.current ||
-        !sessionActiveRef.current ||
-        document.hidden ||
-        lifecycleGenerationRef.current !== generation ||
-        sessionIdRef.current !== oldSessionId
-      ) {
-        if (
-          componentMountedRef.current &&
-          lifecycleGenerationRef.current === generation &&
-          sessionIdRef.current === oldSessionId
-        ) {
-          stopLocalWorkingState(oldSessionId);
-        }
-        return;
-      }
-
-      const { data: newSession, error: startError } = await supabase.rpc('resume_employee_dispatch_session_secure', {
-        p_user_id: auth.user.id,
-        p_session_token: auth.financialSessionToken,
-        p_tab_id: auth.tabId,
-        p_previous_session_id: oldSessionId,
-      });
-      if (startError) throw startError;
-      if (!newSession?.success || !newSession.session_id || !newSession.started_at) {
-        throw new Error('Failed to restart dispatch session.');
-      }
-
-      if (
-        !componentMountedRef.current ||
-        !sessionActiveRef.current ||
-        document.hidden ||
-        lifecycleGenerationRef.current !== generation ||
-        sessionIdRef.current !== oldSessionId
-      ) {
-        try {
-          const { error: cleanupError } = await supabase.rpc('stop_employee_dispatch_session_secure', {
-            p_user_id: auth.user.id,
-            p_session_token: auth.financialSessionToken,
-            p_tab_id: auth.tabId,
-            p_session_id: newSession.session_id,
-          });
-          if (cleanupError) {
-            console.error('Failed to clean up stale visibility-restart session:', cleanupError);
-          }
-        } catch (cleanupError) {
-          console.error('Failed to clean up stale visibility-restart session:', cleanupError);
-        }
-        return;
-      }
-
-      clearTimeout(dispatchTimerRef.current ?? undefined);
-      dispatchTimerRef.current = null;
-      selectedDispatchRef.current = null;
-      dispatchPausedRef.current = false;
-      setDispatchPause(null);
-      sessionIdRef.current = newSession.session_id;
-      unacceptedCountRef.current = newSession.unaccepted_count;
-      setUnacceptedCount(newSession.unaccepted_count);
-      setSession(previous => ({
-        ...previous,
-        sessionId: newSession.session_id,
-        startedAt: new Date(newSession.started_at),
-      }));
-      void sendHeartbeatRef.current?.();
-      if (!currentOrderRef.current) void scheduleNextOrder();
-      void loadTotalWorkTime().catch(error => console.error('Failed to refresh work time:', error));
+      if (!oldSessionId || !isCurrentDispatch(oldSessionId, generation) || document.hidden) return;
+      const outcome = await recoverDispatchState(oldSessionId, generation);
+      if (outcome.state !== 'stale' && sessionActiveRef.current) void sendHeartbeatRef.current?.();
     })().catch(error => {
-      console.error('Failed to restart work session after lifecycle gap:', error);
-      const currentSessionId = sessionIdRef.current;
-      const isCurrentLifecycle = componentMountedRef.current && lifecycleGenerationRef.current === generation;
-      if (isCurrentLifecycle) {
+      console.error('Failed to recover work session after lifecycle gap:', error);
+      if (oldSessionId && isCurrentDispatch(oldSessionId, generation)) {
         showNotification({
-          type: 'error',
-          title: 'Session Recovery Failed',
-          message: getOrderDispatchErrorMessage(error),
-          duration: 5000,
+          type: 'error', title: 'Session Recovery Failed',
+          message: getOrderDispatchErrorMessage(error), duration: 5000,
         });
-      }
-      if (stoppedOldSession && currentSessionId && isCurrentLifecycle) {
-        stopLocalWorkingState(currentSessionId);
-      } else if (currentSessionId && isCurrentLifecycle && sessionActiveRef.current && !currentOrderRef.current) {
-        dispatchPausedRef.current = false;
-        void scheduleNextOrder();
+        if (currentOrderRef.current?.status === 'accepted') startTimeoutCheckRef.current?.();
+        pauseDispatch('error', getOrderDispatchErrorMessage(error), oldSessionId, generation);
       }
     }).finally(() => {
       if (visibilityRestartPromiseRef.current === operation) {
@@ -875,58 +835,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   };
 
   const checkPendingOrder = async () => {
-    const generation = lifecycleGenerationRef.current;
-    const previousSessionId = sessionIdRef.current;
-    try {
-      const auth = getStoredAuth();
-      if (auth?.userType !== 'employee') return;
-
-      const { data, error } = await supabase.rpc(
-        'recover_employee_dispatch_assignment_secure',
-        {
-          p_user_id: auth.user.id,
-          p_session_token: auth.financialSessionToken,
-          p_tab_id: auth.tabId,
-        },
-      );
-      if (error) throw error;
-      if (!componentMountedRef.current || lifecycleGenerationRef.current !== generation) return;
-      if (!data?.recovered || !data.session_id || !data.started_at) {
-        if (previousSessionId && sessionIdRef.current === previousSessionId) {
-          stopLocalWorkingState(previousSessionId);
-          showNotification({ type: 'error', title: 'Dispatch Session Ended', message: 'Your work session is no longer active. Start again to resume dispatch.', duration: 0 });
-        }
-        return;
-      }
-
-      clearDispatchTimer();
-      selectedDispatchRef.current = null;
-      dispatchPausedRef.current = false;
-      setDispatchPause(null);
-      sessionActiveRef.current = true;
-      sessionIdRef.current = data.session_id;
-      lastActivityRef.current = new Date();
-      const recoveredUnacceptedCount = Number(data.unaccepted_count || 0);
-      unacceptedCountRef.current = recoveredUnacceptedCount;
-      setSession({
-        isWorking: true,
-        sessionId: data.session_id,
-        startedAt: new Date(data.started_at),
-      });
-      setUnacceptedCount(recoveredUnacceptedCount);
-      startHeartbeat();
-      void loadTotalWorkTime();
-
-      if (data.assignment) {
-        setCurrentOrder(data.assignment as DispatchAssignment);
-        setShowOrderDetail(true);
-      } else {
-        void scheduleNextOrder();
-      }
-    } catch (error) {
-      console.error('Failed to recover active assignment:', error);
-      throw error;
-    }
+    await recoverDispatchState(sessionIdRef.current, lifecycleGenerationRef.current);
   };
 
   checkPendingOrderRef.current = checkPendingOrder;
@@ -993,15 +902,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       // Stale pending/accepted orders are reconciled by the database
       // (auto_recover_stale_pending_orders cron); do not compute timeouts
       // against the browser clock here, as clock skew causes false cancels.
-      const finalData: DispatchAssignment[] = (data || []).map(row => {
-        // The generated table type predates snapshot columns in the pool migration.
-        const assignment = row as unknown as DispatchAssignment;
-        return {
-          ...assignment,
-          session_timeout_minutes: assignment.session_timeout_minutes_snapshot,
-          dispatch_orders: assignment.dispatch_orders || { order_content: assignment.order_content_snapshot || '' },
-        };
-      });
+      const finalData: DispatchAssignment[] = (data || []).map(assignment => ({
+        ...assignment,
+        session_timeout_minutes: assignment.session_timeout_minutes_snapshot,
+        dispatch_orders: {
+          id: assignment.dispatch_orders?.id,
+          order_content: assignment.order_content_snapshot ?? assignment.dispatch_orders?.order_content ?? '',
+        },
+      }));
 
       setTodayOrders(finalData);
 
@@ -1558,7 +1466,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     try {
       const auth = getStoredAuth();
       if (auth?.userType !== 'employee') throw new Error('Employee session has expired. Please sign in again.');
-      const { data, error } = await dispatchDb.rpc('prepare_next_dispatch_order_secure', {
+      const { data, error } = await supabase.rpc('prepare_next_dispatch_order_secure', {
         p_user_id: auth.user.id,
         p_session_token: auth.financialSessionToken,
         p_tab_id: auth.tabId,
@@ -1566,7 +1474,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       });
       if (!isCurrentDispatch(sessionId, generation)) return;
       if (error) throw error;
-      const prepared = data as PreparedDispatch | null;
+      const prepared = data;
       if (prepared?.auto_stopped) {
         stopLocalWorkingState(sessionId);
         setShowAutoStopModal(true);
@@ -1606,17 +1514,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       if (auth?.userType !== 'employee') throw new Error('Employee session has expired. Please sign in again.');
 
       // The server's sticky selection is authoritative; legacy group/mode arguments are ignored.
-      const { data, error } = await dispatchDb.rpc('assign_next_dispatch_order_secure', {
+      const { data, error } = await supabase.rpc('assign_next_dispatch_order_secure', {
         p_user_id: auth.user.id,
         p_session_token: auth.financialSessionToken,
         p_tab_id: auth.tabId,
         p_session_id: selection.sessionId,
         p_group_id: null,
-        p_dispatch_mode: null,
       });
       if (!isCurrentDispatch(selection.sessionId, generation) || selectedDispatchRef.current !== selection) return;
       if (error) throw error;
-      const result = data as DispatchAssignmentResult | null;
+      const result = data;
       if (result?.auto_stopped) {
         stopLocalWorkingState(selection.sessionId);
         setShowAutoStopModal(true);
@@ -1710,9 +1617,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         return;
       }
 
-      if (result?.assignment_status === 'pending' || result?.assignment_status === 'accepted') {
+      if (result?.assignment_status === 'accepted') {
+        await recoverDispatchState(currentSessionId, generation);
         return;
       }
+      if (result?.assignment_status === 'pending') return;
 
       if (typeof result?.unaccepted_count === 'number') {
         unacceptedCountRef.current = result.unaccepted_count;
@@ -1858,6 +1767,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
     setIsAccepting(true);
     console.log('✅ Set isAccepting to true');
+    const orderId = currentOrder.id;
+    const acceptSessionId = sessionIdRef.current;
+    const generation = lifecycleGenerationRef.current;
 
     // CRITICAL: Clear 60-second accept timeout IMMEDIATELY to prevent race condition
     // This prevents the timeout from triggering while we're processing the accept
@@ -1871,8 +1783,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     try {
       const auth = getStoredAuth();
-      const currentSessionId = sessionIdRef.current;
-      if (auth?.userType !== 'employee' || !currentSessionId) {
+      if (auth?.userType !== 'employee' || !acceptSessionId || !isCurrentDispatch(acceptSessionId, generation)) {
         throw new Error('Employee work session is unavailable.');
       }
 
@@ -1883,26 +1794,28 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           p_user_id: auth.user.id,
           p_session_token: auth.financialSessionToken,
           p_tab_id: auth.tabId,
-          p_session_id: currentSessionId,
-          p_assignment_id: currentOrder.id,
+          p_session_id: acceptSessionId,
+          p_assignment_id: orderId,
           p_assignment_code: assignmentCode,
         },
       );
 
+      if (!isCurrentDispatch(acceptSessionId, generation) || currentOrderRef.current?.id !== orderId) return;
       if (!acceptError && acceptResult?.reason === 'assignment_code_conflict') {
         assignmentCode = generateAssignmentId();
         const retry = await supabase.rpc('accept_dispatch_assignment_secure', {
           p_user_id: auth.user.id,
           p_session_token: auth.financialSessionToken,
           p_tab_id: auth.tabId,
-          p_session_id: currentSessionId,
-          p_assignment_id: currentOrder.id,
+          p_session_id: acceptSessionId,
+          p_assignment_id: orderId,
           p_assignment_code: assignmentCode,
         });
         acceptResult = retry.data;
         acceptError = retry.error;
       }
 
+      if (!isCurrentDispatch(acceptSessionId, generation) || currentOrderRef.current?.id !== orderId) return;
       if (acceptError) throw acceptError;
 
       if (acceptResult?.reason === 'grab_failed') {
@@ -1920,14 +1833,12 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       }
 
       if (!acceptResult?.success) {
-        if (
-          acceptResult?.reason === 'accept_deadline_reached'
-          || acceptResult?.assignment_status === 'cancelled'
-          || acceptResult?.assignment_status === 'timeout'
-        ) {
-          void handleAcceptTimeoutRef.current?.(currentOrder.id);
+        if (acceptResult?.reason === 'accept_deadline_reached') {
+          void handleAcceptTimeoutRef.current?.(orderId);
+        } else {
+          // already_resolved can mean the first accept succeeded but its response was lost.
+          await recoverDispatchState(acceptSessionId, generation);
         }
-        setIsAccepting(false);
         return;
       }
 
@@ -1959,128 +1870,109 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         void loadTodayOrders().catch(err => console.error('Failed to reload orders:', err));
       }, isMobile ? 200 : 100);
     } catch (error: unknown) {
-      console.error('Failed to accept order:', error);
-      setIsAccepting(false);
-
-      showNotification({
-        type: 'error',
-        title: 'Order Accept Failed',
-        message: `Failed to accept order: ${getOrderDispatchErrorMessage(error)}. Please try again before the acceptance deadline.`,
-        duration: 6000,
-      });
-
-      if (currentOrder.accept_deadline_at) {
-        const remaining = Math.max(0, new Date(currentOrder.accept_deadline_at).getTime() - Date.now());
-        acceptTimeoutRef.current = setTimeout(() => {
-          void handleAcceptTimeoutRef.current?.(currentOrder.id);
-        }, remaining);
+      if (acceptSessionId && isCurrentDispatch(acceptSessionId, generation) && currentOrderRef.current?.id === orderId) {
+        console.error('Failed to confirm order acceptance:', error);
+        try {
+          // The request may have succeeded even when its response failed.
+          await recoverDispatchState(acceptSessionId, generation);
+        } catch (recoveryError) {
+          if (isCurrentDispatch(acceptSessionId, generation) && currentOrderRef.current?.id === orderId) {
+            showNotification({
+              type: 'error', title: 'Order Accept Status Unknown',
+              message: `Could not confirm acceptance: ${getOrderDispatchErrorMessage(recoveryError)}. Please try again before the original deadline.`,
+              duration: 6000,
+            });
+            if (currentOrder.accept_deadline_at) {
+              const remaining = Math.max(0, new Date(currentOrder.accept_deadline_at).getTime() - Date.now());
+              acceptTimeoutRef.current = setTimeout(() => {
+                void handleAcceptTimeoutRef.current?.(orderId);
+              }, remaining);
+            }
+          }
+        }
       }
+    } finally {
+      if (componentMountedRef.current) setIsAccepting(false);
+    }
+  };
+
+  const reconcileUncertainFinish = async (
+    orderId: string, sessionId: string, generation: number, title: string, failure: unknown,
+  ) => {
+    if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== orderId) return;
+    try {
+      const outcome = await recoverDispatchState(sessionId, generation);
+      if (outcome.state === 'active' && componentMountedRef.current) {
+        showNotification({
+          type: 'warning', title,
+          message: `${getOrderDispatchErrorMessage(failure)}. This assignment is still ${outcome.assignment.status}; please try again before its timeout.`,
+          duration: 6000,
+        });
+      }
+    } catch (recoveryError) {
+      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== orderId) return;
+      console.error('Failed to verify assignment after finish request:', recoveryError);
+      showNotification({
+        type: 'error', title,
+        message: `${getOrderDispatchErrorMessage(failure)}. Could not confirm the order status: ${getOrderDispatchErrorMessage(recoveryError)}. The order is still shown; retry or wait for its timeout.`,
+        duration: 0,
+      });
     }
   };
 
   const handleCompleteOrder = async () => {
-    if (!currentOrder) return;
-
-    // Check if order has been submitted for this assignment
-    if (currentOrder.assignment_id && !currentOrder.order_submitted) {
-      // Re-check from DB in case it was submitted while on this page
-      const { data: freshData } = await supabase
-        .from('dispatch_assignments')
-        .select('order_submitted')
-        .eq('id', currentOrder.id)
-        .maybeSingle();
-      if (!freshData?.order_submitted) {
-        setShowOrderNotSubmittedModal(true);
-        return;
-      }
-      setCurrentOrder(prev => prev ? { ...prev, order_submitted: true } : prev);
-    }
-
-    // Prevent duplicate submissions
-    if (isCompleting) {
-      console.log('⚠️ Already processing complete request, ignoring');
-      return;
-    }
+    if (!currentOrder || isCompleting) return;
+    const orderId = currentOrder.id;
+    const sessionId = sessionIdRef.current;
+    const generation = lifecycleGenerationRef.current;
+    if (!sessionId || !isCurrentDispatch(sessionId, generation)) return;
     setIsCompleting(true);
 
     try {
+      if (currentOrder.assignment_id && !currentOrder.order_submitted) {
+        const { data: freshData, error: fetchError } = await supabase
+          .from('dispatch_assignments')
+          .select('order_submitted')
+          .eq('id', orderId)
+          .maybeSingle();
+        if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== orderId) return;
+        if (fetchError) throw fetchError;
+        if (!freshData?.order_submitted) {
+          setShowOrderNotSubmittedModal(true);
+          return;
+        }
+        setCurrentOrder(prev => prev?.id === orderId ? { ...prev, order_submitted: true } : prev);
+      }
+
       const auth = getStoredAuth();
       if (auth?.userType !== 'employee') throw new Error('Employee session has expired.');
-      const { data: updateResult, error } = await supabase.rpc(
-        'finish_dispatch_assignment_secure',
-        {
-          p_user_id: auth.user.id,
-          p_session_token: auth.financialSessionToken,
-          p_tab_id: auth.tabId,
-          p_assignment_id: currentOrder.id,
-          p_status: 'completed',
-          p_remarks: null,
-        },
-      );
-
+      const { data: result, error } = await supabase.rpc('finish_dispatch_assignment_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_assignment_id: orderId,
+        p_status: 'completed',
+        p_remarks: null,
+      });
+      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== orderId) return;
       if (error) throw error;
+      if (!result?.success) throw new Error('Completion was not applied; checking the current assignment status.');
 
-      if (!updateResult?.success) {
-        console.log('⚠️ Order status changed, cannot complete');
-        setCurrentOrder(null);
-        setShowOrderDetail(false);
-        scheduleNextOrder();
-        setIsCompleting(false);
-        return;
-      }
-
-      // Clear all timeouts
-      if (acceptTimeoutRef.current) {
-        clearTimeout(acceptTimeoutRef.current);
-        acceptTimeoutRef.current = null;
-      }
-      if (processTimeoutRef.current) {
-        clearTimeout(processTimeoutRef.current);
-        processTimeoutRef.current = null;
-      }
-
+      if (acceptTimeoutRef.current) clearTimeout(acceptTimeoutRef.current);
+      if (processTimeoutRef.current) clearTimeout(processTimeoutRef.current);
+      currentOrderRef.current = null;
       setCurrentOrder(null);
       setShowOrderDetail(false);
       setHasTimeout(false);
       setShowTimeoutAlert(false);
       updateActivity();
-      loadTodayOrders();
-      scheduleNextOrder();
-      setIsCompleting(false);
+      void loadTodayOrders();
+      void scheduleNextOrder();
     } catch (error: unknown) {
       console.error('Failed to complete order:', error);
-      setIsCompleting(false);
-
-      // Show error notification
-      showNotification({
-        type: 'error',
-        title: 'Order Completion Failed',
-        message: `Failed to complete order: ${getOrderDispatchErrorMessage(error)}. The order has been skipped and the next order will be dispatched.`,
-        duration: 6000
-      });
-
-      // Clear all timeouts to avoid memory leaks
-      if (acceptTimeoutRef.current) {
-        clearTimeout(acceptTimeoutRef.current);
-        acceptTimeoutRef.current = null;
-      }
-      if (processTimeoutRef.current) {
-        clearTimeout(processTimeoutRef.current);
-        processTimeoutRef.current = null;
-      }
-
-      // Clear current order state and continue
-      setCurrentOrder(null);
-      setShowOrderDetail(false);
-      setHasTimeout(false);
-      setShowTimeoutAlert(false);
-
-      // Update activity and reload orders
-      updateActivity();
-      loadTodayOrders();
-
-      // Most important: continue dispatching next order
-      scheduleNextOrder();
+      await reconcileUncertainFinish(orderId, sessionId, generation, 'Order Completion Status Unknown', error);
+    } finally {
+      if (componentMountedRef.current) setIsCompleting(false);
     }
   };
 
@@ -2089,57 +1981,35 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   };
 
   const handleSubmitError = async () => {
-    if (!currentOrder) return;
+    if (!currentOrder || isReporting) return;
     if (!errorReason.trim()) {
       alert('Please provide an error reason');
       return;
     }
-
-    // Prevent duplicate submissions
-    if (isReporting) {
-      console.log('⚠️ Already processing error report, ignoring');
-      return;
-    }
+    const orderId = currentOrder.id;
+    const sessionId = sessionIdRef.current;
+    const generation = lifecycleGenerationRef.current;
+    if (!sessionId || !isCurrentDispatch(sessionId, generation)) return;
     setIsReporting(true);
 
     try {
       const auth = getStoredAuth();
       if (auth?.userType !== 'employee') throw new Error('Employee session has expired.');
-      const { data: updateResult, error } = await supabase.rpc(
-        'finish_dispatch_assignment_secure',
-        {
-          p_user_id: auth.user.id,
-          p_session_token: auth.financialSessionToken,
-          p_tab_id: auth.tabId,
-          p_assignment_id: currentOrder.id,
-          p_status: 'error',
-          p_remarks: errorReason,
-        },
-      );
-
+      const { data: result, error } = await supabase.rpc('finish_dispatch_assignment_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+        p_assignment_id: orderId,
+        p_status: 'error',
+        p_remarks: errorReason,
+      });
+      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== orderId) return;
       if (error) throw error;
+      if (!result?.success) throw new Error('Error report was not applied; checking the current assignment status.');
 
-      if (!updateResult?.success) {
-        console.log('⚠️ Order status changed, cannot report error');
-        setCurrentOrder(null);
-        setShowOrderDetail(false);
-        setShowErrorModal(false);
-        setErrorReason('');
-        scheduleNextOrder();
-        setIsReporting(false);
-        return;
-      }
-
-      // Clear all timeouts
-      if (acceptTimeoutRef.current) {
-        clearTimeout(acceptTimeoutRef.current);
-        acceptTimeoutRef.current = null;
-      }
-      if (processTimeoutRef.current) {
-        clearTimeout(processTimeoutRef.current);
-        processTimeoutRef.current = null;
-      }
-
+      if (acceptTimeoutRef.current) clearTimeout(acceptTimeoutRef.current);
+      if (processTimeoutRef.current) clearTimeout(processTimeoutRef.current);
+      currentOrderRef.current = null;
       setCurrentOrder(null);
       setShowOrderDetail(false);
       setHasTimeout(false);
@@ -2147,45 +2017,13 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       setShowErrorModal(false);
       setErrorReason('');
       updateActivity();
-      loadTodayOrders();
-      scheduleNextOrder();
-      setIsReporting(false);
+      void loadTodayOrders();
+      void scheduleNextOrder();
     } catch (error: unknown) {
       console.error('Failed to submit error report:', error);
-      setIsReporting(false);
-
-      // Show error notification
-      showNotification({
-        type: 'error',
-        title: 'Error Report Failed',
-        message: `Failed to submit error report: ${getOrderDispatchErrorMessage(error)}. The order has been skipped and the next order will be dispatched.`,
-        duration: 6000
-      });
-
-      // Clear all timeouts to avoid memory leaks
-      if (acceptTimeoutRef.current) {
-        clearTimeout(acceptTimeoutRef.current);
-        acceptTimeoutRef.current = null;
-      }
-      if (processTimeoutRef.current) {
-        clearTimeout(processTimeoutRef.current);
-        processTimeoutRef.current = null;
-      }
-
-      // Clear current order state and modal
-      setCurrentOrder(null);
-      setShowOrderDetail(false);
-      setHasTimeout(false);
-      setShowTimeoutAlert(false);
-      setShowErrorModal(false);
-      setErrorReason('');
-
-      // Update activity and reload orders
-      updateActivity();
-      loadTodayOrders();
-
-      // Most important: continue dispatching next order
-      scheduleNextOrder();
+      await reconcileUncertainFinish(orderId, sessionId, generation, 'Error Report Status Unknown', error);
+    } finally {
+      if (componentMountedRef.current) setIsReporting(false);
     }
   };
 
@@ -2955,7 +2793,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                           </div>
                         </div>
                       ) : (
-                        <div className={`text-gray-800 text-xs leading-[1.6] font-medium whitespace-pre-wrap overflow-y-auto pr-1.5 custom-scrollbar ${currentOrder.status === 'accepted' ? 'max-h-none' : 'max-h-[140px]'}`}>
+                        <div className={`text-gray-800 text-xs leading-[1.6] font-medium whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-y-auto pr-1.5 custom-scrollbar ${currentOrder.status === 'accepted' ? 'max-h-none' : 'max-h-[140px]'}`}>
                           {currentOrder.dispatch_orders.order_content}
                         </div>
                       )}
@@ -3075,7 +2913,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
                             </div>
                           </div>
                         ) : (
-                          <div className={`text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap overflow-y-auto pr-2 custom-scrollbar ${currentOrder.status === 'accepted' ? 'max-h-none flex-1' : 'max-h-[180px]'}`}>
+                          <div className={`text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-y-auto pr-2 custom-scrollbar ${currentOrder.status === 'accepted' ? 'max-h-none flex-1' : 'max-h-[180px]'}`}>
                             {currentOrder.dispatch_orders.order_content}
                           </div>
                         )}

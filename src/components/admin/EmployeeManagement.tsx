@@ -57,7 +57,7 @@ const getCreateEmployeeErrorMessage = (
   }
 
   if (/The selected dispatch group is not available\./i.test(message)) {
-    return '新增員工失敗：所選派單分組已停用或不存在，請重新開啟視窗選擇可用分組。';
+    return '新增員工失敗：所選派單分組已封存、停用或不存在，請重新開啟視窗選擇可用分組。';
   }
 
   if (/^(使用者名稱為必填|密碼至少需要 6 個字元|員工 ID 為必填|請先選擇派單分組|所選派單分組已不可用，請重新選擇|派單分組載入中，請稍候再試|無法載入派單分組，請關閉視窗後重試。)$/.test(message)) {
@@ -942,6 +942,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           .from('dispatch_groups')
           .select('id, group_name, is_default')
           .eq('is_active', true)
+          .is('archived_at', null)
           .order('is_default', { ascending: false })
           .order('group_name', { ascending: true });
 
@@ -3854,7 +3855,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   ) : dispatchGroupsError ? (
                     <p role="alert" className="mt-2 text-[11px] text-red-300">{dispatchGroupsError}</p>
                   ) : dispatchGroups.length === 0 ? (
-                    <p className="mt-2 text-[11px] text-amber-200">目前沒有啟用中的派單分組，請先建立或啟用分組。</p>
+                    <p className="mt-2 text-[11px] text-amber-200">目前沒有可用的派單分組，請先建立或啟用未封存的分組。</p>
                   ) : (
                     <p className="mt-2 text-[11px] text-slate-400">建立後會直接加入所選派單分組。</p>
                   )}

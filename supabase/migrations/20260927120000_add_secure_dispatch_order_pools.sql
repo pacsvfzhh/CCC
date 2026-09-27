@@ -219,6 +219,41 @@ REVOKE EXECUTE ON FUNCTION public.assign_next_dispatch_order(uuid, uuid, text)
 REVOKE EXECUTE ON FUNCTION public.batch_delete_dispatch_orders(uuid, integer)
   FROM PUBLIC, anon, authenticated;
 
+DROP TRIGGER IF EXISTS trigger_check_pool_health_on_deactivate ON public.dispatch_group_orders;
+
+CREATE OR REPLACE FUNCTION public.auto_check_pool_health()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+AS $function$
+DECLARE
+  v_group record;
+  v_health json;
+BEGIN
+  FOR v_group IN
+    SELECT DISTINCT new_order.group_id
+    FROM old_dispatch_group_orders AS old_order
+    JOIN new_dispatch_group_orders AS new_order ON new_order.id = old_order.id
+    WHERE old_order.is_active IS TRUE AND new_order.is_active IS FALSE
+  LOOP
+    v_health := public.check_dispatch_pool_health(v_group.group_id);
+    IF v_health->>'health_status' IN ('WARNING', 'CRITICAL') THEN
+      INSERT INTO public.dispatch_system_logs (log_type, event_name, event_data)
+      VALUES ('health_check', 'pool_health_alert', v_health::jsonb);
+    END IF;
+  END LOOP;
+  RETURN NULL;
+END;
+$function$;
+
+CREATE TRIGGER trigger_check_pool_health_on_deactivate
+AFTER UPDATE ON public.dispatch_group_orders
+REFERENCING OLD TABLE AS old_dispatch_group_orders NEW TABLE AS new_dispatch_group_orders
+FOR EACH STATEMENT EXECUTE FUNCTION public.auto_check_pool_health();
+
+REVOKE ALL ON FUNCTION public.auto_check_pool_health() FROM PUBLIC, anon, authenticated;
+
 CREATE FUNCTION public.admin_save_dispatch_group(
   p_admin_session_token uuid, p_group_id uuid, p_changes jsonb
 )
@@ -877,6 +912,7 @@ DECLARE
   v_candidate record;
   v_assignment record;
   v_existing_session record;
+  v_submitted_order record;
   v_session jsonb;
   v_timeout_minutes integer;
 BEGIN
@@ -895,6 +931,7 @@ BEGIN
 
   SELECT assignment.id, assignment.status, assignment.accepted_at,
          assignment.accept_deadline_at, assignment.dispatch_session_id,
+         assignment.assignment_id, assignment.order_submitted,
          COALESCE(assignment.session_timeout_minutes_snapshot,
                   dispatch_group.session_timeout_minutes, 10) AS session_timeout_minutes
   INTO v_candidate
@@ -949,16 +986,66 @@ BEGIN
   END IF;
 
   v_timeout_minutes := GREATEST(COALESCE(v_candidate.session_timeout_minutes, 10), 1);
-  IF v_candidate.status = 'accepted'
-     AND (v_candidate.accepted_at IS NULL OR
-          v_candidate.accepted_at + make_interval(mins => v_timeout_minutes) <= now()) THEN
-    UPDATE public.dispatch_assignments
-    SET status = 'timeout', completed_at = clock_timestamp(),
-        remarks = 'Auto-timeout: accepted assignment expired before recovery'
-    WHERE id = v_candidate.id AND user_id = p_user_id AND status = 'accepted';
-    PERFORM public.stop_employee_dispatch_session_secure(
-      p_user_id, p_session_token, p_tab_id, NULL);
-    RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
+  IF v_candidate.status = 'accepted' THEN
+    SELECT submitted_order.id, submitted_order.status,
+           submitted_order.created_at, submitted_order.processed_at
+    INTO v_submitted_order
+    FROM public.orders AS submitted_order
+    WHERE submitted_order.assignment_id = v_candidate.assignment_id
+    ORDER BY CASE WHEN submitted_order.status IN ('success', 'failure', 'error') THEN 0 ELSE 1 END,
+             submitted_order.created_at DESC NULLS LAST, submitted_order.id DESC
+    LIMIT 1;
+
+    IF v_submitted_order.status IN ('success', 'failure', 'error') THEN
+      UPDATE public.dispatch_assignments
+      SET status = CASE WHEN v_submitted_order.status = 'success' THEN 'completed' ELSE 'error' END,
+          completed_at = COALESCE(v_submitted_order.processed_at, now()),
+          remarks = CASE WHEN v_submitted_order.status = 'success'
+                         THEN 'Auto-completed from processed order result'
+                         ELSE 'Auto-marked error from processed order result' END
+      WHERE id = v_candidate.id AND user_id = p_user_id AND status = 'accepted';
+      PERFORM public.stop_employee_dispatch_session_secure(
+        p_user_id, p_session_token, p_tab_id, NULL);
+      RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
+    ELSIF v_candidate.order_submitted = true OR v_submitted_order.id IS NOT NULL THEN
+      IF COALESCE(v_submitted_order.created_at, v_candidate.accepted_at)
+         < now() - interval '30 minutes' THEN
+        UPDATE public.dispatch_assignments
+        SET status = 'timeout', completed_at = clock_timestamp(),
+            remarks = 'Auto-timeout: submitted order did not produce a final result within 30 minutes'
+        WHERE id = v_candidate.id AND user_id = p_user_id AND status = 'accepted'
+          AND (order_submitted = true OR EXISTS (
+            SELECT 1 FROM public.orders AS submitted_order
+            WHERE submitted_order.assignment_id = v_candidate.assignment_id
+          ))
+          AND NOT EXISTS (
+            SELECT 1 FROM public.orders AS submitted_order
+            WHERE submitted_order.assignment_id = v_candidate.assignment_id
+              AND submitted_order.status IN ('success', 'failure', 'error')
+          );
+        IF FOUND THEN
+          PERFORM public.stop_employee_dispatch_session_secure(
+            p_user_id, p_session_token, p_tab_id, NULL);
+          RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
+        END IF;
+      END IF;
+    ELSIF v_candidate.accepted_at IS NULL OR
+          v_candidate.accepted_at + make_interval(mins => v_timeout_minutes) <= now() THEN
+      UPDATE public.dispatch_assignments
+      SET status = 'timeout', completed_at = clock_timestamp(),
+          remarks = 'Auto-timeout: accepted assignment expired before recovery'
+      WHERE id = v_candidate.id AND user_id = p_user_id AND status = 'accepted'
+        AND order_submitted = false
+        AND NOT EXISTS (
+          SELECT 1 FROM public.orders AS submitted_order
+          WHERE submitted_order.assignment_id = v_candidate.assignment_id
+        );
+      IF FOUND THEN
+        PERFORM public.stop_employee_dispatch_session_secure(
+          p_user_id, p_session_token, p_tab_id, NULL);
+        RETURN jsonb_build_object('success', true, 'recovered', false, 'assignment', NULL);
+      END IF;
+    END IF;
   END IF;
 
   IF v_candidate.dispatch_session_id IS NOT NULL THEN
@@ -983,10 +1070,31 @@ BEGIN
     ON dispatch_group.id = COALESCE(assignment.group_id, dispatch_order.group_id)
   WHERE assignment.id = v_candidate.id AND assignment.user_id = p_user_id
     AND ((assignment.status = 'pending' AND assignment.accept_deadline_at > now())
-         OR (assignment.status = 'accepted' AND
-             assignment.accepted_at + make_interval(mins => GREATEST(
-               COALESCE(assignment.session_timeout_minutes_snapshot,
-                        dispatch_group.session_timeout_minutes, 10), 1)) > now()))
+         OR (assignment.status = 'accepted'
+             AND NOT EXISTS (
+               SELECT 1 FROM public.orders AS submitted_order
+               WHERE submitted_order.assignment_id = assignment.assignment_id
+                 AND submitted_order.status IN ('success', 'failure', 'error')
+             )
+             AND (
+               (assignment.order_submitted = false
+                AND NOT EXISTS (
+                  SELECT 1 FROM public.orders AS submitted_order
+                  WHERE submitted_order.assignment_id = assignment.assignment_id
+                )
+                AND assignment.accepted_at + make_interval(mins => GREATEST(
+                  COALESCE(assignment.session_timeout_minutes_snapshot,
+                           dispatch_group.session_timeout_minutes, 10), 1)) > now())
+               OR ((assignment.order_submitted = true OR EXISTS (
+                      SELECT 1 FROM public.orders AS submitted_order
+                      WHERE submitted_order.assignment_id = assignment.assignment_id
+                    ))
+                   AND COALESCE((
+                     SELECT MAX(submitted_order.created_at)
+                     FROM public.orders AS submitted_order
+                     WHERE submitted_order.assignment_id = assignment.assignment_id
+                   ), assignment.accepted_at) >= now() - interval '30 minutes')
+             )))
   FOR UPDATE OF assignment;
   IF v_assignment.id IS NULL THEN
     PERFORM public.stop_employee_dispatch_session_secure(
@@ -1110,7 +1218,7 @@ DECLARE
   v_decision text := $decision$
     -- The assignment code is unique, so a submitted order has at most one
     -- immutable dispatch outcome snapshot. Non-dispatch orders retain the
-    -- historic group-then-admin precedence.
+    -- existing admin configuration precedence.
     v_success_rate := LEAST(GREATEST(COALESCE(
       (SELECT assignment.dispatch_success_rate_snapshot::numeric / 100
        FROM public.orders AS submitted_order
@@ -1123,14 +1231,11 @@ DECLARE
        JOIN public.dispatch_assignments AS assignment
          ON assignment.assignment_id = submitted_order.assignment_id
         AND assignment.user_id = submitted_order.user_id
-       JOIN public.dispatch_groups AS dispatch_group ON dispatch_group.id = assignment.group_id
+       LEFT JOIN public.dispatch_group_orders AS dispatch_order
+         ON dispatch_order.id = assignment.dispatch_order_id
+       JOIN public.dispatch_groups AS dispatch_group
+         ON dispatch_group.id = COALESCE(assignment.group_id, dispatch_order.group_id)
        WHERE submitted_order.id = v_order.id),
-      (SELECT dispatch_group.dispatch_success_rate::numeric / 100
-       FROM public.dispatch_group_members AS member
-       JOIN public.dispatch_groups AS dispatch_group ON dispatch_group.id = member.group_id
-       WHERE member.user_id = v_order.user_id
-         AND dispatch_group.is_active AND dispatch_group.archived_at IS NULL
-       LIMIT 1),
       (SELECT config_value::numeric FROM public.admin_configs
        WHERE admin_id = (SELECT employee.created_by FROM public.users AS employee
                          WHERE employee.id = v_order.user_id)

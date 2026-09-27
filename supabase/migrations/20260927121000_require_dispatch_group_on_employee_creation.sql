@@ -53,11 +53,12 @@ BEGIN
     RAISE EXCEPTION 'A dispatch group must be selected.';
   END IF;
 
-  -- Keep the group active through the transaction, including the membership insert.
+  -- Keep the group active and unarchived through the transaction, including the membership insert.
   PERFORM 1
   FROM public.dispatch_groups AS dispatch_group
   WHERE dispatch_group.id = p_dispatch_group_id
     AND dispatch_group.is_active = true
+    AND dispatch_group.archived_at IS NULL
   FOR SHARE;
 
   IF NOT FOUND THEN
