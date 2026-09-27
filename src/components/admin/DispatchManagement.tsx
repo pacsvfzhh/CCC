@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   CheckCircle,
+  ChevronDown,
   Edit2,
   FolderPlus,
   Layers,
@@ -81,28 +82,7 @@ const poolSelectionOptions = [
   },
 ] as const;
 
-const withdrawalModeOptions = [
-  {
-    value: 'OR',
-    activeClass: 'border-amber-200 bg-amber-600 text-white ring-2 ring-amber-200 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-amber-950/60',
-    inactiveClass: 'border-slate-700/60 bg-slate-950/30 text-amber-200/60 hover:border-amber-400/40 hover:bg-amber-500/10',
-  },
-  {
-    value: 'AND',
-    activeClass: 'border-violet-200 bg-violet-600 text-white ring-2 ring-violet-200 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-violet-950/60',
-    inactiveClass: 'border-slate-700/60 bg-slate-950/30 text-violet-200/60 hover:border-violet-400/40 hover:bg-violet-500/10',
-  },
-  {
-    value: 'amount_only',
-    activeClass: 'border-emerald-200 bg-emerald-600 text-white ring-2 ring-emerald-200 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-emerald-950/60',
-    inactiveClass: 'border-slate-700/60 bg-slate-950/30 text-emerald-200/60 hover:border-emerald-400/40 hover:bg-emerald-500/10',
-  },
-  {
-    value: 'days_only',
-    activeClass: 'border-cyan-200 bg-cyan-600 text-white ring-2 ring-cyan-200 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-cyan-950/60',
-    inactiveClass: 'border-slate-700/60 bg-slate-950/30 text-cyan-200/60 hover:border-cyan-400/40 hover:bg-cyan-500/10',
-  },
-] as const;
+const withdrawalModeOptions = ['OR', 'AND', 'amount_only', 'days_only'] as const;
 
 interface DispatchPool {
   id: string;
@@ -1450,21 +1430,20 @@ export default function DispatchManagement() {
                         <span className="mt-1 block text-xs font-normal leading-relaxed text-amber-200/90">按所有狀態的訂單筆數計算。</span>
                       </label>
                     </div>
-                    <p className="text-sm font-medium text-amber-100">提款條件組合</p>
-                    <div role="group" aria-label="提款條件組合" className="grid grid-cols-2 gap-2">
-                      {withdrawalModeOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          aria-pressed={groupDraft.withdrawal_condition_mode === option.value}
-                          disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
-                          onClick={() => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: option.value })}
-                          className={`flex h-12 min-w-0 items-center justify-between gap-2 rounded-xl border px-2 py-1 text-left text-sm font-semibold leading-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 ${groupDraft.withdrawal_condition_mode === option.value ? option.activeClass : option.inactiveClass}`}
-                        >
-                          <span>{withdrawalModeLabels[option.value]}</span>
-                          {groupDraft.withdrawal_condition_mode === option.value && <CheckCircle className="h-4 w-4 shrink-0" />}
-                        </button>
-                      ))}
+                    <label htmlFor="edit-withdrawal-condition" className="block text-sm font-medium text-amber-100">提款條件組合</label>
+                    <p id="edit-withdrawal-condition-hint" className="text-xs text-amber-200/80">點擊下方選單，選擇此分組的提款條件。</p>
+                    <div className="relative">
+                      <select
+                        id="edit-withdrawal-condition"
+                        aria-describedby="edit-withdrawal-condition-hint"
+                        className="withdrawal-condition-select h-12 w-full appearance-none rounded-xl border border-amber-300/40 bg-gradient-to-r from-slate-800 via-slate-800 to-amber-950/70 px-4 pr-12 text-sm font-semibold text-amber-50 shadow-[0_8px_24px_rgba(120,53,15,0.18)] outline-none transition-colors hover:border-amber-300/75 hover:from-slate-700 focus:border-amber-300 focus:ring-2 focus:ring-amber-400/35 disabled:cursor-not-allowed disabled:opacity-55 [&>option]:bg-slate-800 [&>option]:text-slate-100"
+                        value={groupDraft.withdrawal_condition_mode}
+                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: event.target.value as DispatchGroup['withdrawal_condition_mode'] })}
+                      >
+                        {withdrawalModeOptions.map((mode) => <option key={mode} value={mode}>{withdrawalModeLabels[mode]}</option>)}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-amber-200" aria-hidden="true" />
                     </div>
                         </section>
                       </div>
@@ -2337,21 +2316,20 @@ export default function DispatchManagement() {
                     </label>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-amber-100">提款條件組合</p>
-                    <div role="group" aria-label="提款條件組合" className="grid grid-cols-2 gap-2">
-                      {withdrawalModeOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          aria-pressed={groupDraft.withdrawal_condition_mode === option.value}
-                          disabled={busy}
-                          onClick={() => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: option.value })}
-                          className={`flex h-12 min-w-0 items-center justify-between gap-2 rounded-xl border px-2 py-1 text-left text-sm font-semibold leading-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 ${groupDraft.withdrawal_condition_mode === option.value ? option.activeClass : option.inactiveClass}`}
-                        >
-                          <span>{withdrawalModeLabels[option.value]}</span>
-                          {groupDraft.withdrawal_condition_mode === option.value && <CheckCircle className="h-4 w-4 shrink-0" />}
-                        </button>
-                      ))}
+                    <label htmlFor="create-withdrawal-condition" className="block text-sm font-medium text-amber-100">提款條件組合</label>
+                    <p id="create-withdrawal-condition-hint" className="text-xs text-amber-200/80">點擊下方選單，選擇此分組的提款條件。</p>
+                    <div className="relative">
+                      <select
+                        id="create-withdrawal-condition"
+                        aria-describedby="create-withdrawal-condition-hint"
+                        className="withdrawal-condition-select h-12 w-full appearance-none rounded-xl border border-amber-300/40 bg-gradient-to-r from-slate-800 via-slate-800 to-amber-950/70 px-4 pr-12 text-sm font-semibold text-amber-50 shadow-[0_8px_24px_rgba(120,53,15,0.18)] outline-none transition-colors hover:border-amber-300/75 hover:from-slate-700 focus:border-amber-300 focus:ring-2 focus:ring-amber-400/35 disabled:cursor-not-allowed disabled:opacity-55 [&>option]:bg-slate-800 [&>option]:text-slate-100"
+                        value={groupDraft.withdrawal_condition_mode}
+                        disabled={busy}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: event.target.value as DispatchGroup['withdrawal_condition_mode'] })}
+                      >
+                        {withdrawalModeOptions.map((mode) => <option key={mode} value={mode}>{withdrawalModeLabels[mode]}</option>)}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-amber-200" aria-hidden="true" />
                     </div>
                   </div>
                 </div>
