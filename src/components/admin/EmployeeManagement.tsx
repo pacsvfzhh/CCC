@@ -52,7 +52,15 @@ const getCreateEmployeeErrorMessage = (
     return '新增員工失敗：輸入的帳號資料已存在，請更換使用者名稱或員工 ID 後再試。\n錯誤代碼：23505（資料重複）';
   }
 
-  if (/^(使用者名稱為必填|密碼至少需要 6 個字元|員工 ID 為必填)$/.test(message)) {
+  if (/A dispatch group must be selected\./i.test(message)) {
+    return '新增員工失敗：請先選擇派單分組。';
+  }
+
+  if (/The selected dispatch group is not available\./i.test(message)) {
+    return '新增員工失敗：所選派單分組已停用或不存在，請重新開啟視窗選擇可用分組。';
+  }
+
+  if (/^(使用者名稱為必填|密碼至少需要 6 個字元|員工 ID 為必填|請先選擇派單分組|所選派單分組已不可用，請重新選擇|派單分組載入中，請稍候再試|無法載入派單分組，請關閉視窗後重試。)$/.test(message)) {
     return message;
   }
 
@@ -223,6 +231,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [dispatchGroups, setDispatchGroups] = useState<Array<{ id: string; group_name: string; is_default: boolean }>>([]);
+  const [dispatchGroupsLoading, setDispatchGroupsLoading] = useState(false);
+  const [dispatchGroupsError, setDispatchGroupsError] = useState<string | null>(null);
   const [automationPlans, setAutomationPlans] = useState<NotificationAutomationPlan[]>([]);
   const [automationAssignmentsByEmployee, setAutomationAssignmentsByEmployee] = useState<Map<string, NotificationAutomationPlanAssignment>>(new Map());
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithAdmin | null>(null);
@@ -269,6 +280,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     password: '',
     employeeId: '',
     remarks: '',
+    dispatchGroupId: '',
     automationPlanId: '',
   });
   const [selectedAdminForCreate, setSelectedAdminForCreate] = useState<string | null>(null);
@@ -899,7 +911,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   };
 
   const openCreateEmployeeForm = (targetAdminId: string) => {
-    setFormData(prev => ({ ...prev, automationPlanId: '' }));
+    setFormData(prev => ({ ...prev, dispatchGroupId: '', automationPlanId: '' }));
+    setDispatchGroups([]);
+    setDispatchGroupsError(null);
+    setDispatchGroupsLoading(true);
     setCreateError(null);
     setCreatePlanMenuOpen(false);
     setCreatePlanMenuPosition(null);
@@ -913,9 +928,38 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setCreateError(null);
     setCreatePlanMenuOpen(false);
     setCreatePlanMenuPosition(null);
-    setFormData({ username: '', password: '', employeeId: '', remarks: '', automationPlanId: '' });
+    setFormData({ username: '', password: '', employeeId: '', remarks: '', dispatchGroupId: '', automationPlanId: '' });
     setSelectedAdminForCreate(null);
   };
+
+  useEffect(() => {
+    if (!showCreateForm) return;
+
+    let cancelled = false;
+    const loadDispatchGroups = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('dispatch_groups')
+          .select('id, group_name, is_default')
+          .eq('is_active', true)
+          .order('is_default', { ascending: false })
+          .order('group_name', { ascending: true });
+
+        if (error) throw error;
+        if (!cancelled) setDispatchGroups(data || []);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error loading dispatch groups:', formatSupabaseError(error));
+          setDispatchGroupsError('無法載入派單分組，請關閉視窗後重試。');
+        }
+      } finally {
+        if (!cancelled) setDispatchGroupsLoading(false);
+      }
+    };
+
+    void loadDispatchGroups();
+    return () => { cancelled = true; };
+  }, [showCreateForm]);
 
   const toggleCreatePlanMenu = (optionCount: number) => {
     if (createPlanMenuOpen) {
@@ -1183,12 +1227,19 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       if (!formData.username.trim()) throw new Error('使用者名稱為必填');
       if (formData.password.length < 6) throw new Error('密碼至少需要 6 個字元');
       if (!formData.employeeId.trim()) throw new Error('員工 ID 為必填');
+      if (dispatchGroupsLoading || dispatchGroupsError) {
+        throw new Error(dispatchGroupsError || '派單分組載入中，請稍候再試');
+      }
+      if (!formData.dispatchGroupId) throw new Error('請先選擇派單分組');
+      if (!dispatchGroups.some(group => group.id === formData.dispatchGroupId)) {
+        throw new Error('所選派單分組已不可用，請重新選擇');
+      }
 
       const createdBy = admin.role === 'secondary_admin'
         ? admin.id
         : (selectedAdminForCreate || admin.id);
 
-      const { data: result, error } = await supabase.rpc('admin_create_employee_account_with_automation_plan', {
+      const createArgs = {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_username: formData.username.trim(),
         p_password: formData.password,
@@ -1196,12 +1247,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         p_created_by: createdBy,
         p_remarks: formData.remarks.trim(),
         p_automation_plan_id: formData.automationPlanId || null,
-      });
+        p_dispatch_group_id: formData.dispatchGroupId,
+      };
+      const { data: result, error } = await supabase.rpc('admin_create_employee_account_with_automation_plan', createArgs);
 
       if (error) throw error;
       if (!result?.success) throw new Error(result?.error || '建立員工失敗');
 
-      setFormData({ username: '', password: '', employeeId: '', remarks: '', automationPlanId: '' });
+      setFormData({ username: '', password: '', employeeId: '', remarks: '', dispatchGroupId: '', automationPlanId: '' });
       setShowCreateForm(false);
       setCreateError(null);
       setSelectedAdminForCreate(null);
@@ -3776,10 +3829,41 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               </div>
             </div>
 
+              <div className="space-y-4">
+                <div className={`rounded-2xl border p-4 shadow-inner ${isSuperGroup ? 'border-amber-300/20 bg-gradient-to-br from-amber-950/25 to-slate-950/55' : 'border-cyan-300/20 bg-gradient-to-br from-cyan-950/25 to-slate-950/55'}`}>
+                  <label htmlFor={`create-dispatch-group-${targetAdminId}`} className={`mb-2 block text-[11px] font-semibold uppercase tracking-wide ${isSuperGroup ? 'text-yellow-100/75' : 'text-blue-100/75'}`}>
+                    02 · 派單分組 <span className="font-normal normal-case tracking-normal text-slate-400">（必填）</span>
+                  </label>
+                  <select
+                    id={`create-dispatch-group-${targetAdminId}`}
+                    value={formData.dispatchGroupId}
+                    onChange={(event) => setFormData(prev => ({ ...prev, dispatchGroupId: event.target.value }))}
+                    disabled={creating || dispatchGroupsLoading || Boolean(dispatchGroupsError) || dispatchGroups.length === 0}
+                    required
+                    className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-colors ${fieldFocusClasses} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 disabled:opacity-100`}
+                  >
+                    <option value="">{dispatchGroupsLoading ? '載入派單分組中…' : '請選擇派單分組'}</option>
+                    {dispatchGroups.map(group => (
+                      <option key={group.id} value={group.id}>
+                        {group.group_name}{group.is_default ? '（預設分組）' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {dispatchGroupsLoading ? (
+                    <p className="mt-2 text-[11px] text-slate-400">正在載入可用的派單分組…</p>
+                  ) : dispatchGroupsError ? (
+                    <p role="alert" className="mt-2 text-[11px] text-red-300">{dispatchGroupsError}</p>
+                  ) : dispatchGroups.length === 0 ? (
+                    <p className="mt-2 text-[11px] text-amber-200">目前沒有啟用中的派單分組，請先建立或啟用分組。</p>
+                  ) : (
+                    <p className="mt-2 text-[11px] text-slate-400">建立後會直接加入所選派單分組。</p>
+                  )}
+                </div>
+
               <div className={`rounded-2xl border p-4 shadow-inner ${isSuperGroup ? 'border-amber-300/20 bg-gradient-to-br from-amber-950/25 to-slate-950/55' : 'border-cyan-300/20 bg-gradient-to-br from-cyan-950/25 to-slate-950/55'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${isSuperGroup ? 'text-amber-300/80' : 'text-cyan-300/80'}`}>02 · 自動化通知方案</p>
+                  <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${isSuperGroup ? 'text-amber-300/80' : 'text-cyan-300/80'}`}>03 · 自動化通知方案</p>
                   <p className="mt-1 text-xs leading-5 text-slate-400">員工建立後會直接加入所選方案，立即套用方案內的通知任務。</p>
                 </div>
                 <Bell className={`mt-0.5 h-4 w-4 shrink-0 ${isSuperGroup ? 'text-yellow-300' : 'text-cyan-300'}`} />
@@ -3822,6 +3906,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 <p className="mt-4 rounded-xl border border-dashed border-slate-600/60 bg-slate-950/30 px-3 py-3 text-[11px] text-slate-500">此群組目前沒有可用的自動化通知方案。</p>
               )}
               </div>
+              </div>
             </div>
 
             <div className="mt-4 flex flex-col-reverse items-stretch justify-between gap-3 border-t border-slate-700/60 pt-4 sm:flex-row sm:items-center">
@@ -3830,7 +3915,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 <button type="button" onClick={closeCreateEmployeeForm} disabled={creating} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-all hover:border-slate-500 hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
                   取消
                 </button>
-                <button type="submit" disabled={creating || !formData.username.trim() || !formData.password || !formData.employeeId.trim()} className={`inline-flex min-w-[132px] items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-40 ${isSuperGroup ? 'border-amber-300/60 bg-gradient-to-r from-amber-700 to-yellow-600 shadow-amber-950/40 hover:from-amber-600 hover:to-yellow-500' : 'border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 shadow-blue-950/50 hover:from-blue-500 hover:to-cyan-500'}`}>
+                <button type="submit" disabled={creating || !formData.username.trim() || !formData.password || !formData.employeeId.trim() || dispatchGroupsLoading || Boolean(dispatchGroupsError) || !dispatchGroups.some(group => group.id === formData.dispatchGroupId)} className={`inline-flex min-w-[132px] items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-40 ${isSuperGroup ? 'border-amber-300/60 bg-gradient-to-r from-amber-700 to-yellow-600 shadow-amber-950/40 hover:from-amber-600 hover:to-yellow-500' : 'border-cyan-300/50 bg-gradient-to-r from-blue-600 to-cyan-600 shadow-blue-950/50 hover:from-blue-500 hover:to-cyan-500'}`}>
                   {creating ? (<><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />建立中……</>) : (<><UserPlus className="h-4 w-4" />建立員工</>)}
                 </button>
               </div>
