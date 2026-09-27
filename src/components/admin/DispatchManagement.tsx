@@ -146,7 +146,6 @@ export default function DispatchManagement() {
   >([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
-  const [modeDraft, setModeDraft] = useState<'base' | 'random'>('base');
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const [memberPanelOpen, setMemberPanelOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
@@ -176,7 +175,7 @@ export default function DispatchManagement() {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
-  const [groupForm, setGroupForm] = useState<'create' | 'edit' | null>(null);
+  const [groupForm, setGroupForm] = useState<'create' | null>(null);
   const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
   const [poolForm, setPoolForm] = useState<'create' | 'edit' | null>(null);
   const [poolDraft, setPoolDraft] = useState<PoolDraft>(emptyPoolDraft);
@@ -207,6 +206,12 @@ export default function DispatchManagement() {
 
   const selectedGroup =
     groups.find((group) => group.id === selectedGroupId) ?? null;
+  const groupDraftChanged = !!selectedGroup && (
+    groupDraft.group_name.trim() !== groupDisplayName(selectedGroup) ||
+    groupDraft.description !== (selectedGroup.description ? groupDisplayDescription(selectedGroup) : '') ||
+    groupDraft.is_active !== selectedGroup.is_active ||
+    groupDraft.pool_selection_mode !== selectedGroup.pool_selection_mode
+  );
   const groupPools = pools.filter((pool) => pool.group_id === selectedGroupId);
   const displayGroupById = (id: string | null) => {
     const group = groups.find((item) => item.id === id);
@@ -462,10 +467,6 @@ export default function DispatchManagement() {
   }, []);
 
   useEffect(() => {
-    setModeDraft(selectedGroup?.pool_selection_mode ?? 'base');
-  }, [selectedGroup?.id, selectedGroup?.pool_selection_mode]);
-
-  useEffect(() => {
     if (ordersOpen && selectedPool?.id) {
       void loadOrdersRef.current(selectedPool.id, 1, orderFilter);
     } else {
@@ -502,6 +503,17 @@ export default function DispatchManagement() {
     setEmployeeAdminFilter('all');
   };
 
+  const openGroupSettings = (group: DispatchGroup) => {
+    switchGroup(group.id);
+    setGroupDraft({
+      group_name: groupDisplayName(group),
+      description: group.description ? groupDisplayDescription(group) : '',
+      is_active: group.is_active,
+      pool_selection_mode: group.pool_selection_mode,
+    });
+    setGroupSettingsOpen(true);
+  };
+
   const openOrders = (poolId: string) => {
     setSelectedPoolId(poolId);
     setOrdersPoolId(null);
@@ -514,9 +526,9 @@ export default function DispatchManagement() {
     setOrdersOpen(true);
   };
 
-  const saveGroup = async () => {
-    if (!isSuperAdmin || !groupForm) return;
-    if (groupForm === 'edit' && !selectedGroup)
+  const saveGroup = async (form: 'create' | 'edit' = 'create') => {
+    if (!isSuperAdmin) return;
+    if (form === 'edit' && !selectedGroup)
       return notify(
         'error',
         '目前未選取分組，請重新整理後再試。',
@@ -529,15 +541,15 @@ export default function DispatchManagement() {
         'admin_save_dispatch_group',
         {
           p_admin_session_token: getAdminFinancialSessionToken(),
-          p_group_id: groupForm === 'edit' ? (selectedGroup?.id ?? null) : null,
+          p_group_id: form === 'edit' ? (selectedGroup?.id ?? null) : null,
           p_changes: {
             group_name:
-              groupForm === 'edit' && selectedGroup &&
+              form === 'edit' && selectedGroup &&
               groupDraft.group_name.trim() === groupDisplayName(selectedGroup)
                 ? selectedGroup.group_name
                 : groupDraft.group_name.trim(),
             description:
-              groupForm === 'edit' && selectedGroup &&
+              form === 'edit' && selectedGroup &&
               groupDraft.description === (selectedGroup.description ? groupDisplayDescription(selectedGroup) : '')
                 ? selectedGroup.description
                 : groupDraft.description,
@@ -548,42 +560,18 @@ export default function DispatchManagement() {
       );
       if (error) throw error;
       if (!data?.group?.id) throw new Error('儲存分組後未收到分組資料。');
-      setGroupForm(null);
+      if (form === 'create') setGroupForm(null);
       setSelectedGroupId(data.group.id);
-      setSelectedPoolId(null);
+      if (form === 'create') setSelectedPoolId(null);
       if (await loadWorkspace())
         notify(
           'success',
-          groupForm === 'create'
+          form === 'create'
             ? '已建立分組及專屬基本池。'
             : '分組已儲存。',
         );
     } catch (error) {
       notify('error', '儲存分組失敗：' + formatSupabaseError(error));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const saveSelectionMode = async () => {
-    if (!isSuperAdmin || !selectedGroup || selectedGroup.archived_at) return;
-    setBusy(true);
-    try {
-      const { error } = await supabase.rpc('admin_save_dispatch_group', {
-        p_admin_session_token: getAdminFinancialSessionToken(),
-        p_group_id: selectedGroup.id,
-        p_changes: { pool_selection_mode: modeDraft },
-      });
-      if (error) throw error;
-      if (await loadWorkspace()) {
-        setGroupSettingsOpen(false);
-        notify('success', '訂單池選擇模式已儲存。');
-      }
-    } catch (error) {
-      notify(
-        'error',
-        '儲存訂單池選擇模式失敗：' + formatSupabaseError(error),
-      );
     } finally {
       setBusy(false);
     }
@@ -1049,7 +1037,7 @@ export default function DispatchManagement() {
                       </span>
                     </button>
                     <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-white/15 pt-2">
-                      <button type="button" className="inline-flex min-w-0 items-center justify-center gap-1 rounded-md border border-cyan-400/45 bg-cyan-500/20 px-1 py-1 text-[11px] font-medium text-cyan-50 hover:bg-cyan-500/30" onClick={() => { switchGroup(group.id); setModeDraft(group.pool_selection_mode); setGroupSettingsOpen(true); }}><Settings className="h-3 w-3 shrink-0" />分組設定</button>
+                      <button type="button" className="inline-flex min-w-0 items-center justify-center gap-1 rounded-md border border-cyan-400/45 bg-cyan-500/20 px-1 py-1 text-[11px] font-medium text-cyan-50 hover:bg-cyan-500/30" onClick={() => openGroupSettings(group)}><Settings className="h-3 w-3 shrink-0" />分組設定</button>
                       <button type="button" className="inline-flex min-w-0 items-center justify-center gap-1 rounded-md border border-emerald-400/45 bg-emerald-500/20 px-1 py-1 text-[11px] font-medium text-emerald-50 hover:bg-emerald-500/30" onClick={() => { switchGroup(group.id); setMemberPanelOpen(true); }}><Users className="h-3 w-3 shrink-0" />成員管理</button>
                     </div>
                   </article>
@@ -1073,37 +1061,35 @@ export default function DispatchManagement() {
                   <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
               {selectedGroup ? (
                 <>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="break-words text-lg font-semibold text-white">
-                        {groupDisplayName(selectedGroup)}
-                      </h3>
-                      <p className="mt-1 break-words text-xs text-slate-400">
-                        {groupDisplayDescription(selectedGroup)} ·{' '}
-                        {selectedGroup.member_count} 位成員
-                      </p>
-                    </div>
-                    {isSuperAdmin && (
-                      <button
-                        className={secondaryButton}
-                        disabled={busy || !!selectedGroup.archived_at}
-                        onClick={() => {
-                          setGroupDraft({
-                            group_name: groupDisplayName(selectedGroup),
-                            description: selectedGroup.description
-                              ? groupDisplayDescription(selectedGroup)
-                              : '',
-                            is_active: selectedGroup.is_active,
-                            pool_selection_mode:
-                              selectedGroup.pool_selection_mode,
-                          });
-                          setGroupForm('edit');
-                        }}
-                      >
-                        <Settings className="mr-1 inline h-4 w-4" />
-                        編輯分組
-                      </button>
-                    )}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-slate-200">
+                      分組名稱
+                      <input
+                        className={`${inputClass} mt-1`}
+                        value={groupDraft.group_name}
+                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, group_name: event.target.value })}
+                      />
+                    </label>
+                    <label className="block text-sm font-medium text-slate-200">
+                      說明
+                      <textarea
+                        className={`${inputClass} mt-1 min-h-20`}
+                        value={groupDraft.description}
+                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, description: event.target.value })}
+                      />
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-200">
+                      <input
+                        type="checkbox"
+                        className="accent-cyan-500"
+                        checked={groupDraft.is_active}
+                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, is_active: event.target.checked })}
+                      />
+                      啟用分組
+                    </label>
                   </div>
                   <div className="mt-4 rounded-lg border border-slate-700 bg-slate-900/40 p-3">
                     <label
@@ -1119,31 +1105,17 @@ export default function DispatchManagement() {
                       <select
                         id="pool-selection-mode"
                         className={`${inputClass} flex-1`}
-                        value={modeDraft}
+                        value={groupDraft.pool_selection_mode}
                         disabled={
                           !isSuperAdmin || !!selectedGroup.archived_at || busy
                         }
                         onChange={(event) =>
-                          setModeDraft(event.target.value as 'base' | 'random')
+                          setGroupDraft({ ...groupDraft, pool_selection_mode: event.target.value as 'base' | 'random' })
                         }
                       >
                         <option value="base">固定基本池</option>
                         <option value="random">隨機選擇可派單的訂單池</option>
                       </select>
-                      {isSuperAdmin && (
-                        <button
-                          className={primaryButton}
-                          disabled={
-                            busy ||
-                            !!selectedGroup.archived_at ||
-                            modeDraft === selectedGroup.pool_selection_mode
-                          }
-                          onClick={() => void saveSelectionMode()}
-                        >
-                          <Save className="mr-1 inline h-4 w-4" />
-                          儲存
-                        </button>
-                      )}
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
@@ -1185,6 +1157,18 @@ export default function DispatchManagement() {
                         )
                       ))}
                   </div>
+                  {isSuperAdmin && (
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        className={primaryButton}
+                        disabled={busy || !!selectedGroup.archived_at || !groupDraft.group_name.trim() || !groupDraftChanged}
+                        onClick={() => void saveGroup('edit')}
+                      >
+                        <Save className="mr-1 inline h-4 w-4" />
+                        {busy ? '儲存中…' : '儲存分組設定'}
+                      </button>
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="py-12 text-center text-sm text-slate-400">
@@ -1850,16 +1834,10 @@ export default function DispatchManagement() {
             <div
               role="dialog"
               aria-modal="true"
-              aria-label={
-                groupForm === 'create' ? '建立分組' : '編輯分組'
-              }
+              aria-label="建立分組"
               className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-600 bg-slate-800 p-5 shadow-2xl"
             >
-              <h3 className="mb-4 text-lg font-semibold">
-                {groupForm === 'create'
-                  ? '建立訂單分組'
-                  : '編輯訂單分組'}
-              </h3>
+              <h3 className="mb-4 text-lg font-semibold">建立訂單分組</h3>
               <div className="space-y-3">
                 <label className="block text-sm">
                   分組名稱 *
@@ -1918,11 +1896,9 @@ export default function DispatchManagement() {
                   />
                   啟用分組
                 </label>
-                {groupForm === 'create' && (
-                  <p className="text-xs text-slate-400">
-                    建立分組時會自動建立基本池；建立後可獨立調整基本池設定。
-                  </p>
-                )}
+                <p className="text-xs text-slate-400">
+                  建立分組時會自動建立基本池；建立後可獨立調整基本池設定。
+                </p>
               </div>
               <div className="mt-5 flex justify-end gap-2">
                 <button
