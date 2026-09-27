@@ -1530,32 +1530,34 @@ export default function DispatchManagement() {
                     </div>
                     <p className="text-xs text-cyan-100">僅影響提交頁進度動畫，不延長接單或實際處理期限。</p>
                         </section>
-                        <section className="grid min-w-0 gap-2 border-t border-slate-700/70 pt-3 sm:grid-cols-2">
-                          <div className="flex items-center gap-2 sm:col-span-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400/20 text-xs font-bold text-emerald-200">04</span><h4 className="font-semibold text-emerald-100">訂單收益與成功率</h4></div>
-                    <label className="min-w-0 text-sm font-medium text-slate-200 sm:col-span-2">
-                      佣金率
-                      <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1 sm:max-w-xs`}
-                        value={groupDraft.commission_rate}
-                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
-                        onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
-                      <span className="mt-1 block text-xs font-normal leading-relaxed text-emerald-300">小數比例，例如 0.00008 = 0.008%；僅成功訂單計算佣金。</span>
-                    </label>
-                    <label className="min-w-0 text-sm font-medium text-slate-200">
-                      搶單成功率（%）
-                      <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
-                        value={groupDraft.grab_success_rate}
-                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
-                        onChange={(event) => setGroupDraft({ ...groupDraft, grab_success_rate: event.target.value })} />
-                      <span className="mt-1 block text-xs font-normal text-emerald-300">僅影響員工接單；新派單保存此機率。</span>
-                    </label>
-                    <label className="min-w-0 text-sm font-medium text-slate-200">
-                      提交後訂單成功率（%）
-                      <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
-                        value={groupDraft.dispatch_success_rate}
-                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
-                        onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
-                      <span className="mt-1 block text-xs font-normal text-teal-300">僅影響訂單處理結果；提交時保存此機率。</span>
-                    </label>
+                        <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
+                          <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400/20 text-xs font-bold text-emerald-200">04</span><h4 className="font-semibold text-emerald-100">訂單收益與成功率</h4></div>
+                          <div className="grid min-w-0 gap-2 sm:grid-cols-3">
+                            <label className="min-w-0 text-sm font-medium text-slate-200">
+                              <span className="block leading-5 sm:min-h-10">佣金率</span>
+                              <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1`}
+                                value={groupDraft.commission_rate}
+                                disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                                onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
+                              <span className="mt-1 block text-xs font-normal leading-relaxed text-emerald-300">小數比例，例如 0.00008 = 0.008%；僅成功訂單計算佣金。</span>
+                            </label>
+                            <label className="min-w-0 text-sm font-medium text-slate-200">
+                              <span className="block leading-5 sm:min-h-10">搶單成功率（%）</span>
+                              <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
+                                value={groupDraft.grab_success_rate}
+                                disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                                onChange={(event) => setGroupDraft({ ...groupDraft, grab_success_rate: event.target.value })} />
+                              <span className="mt-1 block text-xs font-normal leading-relaxed text-emerald-300">僅影響員工接單；新派單保存此機率。</span>
+                            </label>
+                            <label className="min-w-0 text-sm font-medium text-slate-200">
+                              <span className="block leading-5 sm:min-h-10">提交後訂單成功率（%）</span>
+                              <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
+                                value={groupDraft.dispatch_success_rate}
+                                disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                                onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
+                              <span className="mt-1 block text-xs font-normal leading-relaxed text-teal-300">僅影響訂單處理結果；提交時保存此機率。</span>
+                            </label>
+                          </div>
                         </section>
                         <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
                     <div className="flex flex-wrap items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-400/20 text-xs font-bold text-amber-200">05</span><h4 className="font-semibold text-amber-100">提款資格</h4><span className="ml-auto rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-100">{selectedGroup.member_count} 位員工</span></div>
