@@ -256,7 +256,6 @@ export default function DispatchManagement() {
   const [pendingGroupActive, setPendingGroupActive] = useState<boolean | null>(null);
   const [poolForm, setPoolForm] = useState<'create' | 'edit' | null>(null);
   const [poolDraft, setPoolDraft] = useState<PoolDraft>(emptyPoolDraft);
-  const [probabilitiesOpen, setProbabilitiesOpen] = useState(false);
   const [probabilityDraft, setProbabilityDraft] = useState<Record<string, string>>({});
   const [archiveTarget, setArchiveTarget] = useState<{
     type: 'group' | 'pool';
@@ -304,6 +303,17 @@ export default function DispatchManagement() {
   const probabilityTotal = editableProbabilityPools.reduce(
     (total, pool) => total + (Number(probabilityDraft[pool.id]) || 0), 0,
   );
+  const probabilityDraftChanged = editableProbabilityPools.some(
+    (pool) => probabilityDraft[pool.id]?.trim() === '' ||
+      Number(probabilityDraft[pool.id]) !== pool.trigger_probability,
+  );
+  const probabilityDraftValid = editableProbabilityPools.length > 0 &&
+    editableProbabilityPools.every((pool) =>
+      /^\d{1,3}$/.test(probabilityDraft[pool.id]?.trim() ?? '') &&
+      Number(probabilityDraft[pool.id]) <= 100,
+    ) && probabilityTotal === 100;
+  const groupSettingsChanged = groupDraftChanged ||
+    (groupDraft.pool_selection_mode === 'weighted' && probabilityDraftChanged);
   const displayGroupById = (id: string | null) => {
     const group = groups.find((item) => item.id === id);
     return group ? groupDisplayName(group) : '尚未指派分組';
@@ -599,7 +609,6 @@ export default function DispatchManagement() {
   const switchGroup = (groupId: string) => {
     setSelectedGroupId(groupId);
     setSelectedPoolId(null);
-    setProbabilitiesOpen(false);
     setPendingGroupActive(null);
     setGroupSettingsOpen(false);
     setMemberPanelOpen(false);
@@ -617,6 +626,10 @@ export default function DispatchManagement() {
     switchGroup(group.id);
     setNotification(null);
     setGroupSaveStatus(null);
+    setProbabilityDraft(Object.fromEntries(
+      pools.filter((pool) => pool.group_id === group.id && !pool.archived_at)
+        .map((pool) => [pool.id, String(pool.trigger_probability)]),
+    ));
     setGroupDraft({
       group_name: groupDisplayName(group),
       description: group.description ? groupDisplayDescription(group) : '',
@@ -654,10 +667,8 @@ export default function DispatchManagement() {
       return groupSaveFailed('目前未選取分組，請重新整理後再試。');
     if (!groupDraft.group_name.trim())
       return groupSaveFailed('請填寫分組名稱。');
-    if (form === 'edit' && groupDraft.pool_selection_mode === 'weighted' &&
-        groupPools.filter((pool) => !pool.archived_at)
-          .reduce((total, pool) => total + pool.trigger_probability, 0) !== 100)
-      return groupSaveFailed('請先到訂單池設定觸發概率，各池合計須為 100%。');
+    if (form === 'edit' && groupDraft.pool_selection_mode === 'weighted' && !probabilityDraftValid)
+      return groupSaveFailed('請為每個未封存訂單池填寫 0–100% 的整數概率，合計須為 100%。');
     const timeout = Number(groupDraft.session_timeout_minutes);
     const waitMin = Number(groupDraft.submit_wait_min_seconds);
     const waitMax = Number(groupDraft.submit_wait_max_seconds);
@@ -681,7 +692,26 @@ export default function DispatchManagement() {
       return groupSaveFailed('逾時須為 1–60 分鐘；提交等待最短 3–120 秒、最長 3–300 秒，且最短不得大於最長。');
     }
     setBusy(true);
+    let probabilitiesSaved = false;
     try {
+      if (form === 'edit' && selectedGroup && groupDraft.pool_selection_mode === 'weighted' && probabilityDraftChanged) {
+        const { error: probabilityError } = await supabase.rpc('admin_set_dispatch_pool_probabilities', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_group_id: selectedGroup.id,
+          p_probabilities: editableProbabilityPools.map((pool) => ({
+            pool_id: pool.id,
+            probability: Number(probabilityDraft[pool.id]),
+          })),
+        });
+        if (probabilityError) throw probabilityError;
+        probabilitiesSaved = true;
+      }
+      if (form === 'edit' && !groupDraftChanged) {
+        setGroupSaveStatus({ type: 'success' });
+        notify('success', '訂單池觸發概率已儲存。');
+        await loadWorkspace();
+        return;
+      }
       const { data, error } = await supabase.rpc(
         'admin_save_dispatch_group',
         {
@@ -734,10 +764,13 @@ export default function DispatchManagement() {
     } catch (error) {
       const message = formatSupabaseError(error);
       groupSaveFailed(
-        message.includes('Invalid dispatch group changes.')
-          ? '儲存失敗：目前資料庫尚未支援分組時間、收益及提款設定；資料未變更，需先完成資料庫遷移。'
-          : '儲存分組失敗：' + message,
+        probabilitiesSaved
+          ? '觸發概率已儲存，但分組設定失敗：' + message
+          : message.includes('Invalid dispatch group changes.')
+            ? '儲存失敗：目前資料庫尚未支援分組時間、收益及提款設定；資料未變更，需先完成資料庫遷移。'
+            : '儲存分組失敗：' + message,
       );
+      if (probabilitiesSaved) await loadWorkspace();
     } finally {
       setBusy(false);
     }
@@ -796,37 +829,6 @@ export default function DispatchManagement() {
         );
     } catch (error) {
       notify('error', '儲存訂單池失敗：' + formatSupabaseError(error));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const savePoolProbabilities = async () => {
-    if (!isSuperAdmin || !selectedGroup || !editableProbabilityPools.length) return;
-    const probabilities = editableProbabilityPools.map((pool) => ({
-      pool_id: pool.id,
-      probability: Number(probabilityDraft[pool.id]),
-    }));
-    if (editableProbabilityPools.some((pool) =>
-      !/^\d{1,3}$/.test(probabilityDraft[pool.id]?.trim() ?? '') ||
-      Number(probabilityDraft[pool.id]) > 100,
-    ) || probabilityTotal !== 100) {
-      notify('error', '每個訂單池的觸發概率須為 0–100% 的整數，所有未封存訂單池合計須為 100%。');
-      return;
-    }
-    setBusy(true);
-    try {
-      const { error } = await supabase.rpc('admin_set_dispatch_pool_probabilities', {
-        p_admin_session_token: getAdminFinancialSessionToken(),
-        p_group_id: selectedGroup.id,
-        p_probabilities: probabilities,
-      });
-      if (error) throw error;
-      setProbabilitiesOpen(false);
-      notify('success', '訂單池觸發概率已儲存。');
-      await loadWorkspace();
-    } catch (error) {
-      notify('error', '儲存觸發概率失敗：' + formatSupabaseError(error));
     } finally {
       setBusy(false);
     }
@@ -1266,7 +1268,7 @@ export default function DispatchManagement() {
 
             {groupSettingsOpen && selectedGroup && createPortal(
               <div className="fixed inset-0 z-[9990] flex flex-col items-center overflow-y-auto bg-slate-950/80 p-2 backdrop-blur-sm sm:p-4">
-                <div role="dialog" aria-modal="true" aria-label="分組設定" className="my-auto w-full max-w-6xl shrink-0 overflow-hidden rounded-2xl border border-indigo-300/30 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 shadow-[0_32px_90px_rgba(2,6,23,0.65)]">
+                <div role="dialog" aria-modal="true" aria-label="分組設定" className="my-auto w-full max-w-7xl shrink-0 overflow-hidden rounded-2xl border border-indigo-300/30 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 shadow-[0_32px_90px_rgba(2,6,23,0.65)]">
                   <div className="flex flex-wrap items-center gap-3 border-b border-indigo-300/20 bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 px-4 py-3 sm:px-6">
                     <div className="flex min-w-[150px] flex-1 items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-white/10 text-cyan-200"><Settings className="h-5 w-5" /></div>
@@ -1341,8 +1343,46 @@ export default function DispatchManagement() {
                         </button>
                       ))}
                     </div>
+                    {groupDraft.pool_selection_mode === 'weighted' && (
+                      <div className="space-y-3 border-t border-amber-400/25 pt-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h5 className="text-sm font-semibold text-amber-100">各訂單池觸發概率</h5>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${probabilityDraftValid ? 'bg-emerald-500/20 text-emerald-200' : 'bg-rose-500/20 text-rose-200'}`}>
+                            合計 {probabilityTotal}% / 100%
+                          </span>
+                        </div>
+                        <p className="text-xs leading-relaxed text-amber-100/80">所有未封存訂單池合計須為 100%。停用、無可派訂單或 0% 的池不參與抽選，其餘可用池按比例重新分配。</p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {editableProbabilityPools.map((pool) => (
+                            <label key={pool.id} className="min-w-0 text-xs font-medium text-slate-200">
+                              <span className="mb-1 block truncate" title={poolDisplayName(pool)}>
+                                {poolDisplayName(pool)}{!pool.is_active ? '（已停用）' : ''}
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  step="1"
+                                  value={probabilityDraft[pool.id] ?? ''}
+                                  disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                                  onChange={(event) => setProbabilityDraft((current) => ({ ...current, [pool.id]: event.target.value }))}
+                                  className={inputClass}
+                                  aria-label={`${poolDisplayName(pool)}觸發概率（%）`}
+                                />
+                                <span className="shrink-0 text-sm font-semibold text-amber-200">%</span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                        {!editableProbabilityPools.length && <p className="text-xs text-amber-200">此分組目前沒有可設定的訂單池。</p>}
+                        {probabilityDraftChanged && <p className="text-xs text-amber-200">調整後按「儲存分組設定」，即可一併儲存各池概率。</p>}
+                      </div>
+                    )}
                         </section>
-                        <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
+                      </div>
+                      <div className="min-w-0 space-y-4 lg:border-l lg:border-indigo-300/20 lg:pl-6">
+                        <section className="min-w-0 space-y-2">
                           <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/20 text-xs font-bold text-cyan-200">03</span><h4 className="font-semibold text-cyan-100">工作與提交時間</h4></div>
                     <label className="block text-sm font-medium text-slate-200">
                       工作會話逾時（分鐘）
@@ -1370,9 +1410,7 @@ export default function DispatchManagement() {
                     </div>
                     <p className="text-xs text-cyan-100">僅影響提交頁進度動畫，不延長接單或實際處理期限。</p>
                         </section>
-                      </div>
-                      <div className="min-w-0 space-y-4 lg:border-l lg:border-indigo-300/20 lg:pl-6">
-                        <section className="grid min-w-0 gap-2 sm:grid-cols-2">
+                        <section className="grid min-w-0 gap-2 border-t border-slate-700/70 pt-3 sm:grid-cols-2">
                           <div className="flex items-center gap-2 sm:col-span-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400/20 text-xs font-bold text-emerald-200">04</span><h4 className="font-semibold text-emerald-100">訂單收益</h4></div>
                     <label className="min-w-0 text-sm font-medium text-slate-200">
                       佣金率
@@ -1475,7 +1513,7 @@ export default function DispatchManagement() {
                     {isSuperAdmin && (
                       <button
                         className={`inline-flex min-h-10 items-center justify-center rounded-xl px-5 py-2 text-sm font-semibold text-white shadow-lg transition-colors disabled:cursor-not-allowed ${!busy && groupSaveStatus?.type === 'success' ? 'bg-emerald-600 shadow-emerald-950/30' : !busy && groupSaveStatus?.type === 'error' ? 'bg-rose-600 shadow-rose-950/30' : 'bg-blue-600 shadow-blue-900/30 hover:bg-blue-500 disabled:opacity-50'}`}
-                        disabled={busy || !!selectedGroup.archived_at || !groupDraftChanged}
+                        disabled={busy || !!selectedGroup.archived_at || !groupSettingsChanged}
                         onClick={() => void saveGroup('edit')}
                       >
                         {busy ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : groupSaveStatus?.type === 'success' ? <CheckCircle className="mr-2 h-4 w-4" /> : groupSaveStatus?.type === 'error' ? <XCircle className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
@@ -1749,22 +1787,11 @@ export default function DispatchManagement() {
                       訂單池 <span className="rounded-full bg-cyan-400/15 px-2 py-0.5 text-xs font-medium text-cyan-200">{groupPools.length} 個</span>
                     </h3>
                     <p className="mt-1 text-xs text-slate-400">
-                      各池可設定觸發概率；分組選擇「按訂單池設定概率」後生效。派單間隔與池內選單模式仍由各池管理。
+                      各池觸發概率請至「分組設定」選擇「按訂單池設定概率」後調整；派單間隔與池內選單模式仍由各池管理。
                     </p>
                   </div>
                   {isSuperAdmin && (
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className="rounded-lg border border-amber-400/45 bg-amber-500/15 px-3 py-2 text-sm font-medium text-amber-100 hover:bg-amber-500/25 disabled:opacity-50"
-                        disabled={busy || !!selectedGroup.archived_at}
-                        onClick={() => {
-                          setProbabilityDraft(Object.fromEntries(editableProbabilityPools.map((pool) => [pool.id, String(pool.trigger_probability)])));
-                          setProbabilitiesOpen(true);
-                        }}
-                      >
-                        設定觸發概率
-                      </button>
                       <button
                         className={primaryButton}
                         disabled={busy || !!selectedGroup.archived_at}
@@ -1779,41 +1806,6 @@ export default function DispatchManagement() {
                     </div>
                   )}
                 </div>
-                {probabilitiesOpen && isSuperAdmin && (
-                  <div className="mb-4 space-y-3 rounded-xl border border-amber-400/30 bg-amber-950/15 p-3 sm:p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h4 className="text-sm font-semibold text-amber-100">各訂單池觸發概率</h4>
-                      <span className={`text-sm font-semibold ${probabilityTotal === 100 ? 'text-emerald-300' : 'text-rose-300'}`}>合計 {probabilityTotal}% / 100%</span>
-                    </div>
-                    <p className="text-xs text-slate-300">所有未封存訂單池合計須為 100%；停用、無可派訂單或設定為 0% 的池不參與抽選，其餘可用池按設定比例重新分配。</p>
-                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                      {editableProbabilityPools.map((pool) => (
-                        <label key={pool.id} className="min-w-0 text-xs font-medium text-amber-100">
-                          <span className="block truncate" title={poolDisplayName(pool)}>{poolDisplayName(pool)}{!pool.is_active ? '（已停用）' : ''}</span>
-                          <span className="mt-1 flex items-center overflow-hidden rounded-lg border border-amber-400/30 bg-slate-900">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="1"
-                              value={probabilityDraft[pool.id] ?? ''}
-                              disabled={busy}
-                              onChange={(event) => setProbabilityDraft((current) => ({ ...current, [pool.id]: event.target.value }))}
-                              className="w-full min-w-0 bg-transparent px-3 py-2 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                            />
-                            <span className="pr-3 text-sm text-amber-200">%</span>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <button type="button" className={secondaryButton} disabled={busy} onClick={() => setProbabilitiesOpen(false)}>取消</button>
-                      <button type="button" className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-50" disabled={busy || probabilityTotal !== 100} onClick={() => void savePoolProbabilities()}>
-                        {busy ? '儲存中…' : '儲存全部概率'}
-                      </button>
-                    </div>
-                  </div>
-                )}
                 <div className="min-w-0 divide-y divide-cyan-400/20">
                   {groupPools.map((pool) => (
                     <article
@@ -2283,6 +2275,11 @@ export default function DispatchManagement() {
                       </button>
                     ))}
                   </div>
+                  {groupDraft.pool_selection_mode === 'weighted' && (
+                    <p className="rounded-lg border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-amber-100">
+                      建立分組後會自動新增基本池，初始概率為 100%；新增其他池後，可在「分組設定」調整各池概率。
+                    </p>
+                  )}
                 </div>
                 <label className="block text-sm">
                   工作會話逾時（分鐘）
