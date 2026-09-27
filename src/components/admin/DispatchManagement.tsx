@@ -49,6 +49,13 @@ interface DispatchGroup {
   order_count: number;
 }
 
+const withdrawalModeLabels: Record<DispatchGroup['withdrawal_condition_mode'], string> = {
+  OR: '任一達標',
+  AND: '全部達標',
+  amount_only: '僅餘額',
+  days_only: '僅訂單數',
+};
+
 interface DispatchPool {
   id: string;
   group_id: string;
@@ -1097,8 +1104,19 @@ export default function DispatchManagement() {
                       <span className="mt-1.5 block text-[11px] leading-4 text-slate-200">
                         {group.member_count} 位成員 · {group.order_count} 筆訂單
                       </span>
-                      <span className={`mt-1 block break-words text-[11px] font-medium leading-4 ${selectedGroupId === group.id ? 'text-cyan-50' : 'text-slate-300'}`}>
-                        {group.pool_selection_mode === 'base' ? '固定基本池' : '隨機選擇可派單的訂單池'}
+                      <span className={`mt-1 block text-[11px] font-medium leading-4 ${selectedGroupId === group.id ? 'text-cyan-50' : 'text-slate-300'}`}>
+                        選池 · {group.pool_selection_mode === 'base' ? '固定基本池' : '隨機可派單池'}
+                      </span>
+                      <span className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-1 border-t border-white/15 pt-1.5 text-[11px] leading-4">
+                        <span className="min-w-0 truncate text-cyan-200">工作 <strong className="font-semibold text-white">{group.session_timeout_minutes == null ? '—' : `${group.session_timeout_minutes} 分`}</strong></span>
+                        <span className="min-w-0 truncate text-cyan-200">提交 <strong className="font-semibold text-white">{group.submit_wait_min_seconds == null || group.submit_wait_max_seconds == null ? '—' : `${group.submit_wait_min_seconds}–${group.submit_wait_max_seconds} 秒`}</strong></span>
+                        <span className="min-w-0 truncate text-emerald-200">佣金 <strong className="font-semibold text-white">{group.commission_rate == null ? '—' : `${Number((group.commission_rate * 100).toFixed(6))}%`}</strong></span>
+                        <span className="min-w-0 truncate text-emerald-200">成功率 <strong className="font-semibold text-white">{group.dispatch_success_rate == null ? '—' : `${group.dispatch_success_rate}%`}</strong></span>
+                        <span className="min-w-0 truncate text-amber-200" title={`最低提款餘額：${group.withdrawal_amount_threshold ?? '—'}`}>
+                          提款 <strong className="font-semibold text-white">{group.withdrawal_amount_threshold == null ? '—' : group.withdrawal_amount_threshold.toLocaleString('en-US', { maximumFractionDigits: 2 })}</strong>
+                        </span>
+                        <span className="min-w-0 truncate text-amber-200">訂單 <strong className="font-semibold text-white">{group.withdrawal_orders_threshold ?? '—'}</strong></span>
+                        <span className="col-span-2 text-amber-200">提款條件 <strong className="font-semibold text-white">{withdrawalModeLabels[group.withdrawal_condition_mode] ?? '—'}</strong></span>
                       </span>
                     </button>
                     <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-white/15 pt-2">
