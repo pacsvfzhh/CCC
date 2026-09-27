@@ -1245,11 +1245,12 @@ export default function DispatchManagement() {
                     <p className="text-xs leading-relaxed text-slate-300">依目前所屬分組判斷；員工人數由分組成員自動統計。</p>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="min-w-0 text-sm font-medium text-slate-200">
-                        Withdrawal · 最低提款餘額
+                        最低提款餘額
                         <input type="number" min="0" max="999999999999.99" step="0.01" className={`${inputClass} mt-1`}
                           value={groupDraft.withdrawal_amount_threshold}
                           disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                           onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_amount_threshold: event.target.value })} />
+                        <span className="mt-1 block text-xs font-normal leading-relaxed text-amber-200/90">按員工目前餘額是否達到此金額判斷。</span>
                       </label>
                       <label className="min-w-0 text-sm font-medium text-slate-200">
                         最低訂單數
@@ -2072,10 +2073,11 @@ export default function DispatchManagement() {
                   <div className="text-sm font-medium text-amber-100">提款資格 · Employees（建立後依成員自動計數）</div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <label className="min-w-0 text-sm">
-                      Withdrawal · 最低提款餘額
+                      最低提款餘額
                       <input type="number" min="0" max="999999999999.99" step="0.01" className={`${inputClass} mt-1`}
                         value={groupDraft.withdrawal_amount_threshold}
                         onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_amount_threshold: event.target.value })} />
+                      <span className="mt-1 block text-xs font-normal text-slate-400">按員工目前餘額是否達到此金額判斷。</span>
                     </label>
                     <label className="min-w-0 text-sm">
                       最低訂單數
