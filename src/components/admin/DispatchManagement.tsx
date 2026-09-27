@@ -1023,7 +1023,7 @@ export default function DispatchManagement() {
                 {visibleGroups.map((group) => (
                   <article
                     key={group.id}
-                    className={`min-w-0 rounded-lg border px-2.5 py-2 shadow-sm transition-colors ${selectedGroupId === group.id ? 'border-cyan-400/75 bg-gradient-to-br from-blue-900/70 via-blue-950/80 to-cyan-950/55 shadow-cyan-950/40' : 'border-slate-600/65 bg-slate-900/80 hover:border-blue-400/55 hover:bg-blue-950/55'}`}
+                    className={`relative min-w-0 overflow-hidden rounded-lg border px-2.5 py-2 transition-colors ${selectedGroupId === group.id ? 'border-cyan-300 bg-gradient-to-br from-blue-700/85 via-blue-800/75 to-cyan-900/70 shadow-[0_0_18px_rgba(34,211,238,0.28)] ring-1 ring-cyan-300/70 before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-cyan-300' : 'border-slate-700 bg-slate-950/70 hover:border-slate-500 hover:bg-slate-800/80'}`}
                   >
                     <button
                       type="button"
@@ -1033,7 +1033,7 @@ export default function DispatchManagement() {
                     >
                       <span className="flex min-w-0 items-start justify-between gap-1.5">
                         <span className="flex min-w-0 flex-wrap items-center gap-1">
-                          <span className="min-w-0 break-words text-sm font-semibold leading-5 text-white">{groupDisplayName(group)}</span>
+                          <span className={`min-w-0 break-words text-sm font-semibold leading-5 ${selectedGroupId === group.id ? 'text-white' : 'text-slate-200'}`}>{groupDisplayName(group)}</span>
                           {group.is_default && <span className="shrink-0 rounded bg-amber-400/20 px-1 text-[10px] leading-4 text-amber-100">預設</span>}
                         </span>
                         <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 text-[10px] leading-5 ${group.archived_at ? 'bg-rose-500/20 text-rose-100' : group.is_active ? 'bg-emerald-500/20 text-emerald-100' : 'bg-amber-500/20 text-amber-100'}`}>
@@ -1044,7 +1044,7 @@ export default function DispatchManagement() {
                       <span className="mt-1.5 block text-[11px] leading-4 text-slate-200">
                         {group.member_count} 位成員 · {group.order_count} 筆訂單
                       </span>
-                      <span className="mt-1 block break-words text-[11px] font-medium leading-4 text-cyan-100">
+                      <span className={`mt-1 block break-words text-[11px] font-medium leading-4 ${selectedGroupId === group.id ? 'text-cyan-50' : 'text-slate-300'}`}>
                         {group.pool_selection_mode === 'base' ? '固定基本池' : '隨機選擇可派單的訂單池'}
                       </span>
                     </button>
