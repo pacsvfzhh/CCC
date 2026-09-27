@@ -83,13 +83,6 @@ const poolSelectionOptions = [
 ] as const;
 
 const withdrawalModeOptions = ['OR', 'AND', 'amount_only', 'days_only'] as const;
-const withdrawalModeDescriptions: Record<DispatchGroup['withdrawal_condition_mode'], string> = {
-  OR: '符合其中一項門檻即可',
-  AND: '兩項門檻都必須符合',
-  amount_only: '只依最低提款餘額判斷',
-  days_only: '只依最低訂單數判斷',
-};
-
 function WithdrawalConditionPicker({
   id,
   value,
@@ -104,20 +97,21 @@ function WithdrawalConditionPicker({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<{
-    top: number;
+    bottom: number;
     left: number;
     width: number;
+    maxHeight: number;
   } | null>(null);
 
   const isOpen = menuPosition !== null;
   const positionMenu = useCallback(() => {
     const rect = triggerRef.current!.getBoundingClientRect();
     const width = Math.min(rect.width, window.innerWidth - 24);
-    const openAbove = window.innerHeight - rect.bottom < 300 && rect.top > window.innerHeight - rect.bottom;
     setMenuPosition({
-      top: openAbove ? Math.max(12, rect.top - 8 - 292) : rect.bottom + 8,
+      bottom: window.innerHeight - rect.top,
       left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
       width,
+      maxHeight: Math.max(40, Math.min(184, rect.top - 12)),
     });
   }, []);
 
@@ -138,14 +132,21 @@ function WithdrawalConditionPicker({
         triggerRef.current?.focus();
       }
     };
+    const closeOnFocusOutside = (event: FocusEvent) => {
+      if (!triggerRef.current?.contains(event.target as Node) && !menuRef.current?.contains(event.target as Node)) {
+        setMenuPosition(null);
+      }
+    };
     const reposition = () => positionMenu();
     document.addEventListener('pointerdown', closeOnOutsideClick);
     document.addEventListener('keydown', closeOnEscape);
+    document.addEventListener('focusin', closeOnFocusOutside);
     window.addEventListener('resize', reposition);
     window.addEventListener('scroll', reposition, true);
     return () => {
       document.removeEventListener('pointerdown', closeOnOutsideClick);
       document.removeEventListener('keydown', closeOnEscape);
+      document.removeEventListener('focusin', closeOnFocusOutside);
       window.removeEventListener('resize', reposition);
       window.removeEventListener('scroll', reposition, true);
     };
@@ -154,7 +155,7 @@ function WithdrawalConditionPicker({
   return (
     <div className="space-y-2">
       <span id={`${id}-label`} className="block text-sm font-medium text-amber-100">提款條件組合</span>
-      <p id={`${id}-hint`} className="text-xs text-amber-200/80">點擊下方按鈕展開選單，選擇此分組的提款條件。</p>
+      <p id={`${id}-hint`} className="text-xs text-amber-200/80">點擊下方按鈕向上展開選單，再次點擊可收起。</p>
       <button
         ref={triggerRef}
         id={id}
@@ -166,12 +167,12 @@ function WithdrawalConditionPicker({
         aria-controls={menuPosition ? `${id}-menu` : undefined}
         disabled={disabled}
         onClick={() => menuPosition ? setMenuPosition(null) : positionMenu()}
-        className="group flex min-h-14 w-full items-center gap-3 rounded-xl border border-amber-300 bg-[#fffbeb] px-4 text-left text-slate-900 shadow-[0_8px_24px_rgba(245,158,11,0.16)] transition-all hover:border-amber-500 hover:bg-white hover:shadow-[0_10px_26px_rgba(245,158,11,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-55"
+        className={`group flex h-11 w-full max-w-[420px] items-center gap-2.5 border border-amber-500/70 bg-slate-800 px-3 text-left text-amber-50 shadow-[0_8px_20px_rgba(15,23,42,0.3)] transition-colors hover:border-amber-300 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 disabled:cursor-not-allowed disabled:opacity-55 ${isOpen ? 'rounded-b-xl border-t-0' : 'rounded-xl'}`}
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700"><CheckCircle className="h-4 w-4" /></span>
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-400/20 text-amber-300"><CheckCircle className="h-4 w-4" /></span>
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{withdrawalModeLabels[value]}</span>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-white text-amber-700 group-hover:border-amber-400">
-          <ChevronDown className={`h-4 w-4 transition-transform ${menuPosition ? 'rotate-180' : ''}`} />
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-400 text-slate-900 group-hover:bg-amber-300">
+          <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </span>
       </button>
       {menuPosition && createPortal(
@@ -180,11 +181,8 @@ function WithdrawalConditionPicker({
           id={`${id}-menu`}
           role="listbox"
           aria-labelledby={`${id}-label`}
-          className="fixed z-[10010] max-h-[min(292px,calc(100dvh-24px))] overflow-y-auto rounded-xl border border-amber-200 bg-white p-1.5 text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.28)]"
+          className="fixed z-[10010] overflow-y-auto rounded-t-xl border border-b-0 border-amber-500/70 bg-slate-900 p-1.5 text-amber-50 shadow-[0_-12px_28px_rgba(15,23,42,0.32)]"
           style={menuPosition}
-          onBlur={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget as Node)) setMenuPosition(null);
-          }}
           onKeyDown={(event) => {
             if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
             event.preventDefault();
@@ -193,25 +191,21 @@ function WithdrawalConditionPicker({
             options[(index + (event.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length]?.focus();
           }}
         >
-          <p className="px-3 pb-1 pt-2 text-[11px] font-semibold tracking-wide text-amber-700">選擇提款條件</p>
           {withdrawalModeOptions.map((mode) => (
             <button
               key={mode}
               type="button"
               role="option"
               aria-selected={value === mode}
-              className={`mb-0.5 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors last:mb-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${value === mode ? 'bg-amber-100 text-amber-950' : 'text-slate-700 hover:bg-amber-50 hover:text-slate-950'}`}
+              className={`mb-0.5 flex min-h-9 w-full items-center gap-2 rounded-md px-3 py-1.5 text-left transition-colors last:mb-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${value === mode ? 'bg-amber-400 text-slate-950' : 'text-amber-50 hover:bg-slate-700 hover:text-amber-200'}`}
               onClick={() => {
                 onChange(mode);
                 setMenuPosition(null);
                 triggerRef.current?.focus();
               }}
             >
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold">{withdrawalModeLabels[mode]}</span>
-                <span className="mt-0.5 block text-xs text-slate-500">{withdrawalModeDescriptions[mode]}</span>
-              </span>
-              {value === mode && <CheckCircle className="h-5 w-5 shrink-0 text-amber-600" />}
+              <span className="min-w-0 flex-1 text-sm font-medium">{withdrawalModeLabels[mode]}</span>
+              {value === mode && <CheckCircle className="h-4 w-4 shrink-0 text-slate-900" />}
             </button>
           ))}
         </div>, document.body,
