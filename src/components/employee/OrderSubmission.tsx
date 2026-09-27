@@ -42,17 +42,12 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
   const [submissionStage, setSubmissionStage] = useState<'encrypting' | 'validating' | 'broadcasting' | 'confirming'>('encrypting');
   const [showValidationAlert, setShowValidationAlert] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
-  const [, setSubmitTimeMin] = useState(5);
-  const [, setSubmitTimeMax] = useState(20);
-  const adminIdRef = useRef<string | null>(propAdminId || null);
   const [activeAssignment, setActiveAssignment] = useState<{ id: string; assignment_id: string } | null>(null);
-  const fetchSubmitTimeRef = useRef<(() => Promise<{ min: number; max: number }>) | null>(null);
   const loadProductTypesRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     if (propAdminId) {
       setAdminId(propAdminId);
-      adminIdRef.current = propAdminId;
       return;
     }
     supabase
@@ -63,7 +58,6 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       .then(({ data }) => {
         if (data?.created_by) {
           setAdminId(data.created_by);
-          adminIdRef.current = data.created_by;
         }
       });
   }, [employeeId, propAdminId]);
@@ -100,59 +94,6 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
     const interval = setInterval(fetchActiveAssignment, 5000);
     return () => clearInterval(interval);
   }, [employeeId]);
-
-  const fetchSubmitTime = async (): Promise<{ min: number; max: number }> => {
-    const currentAdminId = adminIdRef.current;
-
-    const { data: empSetting } = await supabase
-      .from('employee_submit_time_settings')
-      .select('group_id')
-      .eq('user_id', employeeId)
-      .not('group_id', 'is', null)
-      .maybeSingle();
-
-    if (empSetting?.group_id) {
-      const { data: group } = await supabase
-        .from('submit_time_groups')
-        .select('min_seconds, max_seconds')
-        .eq('id', empSetting.group_id)
-        .maybeSingle();
-      if (group) {
-        return { min: group.min_seconds, max: group.max_seconds };
-      }
-    }
-
-    if (!currentAdminId) return { min: 5, max: 20 };
-
-    const { data } = await supabase
-      .from('admin_configs')
-      .select('config_type, config_value, admin_id')
-      .or(`admin_id.eq.${currentAdminId},admin_id.is.null`)
-      .in('config_type', ['order_submit_time_min', 'order_submit_time_max']);
-
-    if (!data) return { min: 5, max: 20 };
-    const adminConfigs: Record<string, string> = {};
-    const globalConfigs: Record<string, string> = {};
-    data.forEach((row) => {
-      if (row.admin_id === currentAdminId) {
-        adminConfigs[row.config_type] = row.config_value;
-      } else {
-        globalConfigs[row.config_type] = row.config_value;
-      }
-    });
-    const min = Math.max(3, parseInt(adminConfigs.order_submit_time_min || globalConfigs.order_submit_time_min || '5', 10));
-    const max = Math.max(min, parseInt(adminConfigs.order_submit_time_max || globalConfigs.order_submit_time_max || '20', 10));
-    return { min, max };
-  };
-  fetchSubmitTimeRef.current = fetchSubmitTime;
-
-  useEffect(() => {
-    if (!adminId) return;
-    void fetchSubmitTimeRef.current?.().then(({ min, max }) => {
-      setSubmitTimeMin(min);
-      setSubmitTimeMax(max);
-    });
-  }, [adminId, employeeId]);
 
   useEffect(() => {
     void loadProductTypesRef.current?.();
@@ -356,17 +297,8 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
   const handleConfirmSubmit = async () => {
     setShowConfirmModal(false);
     setLoading(true);
-    setShowSubmitAnimation(true);
     setSubmissionProgress(0);
     setSubmissionStage('encrypting');
-
-    // Fetch fresh time settings from DB before each submission
-    const { min: freshMin, max: freshMax } = await fetchSubmitTime();
-    setSubmitTimeMin(freshMin);
-    setSubmitTimeMax(freshMax);
-
-    // Calculate random total duration within configured range (in ms)
-    const totalDuration = (freshMin + Math.random() * (freshMax - freshMin)) * 1000;
 
     // Smooth progress animation that runs for exactly the specified duration
     const animateFullProgress = (targetDuration: number): { cancel: () => void; done: Promise<void> } => {
@@ -421,10 +353,30 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       return { cancel: () => { cancelled = true; }, done };
     };
 
-    // Start the animation immediately - it will run for exactly totalDuration ms
-    const animation = animateFullProgress(totalDuration);
-
+    let animation: ReturnType<typeof animateFullProgress> | undefined;
+    let submissionAssignment: { id: string; assignment_id: string } | null = null;
     try {
+      const auth = getStoredAuth();
+      if (auth?.userType !== 'employee' || auth.user.id !== employeeId) {
+        throw new Error('Employee session has expired. Please sign in again.');
+      }
+      const { data: timing, error: timingError } = await supabase.rpc('get_employee_dispatch_submit_wait_secure', {
+        p_user_id: auth.user.id,
+        p_session_token: auth.financialSessionToken,
+        p_tab_id: auth.tabId,
+      });
+      if (timingError) throw timingError;
+      if (!timing?.available || timing.min_seconds == null || timing.max_seconds == null) {
+        throw new Error(timing?.message || '請先將員工指派至已啟用的訂單分組。');
+      }
+      if (timing.assignment_id && timing.assignment_code) {
+        submissionAssignment = { id: timing.assignment_id, assignment_id: timing.assignment_code };
+      }
+      setActiveAssignment(submissionAssignment);
+      const totalDuration = (timing.min_seconds + Math.random() * (timing.max_seconds - timing.min_seconds)) * 1000;
+      setShowSubmitAnimation(true);
+      animation = animateFullProgress(totalDuration);
+
       // Run DB operations in parallel with the animation
       const productValue = parseFloat(formData.productValue);
       const transactionId = formData.transactionId;
@@ -482,7 +434,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
           order_number: formData.orderNumber,
           transaction_id: transactionId,
           status: 'processing',
-          ...(activeAssignment ? { assignment_id: activeAssignment.assignment_id } : {}),
+          ...(submissionAssignment ? { assignment_id: submissionAssignment.assignment_id } : {}),
         })
         .select()
         .single();
@@ -502,21 +454,15 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
         throw usageError;
       }
 
-      if (activeAssignment) {
-        const auth = getStoredAuth();
-        if (auth?.userType !== 'employee') {
-          await supabase.from('used_order_data').delete().eq('order_id', orderData.id);
-          await supabase.from('orders').delete().eq('id', orderData.id);
-          throw new Error('Employee session has expired.');
-        }
+      if (submissionAssignment) {
         const { data: markedSubmitted, error: markError } = await supabase.rpc(
           'mark_dispatch_assignment_submitted_secure',
           {
             p_user_id: auth.user.id,
             p_session_token: auth.financialSessionToken,
             p_tab_id: auth.tabId,
-            p_assignment_id: activeAssignment.id,
-            p_assignment_code: activeAssignment.assignment_id,
+            p_assignment_id: submissionAssignment.id,
+            p_assignment_code: submissionAssignment.assignment_id,
             p_order_id: orderData.id,
           },
         );
@@ -545,7 +491,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       setSearchQuery('');
 
       // Auto-return to dispatch tab after submission if there was an active assignment
-      if (activeAssignment) {
+      if (submissionAssignment) {
         setActiveAssignment(null);
         setTimeout(() => {
           onNavigateToDispatch?.();
@@ -554,8 +500,8 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
 
     } catch (error: unknown) {
       console.error('Order submission error:', error);
-      animation.cancel();
-      setSubmissionProgress(100);
+      animation?.cancel();
+      if (animation) setSubmissionProgress(100);
       setShowSubmitAnimation(false);
       setResultType('error');
       setResultMessage(error instanceof Error ? error.message : t.orderSubmission.failedRetry);

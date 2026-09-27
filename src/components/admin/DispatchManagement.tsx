@@ -34,6 +34,9 @@ interface DispatchGroup {
   group_name: string;
   description: string | null;
   pool_selection_mode: 'base' | 'random';
+  session_timeout_minutes: number;
+  submit_wait_min_seconds: number;
+  submit_wait_max_seconds: number;
   is_default: boolean;
   is_active: boolean;
   archived_at: string | null;
@@ -49,7 +52,6 @@ interface DispatchPool {
   is_active: boolean;
   dispatch_interval_min: number;
   dispatch_interval_max: number;
-  session_timeout_minutes: number;
   dispatch_order_mode: 'random' | 'sequential';
   dispatch_success_rate: number;
   archived_at: string | null;
@@ -77,14 +79,18 @@ interface Employee {
 type GroupDraft = Pick<
   DispatchGroup,
   'group_name' | 'pool_selection_mode' | 'is_active'
-> & { description: string };
+> & {
+  description: string;
+  session_timeout_minutes: string;
+  submit_wait_min_seconds: string;
+  submit_wait_max_seconds: string;
+};
 type PoolDraft = Pick<
   DispatchPool,
   'pool_name' | 'is_active' | 'dispatch_order_mode'
 > & {
   dispatch_interval_min: string;
   dispatch_interval_max: string;
-  session_timeout_minutes: string;
   dispatch_success_rate: string;
 };
 
@@ -95,13 +101,15 @@ const emptyGroupDraft: GroupDraft = {
   description: '',
   pool_selection_mode: 'base',
   is_active: true,
+  session_timeout_minutes: '10',
+  submit_wait_min_seconds: '5',
+  submit_wait_max_seconds: '20',
 };
 const emptyPoolDraft: PoolDraft = {
   pool_name: '',
   is_active: true,
   dispatch_interval_min: '30',
   dispatch_interval_max: '120',
-  session_timeout_minutes: '10',
   dispatch_order_mode: 'random',
   dispatch_success_rate: '100',
 };
@@ -128,7 +136,6 @@ function poolToDraft(pool: DispatchPool): PoolDraft {
     is_active: pool.is_active,
     dispatch_interval_min: String(pool.dispatch_interval_min),
     dispatch_interval_max: String(pool.dispatch_interval_max),
-    session_timeout_minutes: String(pool.session_timeout_minutes),
     dispatch_order_mode: pool.dispatch_order_mode,
     dispatch_success_rate: String(pool.dispatch_success_rate),
   };
@@ -210,7 +217,10 @@ export default function DispatchManagement() {
     groupDraft.group_name.trim() !== groupDisplayName(selectedGroup) ||
     groupDraft.description !== (selectedGroup.description ? groupDisplayDescription(selectedGroup) : '') ||
     groupDraft.is_active !== selectedGroup.is_active ||
-    groupDraft.pool_selection_mode !== selectedGroup.pool_selection_mode
+    groupDraft.pool_selection_mode !== selectedGroup.pool_selection_mode ||
+    groupDraft.session_timeout_minutes !== String(selectedGroup.session_timeout_minutes) ||
+    groupDraft.submit_wait_min_seconds !== String(selectedGroup.submit_wait_min_seconds) ||
+    groupDraft.submit_wait_max_seconds !== String(selectedGroup.submit_wait_max_seconds)
   );
   const groupPools = pools.filter((pool) => pool.group_id === selectedGroupId);
   const displayGroupById = (id: string | null) => {
@@ -510,6 +520,9 @@ export default function DispatchManagement() {
       description: group.description ? groupDisplayDescription(group) : '',
       is_active: group.is_active,
       pool_selection_mode: group.pool_selection_mode,
+      session_timeout_minutes: String(group.session_timeout_minutes),
+      submit_wait_min_seconds: String(group.submit_wait_min_seconds),
+      submit_wait_max_seconds: String(group.submit_wait_max_seconds),
     });
     setGroupSettingsOpen(true);
   };
@@ -535,6 +548,14 @@ export default function DispatchManagement() {
       );
     if (!groupDraft.group_name.trim())
       return notify('error', '請填寫分組名稱。');
+    const timeout = Number(groupDraft.session_timeout_minutes);
+    const waitMin = Number(groupDraft.submit_wait_min_seconds);
+    const waitMax = Number(groupDraft.submit_wait_max_seconds);
+    if (!groupDraft.session_timeout_minutes.trim() || !Number.isInteger(timeout) || timeout < 1 || timeout > 60 ||
+        !groupDraft.submit_wait_min_seconds.trim() || !Number.isInteger(waitMin) || waitMin < 3 || waitMin > 120 ||
+        !groupDraft.submit_wait_max_seconds.trim() || !Number.isInteger(waitMax) || waitMax < waitMin || waitMax > 300) {
+      return notify('error', '逾時須為 1–60 分鐘；提交等待最短 3–120 秒、最長 3–300 秒，且最短不得大於最長。');
+    }
     setBusy(true);
     try {
       const { data, error } = await supabase.rpc(
@@ -554,6 +575,9 @@ export default function DispatchManagement() {
                 ? selectedGroup.description
                 : groupDraft.description,
             pool_selection_mode: groupDraft.pool_selection_mode,
+            session_timeout_minutes: timeout,
+            submit_wait_min_seconds: waitMin,
+            submit_wait_max_seconds: waitMax,
             is_active: groupDraft.is_active,
           },
         },
@@ -586,7 +610,6 @@ export default function DispatchManagement() {
       );
     const min = Number(poolDraft.dispatch_interval_min);
     const max = Number(poolDraft.dispatch_interval_max);
-    const timeout = Number(poolDraft.session_timeout_minutes);
     const rate = Number(poolDraft.dispatch_success_rate);
     if (!poolDraft.pool_name.trim())
       return notify('error', '請填寫訂單池名稱。');
@@ -597,9 +620,6 @@ export default function DispatchManagement() {
       !Number.isInteger(max) ||
       max < min ||
       max > 3000 ||
-      !Number.isInteger(timeout) ||
-      timeout < 1 ||
-      timeout > 60 ||
       !poolDraft.dispatch_success_rate.trim() ||
       !Number.isInteger(rate) ||
       rate < 0 ||
@@ -607,7 +627,7 @@ export default function DispatchManagement() {
     ) {
       return notify(
         'error',
-        '派單間隔須為 1–3000 秒（最小值不得大於最大值）、逾時為 1–60 分鐘、成功率為 0–100%。',
+        '派單間隔須為 1–3000 秒（最小值不得大於最大值）、成功率為 0–100%。',
       );
     }
     setBusy(true);
@@ -625,7 +645,6 @@ export default function DispatchManagement() {
           is_active: poolDraft.is_active,
           dispatch_interval_min: min,
           dispatch_interval_max: max,
-          session_timeout_minutes: timeout,
           dispatch_order_mode: poolDraft.dispatch_order_mode,
           dispatch_success_rate: rate,
         },
@@ -1038,6 +1057,9 @@ export default function DispatchManagement() {
                       <span className={`mt-1 block break-words text-[11px] font-medium leading-4 ${selectedGroupId === group.id ? 'text-cyan-50' : 'text-slate-300'}`}>
                         {group.pool_selection_mode === 'base' ? '固定基本池' : '隨機選擇可派單的訂單池'}
                       </span>
+                      <span className="mt-1 block text-[11px] leading-4 text-slate-300">
+                        逾時 {group.session_timeout_minutes} 分鐘 · 提交等待 {group.submit_wait_min_seconds}–{group.submit_wait_max_seconds} 秒
+                      </span>
                     </button>
                     <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-white/15 pt-2">
                       <button type="button" className="inline-flex min-w-0 items-center justify-center gap-1 rounded-md border border-cyan-400/45 bg-cyan-500/20 px-1 py-1 text-[11px] font-medium text-cyan-50 hover:bg-cyan-500/30" onClick={() => openGroupSettings(group)}><Settings className="h-3 w-3 shrink-0" />分組設定</button>
@@ -1120,6 +1142,33 @@ export default function DispatchManagement() {
                         <option value="random">隨機選擇可派單的訂單池</option>
                       </select>
                     </div>
+                  </div>
+                  <div className="mt-3 space-y-3 rounded-lg border border-cyan-400/20 bg-slate-900/40 p-3">
+                    <label className="block text-sm font-medium text-slate-200">
+                      工作會話逾時（分鐘）
+                      <input type="number" min="1" max="60" className={`${inputClass} mt-1`}
+                        value={groupDraft.session_timeout_minutes}
+                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
+                    </label>
+                    <p className="text-xs text-slate-400">接單後尚未提交的期限；已派訂單保留原設定。</p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="min-w-0 text-sm font-medium text-slate-200">
+                        提交等待時間 · 最短（秒）
+                        <input type="number" min="3" max="120" className={`${inputClass} mt-1`}
+                          value={groupDraft.submit_wait_min_seconds}
+                          disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                          onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_min_seconds: event.target.value })} />
+                      </label>
+                      <label className="min-w-0 text-sm font-medium text-slate-200">
+                        提交等待時間 · 最長（秒）
+                        <input type="number" min="3" max="300" className={`${inputClass} mt-1`}
+                          value={groupDraft.submit_wait_max_seconds}
+                          disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                          onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_max_seconds: event.target.value })} />
+                      </label>
+                    </div>
+                    <p className="text-xs text-slate-400">僅影響提交頁進度動畫，不延長接單或實際處理期限。</p>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     <span
@@ -1436,9 +1485,8 @@ export default function DispatchManagement() {
                           {pool.archived_at ? '已封存' : pool.is_active ? '已啟用' : '已停用'}
                         </span>
                       </div>
-                      <div className="mt-4 grid gap-x-5 gap-y-3 text-xs sm:grid-cols-2 xl:grid-cols-4">
+                      <div className="mt-4 grid gap-x-5 gap-y-3 text-xs sm:grid-cols-2 xl:grid-cols-3">
                         <div><span className="block text-cyan-300/80">派單間隔</span><strong className="mt-1 block text-sm text-white">{pool.dispatch_interval_min}–{pool.dispatch_interval_max} 秒</strong></div>
-                        <div><span className="block text-cyan-300/80">工作會話逾時</span><strong className="mt-1 block text-sm text-white">{pool.session_timeout_minutes} 分鐘</strong></div>
                         <div><span className="block text-cyan-300/80">池內選單模式</span><strong className="mt-1 block text-sm text-white">{pool.dispatch_order_mode === 'random' ? '隨機選單' : '依序選單'}</strong></div>
                         <div><span className="block text-cyan-300/80">成功率</span><strong className="mt-1 block text-sm text-white">{pool.dispatch_success_rate}%</strong></div>
                       </div>
@@ -1886,6 +1934,27 @@ export default function DispatchManagement() {
                     <option value="random">隨機選擇可派單的訂單池</option>
                   </select>
                 </label>
+                <label className="block text-sm">
+                  工作會話逾時（分鐘）
+                  <input type="number" min="1" max="60" className={`${inputClass} mt-1`}
+                    value={groupDraft.session_timeout_minutes}
+                    onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
+                </label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="min-w-0 text-sm">
+                    提交等待時間 · 最短（秒）
+                    <input type="number" min="3" max="120" className={`${inputClass} mt-1`}
+                      value={groupDraft.submit_wait_min_seconds}
+                      onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_min_seconds: event.target.value })} />
+                  </label>
+                  <label className="min-w-0 text-sm">
+                    提交等待時間 · 最長（秒）
+                    <input type="number" min="3" max="300" className={`${inputClass} mt-1`}
+                      value={groupDraft.submit_wait_max_seconds}
+                      onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_max_seconds: event.target.value })} />
+                  </label>
+                </div>
+                <p className="text-xs text-slate-400">逾時從接單後計算；提交等待只影響動畫，新派訂單將保存當時設定。</p>
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -1991,22 +2060,6 @@ export default function DispatchManagement() {
                   </label>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <label className="min-w-0 text-sm">
-                    工作會話逾時（分鐘）
-                    <input
-                      type="number"
-                      min="1"
-                      max="60"
-                      className={`${inputClass} mt-1`}
-                      value={poolDraft.session_timeout_minutes}
-                      onChange={(event) =>
-                        setPoolDraft({
-                          ...poolDraft,
-                          session_timeout_minutes: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
                   <label className="min-w-0 text-sm">
                     成功率（%）
                     <input

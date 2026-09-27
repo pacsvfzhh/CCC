@@ -182,6 +182,8 @@ export interface Database {
           dispatch_interval_min: number;
           dispatch_interval_max: number;
           session_timeout_minutes: number;
+          submit_wait_min_seconds: number;
+          submit_wait_max_seconds: number;
           dispatch_order_mode: 'random' | 'sequential';
           dispatch_success_rate: number;
           is_default: boolean;
@@ -198,7 +200,9 @@ export interface Database {
           archived_at?: string | null;
           dispatch_interval_min?: number | null;
           dispatch_interval_max?: number | null;
-          session_timeout_minutes?: number | null;
+          session_timeout_minutes?: number;
+          submit_wait_min_seconds?: number;
+          submit_wait_max_seconds?: number;
           dispatch_order_mode?: string | null;
           dispatch_success_rate?: number;
           is_default?: boolean | null;
@@ -215,7 +219,9 @@ export interface Database {
           archived_at?: string | null;
           dispatch_interval_min?: number | null;
           dispatch_interval_max?: number | null;
-          session_timeout_minutes?: number | null;
+          session_timeout_minutes?: number;
+          submit_wait_min_seconds?: number;
+          submit_wait_max_seconds?: number;
           dispatch_order_mode?: string | null;
           dispatch_success_rate?: number;
           is_default?: boolean | null;
@@ -390,6 +396,8 @@ export interface Database {
           order_content_snapshot: string | null;
           dispatch_success_rate_snapshot: number | null;
           session_timeout_minutes_snapshot: number | null;
+          submit_wait_min_seconds_snapshot: number | null;
+          submit_wait_max_seconds_snapshot: number | null;
           user_id: string;
           status: string;
           assigned_at: string;
@@ -409,6 +417,8 @@ export interface Database {
           order_content_snapshot?: string | null;
           dispatch_success_rate_snapshot?: number | null;
           session_timeout_minutes_snapshot?: number | null;
+          submit_wait_min_seconds_snapshot?: number | null;
+          submit_wait_max_seconds_snapshot?: number | null;
           user_id?: string | null;
           status?: string | null;
           assigned_at?: string | null;
@@ -428,6 +438,8 @@ export interface Database {
           order_content_snapshot?: string | null;
           dispatch_success_rate_snapshot?: number | null;
           session_timeout_minutes_snapshot?: number | null;
+          submit_wait_min_seconds_snapshot?: number | null;
+          submit_wait_max_seconds_snapshot?: number | null;
           user_id?: string | null;
           status?: string | null;
           assigned_at?: string | null;
@@ -2682,6 +2694,17 @@ export interface Database {
       admin_assign_dispatch_group_member: {
         Args: { p_admin_session_token: string; p_user_id: string; p_group_id: string };
         Returns: { member: Database['public']['Tables']['dispatch_group_members']['Row'] };
+      };
+      get_employee_dispatch_submit_wait_secure: {
+        Args: { p_user_id: string; p_session_token: string; p_tab_id: string };
+        Returns: {
+          available: boolean;
+          message?: string;
+          min_seconds?: number;
+          max_seconds?: number;
+          assignment_id?: string | null;
+          assignment_code?: string | null;
+        };
       };
       prepare_next_dispatch_order_secure: {
         Args: { p_user_id: string; p_session_token: string; p_tab_id: string; p_session_id: string };

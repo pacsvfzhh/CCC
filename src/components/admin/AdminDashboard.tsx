@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
-import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Database, Lock, Eye, EyeOff, Bell, PackageSearch, MessageCircle, Search, History, UserCog, Activity, Clock, Headphones, ChevronDown, ChevronUp, ChevronsUpDown, SlidersHorizontal, RotateCcw, Save, X } from 'lucide-react';
+import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Database, Lock, Eye, EyeOff, Bell, PackageSearch, MessageCircle, Search, History, UserCog, Activity, Headphones, ChevronDown, ChevronUp, ChevronsUpDown, SlidersHorizontal, RotateCcw, Save, X } from 'lucide-react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Admin } from '../../types';
@@ -74,13 +74,12 @@ const EmployeeSearch = lazy(() => import('./EmployeeSearch'));
 const HistoryDataManagement = lazy(() => import('./HistoryDataManagement'));
 const AccountLockManagement = lazy(() => import('./AccountLockManagement'));
 const EmployeeLoginHistory = lazy(() => import('./EmployeeLoginHistory'));
-const SubmitTimeManagement = lazy(() => import('./SubmitTimeManagement'));
 
 interface AdminDashboardProps {
   admin: Admin;
 }
 
-type AdminTabId = 'employees' | 'products' | 'withdrawals' | 'verifications' | 'announcements' | 'config' | 'admins' | 'validdata' | 'messages' | 'dispatch' | 'records' | 'customerservice' | 'cccservice' | 'employeesearch' | 'history' | 'accountlocks' | 'loginhistory' | 'submittime';
+type AdminTabId = 'employees' | 'products' | 'withdrawals' | 'verifications' | 'announcements' | 'config' | 'admins' | 'validdata' | 'messages' | 'dispatch' | 'records' | 'customerservice' | 'cccservice' | 'employeesearch' | 'history' | 'accountlocks' | 'loginhistory';
 
 interface NavigationTab {
   id: AdminTabId;
@@ -123,7 +122,6 @@ const legacyNavigationLabelTranslations: Record<string, string> = {
   Verifications: '驗證',
   Configuration: '設定',
   Configuratio: '設定',
-  'Submit Time': '提交時間',
   Products: '產品',
   'Valid Data': '有效資料',
   Admins: '管理員',
@@ -471,7 +469,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     { id: 'withdrawals', label: '提款', icon: FileText },
     { id: 'verifications', label: '驗證', icon: UserCheck },
     { id: 'config', label: '設定', icon: Settings },
-    { id: 'submittime', label: '提交時間', icon: Clock },
     ...(admin.role === 'super_admin' ? [
       { id: 'products' as const, label: '產品', icon: Package },
       { id: 'validdata' as const, label: '有效資料', icon: Database },
@@ -1539,11 +1536,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 ) : (
                   <SecondaryAdminConfiguration admin={admin} />
                 )}
-              </div>
-            )}
-            {loadedTabs.has('submittime') && (
-              <div className={activeTab === 'submittime' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
-                <SubmitTimeManagement admin={admin} />
               </div>
             )}
             {loadedTabs.has('announcements') && (
