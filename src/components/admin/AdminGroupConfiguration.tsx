@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, ArrowLeft, Users, DollarSign, Calendar, Building2, CheckCircle, XCircle, Shield, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, ArrowLeft, Users, Building2, CheckCircle, XCircle, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface AdminGroup {
@@ -10,19 +10,12 @@ interface AdminGroup {
   configs: {
     company_name?: string;
     currency_unit?: string;
-    withdrawal_amount_threshold?: string;
-    withdrawal_days_threshold?: string;
-    withdrawal_condition_mode?: string;
   };
-  employee_count: number;
 }
 
 interface ConfigFormValues {
   company_name: string;
   currency_unit: string;
-  withdrawal_amount_threshold: string;
-  withdrawal_days_threshold: string;
-  withdrawal_condition_mode: string;
 }
 
 export default function AdminGroupConfiguration() {
@@ -33,16 +26,10 @@ export default function AdminGroupConfiguration() {
   const [formValues, setFormValues] = useState<ConfigFormValues>({
     company_name: '',
     currency_unit: '',
-    withdrawal_amount_threshold: '',
-    withdrawal_days_threshold: '',
-    withdrawal_condition_mode: '',
   });
   const [globalDefaults, setGlobalDefaults] = useState<ConfigFormValues>({
     company_name: '',
     currency_unit: '',
-    withdrawal_amount_threshold: '',
-    withdrawal_days_threshold: '',
-    withdrawal_condition_mode: '',
   });
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
@@ -105,7 +92,8 @@ export default function AdminGroupConfiguration() {
       const { data, error } = await supabase
         .from('admin_configs')
         .select('config_type, config_value')
-        .is('admin_id', null);
+        .is('admin_id', null)
+        .in('config_type', ['company_name', 'currency_unit']);
 
       if (error) throw error;
 
@@ -117,9 +105,6 @@ export default function AdminGroupConfiguration() {
       setGlobalDefaults({
         company_name: defaults.company_name || '',
         currency_unit: defaults.currency_unit || 'USDC',
-        withdrawal_amount_threshold: defaults.withdrawal_amount_threshold || '',
-        withdrawal_days_threshold: defaults.withdrawal_days_threshold || '',
-        withdrawal_condition_mode: defaults.withdrawal_condition_mode || '',
       });
     } catch (error) {
       console.error('Error loading global defaults:', error);
@@ -144,33 +129,25 @@ export default function AdminGroupConfiguration() {
         .from('admin_configs')
         .select('admin_id, config_type, config_value')
         .not('admin_id', 'is', null)
-        .in('config_type', ['company_name', 'currency_unit', 'withdrawal_amount_threshold', 'withdrawal_days_threshold', 'withdrawal_condition_mode']);
+        .in('config_type', ['company_name', 'currency_unit']);
 
       if (configsError) throw configsError;
 
-      const groupsWithConfigs: AdminGroup[] = await Promise.all(
-        (adminsData || []).map(async (admin) => {
-          const adminConfigs = configsData?.filter(c => c.admin_id === admin.id) || [];
-          const configs: Record<string, string> = {};
-          adminConfigs.forEach(config => {
-            configs[config.config_type] = config.config_value;
-          });
+      const groupsWithConfigs: AdminGroup[] = (adminsData || []).map((admin) => {
+        const adminConfigs = configsData?.filter(c => c.admin_id === admin.id) || [];
+        const configs: Record<string, string> = {};
+        adminConfigs.forEach(config => {
+          configs[config.config_type] = config.config_value;
+        });
 
-          const { count } = await supabase
-            .from('users')
-            .select('id', { count: 'exact', head: true })
-            .eq('created_by', admin.id);
-
-          return {
-            id: admin.id,
-            username: admin.username,
-            role: admin.role,
-            created_at: admin.created_at,
-            configs,
-            employee_count: count || 0,
-          };
-        })
-      );
+        return {
+          id: admin.id,
+          username: admin.username,
+          role: admin.role,
+          created_at: admin.created_at,
+          configs,
+        };
+      });
 
       const sortedGroups = groupsWithConfigs.sort((a, b) => {
         if (a.role === 'super_admin' && b.role !== 'super_admin') return -1;
@@ -192,10 +169,7 @@ export default function AdminGroupConfiguration() {
     setSelectedGroup(group);
     setFormValues({
       company_name: group.configs.company_name || globalDefaults.company_name,
-      currency_unit: group.configs.currency_unit || globalDefaults.currency_unit || 'USDT',
-      withdrawal_amount_threshold: group.configs.withdrawal_amount_threshold || globalDefaults.withdrawal_amount_threshold,
-      withdrawal_days_threshold: group.configs.withdrawal_days_threshold || globalDefaults.withdrawal_days_threshold,
-      withdrawal_condition_mode: group.configs.withdrawal_condition_mode || globalDefaults.withdrawal_condition_mode || 'OR',
+      currency_unit: group.configs.currency_unit || globalDefaults.currency_unit || 'USDC',
     });
   };
 
@@ -392,7 +366,7 @@ export default function AdminGroupConfiguration() {
               Configure Admin: {selectedGroup.username}
             </h2>
             <p className="text-slate-400 text-sm">
-              Set custom parameters for this admin's team ({selectedGroup.employee_count} employees)
+              Set the brand and currency for this admin's team. Withdrawal rules and employee groups are managed in Order Assignment.
             </p>
           </div>
 
@@ -410,40 +384,17 @@ export default function AdminGroupConfiguration() {
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                <div className="text-xs text-slate-400 mb-1">Withdrawal Amount</div>
-                <div className="text-lg font-bold text-white">
-                  {selectedGroup.configs.withdrawal_amount_threshold || globalDefaults.withdrawal_amount_threshold || '0'} {selectedGroup.configs.currency_unit || globalDefaults.currency_unit || 'USDT'}
-                </div>
-              </div>
-              <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                <div className="text-xs text-slate-400 mb-1">Withdrawal Orders</div>
-                <div className="text-lg font-bold text-white">
-                  {selectedGroup.configs.withdrawal_days_threshold || globalDefaults.withdrawal_days_threshold || '0'} orders
-                </div>
-              </div>
-              <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                <div className="text-xs text-slate-400 mb-1">Condition Mode</div>
-                <div className="text-sm font-bold text-white">
-                  {(() => {
-                    const mode = (selectedGroup.configs.withdrawal_condition_mode || globalDefaults.withdrawal_condition_mode || 'OR').toUpperCase();
-                    switch (mode) {
-                      case 'AMOUNT_ONLY': return 'Amount Only';
-                      case 'DAYS_ONLY': return 'Days Only';
-                      case 'BOTH':
-                      case 'AND': return 'Both Required';
-                      case 'EITHER':
-                      case 'OR': return 'Either (OR)';
-                      default: return 'Either (OR)';
-                    }
-                  })()}
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
                 <div className="text-xs text-slate-400 mb-1">Brand Name</div>
                 <div className="text-lg font-bold text-white truncate">
                   {selectedGroup.configs.company_name || globalDefaults.company_name || 'Not Set'}
+                </div>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                <div className="text-xs text-slate-400 mb-1">Currency</div>
+                <div className="text-lg font-bold text-white">
+                  {selectedGroup.configs.currency_unit || globalDefaults.currency_unit || 'USDC'}
                 </div>
               </div>
             </div>
@@ -487,85 +438,6 @@ export default function AdminGroupConfiguration() {
                 />
                 <p className="text-slate-500 text-xs mt-1">
                   Currency unit displayed on employee pages (e.g., USDT, USD, BTC)
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Withdrawal Amount Threshold
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formValues.withdrawal_amount_threshold}
-                    onChange={(e) => setFormValues({ ...formValues, withdrawal_amount_threshold: e.target.value })}
-                    required
-                    className="w-full px-4 py-2 pr-20 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="100"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm pointer-events-none">
-                    {formValues.currency_unit || globalDefaults.currency_unit || 'USDT'}
-                  </span>
-                </div>
-                <p className="text-slate-500 text-xs mt-1">Global default: {globalDefaults.withdrawal_amount_threshold} {globalDefaults.currency_unit || 'USDT'}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Withdrawal Orders Threshold
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="1"
-                    min="1"
-                    value={formValues.withdrawal_days_threshold}
-                    onChange={(e) => setFormValues({ ...formValues, withdrawal_days_threshold: e.target.value })}
-                    required
-                    className="w-full px-4 py-2 pr-20 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="1000"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm pointer-events-none">
-                    orders
-                  </span>
-                </div>
-                <p className="text-slate-500 text-xs mt-1">Global default: {globalDefaults.withdrawal_days_threshold} orders</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Withdrawal Condition Mode
-                </label>
-                <select
-                  value={formValues.withdrawal_condition_mode}
-                  onChange={(e) => setFormValues({ ...formValues, withdrawal_condition_mode: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="amount_only">Amount Only (Balance must meet threshold)</option>
-                  <option value="days_only">Orders Only (Total orders must meet threshold)</option>
-                  <option value="OR">Either Condition (Balance OR Orders - Default)</option>
-                  <option value="AND">Both Conditions (Balance AND Orders required)</option>
-                </select>
-                <p className="text-slate-500 text-xs mt-1">
-                  Global default: {
-                    (() => {
-                      const mode = (globalDefaults.withdrawal_condition_mode || 'OR').toUpperCase();
-                      switch (mode) {
-                        case 'AMOUNT_ONLY': return 'Amount Only';
-                        case 'DAYS_ONLY': return 'Days Only';
-                        case 'AND':
-                        case 'BOTH': return 'Both Conditions';
-                        case 'OR':
-                        case 'EITHER': return 'Either Condition';
-                        default: return 'Either Condition';
-                      }
-                    })()
-                  }
                 </p>
               </div>
             </div>
@@ -728,18 +600,12 @@ export default function AdminGroupConfiguration() {
                 <tr className="border-b border-slate-700/50 bg-slate-800/50">
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">Admin</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">Status</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">Employees</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">Withdrawal</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">Min Days</th>
                   <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {groups.map((group) => {
                   const hasCustomConfig = Object.keys(group.configs).length > 0;
-                  const withdrawalAmount = group.configs.withdrawal_amount_threshold || globalDefaults.withdrawal_amount_threshold;
-                  const withdrawalDays = group.configs.withdrawal_days_threshold || globalDefaults.withdrawal_days_threshold;
-
                   return (
                     <tr
                       key={group.id}
@@ -765,24 +631,6 @@ export default function AdminGroupConfiguration() {
                             Global
                           </span>
                         )}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Users className="w-4 h-4 text-blue-400" />
-                          <span className="text-white font-medium">{group.employee_count}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <DollarSign className="w-4 h-4 text-cyan-400" />
-                          <span className="text-white font-medium">{withdrawalAmount} {group.configs.currency_unit || globalDefaults.currency_unit || 'USDT'}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Calendar className="w-4 h-4 text-blue-400" />
-                          <span className="text-white font-medium">{withdrawalDays} orders</span>
-                        </div>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <button

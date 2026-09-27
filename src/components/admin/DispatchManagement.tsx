@@ -39,6 +39,9 @@ interface DispatchGroup {
   submit_wait_max_seconds: number;
   commission_rate: number;
   dispatch_success_rate: number;
+  withdrawal_amount_threshold: number;
+  withdrawal_orders_threshold: number;
+  withdrawal_condition_mode: 'OR' | 'AND' | 'amount_only' | 'days_only';
   is_default: boolean;
   is_active: boolean;
   archived_at: string | null;
@@ -87,6 +90,9 @@ type GroupDraft = Pick<
   submit_wait_max_seconds: string;
   commission_rate: string;
   dispatch_success_rate: string;
+  withdrawal_amount_threshold: string;
+  withdrawal_orders_threshold: string;
+  withdrawal_condition_mode: DispatchGroup['withdrawal_condition_mode'];
 };
 type PoolDraft = Pick<
   DispatchPool,
@@ -108,6 +114,9 @@ const emptyGroupDraft: GroupDraft = {
   submit_wait_max_seconds: '20',
   commission_rate: '0.001',
   dispatch_success_rate: '100',
+  withdrawal_amount_threshold: '100',
+  withdrawal_orders_threshold: '1000',
+  withdrawal_condition_mode: 'OR',
 };
 const emptyPoolDraft: PoolDraft = {
   pool_name: '',
@@ -224,7 +233,10 @@ export default function DispatchManagement() {
     groupDraft.submit_wait_min_seconds !== String(selectedGroup.submit_wait_min_seconds) ||
     groupDraft.submit_wait_max_seconds !== String(selectedGroup.submit_wait_max_seconds) ||
     Number(groupDraft.commission_rate) !== selectedGroup.commission_rate ||
-    groupDraft.dispatch_success_rate !== String(selectedGroup.dispatch_success_rate)
+    groupDraft.dispatch_success_rate !== String(selectedGroup.dispatch_success_rate) ||
+    Number(groupDraft.withdrawal_amount_threshold) !== selectedGroup.withdrawal_amount_threshold ||
+    groupDraft.withdrawal_orders_threshold !== String(selectedGroup.withdrawal_orders_threshold) ||
+    groupDraft.withdrawal_condition_mode !== selectedGroup.withdrawal_condition_mode
   );
   const groupPools = pools.filter((pool) => pool.group_id === selectedGroupId);
   const displayGroupById = (id: string | null) => {
@@ -529,6 +541,9 @@ export default function DispatchManagement() {
       submit_wait_max_seconds: String(group.submit_wait_max_seconds),
       commission_rate: String(group.commission_rate),
       dispatch_success_rate: String(group.dispatch_success_rate),
+      withdrawal_amount_threshold: String(group.withdrawal_amount_threshold),
+      withdrawal_orders_threshold: String(group.withdrawal_orders_threshold),
+      withdrawal_condition_mode: group.withdrawal_condition_mode,
     });
     setGroupSettingsOpen(true);
   };
@@ -559,6 +574,14 @@ export default function DispatchManagement() {
     const waitMax = Number(groupDraft.submit_wait_max_seconds);
     const commissionRate = Number(groupDraft.commission_rate);
     const successRate = Number(groupDraft.dispatch_success_rate);
+    const withdrawalAmount = Number(groupDraft.withdrawal_amount_threshold);
+    const withdrawalOrders = Number(groupDraft.withdrawal_orders_threshold);
+    if (!/^\d{1,12}(\.\d{1,2})?$/.test(groupDraft.withdrawal_amount_threshold.trim()) ||
+        !Number.isFinite(withdrawalAmount) || withdrawalAmount > 999999999999.99 ||
+        !/^\d{1,7}$/.test(groupDraft.withdrawal_orders_threshold.trim()) ||
+        !Number.isInteger(withdrawalOrders) || withdrawalOrders < 1 || withdrawalOrders > 1000000) {
+      return notify('error', '提款門檻須為 0–999999999999.99，訂單數須為 1–1000000。');
+    }
     if (!groupDraft.commission_rate.trim() || !Number.isFinite(commissionRate) || commissionRate < 0.00001 || commissionRate > 1 || !/^\d+(\.\d{1,8})?$/.test(groupDraft.commission_rate.trim()) ||
         !groupDraft.dispatch_success_rate.trim() || !Number.isInteger(successRate) || successRate < 0 || successRate > 100) {
       return notify('error', '佣金率須為 0.00001–1（最多 8 位小數），成功率須為 0–100%。');
@@ -592,6 +615,9 @@ export default function DispatchManagement() {
             submit_wait_max_seconds: waitMax,
             commission_rate: commissionRate,
             dispatch_success_rate: successRate,
+            withdrawal_amount_threshold: withdrawalAmount,
+            withdrawal_orders_threshold: withdrawalOrders,
+            withdrawal_condition_mode: groupDraft.withdrawal_condition_mode,
             is_active: groupDraft.is_active,
           },
         },
@@ -1020,6 +1046,9 @@ export default function DispatchManagement() {
                         ...emptyGroupDraft,
                         commission_rate: String(defaultGroup?.commission_rate ?? 0.001),
                         dispatch_success_rate: String(defaultGroup?.dispatch_success_rate ?? 100),
+                        withdrawal_amount_threshold: String(defaultGroup?.withdrawal_amount_threshold ?? 100),
+                        withdrawal_orders_threshold: String(defaultGroup?.withdrawal_orders_threshold ?? 1000),
+                        withdrawal_condition_mode: defaultGroup?.withdrawal_condition_mode ?? 'OR',
                       });
                       setGroupForm('create');
                     }}
@@ -1195,6 +1224,38 @@ export default function DispatchManagement() {
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
                       <span className="mt-1 block text-xs font-normal text-slate-400">影響接單與訂單處理；新派單保存此分組的成功率。</span>
+                    </label>
+                  </div>
+                  <div className="mt-3 space-y-3 rounded-lg border border-amber-400/20 bg-slate-900/40 p-3">
+                    <div className="text-sm font-medium text-amber-100">提款資格 · {selectedGroup.member_count} 位員工</div>
+                    <p className="text-xs text-slate-400">依目前所屬分組判斷；員工人數由分組成員自動統計。</p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="min-w-0 text-sm font-medium text-slate-200">
+                        Withdrawal · 最低提款餘額
+                        <input type="number" min="0" max="999999999999.99" step="0.01" className={`${inputClass} mt-1`}
+                          value={groupDraft.withdrawal_amount_threshold}
+                          disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                          onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_amount_threshold: event.target.value })} />
+                      </label>
+                      <label className="min-w-0 text-sm font-medium text-slate-200">
+                        Min Days · 最低訂單數
+                        <input type="number" min="1" max="1000000" step="1" className={`${inputClass} mt-1`}
+                          value={groupDraft.withdrawal_orders_threshold}
+                          disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                          onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
+                      </label>
+                    </div>
+                    <p className="text-xs text-slate-400">原「Min Days」實際按訂單筆數計算（沿用現有所有狀態的訂單數），不是天數。</p>
+                    <label className="block text-sm font-medium text-slate-200">
+                      提款條件組合
+                      <select className={`${inputClass} mt-1`} value={groupDraft.withdrawal_condition_mode}
+                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: event.target.value as DispatchGroup['withdrawal_condition_mode'] })}>
+                        <option value="OR">餘額或訂單數任一達標</option>
+                        <option value="AND">餘額與訂單數均須達標</option>
+                        <option value="amount_only">僅檢查餘額</option>
+                        <option value="days_only">僅檢查訂單數</option>
+                      </select>
                     </label>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
@@ -1995,6 +2056,34 @@ export default function DispatchManagement() {
                       value={groupDraft.dispatch_success_rate}
                       onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
                     <span className="mt-1 block text-xs text-slate-400">新派訂單採用此分組的成功率</span>
+                  </label>
+                </div>
+                <div className="space-y-3 rounded-lg border border-amber-400/20 bg-slate-900/40 p-3">
+                  <div className="text-sm font-medium text-amber-100">提款資格 · Employees（建立後依成員自動計數）</div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="min-w-0 text-sm">
+                      Withdrawal · 最低提款餘額
+                      <input type="number" min="0" max="999999999999.99" step="0.01" className={`${inputClass} mt-1`}
+                        value={groupDraft.withdrawal_amount_threshold}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_amount_threshold: event.target.value })} />
+                    </label>
+                    <label className="min-w-0 text-sm">
+                      Min Days · 最低訂單數
+                      <input type="number" min="1" max="1000000" step="1" className={`${inputClass} mt-1`}
+                        value={groupDraft.withdrawal_orders_threshold}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
+                    </label>
+                  </div>
+                  <p className="text-xs text-slate-400">最低訂單數不是天數；按現有訂單筆數計算。</p>
+                  <label className="block text-sm">
+                    提款條件組合
+                    <select className={`${inputClass} mt-1`} value={groupDraft.withdrawal_condition_mode}
+                      onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: event.target.value as DispatchGroup['withdrawal_condition_mode'] })}>
+                      <option value="OR">餘額或訂單數任一達標</option>
+                      <option value="AND">餘額與訂單數均須達標</option>
+                      <option value="amount_only">僅檢查餘額</option>
+                      <option value="days_only">僅檢查訂單數</option>
+                    </select>
                   </label>
                 </div>
                 <label className="flex items-center gap-2 text-sm">

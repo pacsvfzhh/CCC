@@ -11,16 +11,10 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
   const [formValues, setFormValues] = useState({
     company_name: '',
     currency_unit: '',
-    withdrawal_amount_threshold: '',
-    withdrawal_days_threshold: '',
-    withdrawal_condition_mode: '',
   });
   const [globalDefaults, setGlobalDefaults] = useState({
     company_name: '',
     currency_unit: '',
-    withdrawal_amount_threshold: '',
-    withdrawal_days_threshold: '',
-    withdrawal_condition_mode: '',
   });
   const [hasCustomConfig, setHasCustomConfig] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -53,7 +47,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
         .from('admin_configs')
         .select('*')
         .or(`admin_id.eq.${admin.id},admin_id.is.null`)
-        .in('config_type', ['company_name', 'currency_unit', 'withdrawal_amount_threshold', 'withdrawal_days_threshold', 'withdrawal_condition_mode']);
+        .in('config_type', ['company_name', 'currency_unit']);
 
       if (error) throw error;
 
@@ -80,17 +74,11 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
       setGlobalDefaults({
         company_name: globalMap.company_name || '',
         currency_unit: globalMap.currency_unit || 'USDC',
-        withdrawal_amount_threshold: globalMap.withdrawal_amount_threshold || '',
-        withdrawal_days_threshold: globalMap.withdrawal_days_threshold || '',
-        withdrawal_condition_mode: globalMap.withdrawal_condition_mode || '',
       });
 
       setFormValues({
         company_name: configMap.company_name || globalMap.company_name || '',
         currency_unit: configMap.currency_unit || globalMap.currency_unit || 'USDC',
-        withdrawal_amount_threshold: configMap.withdrawal_amount_threshold || globalMap.withdrawal_amount_threshold || '',
-        withdrawal_days_threshold: configMap.withdrawal_days_threshold || globalMap.withdrawal_days_threshold || '',
-        withdrawal_condition_mode: configMap.withdrawal_condition_mode || globalMap.withdrawal_condition_mode || '',
       });
     } catch (error) {
       console.error('Error loading configs:', error);
@@ -233,7 +221,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
 
       <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-6">
         <p className="text-slate-400 text-sm mb-4">
-          View and manage configuration parameters for your employee team
+          Set your team's brand name and display currency. Withdrawal rules and employee groups are managed in Order Assignment.
         </p>
       </div>
 
@@ -251,41 +239,16 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
             </span>
           )}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-            <div className="text-xs text-slate-400 mb-1">Withdrawal Amount</div>
-            <div className="text-lg font-bold text-white">
-              {formValues.withdrawal_amount_threshold || '0'} {formValues.currency_unit || 'USDC'}
-            </div>
-          </div>
-          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-            <div className="text-xs text-slate-400 mb-1">Withdrawal Orders</div>
-            <div className="text-lg font-bold text-white">
-              {formValues.withdrawal_days_threshold || '0'} orders
-            </div>
-          </div>
-          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-            <div className="text-xs text-slate-400 mb-1">Condition Mode</div>
-            <div className="text-sm font-bold text-white">
-              {(() => {
-                const mode = (formValues.withdrawal_condition_mode || 'either').toUpperCase();
-                switch (mode) {
-                  case 'AMOUNT_ONLY': return 'Amount Only';
-                  case 'DAYS_ONLY': return 'Days Only';
-                  case 'BOTH':
-                  case 'AND': return 'Both Required';
-                  case 'EITHER':
-                  case 'OR': return 'Either (OR)';
-                  default: return 'Either (OR)';
-                }
-              })()}
-            </div>
-          </div>
+        <div className="grid grid-cols-2 gap-3">
           <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
             <div className="text-xs text-slate-400 mb-1">Brand Name</div>
             <div className="text-lg font-bold text-white truncate">
               {formValues.company_name || 'Not Set'}
             </div>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+            <div className="text-xs text-slate-400 mb-1">Currency</div>
+            <div className="text-lg font-bold text-white">{formValues.currency_unit || 'USDC'}</div>
           </div>
         </div>
       </div>
@@ -298,7 +261,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
           <div>
             <p className="text-sm text-blue-200 font-semibold mb-1">Your Team's Configuration</p>
             <p className="text-sm text-blue-300/80">
-              These settings apply to all employees in your team. You can customize your brand name and operating parameters. Any values you don't set will automatically use the global defaults.
+              You can customize your team's brand name and currency. Super admins set withdrawal rules for each order group in Order Assignment.
             </p>
           </div>
         </div>
@@ -354,95 +317,6 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
                   Global default: {globalDefaults.currency_unit}
                 </p>
               )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Withdrawal Amount Threshold
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formValues.withdrawal_amount_threshold}
-                  onChange={(e) => setFormValues({ ...formValues, withdrawal_amount_threshold: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 pr-20 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="100"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm pointer-events-none">
-                  {formValues.currency_unit || 'USDC'}
-                </span>
-              </div>
-              <p className="text-slate-500 text-xs mt-1">Minimum balance required for withdrawal</p>
-              {globalDefaults.withdrawal_amount_threshold && (
-                <p className="text-slate-600 text-xs mt-1">
-                  Global default: {globalDefaults.withdrawal_amount_threshold} {globalDefaults.currency_unit || 'USDC'}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Withdrawal Orders Threshold
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="1"
-                  min="1"
-                  value={formValues.withdrawal_days_threshold}
-                  onChange={(e) => setFormValues({ ...formValues, withdrawal_days_threshold: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 pr-20 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="1000"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm pointer-events-none">
-                  orders
-                </span>
-              </div>
-              <p className="text-slate-500 text-xs mt-1">Minimum completed orders required for withdrawal eligibility</p>
-              {globalDefaults.withdrawal_days_threshold && (
-                <p className="text-slate-600 text-xs mt-1">
-                  Global default: {globalDefaults.withdrawal_days_threshold} orders
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Withdrawal Condition Mode
-              </label>
-              <select
-                value={formValues.withdrawal_condition_mode}
-                onChange={(e) => setFormValues({ ...formValues, withdrawal_condition_mode: e.target.value })}
-                required
-                className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="amount_only">Amount Only (Balance must meet threshold)</option>
-                <option value="days_only">Orders Only (Total orders must meet threshold)</option>
-                <option value="OR">Either Condition (Balance OR Orders - Default)</option>
-                <option value="AND">Both Conditions (Balance AND Orders required)</option>
-              </select>
-              <p className="text-slate-500 text-xs mt-1">
-                Global default: {
-                  (() => {
-                    const mode = (globalDefaults.withdrawal_condition_mode || 'OR').toUpperCase();
-                    switch (mode) {
-                      case 'AMOUNT_ONLY': return 'Amount Only';
-                      case 'DAYS_ONLY': return 'Days Only';
-                      case 'AND':
-                      case 'BOTH': return 'Both Conditions';
-                      case 'OR':
-                      case 'EITHER': return 'Either Condition (Default)';
-                      default: return globalDefaults.withdrawal_condition_mode || 'Not set';
-                    }
-                  })()
-                }
-              </p>
             </div>
           </div>
 

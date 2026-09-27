@@ -235,67 +235,30 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
     console.log('Starting withdrawal eligibility check...');
     console.log('Employee verified:', localEmployee.is_verified);
     console.log('Wallet balance:', wallet?.available_balance);
-    console.log('Employee created_by:', localEmployee.created_by);
-
-    if (!localEmployee.is_verified) {
-      return { eligible: false, message: t.wallet.verificationNeeded };
-    }
-
-    if (!wallet || wallet.available_balance <= 0) {
+    const financialSession = getEmployeeFinancialSession();
+    const { data: policy, error } = await supabase.rpc('get_employee_withdrawal_policy_secure', {
+      p_user_id: employeeId,
+      p_session_token: financialSession.token,
+      p_tab_id: financialSession.tabId,
+    });
+    if (error) throw error;
+    if (!policy?.available) throw new Error(policy?.message || t.wallet.eligibilityFailed);
+    if (!policy.verified) return { eligible: false, message: t.wallet.verificationNeeded };
+    if (!policy.available_balance || policy.available_balance <= 0) {
       return { eligible: false, message: t.wallet.insufficientBalance };
     }
-
-    const { data: adminConfigs, error: configError } = await supabase
-      .from('admin_configs')
-      .select('*')
-      .or(`admin_id.eq.${localEmployee.created_by},admin_id.is.null`);
-
-    console.log('Admin configs query error:', configError);
-    console.log('Admin configs data:', adminConfigs);
-
-    const configs = adminConfigs || [];
-
-    const getConfigValue = (type: string) => {
-      const adminConfig = configs.find(c => c.admin_id === localEmployee.created_by && c.config_type === type);
-      const globalConfig = configs.find(c => c.admin_id === null && c.config_type === type);
-      const value = adminConfig?.config_value || globalConfig?.config_value;
-      console.log(`Config ${type}: admin=${adminConfig?.config_value}, global=${globalConfig?.config_value}, final=${value}`);
-      return value;
-    };
-
-    const amountThreshold = parseFloat(getConfigValue('withdrawal_amount_threshold') || '100');
-    const ordersThreshold = parseInt(getConfigValue('withdrawal_days_threshold') || '1000');
-    const conditionMode = (getConfigValue('withdrawal_condition_mode') || 'OR').toUpperCase();
-
-    console.log('Amount threshold:', amountThreshold);
-    console.log('Orders threshold:', ordersThreshold);
-    console.log('Condition mode:', conditionMode);
-    console.log('Current balance:', wallet.available_balance);
-
-    const amountMet = wallet.available_balance >= amountThreshold;
-    let ordersMet = false;
-    let completedOrdersCount = 0;
-
-    // Get the total number of orders for this user
-    try {
-      const { data: ordersData, error: ordersError } = await supabase.rpc('get_user_completed_orders_count', {
-        p_user_id: employeeId
-      });
-
-      if (ordersError) {
-        console.error('Error getting orders count:', ordersError);
-      } else {
-        completedOrdersCount = ordersData || 0;
-        ordersMet = completedOrdersCount >= ordersThreshold;
-        console.log('Completed orders count:', completedOrdersCount);
-        console.log('Orders threshold:', ordersThreshold);
-      }
-    } catch (error) {
-      console.error('Failed to get orders count:', error);
+    if (policy.amount_threshold === undefined || policy.orders_threshold === undefined ||
+        policy.completed_orders_count === undefined || !policy.condition_mode) {
+      throw new Error(t.wallet.eligibilityFailed);
     }
 
-    console.log('Amount met:', amountMet);
-    console.log('Orders met:', ordersMet);
+    const amountThreshold = policy.amount_threshold;
+    const ordersThreshold = policy.orders_threshold;
+    const completedOrdersCount = policy.completed_orders_count;
+    const availableBalance = policy.available_balance;
+    const amountMet = availableBalance >= amountThreshold;
+    const ordersMet = completedOrdersCount >= ordersThreshold;
+    const conditionMode = policy.condition_mode.toUpperCase();
 
     let eligible = false;
     let message = '';
@@ -304,7 +267,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       case 'AMOUNT_ONLY':
         eligible = amountMet;
         if (!eligible) {
-          message = t.wallet.eligibilityAmountOnly(String(amountThreshold), wallet.available_balance.toFixed(2));
+          message = t.wallet.eligibilityAmountOnly(String(amountThreshold), availableBalance.toFixed(2));
         }
         break;
 
@@ -321,7 +284,7 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
         if (!eligible) {
           const reasons = [];
           if (!amountMet) {
-            reasons.push(t.wallet.eligibilityBalanceReason(String(amountThreshold), wallet.available_balance.toFixed(2)));
+            reasons.push(t.wallet.eligibilityBalanceReason(String(amountThreshold), availableBalance.toFixed(2)));
           }
           if (!ordersMet) {
             reasons.push(t.wallet.eligibilityOrdersReason(ordersThreshold, completedOrdersCount));
@@ -335,13 +298,12 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       default:
         eligible = amountMet || ordersMet;
         if (!eligible) {
-          message = t.wallet.eligibilityEitherPrefix + t.wallet.eligibilityBalanceReason(String(amountThreshold), wallet.available_balance.toFixed(2)) + t.wallet.eligibilityOr + t.wallet.eligibilityOrdersReason(ordersThreshold, completedOrdersCount);
+          message = t.wallet.eligibilityEitherPrefix + t.wallet.eligibilityBalanceReason(String(amountThreshold), availableBalance.toFixed(2)) + t.wallet.eligibilityOr + t.wallet.eligibilityOrdersReason(ordersThreshold, completedOrdersCount);
         }
         break;
     }
 
-    console.log(eligible ? '✓ Eligible' : '✗ Not eligible');
-    return { eligible, message };
+    return { eligible: policy.eligible === true, message: policy.eligible ? '' : message || t.wallet.eligibilityFailed };
   };
 
   const handleRequestWithdrawal = async () => {

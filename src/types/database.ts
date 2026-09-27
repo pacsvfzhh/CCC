@@ -185,6 +185,9 @@ export interface Database {
           submit_wait_min_seconds: number;
           submit_wait_max_seconds: number;
           commission_rate: number;
+          withdrawal_amount_threshold: number;
+          withdrawal_orders_threshold: number;
+          withdrawal_condition_mode: 'OR' | 'AND' | 'amount_only' | 'days_only';
           dispatch_order_mode: 'random' | 'sequential';
           dispatch_success_rate: number;
           is_default: boolean;
@@ -205,6 +208,9 @@ export interface Database {
           submit_wait_min_seconds?: number;
           submit_wait_max_seconds?: number;
           commission_rate?: number;
+          withdrawal_amount_threshold?: number;
+          withdrawal_orders_threshold?: number;
+          withdrawal_condition_mode?: 'OR' | 'AND' | 'amount_only' | 'days_only';
           dispatch_order_mode?: string | null;
           dispatch_success_rate?: number;
           is_default?: boolean | null;
@@ -225,6 +231,9 @@ export interface Database {
           submit_wait_min_seconds?: number;
           submit_wait_max_seconds?: number;
           commission_rate?: number;
+          withdrawal_amount_threshold?: number;
+          withdrawal_orders_threshold?: number;
+          withdrawal_condition_mode?: 'OR' | 'AND' | 'amount_only' | 'days_only';
           dispatch_order_mode?: string | null;
           dispatch_success_rate?: number;
           is_default?: boolean | null;
@@ -2706,6 +2715,21 @@ export interface Database {
       admin_assign_dispatch_group_member: {
         Args: { p_admin_session_token: string; p_user_id: string; p_group_id: string };
         Returns: { member: Database['public']['Tables']['dispatch_group_members']['Row'] };
+      };
+      get_employee_withdrawal_policy_secure: {
+        Args: { p_user_id: string; p_session_token: string; p_tab_id: string };
+        Returns: {
+          available: boolean;
+          message?: string;
+          group_id?: string;
+          amount_threshold?: number;
+          orders_threshold?: number;
+          condition_mode?: 'OR' | 'AND' | 'amount_only' | 'days_only';
+          completed_orders_count?: number;
+          verified?: boolean;
+          available_balance?: number;
+          eligible?: boolean;
+        };
       };
       get_employee_dispatch_submit_wait_secure: {
         Args: { p_user_id: string; p_session_token: string; p_tab_id: string };
