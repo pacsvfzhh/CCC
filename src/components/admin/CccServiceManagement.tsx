@@ -171,6 +171,8 @@ interface ConversationHistory {
 }
 
 type ConversationSummaryRow = Database['public']['Functions']['get_ccc_conversation_summaries']['Returns'][number];
+type ConversationAnnotation = Database['public']['Functions']['get_ccc_conversation_annotations']['Returns'][number];
+const conversationAnnotationKey = (customerId: string, employeeId: string) => `${customerId}:${employeeId}`;
 type SimulatedCustomerInsert = Omit<Database['public']['Tables']['simulated_customers']['Insert'], 'customer_id'> & {
   customer_id?: string;
 };
@@ -364,7 +366,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
   const [showHistoryView, setShowHistoryView] = useState(true);
   const [showTagDropdown, setShowTagDropdown] = useState(false);
   const [fromHistorySource, setFromHistorySource] = useState<'none' | 'customer' | 'all'>('none');
-  const [fromHistoryFilterMode, setFromHistoryFilterMode] = useState<'all' | 'history' | 'new'>('all');
+  const [fromHistoryFilterMode, setFromHistoryFilterMode] = useState<'all' | 'history' | 'new' | 'special'>('all');
   const [historyScope, setHistoryScope] = useState<'customer' | 'all'>('all');
   const allCustomersRef = useRef<SimulatedCustomer[]>([]);
   const allEmployeesRef = useRef<Employee[]>([]);
@@ -387,8 +389,16 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     employeesById: new Map(),
   });
   const realtimeConversationIdsRef = useRef(new Set<string>());
-  const [historyFilterMode, setHistoryFilterMode] = useState<'all' | 'history' | 'new'>('all');
+  const [historyFilterMode, setHistoryFilterMode] = useState<'all' | 'history' | 'new' | 'special'>('all');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [annotations, setAnnotations] = useState<Record<string, ConversationAnnotation>>({});
+  const [annotationsWorkspaceId, setAnnotationsWorkspaceId] = useState<string | null>(null);
+  const [annotationLoadFailed, setAnnotationLoadFailed] = useState(false);
+  const [annotationReloadKey, setAnnotationReloadKey] = useState(0);
+  const [annotationDialog, setAnnotationDialog] = useState<{ kind: 'special' | 'note'; history: ConversationHistory; nextSpecial?: boolean } | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [savingAnnotation, setSavingAnnotation] = useState(false);
+  const annotationLoadRequestRef = useRef(0);
   const [employeeGroupFilter, setEmployeeGroupFilter] = useState<'all' | 'chatted' | 'not_chatted'>('all');
   const [customerFilter, setCustomerFilter] = useState<'all' | 'super' | 'regular'>('all');
   const [adminUnreadCounts, setAdminUnreadCounts] = useState<Record<string, number>>({});
@@ -520,6 +530,39 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     () => new Map(customers.map(customer => [customer.id, customer])),
     [customers],
   );
+  const currentAnnotations = useMemo(
+    () => annotationsWorkspaceId === selectedAdminId ? annotations : {},
+    [annotationsWorkspaceId, selectedAdminId, annotations],
+  );
+
+  useEffect(() => {
+    const requestId = ++annotationLoadRequestRef.current;
+    setAnnotations({});
+    setAnnotationsWorkspaceId(null);
+    setAnnotationLoadFailed(false);
+    if (!isActive || !selectedAdminId) return;
+
+    const loadAnnotations = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_ccc_conversation_annotations', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+          p_owner_admin_id: selectedAdminId,
+        });
+        if (error) throw error;
+        if (requestId !== annotationLoadRequestRef.current) return;
+        setAnnotations(Object.fromEntries((data || []).map(annotation => [
+          conversationAnnotationKey(annotation.customer_id, annotation.employee_id), annotation,
+        ])));
+        setAnnotationsWorkspaceId(selectedAdminId);
+      } catch (error) {
+        if (requestId !== annotationLoadRequestRef.current) return;
+        setAnnotationLoadFailed(true);
+        setNotification({ type: 'error', text: getCccErrorMessage(error, '載入對話註記失敗') });
+      }
+    };
+    void loadAnnotations();
+  }, [isActive, selectedAdminId, annotationReloadKey]);
+
   const workspaceConversationHistory = useMemo(
     () => dedupeConversationHistory(allConversationHistory.filter(history =>
       Boolean(history.customer_id) &&
@@ -527,6 +570,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     )),
     [allConversationHistory, workspaceCustomerIds],
   );
+  const specialConversationCount = workspaceConversationHistory.filter(history =>
+    currentAnnotations[conversationAnnotationKey(history.customer_id!, history.employee_id)]?.is_special
+  ).length;
   const customerUnreadCountsForCards = useMemo(() => {
     const historyCounts: Record<string, number> = {};
 
@@ -616,7 +662,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       .filter((history) => {
         if (historyScope === 'customer' && history.customer_id !== selectedCustomer?.id) return false;
         if (selectedEmployee && history.employee_id !== selectedEmployee.id) return false;
+        const conversationNote = currentAnnotations[conversationAnnotationKey(history.customer_id!, history.employee_id)]?.note || '';
         if (historyFilterMode === 'new' && history.unread_count <= 0) return false;
+        if (historyFilterMode === 'special' && !currentAnnotations[conversationAnnotationKey(history.customer_id!, history.employee_id)]?.is_special) return false;
         if (!query) return true;
 
         const employee = workspaceEmployeesById.get(history.employee_id);
@@ -632,6 +680,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           history.employee_number,
           ...employeeTags,
           employeeNote,
+          conversationNote,
         ].filter(Boolean).join(' ').toLowerCase();
 
         return searchableText.includes(query);
@@ -645,7 +694,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
         if (timeDifference !== 0) return timeDifference;
         return b.unread_count - a.unread_count;
       });
-  }, [conversationHistoryForView, workspaceEmployeesById, historyFilterMode, historySearchQuery, historyScope, selectedCustomer?.id, selectedEmployee]);
+  }, [conversationHistoryForView, workspaceEmployeesById, currentAnnotations, historyFilterMode, historySearchQuery, historyScope, selectedCustomer?.id, selectedEmployee]);
 
   const loadMessagesRef = useRef<(markAsRead?: boolean) => void>();
   const messagesLoadRequestRef = useRef(0);
@@ -2096,6 +2145,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     setShowHistoryView(true);
     setHistoryScope('all');
     setHistoryFilterMode('all');
+    setAnnotationDialog(null);
+    setAnnotations({});
+    setAnnotationsWorkspaceId(null);
     historyScrollTopRef.current = 0;
 
     const cachedWorkspace = getCachedAdminWorkspaceData<SimulatedCustomer, Employee>(group.admin_id, 'manager');
@@ -2151,6 +2203,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     setShowHistoryView(true);
     setHistoryScope('all');
     setHistoryFilterMode('all');
+    setAnnotationDialog(null);
+    setAnnotations({});
+    setAnnotationsWorkspaceId(null);
     setConversationHistory([]);
     setAllConversationHistory([]);
     conversationHistoryRef.current = [];
@@ -2159,6 +2214,39 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     setCustomers([]);
     setEmployees([]);
     void loadAdminGroups(null, true, true);
+  };
+
+  const saveConversationAnnotation = async () => {
+    if (!annotationDialog || !selectedAdminId || savingAnnotation) return;
+    const { history, kind, nextSpecial } = annotationDialog;
+    if (!history.customer_id) return;
+    const workspaceId = selectedAdminId;
+    setSavingAnnotation(true);
+    try {
+      const { data, error } = await supabase.rpc('update_ccc_conversation_annotation', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_customer_id: history.customer_id,
+        p_employee_id: history.employee_id,
+        p_is_special: kind === 'special' ? Boolean(nextSpecial) : null,
+        p_note: kind === 'note' ? noteDraft.trim() || null : null,
+        p_update_note: kind === 'note',
+      });
+      if (error) throw error;
+      if (selectedAdminIdRef.current !== workspaceId) return;
+      const annotation = data as ConversationAnnotation;
+      setAnnotations(previous => ({
+        ...previous,
+        [conversationAnnotationKey(annotation.customer_id, annotation.employee_id)]: annotation,
+      }));
+      setAnnotationDialog(null);
+      setNotification({ type: 'success', text: kind === 'note' ? '對話備註已儲存' : nextSpecial ? '已加入特別關注' : '已移除特別關注' });
+    } catch (error) {
+      if (selectedAdminIdRef.current === workspaceId) {
+        setNotification({ type: 'error', text: getCccErrorMessage(error, '儲存對話註記失敗') });
+      }
+    } finally {
+      setSavingAnnotation(false);
+    }
   };
 
   const handleSelectCustomer = async (customer: SimulatedCustomer) => {
@@ -3328,9 +3416,23 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
               <>
                 <button
                   type="button"
+                  disabled={annotationsWorkspaceId !== selectedAdminId}
+                  onClick={() => { setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('special'); setHistoryScope('all'); historyScrollTopRef.current = 0; void loadAllConversationHistory(undefined, true); }}
+                  className={`flex items-center gap-2 rounded-lg border-2 px-4 py-2 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-wait disabled:opacity-50 ${
+                    showHistoryView && historyScope === 'all' && historyFilterMode === 'special'
+                      ? 'border-amber-300 bg-amber-600 text-white shadow-lg shadow-amber-500/30'
+                      : 'border-amber-500/50 bg-amber-950/50 text-amber-200 hover:border-amber-300 hover:bg-amber-800/50'
+                  }`}
+                >
+                  <Star className="h-4 w-4" />
+                  <span>特別關注</span>
+                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-black">{specialConversationCount}</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => { setSelectedEmployee(null); setSelectedCustomer(null); setShowHistoryView(true); setHistoryFilterMode('all'); setHistoryScope('all'); historyScrollTopRef.current = 0; void loadAllConversationHistory(undefined, true); }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
-                    showHistoryView && historyScope === 'all' && historyFilterMode !== 'new'
+                    showHistoryView && historyScope === 'all' && historyFilterMode === 'all'
                       ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/40 border-emerald-300'
                       : 'bg-emerald-950/50 hover:bg-emerald-800/50 border-emerald-500/50 hover:border-emerald-300/70 text-emerald-200 hover:text-emerald-100 shadow-lg shadow-emerald-950/30 hover:shadow-emerald-900/40'
                   }`}
@@ -3339,7 +3441,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                   <span>全部歷史</span>
                   {workspaceConversationHistory.length > 0 && (
                     <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black min-w-[24px] text-center ${
-                      showHistoryView && historyScope === 'all' && historyFilterMode !== 'new'
+                      showHistoryView && historyScope === 'all' && historyFilterMode === 'all'
                         ? 'bg-white text-emerald-700'
                         : 'bg-emerald-500 text-white'
                     }`}>{workspaceConversationHistory.length}</span>
@@ -3838,7 +3940,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                       </div>
                     )}
                     <div className="min-w-0">
-                      <h3 className="text-base font-bold text-white leading-tight truncate">{selectedCustomer ? selectedCustomer.customer_name : '進行中的工作階段'}</h3>
+                      <h3 className="text-base font-bold text-white leading-tight truncate">{historyFilterMode === 'special' && historyScope === 'all' ? '特別關注' : selectedCustomer ? selectedCustomer.customer_name : '進行中的工作階段'}</h3>
                       {selectedCustomer?.is_super && selectedCustomer?.super_customer_title ? (
                         <p className="text-[11px] text-amber-400 font-medium leading-tight mt-0.5 truncate">{selectedCustomer?.super_customer_title}</p>
                       ) : null}
@@ -3912,11 +4014,12 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
               {/* Active Sessions List */}
               <div ref={historyListRef} className="flex-1 overflow-y-auto p-2 scrollbar-dark">
+                {annotationLoadFailed && <button type="button" onClick={() => setAnnotationReloadKey(key => key + 1)} className="mb-2 w-full rounded-lg border border-rose-400/50 bg-rose-950/40 p-2 text-xs text-rose-100 hover:bg-rose-900/50">對話註記載入失敗，點擊重試</button>}
                 {visibleConversationHistory.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                    <MessageCircle className="w-16 h-16 mb-4 opacity-50" />
-                    <p>沒有進行中的工作階段</p>
-                    <p className="text-xs mt-2">開始對話後會顯示在這裡</p>
+                    {historyFilterMode === 'special' ? <Star className="w-16 h-16 mb-4 opacity-50" /> : <MessageCircle className="w-16 h-16 mb-4 opacity-50" />}
+                    <p>{historyFilterMode === 'special' ? '目前沒有特別關注的對話' : historySearchQuery.trim() ? '沒有符合的工作階段' : '沒有進行中的工作階段'}</p>
+                    <p className="text-xs mt-2">{historyFilterMode === 'special' ? '在對話卡片中加入特別關注' : '開始對話後會顯示在這裡'}</p>
                   </div>
                 ) : (
                   <div className="space-y-1.5">
@@ -3928,6 +4031,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                           : null;
                         const isSelected = selectedEmployee?.id === history.employee_id && selectedCustomer?.id === history.customer_id;
                         const cardKey = `${history.customer_id || ''}_${history.employee_id}`;
+                        const annotation = currentAnnotations[conversationAnnotationKey(history.customer_id!, history.employee_id)];
                         const lastTime = new Date(history.last_message_time);
                         const timeStr = `${lastTime.getFullYear()}/${String(lastTime.getMonth() + 1).padStart(2, '0')}/${String(lastTime.getDate()).padStart(2, '0')} ${lastTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                         const hasUnread = history.unread_count > 0;
@@ -3941,7 +4045,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                         const plainMessage = history.last_message.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
                         const isPhoto = history.last_message === '__IMAGE__' || (!plainMessage && hasImg);
                         return (
-                          <div key={cardKey} className="relative">
+                          <div key={cardKey} className={`relative overflow-hidden rounded-lg border ${annotation?.is_special ? 'border-amber-400/45 bg-amber-950/15' : 'border-transparent'}`}>
                             <button
                               type="button"
                               onMouseEnter={() => {
@@ -3993,7 +4097,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                 setFromHistoryFilterMode(historyFilterMode);
                                 setFromHistorySource(historyScope);
                               }}
-                              className={`w-full px-3 py-2.5 rounded-lg text-left group relative ${
+                              className={`w-full px-3 py-2.5 rounded-lg text-left group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 ${
                                 isSelected
                                   ? 'bg-emerald-500/20 border border-emerald-300/70 shadow-md shadow-emerald-500/20 ring-2 ring-emerald-200/35'
                                   : hasUnread
@@ -4037,6 +4141,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                       {history.customer_name && (
                                         <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-blue-300' : 'text-emerald-400'}`}>{history.customer_name}</span>
                                       )}
+                                      {annotation?.is_special && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" aria-label="已特別關注" />}
                                     </div>
                                     <span className={`text-[10px] flex-shrink-0 tabular-nums whitespace-nowrap ${
                                       hasUnread ? 'text-orange-300 font-bold' : 'text-emerald-200/90 font-semibold'
@@ -4076,6 +4181,28 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                 </div>
                               </div>
                             </button>
+                            <div className="flex flex-wrap items-center gap-2 border-t border-white/10 px-3 py-2">
+                              <button
+                                type="button"
+                                disabled={annotationsWorkspaceId !== selectedAdminId}
+                                onClick={() => setAnnotationDialog({ kind: 'special', history, nextSpecial: !annotation?.is_special })}
+                                aria-label={`${annotation?.is_special ? '移除' : '加入'}特別關注：${history.employee_username}（${history.employee_number}）`}
+                                className={`inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-wait disabled:opacity-50 ${annotation?.is_special ? 'border-amber-400/60 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30' : 'border-slate-600 bg-slate-800/70 text-slate-200 hover:border-amber-400/60 hover:text-amber-200'}`}
+                              >
+                                <Star className={`h-3.5 w-3.5 ${annotation?.is_special ? 'fill-amber-400' : ''}`} />
+                                {annotation?.is_special ? '移除關注' : '加入特別關注'}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={annotationsWorkspaceId !== selectedAdminId}
+                                onClick={() => { setNoteDraft(annotation?.note || ''); setAnnotationDialog({ kind: 'note', history }); }}
+                                aria-label={`編輯對話備註：${history.employee_username}（${history.employee_number}）`}
+                                className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-slate-600 bg-slate-800/70 px-2.5 text-[11px] font-semibold text-slate-200 transition-colors hover:border-emerald-400/60 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-wait disabled:opacity-50"
+                              >
+                                <Pencil className="h-3.5 w-3.5" /> 對話備註
+                              </button>
+                              {annotation?.note && <span className="min-w-0 max-w-full flex-1 truncate text-[11px] text-emerald-200/90" title={annotation.note}>備註：{annotation.note}</span>}
+                            </div>
                           </div>
                         );
                       })}
@@ -6082,6 +6209,56 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
             </div>
           </div>
         </div>
+      )}
+
+      {annotationDialog && createPortal(
+        <div
+          role="presentation"
+          className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => { if (event.target === event.currentTarget && !savingAnnotation) setAnnotationDialog(null); }}
+          onKeyDown={(event) => { if (event.key === 'Escape' && !savingAnnotation) setAnnotationDialog(null); }}
+        >
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="conversation-annotation-title"
+            onSubmit={(event) => { event.preventDefault(); void saveConversationAnnotation(); }}
+            className="w-full max-w-md min-w-0 overflow-hidden rounded-2xl border border-emerald-400/35 bg-slate-900 shadow-2xl shadow-black/50"
+          >
+            <div className="flex items-center justify-between border-b border-emerald-400/20 bg-gradient-to-r from-emerald-950/70 to-slate-900 px-5 py-4">
+              <div className="flex items-center gap-2">
+                {annotationDialog.kind === 'special' ? <Star className="h-5 w-5 text-amber-300" /> : <Pencil className="h-5 w-5 text-emerald-300" />}
+                <h3 id="conversation-annotation-title" className="text-base font-bold text-white">{annotationDialog.kind === 'special' ? annotationDialog.nextSpecial ? '加入特別關注' : '移除特別關注' : '編輯對話備註'}</h3>
+              </div>
+              <button type="button" disabled={savingAnnotation} onClick={() => setAnnotationDialog(null)} aria-label="關閉面板" className="rounded-lg p-1.5 text-slate-300 hover:bg-slate-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:opacity-50"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-4 px-5 py-5">
+              <div className="min-w-0 rounded-xl border border-slate-600/60 bg-slate-800/80 p-3 text-sm">
+                <p className="font-semibold text-white">員工：{annotationDialog.history.employee_username}</p>
+                <p className="mt-1 break-all text-xs text-emerald-200">員工編號：{annotationDialog.history.employee_number || '—'}</p>
+                <p className="mt-1 break-all text-xs text-slate-400">員工 ID：{annotationDialog.history.employee_id}</p>
+                <p className="mt-3 border-t border-slate-600/60 pt-2 text-xs text-slate-300">經理：{annotationDialog.history.customer_name || '—'}（{customers.find(customer => customer.id === annotationDialog.history.customer_id)?.customer_id || annotationDialog.history.customer_id}）</p>
+              </div>
+              {annotationDialog.kind === 'special' ? (
+                <p className="text-sm leading-relaxed text-slate-200">{annotationDialog.nextSpecial ? '確認將這段對話加入特別關注？加入後可在上方集中查看。' : '確認將這段對話移出特別關注？對話備註不會被刪除。'}</p>
+              ) : (
+                <div>
+                  <label htmlFor="conversation-note" className="mb-2 block text-sm font-semibold text-slate-200">此對話的獨立備註</label>
+                  <textarea id="conversation-note" autoFocus rows={5} maxLength={2000} value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="輸入這段對話的備註……" className="w-full resize-y rounded-xl border border-slate-600 bg-slate-950 p-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/25" />
+                  <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-400">
+                    <button type="button" onClick={() => setNoteDraft('')} disabled={savingAnnotation || !noteDraft} className="text-rose-300 hover:text-rose-200 disabled:opacity-40">清空備註</button>
+                    <span>{noteDraft.length}/2000</span>
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-wrap justify-end gap-2 pt-1">
+                <button type="button" disabled={savingAnnotation} onClick={() => setAnnotationDialog(null)} className="min-h-10 rounded-lg border border-slate-500 bg-slate-700 px-4 text-sm font-semibold text-white hover:bg-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50">取消</button>
+                <button type="submit" autoFocus={annotationDialog.kind === 'special'} disabled={savingAnnotation} className={`min-h-10 rounded-lg px-4 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50 ${annotationDialog.kind === 'special' ? 'bg-amber-600 hover:bg-amber-500 focus-visible:ring-amber-300' : 'bg-emerald-600 hover:bg-emerald-500 focus-visible:ring-emerald-300'}`}>{savingAnnotation ? '儲存中……' : annotationDialog.kind === 'note' ? '儲存備註' : annotationDialog.nextSpecial ? '確認加入' : '確認移除'}</button>
+              </div>
+            </div>
+          </form>
+        </div>,
+        document.body
       )}
 
       {confirmDialog && (

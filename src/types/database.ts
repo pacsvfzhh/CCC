@@ -1606,6 +1606,36 @@ export interface Database {
         };
         Relationships: [];
       };
+      ccc_conversation_annotations: {
+        Row: {
+          customer_id: string;
+          employee_id: string;
+          owner_admin_id: string;
+          is_special: boolean;
+          note: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          customer_id: string;
+          employee_id: string;
+          owner_admin_id: string;
+          is_special?: boolean;
+          note?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          customer_id?: string;
+          employee_id?: string;
+          owner_admin_id?: string;
+          is_special?: boolean;
+          note?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       customer_employee_conversations: {
         Row: {
           created_at: string;
@@ -2815,6 +2845,31 @@ export interface Database {
           customer_count: number;
           employee_count: number;
         }>;
+      };
+      get_ccc_conversation_annotations: {
+        Args: { p_admin_session_token: string; p_owner_admin_id: string };
+        Returns: Array<{
+          customer_id: string;
+          employee_id: string;
+          is_special: boolean;
+          note: string | null;
+        }>;
+      };
+      update_ccc_conversation_annotation: {
+        Args: {
+          p_admin_session_token: string;
+          p_customer_id: string;
+          p_employee_id: string;
+          p_is_special: boolean | null;
+          p_note: string | null;
+          p_update_note: boolean;
+        };
+        Returns: {
+          customer_id: string;
+          employee_id: string;
+          is_special: boolean;
+          note: string | null;
+        };
       };
       get_ccc_conversation_summaries: {
         Args: { p_admin_id: string; p_source_type?: string };
