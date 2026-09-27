@@ -1122,32 +1122,32 @@ export default function DispatchManagement() {
             {groupSettingsOpen && selectedGroup && createPortal(
               <div className="fixed inset-0 z-[9990] flex flex-col items-center overflow-y-auto bg-slate-950/80 p-2 backdrop-blur-sm sm:p-4">
                 <div role="dialog" aria-modal="true" aria-label="分組設定" className="my-auto w-full max-w-6xl shrink-0 overflow-hidden rounded-2xl border border-indigo-300/30 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 shadow-[0_32px_90px_rgba(2,6,23,0.65)]">
-                  <div className="flex items-center justify-between gap-3 border-b border-indigo-300/20 bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 px-4 py-3 sm:px-6">
-                    <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3 border-b border-indigo-300/20 bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 px-4 py-3 sm:px-6">
+                    <div className="flex min-w-[150px] flex-1 items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-white/10 text-cyan-200"><Settings className="h-5 w-5" /></div>
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                          <h3 className="text-lg font-semibold text-white">分組設定</h3>
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-label="啟用分組"
-                            aria-checked={groupDraft.is_active}
-                            disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
-                            onClick={() => setPendingGroupActive(!groupDraft.is_active)}
-                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${groupDraft.is_active ? 'border-emerald-300/70 bg-emerald-500/25 text-emerald-50' : 'border-rose-300/70 bg-rose-500/25 text-rose-50'}`}
-                          >
-                            <span className={`relative h-5 w-9 shrink-0 rounded-full ${groupDraft.is_active ? 'bg-emerald-400' : 'bg-rose-400'}`} aria-hidden="true">
-                              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${groupDraft.is_active ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
-                            </span>
-                            {groupDraft.is_active ? '已啟用' : '未啟用'}
-                            {groupDraft.is_active !== selectedGroup.is_active && <span className="text-white/80">· 待儲存</span>}
-                          </button>
-                        </div>
+                        <h3 className="text-lg font-semibold text-white">分組設定</h3>
                         <p className="truncate text-xs text-blue-100/75">{groupDisplayName(selectedGroup)} · 調整派單與員工規則</p>
                       </div>
                     </div>
-                    <button type="button" onClick={() => setGroupSettingsOpen(false)} disabled={busy} aria-label="關閉分組設定" className="rounded-lg border border-white/10 bg-white/10 p-2 text-blue-100 transition-colors hover:bg-white/20 disabled:opacity-50"><X className="h-5 w-5" /></button>
+                    <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-label="啟用分組"
+                        aria-checked={groupDraft.is_active}
+                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                        onClick={() => setPendingGroupActive(!groupDraft.is_active)}
+                        className={`inline-flex min-h-10 items-center gap-2.5 rounded-xl border px-3 py-1.5 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-60 ${groupDraft.is_active ? 'border-emerald-300/60 bg-emerald-500/25 text-emerald-50 shadow-emerald-950/40 hover:bg-emerald-500/35' : 'border-rose-300/60 bg-rose-500/25 text-rose-50 shadow-rose-950/40 hover:bg-rose-500/35'}`}
+                      >
+                        <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${groupDraft.is_active ? 'bg-emerald-400' : 'bg-rose-500'}`} aria-hidden="true">
+                          <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-md transition-transform ${groupDraft.is_active ? 'translate-x-5' : ''}`} />
+                        </span>
+                        <span>{groupDraft.is_active ? '已啟用' : '未啟用'}</span>
+                        {groupDraft.is_active !== selectedGroup.is_active && <span className="text-xs text-white/80">· 待儲存</span>}
+                      </button>
+                      <button type="button" onClick={() => setGroupSettingsOpen(false)} disabled={busy} aria-label="關閉分組設定" className="shrink-0 rounded-lg border border-white/10 bg-white/10 p-2 text-blue-100 transition-colors hover:bg-white/20 disabled:opacity-50"><X className="h-5 w-5" /></button>
+                    </div>
                   </div>
                   <div className="dispatch-group-settings-fields px-4 py-4 sm:px-6">
                     <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
