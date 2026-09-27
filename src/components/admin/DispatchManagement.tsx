@@ -1020,9 +1020,12 @@ export default function DispatchManagement() {
                       onClick={() => switchGroup(group.id)}
                     >
                       <span className="flex min-w-0 items-start justify-between gap-1.5">
-                        <span className="flex min-w-0 flex-wrap items-center gap-1">
-                          <span className={`min-w-0 break-words text-sm font-semibold leading-5 ${selectedGroupId === group.id ? 'text-white' : 'text-slate-200'}`}>{groupDisplayName(group)}</span>
-                          {group.is_default && <span className="shrink-0 rounded bg-amber-400/20 px-1 text-[10px] leading-4 text-amber-100">預設</span>}
+                        <span className="min-w-0 flex-1">
+                          <span className="flex min-w-0 flex-wrap items-center gap-1">
+                            <span className={`min-w-0 break-words text-sm font-semibold leading-5 ${selectedGroupId === group.id ? 'text-white' : 'text-slate-200'}`}>{groupDisplayName(group)}</span>
+                            {group.is_default && <span className="shrink-0 rounded bg-amber-400/20 px-1 text-[10px] leading-4 text-amber-100">預設</span>}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[11px] leading-4 text-slate-300" title={groupDisplayDescription(group)}>{groupDisplayDescription(group)}</span>
                         </span>
                         <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 text-[10px] leading-5 ${group.archived_at ? 'bg-rose-500/20 text-rose-100' : group.is_active ? 'bg-emerald-500/20 text-emerald-100' : 'bg-amber-500/20 text-amber-100'}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${group.archived_at ? 'bg-rose-400' : group.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
