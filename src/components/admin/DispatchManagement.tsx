@@ -62,38 +62,38 @@ const poolSelectionOptions = [
     value: 'base',
     label: '固定基本池',
     description: '僅從基本池派單',
-    activeClass: 'border-blue-300 bg-blue-600/45 text-white ring-2 ring-blue-300 shadow-lg shadow-blue-950/50',
-    inactiveClass: 'border-blue-400/40 bg-blue-500/10 text-blue-100 hover:bg-blue-500/20',
+    activeClass: 'border-blue-200 bg-blue-600 text-white ring-2 ring-blue-200 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-blue-950/60',
+    inactiveClass: 'border-slate-700/60 bg-slate-950/30 text-blue-200/60 hover:border-blue-400/40 hover:bg-blue-500/10',
   },
   {
     value: 'random',
     label: '隨機選擇訂單池',
     description: '從已啟用的可派單池中抽取',
-    activeClass: 'border-violet-300 bg-violet-600/45 text-white ring-2 ring-violet-300 shadow-lg shadow-violet-950/50',
-    inactiveClass: 'border-violet-400/40 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20',
+    activeClass: 'border-violet-200 bg-violet-600 text-white ring-2 ring-violet-200 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-violet-950/60',
+    inactiveClass: 'border-slate-700/60 bg-slate-950/30 text-violet-200/60 hover:border-violet-400/40 hover:bg-violet-500/10',
   },
 ] as const;
 
 const withdrawalModeOptions = [
   {
     value: 'OR',
-    activeClass: 'border-amber-300 bg-amber-600/45 text-white ring-2 ring-amber-300 shadow-lg shadow-amber-950/50',
-    inactiveClass: 'border-amber-400/40 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20',
+    activeClass: 'border-amber-200 bg-amber-600 text-white ring-2 ring-amber-200 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-amber-950/60',
+    inactiveClass: 'border-slate-700/60 bg-slate-950/30 text-amber-200/60 hover:border-amber-400/40 hover:bg-amber-500/10',
   },
   {
     value: 'AND',
-    activeClass: 'border-violet-300 bg-violet-600/45 text-white ring-2 ring-violet-300 shadow-lg shadow-violet-950/50',
-    inactiveClass: 'border-violet-400/40 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20',
+    activeClass: 'border-violet-200 bg-violet-600 text-white ring-2 ring-violet-200 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-violet-950/60',
+    inactiveClass: 'border-slate-700/60 bg-slate-950/30 text-violet-200/60 hover:border-violet-400/40 hover:bg-violet-500/10',
   },
   {
     value: 'amount_only',
-    activeClass: 'border-emerald-300 bg-emerald-600/45 text-white ring-2 ring-emerald-300 shadow-lg shadow-emerald-950/50',
-    inactiveClass: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20',
+    activeClass: 'border-emerald-200 bg-emerald-600 text-white ring-2 ring-emerald-200 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-emerald-950/60',
+    inactiveClass: 'border-slate-700/60 bg-slate-950/30 text-emerald-200/60 hover:border-emerald-400/40 hover:bg-emerald-500/10',
   },
   {
     value: 'days_only',
-    activeClass: 'border-cyan-300 bg-cyan-600/45 text-white ring-2 ring-cyan-300 shadow-lg shadow-cyan-950/50',
-    inactiveClass: 'border-cyan-400/40 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/20',
+    activeClass: 'border-cyan-200 bg-cyan-600 text-white ring-2 ring-cyan-200 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-cyan-950/60',
+    inactiveClass: 'border-slate-700/60 bg-slate-950/30 text-cyan-200/60 hover:border-cyan-400/40 hover:bg-cyan-500/10',
   },
 ] as const;
 
