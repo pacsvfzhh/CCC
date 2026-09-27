@@ -10,7 +10,6 @@ import {
   Plus,
   RefreshCw,
   Save,
-  Search,
   Settings,
   Trash2,
   Upload,
@@ -337,7 +336,6 @@ export default function DispatchManagement() {
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const [memberPanelOpen, setMemberPanelOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
-  const [groupSearch, setGroupSearch] = useState('');
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [employeeAdminFilter, setEmployeeAdminFilter] = useState('all');
   const [employeeTagFilter, setEmployeeTagFilter] = useState('all');
@@ -1209,11 +1207,6 @@ export default function DispatchManagement() {
     }
   };
 
-  const visibleGroups = groups.filter(
-    (group) =>
-      groupDisplayName(group).toLowerCase().includes(groupSearch.toLowerCase()) ||
-      groupDisplayDescription(group).toLowerCase().includes(groupSearch.toLowerCase()),
-  );
   const visibleEmployees = employees.filter(
     (employee) =>
       employee.username.toLowerCase().includes(employeeSearch.toLowerCase()) &&
@@ -1313,18 +1306,8 @@ export default function DispatchManagement() {
                   </button>
                 )}
               </div>
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-blue-300/75" />
-                <input
-                  className="w-full min-w-0 rounded-xl border border-blue-400/25 bg-slate-950/65 py-2 pl-9 pr-3 text-sm text-white placeholder-slate-400 outline-none focus:border-cyan-400/70 focus:ring-2 focus:ring-cyan-400/20"
-                  value={groupSearch}
-                  onChange={(event) => setGroupSearch(event.target.value)}
-                  placeholder="搜尋分組"
-                  aria-label="搜尋分組"
-                />
-              </div>
               <div className="max-h-[min(70vh,780px)] space-y-2.5 overflow-y-auto pr-1">
-                {visibleGroups.map((group) => (
+                {groups.map((group) => (
                   <article
                     key={group.id}
                     className={`relative min-w-0 overflow-hidden rounded-lg border px-2.5 py-2 transition-colors ${selectedGroupId === group.id ? 'border-cyan-300 bg-gradient-to-br from-blue-900/90 via-indigo-950/95 to-cyan-900/85 shadow-[0_0_16px_rgba(34,211,238,0.2)] ring-1 ring-cyan-300/70 before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-cyan-300' : 'border-slate-700 bg-slate-950/70 hover:border-slate-500 hover:bg-slate-800/80'}`}
@@ -1374,13 +1357,13 @@ export default function DispatchManagement() {
                     </div>
                   </article>
                 ))}
-                {!visibleGroups.length && (
+                {!groups.length && (
                   <div className="flex min-h-44 flex-col items-center justify-center gap-2 px-3 py-8 text-center">
                     <Layers className="h-8 w-8 text-blue-300/60" />
                     <p className="text-sm font-medium text-blue-100">
-                      {workspaceLoading ? '正在載入分組…' : groupSearch ? '找不到符合條件的分組' : '尚未建立分組'}
+                      {workspaceLoading ? '正在載入分組…' : '尚未建立分組'}
                     </p>
-                    {!workspaceLoading && <p className="text-xs text-slate-400">{groupSearch ? '請試試其他搜尋關鍵字。' : '新增分組後即可在此管理訂單池。'}</p>}
+                    {!workspaceLoading && <p className="text-xs text-slate-400">新增分組後即可在此管理訂單池。</p>}
                   </div>
                 )}
               </div>
@@ -1653,7 +1636,7 @@ export default function DispatchManagement() {
               </div>, document.body,
             )}
 
-            {pendingGroupActive !== null && groupSettingsOpen && selectedGroup && createPortal(
+            {pendingGroupActive !== null && ((groupSettingsOpen && selectedGroup) || groupForm) && createPortal(
               <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
                 <div role="dialog" aria-modal="true" aria-labelledby="group-active-confirm-title" aria-describedby="group-active-confirm-note" className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-600/70 bg-slate-900 text-slate-100 shadow-[0_28px_80px_rgba(2,6,23,0.7)]">
                   <div className={`h-1 ${pendingGroupActive ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-rose-400 to-orange-500'}`} />
@@ -1664,7 +1647,7 @@ export default function DispatchManagement() {
                       </div>
                       <div className="min-w-0">
                         <h3 id="group-active-confirm-title" className="text-lg font-semibold text-white">確認{pendingGroupActive ? '啟用' : '停用'}分組</h3>
-                        <p className="mt-1 break-words text-sm text-slate-300">{groupDisplayName(selectedGroup)}</p>
+                        <p className="mt-1 break-words text-sm text-slate-300">{groupForm ? '新分組' : selectedGroup ? groupDisplayName(selectedGroup) : ''}</p>
                       </div>
                     </div>
                     <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-3 sm:px-4">
@@ -1678,7 +1661,7 @@ export default function DispatchManagement() {
                         <p className={`mt-1 text-sm font-semibold ${pendingGroupActive ? 'text-emerald-300' : 'text-rose-300'}`}>{pendingGroupActive ? '已啟用' : '未啟用'}</p>
                       </div>
                     </div>
-                    <p id="group-active-confirm-note" className="mt-4 border-l-2 border-blue-400 pl-3 text-sm leading-relaxed text-blue-100">確認後只會更新此表單，按「儲存分組設定」才正式生效。</p>
+                    <p id="group-active-confirm-note" className="mt-4 border-l-2 border-blue-400 pl-3 text-sm leading-relaxed text-blue-100">確認後只會更新此表單，按「{groupForm ? '儲存分組' : '儲存分組設定'}」才正式生效。</p>
                     <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                       <button type="button" className="min-h-10 rounded-lg border border-slate-600 bg-slate-800 px-5 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300" onClick={() => setPendingGroupActive(null)}>取消</button>
                       <button
@@ -2346,45 +2329,50 @@ export default function DispatchManagement() {
         )}
       </div>
 
-      {groupForm &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4">
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-label="建立分組"
-              className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-600 bg-slate-800 p-5 shadow-2xl"
-            >
-              <h3 className="mb-4 text-lg font-semibold">建立訂單分組</h3>
-              <div className="space-y-3">
-                <label className="block text-sm">
-                  分組名稱 *
-                  <input
-                    className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.group_name ?? ''}
-                    onChange={(event) =>
-                      setGroupDraft({
-                        ...groupDraft,
-                        group_name: event.target.value,
-                      })
-                    }
-                  />
-                </label>
-                <label className="block text-sm">
-                  說明
-                  <textarea
-                    className={`${inputClass} mt-1 min-h-20`}
-                    value={groupDraft.description ?? ''}
-                    onChange={(event) =>
-                      setGroupDraft({
-                        ...groupDraft,
-                        description: event.target.value,
-                      })
-                    }
-                  />
-                </label>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-violet-100">訂單池選擇模式</p>
+      {groupForm && createPortal(
+        <div className="fixed inset-0 z-[9990] flex flex-col items-center overflow-y-auto bg-slate-950/80 p-2 backdrop-blur-sm sm:p-4">
+          <div role="dialog" aria-modal="true" aria-label="建立分組" className="my-auto w-full max-w-7xl shrink-0 overflow-hidden rounded-2xl border border-indigo-300/30 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 shadow-[0_32px_90px_rgba(2,6,23,0.65)]">
+            <div className="flex flex-wrap items-center gap-3 border-b border-indigo-300/20 bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 px-4 py-3 sm:px-6">
+              <div className="flex min-w-[150px] flex-1 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-white/10 text-cyan-200"><FolderPlus className="h-5 w-5" /></div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold text-white">建立訂單分組</h3>
+                  <p className="text-xs text-blue-100/75">設定派單與員工規則，建立後自動新增基本池</p>
+                </div>
+              </div>
+              <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+                <button type="button" role="switch" aria-label="啟用新分組" aria-checked={groupDraft.is_active}
+                  disabled={busy} onClick={() => setPendingGroupActive(!groupDraft.is_active)}
+                  className={`inline-flex min-h-10 items-center gap-2.5 rounded-xl border px-3 py-1.5 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-60 ${groupDraft.is_active ? 'border-emerald-300/60 bg-emerald-500/25 text-emerald-50 shadow-emerald-950/40 hover:bg-emerald-500/35' : 'border-rose-300/60 bg-rose-500/25 text-rose-50 shadow-rose-950/40 hover:bg-rose-500/35'}`}>
+                  <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${groupDraft.is_active ? 'bg-emerald-400' : 'bg-rose-500'}`} aria-hidden="true">
+                    <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-md transition-transform ${groupDraft.is_active ? 'translate-x-5' : ''}`} />
+                  </span>
+                  <span>{groupDraft.is_active ? '已啟用' : '未啟用'}</span>
+                </button>
+                <button type="button" onClick={() => setGroupForm(null)} disabled={busy} aria-label="關閉新增分組" className="shrink-0 rounded-lg border border-white/10 bg-white/10 p-2 text-blue-100 transition-colors hover:bg-white/20 disabled:opacity-50"><X className="h-5 w-5" /></button>
+              </div>
+            </div>
+            <div className="dispatch-group-settings-fields px-4 py-4 sm:px-6">
+              <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
+                <div className="min-w-0 space-y-4">
+                  <section className="min-w-0 space-y-2">
+                    <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-400/20 text-xs font-bold text-sky-200">01</span><h4 className="font-semibold text-sky-100">基本資料</h4></div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-slate-200">
+                        分組名稱 *
+                        <input className={`${inputClass} mt-1 sm:ml-3 sm:max-w-40`} value={groupDraft.group_name ?? ''} disabled={busy}
+                          onChange={(event) => setGroupDraft({ ...groupDraft, group_name: event.target.value })} />
+                      </label>
+                      <label className="block text-sm font-medium text-slate-200">
+                        說明
+                        <textarea className={`${inputClass} mt-1 min-h-14 resize-y`} value={groupDraft.description ?? ''} disabled={busy}
+                          onChange={(event) => setGroupDraft({ ...groupDraft, description: event.target.value })} />
+                      </label>
+                    </div>
+                  </section>
+                  <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
+                    <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-400/20 text-xs font-bold text-violet-200">02</span><h4 className="font-semibold text-violet-100">訂單池設定</h4></div>
+                    <p className="text-sm font-medium text-violet-100">訂單池選擇模式</p>
                   <div role="group" aria-label="訂單池選擇模式" className="grid grid-cols-3 gap-2">
                     {poolSelectionOptions.map((option) => (
                       <button
@@ -2408,115 +2396,109 @@ export default function DispatchManagement() {
                       建立分組後會自動新增基本池，初始概率為 100%；新增其他池後，可在「分組設定」調整各池概率。
                     </p>
                   )}
+                  </section>
                 </div>
-                <label className="block text-sm">
-                  工作會話逾時（分鐘）
-                  <input type="number" min="1" max="60" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.session_timeout_minutes ?? ''}
-                    onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
-                </label>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="min-w-0 text-sm">
-                    提交等待時間 · 最短（秒）
-                    <input type="number" min="3" max="120" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.submit_wait_min_seconds ?? ''}
-                      onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_min_seconds: event.target.value })} />
-                  </label>
-                  <label className="min-w-0 text-sm">
-                    提交等待時間 · 最長（秒）
-                    <input type="number" min="3" max="300" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.submit_wait_max_seconds ?? ''}
-                      onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_max_seconds: event.target.value })} />
-                  </label>
+                <div className="min-w-0 space-y-4 lg:border-l lg:border-indigo-300/20 lg:pl-6">
+                  <section className="min-w-0 space-y-2">
+                    <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/20 text-xs font-bold text-cyan-200">03</span><h4 className="font-semibold text-cyan-100">工作與提交時間</h4></div>
+                    <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-5">
+                      <div className="min-w-0">
+                        <label className="block text-sm font-medium text-slate-200">
+                          <span className="block leading-5">工作會話逾時（分鐘）</span>
+                          <input type="number" min="1" max="60" className={`${inputClass} mt-1 block sm:max-w-40`}
+                            value={groupDraft.session_timeout_minutes ?? ''} disabled={busy}
+                            onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
+                        </label>
+                        <p className="mt-1 text-xs leading-relaxed text-cyan-100">接單後尚未提交的期限；已派訂單保留原設定。</p>
+                      </div>
+                      <div className="min-w-0" role="group" aria-labelledby="create-dispatch-submit-wait-label">
+                        <p id="create-dispatch-submit-wait-label" className="text-sm font-medium leading-5 text-slate-200">提交等待時間（秒）</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
+                          <label className="inline-flex items-center gap-2 whitespace-nowrap text-xs font-medium text-slate-200">
+                            最短
+                            <input type="number" min="3" max="120" className={`${inputClass} !w-20 !px-2`}
+                              value={groupDraft.submit_wait_min_seconds ?? ''} disabled={busy}
+                              onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_min_seconds: event.target.value })} />
+                          </label>
+                          <label className="inline-flex items-center gap-2 whitespace-nowrap text-xs font-medium text-slate-200">
+                            最長
+                            <input type="number" min="3" max="300" className={`${inputClass} !w-20 !px-2`}
+                              value={groupDraft.submit_wait_max_seconds ?? ''} disabled={busy}
+                              onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_max_seconds: event.target.value })} />
+                          </label>
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-cyan-100">僅影響提交頁動畫，不延長接單或處理期限。</p>
+                      </div>
+                    </div>
+                  </section>
+                  <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
+                    <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400/20 text-xs font-bold text-emerald-200">04</span><h4 className="font-semibold text-emerald-100">訂單收益與成功率</h4></div>
+                    <div className="grid min-w-0 gap-y-3 sm:grid-cols-3 sm:gap-x-5">
+                      <label className="min-w-0 text-sm font-medium text-slate-200">
+                        <span className="block leading-5">佣金率</span>
+                        <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1 sm:max-w-40`}
+                          value={groupDraft.commission_rate ?? ''} disabled={busy}
+                          onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
+                        <span className="mt-1 block text-xs font-normal leading-4 text-emerald-300 sm:max-w-40">小數比例：0.00008 = 0.008%；成功訂單計佣。</span>
+                      </label>
+                      <label className="min-w-0 text-sm font-medium text-slate-200">
+                        <span className="block leading-5">搶單成功率（%）</span>
+                        <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1 sm:max-w-40`}
+                          value={groupDraft.grab_success_rate ?? ''} disabled={busy}
+                          onChange={(event) => setGroupDraft({ ...groupDraft, grab_success_rate: event.target.value })} />
+                        <span className="mt-1 block text-xs font-normal leading-4 text-emerald-300 sm:max-w-40">僅影響接單；新派單保存機率。</span>
+                      </label>
+                      <label className="min-w-0 text-sm font-medium text-slate-200">
+                        <span className="block leading-5">提交後訂單成功率（%）</span>
+                        <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1 sm:max-w-40`}
+                          value={groupDraft.dispatch_success_rate ?? ''} disabled={busy}
+                          onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
+                        <span className="mt-1 block text-xs font-normal leading-4 text-teal-300 sm:max-w-40">僅影響訂單結果；提交時保存機率。</span>
+                      </label>
+                    </div>
+                  </section>
+                  <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
+                    <div className="flex flex-wrap items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-400/20 text-xs font-bold text-amber-200">05</span><h4 className="font-semibold text-amber-100">提款資格</h4><span className="ml-auto rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-100">建立後統計成員</span></div>
+                    <p className="text-xs leading-relaxed text-slate-300">依所屬分組判斷；員工人數由分組成員自動統計。</p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="min-w-0 text-sm font-medium text-slate-200">
+                        最低提款餘額
+                        <input type="number" min="0" max="999999999999.99" step="0.01" className={`${inputClass} mt-1 sm:ml-3 sm:max-w-40`}
+                          value={groupDraft.withdrawal_amount_threshold ?? ''} disabled={busy}
+                          onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_amount_threshold: event.target.value })} />
+                        <span className="mt-1 block text-xs font-normal leading-relaxed text-amber-200/90">按員工目前餘額是否達到此金額判斷。</span>
+                      </label>
+                      <label className="min-w-0 text-sm font-medium text-slate-200">
+                        最低訂單數
+                        <input type="number" min="1" max="1000000" step="1" className={`${inputClass} mt-1 sm:ml-3 sm:max-w-40`}
+                          value={groupDraft.withdrawal_orders_threshold ?? ''} disabled={busy}
+                          onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
+                        <span className="mt-1 block text-xs font-normal leading-relaxed text-amber-200/90">按所有狀態的訂單筆數計算。</span>
+                      </label>
+                    </div>
+                    <WithdrawalConditionPicker id="create-withdrawal-condition" value={groupDraft.withdrawal_condition_mode}
+                      disabled={busy} onChange={(mode) => setGroupDraft((current) => ({ ...current, withdrawal_condition_mode: mode }))} />
+                  </section>
                 </div>
-                <p className="text-xs text-slate-400">逾時從接單後計算；提交等待只影響動畫，新派訂單將保存當時設定。</p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="min-w-0 text-sm sm:col-span-2">
-                    佣金率
-                    <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1 sm:max-w-xs`}
-                      value={groupDraft.commission_rate ?? ''}
-                      onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
-                    <span className="mt-1 block text-xs text-emerald-300">小數比例，如 0.00008 = 0.008%</span>
-                  </label>
-                  <label className="min-w-0 text-sm">
-                    搶單成功率（%）
-                    <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.grab_success_rate ?? ''}
-                      onChange={(event) => setGroupDraft({ ...groupDraft, grab_success_rate: event.target.value })} />
-                    <span className="mt-1 block text-xs text-emerald-300">僅影響員工接單機率</span>
-                  </label>
-                  <label className="min-w-0 text-sm">
-                    提交後訂單成功率（%）
-                    <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.dispatch_success_rate ?? ''}
-                      onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
-                    <span className="mt-1 block text-xs text-teal-300">僅影響提交後訂單處理結果</span>
-                  </label>
-                </div>
-                <div className="space-y-3 rounded-lg border border-amber-400/20 bg-slate-900/40 p-3">
-                  <div className="text-sm font-medium text-amber-100">提款資格 · Employees（建立後依成員自動計數）</div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <label className="min-w-0 text-sm">
-                      最低提款餘額
-                      <input type="number" min="0" max="999999999999.99" step="0.01" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.withdrawal_amount_threshold ?? ''}
-                        onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_amount_threshold: event.target.value })} />
-                      <span className="mt-1 block text-xs font-normal text-slate-400">按員工目前餘額是否達到此金額判斷。</span>
-                    </label>
-                    <label className="min-w-0 text-sm">
-                      最低訂單數
-                      <input type="number" min="1" max="1000000" step="1" className={`${inputClass} mt-1 sm:max-w-40`}
-                                value={groupDraft.withdrawal_orders_threshold ?? ''}
-                        onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
-                      <span className="mt-1 block text-xs font-normal text-slate-400">按所有狀態的訂單筆數計算。</span>
-                    </label>
-                  </div>
-                  <div className="space-y-2">
-                    <WithdrawalConditionPicker
-                      id="create-withdrawal-condition"
-                      value={groupDraft.withdrawal_condition_mode}
-                      disabled={busy}
-                      onChange={(mode) => setGroupDraft((current) => ({ ...current, withdrawal_condition_mode: mode }))}
-                    />
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={groupDraft.is_active}
-                    onChange={(event) =>
-                      setGroupDraft({
-                        ...groupDraft,
-                        is_active: event.target.checked,
-                      })
-                    }
-                  />
-                  啟用分組
-                </label>
-                <p className="text-xs text-slate-400">
-                  建立分組時會自動建立基本池；建立後可獨立調整基本池設定。
-                </p>
               </div>
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  className={secondaryButton}
-                  disabled={busy}
-                  onClick={() => setGroupForm(null)}
-                >
-                  取消
-                </button>
-                <button
-                  className={primaryButton}
-                  disabled={busy || !groupDraft.group_name.trim()}
-                  onClick={() => void saveGroup()}
-                >
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-indigo-300/20 bg-slate-950/50 px-4 py-2.5 sm:px-6">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                <span className={`rounded-full px-2 py-1 ${groupDraft.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-200'}`}>{groupDraft.is_active ? '建立時啟用' : '建立時未啟用'}</span>
+                <span>基本池會在建立後自動新增。</span>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <button type="button" onClick={() => setGroupForm(null)} disabled={busy} className={`${secondaryButton} min-h-10`}>取消</button>
+                <button type="button" disabled={busy || !groupDraft.group_name.trim()} onClick={() => void saveGroup()}
+                  className="inline-flex min-h-10 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50">
+                  {busy ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   {busy ? '儲存中…' : '儲存分組'}
                 </button>
               </div>
             </div>
-          </div>,
-          document.body,
-        )}
+          </div>
+        </div>, document.body,
+      )}
 
       {poolForm &&
         selectedGroup &&
