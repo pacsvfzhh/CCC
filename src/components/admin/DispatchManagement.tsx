@@ -7,6 +7,7 @@ import {
   Layers,
   PackageSearch,
   Plus,
+  RefreshCw,
   Save,
   Search,
   Settings,
@@ -168,6 +169,7 @@ export default function DispatchManagement() {
     'all',
   );
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notification, setNotification] = useState<{
@@ -393,6 +395,22 @@ export default function DispatchManagement() {
       return false;
     } finally {
       if (requestId === ordersRequestRef.current) setOrdersLoading(false);
+    }
+  };
+
+  const refreshWorkspace = async () => {
+    setRefreshing(true);
+    try {
+      const [workspaceLoaded, ordersLoaded] = await Promise.all([
+        loadWorkspace(),
+        ordersOpen && selectedPool
+          ? loadOrders(selectedPool.id, page, orderFilter)
+          : Promise.resolve(true),
+      ]);
+      if (workspaceLoaded && ordersLoaded)
+        notify('success', '訂單指派資料已刷新。');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -946,9 +964,9 @@ export default function DispatchManagement() {
           </button>
         </div>
       )}
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-800/60 bg-gradient-to-r from-blue-950/70 via-slate-900/70 to-cyan-950/40 px-3 py-3 sm:px-4 lg:px-6">
-        <div>
-          <h2 className="text-lg font-semibold text-white">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cyan-800/60 bg-gradient-to-r from-blue-950/70 via-slate-900/70 to-cyan-950/40 px-3 py-1.5 sm:px-4 lg:px-5">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-white sm:text-base">
             訂單指派工作區
           </h2>
           {!isSuperAdmin && (
@@ -958,14 +976,14 @@ export default function DispatchManagement() {
           )}
         </div>
         <button
-          className={secondaryButton}
-          disabled={workspaceLoading || busy}
-          onClick={() => {
-            void loadWorkspace();
-            if (ordersOpen && selectedPool) void loadOrders(selectedPool.id, page);
-          }}
+          type="button"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
+          disabled={workspaceLoading || refreshing || busy}
+          aria-busy={refreshing}
+          onClick={() => void refreshWorkspace()}
         >
-          重新整理
+          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+          <span aria-live="polite">{refreshing ? '刷新中…' : '刷新'}</span>
         </button>
       </div>
 
