@@ -1057,9 +1057,6 @@ export default function DispatchManagement() {
                       <span className={`mt-1 block break-words text-[11px] font-medium leading-4 ${selectedGroupId === group.id ? 'text-cyan-50' : 'text-slate-300'}`}>
                         {group.pool_selection_mode === 'base' ? '固定基本池' : '隨機選擇可派單的訂單池'}
                       </span>
-                      <span className="mt-1 block text-[11px] leading-4 text-slate-300">
-                        逾時 {group.session_timeout_minutes} 分鐘 · 提交等待 {group.submit_wait_min_seconds}–{group.submit_wait_max_seconds} 秒
-                      </span>
                     </button>
                     <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-white/15 pt-2">
                       <button type="button" className="inline-flex min-w-0 items-center justify-center gap-1 rounded-md border border-cyan-400/45 bg-cyan-500/20 px-1 py-1 text-[11px] font-medium text-cyan-50 hover:bg-cyan-500/30" onClick={() => openGroupSettings(group)}><Settings className="h-3 w-3 shrink-0" />分組設定</button>

@@ -626,9 +626,10 @@ BEGIN
   FROM public.dispatch_assignments AS assignment
   LEFT JOIN public.dispatch_group_orders AS dispatch_order
     ON dispatch_order.id = assignment.dispatch_order_id
-  LEFT JOIN public.dispatch_order_pools AS pool ON pool.id = assignment.pool_id
+  LEFT JOIN public.dispatch_order_pools AS pool
+    ON pool.id = COALESCE(assignment.pool_id, dispatch_order.pool_id)
   LEFT JOIN public.dispatch_groups AS dispatch_group
-    ON dispatch_group.id = COALESCE(assignment.group_id, dispatch_order.group_id, pool.group_id)
+    ON dispatch_group.id = COALESCE(assignment.group_id, pool.group_id, dispatch_order.group_id)
   WHERE assignment.user_id = p_user_id AND assignment.status = 'accepted'
   ORDER BY assignment.assigned_at DESC, assignment.id DESC
   LIMIT 1 FOR UPDATE OF assignment;
@@ -657,6 +658,12 @@ BEGIN
     RETURN jsonb_build_object('available', true, 'min_seconds', v_min,
       'max_seconds', v_max, 'assignment_id', v_assignment.id,
       'assignment_code', v_assignment.assignment_code);
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM public.dispatch_assignments
+             WHERE user_id = p_user_id AND status = 'pending') THEN
+    RETURN jsonb_build_object('available', false,
+      'message', 'A dispatch assignment is awaiting acceptance.');
   END IF;
 
   SELECT dispatch_group.id, dispatch_group.submit_wait_min_seconds,

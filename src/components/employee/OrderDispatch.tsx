@@ -512,7 +512,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     const generation = lifecycleGenerationRef.current;
     if (!sessionId) return;
 
-    // The server snapshots the pool timeout on assignment; recovery returns the same value.
+    // Recovery retains the assignment's original group timeout snapshot.
     const timeoutMinutes = order.session_timeout_minutes ?? order.session_timeout_minutes_snapshot ?? configRef.current.session_timeout_minutes;
     const acceptedAt = new Date(order.accepted_at).getTime();
     const elapsedMs = Math.max(0, Date.now() - acceptedAt);
