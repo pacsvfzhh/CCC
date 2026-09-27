@@ -189,6 +189,7 @@ export interface Database {
           withdrawal_orders_threshold: number;
           withdrawal_condition_mode: 'OR' | 'AND' | 'amount_only' | 'days_only';
           dispatch_order_mode: 'random' | 'sequential';
+          grab_success_rate: number;
           dispatch_success_rate: number;
           is_default: boolean;
           is_active: boolean;
@@ -212,6 +213,7 @@ export interface Database {
           withdrawal_orders_threshold?: number;
           withdrawal_condition_mode?: 'OR' | 'AND' | 'amount_only' | 'days_only';
           dispatch_order_mode?: string | null;
+          grab_success_rate?: number;
           dispatch_success_rate?: number;
           is_default?: boolean | null;
           is_active?: boolean | null;
@@ -235,6 +237,7 @@ export interface Database {
           withdrawal_orders_threshold?: number;
           withdrawal_condition_mode?: 'OR' | 'AND' | 'amount_only' | 'days_only';
           dispatch_order_mode?: string | null;
+          grab_success_rate?: number;
           dispatch_success_rate?: number;
           is_default?: boolean | null;
           is_active?: boolean | null;
@@ -410,6 +413,7 @@ export interface Database {
           pool_id: string | null;
           order_content_snapshot: string | null;
           dispatch_success_rate_snapshot: number | null;
+          grab_success_rate_snapshot: number | null;
           commission_rate_snapshot: number | null;
           session_timeout_minutes_snapshot: number | null;
           submit_wait_min_seconds_snapshot: number | null;
@@ -432,6 +436,7 @@ export interface Database {
           pool_id?: string | null;
           order_content_snapshot?: string | null;
           dispatch_success_rate_snapshot?: number | null;
+          grab_success_rate_snapshot?: number | null;
           commission_rate_snapshot?: number | null;
           session_timeout_minutes_snapshot?: number | null;
           submit_wait_min_seconds_snapshot?: number | null;
@@ -454,6 +459,7 @@ export interface Database {
           pool_id?: string | null;
           order_content_snapshot?: string | null;
           dispatch_success_rate_snapshot?: number | null;
+          grab_success_rate_snapshot?: number | null;
           commission_rate_snapshot?: number | null;
           session_timeout_minutes_snapshot?: number | null;
           submit_wait_min_seconds_snapshot?: number | null;
@@ -2763,7 +2769,7 @@ export interface Database {
             dispatch_interval_max: number;
             session_timeout_minutes: number;
             dispatch_order_mode: 'random' | 'sequential';
-            dispatch_success_rate: number;
+            grab_success_rate: number;
           };
         };
       };

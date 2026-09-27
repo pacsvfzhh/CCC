@@ -40,6 +40,7 @@ interface DispatchGroup {
   submit_wait_min_seconds: number;
   submit_wait_max_seconds: number;
   commission_rate: number;
+  grab_success_rate: number;
   dispatch_success_rate: number;
   withdrawal_amount_threshold: number;
   withdrawal_orders_threshold: number;
@@ -255,6 +256,7 @@ type GroupDraft = Pick<
   submit_wait_min_seconds: string;
   submit_wait_max_seconds: string;
   commission_rate: string;
+  grab_success_rate: string;
   dispatch_success_rate: string;
   withdrawal_amount_threshold: string;
   withdrawal_orders_threshold: string;
@@ -279,6 +281,7 @@ const emptyGroupDraft: GroupDraft = {
   submit_wait_min_seconds: '5',
   submit_wait_max_seconds: '20',
   commission_rate: '0.001',
+  grab_success_rate: '100',
   dispatch_success_rate: '100',
   withdrawal_amount_threshold: '100',
   withdrawal_orders_threshold: '1000',
@@ -403,6 +406,7 @@ export default function DispatchManagement() {
     groupDraft.submit_wait_min_seconds !== String(selectedGroup.submit_wait_min_seconds) ||
     groupDraft.submit_wait_max_seconds !== String(selectedGroup.submit_wait_max_seconds) ||
     Number(groupDraft.commission_rate) !== selectedGroup.commission_rate ||
+    groupDraft.grab_success_rate !== String(selectedGroup.grab_success_rate) ||
     groupDraft.dispatch_success_rate !== String(selectedGroup.dispatch_success_rate) ||
     Number(groupDraft.withdrawal_amount_threshold) !== selectedGroup.withdrawal_amount_threshold ||
     groupDraft.withdrawal_orders_threshold !== String(selectedGroup.withdrawal_orders_threshold) ||
@@ -749,6 +753,7 @@ export default function DispatchManagement() {
       submit_wait_min_seconds: String(group.submit_wait_min_seconds),
       submit_wait_max_seconds: String(group.submit_wait_max_seconds),
       commission_rate: String(group.commission_rate),
+      grab_success_rate: String(group.grab_success_rate),
       dispatch_success_rate: String(group.dispatch_success_rate),
       withdrawal_amount_threshold: String(group.withdrawal_amount_threshold),
       withdrawal_orders_threshold: String(group.withdrawal_orders_threshold),
@@ -783,6 +788,7 @@ export default function DispatchManagement() {
     const waitMin = Number(groupDraft.submit_wait_min_seconds);
     const waitMax = Number(groupDraft.submit_wait_max_seconds);
     const commissionRate = Number(groupDraft.commission_rate);
+    const grabSuccessRate = Number(groupDraft.grab_success_rate);
     const successRate = Number(groupDraft.dispatch_success_rate);
     const withdrawalAmount = Number(groupDraft.withdrawal_amount_threshold);
     const withdrawalOrders = Number(groupDraft.withdrawal_orders_threshold);
@@ -793,8 +799,9 @@ export default function DispatchManagement() {
       return groupSaveFailed('提款門檻須為 0–999999999999.99，訂單數須為 1–1000000。');
     }
     if (!groupDraft.commission_rate.trim() || !Number.isFinite(commissionRate) || commissionRate < 0.00001 || commissionRate > 1 || !/^\d+(\.\d{1,8})?$/.test(groupDraft.commission_rate.trim()) ||
+        !groupDraft.grab_success_rate.trim() || !Number.isInteger(grabSuccessRate) || grabSuccessRate < 0 || grabSuccessRate > 100 ||
         !groupDraft.dispatch_success_rate.trim() || !Number.isInteger(successRate) || successRate < 0 || successRate > 100) {
-      return groupSaveFailed('佣金率須為 0.00001–1（最多 8 位小數），成功率須為 0–100%。');
+      return groupSaveFailed('佣金率須為 0.00001–1（最多 8 位小數），搶單與提交後成功率各須為 0–100% 的整數。');
     }
     if (!groupDraft.session_timeout_minutes.trim() || !Number.isInteger(timeout) || timeout < 1 || timeout > 60 ||
         !groupDraft.submit_wait_min_seconds.trim() || !Number.isInteger(waitMin) || waitMin < 3 || waitMin > 120 ||
@@ -843,6 +850,7 @@ export default function DispatchManagement() {
             submit_wait_min_seconds: waitMin,
             submit_wait_max_seconds: waitMax,
             commission_rate: commissionRate,
+            grab_success_rate: grabSuccessRate,
             dispatch_success_rate: successRate,
             withdrawal_amount_threshold: withdrawalAmount,
             withdrawal_orders_threshold: withdrawalOrders,
@@ -1292,6 +1300,7 @@ export default function DispatchManagement() {
                       setGroupDraft({
                         ...emptyGroupDraft,
                         commission_rate: String(defaultGroup?.commission_rate ?? 0.001),
+                        grab_success_rate: String(defaultGroup?.grab_success_rate ?? 100),
                         dispatch_success_rate: String(defaultGroup?.dispatch_success_rate ?? 100),
                         withdrawal_amount_threshold: String(defaultGroup?.withdrawal_amount_threshold ?? 100),
                         withdrawal_orders_threshold: String(defaultGroup?.withdrawal_orders_threshold ?? 1000),
@@ -1348,7 +1357,8 @@ export default function DispatchManagement() {
                       <span className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-1 border-t border-white/15 pt-1.5 text-[11px] leading-4">
                         <span className="min-w-0 truncate text-cyan-200">提交 <strong className="font-semibold text-white">{group.submit_wait_min_seconds == null || group.submit_wait_max_seconds == null ? '—' : `${group.submit_wait_min_seconds}–${group.submit_wait_max_seconds} 秒`}</strong></span>
                         <span className="min-w-0 truncate text-emerald-200">佣金 <strong className="font-semibold text-white">{group.commission_rate == null ? '—' : `${Number((group.commission_rate * 100).toFixed(6))}%`}</strong></span>
-                        <span className="col-span-2 text-emerald-200">成功率 <strong className="font-semibold text-white">{group.dispatch_success_rate == null ? '—' : `${group.dispatch_success_rate}%`}</strong></span>
+                        <span className="min-w-0 text-emerald-200">搶單 <strong className="font-semibold text-white">{`${group.grab_success_rate}%`}</strong></span>
+                        <span className="min-w-0 text-teal-200">提交後 <strong className="font-semibold text-white">{group.dispatch_success_rate == null ? '—' : `${group.dispatch_success_rate}%`}</strong></span>
                         <span className="col-span-2 grid grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)] gap-x-2">
                           <span className="min-w-0 break-words text-amber-200" title={`提款要求：${group.withdrawal_amount_threshold ?? '—'} ${currencyUnit}`}>
                             提款要求 <strong className="font-semibold text-white">{group.withdrawal_amount_threshold == null ? '—' : `${group.withdrawal_amount_threshold.toLocaleString('en-US', { maximumFractionDigits: 2 })} ${currencyUnit}`}</strong>
@@ -1521,22 +1531,30 @@ export default function DispatchManagement() {
                     <p className="text-xs text-cyan-100">僅影響提交頁進度動畫，不延長接單或實際處理期限。</p>
                         </section>
                         <section className="grid min-w-0 gap-2 border-t border-slate-700/70 pt-3 sm:grid-cols-2">
-                          <div className="flex items-center gap-2 sm:col-span-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400/20 text-xs font-bold text-emerald-200">04</span><h4 className="font-semibold text-emerald-100">訂單收益</h4></div>
-                    <label className="min-w-0 text-sm font-medium text-slate-200">
+                          <div className="flex items-center gap-2 sm:col-span-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400/20 text-xs font-bold text-emerald-200">04</span><h4 className="font-semibold text-emerald-100">訂單收益與成功率</h4></div>
+                    <label className="min-w-0 text-sm font-medium text-slate-200 sm:col-span-2">
                       佣金率
-                      <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1`}
+                      <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1 sm:max-w-xs`}
                         value={groupDraft.commission_rate}
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
                       <span className="mt-1 block text-xs font-normal leading-relaxed text-emerald-300">小數比例，例如 0.00008 = 0.008%；僅成功訂單計算佣金。</span>
                     </label>
                     <label className="min-w-0 text-sm font-medium text-slate-200">
-                      訂單成功率（%）
+                      搶單成功率（%）
+                      <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
+                        value={groupDraft.grab_success_rate}
+                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, grab_success_rate: event.target.value })} />
+                      <span className="mt-1 block text-xs font-normal text-emerald-300">僅影響員工接單；新派單保存此機率。</span>
+                    </label>
+                    <label className="min-w-0 text-sm font-medium text-slate-200">
+                      提交後訂單成功率（%）
                       <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
                         value={groupDraft.dispatch_success_rate}
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
-                      <span className="mt-1 block text-xs font-normal text-emerald-300">影響接單與訂單處理；新派單保存此分組的成功率。</span>
+                      <span className="mt-1 block text-xs font-normal text-teal-300">僅影響訂單處理結果；提交時保存此機率。</span>
                     </label>
                         </section>
                         <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
@@ -2403,19 +2421,26 @@ export default function DispatchManagement() {
                 </div>
                 <p className="text-xs text-slate-400">逾時從接單後計算；提交等待只影響動畫，新派訂單將保存當時設定。</p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="min-w-0 text-sm">
+                  <label className="min-w-0 text-sm sm:col-span-2">
                     佣金率
-                    <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1`}
+                    <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1 sm:max-w-xs`}
                       value={groupDraft.commission_rate}
                       onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
                     <span className="mt-1 block text-xs text-emerald-300">小數比例，如 0.00008 = 0.008%</span>
                   </label>
                   <label className="min-w-0 text-sm">
-                    訂單成功率（%）
+                    搶單成功率（%）
+                    <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
+                      value={groupDraft.grab_success_rate}
+                      onChange={(event) => setGroupDraft({ ...groupDraft, grab_success_rate: event.target.value })} />
+                    <span className="mt-1 block text-xs text-emerald-300">僅影響員工接單機率</span>
+                  </label>
+                  <label className="min-w-0 text-sm">
+                    提交後訂單成功率（%）
                     <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
                       value={groupDraft.dispatch_success_rate}
                       onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
-                    <span className="mt-1 block text-xs text-emerald-300">新派訂單採用此分組的成功率</span>
+                    <span className="mt-1 block text-xs text-teal-300">僅影響提交後訂單處理結果</span>
                   </label>
                 </div>
                 <div className="space-y-3 rounded-lg border border-amber-400/20 bg-slate-900/40 p-3">
