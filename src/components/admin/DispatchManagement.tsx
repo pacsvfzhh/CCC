@@ -540,6 +540,7 @@ export default function DispatchManagement() {
 
   const openGroupSettings = (group: DispatchGroup) => {
     switchGroup(group.id);
+    setNotification(null);
     setGroupDraft({
       group_name: groupDisplayName(group),
       description: group.description ? groupDisplayDescription(group) : '',
@@ -571,6 +572,7 @@ export default function DispatchManagement() {
 
   const saveGroup = async (form: 'create' | 'edit' = 'create') => {
     if (!isSuperAdmin) return;
+    if (form === 'edit') setNotification(null);
     if (form === 'edit' && !selectedGroup)
       return notify(
         'error',
@@ -636,13 +638,16 @@ export default function DispatchManagement() {
       if (form === 'create') setGroupForm(null);
       setSelectedGroupId(data.group.id);
       if (form === 'create') setSelectedPoolId(null);
-      if (await loadWorkspace())
+      if (await loadWorkspace()) {
         notify(
           'success',
           form === 'create'
             ? '已建立分組及專屬基本池。'
-            : '分組已儲存。',
+            : '分組設定已儲存成功。',
         );
+      } else {
+        notify('error', '分組已儲存，但重新載入資料失敗；請按「刷新」確認最新設定。');
+      }
     } catch (error) {
       notify('error', '儲存分組失敗：' + formatSupabaseError(error));
     } finally {
@@ -995,7 +1000,7 @@ export default function DispatchManagement() {
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col bg-slate-950/30 text-slate-100">
-      {notification && (
+      {notification && !groupSettingsOpen && (
         <div
           role="alert"
           className={`fixed right-4 top-4 z-[10000] flex max-w-[calc(100vw-2rem)] items-start gap-2 rounded-lg border px-4 py-3 text-sm shadow-2xl break-words ${notification.type === 'error' ? 'border-rose-500 bg-rose-950 text-rose-100' : 'border-emerald-500 bg-emerald-950 text-emerald-100'}`}
@@ -1164,7 +1169,7 @@ export default function DispatchManagement() {
                         <span>{groupDraft.is_active ? '已啟用' : '未啟用'}</span>
                         {groupDraft.is_active !== selectedGroup.is_active && <span className="text-xs text-white/80">· 待儲存</span>}
                       </button>
-                      <button type="button" onClick={() => setGroupSettingsOpen(false)} disabled={busy} aria-label="關閉分組設定" className="shrink-0 rounded-lg border border-white/10 bg-white/10 p-2 text-blue-100 transition-colors hover:bg-white/20 disabled:opacity-50"><X className="h-5 w-5" /></button>
+                      <button type="button" onClick={() => { setNotification(null); setGroupSettingsOpen(false); }} disabled={busy} aria-label="關閉分組設定" className="shrink-0 rounded-lg border border-white/10 bg-white/10 p-2 text-blue-100 transition-colors hover:bg-white/20 disabled:opacity-50"><X className="h-5 w-5" /></button>
                     </div>
                   </div>
                   <div className="dispatch-group-settings-fields px-4 py-4 sm:px-6">
@@ -1306,6 +1311,13 @@ export default function DispatchManagement() {
                       </div>
                     </div>
                   </div>
+                  {notification && (
+                    <div role="alert" className={`mx-4 mb-3 flex items-start gap-2 rounded-xl border px-3 py-2.5 text-sm sm:mx-6 ${notification.type === 'error' ? 'border-rose-400/50 bg-rose-500/15 text-rose-100' : 'border-emerald-400/50 bg-emerald-500/15 text-emerald-100'}`}>
+                      {notification.type === 'error' ? <XCircle className="mt-0.5 h-4 w-4 shrink-0" /> : <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />}
+                      <span className="min-w-0 flex-1 break-words">{notification.message}</span>
+                      <button type="button" onClick={() => setNotification(null)} aria-label="關閉儲存提示" className="shrink-0 rounded p-0.5 hover:bg-white/10"><X className="h-4 w-4" /></button>
+                    </div>
+                  )}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-indigo-300/20 bg-slate-950/50 px-4 py-2.5 sm:px-6">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     <span
@@ -1349,7 +1361,7 @@ export default function DispatchManagement() {
                     {isSuperAdmin && (
                       <button
                         className="inline-flex min-h-10 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={busy || !!selectedGroup.archived_at || !groupDraft.group_name.trim() || !groupDraftChanged}
+                        disabled={busy || !!selectedGroup.archived_at || !groupDraftChanged}
                         onClick={() => void saveGroup('edit')}
                       >
                         <Save className="mr-2 h-4 w-4" />
