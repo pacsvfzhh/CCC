@@ -1119,7 +1119,6 @@ export default function DispatchManagement() {
                         選池 · {group.pool_selection_mode === 'base' ? '固定基本池' : '隨機可派單池'}
                       </span>
                       <span className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-1 border-t border-white/15 pt-1.5 text-[11px] leading-4">
-                        <span className="min-w-0 truncate text-cyan-200">工作 <strong className="font-semibold text-white">{group.session_timeout_minutes == null ? '—' : `${group.session_timeout_minutes} 分`}</strong></span>
                         <span className="min-w-0 truncate text-cyan-200">提交 <strong className="font-semibold text-white">{group.submit_wait_min_seconds == null || group.submit_wait_max_seconds == null ? '—' : `${group.submit_wait_min_seconds}–${group.submit_wait_max_seconds} 秒`}</strong></span>
                         <span className="min-w-0 truncate text-emerald-200">佣金 <strong className="font-semibold text-white">{group.commission_rate == null ? '—' : `${Number((group.commission_rate * 100).toFixed(6))}%`}</strong></span>
                         <span className="min-w-0 truncate text-emerald-200">成功率 <strong className="font-semibold text-white">{group.dispatch_success_rate == null ? '—' : `${group.dispatch_success_rate}%`}</strong></span>
@@ -1127,7 +1126,7 @@ export default function DispatchManagement() {
                           提款 <strong className="font-semibold text-white">{group.withdrawal_amount_threshold == null ? '—' : group.withdrawal_amount_threshold.toLocaleString('en-US', { maximumFractionDigits: 2 })}</strong>
                         </span>
                         <span className="min-w-0 truncate text-amber-200">訂單 <strong className="font-semibold text-white">{group.withdrawal_orders_threshold ?? '—'}</strong></span>
-                        <span className="col-span-2 text-amber-200">提款條件 <strong className="font-semibold text-white">{withdrawalModeLabels[group.withdrawal_condition_mode] ?? '—'}</strong></span>
+                        <span className="min-w-0 truncate text-amber-200" title={`提款條件：${withdrawalModeLabels[group.withdrawal_condition_mode] ?? '—'}`}>提款條件 <strong className="font-semibold text-white">{withdrawalModeLabels[group.withdrawal_condition_mode] ?? '—'}</strong></span>
                       </span>
                     </button>
                     <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-white/15 pt-2">
