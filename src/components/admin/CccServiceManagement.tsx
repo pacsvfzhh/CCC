@@ -4196,7 +4196,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                               {annotation?.note && <p className={`min-w-0 flex-1 truncate text-right text-[10px] text-cyan-300 ${hasUnread ? 'pr-9' : ''}`} title={annotation.note}>備註：{annotation.note}</p>}
                             </div>
                             {hasUnread && (
-                              <div className="pointer-events-none absolute right-3 top-1/2 z-10 flex h-[30px] min-w-[30px] -translate-y-1/2 items-center justify-center rounded-full border-2 border-slate-900 bg-gradient-to-br from-orange-500 to-red-500 px-2 shadow-md shadow-orange-500/40">
+                              <div className="manager-unread-badge pointer-events-none absolute right-3 top-1/2 z-10 flex h-[30px] min-w-[30px] -translate-y-1/2 items-center justify-center rounded-full border-2 border-slate-900 bg-gradient-to-br from-orange-500 to-red-500 px-2 shadow-md shadow-orange-500/40">
                                 <span className="text-[12px] font-black leading-none text-white drop-shadow-sm">{history.unread_count > 99 ? '99+' : history.unread_count}</span>
                               </div>
                             )}

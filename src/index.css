@@ -333,6 +333,19 @@
   50% { opacity: 0.5; }
 }
 
+@keyframes managerUnreadBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.manager-unread-badge {
+  animation: managerUnreadBlink 1.25s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-unread-badge { animation: none; }
+}
+
 .message-content-dark {
   color: #0f172a !important;
 }

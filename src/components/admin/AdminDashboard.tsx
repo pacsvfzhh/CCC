@@ -1371,7 +1371,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="text-[11px] font-medium truncate">{tab.label}</span>
                     {showBadge && (
-                      <span className={`ml-auto flex items-center justify-center min-w-[20px] h-[20px] px-1 text-xs font-bold rounded-full shadow-lg animate-pulse ${
+                      <span className={`ml-auto flex items-center justify-center min-w-[20px] h-[20px] px-1 text-xs font-bold rounded-full shadow-lg ${tab.id === 'cccservice' ? 'manager-unread-badge' : 'animate-pulse'} ${
                         tab.id === 'customerservice'
                           ? 'bg-white text-orange-600'
                           : tab.id === 'cccservice'
@@ -1450,7 +1450,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                     <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="text-xs font-semibold">{tab.label}</span>
                     {showBadge && (
-                      <span className={`flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold rounded-full shadow-lg animate-pulse ${
+                      <span className={`flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold rounded-full shadow-lg ${tab.id === 'cccservice' ? 'manager-unread-badge' : 'animate-pulse'} ${
                         tab.id === 'customerservice'
                           ? 'bg-white text-orange-600'
                           : tab.id === 'cccservice'
