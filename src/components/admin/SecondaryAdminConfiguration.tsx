@@ -11,7 +11,6 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
   const [formValues, setFormValues] = useState({
     company_name: '',
     currency_unit: '',
-
     withdrawal_amount_threshold: '',
     withdrawal_days_threshold: '',
     withdrawal_condition_mode: '',
@@ -19,7 +18,6 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
   const [globalDefaults, setGlobalDefaults] = useState({
     company_name: '',
     currency_unit: '',
-
     withdrawal_amount_threshold: '',
     withdrawal_days_threshold: '',
     withdrawal_condition_mode: '',

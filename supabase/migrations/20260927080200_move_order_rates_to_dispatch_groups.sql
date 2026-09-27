@@ -85,8 +85,12 @@ BEGIN
       ON dispatch_group.id = COALESCE(assignment.group_id, pool.group_id, dispatch_order.group_id)
     WHERE assignment.assignment_id = NEW.assignment_id AND assignment.user_id = NEW.user_id
       AND assignment.status = 'accepted' AND assignment.order_submitted = false
+      AND assignment.accepted_at + make_interval(mins => COALESCE(
+        assignment.session_timeout_minutes_snapshot, dispatch_group.session_timeout_minutes, 10)) > now()
     FOR SHARE OF assignment, dispatch_group;
   ELSE
+    PERFORM 1 FROM public.users WHERE id = NEW.user_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Order employee not found.'; END IF;
     IF EXISTS (SELECT 1 FROM public.dispatch_assignments
                WHERE user_id = NEW.user_id AND status IN ('pending', 'accepted')) THEN
       RAISE EXCEPTION 'Resolve active dispatch assignment before direct submission.';
@@ -120,8 +124,10 @@ SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
 BEGIN
   IF NEW.dispatch_commission_rate_snapshot IS DISTINCT FROM OLD.dispatch_commission_rate_snapshot
-     OR NEW.dispatch_success_rate_snapshot IS DISTINCT FROM OLD.dispatch_success_rate_snapshot THEN
-    RAISE EXCEPTION 'Order dispatch rate snapshots cannot be changed.';
+     OR NEW.dispatch_success_rate_snapshot IS DISTINCT FROM OLD.dispatch_success_rate_snapshot
+     OR NEW.user_id IS DISTINCT FROM OLD.user_id
+     OR NEW.assignment_id IS DISTINCT FROM OLD.assignment_id THEN
+    RAISE EXCEPTION 'Order dispatch rate snapshots and source cannot be changed.';
   END IF;
   RETURN NEW;
 END;

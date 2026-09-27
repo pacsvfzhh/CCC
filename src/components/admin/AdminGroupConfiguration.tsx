@@ -33,7 +33,6 @@ export default function AdminGroupConfiguration() {
   const [formValues, setFormValues] = useState<ConfigFormValues>({
     company_name: '',
     currency_unit: '',
-
     withdrawal_amount_threshold: '',
     withdrawal_days_threshold: '',
     withdrawal_condition_mode: '',
@@ -41,7 +40,6 @@ export default function AdminGroupConfiguration() {
   const [globalDefaults, setGlobalDefaults] = useState<ConfigFormValues>({
     company_name: '',
     currency_unit: '',
-
     withdrawal_amount_threshold: '',
     withdrawal_days_threshold: '',
     withdrawal_condition_mode: '',
