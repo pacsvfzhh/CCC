@@ -1023,7 +1023,7 @@ export default function DispatchManagement() {
                 {visibleGroups.map((group) => (
                   <article
                     key={group.id}
-                    className={`relative min-w-0 overflow-hidden rounded-lg border px-2.5 py-2 transition-colors ${selectedGroupId === group.id ? 'border-cyan-300 bg-gradient-to-br from-blue-700/85 via-blue-800/75 to-cyan-900/70 shadow-[0_0_18px_rgba(34,211,238,0.28)] ring-1 ring-cyan-300/70 before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-cyan-300' : 'border-slate-700 bg-slate-950/70 hover:border-slate-500 hover:bg-slate-800/80'}`}
+                    className={`relative min-w-0 overflow-hidden rounded-lg border px-2.5 py-2 transition-colors ${selectedGroupId === group.id ? 'border-cyan-300 bg-gradient-to-br from-blue-950/95 via-slate-950/95 to-cyan-950/85 shadow-[0_0_16px_rgba(34,211,238,0.2)] ring-1 ring-cyan-300/70 before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-cyan-300' : 'border-slate-700 bg-slate-950/70 hover:border-slate-500 hover:bg-slate-800/80'}`}
                   >
                     <button
                       type="button"
