@@ -51,10 +51,10 @@ interface DispatchGroup {
 }
 
 const withdrawalModeLabels: Record<DispatchGroup['withdrawal_condition_mode'], string> = {
-  OR: '任一達標',
-  AND: '全部達標',
-  amount_only: '僅餘額',
-  days_only: '僅訂單數',
+  OR: '餘額或訂單數任一達標',
+  AND: '餘額與訂單數均須達標',
+  amount_only: '僅檢查餘額是否達標',
+  days_only: '僅檢查訂單數是否達標',
 };
 
 interface DispatchPool {
