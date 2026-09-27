@@ -1118,21 +1118,21 @@ export default function DispatchManagement() {
             </section>
 
             {groupSettingsOpen && selectedGroup && createPortal(
-              <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-slate-950/80 p-2 backdrop-blur-sm sm:p-4">
-                <div role="dialog" aria-modal="true" aria-label="分組設定" className="flex max-h-[calc(100dvh-16px)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-indigo-300/30 bg-slate-900 shadow-[0_32px_90px_rgba(2,6,23,0.65)] sm:max-h-[calc(100dvh-32px)]">
-                  <div className="flex shrink-0 items-center justify-between gap-3 border-b border-indigo-300/20 bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 px-4 py-3.5 sm:px-6 sm:py-4">
+              <div className="fixed inset-0 z-[9990] flex flex-col items-center overflow-y-auto bg-slate-950/80 p-2 backdrop-blur-sm sm:p-4">
+                <div role="dialog" aria-modal="true" aria-label="分組設定" className="my-auto w-full max-w-6xl shrink-0 overflow-hidden rounded-2xl border border-indigo-300/30 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 shadow-[0_32px_90px_rgba(2,6,23,0.65)]">
+                  <div className="flex items-center justify-between gap-3 border-b border-indigo-300/20 bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 px-4 py-3 sm:px-6">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-white/10 text-cyan-200"><Settings className="h-5 w-5" /></div>
                       <div className="min-w-0"><h3 className="text-lg font-semibold text-white">分組設定</h3><p className="truncate text-xs text-blue-100/75">{groupDisplayName(selectedGroup)} · 調整派單與員工規則</p></div>
                     </div>
                     <button type="button" onClick={() => setGroupSettingsOpen(false)} disabled={busy} aria-label="關閉分組設定" className="rounded-lg border border-white/10 bg-white/10 p-2 text-blue-100 transition-colors hover:bg-white/20 disabled:opacity-50"><X className="h-5 w-5" /></button>
                   </div>
-                  <div className="dispatch-group-settings-fields dark-panel-scroll min-h-0 overflow-y-auto p-3 sm:p-5">
-                    <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+                  <div className="dispatch-group-settings-fields px-4 py-4 sm:px-6">
+                    <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
                       <div className="min-w-0 space-y-4">
-                        <section className="min-w-0 rounded-2xl border border-sky-400/30 bg-gradient-to-br from-sky-500/15 via-sky-900/20 to-slate-800/60 p-4 sm:p-5">
-                          <div className="mb-4 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-400/20 text-xs font-bold text-sky-200">01</span><h4 className="font-semibold text-sky-100">基本資料</h4></div>
-                          <div className="space-y-3">
+                        <section className="min-w-0 space-y-2">
+                          <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-400/20 text-xs font-bold text-sky-200">01</span><h4 className="font-semibold text-sky-100">基本資料</h4></div>
+                          <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-200">
                       分組名稱
                       <input
@@ -1145,13 +1145,13 @@ export default function DispatchManagement() {
                     <label className="block text-sm font-medium text-slate-200">
                       說明
                       <textarea
-                        className={`${inputClass} mt-1 min-h-20`}
+                        className={`${inputClass} mt-1 min-h-14 resize-y`}
                         value={groupDraft.description}
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, description: event.target.value })}
                       />
                     </label>
-                    <label className="flex items-center gap-2 rounded-xl border border-sky-300/20 bg-sky-400/10 px-3 py-2.5 text-sm font-medium text-sky-100">
+                    <label className="flex items-center gap-2 text-sm font-medium text-sky-100">
                       <input
                         type="checkbox"
                         className="h-4 w-4 accent-sky-500"
@@ -1163,15 +1163,15 @@ export default function DispatchManagement() {
                     </label>
                   </div>
                         </section>
-                        <section className="min-w-0 rounded-2xl border border-violet-400/30 bg-gradient-to-br from-violet-500/15 via-indigo-900/20 to-slate-800/60 p-4 sm:p-5">
-                          <div className="mb-3 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-400/20 text-xs font-bold text-violet-200">02</span><h4 className="font-semibold text-violet-100">訂單池設定</h4></div>
+                        <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
+                          <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-400/20 text-xs font-bold text-violet-200">02</span><h4 className="font-semibold text-violet-100">訂單池設定</h4></div>
                     <label
                       htmlFor="pool-selection-mode"
                       className="block text-sm font-medium"
                     >
                       訂單池選擇模式
                     </label>
-                    <p className="mb-3 mt-1 text-xs leading-relaxed text-slate-300">
+                    <p className="text-xs leading-relaxed text-slate-300">
                       固定基本池僅從基本池派單；隨機模式會從有可派訂單的已啟用訂單池中抽取。
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
@@ -1191,7 +1191,7 @@ export default function DispatchManagement() {
                       </select>
                     </div>
                         </section>
-                        <section className="min-w-0 space-y-3 rounded-2xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/15 via-teal-900/20 to-slate-800/60 p-4 sm:p-5">
+                        <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
                           <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/20 text-xs font-bold text-cyan-200">03</span><h4 className="font-semibold text-cyan-100">工作與提交時間</h4></div>
                     <label className="block text-sm font-medium text-slate-200">
                       工作會話逾時（分鐘）
@@ -1201,7 +1201,7 @@ export default function DispatchManagement() {
                         onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
                     </label>
                     <p className="text-xs leading-relaxed text-slate-300">接單後尚未提交的期限；已派訂單保留原設定。</p>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <label className="min-w-0 text-sm font-medium text-slate-200">
                         提交等待時間 · 最短（秒）
                         <input type="number" min="3" max="120" className={`${inputClass} mt-1`}
@@ -1220,8 +1220,8 @@ export default function DispatchManagement() {
                     <p className="text-xs text-slate-300">僅影響提交頁進度動畫，不延長接單或實際處理期限。</p>
                         </section>
                       </div>
-                      <div className="min-w-0 space-y-4">
-                        <section className="grid min-w-0 gap-3 rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-500/15 via-green-900/20 to-slate-800/60 p-4 sm:grid-cols-2 sm:p-5">
+                      <div className="min-w-0 space-y-4 lg:border-l lg:border-indigo-300/20 lg:pl-6">
+                        <section className="grid min-w-0 gap-2 sm:grid-cols-2">
                           <div className="flex items-center gap-2 sm:col-span-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400/20 text-xs font-bold text-emerald-200">04</span><h4 className="font-semibold text-emerald-100">訂單收益</h4></div>
                     <label className="min-w-0 text-sm font-medium text-slate-200">
                       Commission · 佣金率
@@ -1240,7 +1240,7 @@ export default function DispatchManagement() {
                       <span className="mt-1 block text-xs font-normal text-slate-300">影響接單與訂單處理；新派單保存此分組的成功率。</span>
                     </label>
                         </section>
-                        <section className="min-w-0 space-y-3 rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-500/15 via-orange-900/20 to-slate-800/60 p-4 sm:p-5">
+                        <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
                     <div className="flex flex-wrap items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-400/20 text-xs font-bold text-amber-200">05</span><h4 className="font-semibold text-amber-100">提款資格</h4><span className="ml-auto rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-100">{selectedGroup.member_count} 位員工</span></div>
                     <p className="text-xs leading-relaxed text-slate-300">依目前所屬分組判斷；員工人數由分組成員自動統計。</p>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1259,7 +1259,7 @@ export default function DispatchManagement() {
                           onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
                       </label>
                     </div>
-                    <p className="rounded-lg border border-amber-400/15 bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-amber-100/90">原「Min Days」實際按訂單筆數計算（沿用現有所有狀態的訂單數），不是天數。</p>
+                    <p className="text-xs leading-relaxed text-amber-200/90">原「Min Days」實際按訂單筆數計算（沿用現有所有狀態的訂單數），不是天數。</p>
                     <label className="block text-sm font-medium text-slate-200">
                       提款條件組合
                       <select className={`${inputClass} mt-1`} value={groupDraft.withdrawal_condition_mode}
@@ -1275,7 +1275,7 @@ export default function DispatchManagement() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-700 bg-slate-950/95 px-4 py-3 sm:px-6">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-indigo-300/20 bg-slate-950/50 px-4 py-2.5 sm:px-6">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     <span
                       className={`rounded-full px-2 py-1 ${selectedGroup.archived_at ? 'bg-rose-500/20 text-rose-300' : selectedGroup.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-300'}`}
