@@ -184,6 +184,7 @@ export interface Database {
           session_timeout_minutes: number;
           submit_wait_min_seconds: number;
           submit_wait_max_seconds: number;
+          commission_rate: number;
           dispatch_order_mode: 'random' | 'sequential';
           dispatch_success_rate: number;
           is_default: boolean;
@@ -203,6 +204,7 @@ export interface Database {
           session_timeout_minutes?: number;
           submit_wait_min_seconds?: number;
           submit_wait_max_seconds?: number;
+          commission_rate?: number;
           dispatch_order_mode?: string | null;
           dispatch_success_rate?: number;
           is_default?: boolean | null;
@@ -222,6 +224,7 @@ export interface Database {
           session_timeout_minutes?: number;
           submit_wait_min_seconds?: number;
           submit_wait_max_seconds?: number;
+          commission_rate?: number;
           dispatch_order_mode?: string | null;
           dispatch_success_rate?: number;
           is_default?: boolean | null;
@@ -395,6 +398,7 @@ export interface Database {
           pool_id: string | null;
           order_content_snapshot: string | null;
           dispatch_success_rate_snapshot: number | null;
+          commission_rate_snapshot: number | null;
           session_timeout_minutes_snapshot: number | null;
           submit_wait_min_seconds_snapshot: number | null;
           submit_wait_max_seconds_snapshot: number | null;
@@ -416,6 +420,7 @@ export interface Database {
           pool_id?: string | null;
           order_content_snapshot?: string | null;
           dispatch_success_rate_snapshot?: number | null;
+          commission_rate_snapshot?: number | null;
           session_timeout_minutes_snapshot?: number | null;
           submit_wait_min_seconds_snapshot?: number | null;
           submit_wait_max_seconds_snapshot?: number | null;
@@ -437,6 +442,7 @@ export interface Database {
           pool_id?: string | null;
           order_content_snapshot?: string | null;
           dispatch_success_rate_snapshot?: number | null;
+          commission_rate_snapshot?: number | null;
           session_timeout_minutes_snapshot?: number | null;
           submit_wait_min_seconds_snapshot?: number | null;
           submit_wait_max_seconds_snapshot?: number | null;
@@ -1357,6 +1363,8 @@ export interface Database {
           status: 'processing' | 'success' | 'failure';
           commission_amount: number | null;
           commission_rate: number | null;
+          dispatch_commission_rate_snapshot: number | null;
+          dispatch_success_rate_snapshot: number | null;
           processed_at: string | null;
           scheduled_process_at: string | null;
           assignment_id: string | null;
@@ -1373,6 +1381,8 @@ export interface Database {
           status?: 'processing' | 'success' | 'failure';
           commission_amount?: number | null;
           commission_rate?: number | null;
+          dispatch_commission_rate_snapshot?: number | null;
+          dispatch_success_rate_snapshot?: number | null;
           processed_at?: string | null;
           scheduled_process_at?: string | null;
           assignment_id?: string | null;
@@ -1389,6 +1399,8 @@ export interface Database {
           status?: 'processing' | 'success' | 'failure';
           commission_amount?: number | null;
           commission_rate?: number | null;
+          dispatch_commission_rate_snapshot?: number | null;
+          dispatch_success_rate_snapshot?: number | null;
           processed_at?: string | null;
           scheduled_process_at?: string | null;
           assignment_id?: string | null;

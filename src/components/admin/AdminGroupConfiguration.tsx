@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, ArrowLeft, Users, TrendingUp, DollarSign, Calendar, Building2, CheckCircle, XCircle, Shield, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, ArrowLeft, Users, DollarSign, Calendar, Building2, CheckCircle, XCircle, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface AdminGroup {
@@ -10,8 +10,6 @@ interface AdminGroup {
   configs: {
     company_name?: string;
     currency_unit?: string;
-    commission_rate?: string;
-    success_rate?: string;
     withdrawal_amount_threshold?: string;
     withdrawal_days_threshold?: string;
     withdrawal_condition_mode?: string;
@@ -22,8 +20,6 @@ interface AdminGroup {
 interface ConfigFormValues {
   company_name: string;
   currency_unit: string;
-  commission_rate: string;
-  success_rate: string;
   withdrawal_amount_threshold: string;
   withdrawal_days_threshold: string;
   withdrawal_condition_mode: string;
@@ -37,8 +33,7 @@ export default function AdminGroupConfiguration() {
   const [formValues, setFormValues] = useState<ConfigFormValues>({
     company_name: '',
     currency_unit: '',
-    commission_rate: '',
-    success_rate: '',
+
     withdrawal_amount_threshold: '',
     withdrawal_days_threshold: '',
     withdrawal_condition_mode: '',
@@ -46,8 +41,7 @@ export default function AdminGroupConfiguration() {
   const [globalDefaults, setGlobalDefaults] = useState<ConfigFormValues>({
     company_name: '',
     currency_unit: '',
-    commission_rate: '',
-    success_rate: '',
+
     withdrawal_amount_threshold: '',
     withdrawal_days_threshold: '',
     withdrawal_condition_mode: '',
@@ -125,8 +119,6 @@ export default function AdminGroupConfiguration() {
       setGlobalDefaults({
         company_name: defaults.company_name || '',
         currency_unit: defaults.currency_unit || 'USDC',
-        commission_rate: defaults.commission_rate || '',
-        success_rate: defaults.success_rate || '',
         withdrawal_amount_threshold: defaults.withdrawal_amount_threshold || '',
         withdrawal_days_threshold: defaults.withdrawal_days_threshold || '',
         withdrawal_condition_mode: defaults.withdrawal_condition_mode || '',
@@ -153,7 +145,8 @@ export default function AdminGroupConfiguration() {
       const { data: configsData, error: configsError } = await supabase
         .from('admin_configs')
         .select('admin_id, config_type, config_value')
-        .not('admin_id', 'is', null);
+        .not('admin_id', 'is', null)
+        .in('config_type', ['company_name', 'currency_unit', 'withdrawal_amount_threshold', 'withdrawal_days_threshold', 'withdrawal_condition_mode']);
 
       if (configsError) throw configsError;
 
@@ -202,8 +195,6 @@ export default function AdminGroupConfiguration() {
     setFormValues({
       company_name: group.configs.company_name || globalDefaults.company_name,
       currency_unit: group.configs.currency_unit || globalDefaults.currency_unit || 'USDT',
-      commission_rate: group.configs.commission_rate || globalDefaults.commission_rate,
-      success_rate: group.configs.success_rate || globalDefaults.success_rate,
       withdrawal_amount_threshold: group.configs.withdrawal_amount_threshold || globalDefaults.withdrawal_amount_threshold,
       withdrawal_days_threshold: group.configs.withdrawal_days_threshold || globalDefaults.withdrawal_days_threshold,
       withdrawal_condition_mode: group.configs.withdrawal_condition_mode || globalDefaults.withdrawal_condition_mode || 'OR',
@@ -223,10 +214,12 @@ export default function AdminGroupConfiguration() {
         }
       }
 
-      await supabase
+      const { error: deleteError } = await supabase
         .from('admin_configs')
         .delete()
-        .eq('admin_id', selectedGroup.id);
+        .eq('admin_id', selectedGroup.id)
+        .in('config_type', Object.keys(formValues));
+      if (deleteError) throw deleteError;
 
       const configRecords = Object.entries(formValues).map(([configType, configValue]) => ({
         admin_id: selectedGroup.id,
@@ -304,7 +297,8 @@ export default function AdminGroupConfiguration() {
       const { error } = await supabase
         .from('admin_configs')
         .delete()
-        .eq('admin_id', deleteTargetId);
+        .eq('admin_id', deleteTargetId)
+        .in('config_type', Object.keys(formValues));
 
       if (error) throw error;
 
@@ -420,18 +414,6 @@ export default function AdminGroupConfiguration() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                <div className="text-xs text-slate-400 mb-1">Commission Rate</div>
-                <div className="text-lg font-bold text-white">
-                  {(parseFloat(selectedGroup.configs.commission_rate || globalDefaults.commission_rate || '0') * 100).toFixed(3)}%
-                </div>
-              </div>
-              <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                <div className="text-xs text-slate-400 mb-1">Success Rate</div>
-                <div className="text-lg font-bold text-white">
-                  {(parseFloat(selectedGroup.configs.success_rate || globalDefaults.success_rate || '0') * 100).toFixed(0)}%
-                </div>
-              </div>
-              <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
                 <div className="text-xs text-slate-400 mb-1">Withdrawal Amount</div>
                 <div className="text-lg font-bold text-white">
                   {selectedGroup.configs.withdrawal_amount_threshold || globalDefaults.withdrawal_amount_threshold || '0'} {selectedGroup.configs.currency_unit || globalDefaults.currency_unit || 'USDT'}
@@ -512,52 +494,6 @@ export default function AdminGroupConfiguration() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Commission Rate
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.00001"
-                    min="0.00001"
-                    max="1"
-                    value={formValues.commission_rate}
-                    onChange={(e) => setFormValues({ ...formValues, commission_rate: e.target.value })}
-                    required
-                    className="w-full px-4 py-2 pr-32 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="0.05"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-xs pointer-events-none">
-                    (0.00001-1.0)
-                  </span>
-                </div>
-                <p className="text-slate-500 text-xs mt-1">Global default: {globalDefaults.commission_rate}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Order Success Rate
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.1"
-                    max="1"
-                    value={formValues.success_rate}
-                    onChange={(e) => setFormValues({ ...formValues, success_rate: e.target.value })}
-                    required
-                    className="w-full px-4 py-2 pr-40 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="0.80"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm pointer-events-none">
-                    (e.g., 0.80 = 80%)
-                  </span>
-                </div>
-                <p className="text-slate-500 text-xs mt-1">Global default: {globalDefaults.success_rate}</p>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Withdrawal Amount Threshold
@@ -795,8 +731,6 @@ export default function AdminGroupConfiguration() {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">Admin</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">Status</th>
                   <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">Employees</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">Commission</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">Success Rate</th>
                   <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">Withdrawal</th>
                   <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">Min Days</th>
                   <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">Action</th>
@@ -805,8 +739,6 @@ export default function AdminGroupConfiguration() {
               <tbody>
                 {groups.map((group) => {
                   const hasCustomConfig = Object.keys(group.configs).length > 0;
-                  const commissionRate = group.configs.commission_rate || globalDefaults.commission_rate;
-                  const successRate = group.configs.success_rate || globalDefaults.success_rate;
                   const withdrawalAmount = group.configs.withdrawal_amount_threshold || globalDefaults.withdrawal_amount_threshold;
                   const withdrawalDays = group.configs.withdrawal_days_threshold || globalDefaults.withdrawal_days_threshold;
 
@@ -840,22 +772,6 @@ export default function AdminGroupConfiguration() {
                         <div className="flex items-center justify-center gap-1">
                           <Users className="w-4 h-4 text-blue-400" />
                           <span className="text-white font-medium">{group.employee_count}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <DollarSign className="w-4 h-4 text-green-400" />
-                          <span className="text-white font-medium">
-                            {(parseFloat(commissionRate || '0') * 100).toFixed(3)}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <TrendingUp className="w-4 h-4 text-yellow-400" />
-                          <span className="text-white font-medium">
-                            {(parseFloat(successRate || '0') * 100).toFixed(0)}%
-                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">

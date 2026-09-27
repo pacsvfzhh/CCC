@@ -37,6 +37,8 @@ interface DispatchGroup {
   session_timeout_minutes: number;
   submit_wait_min_seconds: number;
   submit_wait_max_seconds: number;
+  commission_rate: number;
+  dispatch_success_rate: number;
   is_default: boolean;
   is_active: boolean;
   archived_at: string | null;
@@ -53,7 +55,6 @@ interface DispatchPool {
   dispatch_interval_min: number;
   dispatch_interval_max: number;
   dispatch_order_mode: 'random' | 'sequential';
-  dispatch_success_rate: number;
   archived_at: string | null;
   order_count: number;
 }
@@ -84,6 +85,8 @@ type GroupDraft = Pick<
   session_timeout_minutes: string;
   submit_wait_min_seconds: string;
   submit_wait_max_seconds: string;
+  commission_rate: string;
+  dispatch_success_rate: string;
 };
 type PoolDraft = Pick<
   DispatchPool,
@@ -91,7 +94,6 @@ type PoolDraft = Pick<
 > & {
   dispatch_interval_min: string;
   dispatch_interval_max: string;
-  dispatch_success_rate: string;
 };
 
 type OrderAction = 'edit' | 'toggle' | 'delete' | 'delete_all';
@@ -104,6 +106,8 @@ const emptyGroupDraft: GroupDraft = {
   session_timeout_minutes: '10',
   submit_wait_min_seconds: '5',
   submit_wait_max_seconds: '20',
+  commission_rate: '0.001',
+  dispatch_success_rate: '100',
 };
 const emptyPoolDraft: PoolDraft = {
   pool_name: '',
@@ -111,7 +115,6 @@ const emptyPoolDraft: PoolDraft = {
   dispatch_interval_min: '30',
   dispatch_interval_max: '120',
   dispatch_order_mode: 'random',
-  dispatch_success_rate: '100',
 };
 
 function groupDisplayName(group: DispatchGroup): string {
@@ -137,7 +140,6 @@ function poolToDraft(pool: DispatchPool): PoolDraft {
     dispatch_interval_min: String(pool.dispatch_interval_min),
     dispatch_interval_max: String(pool.dispatch_interval_max),
     dispatch_order_mode: pool.dispatch_order_mode,
-    dispatch_success_rate: String(pool.dispatch_success_rate),
   };
 }
 
@@ -220,7 +222,9 @@ export default function DispatchManagement() {
     groupDraft.pool_selection_mode !== selectedGroup.pool_selection_mode ||
     groupDraft.session_timeout_minutes !== String(selectedGroup.session_timeout_minutes) ||
     groupDraft.submit_wait_min_seconds !== String(selectedGroup.submit_wait_min_seconds) ||
-    groupDraft.submit_wait_max_seconds !== String(selectedGroup.submit_wait_max_seconds)
+    groupDraft.submit_wait_max_seconds !== String(selectedGroup.submit_wait_max_seconds) ||
+    Number(groupDraft.commission_rate) !== selectedGroup.commission_rate ||
+    groupDraft.dispatch_success_rate !== String(selectedGroup.dispatch_success_rate)
   );
   const groupPools = pools.filter((pool) => pool.group_id === selectedGroupId);
   const displayGroupById = (id: string | null) => {
@@ -523,6 +527,8 @@ export default function DispatchManagement() {
       session_timeout_minutes: String(group.session_timeout_minutes),
       submit_wait_min_seconds: String(group.submit_wait_min_seconds),
       submit_wait_max_seconds: String(group.submit_wait_max_seconds),
+      commission_rate: String(group.commission_rate),
+      dispatch_success_rate: String(group.dispatch_success_rate),
     });
     setGroupSettingsOpen(true);
   };
@@ -551,6 +557,12 @@ export default function DispatchManagement() {
     const timeout = Number(groupDraft.session_timeout_minutes);
     const waitMin = Number(groupDraft.submit_wait_min_seconds);
     const waitMax = Number(groupDraft.submit_wait_max_seconds);
+    const commissionRate = Number(groupDraft.commission_rate);
+    const successRate = Number(groupDraft.dispatch_success_rate);
+    if (!groupDraft.commission_rate.trim() || !Number.isFinite(commissionRate) || commissionRate < 0.00001 || commissionRate > 1 || !/^\d+(\.\d{1,8})?$/.test(groupDraft.commission_rate.trim()) ||
+        !groupDraft.dispatch_success_rate.trim() || !Number.isInteger(successRate) || successRate < 0 || successRate > 100) {
+      return notify('error', '佣金率須為 0.00001–1（最多 8 位小數），成功率須為 0–100%。');
+    }
     if (!groupDraft.session_timeout_minutes.trim() || !Number.isInteger(timeout) || timeout < 1 || timeout > 60 ||
         !groupDraft.submit_wait_min_seconds.trim() || !Number.isInteger(waitMin) || waitMin < 3 || waitMin > 120 ||
         !groupDraft.submit_wait_max_seconds.trim() || !Number.isInteger(waitMax) || waitMax < waitMin || waitMax > 300) {
@@ -578,6 +590,8 @@ export default function DispatchManagement() {
             session_timeout_minutes: timeout,
             submit_wait_min_seconds: waitMin,
             submit_wait_max_seconds: waitMax,
+            commission_rate: commissionRate,
+            dispatch_success_rate: successRate,
             is_active: groupDraft.is_active,
           },
         },
@@ -610,7 +624,6 @@ export default function DispatchManagement() {
       );
     const min = Number(poolDraft.dispatch_interval_min);
     const max = Number(poolDraft.dispatch_interval_max);
-    const rate = Number(poolDraft.dispatch_success_rate);
     if (!poolDraft.pool_name.trim())
       return notify('error', '請填寫訂單池名稱。');
     if (
@@ -619,15 +632,11 @@ export default function DispatchManagement() {
       min > 3000 ||
       !Number.isInteger(max) ||
       max < min ||
-      max > 3000 ||
-      !poolDraft.dispatch_success_rate.trim() ||
-      !Number.isInteger(rate) ||
-      rate < 0 ||
-      rate > 100
+      max > 3000
     ) {
       return notify(
         'error',
-        '派單間隔須為 1–3000 秒（最小值不得大於最大值）、成功率為 0–100%。',
+        '派單間隔須為 1–3000 秒，且最短不得大於最長。',
       );
     }
     setBusy(true);
@@ -646,7 +655,6 @@ export default function DispatchManagement() {
           dispatch_interval_min: min,
           dispatch_interval_max: max,
           dispatch_order_mode: poolDraft.dispatch_order_mode,
-          dispatch_success_rate: rate,
         },
       });
       if (error) throw error;
@@ -1008,7 +1016,11 @@ export default function DispatchManagement() {
                     className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={busy}
                     onClick={() => {
-                      setGroupDraft({ ...emptyGroupDraft });
+                      setGroupDraft({
+                        ...emptyGroupDraft,
+                        commission_rate: String(defaultGroup?.commission_rate ?? 0.001),
+                        dispatch_success_rate: String(defaultGroup?.dispatch_success_rate ?? 100),
+                      });
                       setGroupForm('create');
                     }}
                   >
@@ -1166,6 +1178,24 @@ export default function DispatchManagement() {
                       </label>
                     </div>
                     <p className="text-xs text-slate-400">僅影響提交頁進度動畫，不延長接單或實際處理期限。</p>
+                  </div>
+                  <div className="mt-3 grid gap-3 rounded-lg border border-emerald-400/20 bg-slate-900/40 p-3 sm:grid-cols-2">
+                    <label className="min-w-0 text-sm font-medium text-slate-200">
+                      Commission · 佣金率
+                      <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1`}
+                        value={groupDraft.commission_rate}
+                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
+                      <span className="mt-1 block text-xs font-normal text-slate-400">小數比例，例如 0.00008 = 0.008%；僅成功訂單計算佣金。</span>
+                    </label>
+                    <label className="min-w-0 text-sm font-medium text-slate-200">
+                      Success Rate · 訂單成功率（%）
+                      <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
+                        value={groupDraft.dispatch_success_rate}
+                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                        onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
+                      <span className="mt-1 block text-xs font-normal text-slate-400">影響接單與訂單處理；新派單保存此分組的成功率。</span>
+                    </label>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     <span
@@ -1447,7 +1477,7 @@ export default function DispatchManagement() {
                       訂單池 <span className="rounded-full bg-cyan-400/15 px-2 py-0.5 text-xs font-medium text-cyan-200">{groupPools.length} 個</span>
                     </h3>
                     <p className="mt-1 text-xs text-slate-400">
-                      每個訂單池皆可獨立設定派單間隔、選單模式與成功率。
+                      訂單池獨立設定派單間隔與選單模式；佣金和成功率由分組統一管理。
                     </p>
                   </div>
                   {isSuperAdmin && (
@@ -1485,7 +1515,6 @@ export default function DispatchManagement() {
                       <div className="mt-4 grid gap-x-5 gap-y-3 text-xs sm:grid-cols-2 xl:grid-cols-3">
                         <div><span className="block text-cyan-300/80">派單間隔</span><strong className="mt-1 block text-sm text-white">{pool.dispatch_interval_min}–{pool.dispatch_interval_max} 秒</strong></div>
                         <div><span className="block text-cyan-300/80">池內選單模式</span><strong className="mt-1 block text-sm text-white">{pool.dispatch_order_mode === 'random' ? '隨機選單' : '依序選單'}</strong></div>
-                        <div><span className="block text-cyan-300/80">成功率</span><strong className="mt-1 block text-sm text-white">{pool.dispatch_success_rate}%</strong></div>
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-700 pt-3">
                         <button type="button" className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-2 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500" onClick={() => openOrders(pool.id)}><PackageSearch className="h-4 w-4" />查看訂單</button>
@@ -1952,6 +1981,22 @@ export default function DispatchManagement() {
                   </label>
                 </div>
                 <p className="text-xs text-slate-400">逾時從接單後計算；提交等待只影響動畫，新派訂單將保存當時設定。</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="min-w-0 text-sm">
+                    Commission · 佣金率
+                    <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1`}
+                      value={groupDraft.commission_rate}
+                      onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
+                    <span className="mt-1 block text-xs text-slate-400">小數比例，如 0.00008 = 0.008%</span>
+                  </label>
+                  <label className="min-w-0 text-sm">
+                    Success Rate · 訂單成功率（%）
+                    <input type="number" min="0" max="100" step="1" className={`${inputClass} mt-1`}
+                      value={groupDraft.dispatch_success_rate}
+                      onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
+                    <span className="mt-1 block text-xs text-slate-400">新派訂單採用此分組的成功率</span>
+                  </label>
+                </div>
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -2051,24 +2096,6 @@ export default function DispatchManagement() {
                         setPoolDraft({
                           ...poolDraft,
                           dispatch_interval_max: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="min-w-0 text-sm">
-                    成功率（%）
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      className={`${inputClass} mt-1`}
-                      value={poolDraft.dispatch_success_rate}
-                      onChange={(event) =>
-                        setPoolDraft({
-                          ...poolDraft,
-                          dispatch_success_rate: event.target.value,
                         })
                       }
                     />

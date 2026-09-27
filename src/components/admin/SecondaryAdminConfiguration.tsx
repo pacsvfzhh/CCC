@@ -11,8 +11,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
   const [formValues, setFormValues] = useState({
     company_name: '',
     currency_unit: '',
-    commission_rate: '',
-    success_rate: '',
+
     withdrawal_amount_threshold: '',
     withdrawal_days_threshold: '',
     withdrawal_condition_mode: '',
@@ -20,8 +19,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
   const [globalDefaults, setGlobalDefaults] = useState({
     company_name: '',
     currency_unit: '',
-    commission_rate: '',
-    success_rate: '',
+
     withdrawal_amount_threshold: '',
     withdrawal_days_threshold: '',
     withdrawal_condition_mode: '',
@@ -56,7 +54,8 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
       const { data, error } = await supabase
         .from('admin_configs')
         .select('*')
-        .or(`admin_id.eq.${admin.id},admin_id.is.null`);
+        .or(`admin_id.eq.${admin.id},admin_id.is.null`)
+        .in('config_type', ['company_name', 'currency_unit', 'withdrawal_amount_threshold', 'withdrawal_days_threshold', 'withdrawal_condition_mode']);
 
       if (error) throw error;
 
@@ -83,8 +82,6 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
       setGlobalDefaults({
         company_name: globalMap.company_name || '',
         currency_unit: globalMap.currency_unit || 'USDC',
-        commission_rate: globalMap.commission_rate || '',
-        success_rate: globalMap.success_rate || '',
         withdrawal_amount_threshold: globalMap.withdrawal_amount_threshold || '',
         withdrawal_days_threshold: globalMap.withdrawal_days_threshold || '',
         withdrawal_condition_mode: globalMap.withdrawal_condition_mode || '',
@@ -93,8 +90,6 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
       setFormValues({
         company_name: configMap.company_name || globalMap.company_name || '',
         currency_unit: configMap.currency_unit || globalMap.currency_unit || 'USDC',
-        commission_rate: configMap.commission_rate || globalMap.commission_rate || '',
-        success_rate: configMap.success_rate || globalMap.success_rate || '',
         withdrawal_amount_threshold: configMap.withdrawal_amount_threshold || globalMap.withdrawal_amount_threshold || '',
         withdrawal_days_threshold: configMap.withdrawal_days_threshold || globalMap.withdrawal_days_threshold || '',
         withdrawal_condition_mode: configMap.withdrawal_condition_mode || globalMap.withdrawal_condition_mode || '',
@@ -157,7 +152,8 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
       const { error } = await supabase
         .from('admin_configs')
         .delete()
-        .eq('admin_id', admin.id);
+        .eq('admin_id', admin.id)
+        .in('config_type', Object.keys(formValues));
 
       if (error) throw error;
 
@@ -258,18 +254,6 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
           )}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-            <div className="text-xs text-slate-400 mb-1">Commission Rate</div>
-            <div className="text-lg font-bold text-white">
-              {(parseFloat(formValues.commission_rate || '0') * 100).toFixed(3)}%
-            </div>
-          </div>
-          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-            <div className="text-xs text-slate-400 mb-1">Success Rate</div>
-            <div className="text-lg font-bold text-white">
-              {(parseFloat(formValues.success_rate || '0') * 100).toFixed(0)}%
-            </div>
-          </div>
           <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
             <div className="text-xs text-slate-400 mb-1">Withdrawal Amount</div>
             <div className="text-lg font-bold text-white">
@@ -376,62 +360,6 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Commission Rate
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.00001"
-                  min="0.00001"
-                  max="1"
-                  value={formValues.commission_rate}
-                  onChange={(e) => setFormValues({ ...formValues, commission_rate: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 pr-32 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0.05"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-xs pointer-events-none">
-                  (0.00001-1.0)
-                </span>
-              </div>
-              <p className="text-slate-500 text-xs mt-1">Commission rate for successful orders</p>
-              {globalDefaults.commission_rate && (
-                <p className="text-slate-600 text-xs mt-1">
-                  Global default: {globalDefaults.commission_rate}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Order Success Rate
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.1"
-                  max="1"
-                  value={formValues.success_rate}
-                  onChange={(e) => setFormValues({ ...formValues, success_rate: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 pr-40 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0.80"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm pointer-events-none">
-                  (e.g., 0.80 = 80%)
-                </span>
-              </div>
-              <p className="text-slate-500 text-xs mt-1">Probability of order success (10-100% range)</p>
-              {globalDefaults.success_rate && (
-                <p className="text-slate-600 text-xs mt-1">
-                  Global default: {globalDefaults.success_rate}
-                </p>
-              )}
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Withdrawal Amount Threshold
