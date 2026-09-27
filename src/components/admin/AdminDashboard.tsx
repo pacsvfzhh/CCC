@@ -1518,7 +1518,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('dispatch') && (
-              <div className={activeTab === 'dispatch' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
+              <div className={activeTab === 'dispatch' ? 'flex min-h-0 w-full flex-1 flex-col' : 'hidden'}>
                 <DispatchManagement />
               </div>
             )}

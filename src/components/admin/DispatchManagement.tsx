@@ -926,7 +926,7 @@ export default function DispatchManagement() {
     !selectedGroup?.archived_at;
 
   return (
-    <div className="min-w-0 space-y-4 text-slate-100">
+    <div className="flex min-h-0 w-full flex-1 flex-col text-slate-100">
       {notification && (
         <div
           role="alert"
@@ -946,7 +946,7 @@ export default function DispatchManagement() {
           </button>
         </div>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-400/20 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 px-4 py-3">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-700/60 px-3 py-3 sm:px-4 lg:px-6">
         <div>
           <h2 className="text-lg font-semibold text-white">
             訂單指派工作區
@@ -957,41 +957,40 @@ export default function DispatchManagement() {
             </p>
           )}
         </div>
-        <div className="flex gap-2">
-          <button
-            className={secondaryButton}
-            disabled={workspaceLoading || busy}
-            onClick={() => {
-              void loadWorkspace();
-              if (ordersOpen && selectedPool) void loadOrders(selectedPool.id, page);
-            }}
-          >
-            重新整理
-          </button>
-          {isSuperAdmin && (
-            <button
-              className={primaryButton}
-              disabled={busy}
-              onClick={() => {
-                setGroupDraft({ ...emptyGroupDraft });
-                setGroupForm('create');
-              }}
-            >
-              <FolderPlus className="mr-1 inline h-4 w-4" />
-              新增分組
-            </button>
-          )}
-        </div>
+        <button
+          className={secondaryButton}
+          disabled={workspaceLoading || busy}
+          onClick={() => {
+            void loadWorkspace();
+            if (ordersOpen && selectedPool) void loadOrders(selectedPool.id, page);
+          }}
+        >
+          重新整理
+        </button>
       </div>
 
-      <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="grid min-h-0 min-w-0 w-full flex-1 grid-cols-1 content-start lg:grid-cols-[280px_minmax(0,1fr)]">
         <>
-            <section className="min-w-0 rounded-2xl border border-cyan-400/20 bg-slate-900/85 p-4 lg:sticky lg:top-3">
-              <h3 className="mb-3 flex items-center gap-2 font-semibold">
-                <Layers className="h-4 w-4 text-blue-400" />
-                分組{' '}
-                <span className="text-xs text-slate-400">{groups.length}</span>
-              </h3>
+            <section className="min-w-0 border-b border-slate-700/60 px-3 py-4 sm:px-4 lg:sticky lg:top-0 lg:self-start lg:border-b-0 lg:border-r lg:border-slate-700/60">
+              <div className="mb-3 flex min-w-0 items-center justify-between gap-2">
+                <h3 className="flex min-w-0 items-center gap-2 font-semibold">
+                  <Layers className="h-4 w-4 text-blue-400" />
+                  分組 <span className="text-xs text-slate-400">{groups.length}</span>
+                </h3>
+                {isSuperAdmin && (
+                  <button
+                    type="button"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={busy}
+                    onClick={() => {
+                      setGroupDraft({ ...emptyGroupDraft });
+                      setGroupForm('create');
+                    }}
+                  >
+                    <FolderPlus className="h-3.5 w-3.5" />新增分組
+                  </button>
+                )}
+              </div>
               <div className="relative mb-3">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <input
@@ -1002,11 +1001,11 @@ export default function DispatchManagement() {
                   aria-label="搜尋分組"
                 />
               </div>
-              <div className="max-h-[min(70vh,780px)] space-y-2 overflow-y-auto pr-1">
+              <div className="max-h-[min(70vh,780px)] divide-y divide-slate-700/50 overflow-y-auto">
                 {visibleGroups.map((group) => (
                   <div
                     key={group.id}
-                    className={`min-w-0 rounded-xl border p-3 transition-colors ${selectedGroupId === group.id ? 'border-cyan-400/60 bg-gradient-to-br from-cyan-950/75 to-blue-950/60 shadow-md shadow-cyan-950/30' : 'border-slate-700 bg-slate-950/60 hover:border-slate-500'}`}
+                    className={`min-w-0 border-l-2 px-3 py-3 transition-colors ${selectedGroupId === group.id ? 'border-cyan-400 bg-cyan-500/10' : 'border-transparent hover:bg-slate-800/45'}`}
                   >
                     <button
                       type="button"
@@ -1378,7 +1377,7 @@ export default function DispatchManagement() {
                 </div>, document.body,
               )}
 
-              <section className="min-w-0 rounded-2xl border border-cyan-400/20 bg-slate-900/85 p-4 sm:p-5">
+              <section className="min-w-0 px-3 py-4 sm:px-4 lg:px-6">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-cyan-300">{groupDisplayName(selectedGroup)}</p>
@@ -1404,11 +1403,11 @@ export default function DispatchManagement() {
                     </button>
                   )}
                 </div>
-                <div className="max-h-[min(75vh,860px)] min-w-0 space-y-3 overflow-y-auto pr-1">
+                <div className="min-w-0 divide-y divide-slate-700/60">
                   {groupPools.map((pool) => (
                     <article
                       key={pool.id}
-                      className="min-w-0 rounded-xl border border-slate-700 bg-gradient-to-r from-slate-950/85 to-slate-800/75 p-4 shadow-sm hover:border-cyan-400/40"
+                      className="min-w-0 py-5 first:pt-3"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -1422,11 +1421,11 @@ export default function DispatchManagement() {
                           {pool.archived_at ? '已封存' : pool.is_active ? '已啟用' : '已停用'}
                         </span>
                       </div>
-                      <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2"><span className="block text-slate-400">派單間隔</span><strong className="mt-1 block text-white">{pool.dispatch_interval_min}–{pool.dispatch_interval_max} 秒</strong></div>
-                        <div className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2"><span className="block text-slate-400">工作會話逾時</span><strong className="mt-1 block text-white">{pool.session_timeout_minutes} 分鐘</strong></div>
-                        <div className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2"><span className="block text-slate-400">池內選單模式</span><strong className="mt-1 block text-white">{pool.dispatch_order_mode === 'random' ? '隨機選單' : '依序選單'}</strong></div>
-                        <div className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2"><span className="block text-slate-400">成功率</span><strong className="mt-1 block text-white">{pool.dispatch_success_rate}%</strong></div>
+                      <div className="mt-4 grid gap-x-5 gap-y-3 text-xs sm:grid-cols-2 xl:grid-cols-4">
+                        <div><span className="block text-slate-400">派單間隔</span><strong className="mt-1 block text-sm text-white">{pool.dispatch_interval_min}–{pool.dispatch_interval_max} 秒</strong></div>
+                        <div><span className="block text-slate-400">工作會話逾時</span><strong className="mt-1 block text-sm text-white">{pool.session_timeout_minutes} 分鐘</strong></div>
+                        <div><span className="block text-slate-400">池內選單模式</span><strong className="mt-1 block text-sm text-white">{pool.dispatch_order_mode === 'random' ? '隨機選單' : '依序選單'}</strong></div>
+                        <div><span className="block text-slate-400">成功率</span><strong className="mt-1 block text-sm text-white">{pool.dispatch_success_rate}%</strong></div>
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-700 pt-3">
                         <button type="button" className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-2 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500" onClick={() => openOrders(pool.id)}><PackageSearch className="h-4 w-4" />查看訂單</button>
