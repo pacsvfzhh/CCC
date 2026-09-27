@@ -146,6 +146,9 @@ export default function DispatchManagement() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
   const [modeDraft, setModeDraft] = useState<'base' | 'random'>('base');
+  const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
+  const [memberPanelOpen, setMemberPanelOpen] = useState(false);
+  const [ordersOpen, setOrdersOpen] = useState(false);
   const [groupSearch, setGroupSearch] = useState('');
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [employeeAdminFilter, setEmployeeAdminFilter] = useState('all');
@@ -207,16 +210,16 @@ export default function DispatchManagement() {
     const group = groups.find((item) => item.id === id);
     return group ? groupDisplayName(group) : '尚未指派分組';
   };
-  const selectedPool =
-    groupPools.find((pool) => pool.id === selectedPoolId) ??
-    groupPools.find((pool) => pool.is_base && !pool.archived_at) ??
-    null;
+  const selectedPool = groupPools.find((pool) => pool.id === selectedPoolId) ?? null;
   const defaultGroup = groups.find(
     (group) => group.is_default && group.is_active && !group.archived_at,
   );
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const modalOpen = Boolean(
     groupForm ||
+      groupSettingsOpen ||
+      memberPanelOpen ||
+      ordersOpen ||
       poolForm ||
       archiveTarget ||
       memberMove ||
@@ -396,14 +399,14 @@ export default function DispatchManagement() {
   const loadWorkspaceRef = useRef(loadWorkspace);
   const loadOrdersRef = useRef(loadOrders);
   const orderViewRef = useRef({
-    poolId: selectedPool?.id ?? null,
+    poolId: ordersOpen ? (selectedPool?.id ?? null) : null,
     page,
     status: orderFilter,
   });
   loadWorkspaceRef.current = loadWorkspace;
   loadOrdersRef.current = loadOrders;
   orderViewRef.current = {
-    poolId: selectedPool?.id ?? null,
+    poolId: ordersOpen ? (selectedPool?.id ?? null) : null,
     page,
     status: orderFilter,
   };
@@ -445,7 +448,7 @@ export default function DispatchManagement() {
   }, [selectedGroup?.id, selectedGroup?.pool_selection_mode]);
 
   useEffect(() => {
-    if (selectedPool?.id) {
+    if (ordersOpen && selectedPool?.id) {
       void loadOrdersRef.current(selectedPool.id, 1, orderFilter);
     } else {
       ++ordersRequestRef.current;
@@ -455,7 +458,7 @@ export default function DispatchManagement() {
       setPage(1);
       setOrdersLoading(false);
     }
-  }, [selectedPool?.id, orderFilter]);
+  }, [ordersOpen, selectedPool?.id, orderFilter]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -469,6 +472,9 @@ export default function DispatchManagement() {
   const switchGroup = (groupId: string) => {
     setSelectedGroupId(groupId);
     setSelectedPoolId(null);
+    setGroupSettingsOpen(false);
+    setMemberPanelOpen(false);
+    setOrdersOpen(false);
     setEditingId(null);
     setShowBulkImport(false);
     setBulkInput('');
@@ -478,12 +484,16 @@ export default function DispatchManagement() {
     setEmployeeAdminFilter('all');
   };
 
-  const switchPool = (poolId: string) => {
+  const openOrders = (poolId: string) => {
     setSelectedPoolId(poolId);
+    setOrdersPoolId(null);
+    setTotalCount(0);
     setPageInput('');
+    setOrderFilter('all');
     setEditingId(null);
     setShowBulkImport(false);
     setBulkInput('');
+    setOrdersOpen(true);
   };
 
   const saveGroup = async () => {
@@ -547,8 +557,10 @@ export default function DispatchManagement() {
         p_changes: { pool_selection_mode: modeDraft },
       });
       if (error) throw error;
-      if (await loadWorkspace())
+      if (await loadWorkspace()) {
+        setGroupSettingsOpen(false);
         notify('success', '訂單池選擇模式已儲存。');
+      }
     } catch (error) {
       notify(
         'error',
@@ -934,7 +946,7 @@ export default function DispatchManagement() {
           </button>
         </div>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-400/20 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 px-4 py-3">
         <div>
           <h2 className="text-lg font-semibold text-white">
             訂單指派工作區
@@ -951,7 +963,7 @@ export default function DispatchManagement() {
             disabled={workspaceLoading || busy}
             onClick={() => {
               void loadWorkspace();
-              if (selectedPool) void loadOrders(selectedPool.id, page);
+              if (ordersOpen && selectedPool) void loadOrders(selectedPool.id, page);
             }}
           >
             重新整理
@@ -972,10 +984,9 @@ export default function DispatchManagement() {
         </div>
       </div>
 
-      <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0 space-y-4">
-          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(190px,1fr)_minmax(0,2fr)]">
-            <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <>
+            <section className="min-w-0 rounded-2xl border border-cyan-400/20 bg-slate-900/85 p-4 lg:sticky lg:top-3">
               <h3 className="mb-3 flex items-center gap-2 font-semibold">
                 <Layers className="h-4 w-4 text-blue-400" />
                 分組{' '}
@@ -991,30 +1002,34 @@ export default function DispatchManagement() {
                   aria-label="搜尋分組"
                 />
               </div>
-              <div className="max-h-[370px] space-y-2 overflow-y-auto">
+              <div className="max-h-[min(70vh,780px)] space-y-2 overflow-y-auto pr-1">
                 {visibleGroups.map((group) => (
-                  <button
+                  <div
                     key={group.id}
-                    className={`w-full min-w-0 rounded-lg border p-3 text-left text-sm ${selectedGroupId === group.id ? 'border-blue-500 bg-blue-600/20' : 'border-slate-700 bg-slate-900/30 hover:bg-slate-700/50'}`}
-                    onClick={() => switchGroup(group.id)}
+                    className={`min-w-0 rounded-xl border p-3 transition-colors ${selectedGroupId === group.id ? 'border-cyan-400/60 bg-gradient-to-br from-cyan-950/75 to-blue-950/60 shadow-md shadow-cyan-950/30' : 'border-slate-700 bg-slate-950/60 hover:border-slate-500'}`}
                   >
-                    <span className="block break-words font-medium text-white">
-                      {groupDisplayName(group)}{' '}
-                      {group.is_default && (
-                        <span className="text-[10px] text-amber-300">
-                          預設
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-1 block text-xs text-slate-400">
-                      {group.archived_at
-                        ? '已封存'
-                        : group.is_active
-                          ? '已啟用'
-                          : '未啟用'}{' '}
-                      · {group.member_count} 位成員 · {group.order_count} 筆訂單
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      className="w-full min-w-0 text-left"
+                      aria-pressed={selectedGroupId === group.id}
+                      onClick={() => switchGroup(group.id)}
+                    >
+                      <span className="flex flex-wrap items-center gap-1.5 break-words text-sm font-semibold text-white">
+                        {groupDisplayName(group)}
+                        {group.is_default && <span className="rounded bg-amber-400/15 px-1.5 py-0.5 text-[10px] text-amber-200">預設</span>}
+                      </span>
+                      <span className="mt-1 block text-xs text-slate-400">
+                        {group.archived_at ? '已封存' : group.is_active ? '已啟用' : '未啟用'} · {group.member_count} 位成員 · {group.order_count} 筆訂單
+                      </span>
+                      <span className="mt-2 block text-xs text-cyan-200">
+                        {group.pool_selection_mode === 'base' ? '固定基本池' : '隨機選擇可派單的訂單池'}
+                      </span>
+                    </button>
+                    <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-2">
+                      <button type="button" className="inline-flex items-center gap-1 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1.5 text-xs text-cyan-100 hover:bg-cyan-500/20" onClick={() => { switchGroup(group.id); setModeDraft(group.pool_selection_mode); setGroupSettingsOpen(true); }}><Settings className="h-3.5 w-3.5" />分組設定</button>
+                      <button type="button" className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-100 hover:bg-emerald-500/20" onClick={() => { switchGroup(group.id); setMemberPanelOpen(true); }}><Users className="h-3.5 w-3.5" />成員管理</button>
+                    </div>
+                  </div>
                 ))}
                 {!visibleGroups.length && (
                   <p className="py-6 text-center text-sm text-slate-400">
@@ -1024,7 +1039,11 @@ export default function DispatchManagement() {
               </div>
             </section>
 
-            <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
+            {groupSettingsOpen && selectedGroup && createPortal(
+              <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm">
+                <div role="dialog" aria-modal="true" aria-label="分組設定" className="max-h-[calc(100dvh-24px)] w-full max-w-xl overflow-y-auto rounded-2xl border border-cyan-300/30 bg-slate-900 p-4 shadow-2xl sm:p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-700 pb-3"><h3 className="font-semibold text-cyan-100">分組設定</h3><button type="button" onClick={() => setGroupSettingsOpen(false)} disabled={busy} aria-label="關閉分組設定" className="rounded-lg p-1.5 text-slate-300 hover:bg-slate-700"><X className="h-5 w-5" /></button></div>
+                  <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
               {selectedGroup ? (
                 <>
                   <div className="flex flex-wrap items-start justify-between gap-2">
@@ -1145,12 +1164,19 @@ export default function DispatchManagement() {
                   請選擇分組，以管理訂單池及成員。
                 </p>
               )}
-            </section>
-          </div>
+                  </section>
+                </div>
+              </div>, document.body,
+            )}
 
           {selectedGroup && (
             <>
-              <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
+              {memberPanelOpen && createPortal(
+                <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm">
+                  <div role="dialog" aria-modal="true" aria-label="分組成員管理" className="flex max-h-[calc(100dvh-24px)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-emerald-300/30 bg-slate-900 shadow-2xl">
+                    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-700 px-4 py-3"><div className="min-w-0"><h3 className="font-semibold text-white">{groupDisplayName(selectedGroup)} · 分組成員</h3><p className="text-xs text-slate-400">選擇員工後可移至此分組或預設分組</p></div><button type="button" onClick={() => setMemberPanelOpen(false)} disabled={busy} aria-label="關閉成員管理" className="rounded-lg p-1.5 text-slate-300 hover:bg-slate-700"><X className="h-5 w-5" /></button></div>
+                    <div className="min-h-0 overflow-y-auto p-4">
+                      <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h3 className="flex items-center gap-2 font-semibold">
@@ -1346,16 +1372,21 @@ export default function DispatchManagement() {
                     若要移出成員，預設分組必須處於啟用狀態。
                   </p>
                 )}
-              </section>
+                      </section>
+                    </div>
+                  </div>
+                </div>, document.body,
+              )}
 
-              <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
+              <section className="min-w-0 rounded-2xl border border-cyan-400/20 bg-slate-900/85 p-4 sm:p-5">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h3 className="flex items-center gap-2 font-semibold">
-                      <Layers className="h-4 w-4 text-blue-400" />
-                      訂單池
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-cyan-300">{groupDisplayName(selectedGroup)}</p>
+                    <h3 className="mt-1 flex items-center gap-2 text-lg font-semibold text-white">
+                      <Layers className="h-5 w-5 text-cyan-300" />
+                      訂單池 <span className="text-sm font-normal text-slate-400">{groupPools.length} 個</span>
                     </h3>
-                    <p className="text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-slate-400">
                       每個訂單池皆可獨立設定派單間隔、選單模式與成功率。
                     </p>
                   </div>
@@ -1373,58 +1404,49 @@ export default function DispatchManagement() {
                     </button>
                   )}
                 </div>
-                <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="max-h-[min(75vh,860px)] min-w-0 space-y-3 overflow-y-auto pr-1">
                   {groupPools.map((pool) => (
-                    <div
+                    <article
                       key={pool.id}
-                      className={`min-w-0 rounded-lg border p-3 ${selectedPool?.id === pool.id ? 'border-blue-500 bg-blue-500/10' : 'border-slate-700 bg-slate-900/40'}`}
+                      className="min-w-0 rounded-xl border border-slate-700 bg-gradient-to-r from-slate-950/85 to-slate-800/75 p-4 shadow-sm hover:border-cyan-400/40"
                     >
-                      <button
-                        className="w-full min-w-0 text-left"
-                        onClick={() => switchPool(pool.id)}
-                      >
-                        <span className="block break-words text-sm font-semibold text-white">
-                          {poolDisplayName(pool)}{' '}
-                          {pool.is_base && (
-                            <span className="text-[10px] text-amber-300">
-                              基本池
-                            </span>
-                          )}
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="break-words text-base font-semibold text-white">
+                            {poolDisplayName(pool)}{' '}
+                            {pool.is_base && <span className="ml-1 rounded bg-amber-400/15 px-2 py-0.5 text-[10px] text-amber-200">基本池</span>}
+                          </h4>
+                          <p className="mt-1 text-xs text-slate-400">{pool.order_count} 筆訂單</p>
+                        </div>
+                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${pool.archived_at ? 'bg-rose-500/15 text-rose-200' : pool.is_active ? 'bg-emerald-500/15 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>
+                          {pool.archived_at ? '已封存' : pool.is_active ? '已啟用' : '已停用'}
                         </span>
-                        <span className="mt-1 block text-xs text-slate-400">
-                          {pool.archived_at
-                            ? '已封存'
-                            : pool.is_active
-                              ? '已啟用'
-                              : '已停用'}{' '}
-                          · {pool.order_count} 筆訂單
-                        </span>
-                        <span className="mt-1 block text-xs text-slate-400">
-                          {pool.dispatch_interval_min}–{pool.dispatch_interval_max} 秒 · 會話逾時{' '}
-                          {pool.session_timeout_minutes} 分鐘 ·{' '}
-                          {pool.dispatch_order_mode === 'random'
-                            ? '隨機選單'
-                            : '依序選單'}{' '}
-                          · 成功率 {pool.dispatch_success_rate}%
-                        </span>
-                      </button>
-                      {isSuperAdmin && !selectedGroup.archived_at && (
-                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-700 pt-2 text-xs">
-                          {!pool.archived_at ? (
-                            <>
-                              <button
-                                className="text-blue-300 hover:text-white disabled:opacity-50"
+                      </div>
+                      <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2"><span className="block text-slate-400">派單間隔</span><strong className="mt-1 block text-white">{pool.dispatch_interval_min}–{pool.dispatch_interval_max} 秒</strong></div>
+                        <div className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2"><span className="block text-slate-400">工作會話逾時</span><strong className="mt-1 block text-white">{pool.session_timeout_minutes} 分鐘</strong></div>
+                        <div className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2"><span className="block text-slate-400">池內選單模式</span><strong className="mt-1 block text-white">{pool.dispatch_order_mode === 'random' ? '隨機選單' : '依序選單'}</strong></div>
+                        <div className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2"><span className="block text-slate-400">成功率</span><strong className="mt-1 block text-white">{pool.dispatch_success_rate}%</strong></div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-700 pt-3">
+                        <button type="button" className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-2 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500" onClick={() => openOrders(pool.id)}><PackageSearch className="h-4 w-4" />查看訂單</button>
+                        {isSuperAdmin && !selectedGroup.archived_at && (
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            {!pool.archived_at ? (
+                              <>
+                                <button
+                                className="inline-flex items-center gap-1 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-blue-200 hover:bg-blue-500/20 disabled:opacity-50"
                                 disabled={busy}
                                 onClick={() => {
-                                  switchPool(pool.id);
+                                  setSelectedPoolId(pool.id);
                                   setPoolDraft(poolToDraft(pool));
                                   setPoolForm('edit');
                                 }}
                               >
-                                編輯設定
+                                <Edit2 className="h-3.5 w-3.5" />編輯設定
                               </button>
                               <button
-                                className="text-amber-300 hover:text-white disabled:opacity-50"
+                                className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
                                 disabled={busy}
                                 onClick={() => void togglePool(pool)}
                               >
@@ -1432,7 +1454,7 @@ export default function DispatchManagement() {
                               </button>
                               {!pool.is_base && (
                                 <button
-                                  className="text-rose-400 hover:text-white disabled:opacity-50"
+                                  className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50"
                                   disabled={busy}
                                   onClick={() =>
                                     setArchiveTarget({
@@ -1448,7 +1470,7 @@ export default function DispatchManagement() {
                             </>
                           ) : (
                             <button
-                              className="text-blue-300 hover:text-white disabled:opacity-50"
+                              className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-blue-200 hover:bg-blue-500/20 disabled:opacity-50"
                               disabled={busy}
                               onClick={() =>
                                 void changeArchive('pool', pool.id, false)
@@ -1459,7 +1481,8 @@ export default function DispatchManagement() {
                           )}
                         </div>
                       )}
-                    </div>
+                      </div>
+                    </article>
                   ))}
                   {!groupPools.length && (
                     <p className="py-8 text-center text-sm text-slate-400">
@@ -1470,21 +1493,22 @@ export default function DispatchManagement() {
               </section>
             </>
           )}
-        </div>
+        </>
 
-        <aside
-          className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 xl:w-[320px]"
-          aria-label="訂單管理"
-        >
-          <div className="border-b border-slate-700 p-4">
-            <h3 className="flex items-center gap-2 font-semibold">
-              <PackageSearch className="h-4 w-4 text-blue-400" />
-              訂單管理
-            </h3>
-            <p className="mt-1 break-words text-xs text-slate-400">
+        {ordersOpen && selectedPool && createPortal(
+          <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm">
+            <aside
+              role="dialog"
+              aria-modal="true"
+              aria-label="訂單管理"
+              className="flex h-[min(860px,calc(100dvh-24px))] min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-cyan-300/30 bg-slate-900 shadow-2xl"
+            >
+          <div className="shrink-0 border-b border-slate-700 bg-gradient-to-r from-blue-950 to-cyan-950 p-4">
+            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="flex items-center gap-2 font-semibold text-white"><PackageSearch className="h-4 w-4 text-cyan-300" />訂單管理</h3>
+            <p className="mt-1 break-words text-xs text-slate-300">
               {selectedGroup ? groupDisplayName(selectedGroup) : '請選擇分組'} /{' '}
               {selectedPool ? poolDisplayName(selectedPool) : '請選擇訂單池'}
-            </p>
+            </p></div><button type="button" onClick={() => { setOrdersOpen(false); setShowBulkImport(false); setEditingId(null); }} disabled={busy} aria-label="關閉訂單管理" className="shrink-0 rounded-lg p-1.5 text-slate-200 hover:bg-white/10"><X className="h-5 w-5" /></button></div>
             {selectedPool && (
               <>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1541,7 +1565,7 @@ export default function DispatchManagement() {
             )}
           </div>
           {showBulkImport && selectedPool && isSuperAdmin && (
-            <div className="space-y-2 border-b border-slate-700 bg-slate-900/40 p-4">
+            <div className="max-h-[45vh] shrink-0 space-y-2 overflow-y-auto border-b border-slate-700 bg-slate-900/40 p-4">
               <label
                 className="block text-xs font-medium text-slate-300"
                 htmlFor="import-pool"
@@ -1611,7 +1635,7 @@ export default function DispatchManagement() {
               </div>
             </div>
           )}
-          <div className="max-h-[740px] min-w-0 space-y-2 overflow-y-auto p-3">
+          <div className="min-h-0 min-w-0 flex-1 space-y-2 overflow-y-auto p-4">
             {ordersLoading && (
               <p
                 className="py-3 text-center text-xs text-slate-400"
@@ -1728,7 +1752,7 @@ export default function DispatchManagement() {
             )}
           </div>
           {selectedPool && totalCount > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-700 p-3 text-xs">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-slate-700 bg-slate-950/70 p-3 text-xs">
               <span className="text-slate-400">
                 {(page - 1) * PAGE_SIZE + 1}–
                 {Math.min(page * PAGE_SIZE, totalCount)}／共 {totalCount} 筆 · 第{' '}
@@ -1779,7 +1803,9 @@ export default function DispatchManagement() {
               )}
             </div>
           )}
-        </aside>
+            </aside>
+          </div>, document.body,
+        )}
       </div>
 
       {groupForm &&
