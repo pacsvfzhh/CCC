@@ -144,6 +144,7 @@ export default function DispatchManagement() {
   const [ordersPoolId, setOrdersPoolId] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageInput, setPageInput] = useState('');
   const [orderFilter, setOrderFilter] = useState<'all' | 'active' | 'inactive'>(
     'all',
   );
@@ -459,6 +460,7 @@ export default function DispatchManagement() {
 
   const switchPool = (poolId: string) => {
     setSelectedPoolId(poolId);
+    setPageInput('');
     setEditingId(null);
     setShowBulkImport(false);
     setBulkInput('');
@@ -1716,6 +1718,33 @@ export default function DispatchManagement() {
                   Next
                 </button>
               </div>
+              {totalPages > 2 && (
+                <form
+                  className="flex w-full items-center gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const targetPage = Number(pageInput);
+                    if (!Number.isInteger(targetPage) || targetPage < 1 || targetPage > totalPages) {
+                      notify('error', `Enter a page between 1 and ${totalPages}.`);
+                      return;
+                    }
+                    setPageInput('');
+                    void loadOrders(selectedPool.id, targetPage);
+                  }}
+                >
+                  <label htmlFor="order-page" className="shrink-0 text-slate-400">Go to page</label>
+                  <input
+                    id="order-page"
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={pageInput}
+                    onChange={(event) => setPageInput(event.target.value)}
+                    className={`${inputClass} w-20 flex-none py-1.5`}
+                  />
+                  <button type="submit" disabled={ordersLoading || !pageInput} className={primaryButton}>Go</button>
+                </form>
+              )}
             </div>
           )}
         </aside>

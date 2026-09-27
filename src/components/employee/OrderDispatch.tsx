@@ -507,7 +507,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     }
 
     const order = currentOrder;
-    if (!order || order.status !== 'accepted' || !order.accepted_at) return;
+    if (!order || order.status !== 'accepted' || !order.accepted_at || order.order_submitted) return;
     const sessionId = sessionIdRef.current;
     const generation = lifecycleGenerationRef.current;
     if (!sessionId) return;
@@ -535,6 +535,11 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
 
     const updateWarnings = () => {
       if (!sessionActiveRef.current || currentOrderRef.current?.id !== order.id) return;
+      if (currentOrderRef.current.order_submitted) {
+        setHasFiveMinuteWarning(false);
+        setHasTimeout(false);
+        return;
+      }
       const minutesPassed = (Date.now() - acceptedAt) / 60000;
       setHasFiveMinuteWarning(warningMinutes > 0 && minutesPassed >= warningMinutes);
       setHasTimeout(minutesPassed >= timeoutMinutes);
@@ -544,13 +549,15 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       fiveMinuteWarningRef.current = setTimeout(updateWarnings, warningMinutes * 60000 - elapsedMs);
     }
 
-    processTimeoutRef.current = setTimeout(async () => {
-      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== order.id || processTimeoutInFlightRef.current) return;
+    let failedChecks = 0;
+    const checkAndStop = async () => {
+      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== order.id ||
+          processTimeoutInFlightRef.current) return;
       processTimeoutInFlightRef.current = true;
       try {
-        await handleProcessTimeout(order.id, sessionId, generation);
-        if (!isCurrentDispatch(sessionId, generation)) return;
-        // End work session after timeout. A failed stop keeps local work active for retry.
+        const timedOut = await handleProcessTimeout(order.id, sessionId, generation);
+        if (!timedOut || !isCurrentDispatch(sessionId, generation)) return;
+        // Only a confirmed server timeout can end the local work session.
         setTimeoutStopMinutes(timeoutMinutes);
         await handleStopWork(true);
         showNotification({
@@ -559,12 +566,23 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           message: `Order not completed within ${timeoutMinutes} minutes. Session has been stopped.`,
           duration: 0,
         });
-      } catch {
-        // The stop handler reports failures and keeps the session active.
+      } catch (error) {
+        if (isCurrentDispatch(sessionId, generation) && currentOrderRef.current?.id === order.id) {
+          console.error('Could not confirm assignment timeout:', error);
+          failedChecks += 1;
+          const willRetry = failedChecks < 3;
+          showNotification({
+            type: 'error', title: 'Order Timeout Check Failed',
+            message: `${getOrderDispatchErrorMessage(error)}. The order remains active. ${willRetry ? 'Checking again in 30 seconds.' : 'Automatic checks have paused; refresh or contact support if the problem persists.'}`,
+            duration: willRetry ? 6000 : 0,
+          });
+          if (willRetry) processTimeoutRef.current = setTimeout(() => { void checkAndStop(); }, 30000);
+        }
       } finally {
         processTimeoutInFlightRef.current = false;
       }
-    }, Math.max(0, timeoutMinutes * 60000 - elapsedMs));
+    };
+    processTimeoutRef.current = setTimeout(() => { void checkAndStop(); }, Math.max(0, timeoutMinutes * 60000 - elapsedMs));
 
     timeoutCheckRef.current = setInterval(updateWarnings, 10000);
   };
@@ -1653,94 +1671,74 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   };
   handleAcceptTimeoutRef.current = handleAcceptTimeout;
 
-  const handleProcessTimeout = async (assignmentId: string, sessionId: string, generation: number) => {
-    try {
-      // Check if order is still being processed
-      const { data: assignment, error: fetchError } = await supabase
-        .from('dispatch_assignments')
-        .select('status')
-        .eq('id', assignmentId)
-        .maybeSingle();
-      if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== assignmentId) return;
+  const handleProcessTimeout = async (assignmentId: string, sessionId: string, generation: number): Promise<boolean> => {
+    const isCurrentOrder = () => isCurrentDispatch(sessionId, generation) && currentOrderRef.current?.id === assignmentId;
+    const auth = getStoredAuth();
+    if (!isCurrentOrder() || auth?.userType !== 'employee') return false;
 
-      if (fetchError) {
-        console.error('Failed to check assignment status:', fetchError);
-        // Clear UI state but DO NOT schedule next order - work session will be stopped
-        setCurrentOrder(null);
-        setShowOrderDetail(false);
-        setHasTimeout(false);
-        setShowTimeoutAlert(false);
-
-        // Explicitly notify parent component that timeout is cleared
-        if (onStatusChange) {
-          onStatusChange(false, false);
-        }
-
-        return;
-      }
-
-      if (assignment && assignment.status === 'accepted') {
-        const auth = getStoredAuth();
-        if (auth?.userType !== 'employee') throw new Error('Employee session has expired.');
-        const { data: timeoutResult, error: timeoutError } = await supabase.rpc(
-          'finish_dispatch_assignment_secure',
-          {
-            p_user_id: auth.user.id,
-            p_session_token: auth.financialSessionToken,
-            p_tab_id: auth.tabId,
-            p_assignment_id: assignmentId,
-            p_status: 'timeout',
-            p_remarks: 'Auto-skipped: Not completed within configured time',
-          },
-        );
-        if (!isCurrentDispatch(sessionId, generation) || currentOrderRef.current?.id !== assignmentId) return;
-        if (timeoutError) throw timeoutError;
-        if (!timeoutResult?.success) return;
-
-        setCurrentOrder(null);
-        setShowOrderDetail(false);
-        setHasTimeout(false);
-        setShowTimeoutAlert(false);
-
-        // Explicitly notify parent component that timeout is cleared
-        if (onStatusChange) {
-          onStatusChange(false, false);
-        }
-
-        updateActivity();
-        loadTodayOrders();
-
-        // DO NOT schedule next order - work session will be stopped after timeout
-      } else if (!assignment || assignment.status !== 'accepted') {
-        // Order was already completed/cancelled, or doesn't exist anymore
-        // Clear current order display if it's still showing
-        if (currentOrder?.id === assignmentId && currentOrder.status === 'accepted') {
-          setCurrentOrder(null);
-          setShowOrderDetail(false);
-          setHasTimeout(false);
-          setShowTimeoutAlert(false);
-
-          // Explicitly notify parent component that timeout is cleared
-          if (onStatusChange) {
-            onStatusChange(false, false);
-          }
-        }
-        // DO NOT schedule next order - timeout handler will stop work session
-      }
-    } catch (error: unknown) {
-      if (!isCurrentDispatch(sessionId, generation)) return;
-      console.error('Failed to handle process timeout:', error);
-      // Clear UI state but DO NOT schedule next order - work session will be stopped
-      setCurrentOrder(null);
-      setShowOrderDetail(false);
-      setHasTimeout(false);
-      setShowTimeoutAlert(false);
-
-      // Explicitly notify parent component that timeout is cleared
-      if (onStatusChange) {
-        onStatusChange(false, false);
-      }
+    // OrderSubmission can mark this assignment on the server without updating this component.
+    const { data: assignment, error: fetchError } = await supabase
+      .from('dispatch_assignments')
+      .select('status, order_submitted, assignment_id')
+      .eq('id', assignmentId)
+      .eq('user_id', auth.user.id)
+      .maybeSingle();
+    if (!isCurrentOrder()) return false;
+    if (fetchError) throw fetchError;
+    if (!assignment || assignment.status !== 'accepted') {
+      await recoverDispatchState(sessionId, generation);
+      return false;
     }
+
+    let linkedOrder: { id: string; status: string } | null = null;
+    if (assignment.assignment_id) {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, status')
+        .eq('user_id', auth.user.id)
+        .eq('assignment_id', assignment.assignment_id)
+        .limit(1)
+        .maybeSingle();
+      if (!isCurrentOrder()) return false;
+      if (error) throw error;
+      linkedOrder = data;
+    }
+
+    if (assignment.order_submitted || linkedOrder) {
+      if (linkedOrder && ['success', 'failure', 'error'].includes(linkedOrder.status)) {
+        await recoverDispatchState(sessionId, generation);
+      } else {
+        setCurrentOrder(prev => prev?.id === assignmentId && !prev.order_submitted ? { ...prev, order_submitted: true } : prev);
+        setHasFiveMinuteWarning(false);
+        setHasTimeout(false);
+        void loadTodayOrders();
+      }
+      return false; // Submitted orders are reconciled on the server's 30-minute window.
+    }
+
+    const { data: timeoutResult, error: timeoutError } = await supabase.rpc('finish_dispatch_assignment_secure', {
+      p_user_id: auth.user.id,
+      p_session_token: auth.financialSessionToken,
+      p_tab_id: auth.tabId,
+      p_assignment_id: assignmentId,
+      p_status: 'timeout',
+      p_remarks: 'Auto-skipped: Not completed within configured time',
+    });
+    if (!isCurrentOrder()) return false;
+    if (timeoutError) throw timeoutError;
+    if (!timeoutResult?.success) {
+      await recoverDispatchState(sessionId, generation);
+      return false;
+    }
+
+    currentOrderRef.current = null;
+    setCurrentOrder(null);
+    setShowOrderDetail(false);
+    setHasTimeout(false);
+    setHasFiveMinuteWarning(false);
+    setShowTimeoutAlert(false);
+    void loadTodayOrders();
+    return true;
   };
 
   const handleCloseGrabFailedModal = () => {

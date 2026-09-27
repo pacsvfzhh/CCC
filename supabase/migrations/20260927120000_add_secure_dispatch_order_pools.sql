@@ -30,6 +30,7 @@ CREATE UNIQUE INDEX dispatch_order_pools_one_base_per_group
   ON public.dispatch_order_pools(group_id) WHERE is_base;
 CREATE INDEX dispatch_order_pools_active_group_idx
   ON public.dispatch_order_pools(group_id) WHERE is_active AND archived_at IS NULL;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.dispatch_order_pools;
 
 -- The trigger supplies the mandatory base pool for every subsequently created group.
 -- Base identity/group are immutable and a base pool cannot be deleted or archived.
@@ -897,6 +898,70 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'assignment_id', p_assignment_id,
                             'assignment_code', p_assignment_code, 'accepted_at', v_now,
                             'unaccepted_count', 0);
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.finish_dispatch_assignment_secure(
+  p_user_id uuid,
+  p_session_token uuid,
+  p_tab_id text,
+  p_assignment_id uuid,
+  p_status text,
+  p_remarks text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog', 'public', 'private', 'pg_temp'
+AS $function$
+DECLARE
+  v_updated_id uuid;
+BEGIN
+  IF p_status NOT IN ('completed', 'error', 'timeout', 'cancelled') THEN
+    RAISE EXCEPTION 'Invalid dispatch assignment status.';
+  END IF;
+
+  PERFORM 1
+  FROM public.employee_financial_sessions AS financial_session
+  JOIN public.users AS employee ON employee.id = financial_session.user_id
+  WHERE financial_session.user_id = p_user_id
+    AND financial_session.token_hash = private.hash_financial_token(p_session_token)
+    AND financial_session.revoked_at IS NULL
+    AND financial_session.expires_at > now()
+    AND financial_session.tab_id = p_tab_id
+    AND financial_session.session_marker = employee.current_session_token
+    AND employee.current_tab_id = p_tab_id
+    AND employee.is_active = true
+  FOR UPDATE OF financial_session, employee;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Employee session is invalid or expired.';
+  END IF;
+
+  UPDATE public.dispatch_assignments AS assignment
+  SET status = p_status,
+      completed_at = clock_timestamp(),
+      remarks = COALESCE(p_remarks, assignment.remarks)
+  WHERE assignment.id = p_assignment_id
+    AND assignment.user_id = p_user_id
+    AND (
+      (p_status = 'cancelled' AND assignment.status IN ('pending', 'accepted'))
+      OR (p_status <> 'cancelled' AND assignment.status = 'accepted')
+    )
+    AND (p_status <> 'timeout' OR (
+      assignment.order_submitted = false
+      AND NOT EXISTS (
+        SELECT 1 FROM public.orders AS submitted_order
+        WHERE submitted_order.assignment_id = assignment.assignment_id
+          AND submitted_order.user_id = p_user_id
+      )
+    ))
+  RETURNING assignment.id INTO v_updated_id;
+
+  RETURN jsonb_build_object(
+    'success', v_updated_id IS NOT NULL,
+    'assignment_id', v_updated_id,
+    'status', p_status
+  );
 END;
 $function$;
 
