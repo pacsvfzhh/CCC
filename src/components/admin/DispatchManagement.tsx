@@ -1167,7 +1167,7 @@ export default function DispatchManagement() {
                           <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-400/20 text-xs font-bold text-violet-200">02</span><h4 className="font-semibold text-violet-100">訂單池設定</h4></div>
                     <label
                       htmlFor="pool-selection-mode"
-                      className="block text-sm font-medium"
+                      className="block text-sm font-medium text-violet-100"
                     >
                       訂單池選擇模式
                     </label>
@@ -1200,7 +1200,7 @@ export default function DispatchManagement() {
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
                     </label>
-                    <p className="text-xs leading-relaxed text-slate-300">接單後尚未提交的期限；已派訂單保留原設定。</p>
+                    <p className="text-xs leading-relaxed text-cyan-100">接單後尚未提交的期限；已派訂單保留原設定。</p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <label className="min-w-0 text-sm font-medium text-slate-200">
                         提交等待時間 · 最短（秒）
@@ -1217,7 +1217,7 @@ export default function DispatchManagement() {
                           onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_max_seconds: event.target.value })} />
                       </label>
                     </div>
-                    <p className="text-xs text-slate-300">僅影響提交頁進度動畫，不延長接單或實際處理期限。</p>
+                    <p className="text-xs text-cyan-100">僅影響提交頁進度動畫，不延長接單或實際處理期限。</p>
                         </section>
                       </div>
                       <div className="min-w-0 space-y-4 lg:border-l lg:border-indigo-300/20 lg:pl-6">
