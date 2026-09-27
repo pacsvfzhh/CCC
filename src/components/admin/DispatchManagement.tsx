@@ -1118,13 +1118,21 @@ export default function DispatchManagement() {
             </section>
 
             {groupSettingsOpen && selectedGroup && createPortal(
-              <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm">
-                <div role="dialog" aria-modal="true" aria-label="分組設定" className="max-h-[calc(100dvh-24px)] w-full max-w-xl overflow-y-auto rounded-2xl border border-cyan-300/30 bg-slate-900 p-4 shadow-2xl sm:p-5">
-                  <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-700 pb-3"><h3 className="font-semibold text-cyan-100">分組設定</h3><button type="button" onClick={() => setGroupSettingsOpen(false)} disabled={busy} aria-label="關閉分組設定" className="rounded-lg p-1.5 text-slate-300 hover:bg-slate-700"><X className="h-5 w-5" /></button></div>
-                  <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
-              {selectedGroup ? (
-                <>
-                  <div className="space-y-3">
+              <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-slate-950/80 p-2 backdrop-blur-sm sm:p-4">
+                <div role="dialog" aria-modal="true" aria-label="分組設定" className="flex max-h-[calc(100dvh-16px)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-indigo-300/30 bg-slate-900 shadow-[0_32px_90px_rgba(2,6,23,0.65)] sm:max-h-[calc(100dvh-32px)]">
+                  <div className="flex shrink-0 items-center justify-between gap-3 border-b border-indigo-300/20 bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 px-4 py-3.5 sm:px-6 sm:py-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-white/10 text-cyan-200"><Settings className="h-5 w-5" /></div>
+                      <div className="min-w-0"><h3 className="text-lg font-semibold text-white">分組設定</h3><p className="truncate text-xs text-blue-100/75">{groupDisplayName(selectedGroup)} · 調整派單與員工規則</p></div>
+                    </div>
+                    <button type="button" onClick={() => setGroupSettingsOpen(false)} disabled={busy} aria-label="關閉分組設定" className="rounded-lg border border-white/10 bg-white/10 p-2 text-blue-100 transition-colors hover:bg-white/20 disabled:opacity-50"><X className="h-5 w-5" /></button>
+                  </div>
+                  <div className="dispatch-group-settings-fields dark-panel-scroll min-h-0 overflow-y-auto p-3 sm:p-5">
+                    <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+                      <div className="min-w-0 space-y-4">
+                        <section className="min-w-0 rounded-2xl border border-sky-400/30 bg-gradient-to-br from-sky-500/15 via-sky-900/20 to-slate-800/60 p-4 sm:p-5">
+                          <div className="mb-4 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-400/20 text-xs font-bold text-sky-200">01</span><h4 className="font-semibold text-sky-100">基本資料</h4></div>
+                          <div className="space-y-3">
                     <label className="block text-sm font-medium text-slate-200">
                       分組名稱
                       <input
@@ -1143,10 +1151,10 @@ export default function DispatchManagement() {
                         onChange={(event) => setGroupDraft({ ...groupDraft, description: event.target.value })}
                       />
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-200">
+                    <label className="flex items-center gap-2 rounded-xl border border-sky-300/20 bg-sky-400/10 px-3 py-2.5 text-sm font-medium text-sky-100">
                       <input
                         type="checkbox"
-                        className="accent-cyan-500"
+                        className="h-4 w-4 accent-sky-500"
                         checked={groupDraft.is_active}
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, is_active: event.target.checked })}
@@ -1154,14 +1162,16 @@ export default function DispatchManagement() {
                       啟用分組
                     </label>
                   </div>
-                  <div className="mt-4 rounded-lg border border-slate-700 bg-slate-900/40 p-3">
+                        </section>
+                        <section className="min-w-0 rounded-2xl border border-violet-400/30 bg-gradient-to-br from-violet-500/15 via-indigo-900/20 to-slate-800/60 p-4 sm:p-5">
+                          <div className="mb-3 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-400/20 text-xs font-bold text-violet-200">02</span><h4 className="font-semibold text-violet-100">訂單池設定</h4></div>
                     <label
                       htmlFor="pool-selection-mode"
                       className="block text-sm font-medium"
                     >
                       訂單池選擇模式
                     </label>
-                    <p className="mb-2 text-xs text-slate-400">
+                    <p className="mb-3 mt-1 text-xs leading-relaxed text-slate-300">
                       固定基本池僅從基本池派單；隨機模式會從有可派訂單的已啟用訂單池中抽取。
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
@@ -1180,8 +1190,9 @@ export default function DispatchManagement() {
                         <option value="random">隨機選擇可派單的訂單池</option>
                       </select>
                     </div>
-                  </div>
-                  <div className="mt-3 space-y-3 rounded-lg border border-cyan-400/20 bg-slate-900/40 p-3">
+                        </section>
+                        <section className="min-w-0 space-y-3 rounded-2xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/15 via-teal-900/20 to-slate-800/60 p-4 sm:p-5">
+                          <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/20 text-xs font-bold text-cyan-200">03</span><h4 className="font-semibold text-cyan-100">工作與提交時間</h4></div>
                     <label className="block text-sm font-medium text-slate-200">
                       工作會話逾時（分鐘）
                       <input type="number" min="1" max="60" className={`${inputClass} mt-1`}
@@ -1189,7 +1200,7 @@ export default function DispatchManagement() {
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
                     </label>
-                    <p className="text-xs text-slate-400">接單後尚未提交的期限；已派訂單保留原設定。</p>
+                    <p className="text-xs leading-relaxed text-slate-300">接單後尚未提交的期限；已派訂單保留原設定。</p>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="min-w-0 text-sm font-medium text-slate-200">
                         提交等待時間 · 最短（秒）
@@ -1206,16 +1217,19 @@ export default function DispatchManagement() {
                           onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_max_seconds: event.target.value })} />
                       </label>
                     </div>
-                    <p className="text-xs text-slate-400">僅影響提交頁進度動畫，不延長接單或實際處理期限。</p>
-                  </div>
-                  <div className="mt-3 grid gap-3 rounded-lg border border-emerald-400/20 bg-slate-900/40 p-3 sm:grid-cols-2">
+                    <p className="text-xs text-slate-300">僅影響提交頁進度動畫，不延長接單或實際處理期限。</p>
+                        </section>
+                      </div>
+                      <div className="min-w-0 space-y-4">
+                        <section className="grid min-w-0 gap-3 rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-500/15 via-green-900/20 to-slate-800/60 p-4 sm:grid-cols-2 sm:p-5">
+                          <div className="flex items-center gap-2 sm:col-span-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400/20 text-xs font-bold text-emerald-200">04</span><h4 className="font-semibold text-emerald-100">訂單收益</h4></div>
                     <label className="min-w-0 text-sm font-medium text-slate-200">
                       Commission · 佣金率
                       <input type="number" min="0.00001" max="1" step="0.00000001" className={`${inputClass} mt-1`}
                         value={groupDraft.commission_rate}
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, commission_rate: event.target.value })} />
-                      <span className="mt-1 block text-xs font-normal text-slate-400">小數比例，例如 0.00008 = 0.008%；僅成功訂單計算佣金。</span>
+                      <span className="mt-1 block text-xs font-normal leading-relaxed text-slate-300">小數比例，例如 0.00008 = 0.008%；僅成功訂單計算佣金。</span>
                     </label>
                     <label className="min-w-0 text-sm font-medium text-slate-200">
                       Success Rate · 訂單成功率（%）
@@ -1223,12 +1237,12 @@ export default function DispatchManagement() {
                         value={groupDraft.dispatch_success_rate}
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, dispatch_success_rate: event.target.value })} />
-                      <span className="mt-1 block text-xs font-normal text-slate-400">影響接單與訂單處理；新派單保存此分組的成功率。</span>
+                      <span className="mt-1 block text-xs font-normal text-slate-300">影響接單與訂單處理；新派單保存此分組的成功率。</span>
                     </label>
-                  </div>
-                  <div className="mt-3 space-y-3 rounded-lg border border-amber-400/20 bg-slate-900/40 p-3">
-                    <div className="text-sm font-medium text-amber-100">提款資格 · {selectedGroup.member_count} 位員工</div>
-                    <p className="text-xs text-slate-400">依目前所屬分組判斷；員工人數由分組成員自動統計。</p>
+                        </section>
+                        <section className="min-w-0 space-y-3 rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-500/15 via-orange-900/20 to-slate-800/60 p-4 sm:p-5">
+                    <div className="flex flex-wrap items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-400/20 text-xs font-bold text-amber-200">05</span><h4 className="font-semibold text-amber-100">提款資格</h4><span className="ml-auto rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-100">{selectedGroup.member_count} 位員工</span></div>
+                    <p className="text-xs leading-relaxed text-slate-300">依目前所屬分組判斷；員工人數由分組成員自動統計。</p>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="min-w-0 text-sm font-medium text-slate-200">
                         Withdrawal · 最低提款餘額
@@ -1245,7 +1259,7 @@ export default function DispatchManagement() {
                           onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
                       </label>
                     </div>
-                    <p className="text-xs text-slate-400">原「Min Days」實際按訂單筆數計算（沿用現有所有狀態的訂單數），不是天數。</p>
+                    <p className="rounded-lg border border-amber-400/15 bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-amber-100/90">原「Min Days」實際按訂單筆數計算（沿用現有所有狀態的訂單數），不是天數。</p>
                     <label className="block text-sm font-medium text-slate-200">
                       提款條件組合
                       <select className={`${inputClass} mt-1`} value={groupDraft.withdrawal_condition_mode}
@@ -1257,8 +1271,12 @@ export default function DispatchManagement() {
                         <option value="days_only">僅檢查訂單數</option>
                       </select>
                     </label>
+                        </section>
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                  <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-700 bg-slate-950/95 px-4 py-3 sm:px-6">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     <span
                       className={`rounded-full px-2 py-1 ${selectedGroup.archived_at ? 'bg-rose-500/20 text-rose-300' : selectedGroup.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-300'}`}
                     >
@@ -1296,26 +1314,18 @@ export default function DispatchManagement() {
                           </button>
                         )
                       ))}
-                  </div>
-                  {isSuperAdmin && (
-                    <div className="mt-4 flex justify-end">
+                    </div>
+                    {isSuperAdmin && (
                       <button
-                        className={primaryButton}
+                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={busy || !!selectedGroup.archived_at || !groupDraft.group_name.trim() || !groupDraftChanged}
                         onClick={() => void saveGroup('edit')}
                       >
-                        <Save className="mr-1 inline h-4 w-4" />
+                        <Save className="mr-2 h-4 w-4" />
                         {busy ? '儲存中…' : '儲存分組設定'}
                       </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="py-12 text-center text-sm text-slate-400">
-                  請選擇分組，以管理訂單池及成員。
-                </p>
-              )}
-                  </section>
+                    )}
+                  </div>
                 </div>
               </div>, document.body,
             )}
