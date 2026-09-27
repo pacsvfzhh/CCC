@@ -1507,16 +1507,16 @@ export default function DispatchManagement() {
                           <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-5">
                             <div className="min-w-0">
                               <label className="block text-sm font-medium text-slate-200">
-                                工作會話逾時（分鐘）
-                                <input type="number" min="1" max="60" className={`${inputClass} mt-1 sm:max-w-40`}
+                                <span className="block leading-5">工作會話逾時（分鐘）</span>
+                                <input type="number" min="1" max="60" className={`${inputClass} mt-1 block sm:max-w-40`}
                                   value={groupDraft.session_timeout_minutes}
                                   disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                                   onChange={(event) => setGroupDraft({ ...groupDraft, session_timeout_minutes: event.target.value })} />
                               </label>
                               <p className="mt-1 text-xs leading-relaxed text-cyan-100">接單後尚未提交的期限；已派訂單保留原設定。</p>
                             </div>
-                            <fieldset className="min-w-0">
-                              <legend className="text-sm font-medium text-slate-200">提交等待時間（秒）</legend>
+                            <div className="min-w-0" role="group" aria-labelledby="dispatch-submit-wait-label">
+                              <p id="dispatch-submit-wait-label" className="text-sm font-medium leading-5 text-slate-200">提交等待時間（秒）</p>
                               <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
                                 <label className="inline-flex items-center gap-2 whitespace-nowrap text-xs font-medium text-slate-200">
                                   最短
@@ -1534,7 +1534,7 @@ export default function DispatchManagement() {
                                 </label>
                               </div>
                               <p className="mt-1 text-xs leading-relaxed text-cyan-100">僅影響提交頁動畫，不延長接單或處理期限。</p>
-                            </fieldset>
+                            </div>
                           </div>
                         </section>
                         <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
