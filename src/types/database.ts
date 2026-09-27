@@ -177,7 +177,7 @@ export interface Database {
           id: string;
           group_name: string;
           description: string | null;
-          pool_selection_mode: 'base' | 'random';
+          pool_selection_mode: 'base' | 'random' | 'weighted';
           archived_at: string | null;
           dispatch_interval_min: number;
           dispatch_interval_max: number;
@@ -200,7 +200,7 @@ export interface Database {
           id?: string;
           group_name: string;
           description?: string | null;
-          pool_selection_mode?: 'base' | 'random';
+          pool_selection_mode?: 'base' | 'random' | 'weighted';
           archived_at?: string | null;
           dispatch_interval_min?: number | null;
           dispatch_interval_max?: number | null;
@@ -223,7 +223,7 @@ export interface Database {
           id?: string;
           group_name?: string;
           description?: string | null;
-          pool_selection_mode?: 'base' | 'random';
+          pool_selection_mode?: 'base' | 'random' | 'weighted';
           archived_at?: string | null;
           dispatch_interval_min?: number | null;
           dispatch_interval_max?: number | null;
@@ -254,6 +254,7 @@ export interface Database {
           dispatch_interval_min: number;
           dispatch_interval_max: number;
           session_timeout_minutes: number;
+          trigger_probability: number;
           dispatch_order_mode: 'random' | 'sequential';
           dispatch_success_rate: number;
           archived_at: string | null;
@@ -270,6 +271,7 @@ export interface Database {
           dispatch_interval_min?: number;
           dispatch_interval_max?: number;
           session_timeout_minutes?: number;
+          trigger_probability?: number;
           dispatch_order_mode?: 'random' | 'sequential';
           dispatch_success_rate?: number;
           archived_at?: string | null;
@@ -286,6 +288,7 @@ export interface Database {
           dispatch_interval_min?: number;
           dispatch_interval_max?: number;
           session_timeout_minutes?: number;
+          trigger_probability?: number;
           dispatch_order_mode?: 'random' | 'sequential';
           dispatch_success_rate?: number;
           archived_at?: string | null;
@@ -2700,6 +2703,10 @@ export interface Database {
       admin_save_dispatch_pool: {
         Args: { p_admin_session_token: string; p_group_id: string; p_pool_id: string | null; p_changes: Record<string, unknown> };
         Returns: { pool: Database['public']['Tables']['dispatch_order_pools']['Row'] };
+      };
+      admin_set_dispatch_pool_probabilities: {
+        Args: { p_admin_session_token: string; p_group_id: string; p_probabilities: { pool_id: string; probability: number }[] };
+        Returns: { pools: Database['public']['Tables']['dispatch_order_pools']['Row'][] };
       };
       admin_manage_dispatch_orders: {
         Args: {
