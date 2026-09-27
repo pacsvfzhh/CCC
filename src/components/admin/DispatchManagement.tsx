@@ -649,7 +649,13 @@ export default function DispatchManagement() {
         notify('error', '分組已儲存，但重新載入資料失敗；請按「刷新」確認最新設定。');
       }
     } catch (error) {
-      notify('error', '儲存分組失敗：' + formatSupabaseError(error));
+      const message = formatSupabaseError(error);
+      notify(
+        'error',
+        message.includes('Invalid dispatch group changes.')
+          ? '儲存失敗：目前資料庫尚未支援分組時間、收益及提款設定；資料未變更，需先完成資料庫遷移。'
+          : '儲存分組失敗：' + message,
+      );
     } finally {
       setBusy(false);
     }
