@@ -195,6 +195,7 @@ export default function DispatchManagement() {
   } | null>(null);
   const [groupForm, setGroupForm] = useState<'create' | null>(null);
   const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
+  const [pendingGroupActive, setPendingGroupActive] = useState<boolean | null>(null);
   const [poolForm, setPoolForm] = useState<'create' | 'edit' | null>(null);
   const [poolDraft, setPoolDraft] = useState<PoolDraft>(emptyPoolDraft);
   const [archiveTarget, setArchiveTarget] = useState<{
@@ -517,6 +518,7 @@ export default function DispatchManagement() {
   const switchGroup = (groupId: string) => {
     setSelectedGroupId(groupId);
     setSelectedPoolId(null);
+    setPendingGroupActive(null);
     setGroupSettingsOpen(false);
     setMemberPanelOpen(false);
     setOrdersOpen(false);
@@ -1123,7 +1125,27 @@ export default function DispatchManagement() {
                   <div className="flex items-center justify-between gap-3 border-b border-indigo-300/20 bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 px-4 py-3 sm:px-6">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-white/10 text-cyan-200"><Settings className="h-5 w-5" /></div>
-                      <div className="min-w-0"><h3 className="text-lg font-semibold text-white">分組設定</h3><p className="truncate text-xs text-blue-100/75">{groupDisplayName(selectedGroup)} · 調整派單與員工規則</p></div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                          <h3 className="text-lg font-semibold text-white">分組設定</h3>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-label="啟用分組"
+                            aria-checked={groupDraft.is_active}
+                            disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                            onClick={() => setPendingGroupActive(!groupDraft.is_active)}
+                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${groupDraft.is_active ? 'border-emerald-300/70 bg-emerald-500/25 text-emerald-50' : 'border-rose-300/70 bg-rose-500/25 text-rose-50'}`}
+                          >
+                            <span className={`relative h-5 w-9 shrink-0 rounded-full ${groupDraft.is_active ? 'bg-emerald-400' : 'bg-rose-400'}`} aria-hidden="true">
+                              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${groupDraft.is_active ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                            </span>
+                            {groupDraft.is_active ? '已啟用' : '未啟用'}
+                            {groupDraft.is_active !== selectedGroup.is_active && <span className="text-white/80">· 待儲存</span>}
+                          </button>
+                        </div>
+                        <p className="truncate text-xs text-blue-100/75">{groupDisplayName(selectedGroup)} · 調整派單與員工規則</p>
+                      </div>
                     </div>
                     <button type="button" onClick={() => setGroupSettingsOpen(false)} disabled={busy} aria-label="關閉分組設定" className="rounded-lg border border-white/10 bg-white/10 p-2 text-blue-100 transition-colors hover:bg-white/20 disabled:opacity-50"><X className="h-5 w-5" /></button>
                   </div>
@@ -1150,16 +1172,6 @@ export default function DispatchManagement() {
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, description: event.target.value })}
                       />
-                    </label>
-                    <label className="flex items-center gap-2 text-sm font-medium text-sky-100">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 accent-sky-500"
-                        checked={groupDraft.is_active}
-                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
-                        onChange={(event) => setGroupDraft({ ...groupDraft, is_active: event.target.checked })}
-                      />
-                      啟用分組
                     </label>
                   </div>
                         </section>
@@ -1284,8 +1296,8 @@ export default function DispatchManagement() {
                       {selectedGroup.archived_at
                         ? '已封存'
                         : selectedGroup.is_active
-                          ? '已啟用'
-                          : '未啟用'}
+                          ? '目前已啟用'
+                          : '目前未啟用'}
                     </span>
                     {isSuperAdmin &&
                       (selectedGroup.archived_at ? (
@@ -1326,6 +1338,30 @@ export default function DispatchManagement() {
                         {busy ? '儲存中…' : '儲存分組設定'}
                       </button>
                     )}
+                  </div>
+                </div>
+              </div>, document.body,
+            )}
+
+            {pendingGroupActive !== null && groupSettingsOpen && selectedGroup && createPortal(
+              <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
+                <div role="dialog" aria-modal="true" aria-labelledby="group-active-confirm-title" className="w-full max-w-md rounded-2xl border border-indigo-300/30 bg-slate-900 p-5 text-slate-100 shadow-2xl">
+                  <h3 id="group-active-confirm-title" className="text-lg font-semibold text-white">確認{pendingGroupActive ? '啟用' : '停用'}分組？</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                    確定要將「{groupDisplayName(selectedGroup)}」設為{pendingGroupActive ? '啟用' : '停用'}？確認後請按「儲存分組設定」，變更才會生效。
+                  </p>
+                  <div className="mt-5 flex justify-end gap-2">
+                    <button type="button" className={secondaryButton} onClick={() => setPendingGroupActive(null)}>取消</button>
+                    <button
+                      type="button"
+                      className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${pendingGroupActive ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'}`}
+                      onClick={() => {
+                        setGroupDraft((current) => ({ ...current, is_active: pendingGroupActive }));
+                        setPendingGroupActive(null);
+                      }}
+                    >
+                      確認{pendingGroupActive ? '啟用' : '停用'}
+                    </button>
                   </div>
                 </div>
               </div>, document.body,
