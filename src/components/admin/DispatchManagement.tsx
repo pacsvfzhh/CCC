@@ -1462,10 +1462,10 @@ export default function DispatchManagement() {
                           </span>
                         </div>
                         <p className="text-xs leading-relaxed text-amber-100/80">所有未封存訂單池合計須為 100%。停用、無可派訂單或 0% 的池不參與抽選，其餘可用池按比例重新分配。</p>
-                        <div className="grid gap-2 sm:grid-cols-2">
+                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                           {editableProbabilityPools.map((pool) => (
-                            <label key={pool.id} className="min-w-0 text-xs font-medium text-slate-200">
-                              <span className="mb-1 block truncate" title={poolDisplayName(pool)}>
+                            <label key={pool.id} className="min-w-0 text-sm font-medium text-slate-200">
+                              <span className="mb-1 block truncate font-semibold" title={poolDisplayName(pool)}>
                                 {poolDisplayName(pool)}{!pool.is_active ? '（已停用）' : ''}
                               </span>
                               <span className="flex items-center gap-2">
