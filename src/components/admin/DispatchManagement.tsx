@@ -989,8 +989,8 @@ export default function DispatchManagement() {
 
       <div className="relative grid min-h-0 min-w-0 w-full flex-1 grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] lg:before:pointer-events-none lg:before:absolute lg:before:inset-y-0 lg:before:left-[279px] lg:before:z-10 lg:before:w-[2px] lg:before:bg-gradient-to-b lg:before:from-blue-400/80 lg:before:via-cyan-500/60 lg:before:to-cyan-800/30">
         <>
-            <section className="min-w-0 border-b-2 border-cyan-700/65 bg-gradient-to-b from-blue-950/55 via-slate-900/30 to-slate-950/20 px-3 py-4 sm:px-4 lg:border-b-0">
-              <div className="mb-3 flex min-w-0 items-center justify-between gap-2">
+            <section className="min-w-0 border-b-2 border-cyan-700/65 bg-gradient-to-b from-blue-950/65 via-slate-900/40 to-slate-950/20 px-3 py-4 sm:px-4 lg:border-b-0">
+              <div className="mb-4 flex min-w-0 items-center justify-between gap-2">
                 <h3 className="flex min-w-0 items-center gap-2 font-semibold text-blue-100">
                   <Layers className="h-4 w-4 text-blue-400" />
                   分組 <span className="rounded-full bg-blue-400/15 px-2 py-0.5 text-xs text-blue-200">{groups.length}</span>
@@ -1009,44 +1009,50 @@ export default function DispatchManagement() {
                   </button>
                 )}
               </div>
-              <div className="relative mb-3">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-blue-300/75" />
                 <input
-                  className={`${inputClass} pl-9`}
+                  className="w-full min-w-0 rounded-xl border border-blue-400/25 bg-slate-950/65 py-2 pl-9 pr-3 text-sm text-white placeholder-slate-400 outline-none focus:border-cyan-400/70 focus:ring-2 focus:ring-cyan-400/20"
                   value={groupSearch}
                   onChange={(event) => setGroupSearch(event.target.value)}
                   placeholder="搜尋分組"
                   aria-label="搜尋分組"
                 />
               </div>
-              <div className="max-h-[min(70vh,780px)] divide-y divide-blue-400/15 overflow-y-auto">
+              <div className="max-h-[min(70vh,780px)] space-y-2.5 overflow-y-auto pr-1">
                 {visibleGroups.map((group) => (
-                  <div
+                  <article
                     key={group.id}
-                    className={`min-w-0 border-l-[3px] px-3 py-3 transition-colors ${selectedGroupId === group.id ? 'border-cyan-300 bg-gradient-to-r from-blue-500/20 to-cyan-500/5' : 'border-transparent hover:bg-blue-500/10'}`}
+                    className={`min-w-0 rounded-lg border px-2.5 py-2 shadow-sm transition-colors ${selectedGroupId === group.id ? 'border-cyan-400/75 bg-gradient-to-br from-blue-900/70 via-blue-950/80 to-cyan-950/55 shadow-cyan-950/40' : 'border-slate-600/65 bg-slate-900/80 hover:border-blue-400/55 hover:bg-blue-950/55'}`}
                   >
                     <button
                       type="button"
-                      className="w-full min-w-0 text-left"
+                      className="w-full min-w-0 text-left focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
                       aria-pressed={selectedGroupId === group.id}
                       onClick={() => switchGroup(group.id)}
                     >
-                      <span className="flex flex-wrap items-center gap-1.5 break-words text-sm font-semibold text-white">
-                        {groupDisplayName(group)}
-                        {group.is_default && <span className="rounded bg-amber-400/15 px-1.5 py-0.5 text-[10px] text-amber-200">預設</span>}
+                      <span className="flex min-w-0 items-start justify-between gap-1.5">
+                        <span className="flex min-w-0 flex-wrap items-center gap-1">
+                          <span className="min-w-0 break-words text-sm font-semibold leading-5 text-white">{groupDisplayName(group)}</span>
+                          {group.is_default && <span className="shrink-0 rounded bg-amber-400/20 px-1 text-[10px] leading-4 text-amber-100">預設</span>}
+                        </span>
+                        <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 text-[10px] leading-5 ${group.archived_at ? 'bg-rose-500/20 text-rose-100' : group.is_active ? 'bg-emerald-500/20 text-emerald-100' : 'bg-amber-500/20 text-amber-100'}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${group.archived_at ? 'bg-rose-400' : group.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                          {group.archived_at ? '已封存' : group.is_active ? '已啟用' : '未啟用'}
+                        </span>
                       </span>
-                      <span className="mt-1 block text-xs text-slate-400">
-                        {group.archived_at ? '已封存' : group.is_active ? '已啟用' : '未啟用'} · {group.member_count} 位成員 · {group.order_count} 筆訂單
+                      <span className="mt-1.5 block text-[11px] leading-4 text-slate-200">
+                        {group.member_count} 位成員 · {group.order_count} 筆訂單
                       </span>
-                      <span className="mt-2 block text-xs text-cyan-200">
+                      <span className="mt-1 block break-words text-[11px] font-medium leading-4 text-cyan-100">
                         {group.pool_selection_mode === 'base' ? '固定基本池' : '隨機選擇可派單的訂單池'}
                       </span>
                     </button>
-                    <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-2">
-                      <button type="button" className="inline-flex items-center gap-1 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1.5 text-xs text-cyan-100 hover:bg-cyan-500/20" onClick={() => { switchGroup(group.id); setModeDraft(group.pool_selection_mode); setGroupSettingsOpen(true); }}><Settings className="h-3.5 w-3.5" />分組設定</button>
-                      <button type="button" className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-100 hover:bg-emerald-500/20" onClick={() => { switchGroup(group.id); setMemberPanelOpen(true); }}><Users className="h-3.5 w-3.5" />成員管理</button>
+                    <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-white/15 pt-2">
+                      <button type="button" className="inline-flex min-w-0 items-center justify-center gap-1 rounded-md border border-cyan-400/45 bg-cyan-500/20 px-1 py-1 text-[11px] font-medium text-cyan-50 hover:bg-cyan-500/30" onClick={() => { switchGroup(group.id); setModeDraft(group.pool_selection_mode); setGroupSettingsOpen(true); }}><Settings className="h-3 w-3 shrink-0" />分組設定</button>
+                      <button type="button" className="inline-flex min-w-0 items-center justify-center gap-1 rounded-md border border-emerald-400/45 bg-emerald-500/20 px-1 py-1 text-[11px] font-medium text-emerald-50 hover:bg-emerald-500/30" onClick={() => { switchGroup(group.id); setMemberPanelOpen(true); }}><Users className="h-3 w-3 shrink-0" />成員管理</button>
                     </div>
-                  </div>
+                  </article>
                 ))}
                 {!visibleGroups.length && (
                   <div className="flex min-h-44 flex-col items-center justify-center gap-2 px-3 py-8 text-center">
