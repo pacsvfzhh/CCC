@@ -57,6 +57,46 @@ const withdrawalModeLabels: Record<DispatchGroup['withdrawal_condition_mode'], s
   days_only: '僅檢查訂單數是否達標',
 };
 
+const poolSelectionOptions = [
+  {
+    value: 'base',
+    label: '固定基本池',
+    description: '僅從基本池派單',
+    activeClass: 'border-blue-300 bg-blue-600/45 text-white ring-2 ring-blue-300 shadow-lg shadow-blue-950/50',
+    inactiveClass: 'border-blue-400/40 bg-blue-500/10 text-blue-100 hover:bg-blue-500/20',
+  },
+  {
+    value: 'random',
+    label: '隨機選擇訂單池',
+    description: '從已啟用的可派單池中抽取',
+    activeClass: 'border-violet-300 bg-violet-600/45 text-white ring-2 ring-violet-300 shadow-lg shadow-violet-950/50',
+    inactiveClass: 'border-violet-400/40 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20',
+  },
+] as const;
+
+const withdrawalModeOptions = [
+  {
+    value: 'OR',
+    activeClass: 'border-amber-300 bg-amber-600/45 text-white ring-2 ring-amber-300 shadow-lg shadow-amber-950/50',
+    inactiveClass: 'border-amber-400/40 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20',
+  },
+  {
+    value: 'AND',
+    activeClass: 'border-violet-300 bg-violet-600/45 text-white ring-2 ring-violet-300 shadow-lg shadow-violet-950/50',
+    inactiveClass: 'border-violet-400/40 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20',
+  },
+  {
+    value: 'amount_only',
+    activeClass: 'border-emerald-300 bg-emerald-600/45 text-white ring-2 ring-emerald-300 shadow-lg shadow-emerald-950/50',
+    inactiveClass: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20',
+  },
+  {
+    value: 'days_only',
+    activeClass: 'border-cyan-300 bg-cyan-600/45 text-white ring-2 ring-cyan-300 shadow-lg shadow-cyan-950/50',
+    inactiveClass: 'border-cyan-400/40 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/20',
+  },
+] as const;
+
 interface DispatchPool {
   id: string;
   group_id: string;
@@ -1232,30 +1272,24 @@ export default function DispatchManagement() {
                         </section>
                         <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
                           <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-400/20 text-xs font-bold text-violet-200">02</span><h4 className="font-semibold text-violet-100">訂單池設定</h4></div>
-                    <label
-                      htmlFor="pool-selection-mode"
-                      className="block text-sm font-medium text-violet-100"
-                    >
-                      訂單池選擇模式
-                    </label>
-                    <p className="text-xs leading-relaxed text-slate-300">
-                      固定基本池僅從基本池派單；隨機模式會從有可派訂單的已啟用訂單池中抽取。
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <select
-                        id="pool-selection-mode"
-                        className={`${inputClass} flex-1`}
-                        value={groupDraft.pool_selection_mode}
-                        disabled={
-                          !isSuperAdmin || !!selectedGroup.archived_at || busy
-                        }
-                        onChange={(event) =>
-                          setGroupDraft({ ...groupDraft, pool_selection_mode: event.target.value as 'base' | 'random' })
-                        }
-                      >
-                        <option value="base">固定基本池</option>
-                        <option value="random">隨機選擇可派單的訂單池</option>
-                      </select>
+                    <p className="text-sm font-medium text-violet-100">訂單池選擇模式</p>
+                    <div role="group" aria-label="訂單池選擇模式" className="grid grid-cols-2 gap-2">
+                      {poolSelectionOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          aria-pressed={groupDraft.pool_selection_mode === option.value}
+                          disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                          onClick={() => setGroupDraft({ ...groupDraft, pool_selection_mode: option.value })}
+                          className={`min-w-0 rounded-xl border px-3 py-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 ${groupDraft.pool_selection_mode === option.value ? option.activeClass : option.inactiveClass}`}
+                        >
+                          <span className="flex items-start justify-between gap-1 text-sm font-semibold">
+                            {option.label}
+                            {groupDraft.pool_selection_mode === option.value && <CheckCircle className="h-4 w-4 shrink-0" />}
+                          </span>
+                          <span className="mt-1 block text-xs opacity-85">{option.description}</span>
+                        </button>
+                      ))}
                     </div>
                         </section>
                         <section className="min-w-0 space-y-2 border-t border-slate-700/70 pt-3">
@@ -1328,17 +1362,22 @@ export default function DispatchManagement() {
                         <span className="mt-1 block text-xs font-normal leading-relaxed text-amber-200/90">按所有狀態的訂單筆數計算。</span>
                       </label>
                     </div>
-                    <label className="block text-sm font-medium text-slate-200">
-                      提款條件組合
-                      <select className={`${inputClass} mt-1`} value={groupDraft.withdrawal_condition_mode}
-                        disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
-                        onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: event.target.value as DispatchGroup['withdrawal_condition_mode'] })}>
-                        <option value="OR">餘額或訂單數任一達標</option>
-                        <option value="AND">餘額與訂單數均須達標</option>
-                        <option value="amount_only">僅檢查餘額</option>
-                        <option value="days_only">僅檢查訂單數</option>
-                      </select>
-                    </label>
+                    <p className="text-sm font-medium text-amber-100">提款條件組合</p>
+                    <div role="group" aria-label="提款條件組合" className="grid grid-cols-2 gap-2">
+                      {withdrawalModeOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          aria-pressed={groupDraft.withdrawal_condition_mode === option.value}
+                          disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
+                          onClick={() => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: option.value })}
+                          className={`flex min-h-12 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold leading-5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 ${groupDraft.withdrawal_condition_mode === option.value ? option.activeClass : option.inactiveClass}`}
+                        >
+                          <span>{withdrawalModeLabels[option.value]}</span>
+                          {groupDraft.withdrawal_condition_mode === option.value && <CheckCircle className="h-4 w-4 shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
                         </section>
                       </div>
                     </div>
@@ -2125,24 +2164,27 @@ export default function DispatchManagement() {
                     }
                   />
                 </label>
-                <label className="block text-sm">
-                  訂單池選擇模式
-                  <select
-                    className={`${inputClass} mt-1`}
-                    value={groupDraft.pool_selection_mode}
-                    onChange={(event) =>
-                      setGroupDraft({
-                        ...groupDraft,
-                        pool_selection_mode: event.target.value as
-                          | 'base'
-                          | 'random',
-                      })
-                    }
-                  >
-                    <option value="base">固定基本池</option>
-                    <option value="random">隨機選擇可派單的訂單池</option>
-                  </select>
-                </label>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-violet-100">訂單池選擇模式</p>
+                  <div role="group" aria-label="訂單池選擇模式" className="grid grid-cols-2 gap-2">
+                    {poolSelectionOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={groupDraft.pool_selection_mode === option.value}
+                        disabled={busy}
+                        onClick={() => setGroupDraft({ ...groupDraft, pool_selection_mode: option.value })}
+                        className={`min-w-0 rounded-xl border px-3 py-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 ${groupDraft.pool_selection_mode === option.value ? option.activeClass : option.inactiveClass}`}
+                      >
+                        <span className="flex items-start justify-between gap-1 text-sm font-semibold">
+                          {option.label}
+                          {groupDraft.pool_selection_mode === option.value && <CheckCircle className="h-4 w-4 shrink-0" />}
+                        </span>
+                        <span className="mt-1 block text-xs opacity-85">{option.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <label className="block text-sm">
                   工作會話逾時（分鐘）
                   <input type="number" min="1" max="60" className={`${inputClass} mt-1`}
@@ -2198,16 +2240,24 @@ export default function DispatchManagement() {
                       <span className="mt-1 block text-xs font-normal text-slate-400">按所有狀態的訂單筆數計算。</span>
                     </label>
                   </div>
-                  <label className="block text-sm">
-                    提款條件組合
-                    <select className={`${inputClass} mt-1`} value={groupDraft.withdrawal_condition_mode}
-                      onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: event.target.value as DispatchGroup['withdrawal_condition_mode'] })}>
-                      <option value="OR">餘額或訂單數任一達標</option>
-                      <option value="AND">餘額與訂單數均須達標</option>
-                      <option value="amount_only">僅檢查餘額</option>
-                      <option value="days_only">僅檢查訂單數</option>
-                    </select>
-                  </label>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-amber-100">提款條件組合</p>
+                    <div role="group" aria-label="提款條件組合" className="grid grid-cols-2 gap-2">
+                      {withdrawalModeOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          aria-pressed={groupDraft.withdrawal_condition_mode === option.value}
+                          disabled={busy}
+                          onClick={() => setGroupDraft({ ...groupDraft, withdrawal_condition_mode: option.value })}
+                          className={`flex min-h-12 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold leading-5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 ${groupDraft.withdrawal_condition_mode === option.value ? option.activeClass : option.inactiveClass}`}
+                        >
+                          <span>{withdrawalModeLabels[option.value]}</span>
+                          {groupDraft.withdrawal_condition_mode === option.value && <CheckCircle className="h-4 w-4 shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <label className="flex items-center gap-2 text-sm">
                   <input
