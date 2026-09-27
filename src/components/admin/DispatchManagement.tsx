@@ -1257,9 +1257,9 @@ export default function DispatchManagement() {
                           value={groupDraft.withdrawal_orders_threshold}
                           disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                           onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
+                        <span className="mt-1 block text-xs font-normal leading-relaxed text-amber-200/90">按所有狀態的訂單筆數計算。</span>
                       </label>
                     </div>
-                    <p className="text-xs leading-relaxed text-amber-200/90">按所有狀態的訂單筆數計算。</p>
                     <label className="block text-sm font-medium text-slate-200">
                       提款條件組合
                       <select className={`${inputClass} mt-1`} value={groupDraft.withdrawal_condition_mode}
@@ -2082,9 +2082,9 @@ export default function DispatchManagement() {
                       <input type="number" min="1" max="1000000" step="1" className={`${inputClass} mt-1`}
                         value={groupDraft.withdrawal_orders_threshold}
                         onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
+                      <span className="mt-1 block text-xs font-normal text-slate-400">按所有狀態的訂單筆數計算。</span>
                     </label>
                   </div>
-                  <p className="text-xs text-slate-400">按所有狀態的訂單筆數計算。</p>
                   <label className="block text-sm">
                     提款條件組合
                     <select className={`${inputClass} mt-1`} value={groupDraft.withdrawal_condition_mode}
