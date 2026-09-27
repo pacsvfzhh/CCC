@@ -4041,11 +4041,16 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                         const employeeNote = employee?.remarks?.trim()
                           || history.employee_remarks?.trim()
                           || '';
-                        const hasImg = /<img\s/i.test(history.last_message);
-                        const plainMessage = history.last_message.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
-                        const isPhoto = history.last_message === '__IMAGE__' || (!plainMessage && hasImg);
                         return (
-                          <div key={cardKey} className={`relative overflow-hidden rounded-lg border ${annotation?.is_special ? 'border-amber-400/45 bg-amber-950/15' : 'border-transparent'}`}>
+                          <div key={cardKey} className={`relative overflow-hidden rounded-lg border transition-colors ${
+                            isSelected
+                              ? 'border-emerald-300/70 bg-emerald-500/20 shadow-md shadow-emerald-500/20 ring-2 ring-emerald-200/35'
+                              : hasUnread
+                                ? 'border-emerald-400/60 bg-gradient-to-r from-emerald-950/40 to-teal-950/25 shadow-sm shadow-emerald-500/20 hover:bg-emerald-900/60 hover:ring-2 hover:ring-emerald-200/55'
+                                : annotation?.is_special
+                                  ? 'border-amber-400/45 bg-amber-950/15 hover:bg-emerald-900/55 hover:ring-2 hover:ring-emerald-300/50'
+                                  : 'border-slate-700/40 bg-slate-800/30 hover:bg-emerald-900/55 hover:ring-2 hover:ring-emerald-300/50'
+                          }`}>
                             <button
                               type="button"
                               onMouseEnter={() => {
@@ -4097,13 +4102,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                 setFromHistoryFilterMode(historyFilterMode);
                                 setFromHistorySource(historyScope);
                               }}
-                              className={`w-full px-3 py-2.5 rounded-lg text-left group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 ${
-                                isSelected
-                                  ? 'bg-emerald-500/20 border border-emerald-300/70 shadow-md shadow-emerald-500/20 ring-2 ring-emerald-200/35'
-                                  : hasUnread
-                                    ? 'bg-gradient-to-r from-emerald-950/40 to-teal-950/25 border border-emerald-400/60 hover:bg-emerald-900/60 hover:ring-2 hover:ring-emerald-200/55 shadow-sm shadow-emerald-500/20'
-                                    : 'bg-slate-800/30 hover:bg-emerald-900/55 hover:ring-2 hover:ring-emerald-300/50 border border-slate-700/40'
-                              }`}
+                              className="group relative w-full px-3 pt-2.5 pb-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300"
                             >
                               {isSelected ? (
                                 <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-blue-400" />
@@ -4175,33 +4174,32 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                     />
                                   </div>
 
-                                  <p className={`mt-1 text-[11px] leading-relaxed truncate ${
-                                    hasUnread ? 'text-orange-200 font-semibold' : 'text-slate-500'
-                                  }`}>{hasUnread && <span className="inline-block w-1.5 h-1.5 rounded-full bg-orange-400 mr-1 mb-px" />}{isPhoto ? <span className="inline-flex items-center gap-1"><Image className="w-3 h-3" />圖片</span> : (plainMessage || '沒有訊息')}</p>
                                 </div>
                               </div>
                             </button>
-                            <div className="flex flex-wrap items-center gap-2 border-t border-white/10 px-3 py-2">
-                              <button
-                                type="button"
-                                disabled={annotationsWorkspaceId !== selectedAdminId}
-                                onClick={() => setAnnotationDialog({ kind: 'special', history, nextSpecial: !annotation?.is_special })}
-                                aria-label={`${annotation?.is_special ? '移除' : '加入'}特別關注：${history.employee_username}（${history.employee_number}）`}
-                                className={`inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-wait disabled:opacity-50 ${annotation?.is_special ? 'border-amber-400/60 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30' : 'border-slate-600 bg-slate-800/70 text-slate-200 hover:border-amber-400/60 hover:text-amber-200'}`}
-                              >
-                                <Star className={`h-3.5 w-3.5 ${annotation?.is_special ? 'fill-amber-400' : ''}`} />
-                                {annotation?.is_special ? '移除關注' : '加入特別關注'}
-                              </button>
-                              <button
-                                type="button"
-                                disabled={annotationsWorkspaceId !== selectedAdminId}
-                                onClick={() => { setNoteDraft(annotation?.note || ''); setAnnotationDialog({ kind: 'note', history }); }}
-                                aria-label={`編輯對話備註：${history.employee_username}（${history.employee_number}）`}
-                                className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-slate-600 bg-slate-800/70 px-2.5 text-[11px] font-semibold text-slate-200 transition-colors hover:border-emerald-400/60 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-wait disabled:opacity-50"
-                              >
-                                <Pencil className="h-3.5 w-3.5" /> 對話備註
-                              </button>
-                              {annotation?.note && <span className="min-w-0 max-w-full flex-1 truncate text-[11px] text-emerald-200/90" title={annotation.note}>備註：{annotation.note}</span>}
+                            <div className="min-w-0 pl-[49px] pr-3 pt-1.5 pb-2.5">
+                              <div className="flex min-w-0 items-center justify-between gap-2">
+                                <button
+                                  type="button"
+                                  disabled={annotationsWorkspaceId !== selectedAdminId}
+                                  onClick={() => setAnnotationDialog({ kind: 'special', history, nextSpecial: !annotation?.is_special })}
+                                  aria-label={`${annotation?.is_special ? '移除' : '加入'}特別關注：${history.employee_username}（${history.employee_number}）`}
+                                  className={`inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-wait disabled:opacity-50 ${annotation?.is_special ? 'border-amber-300 bg-amber-600 text-white hover:bg-amber-500' : 'border-amber-500/50 bg-amber-950/50 text-amber-200 hover:border-amber-300 hover:bg-amber-800/50'}`}
+                                >
+                                  <Star className={`h-3.5 w-3.5 ${annotation?.is_special ? 'fill-amber-200' : ''}`} />
+                                  {annotation?.is_special ? '移除關注' : '加入特別關注'}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={annotationsWorkspaceId !== selectedAdminId}
+                                  onClick={() => { setNoteDraft(annotation?.note || ''); setAnnotationDialog({ kind: 'note', history }); }}
+                                  aria-label={`編輯對話備註：${history.employee_username}（${history.employee_number}）`}
+                                  className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md border border-blue-400/70 bg-blue-600 px-2.5 text-[11px] font-semibold text-white transition-colors hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-wait disabled:opacity-50"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" /> 對話備註
+                                </button>
+                              </div>
+                              {annotation?.note && <p className="mt-1.5 truncate text-right text-[11px] text-cyan-300" title={annotation.note}>備註：{annotation.note}</p>}
                             </div>
                           </div>
                         );
