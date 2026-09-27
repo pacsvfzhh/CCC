@@ -360,7 +360,7 @@ export default function DispatchManagement() {
           .filter((pool) => pool.group_id === group.id)
           .reduce((sum, pool) => sum + pool.order_count, 0),
       }));
-      if (requestId !== workspaceRequestRef.current) return false;
+      if (requestId !== workspaceRequestRef.current) return true;
       setGroups(countedGroups);
       setPools(countedPools);
       setEmployees(employeeRows);
@@ -382,11 +382,11 @@ export default function DispatchManagement() {
       );
       return true;
     } catch (error) {
-      if (requestId === workspaceRequestRef.current)
-        notify(
-          'error',
-          '載入訂單指派工作區失敗：' + formatSupabaseError(error),
-        );
+      if (requestId !== workspaceRequestRef.current) return true;
+      notify(
+        'error',
+        '載入訂單指派工作區失敗：' + formatSupabaseError(error),
+      );
       return false;
     } finally {
       if (requestId === workspaceRequestRef.current) setWorkspaceLoading(false);
@@ -637,8 +637,15 @@ export default function DispatchManagement() {
       );
       if (error) throw error;
       if (!data?.group?.id) throw new Error('儲存分組後未收到分組資料。');
+      const savedGroup = data.group as unknown as DispatchGroup;
+      setGroups((current) => {
+        const existing = current.find((group) => group.id === savedGroup.id);
+        return existing
+          ? current.map((group) => group.id === savedGroup.id ? { ...group, ...savedGroup } : group)
+          : [...current, { ...savedGroup, member_count: 0, order_count: 0 }];
+      });
       if (form === 'create') setGroupForm(null);
-      setSelectedGroupId(data.group.id);
+      setSelectedGroupId(savedGroup.id);
       if (form === 'create') setSelectedPoolId(null);
       if (await loadWorkspace()) {
         notify(
@@ -647,8 +654,6 @@ export default function DispatchManagement() {
             ? '已建立分組及專屬基本池。'
             : '分組設定已儲存成功。',
         );
-      } else {
-        notify('error', '分組已儲存，但重新載入資料失敗；請按「刷新」確認最新設定。');
       }
     } catch (error) {
       const message = formatSupabaseError(error);
