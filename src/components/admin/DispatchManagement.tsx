@@ -105,9 +105,25 @@ const emptyPoolDraft: PoolDraft = {
   dispatch_success_rate: '100',
 };
 
+function groupDisplayName(group: DispatchGroup): string {
+  return group.is_default && group.group_name === 'Default Group'
+    ? '預設分組'
+    : group.group_name;
+}
+
+function poolDisplayName(pool: DispatchPool): string {
+  return pool.is_base && pool.pool_name === 'Base' ? '基本池' : pool.pool_name;
+}
+
+function groupDisplayDescription(group: DispatchGroup): string {
+  return group.is_default && group.description === '默认分组 - 未分配到其他组的员工使用此组'
+    ? '預設分組－未分配至其他分組的員工使用此組'
+    : group.description || '暫無說明';
+}
+
 function poolToDraft(pool: DispatchPool): PoolDraft {
   return {
-    pool_name: pool.pool_name,
+    pool_name: poolDisplayName(pool),
     is_active: pool.is_active,
     dispatch_interval_min: String(pool.dispatch_interval_min),
     dispatch_interval_max: String(pool.dispatch_interval_max),
@@ -187,6 +203,10 @@ export default function DispatchManagement() {
   const selectedGroup =
     groups.find((group) => group.id === selectedGroupId) ?? null;
   const groupPools = pools.filter((pool) => pool.group_id === selectedGroupId);
+  const displayGroupById = (id: string | null) => {
+    const group = groups.find((item) => item.id === id);
+    return group ? groupDisplayName(group) : '尚未指派分組';
+  };
   const selectedPool =
     groupPools.find((pool) => pool.id === selectedPoolId) ??
     groupPools.find((pool) => pool.is_base && !pool.archived_at) ??
@@ -319,7 +339,7 @@ export default function DispatchManagement() {
       if (requestId === workspaceRequestRef.current)
         notify(
           'error',
-          'Failed to load dispatch workspace: ' + formatSupabaseError(error),
+          '載入訂單指派工作區失敗：' + formatSupabaseError(error),
         );
       return false;
     } finally {
@@ -366,7 +386,7 @@ export default function DispatchManagement() {
       setOrders([]);
       setOrdersPoolId(poolId);
       setTotalCount(0);
-      notify('error', 'Failed to load orders: ' + formatSupabaseError(error));
+      notify('error', '載入訂單失敗：' + formatSupabaseError(error));
       return false;
     } finally {
       if (requestId === ordersRequestRef.current) setOrdersLoading(false);
@@ -471,10 +491,10 @@ export default function DispatchManagement() {
     if (groupForm === 'edit' && !selectedGroup)
       return notify(
         'error',
-        'The group is no longer selected. Refresh and try again.',
+        '目前未選取分組，請重新整理後再試。',
       );
     if (!groupDraft.group_name.trim())
-      return notify('error', 'Group name is required.');
+      return notify('error', '請填寫分組名稱。');
     setBusy(true);
     try {
       const { data, error } = await supabase.rpc(
@@ -483,15 +503,23 @@ export default function DispatchManagement() {
           p_admin_session_token: getAdminFinancialSessionToken(),
           p_group_id: groupForm === 'edit' ? (selectedGroup?.id ?? null) : null,
           p_changes: {
-            group_name: groupDraft.group_name.trim(),
-            description: groupDraft.description,
+            group_name:
+              groupForm === 'edit' && selectedGroup &&
+              groupDraft.group_name.trim() === groupDisplayName(selectedGroup)
+                ? selectedGroup.group_name
+                : groupDraft.group_name.trim(),
+            description:
+              groupForm === 'edit' && selectedGroup &&
+              groupDraft.description === (selectedGroup.description ? groupDisplayDescription(selectedGroup) : '')
+                ? selectedGroup.description
+                : groupDraft.description,
             pool_selection_mode: groupDraft.pool_selection_mode,
             is_active: groupDraft.is_active,
           },
         },
       );
       if (error) throw error;
-      if (!data?.group?.id) throw new Error('Group save returned no group.');
+      if (!data?.group?.id) throw new Error('儲存分組後未收到分組資料。');
       setGroupForm(null);
       setSelectedGroupId(data.group.id);
       setSelectedPoolId(null);
@@ -499,11 +527,11 @@ export default function DispatchManagement() {
         notify(
           'success',
           groupForm === 'create'
-            ? 'Group created with its own base pool.'
-            : 'Group saved.',
+            ? '已建立分組及專屬基本池。'
+            : '分組已儲存。',
         );
     } catch (error) {
-      notify('error', 'Could not save group: ' + formatSupabaseError(error));
+      notify('error', '儲存分組失敗：' + formatSupabaseError(error));
     } finally {
       setBusy(false);
     }
@@ -520,11 +548,11 @@ export default function DispatchManagement() {
       });
       if (error) throw error;
       if (await loadWorkspace())
-        notify('success', 'Pool selection mode saved.');
+        notify('success', '訂單池選擇模式已儲存。');
     } catch (error) {
       notify(
         'error',
-        'Could not save selection mode: ' + formatSupabaseError(error),
+        '儲存訂單池選擇模式失敗：' + formatSupabaseError(error),
       );
     } finally {
       setBusy(false);
@@ -536,14 +564,14 @@ export default function DispatchManagement() {
     if (selectedGroup.archived_at || (poolForm === 'edit' && !selectedPool))
       return notify(
         'error',
-        'The selected group or pool is no longer available. Refresh and try again.',
+        '所選分組或訂單池已無法使用，請重新整理後再試。',
       );
     const min = Number(poolDraft.dispatch_interval_min);
     const max = Number(poolDraft.dispatch_interval_max);
     const timeout = Number(poolDraft.session_timeout_minutes);
     const rate = Number(poolDraft.dispatch_success_rate);
     if (!poolDraft.pool_name.trim())
-      return notify('error', 'Pool name is required.');
+      return notify('error', '請填寫訂單池名稱。');
     if (
       !Number.isInteger(min) ||
       min < 1 ||
@@ -561,7 +589,7 @@ export default function DispatchManagement() {
     ) {
       return notify(
         'error',
-        'Use 1–3000 seconds (minimum ≤ maximum), 1–60 minutes, and 0–100% success.',
+        '派單間隔須為 1–3000 秒（最小值不得大於最大值）、逾時為 1–60 分鐘、成功率為 0–100%。',
       );
     }
     setBusy(true);
@@ -571,7 +599,11 @@ export default function DispatchManagement() {
         p_group_id: selectedGroup.id,
         p_pool_id: poolForm === 'edit' ? (selectedPool?.id ?? null) : null,
         p_changes: {
-          pool_name: poolDraft.pool_name.trim(),
+          pool_name:
+            poolForm === 'edit' && selectedPool &&
+            poolDraft.pool_name.trim() === poolDisplayName(selectedPool)
+              ? selectedPool.pool_name
+              : poolDraft.pool_name.trim(),
           is_active: poolDraft.is_active,
           dispatch_interval_min: min,
           dispatch_interval_max: max,
@@ -581,16 +613,16 @@ export default function DispatchManagement() {
         },
       });
       if (error) throw error;
-      if (!data?.pool?.id) throw new Error('Pool save returned no pool.');
+      if (!data?.pool?.id) throw new Error('儲存訂單池後未收到訂單池資料。');
       setPoolForm(null);
       setSelectedPoolId(data.pool.id);
       if (await loadWorkspace())
         notify(
           'success',
-          poolForm === 'create' ? 'Pool created.' : 'Pool configuration saved.',
+          poolForm === 'create' ? '訂單池已建立。' : '訂單池設定已儲存。',
         );
     } catch (error) {
-      notify('error', 'Could not save pool: ' + formatSupabaseError(error));
+      notify('error', '儲存訂單池失敗：' + formatSupabaseError(error));
     } finally {
       setBusy(false);
     }
@@ -603,7 +635,7 @@ export default function DispatchManagement() {
   ) => {
     if (!isSuperAdmin) return;
     const targetPool = type === 'pool' ? pools.find((pool) => pool.id === id) : null;
-    if (type === 'pool' && !targetPool) return notify('error', 'Pool not found.');
+    if (type === 'pool' && !targetPool) return notify('error', '找不到訂單池。');
     setBusy(true);
     try {
       const { error } =
@@ -628,12 +660,12 @@ export default function DispatchManagement() {
       if (await loadWorkspace())
         notify(
           'success',
-          `${type === 'group' ? 'Group' : 'Pool'} ${archive ? 'archived' : 'restored'}.`,
+          `${type === 'group' ? '分組' : '訂單池'}已${archive ? '封存' : '還原'}。`,
         );
     } catch (error) {
       notify(
         'error',
-        'Could not update archive status: ' + formatSupabaseError(error),
+        '更新封存狀態失敗：' + formatSupabaseError(error),
       );
     } finally {
       setBusy(false);
@@ -658,11 +690,11 @@ export default function DispatchManagement() {
       });
       if (error) throw error;
       if (await loadWorkspace())
-        notify('success', `Pool ${pool.is_active ? 'disabled' : 'enabled'}.`);
+        notify('success', `訂單池已${pool.is_active ? '停用' : '啟用'}。`);
     } catch (error) {
       notify(
         'error',
-        'Could not change pool status: ' + formatSupabaseError(error),
+        '變更訂單池狀態失敗：' + formatSupabaseError(error),
       );
     } finally {
       setBusy(false);
@@ -678,7 +710,7 @@ export default function DispatchManagement() {
           group.id === targetGroupId && group.is_active && !group.archived_at,
       )
     ) {
-      return notify('error', 'The destination group is not active.');
+      return notify('error', '目標分組未啟用。');
     }
     setBusy(true);
     const succeeded: string[] = [];
@@ -699,7 +731,7 @@ export default function DispatchManagement() {
           if (
             !(data as { member?: { user_id: string } } | null)?.member?.user_id
           ) {
-            throw new Error('Assignment returned no member.');
+            throw new Error('指派後未收到員工歸屬資料。');
           }
           succeeded.push(id);
         } catch (error) {
@@ -717,17 +749,17 @@ export default function DispatchManagement() {
       if (firstError)
         notify(
           'error',
-          `${succeeded.length} of ${ids.length} moved to ${destination}. Failed: ${firstError}`,
+          `已將 ${succeeded.length} / ${ids.length} 位員工移至「${destination}」；其餘失敗：${firstError}`,
         );
       else if (refreshed)
         notify(
           'success',
-          `Moved ${succeeded.length} employee(s) to ${destination}.`,
+          `已將 ${succeeded.length} 位員工移至「${destination}」。`,
         );
     } catch (error) {
       notify(
         'error',
-        'Could not assign employees: ' + formatSupabaseError(error),
+        '指派員工失敗：' + formatSupabaseError(error),
       );
     } finally {
       setBusy(false);
@@ -743,7 +775,7 @@ export default function DispatchManagement() {
     if (!selectedPool || selectedPool.archived_at || selectedGroup?.archived_at)
       return notify(
         'error',
-        'The selected pool is no longer available for order management.',
+        '所選訂單池已無法管理訂單。',
       );
     setBusy(true);
     try {
@@ -760,7 +792,7 @@ export default function DispatchManagement() {
       if (error) throw error;
       const result = data as { affected?: number } | null;
       if (typeof result?.affected !== 'number')
-        throw new Error('Order action returned no result.');
+        throw new Error('訂單操作未傳回結果。');
       setEditingId(null);
       setDeleteOrder(null);
       setShowDeleteAll(false);
@@ -773,12 +805,12 @@ export default function DispatchManagement() {
         notify(
           'success',
           action === 'delete_all'
-            ? `Archived ${result.affected} orders in ${selectedPool.pool_name}.`
-            : `Order ${action === 'delete' ? 'archived' : action === 'toggle' ? 'status updated' : 'saved'}.`,
+            ? `已封存「${poolDisplayName(selectedPool)}」中的 ${result.affected} 筆訂單。`
+            : `訂單已${action === 'delete' ? '封存' : action === 'toggle' ? '更新狀態' : '儲存'}。`,
         );
     } catch (error) {
       await Promise.all([loadWorkspace(), loadOrders(selectedPool.id, page)]);
-      notify('error', 'Order action failed: ' + formatSupabaseError(error));
+      notify('error', '訂單操作失敗：' + formatSupabaseError(error));
     } finally {
       setBusy(false);
     }
@@ -789,7 +821,7 @@ export default function DispatchManagement() {
       (pool) => pool.id === importPoolId && !pool.archived_at,
     );
     if (!isSuperAdmin || !target || selectedGroup?.archived_at)
-      return notify('error', 'Select an available target pool first.');
+      return notify('error', '請先選擇可用的目標訂單池。');
     const contents = bulkInput
       .split(/\n\s*\n/)
       .map((item) => item.trim())
@@ -797,7 +829,7 @@ export default function DispatchManagement() {
     if (!contents.length)
       return notify(
         'error',
-        'Enter at least one order (separate orders with a blank line).',
+        '請輸入至少一筆訂單，並以空白行分隔。',
       );
     setBusy(true);
     setImportProgress({ current: 0, total: contents.length });
@@ -818,7 +850,7 @@ export default function DispatchManagement() {
         if (error) throw error;
         if ((data as { affected?: number } | null)?.affected !== batch.length) {
           throw new Error(
-            'The imported order count did not match the requested batch. Refresh before retrying.',
+            '匯入筆數與提交筆數不符，請重新整理後再試。',
           );
         }
         imported += batch.length;
@@ -829,14 +861,14 @@ export default function DispatchManagement() {
       setSelectedPoolId(target.id);
       notify(
         'success',
-        `Imported ${imported} orders into ${target.pool_name}.`,
+        `已將 ${imported} 筆訂單匯入「${poolDisplayName(target)}」。`,
       );
     } catch (error) {
       // Keep only the unsubmitted batches, so retrying does not duplicate successful ones.
       setBulkInput(contents.slice(imported).join('\n\n'));
       notify(
         'error',
-        `Imported ${imported} of ${contents.length}. Remaining orders kept for retry. ${formatSupabaseError(error)}`,
+        `已匯入 ${imported} / ${contents.length} 筆訂單；未匯入的內容已保留，可重試。${formatSupabaseError(error)}`,
       );
     } finally {
       await Promise.all([
@@ -855,8 +887,8 @@ export default function DispatchManagement() {
 
   const visibleGroups = groups.filter(
     (group) =>
-      group.group_name.toLowerCase().includes(groupSearch.toLowerCase()) ||
-      group.description?.toLowerCase().includes(groupSearch.toLowerCase()),
+      groupDisplayName(group).toLowerCase().includes(groupSearch.toLowerCase()) ||
+      groupDisplayDescription(group).toLowerCase().includes(groupSearch.toLowerCase()),
   );
   const visibleEmployees = employees.filter(
     (employee) =>
@@ -896,7 +928,7 @@ export default function DispatchManagement() {
           <span>{notification.message}</span>
           <button
             onClick={() => setNotification(null)}
-            aria-label="Dismiss notification"
+            aria-label="關閉通知"
           >
             <X className="h-4 w-4" />
           </button>
@@ -905,12 +937,11 @@ export default function DispatchManagement() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold text-white">
-            Dispatch workspace
+            訂單指派工作區
           </h2>
           {!isSuperAdmin && (
             <p className="text-xs text-slate-400">
-              Configuration and orders are read-only. You can assign your own
-              employees to active groups.
+              分組設定與訂單僅供檢視；您可以將自己工作區的員工指派至已啟用的分組。
             </p>
           )}
         </div>
@@ -923,7 +954,7 @@ export default function DispatchManagement() {
               if (selectedPool) void loadOrders(selectedPool.id, page);
             }}
           >
-            Refresh
+            重新整理
           </button>
           {isSuperAdmin && (
             <button
@@ -935,7 +966,7 @@ export default function DispatchManagement() {
               }}
             >
               <FolderPlus className="mr-1 inline h-4 w-4" />
-              New group
+              新增分組
             </button>
           )}
         </div>
@@ -947,7 +978,7 @@ export default function DispatchManagement() {
             <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
               <h3 className="mb-3 flex items-center gap-2 font-semibold">
                 <Layers className="h-4 w-4 text-blue-400" />
-                Groups{' '}
+                分組{' '}
                 <span className="text-xs text-slate-400">{groups.length}</span>
               </h3>
               <div className="relative mb-3">
@@ -956,8 +987,8 @@ export default function DispatchManagement() {
                   className={`${inputClass} pl-9`}
                   value={groupSearch}
                   onChange={(event) => setGroupSearch(event.target.value)}
-                  placeholder="Search groups"
-                  aria-label="Search groups"
+                  placeholder="搜尋分組"
+                  aria-label="搜尋分組"
                 />
               </div>
               <div className="max-h-[370px] space-y-2 overflow-y-auto">
@@ -968,27 +999,26 @@ export default function DispatchManagement() {
                     onClick={() => switchGroup(group.id)}
                   >
                     <span className="block break-words font-medium text-white">
-                      {group.group_name}{' '}
+                      {groupDisplayName(group)}{' '}
                       {group.is_default && (
                         <span className="text-[10px] text-amber-300">
-                          Default
+                          預設
                         </span>
                       )}
                     </span>
                     <span className="mt-1 block text-xs text-slate-400">
                       {group.archived_at
-                        ? 'Archived'
+                        ? '已封存'
                         : group.is_active
-                          ? 'Active'
-                          : 'Inactive'}{' '}
-                      · {group.member_count} members · {group.order_count}{' '}
-                      orders
+                          ? '已啟用'
+                          : '未啟用'}{' '}
+                      · {group.member_count} 位成員 · {group.order_count} 筆訂單
                     </span>
                   </button>
                 ))}
                 {!visibleGroups.length && (
                   <p className="py-6 text-center text-sm text-slate-400">
-                    {workspaceLoading ? 'Loading groups…' : 'No groups found.'}
+                    {workspaceLoading ? '正在載入分組…' : '找不到分組。'}
                   </p>
                 )}
               </div>
@@ -1000,11 +1030,11 @@ export default function DispatchManagement() {
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h3 className="break-words text-lg font-semibold text-white">
-                        {selectedGroup.group_name}
+                        {groupDisplayName(selectedGroup)}
                       </h3>
                       <p className="mt-1 break-words text-xs text-slate-400">
-                        {selectedGroup.description || 'No description'} ·{' '}
-                        {selectedGroup.member_count} members
+                        {groupDisplayDescription(selectedGroup)} ·{' '}
+                        {selectedGroup.member_count} 位成員
                       </p>
                     </div>
                     {isSuperAdmin && (
@@ -1013,8 +1043,10 @@ export default function DispatchManagement() {
                         disabled={busy || !!selectedGroup.archived_at}
                         onClick={() => {
                           setGroupDraft({
-                            group_name: selectedGroup.group_name,
-                            description: selectedGroup.description ?? '',
+                            group_name: groupDisplayName(selectedGroup),
+                            description: selectedGroup.description
+                              ? groupDisplayDescription(selectedGroup)
+                              : '',
                             is_active: selectedGroup.is_active,
                             pool_selection_mode:
                               selectedGroup.pool_selection_mode,
@@ -1023,7 +1055,7 @@ export default function DispatchManagement() {
                         }}
                       >
                         <Settings className="mr-1 inline h-4 w-4" />
-                        Edit group
+                        編輯分組
                       </button>
                     )}
                   </div>
@@ -1032,11 +1064,10 @@ export default function DispatchManagement() {
                       htmlFor="pool-selection-mode"
                       className="block text-sm font-medium"
                     >
-                      Pool selection mode
+                      訂單池選擇模式
                     </label>
                     <p className="mb-2 text-xs text-slate-400">
-                      Base uses only the default pool. Random selects among
-                      active pools with available orders.
+                      固定基本池僅從基本池派單；隨機模式會從有可派訂單的已啟用訂單池中抽取。
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
                       <select
@@ -1050,8 +1081,8 @@ export default function DispatchManagement() {
                           setModeDraft(event.target.value as 'base' | 'random')
                         }
                       >
-                        <option value="base">Base pool only</option>
-                        <option value="random">Random eligible pool</option>
+                        <option value="base">固定基本池</option>
+                        <option value="random">隨機選擇可派單的訂單池</option>
                       </select>
                       {isSuperAdmin && (
                         <button
@@ -1064,7 +1095,7 @@ export default function DispatchManagement() {
                           onClick={() => void saveSelectionMode()}
                         >
                           <Save className="mr-1 inline h-4 w-4" />
-                          Save
+                          儲存
                         </button>
                       )}
                     </div>
@@ -1074,10 +1105,10 @@ export default function DispatchManagement() {
                       className={`rounded-full px-2 py-1 ${selectedGroup.archived_at ? 'bg-rose-500/20 text-rose-300' : selectedGroup.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-300'}`}
                     >
                       {selectedGroup.archived_at
-                        ? 'Archived'
+                        ? '已封存'
                         : selectedGroup.is_active
-                          ? 'Active'
-                          : 'Inactive'}
+                          ? '已啟用'
+                          : '未啟用'}
                     </span>
                     {isSuperAdmin &&
                       (selectedGroup.archived_at ? (
@@ -1088,7 +1119,7 @@ export default function DispatchManagement() {
                             void changeArchive('group', selectedGroup.id, false)
                           }
                         >
-                          Restore group
+                          還原分組
                         </button>
                       ) : (
                         !selectedGroup.is_default && (
@@ -1099,11 +1130,11 @@ export default function DispatchManagement() {
                               setArchiveTarget({
                                 type: 'group',
                                 id: selectedGroup.id,
-                                name: selectedGroup.group_name,
+                                name: groupDisplayName(selectedGroup),
                               })
                             }
                           >
-                            Archive group
+                            封存分組
                           </button>
                         )
                       ))}
@@ -1111,7 +1142,7 @@ export default function DispatchManagement() {
                 </>
               ) : (
                 <p className="py-12 text-center text-sm text-slate-400">
-                  Select a group to manage its pools and members.
+                  請選擇分組，以管理訂單池及成員。
                 </p>
               )}
             </section>
@@ -1124,19 +1155,18 @@ export default function DispatchManagement() {
                   <div>
                     <h3 className="flex items-center gap-2 font-semibold">
                       <Users className="h-4 w-4 text-emerald-400" />
-                      Members
+                      分組成員
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Assign employees to this group or move them to the active
-                      default group.
+                      將員工指派至此分組，或移回已啟用的預設分組。
                     </p>
                   </div>
                 </div>
                 <div className="mb-3 flex flex-wrap gap-2">
                   <input
                     className={`${inputClass} min-w-[160px] flex-1`}
-                    placeholder="Search employees"
-                    aria-label="Search employees"
+                    placeholder="搜尋員工"
+                    aria-label="搜尋員工"
                     value={employeeSearch}
                     onChange={(event) => setEmployeeSearch(event.target.value)}
                   />
@@ -1149,9 +1179,9 @@ export default function DispatchManagement() {
                         setSelectedCurrentMembers([]);
                         setSelectedOtherMembers([]);
                       }}
-                      aria-label="Filter employees by admin"
+                      aria-label="依管理員篩選員工"
                     >
-                      <option value="all">All admins</option>
+                      <option value="all">所有管理員</option>
                       {adminNames.map((owner) => (
                         <option key={owner.id} value={owner.id}>
                           {owner.username}
@@ -1168,9 +1198,9 @@ export default function DispatchManagement() {
                         setSelectedCurrentMembers([]);
                         setSelectedOtherMembers([]);
                       }}
-                      aria-label="Filter employees by tag"
+                      aria-label="依標籤篩選員工"
                     >
-                      <option value="all">All tags</option>
+                      <option value="all">所有標籤</option>
                       {tags.map((tag) => (
                         <option key={tag} value={tag}>
                           {tag}
@@ -1183,7 +1213,7 @@ export default function DispatchManagement() {
                   <div className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/30 p-3">
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                       <h4 className="text-sm font-medium text-emerald-300">
-                        In group ({currentMembers.length})
+                        目前分組（{currentMembers.length}）
                       </h4>
                       {!selectedGroup.is_default && (
                         <button
@@ -1195,7 +1225,7 @@ export default function DispatchManagement() {
                           }
                           title={
                             !defaultGroup
-                              ? 'No active default group available'
+                              ? '沒有可用的已啟用預設分組'
                               : undefined
                           }
                           onClick={() =>
@@ -1203,11 +1233,11 @@ export default function DispatchManagement() {
                             setMemberMove({
                               ids: selectedCurrentMembers,
                               targetGroupId: defaultGroup.id,
-                              destination: defaultGroup.group_name,
+                              destination: groupDisplayName(defaultGroup),
                             })
                           }
                         >
-                          Move to default ({selectedCurrentMembers.length})
+                          移至預設分組（{selectedCurrentMembers.length}）
                         </button>
                       )}
                     </div>
@@ -1243,7 +1273,7 @@ export default function DispatchManagement() {
                       ))}
                       {!currentMembers.length && (
                         <p className="py-5 text-center text-xs text-slate-400">
-                          No matching members.
+                          沒有符合條件的成員。
                         </p>
                       )}
                     </div>
@@ -1251,7 +1281,7 @@ export default function DispatchManagement() {
                   <div className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/30 p-3">
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                       <h4 className="text-sm font-medium text-amber-300">
-                        Other / unassigned ({otherMembers.length})
+                        其他分組／未指派（{otherMembers.length}）
                       </h4>
                       <button
                         className={primaryButton}
@@ -1265,11 +1295,11 @@ export default function DispatchManagement() {
                           setMemberMove({
                             ids: selectedOtherMembers,
                             targetGroupId: selectedGroup.id,
-                            destination: selectedGroup.group_name,
+                            destination: groupDisplayName(selectedGroup),
                           })
                         }
                       >
-                        Move here ({selectedOtherMembers.length})
+                        移至此分組（{selectedOtherMembers.length}）
                       </button>
                     </div>
                     <div className="max-h-64 space-y-1 overflow-y-auto">
@@ -1293,9 +1323,7 @@ export default function DispatchManagement() {
                           <span className="min-w-0 break-words">
                             {employee.username}
                             <span className="block text-xs text-slate-400">
-                              {groups.find(
-                                (group) => group.id === employee.group_id,
-                              )?.group_name ?? 'No group assigned'}
+                              {displayGroupById(employee.group_id)}
                             </span>
                             {employee.remarks && (
                               <span className="block text-xs text-slate-400">
@@ -1307,7 +1335,7 @@ export default function DispatchManagement() {
                       ))}
                       {!otherMembers.length && (
                         <p className="py-5 text-center text-xs text-slate-400">
-                          No matching employees.
+                          沒有符合條件的員工。
                         </p>
                       )}
                     </div>
@@ -1315,7 +1343,7 @@ export default function DispatchManagement() {
                 </div>
                 {!defaultGroup && !selectedGroup.is_default && (
                   <p className="mt-2 text-xs text-amber-300">
-                    Moving members out requires an active default group.
+                    若要移出成員，預設分組必須處於啟用狀態。
                   </p>
                 )}
               </section>
@@ -1325,11 +1353,10 @@ export default function DispatchManagement() {
                   <div>
                     <h3 className="flex items-center gap-2 font-semibold">
                       <Layers className="h-4 w-4 text-blue-400" />
-                      Order pools
+                      訂單池
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Each pool has independent dispatch timing, order mode and
-                      success rate.
+                      每個訂單池皆可獨立設定派單間隔、選單模式與成功率。
                     </p>
                   </div>
                   {isSuperAdmin && (
@@ -1342,7 +1369,7 @@ export default function DispatchManagement() {
                       }}
                     >
                       <Plus className="mr-1 inline h-4 w-4" />
-                      New pool
+                      新增訂單池
                     </button>
                   )}
                 </div>
@@ -1357,27 +1384,28 @@ export default function DispatchManagement() {
                         onClick={() => switchPool(pool.id)}
                       >
                         <span className="block break-words text-sm font-semibold text-white">
-                          {pool.pool_name}{' '}
+                          {poolDisplayName(pool)}{' '}
                           {pool.is_base && (
                             <span className="text-[10px] text-amber-300">
-                              Base
+                              基本池
                             </span>
                           )}
                         </span>
                         <span className="mt-1 block text-xs text-slate-400">
                           {pool.archived_at
-                            ? 'Archived'
+                            ? '已封存'
                             : pool.is_active
-                              ? 'Active'
-                              : 'Disabled'}{' '}
-                          · {pool.order_count} orders
+                              ? '已啟用'
+                              : '已停用'}{' '}
+                          · {pool.order_count} 筆訂單
                         </span>
                         <span className="mt-1 block text-xs text-slate-400">
-                          {pool.dispatch_interval_min}–
-                          {pool.dispatch_interval_max}s ·{' '}
-                          {pool.session_timeout_minutes}m timeout ·{' '}
-                          {pool.dispatch_order_mode} ·{' '}
-                          {pool.dispatch_success_rate}% success
+                          {pool.dispatch_interval_min}–{pool.dispatch_interval_max} 秒 · 會話逾時{' '}
+                          {pool.session_timeout_minutes} 分鐘 ·{' '}
+                          {pool.dispatch_order_mode === 'random'
+                            ? '隨機選單'
+                            : '依序選單'}{' '}
+                          · 成功率 {pool.dispatch_success_rate}%
                         </span>
                       </button>
                       {isSuperAdmin && !selectedGroup.archived_at && (
@@ -1393,14 +1421,14 @@ export default function DispatchManagement() {
                                   setPoolForm('edit');
                                 }}
                               >
-                                Edit config
+                                編輯設定
                               </button>
                               <button
                                 className="text-amber-300 hover:text-white disabled:opacity-50"
                                 disabled={busy}
                                 onClick={() => void togglePool(pool)}
                               >
-                                {pool.is_active ? 'Disable' : 'Enable'}
+                                {pool.is_active ? '停用' : '啟用'}
                               </button>
                               {!pool.is_base && (
                                 <button
@@ -1410,11 +1438,11 @@ export default function DispatchManagement() {
                                     setArchiveTarget({
                                       type: 'pool',
                                       id: pool.id,
-                                      name: pool.pool_name,
+                                      name: poolDisplayName(pool),
                                     })
                                   }
                                 >
-                                  Archive
+                                  封存
                                 </button>
                               )}
                             </>
@@ -1426,7 +1454,7 @@ export default function DispatchManagement() {
                                 void changeArchive('pool', pool.id, false)
                               }
                             >
-                              Restore
+                              還原
                             </button>
                           )}
                         </div>
@@ -1435,8 +1463,7 @@ export default function DispatchManagement() {
                   ))}
                   {!groupPools.length && (
                     <p className="py-8 text-center text-sm text-slate-400">
-                      No pools available. Every group should have a base pool
-                      after migration.
+                      沒有可用的訂單池；每個分組都應有一個基本池。
                     </p>
                   )}
                 </div>
@@ -1447,23 +1474,23 @@ export default function DispatchManagement() {
 
         <aside
           className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 xl:w-[320px]"
-          aria-label="Orders management"
+          aria-label="訂單管理"
         >
           <div className="border-b border-slate-700 p-4">
             <h3 className="flex items-center gap-2 font-semibold">
               <PackageSearch className="h-4 w-4 text-blue-400" />
-              Orders Management
+              訂單管理
             </h3>
             <p className="mt-1 break-words text-xs text-slate-400">
-              {selectedGroup?.group_name ?? 'Select a group'} /{' '}
-              {selectedPool?.pool_name ?? 'Select a pool'}
+              {selectedGroup ? groupDisplayName(selectedGroup) : '請選擇分組'} /{' '}
+              {selectedPool ? poolDisplayName(selectedPool) : '請選擇訂單池'}
             </p>
             {selectedPool && (
               <>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <select
                     className={`${inputClass} flex-1`}
-                    aria-label="Filter orders by status"
+                    aria-label="依狀態篩選訂單"
                     value={orderFilter}
                     onChange={(event) =>
                       setOrderFilter(
@@ -1471,12 +1498,12 @@ export default function DispatchManagement() {
                       )
                     }
                   >
-                    <option value="all">All orders</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="all">全部訂單</option>
+                    <option value="active">已啟用</option>
+                    <option value="inactive">未啟用</option>
                   </select>
                   <span className="text-xs text-slate-400">
-                    {totalCount} shown
+                    共 {totalCount} 筆
                   </span>
                 </div>
                 {isSuperAdmin && (
@@ -1491,7 +1518,7 @@ export default function DispatchManagement() {
                       }}
                     >
                       <Upload className="mr-1 inline h-4 w-4" />
-                      Import
+                      匯入
                     </button>
                     <button
                       className={secondaryButton}
@@ -1506,7 +1533,7 @@ export default function DispatchManagement() {
                       }}
                     >
                       <Trash2 className="mr-1 inline h-4 w-4" />
-                      Delete all
+                      全部刪除
                     </button>
                   </div>
                 )}
@@ -1519,7 +1546,7 @@ export default function DispatchManagement() {
                 className="block text-xs font-medium text-slate-300"
                 htmlFor="import-pool"
               >
-                Target pool (explicit)
+                匯入目標訂單池
               </label>
               <select
                 id="import-pool"
@@ -1532,7 +1559,7 @@ export default function DispatchManagement() {
                   .filter((pool) => !pool.archived_at)
                   .map((pool) => (
                     <option key={pool.id} value={pool.id}>
-                      {pool.pool_name}
+                      {poolDisplayName(pool)}
                     </option>
                   ))}
               </select>
@@ -1540,22 +1567,22 @@ export default function DispatchManagement() {
                 className="block text-xs text-slate-300"
                 htmlFor="bulk-orders"
               >
-                Orders separated by a blank line
+                每筆訂單請以空白行分隔
               </label>
               <textarea
                 id="bulk-orders"
                 className={`${inputClass} min-h-32 resize-y font-mono`}
-                placeholder={'First order\n\nSecond order'}
+                placeholder={'第一筆訂單\n\n第二筆訂單'}
                 value={bulkInput}
                 disabled={busy}
                 onChange={(event) => setBulkInput(event.target.value)}
               />
               <p className="text-xs text-slate-400">
-                Up to 2,000 per request; larger imports are sent in batches.
+                每批最多匯入 2,000 筆；超出時會分批送出。
               </p>
               {importProgress && (
                 <div className="text-xs text-blue-300" role="status">
-                  Imported {importProgress.current} / {importProgress.total}
+                  已匯入 {importProgress.current} / {importProgress.total} 筆
                   <div className="mt-1 h-2 overflow-hidden rounded bg-slate-700">
                     <div
                       className="h-full bg-blue-500"
@@ -1572,14 +1599,14 @@ export default function DispatchManagement() {
                   disabled={busy}
                   onClick={() => setShowBulkImport(false)}
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   className={primaryButton}
                   disabled={busy || !bulkInput.trim() || !importPoolId}
                   onClick={() => void importOrders()}
                 >
-                  Import orders
+                  匯入訂單
                 </button>
               </div>
             </div>
@@ -1590,18 +1617,23 @@ export default function DispatchManagement() {
                 className="py-3 text-center text-xs text-slate-400"
                 role="status"
               >
-                Loading orders…
+                正在載入訂單…
               </p>
             )}
             {!selectedPool ? (
               <p className="py-12 text-center text-sm text-slate-400">
-                Select a pool to view orders.
+                請選擇訂單池以檢視訂單。
               </p>
             ) : ordersLoading ||
               ordersPoolId !== selectedPool.id ? null : !orders.length ? (
               <p className="py-12 text-center text-sm text-slate-400">
-                No {orderFilter === 'all' ? '' : `${orderFilter} `}orders in
-                this pool.
+                此訂單池沒有
+                {orderFilter === 'all'
+                  ? ''
+                  : orderFilter === 'active'
+                    ? '已啟用的'
+                    : '未啟用的'}
+                訂單。
               </p>
             ) : (
               orders.map((order, index) => (
@@ -1612,14 +1644,14 @@ export default function DispatchManagement() {
                   <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
                     <span className="text-slate-400">
                       #{(page - 1) * PAGE_SIZE + index + 1} ·{' '}
-                      {new Date(order.created_at).toLocaleString()}
+                      {new Date(order.created_at).toLocaleString('zh-TW')}
                     </span>
                     <span
                       className={
                         order.is_active ? 'text-emerald-300' : 'text-slate-400'
                       }
                     >
-                      {order.is_active ? 'Active' : 'Inactive'}
+                      {order.is_active ? '已啟用' : '未啟用'}
                     </span>
                   </div>
                   {editingId === order.id ? (
@@ -1628,7 +1660,7 @@ export default function DispatchManagement() {
                         className={`${inputClass} mt-2 min-h-28 resize-y font-mono`}
                         value={editContent}
                         onChange={(event) => setEditContent(event.target.value)}
-                        aria-label="Edit order content"
+                        aria-label="編輯訂單內容"
                       />
                       <div className="mt-2 flex gap-2">
                         <button
@@ -1643,14 +1675,14 @@ export default function DispatchManagement() {
                           }
                         >
                           <Save className="mr-1 inline h-3 w-3" />
-                          Save
+                          儲存
                         </button>
                         <button
                           className={secondaryButton}
                           disabled={busy}
                           onClick={() => setEditingId(null)}
                         >
-                          Cancel
+                          取消
                         </button>
                       </div>
                     </>
@@ -1670,14 +1702,14 @@ export default function DispatchManagement() {
                             }}
                           >
                             <Edit2 className="mr-1 inline h-3 w-3" />
-                            Edit
+                            編輯
                           </button>
                           <button
                             className="text-amber-300 hover:text-white disabled:opacity-50"
                             disabled={busy}
                             onClick={() => void manageOrder('toggle', order.id)}
                           >
-                            {order.is_active ? 'Disable' : 'Enable'}
+                            {order.is_active ? '停用' : '啟用'}
                           </button>
                           <button
                             className="text-rose-400 hover:text-white disabled:opacity-50"
@@ -1685,7 +1717,7 @@ export default function DispatchManagement() {
                             onClick={() => setDeleteOrder(order)}
                           >
                             <Trash2 className="mr-1 inline h-3 w-3" />
-                            Delete
+                            刪除
                           </button>
                         </div>
                       )}
@@ -1699,8 +1731,8 @@ export default function DispatchManagement() {
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-700 p-3 text-xs">
               <span className="text-slate-400">
                 {(page - 1) * PAGE_SIZE + 1}–
-                {Math.min(page * PAGE_SIZE, totalCount)} of {totalCount} · page{' '}
-                {page}/{totalPages}
+                {Math.min(page * PAGE_SIZE, totalCount)}／共 {totalCount} 筆 · 第{' '}
+                {page}/{totalPages} 頁
               </span>
               <div className="flex gap-2">
                 <button
@@ -1708,14 +1740,14 @@ export default function DispatchManagement() {
                   disabled={page <= 1 || ordersLoading}
                   onClick={() => void loadOrders(selectedPool.id, page - 1)}
                 >
-                  Previous
+                  上一頁
                 </button>
                 <button
                   className={secondaryButton}
                   disabled={page >= totalPages || ordersLoading}
                   onClick={() => void loadOrders(selectedPool.id, page + 1)}
                 >
-                  Next
+                  下一頁
                 </button>
               </div>
               {totalPages > 2 && (
@@ -1725,14 +1757,14 @@ export default function DispatchManagement() {
                     event.preventDefault();
                     const targetPage = Number(pageInput);
                     if (!Number.isInteger(targetPage) || targetPage < 1 || targetPage > totalPages) {
-                      notify('error', `Enter a page between 1 and ${totalPages}.`);
+                      notify('error', `請輸入 1 至 ${totalPages} 之間的頁碼。`);
                       return;
                     }
                     setPageInput('');
                     void loadOrders(selectedPool.id, targetPage);
                   }}
                 >
-                  <label htmlFor="order-page" className="shrink-0 text-slate-400">Go to page</label>
+                  <label htmlFor="order-page" className="shrink-0 text-slate-400">跳至頁碼</label>
                   <input
                     id="order-page"
                     type="number"
@@ -1742,7 +1774,7 @@ export default function DispatchManagement() {
                     onChange={(event) => setPageInput(event.target.value)}
                     className={`${inputClass} w-20 flex-none py-1.5`}
                   />
-                  <button type="submit" disabled={ordersLoading || !pageInput} className={primaryButton}>Go</button>
+                  <button type="submit" disabled={ordersLoading || !pageInput} className={primaryButton}>跳轉</button>
                 </form>
               )}
             </div>
@@ -1757,18 +1789,18 @@ export default function DispatchManagement() {
               role="dialog"
               aria-modal="true"
               aria-label={
-                groupForm === 'create' ? 'Create group' : 'Edit group'
+                groupForm === 'create' ? '建立分組' : '編輯分組'
               }
               className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-600 bg-slate-800 p-5 shadow-2xl"
             >
               <h3 className="mb-4 text-lg font-semibold">
                 {groupForm === 'create'
-                  ? 'Create dispatch group'
-                  : 'Edit dispatch group'}
+                  ? '建立訂單分組'
+                  : '編輯訂單分組'}
               </h3>
               <div className="space-y-3">
                 <label className="block text-sm">
-                  Group name *
+                  分組名稱 *
                   <input
                     className={`${inputClass} mt-1`}
                     value={groupDraft.group_name}
@@ -1781,7 +1813,7 @@ export default function DispatchManagement() {
                   />
                 </label>
                 <label className="block text-sm">
-                  Description
+                  說明
                   <textarea
                     className={`${inputClass} mt-1 min-h-20`}
                     value={groupDraft.description}
@@ -1794,7 +1826,7 @@ export default function DispatchManagement() {
                   />
                 </label>
                 <label className="block text-sm">
-                  Pool selection mode
+                  訂單池選擇模式
                   <select
                     className={`${inputClass} mt-1`}
                     value={groupDraft.pool_selection_mode}
@@ -1807,8 +1839,8 @@ export default function DispatchManagement() {
                       })
                     }
                   >
-                    <option value="base">Base pool only</option>
-                    <option value="random">Random eligible pool</option>
+                    <option value="base">固定基本池</option>
+                    <option value="random">隨機選擇可派單的訂單池</option>
                   </select>
                 </label>
                 <label className="flex items-center gap-2 text-sm">
@@ -1822,12 +1854,11 @@ export default function DispatchManagement() {
                       })
                     }
                   />
-                  Group active
+                  啟用分組
                 </label>
                 {groupForm === 'create' && (
                   <p className="text-xs text-slate-400">
-                    A base pool is created automatically, with its own default
-                    configuration. Configure it after creating the group.
+                    建立分組時會自動建立基本池；建立後可獨立調整基本池設定。
                   </p>
                 )}
               </div>
@@ -1837,14 +1868,14 @@ export default function DispatchManagement() {
                   disabled={busy}
                   onClick={() => setGroupForm(null)}
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   className={primaryButton}
                   disabled={busy || !groupDraft.group_name.trim()}
                   onClick={() => void saveGroup()}
                 >
-                  {busy ? 'Saving…' : 'Save group'}
+                  {busy ? '儲存中…' : '儲存分組'}
                 </button>
               </div>
             </div>
@@ -1859,20 +1890,20 @@ export default function DispatchManagement() {
             <div
               role="dialog"
               aria-modal="true"
-              aria-label={poolForm === 'create' ? 'Create pool' : 'Edit pool'}
+              aria-label={poolForm === 'create' ? '建立訂單池' : '編輯訂單池'}
               className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-600 bg-slate-800 p-5 shadow-2xl"
             >
               <h3 className="mb-1 text-lg font-semibold">
                 {poolForm === 'create'
-                  ? 'Create order pool'
-                  : `Configure ${selectedPool?.pool_name}`}
+                  ? '建立訂單池'
+                  : `設定「${selectedPool ? poolDisplayName(selectedPool) : ''}」`}
               </h3>
               <p className="mb-4 text-xs text-slate-400">
-                {selectedGroup.group_name} · independent pool settings
+                {groupDisplayName(selectedGroup)} · 訂單池獨立設定
               </p>
               <div className="space-y-3">
                 <label className="block text-sm">
-                  Pool name *
+                  訂單池名稱 *
                   <input
                     className={`${inputClass} mt-1`}
                     value={poolDraft.pool_name}
@@ -1886,7 +1917,7 @@ export default function DispatchManagement() {
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="min-w-0 text-sm">
-                    Min interval (seconds)
+                    最短派單間隔（秒）
                     <input
                       type="number"
                       min="1"
@@ -1902,7 +1933,7 @@ export default function DispatchManagement() {
                     />
                   </label>
                   <label className="min-w-0 text-sm">
-                    Max interval (seconds)
+                    最長派單間隔（秒）
                     <input
                       type="number"
                       min="1"
@@ -1920,7 +1951,7 @@ export default function DispatchManagement() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="min-w-0 text-sm">
-                    Session timeout (minutes)
+                    工作會話逾時（分鐘）
                     <input
                       type="number"
                       min="1"
@@ -1936,7 +1967,7 @@ export default function DispatchManagement() {
                     />
                   </label>
                   <label className="min-w-0 text-sm">
-                    Success rate (%)
+                    成功率（%）
                     <input
                       type="number"
                       min="0"
@@ -1953,7 +1984,7 @@ export default function DispatchManagement() {
                   </label>
                 </div>
                 <label className="block text-sm">
-                  Order dispatch mode
+                  池內選單模式
                   <select
                     className={`${inputClass} mt-1`}
                     value={poolDraft.dispatch_order_mode}
@@ -1966,8 +1997,8 @@ export default function DispatchManagement() {
                       })
                     }
                   >
-                    <option value="random">Random orders</option>
-                    <option value="sequential">Sequential orders</option>
+                    <option value="random">隨機選單</option>
+                    <option value="sequential">依序選單</option>
                   </select>
                 </label>
                 <label className="flex items-center gap-2 text-sm">
@@ -1981,7 +2012,7 @@ export default function DispatchManagement() {
                       })
                     }
                   />
-                  Pool active
+                  啟用訂單池
                 </label>
               </div>
               <div className="mt-5 flex justify-end gap-2">
@@ -1990,14 +2021,14 @@ export default function DispatchManagement() {
                   disabled={busy}
                   onClick={() => setPoolForm(null)}
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   className={primaryButton}
                   disabled={busy}
                   onClick={() => void savePool()}
                 >
-                  {busy ? 'Saving…' : 'Save pool'}
+                  {busy ? '儲存中…' : '儲存訂單池'}
                 </button>
               </div>
             </div>
@@ -2011,17 +2042,16 @@ export default function DispatchManagement() {
             <div
               role="dialog"
               aria-modal="true"
-              aria-label="Confirm archive"
+              aria-label="確認封存"
               className="w-full max-w-md rounded-xl border border-rose-500 bg-slate-800 p-5"
             >
               <h3 className="mb-2 text-lg font-semibold">
-                Archive {archiveTarget.type}?
+                確定封存{archiveTarget.type === 'group' ? '分組' : '訂單池'}？
               </h3>
               <p className="break-words text-sm text-slate-300">
-                Archive {archiveTarget.name}? It will no longer be available for
-                dispatch. Existing orders and history are preserved.
+                確定封存「{archiveTarget.name}」？封存後將無法使用，但既有訂單與派單紀錄會保留。
                 {archiveTarget.type === 'group' &&
-                  ' Members in this group will stop receiving orders until reassigned or the group is restored.'}
+                  ' 此分組的員工將停止接收訂單，直到重新指派分組或還原此分組。'}
               </p>
               <div className="mt-5 flex justify-end gap-2">
                 <button
@@ -2029,7 +2059,7 @@ export default function DispatchManagement() {
                   disabled={busy}
                   onClick={() => setArchiveTarget(null)}
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   className="rounded-lg bg-rose-600 px-3 py-2 text-sm text-white disabled:opacity-50"
@@ -2042,7 +2072,7 @@ export default function DispatchManagement() {
                     )
                   }
                 >
-                  Archive
+                  封存
                 </button>
               </div>
             </div>
@@ -2056,14 +2086,12 @@ export default function DispatchManagement() {
             <div
               role="dialog"
               aria-modal="true"
-              aria-label="Confirm member move"
+              aria-label="確認移動員工"
               className="w-full max-w-md rounded-xl border border-emerald-500 bg-slate-800 p-5"
             >
-              <h3 className="mb-2 text-lg font-semibold">Move employees?</h3>
+              <h3 className="mb-2 text-lg font-semibold">確定移動員工？</h3>
               <p className="break-words text-sm text-slate-300">
-                Move {memberMove.ids.length} employee(s) to{' '}
-                {memberMove.destination}? Their existing group assignment will
-                be replaced; nobody will be left unassigned.
+                確定將 {memberMove.ids.length} 位員工移至「{memberMove.destination}」？原有分組歸屬會被取代，不會留下未指派分組的員工。
               </p>
               <div className="mt-5 flex justify-end gap-2">
                 <button
@@ -2071,14 +2099,14 @@ export default function DispatchManagement() {
                   disabled={busy}
                   onClick={() => setMemberMove(null)}
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   className={primaryButton}
                   disabled={busy}
                   onClick={() => void assignMembers()}
                 >
-                  {busy ? 'Moving…' : 'Confirm move'}
+                  {busy ? '移動中…' : '確認移動'}
                 </button>
               </div>
             </div>
@@ -2092,15 +2120,15 @@ export default function DispatchManagement() {
             <div
               role="dialog"
               aria-modal="true"
-              aria-label="Confirm order deletion"
+              aria-label="確認刪除訂單"
               className="w-full max-w-md rounded-xl border border-rose-500 bg-slate-800 p-5"
             >
-              <h3 className="mb-2 text-lg font-semibold">Delete order?</h3>
+              <h3 className="mb-2 text-lg font-semibold">確定刪除訂單？</h3>
               <p className="break-all text-sm text-slate-300">
                 {deleteOrder.order_content.slice(0, 200)}
               </p>
               <p className="mt-2 text-xs text-slate-400">
-                This order will be archived; its assignment history is retained.
+                此訂單將封存，派單紀錄會保留。
               </p>
               <div className="mt-5 flex justify-end gap-2">
                 <button
@@ -2108,14 +2136,14 @@ export default function DispatchManagement() {
                   disabled={busy}
                   onClick={() => setDeleteOrder(null)}
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   className="rounded-lg bg-rose-600 px-3 py-2 text-sm text-white disabled:opacity-50"
                   disabled={busy}
                   onClick={() => void manageOrder('delete', deleteOrder.id)}
                 >
-                  Delete
+                  刪除
                 </button>
               </div>
             </div>
@@ -2129,19 +2157,17 @@ export default function DispatchManagement() {
             <div
               role="dialog"
               aria-modal="true"
-              aria-label="Confirm delete all orders"
+              aria-label="確認刪除全部訂單"
               className="w-full max-w-md rounded-xl border border-rose-500 bg-slate-800 p-5"
             >
               <h3 className="mb-2 text-lg font-semibold">
-                Delete all orders in {selectedPool?.pool_name}?
+                確定刪除「{selectedPool ? poolDisplayName(selectedPool) : ''}」的全部訂單？
               </h3>
               <p className="text-sm text-slate-300">
-                All {selectedPool?.order_count ?? 0} non-archived orders in this
-                pool (including those hidden by the current status filter) will
-                be archived. Other pools are not affected.
+                此訂單池中全部 {selectedPool?.order_count ?? 0} 筆未封存的訂單（包括目前篩選條件隱藏的訂單）都會封存，不影響其他訂單池。
               </p>
               <label className="mt-4 block text-sm">
-                Type DELETE ALL to confirm
+                請輸入「全部刪除」以確認
                 <input
                   className={`${inputClass} mt-1`}
                   value={deleteConfirmInput}
@@ -2156,14 +2182,14 @@ export default function DispatchManagement() {
                   disabled={busy}
                   onClick={() => setShowDeleteAll(false)}
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   className="rounded-lg bg-rose-600 px-3 py-2 text-sm text-white disabled:opacity-50"
-                  disabled={busy || deleteConfirmInput !== 'DELETE ALL'}
+                  disabled={busy || deleteConfirmInput !== '全部刪除'}
                   onClick={() => void manageOrder('delete_all')}
                 >
-                  Delete all
+                  全部刪除
                 </button>
               </div>
             </div>
