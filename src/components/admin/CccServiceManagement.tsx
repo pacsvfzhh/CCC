@@ -3595,7 +3595,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                 {(() => {
                   const count = customerUnreadCountsForCards[customer.id] || 0;
                   return count > 0 && (
-                    <div className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-red-500 rounded-full flex items-center justify-center z-20 shadow-lg shadow-red-500/40 ring-2 ring-slate-900/80">
+                    <div className="manager-unread-badge absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-red-500 rounded-full flex items-center justify-center z-20 shadow-lg shadow-red-500/40 ring-2 ring-slate-900/80">
                       <span className="text-[10px] font-bold text-white leading-none">{count > 99 ? '99+' : count}</span>
                     </div>
                   );
