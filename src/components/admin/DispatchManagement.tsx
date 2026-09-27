@@ -1425,7 +1425,7 @@ export default function DispatchManagement() {
                     <label className="block text-sm font-medium text-slate-200">
                       分組名稱
                       <input
-                        className={`${inputClass} mt-1 sm:max-w-40`}
+                        className={`${inputClass} mt-1 sm:ml-3 sm:max-w-40`}
                                 value={groupDraft.group_name}
                         disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                         onChange={(event) => setGroupDraft({ ...groupDraft, group_name: event.target.value })}
@@ -1572,7 +1572,7 @@ export default function DispatchManagement() {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="min-w-0 text-sm font-medium text-slate-200">
                         最低提款餘額
-                        <input type="number" min="0" max="999999999999.99" step="0.01" className={`${inputClass} mt-1 sm:max-w-40`}
+                        <input type="number" min="0" max="999999999999.99" step="0.01" className={`${inputClass} mt-1 sm:ml-3 sm:max-w-40`}
                                 value={groupDraft.withdrawal_amount_threshold}
                           disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                           onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_amount_threshold: event.target.value })} />
@@ -1580,7 +1580,7 @@ export default function DispatchManagement() {
                       </label>
                       <label className="min-w-0 text-sm font-medium text-slate-200">
                         最低訂單數
-                        <input type="number" min="1" max="1000000" step="1" className={`${inputClass} mt-1 sm:max-w-40`}
+                        <input type="number" min="1" max="1000000" step="1" className={`${inputClass} mt-1 sm:ml-3 sm:max-w-40`}
                                 value={groupDraft.withdrawal_orders_threshold}
                           disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                           onChange={(event) => setGroupDraft({ ...groupDraft, withdrawal_orders_threshold: event.target.value })} />
