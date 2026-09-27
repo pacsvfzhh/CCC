@@ -4102,7 +4102,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                 setFromHistoryFilterMode(historyFilterMode);
                                 setFromHistorySource(historyScope);
                               }}
-                              className="group relative w-full px-3 pt-2.5 pb-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300"
+                              className="group relative w-full px-3 pt-2 pb-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300"
                             >
                               {isSelected ? (
                                 <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-blue-400" />
@@ -4177,16 +4177,16 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                 </div>
                               </div>
                             </button>
-                            <div className="min-w-0 pl-[49px] pr-3 pt-1.5 pb-2.5">
-                              <div className="flex min-w-0 items-center justify-between gap-2">
+                            <div className="flex min-w-0 items-center gap-2 pl-[49px] pr-3 pt-0.5 pb-1">
+                              <div className="flex shrink-0 items-center gap-1.5">
                                 <button
                                   type="button"
                                   disabled={annotationsWorkspaceId !== selectedAdminId}
                                   onClick={() => setAnnotationDialog({ kind: 'special', history, nextSpecial: !annotation?.is_special })}
                                   aria-label={`${annotation?.is_special ? '移除' : '加入'}特別關注：${history.employee_username}（${history.employee_number}）`}
-                                  className={`inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-wait disabled:opacity-50 ${annotation?.is_special ? 'border-amber-300 bg-amber-600 text-white hover:bg-amber-500' : 'border-amber-500/50 bg-amber-950/50 text-amber-200 hover:border-amber-300 hover:bg-amber-800/50'}`}
+                                  className={`inline-flex h-6 shrink-0 items-center gap-1 rounded border px-2 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-wait disabled:opacity-50 ${annotation?.is_special ? 'border-amber-300 bg-amber-600 text-white hover:bg-amber-500' : 'border-amber-500/50 bg-amber-950/50 text-amber-200 hover:border-amber-300 hover:bg-amber-800/50'}`}
                                 >
-                                  <Star className={`h-3.5 w-3.5 ${annotation?.is_special ? 'fill-amber-200' : ''}`} />
+                                  <Star className={`h-3 w-3 ${annotation?.is_special ? 'fill-amber-200' : ''}`} />
                                   {annotation?.is_special ? '移除關注' : '加入特別關注'}
                                 </button>
                                 <button
@@ -4194,12 +4194,12 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                                   disabled={annotationsWorkspaceId !== selectedAdminId}
                                   onClick={() => { setNoteDraft(annotation?.note || ''); setAnnotationDialog({ kind: 'note', history }); }}
                                   aria-label={`編輯對話備註：${history.employee_username}（${history.employee_number}）`}
-                                  className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md border border-blue-400/70 bg-blue-600 px-2.5 text-[11px] font-semibold text-white transition-colors hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-wait disabled:opacity-50"
+                                  className="inline-flex h-6 shrink-0 items-center gap-1 rounded border border-blue-400/70 bg-blue-600 px-2 text-[10px] font-semibold text-white transition-colors hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-wait disabled:opacity-50"
                                 >
-                                  <Pencil className="h-3.5 w-3.5" /> 對話備註
+                                  <Pencil className="h-3 w-3" /> 對話備註
                                 </button>
                               </div>
-                              {annotation?.note && <p className="mt-1.5 truncate text-right text-[11px] text-cyan-300" title={annotation.note}>備註：{annotation.note}</p>}
+                              {annotation?.note && <p className="min-w-0 flex-1 truncate text-right text-[10px] text-cyan-300" title={annotation.note}>備註：{annotation.note}</p>}
                             </div>
                           </div>
                         );
