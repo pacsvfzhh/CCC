@@ -242,7 +242,10 @@ export default function WalletOverview({ employeeId, employee, onWithdrawalHisto
       p_tab_id: financialSession.tabId,
     });
     if (error) throw error;
-    if (!policy?.available) throw new Error(policy?.message || t.wallet.eligibilityFailed);
+    if (!policy) throw new Error(t.wallet.eligibilityFailed);
+    if (!policy.available) {
+      return { eligible: false, message: policy.message || t.wallet.eligibilityFailed };
+    }
     if (!policy.verified) return { eligible: false, message: t.wallet.verificationNeeded };
     if (!policy.available_balance || policy.available_balance <= 0) {
       return { eligible: false, message: t.wallet.insufficientBalance };

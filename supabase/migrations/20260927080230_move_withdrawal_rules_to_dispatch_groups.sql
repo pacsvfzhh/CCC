@@ -14,29 +14,31 @@ ALTER TABLE public.dispatch_groups
 WITH effective AS (
   SELECT dispatch_group.id AS group_id,
     COALESCE(
-      (SELECT config_value::numeric FROM public.admin_configs
+      (SELECT CASE WHEN config_value ~ '^[0-9]{1,12}(\.[0-9]{1,2})?$'
+                   THEN config_value::numeric END
+       FROM public.admin_configs
        WHERE admin_id = COALESCE(employee.created_by, dispatch_group.created_by)
          AND config_type = 'withdrawal_amount_threshold'
-         AND config_value ~ '^[0-9]{1,12}(\.[0-9]{1,2})?$'
-         AND config_value::numeric BETWEEN 0 AND 999999999999.99
        ORDER BY updated_at DESC NULLS LAST, id DESC LIMIT 1),
-      (SELECT config_value::numeric FROM public.admin_configs
+      (SELECT CASE WHEN config_value ~ '^[0-9]{1,12}(\.[0-9]{1,2})?$'
+                   THEN config_value::numeric END
+       FROM public.admin_configs
        WHERE admin_id IS NULL AND config_type = 'withdrawal_amount_threshold'
-         AND config_value ~ '^[0-9]{1,12}(\.[0-9]{1,2})?$'
-         AND config_value::numeric BETWEEN 0 AND 999999999999.99
        ORDER BY updated_at DESC NULLS LAST, id DESC LIMIT 1), 100
     ) AS amount,
     COALESCE(
-      (SELECT config_value::integer FROM public.admin_configs
+      (SELECT CASE WHEN config_value ~ '^[0-9]{1,7}$' THEN
+                 CASE WHEN config_value::integer BETWEEN 1 AND 1000000
+                      THEN config_value::integer END END
+       FROM public.admin_configs
        WHERE admin_id = COALESCE(employee.created_by, dispatch_group.created_by)
          AND config_type = 'withdrawal_days_threshold'
-         AND config_value ~ '^[0-9]{1,7}$'
-         AND config_value::numeric BETWEEN 1 AND 1000000
        ORDER BY updated_at DESC NULLS LAST, id DESC LIMIT 1),
-      (SELECT config_value::integer FROM public.admin_configs
+      (SELECT CASE WHEN config_value ~ '^[0-9]{1,7}$' THEN
+                 CASE WHEN config_value::integer BETWEEN 1 AND 1000000
+                      THEN config_value::integer END END
+       FROM public.admin_configs
        WHERE admin_id IS NULL AND config_type = 'withdrawal_days_threshold'
-         AND config_value ~ '^[0-9]{1,7}$'
-         AND config_value::numeric BETWEEN 1 AND 1000000
        ORDER BY updated_at DESC NULLS LAST, id DESC LIMIT 1), 1000
     ) AS orders,
     COALESCE(
