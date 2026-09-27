@@ -1517,17 +1517,17 @@ export default function DispatchManagement() {
                             </div>
                             <fieldset className="min-w-0">
                               <legend className="text-sm font-medium text-slate-200">提交等待時間（秒）</legend>
-                              <div className="mt-1 grid grid-cols-2 gap-2">
-                                <label className="min-w-0 text-xs font-medium text-slate-200">
+                              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
+                                <label className="inline-flex items-center gap-2 whitespace-nowrap text-xs font-medium text-slate-200">
                                   最短
-                                  <input type="number" min="3" max="120" className={`${inputClass} mt-1`}
+                                  <input type="number" min="3" max="120" className={`${inputClass} !w-20 !px-2`}
                                     value={groupDraft.submit_wait_min_seconds}
                                     disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                                     onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_min_seconds: event.target.value })} />
                                 </label>
-                                <label className="min-w-0 text-xs font-medium text-slate-200">
+                                <label className="inline-flex items-center gap-2 whitespace-nowrap text-xs font-medium text-slate-200">
                                   最長
-                                  <input type="number" min="3" max="300" className={`${inputClass} mt-1`}
+                                  <input type="number" min="3" max="300" className={`${inputClass} !w-20 !px-2`}
                                     value={groupDraft.submit_wait_max_seconds}
                                     disabled={!isSuperAdmin || !!selectedGroup.archived_at || busy}
                                     onChange={(event) => setGroupDraft({ ...groupDraft, submit_wait_max_seconds: event.target.value })} />
