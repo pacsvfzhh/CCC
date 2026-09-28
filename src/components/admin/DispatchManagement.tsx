@@ -2245,7 +2245,7 @@ export default function DispatchManagement() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="pool-orders-title"
-              className="flex h-[min(860px,calc(100dvh-24px))] min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-cyan-300/30 bg-slate-900 text-slate-100 shadow-[0_32px_90px_rgba(2,6,23,0.7)]"
+              className="flex h-[min(900px,calc(100dvh-24px))] min-h-0 w-full max-w-[1360px] flex-col overflow-hidden rounded-2xl border border-cyan-300/30 bg-slate-900 text-slate-100 shadow-[0_32px_90px_rgba(2,6,23,0.7)]"
             >
           <div className="h-1 shrink-0 bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500" />
           <div className="shrink-0 border-b border-cyan-300/15 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 px-4 py-4 sm:px-6 sm:py-5">
@@ -2259,6 +2259,33 @@ export default function DispatchManagement() {
               <span className={`hidden shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold sm:block ${selectedPool.archived_at ? 'border-rose-400/30 bg-rose-400/10 text-rose-200' : selectedPool.is_active ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-amber-400/30 bg-amber-400/10 text-amber-200'}`}>{selectedPool.archived_at ? '已封存' : selectedPool.is_active ? '已啟用' : '已停用'}</span>
               <button type="button" onClick={() => { setOrdersOpen(false); setShowBulkImport(false); setEditingId(null); }} disabled={busy} aria-label="關閉訂單管理" className="shrink-0 rounded-lg border border-white/10 bg-white/5 p-2 text-slate-300 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"><X className="h-4 w-4" /></button>
             </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-cyan-300/20 pt-3">
+              <span className="mr-auto rounded-lg border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs font-semibold tabular-nums text-cyan-100">
+                {ordersLoading ? '正在載入訂單…' : totalCount ? `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, totalCount)} / 共 ${totalCount} 筆` : '目前沒有訂單'} · 第 {page} / {totalPages} 頁
+              </span>
+              <div role="group" className="flex items-center gap-1.5" aria-label="訂單分頁">
+                <button type="button" disabled={page <= 1 || ordersLoading} onClick={() => void loadOrders(selectedPool.id, page - 1)}
+                  className="min-h-9 rounded-lg border border-cyan-300/30 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40">上一頁</button>
+                <button type="button" disabled={page >= totalPages || ordersLoading} onClick={() => void loadOrders(selectedPool.id, page + 1)}
+                  className="min-h-9 rounded-lg border border-cyan-300/30 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40">下一頁</button>
+              </div>
+              <form className="flex items-center gap-1.5 rounded-lg border border-blue-300/25 bg-blue-400/10 p-1" onSubmit={(event) => {
+                event.preventDefault();
+                const targetPage = Number(pageInput);
+                if (!Number.isInteger(targetPage) || targetPage < 1 || targetPage > totalPages) {
+                  notify('error', `請輸入 1 至 ${totalPages} 之間的頁碼。`);
+                  return;
+                }
+                setPageInput('');
+                void loadOrders(selectedPool.id, targetPage);
+              }}>
+                <label htmlFor="order-page" className="shrink-0 pl-2 text-xs font-semibold text-blue-100">跳至頁碼</label>
+                <input id="order-page" type="number" min={1} max={totalPages} value={pageInput} onChange={(event) => setPageInput(event.target.value)}
+                  className="h-9 w-16 rounded-md border border-blue-300/40 bg-slate-50 px-2 text-center text-sm font-semibold tabular-nums text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-300/50" />
+                <button type="submit" disabled={ordersLoading || !pageInput || totalPages <= 1}
+                  className="h-9 rounded-md bg-blue-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-40">跳轉</button>
+              </form>
+            </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-cyan-300/15 bg-slate-900/95 px-4 py-3 sm:px-6">
             <div role="group" aria-label="依狀態篩選訂單" className="flex min-w-0 flex-wrap gap-1 rounded-xl border border-slate-700 bg-slate-950/70 p-1">
@@ -2271,7 +2298,6 @@ export default function DispatchManagement() {
                   className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${orderFilter === option.value ? 'bg-cyan-500/20 text-cyan-100 shadow-sm ring-1 ring-cyan-400/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>{option.label}</button>
               ))}
             </div>
-            <span className="whitespace-nowrap text-xs font-medium tabular-nums text-cyan-200">共 {totalCount} 筆</span>
             {isSuperAdmin && (
               <div className="flex flex-wrap gap-2 sm:ml-auto">
                 <button type="button" disabled={!canManageOrders || busy} onClick={() => { setImportPoolId(selectedPool.id); setBulkInput(''); setShowBulkImport(true); }}
@@ -2352,7 +2378,10 @@ export default function DispatchManagement() {
               </div>
             </div>
           )}
-          <div className="min-h-0 min-w-0 flex-1 space-y-2.5 overflow-y-auto bg-gradient-to-b from-slate-900 via-slate-950/80 to-slate-950 p-3 sm:p-5">
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-950/70">
+            <div className={`sticky top-0 z-10 hidden items-center gap-x-4 border-b border-cyan-300/20 bg-gradient-to-r from-blue-900/90 via-cyan-950/90 to-slate-900/95 px-6 py-2.5 text-[11px] font-semibold tracking-wide text-cyan-100 lg:grid ${canManageOrders ? 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px_198px]' : 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px]'}`}>
+              <span>序號</span><span>訂單內容</span><span>狀態</span><span>建立時間</span>{canManageOrders && <span className="text-right">操作</span>}
+            </div>
             {ordersLoading && (
               <p
                 className="py-3 text-center text-xs text-slate-400"
@@ -2367,7 +2396,7 @@ export default function DispatchManagement() {
               </p>
             ) : ordersLoading ||
               ordersPoolId !== selectedPool.id ? null : !orders.length ? (
-              <div className="flex min-h-56 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-cyan-300/20 bg-cyan-400/5 px-4 py-10 text-center"><PackageSearch className="h-9 w-9 text-cyan-300/60" /><p className="text-sm font-medium text-slate-300">
+              <div className="flex min-h-56 flex-col items-center justify-center gap-2 px-4 py-10 text-center"><PackageSearch className="h-9 w-9 text-cyan-300/60" /><p className="text-sm font-medium text-slate-300">
                 此訂單池沒有
                 {orderFilter === 'all'
                   ? ''
@@ -2378,145 +2407,34 @@ export default function DispatchManagement() {
               </p></div>
             ) : (
               orders.map((order, index) => (
-                <article
-                  key={order.id}
-                  className="min-w-0 overflow-hidden rounded-xl border border-slate-700/80 bg-gradient-to-r from-slate-800/80 to-slate-900/75 p-3 shadow-sm sm:p-4"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <span className="flex items-center gap-2 text-slate-400"><span className="rounded-md border border-cyan-300/20 bg-cyan-400/10 px-2 py-1 font-semibold tabular-nums text-cyan-200">#{(page - 1) * PAGE_SIZE + index + 1}</span>{new Date(order.created_at).toLocaleString('zh-TW')}</span>
-                    <span
-                      className={
-                        order.is_active ? 'rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 font-medium text-emerald-200' : 'rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 font-medium text-amber-200'
-                      }
-                    >
-                      {order.is_active ? '已啟用' : '未啟用'}
-                    </span>
-                  </div>
-                  {editingId === order.id ? (
-                    <>
-                      <textarea
-                        className={`${poolInputClass} mt-3 min-h-28 resize-y font-mono`}
-                        value={editContent}
-                        onChange={(event) => setEditContent(event.target.value)}
-                        aria-label="編輯訂單內容"
-                      />
-                      <div className="mt-2 flex gap-2">
-                        <button
-                          className={primaryButton}
-                          disabled={busy || !editContent.trim()}
-                          onClick={() =>
-                            void manageOrder(
-                              'edit',
-                              order.id,
-                              editContent.trim(),
-                            )
-                          }
-                        >
-                          <Save className="mr-1 inline h-3 w-3" />
-                          儲存
-                        </button>
-                        <button
-                          className={secondaryButton}
-                          disabled={busy}
-                          onClick={() => setEditingId(null)}
-                        >
-                          取消
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-slate-700/80 bg-slate-950/60 px-3 py-3 font-mono text-xs leading-relaxed text-slate-100">
-                        {order.order_content}
-                      </p>
-                      {canManageOrders && (
-                        <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-700/80 pt-3 text-xs">
-                          <button
-                            className="inline-flex items-center rounded-lg border border-blue-400/30 bg-blue-400/10 px-2.5 py-1.5 font-medium text-blue-200 hover:bg-blue-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50"
-                            disabled={busy}
-                            onClick={() => {
-                              setEditingId(order.id);
-                              setEditContent(order.order_content);
-                            }}
-                          >
-                            <Edit2 className="mr-1 inline h-3 w-3" />
-                            編輯
-                          </button>
-                          <button
-                            className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-2.5 py-1.5 font-medium text-amber-200 hover:bg-amber-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:opacity-50"
-                            disabled={busy}
-                            onClick={() => void manageOrder('toggle', order.id)}
-                          >
-                            {order.is_active ? '停用' : '啟用'}
-                          </button>
-                          <button
-                            className="inline-flex items-center rounded-lg border border-rose-400/30 bg-rose-400/10 px-2.5 py-1.5 font-medium text-rose-200 hover:bg-rose-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50"
-                            disabled={busy}
-                            onClick={() => setDeleteOrder(order)}
-                          >
-                            <Trash2 className="mr-1 inline h-3 w-3" />
-                            刪除
-                          </button>
+                <div key={order.id} className={`grid min-w-0 grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 border-b border-cyan-300/10 px-4 py-2.5 transition-colors even:bg-slate-800/30 hover:bg-cyan-400/5 sm:px-6 lg:items-center lg:gap-x-4 ${canManageOrders ? 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px_198px]' : 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px]'}`}>
+                  <span className="font-mono text-xs font-semibold tabular-nums text-cyan-300/80">{String((page - 1) * PAGE_SIZE + index + 1).padStart(2, '0')}</span>
+                  <div className="col-span-2 min-w-0 lg:col-span-1">
+                    {editingId === order.id ? (
+                      <>
+                        <textarea className={`${poolInputClass} !mt-0 min-h-28 resize-y font-mono`} value={editContent} onChange={(event) => setEditContent(event.target.value)} aria-label="編輯訂單內容" />
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <button type="button" className={primaryButton} disabled={busy || !editContent.trim()} onClick={() => void manageOrder('edit', order.id, editContent.trim())}><Save className="mr-1 inline h-3 w-3" />儲存</button>
+                          <button type="button" className={secondaryButton} disabled={busy} onClick={() => setEditingId(null)}>取消</button>
                         </div>
-                      )}
-                    </>
+                      </>
+                    ) : (
+                      <p className="max-h-20 overflow-auto whitespace-pre-wrap break-all font-mono text-xs leading-5 text-slate-100">{order.order_content}</p>
+                    )}
+                  </div>
+                  <span className={`col-start-2 w-fit rounded-full border px-2.5 py-1 text-xs font-medium lg:col-auto ${order.is_active ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-amber-400/30 bg-amber-400/10 text-amber-200'}`}>{order.is_active ? '已啟用' : '未啟用'}</span>
+                  <time dateTime={order.created_at} className="col-start-3 min-w-0 text-right text-[11px] tabular-nums text-slate-400 lg:col-auto lg:text-left lg:text-xs">{new Date(order.created_at).toLocaleString('zh-TW')}</time>
+                  {canManageOrders && editingId !== order.id && (
+                    <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-1.5 lg:col-auto lg:justify-end">
+                      <button type="button" className="inline-flex min-h-8 items-center rounded-md border border-blue-400/30 bg-blue-400/10 px-2.5 text-xs font-medium text-blue-200 hover:bg-blue-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50" disabled={busy} onClick={() => { setEditingId(order.id); setEditContent(order.order_content); }}><Edit2 className="mr-1 h-3 w-3" />編輯</button>
+                      <button type="button" className="min-h-8 rounded-md border border-amber-400/30 bg-amber-400/10 px-2.5 text-xs font-medium text-amber-200 hover:bg-amber-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:opacity-50" disabled={busy} onClick={() => void manageOrder('toggle', order.id)}>{order.is_active ? '停用' : '啟用'}</button>
+                      <button type="button" className="inline-flex min-h-8 items-center rounded-md border border-rose-400/30 bg-rose-400/10 px-2.5 text-xs font-medium text-rose-200 hover:bg-rose-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50" disabled={busy} onClick={() => setDeleteOrder(order)}><Trash2 className="mr-1 h-3 w-3" />刪除</button>
+                    </div>
                   )}
-                </article>
+                </div>
               ))
             )}
           </div>
-          {selectedPool && totalCount > 0 && (
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-cyan-300/15 bg-slate-950/95 px-4 py-3 text-xs sm:px-6">
-              <span className="text-slate-400">
-                {(page - 1) * PAGE_SIZE + 1}–
-                {Math.min(page * PAGE_SIZE, totalCount)}／共 {totalCount} 筆 · 第{' '}
-                {page}/{totalPages} 頁
-              </span>
-              <div className="flex gap-2">
-                <button
-                  className={secondaryButton}
-                  disabled={page <= 1 || ordersLoading}
-                  onClick={() => void loadOrders(selectedPool.id, page - 1)}
-                >
-                  上一頁
-                </button>
-                <button
-                  className={secondaryButton}
-                  disabled={page >= totalPages || ordersLoading}
-                  onClick={() => void loadOrders(selectedPool.id, page + 1)}
-                >
-                  下一頁
-                </button>
-              </div>
-              {totalPages > 2 && (
-                <form
-                  className="flex w-full items-center gap-2"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    const targetPage = Number(pageInput);
-                    if (!Number.isInteger(targetPage) || targetPage < 1 || targetPage > totalPages) {
-                      notify('error', `請輸入 1 至 ${totalPages} 之間的頁碼。`);
-                      return;
-                    }
-                    setPageInput('');
-                    void loadOrders(selectedPool.id, targetPage);
-                  }}
-                >
-                  <label htmlFor="order-page" className="shrink-0 text-slate-400">跳至頁碼</label>
-                  <input
-                    id="order-page"
-                    type="number"
-                    min={1}
-                    max={totalPages}
-                    value={pageInput}
-                    onChange={(event) => setPageInput(event.target.value)}
-                    className={`${poolInputClass} !mt-0 w-20 flex-none !py-1.5`}
-                  />
-                  <button type="submit" disabled={ordersLoading || !pageInput} className={primaryButton}>跳轉</button>
-                </form>
-              )}
-            </div>
-          )}
             </aside>
           </div>, document.body,
         )}
