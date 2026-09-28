@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  ArrowLeft,
   CheckCircle,
   ChevronDown,
   Edit2,
@@ -992,6 +993,7 @@ export default function DispatchManagement() {
     setEditingId(null);
     setShowBulkImport(false);
     setBulkInput('');
+    setImportPoolId(poolId);
     setOrdersOpen(true);
   };
 
@@ -2277,14 +2279,17 @@ export default function DispatchManagement() {
           <div className="h-1 shrink-0 bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500" />
           <div className="relative shrink-0 border-b border-cyan-300/15 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 py-4 pl-4 pr-14 sm:pl-6 sm:pr-16 xl:pr-6">
             <div className="flex flex-wrap items-center gap-3 xl:flex-nowrap">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-400/10 text-cyan-200"><PackageSearch className="h-5 w-5" /></span>
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-400/10 text-cyan-200">{showBulkImport ? <Upload className="h-5 w-5" /> : <PackageSearch className="h-5 w-5" />}</span>
               <div className="min-w-[180px] flex-1">
                 <p className="text-[11px] font-semibold tracking-widest text-cyan-300">{selectedGroup ? groupDisplayName(selectedGroup) : '訂單分組'} · 訂單池</p>
-                <h3 id="pool-orders-title" className="mt-1 break-words text-xl font-semibold text-white">{poolDisplayName(selectedPool)} <span className="text-slate-300">/ 訂單管理</span></h3>
-                <p className="mt-1 text-xs text-slate-300">檢視及管理此池的訂單內容與狀態。</p>
+                <h3 id="pool-orders-title" className="mt-1 break-words text-xl font-semibold text-white">{showBulkImport ? '匯入訂單' : <>{poolDisplayName(selectedPool)} <span className="text-slate-300">/ 訂單管理</span></>}</h3>
+                <p className="mt-1 text-xs text-slate-300">{showBulkImport ? '選擇匯入目標訂單池並貼上訂單內容。' : '檢視及管理此池的訂單內容與狀態。'}</p>
               </div>
-              <span className={`hidden shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold sm:block ${selectedPool.archived_at ? 'border-rose-400/30 bg-rose-400/10 text-rose-200' : selectedPool.is_active ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-amber-400/30 bg-amber-400/10 text-amber-200'}`}>{selectedPool.archived_at ? '已封存' : selectedPool.is_active ? '已啟用' : '已停用'}</span>
-              <div className="flex flex-wrap items-center gap-2 xl:ml-auto xl:flex-nowrap">
+              {!showBulkImport && <span className={`hidden shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold sm:block ${selectedPool.archived_at ? 'border-rose-400/30 bg-rose-400/10 text-rose-200' : selectedPool.is_active ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-amber-400/30 bg-amber-400/10 text-amber-200'}`}>{selectedPool.archived_at ? '已封存' : selectedPool.is_active ? '已啟用' : '已停用'}</span>}
+              {showBulkImport ? (
+                <button type="button" onClick={() => setShowBulkImport(false)} disabled={busy}
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-cyan-300/30 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50 xl:ml-auto"><ArrowLeft className="h-4 w-4" />返回訂單列表</button>
+              ) : <div className="flex flex-wrap items-center gap-2 xl:ml-auto xl:flex-nowrap">
                 <span className="whitespace-nowrap rounded-lg border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs font-semibold tabular-nums text-cyan-100">
                   {ordersLoading ? '正在載入訂單…' : totalCount ? `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, totalCount)} / 共 ${totalCount} 筆` : '目前沒有訂單'} · 第 {pendingPage ?? page} / {totalPages} 頁
                 </span>
@@ -2310,10 +2315,59 @@ export default function DispatchManagement() {
                   <button type="submit" disabled={ordersLoading || !pageInput || totalPages <= 1}
                     className="h-9 rounded-md bg-blue-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-40">跳轉</button>
                 </form>
-              </div>
-              <button type="button" onClick={() => { setOrdersOpen(false); setShowBulkImport(false); setEditingId(null); }} disabled={busy} aria-label="關閉訂單管理" className="absolute right-4 top-4 rounded-lg border border-white/10 bg-white/5 p-2 text-slate-300 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50 sm:right-6 xl:static xl:ml-4 xl:self-center"><X className="h-4 w-4" /></button>
+              </div>}
+              <button type="button" onClick={() => { setOrdersOpen(false); setShowBulkImport(false); setEditingId(null); }} disabled={busy} aria-label={showBulkImport ? '關閉匯入訂單' : '關閉訂單管理'} className="absolute right-4 top-4 rounded-lg border border-white/10 bg-white/5 p-2 text-slate-300 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50 sm:right-6 xl:static xl:ml-4 xl:self-center"><X className="h-4 w-4" /></button>
             </div>
           </div>
+          {showBulkImport && isSuperAdmin ? (
+            <>
+              <div className="dispatch-orders-scroll min-h-0 flex-1 overflow-y-auto bg-gradient-to-br from-blue-950/45 via-slate-900 to-slate-950 px-4 py-5 sm:px-6 sm:py-7">
+                <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-300/15 pb-4">
+                    <div>
+                      <p className="text-xs font-semibold tracking-widest text-cyan-300">批量匯入</p>
+                      <h4 className="mt-1 text-lg font-semibold text-white">新增訂單至訂單池</h4>
+                      <p className="mt-1 text-sm text-slate-300">每筆訂單以空白行分隔；超過 2,000 筆時會自動分批送出。</p>
+                    </div>
+                    <span className="rounded-lg border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs font-medium text-cyan-100">匯入後可在訂單列表檢視</span>
+                  </div>
+                  <div className="max-w-xl">
+                    <label className="block text-sm font-semibold text-cyan-100" htmlFor="import-pool">匯入目標訂單池</label>
+                    <p className="mt-1 text-xs text-slate-400">可選擇目前分組中的其他可用訂單池。</p>
+                    <select id="import-pool" className={poolInputClass} value={importPoolId} disabled={busy}
+                      onChange={(event) => setImportPoolId(event.target.value)}>
+                      {groupPools.filter((pool) => !pool.archived_at).map((pool) => (
+                        <option key={pool.id} value={pool.id}>{poolDisplayName(pool)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="min-w-0">
+                    <label className="block text-sm font-semibold text-cyan-100" htmlFor="bulk-orders">訂單內容</label>
+                    <p className="mt-1 text-xs text-slate-400">貼上多筆訂單，使用一個空白行區分每筆內容。</p>
+                    <textarea id="bulk-orders" className={`${poolInputClass} dispatch-orders-scroll !mt-3 h-[clamp(240px,48vh,500px)] resize-none font-mono leading-relaxed`}
+                      placeholder={'第一筆訂單\n\n第二筆訂單'} value={bulkInput} disabled={busy}
+                      onChange={(event) => setBulkInput(event.target.value)} />
+                  </div>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-cyan-300/15 bg-slate-900 px-4 py-3 sm:px-6">
+                {importProgress && (
+                  <div className="mr-auto min-w-[180px] flex-1 text-xs text-blue-200 sm:max-w-xs" role="status">
+                    已匯入 {importProgress.current} / {importProgress.total} 筆
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-700">
+                      <div className="h-full rounded-full bg-blue-400 transition-[width]" style={{ width: `${Math.round((importProgress.current / importProgress.total) * 100)}%` }} />
+                    </div>
+                  </div>
+                )}
+                <button type="button" className={secondaryButton} disabled={busy} onClick={() => setShowBulkImport(false)}>返回列表</button>
+                <button type="button" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:from-cyan-500 hover:to-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={busy || !bulkInput.trim() || !importPoolId} onClick={() => void importOrders()}>
+                  {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{busy ? '匯入中…' : '開始匯入訂單'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
           <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-cyan-300/15 bg-slate-900/95 px-4 py-3 sm:px-6">
             <div role="group" aria-label="依狀態篩選訂單" className="flex min-w-0 flex-wrap gap-1 rounded-xl border border-slate-700 bg-slate-950/70 p-1">
               {([
@@ -2327,84 +2381,13 @@ export default function DispatchManagement() {
             </div>
             {isSuperAdmin && (
               <div className="flex flex-wrap gap-2 sm:ml-auto">
-                <button type="button" disabled={!canManageOrders || busy || ordersLoading} onClick={() => { setImportPoolId(selectedPool.id); setBulkInput(''); setShowBulkImport(true); }}
+                <button type="button" disabled={!canManageOrders || busy || ordersLoading} onClick={() => setShowBulkImport(true)}
                   className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"><Upload className="h-3.5 w-3.5" />匯入訂單</button>
                 <button type="button" disabled={!canManageOrders || busy || ordersLoading} onClick={() => { setDeleteConfirmInput(''); setShowDeleteAll(true); }}
                   className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />全部刪除</button>
               </div>
             )}
           </div>
-          {showBulkImport && selectedPool && isSuperAdmin && (
-            <div className="dispatch-orders-scroll max-h-[45vh] shrink-0 space-y-2 overflow-y-auto border-b border-cyan-400/20 bg-gradient-to-r from-blue-950/60 to-slate-900 px-4 py-4 sm:px-6">
-              <label
-                className="block text-xs font-semibold text-cyan-200"
-                htmlFor="import-pool"
-              >
-                匯入目標訂單池
-              </label>
-              <select
-                id="import-pool"
-                className={poolInputClass}
-                value={importPoolId}
-                disabled={busy}
-                onChange={(event) => setImportPoolId(event.target.value)}
-              >
-                {groupPools
-                  .filter((pool) => !pool.archived_at)
-                  .map((pool) => (
-                    <option key={pool.id} value={pool.id}>
-                      {poolDisplayName(pool)}
-                    </option>
-                  ))}
-              </select>
-              <label
-                className="block text-xs font-semibold text-cyan-200"
-                htmlFor="bulk-orders"
-              >
-                每筆訂單請以空白行分隔
-              </label>
-              <textarea
-                id="bulk-orders"
-                className={`${poolInputClass} dispatch-orders-scroll min-h-32 resize-y font-mono`}
-                placeholder={'第一筆訂單\n\n第二筆訂單'}
-                value={bulkInput}
-                disabled={busy}
-                onChange={(event) => setBulkInput(event.target.value)}
-              />
-              <p className="text-xs text-slate-400">
-                每批最多匯入 2,000 筆；超出時會分批送出。
-              </p>
-              {importProgress && (
-                <div className="text-xs text-blue-300" role="status">
-                  已匯入 {importProgress.current} / {importProgress.total} 筆
-                  <div className="mt-1 h-2 overflow-hidden rounded bg-slate-700">
-                    <div
-                      className="h-full bg-blue-500"
-                      style={{
-                        width: `${Math.round((importProgress.current / importProgress.total) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-              <div className="flex gap-2">
-                <button
-                  className={secondaryButton}
-                  disabled={busy}
-                  onClick={() => setShowBulkImport(false)}
-                >
-                  取消
-                </button>
-                <button
-                  className={primaryButton}
-                  disabled={busy || !bulkInput.trim() || !importPoolId}
-                  onClick={() => void importOrders()}
-                >
-                  匯入訂單
-                </button>
-              </div>
-            </div>
-          )}
           <div aria-busy={ordersLoading} className="dispatch-orders-scroll min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-950/70">
             <div className={`sticky top-0 z-10 hidden items-center gap-x-4 border-b border-cyan-300/20 bg-gradient-to-r from-blue-900/90 via-cyan-950/90 to-slate-900/95 px-6 py-2.5 text-[11px] font-semibold tracking-wide text-cyan-100 lg:grid ${canManageOrders ? 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px_198px]' : 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px]'}`}>
               <span>序號</span><span>訂單內容</span><span>狀態</span><span>建立時間</span>{canManageOrders && <span className="text-right">操作</span>}
@@ -2456,6 +2439,8 @@ export default function DispatchManagement() {
               ))
             )}
           </div>
+            </>
+          )}
             </aside>
           </div>, document.body,
         )}
