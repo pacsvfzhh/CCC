@@ -1949,7 +1949,7 @@ export default function DispatchManagement() {
                               {!currentMembers.length && <p className="px-4 py-10 text-center text-sm text-slate-400">沒有符合條件的成員</p>}
                             </div>
                           </div>
-                          <div className="shrink-0 border-t border-emerald-400/20 bg-slate-900 px-4 py-3 sm:px-5">
+                          <div className={`shrink-0 border-t px-4 py-3 sm:px-5 ${selectedGroup.is_default ? 'border-emerald-400/60 bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-900' : 'border-emerald-400/20 bg-slate-900'}`}>
                             {!selectedGroup.is_default ? (
                               <button
                                 type="button"
@@ -1960,7 +1960,17 @@ export default function DispatchManagement() {
                               >
                                 移至預設分組（{selectedCurrentMembers.length}）<span aria-hidden="true">→</span>
                               </button>
-                            ) : <p className="py-2 text-center text-xs text-slate-400">這是預設分組，無需移回。</p>}
+                            ) : (
+                              <div role="status" className="flex min-h-10 items-center gap-3 border-l-[3px] border-emerald-400 pl-3">
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-300/40 bg-emerald-400/20 text-emerald-200">
+                                  <CheckCircle className="h-4 w-4" />
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-emerald-50">已是預設分組</p>
+                                  <p className="text-xs text-emerald-100/75">此處成員無需再移回預設分組</p>
+                                </div>
+                              </div>
+                            )}
                             {!defaultGroup && !selectedGroup.is_default && <p className="mt-2 text-xs text-amber-200">若要移出成員，預設分組必須處於啟用狀態。</p>}
                           </div>
                         </section>
