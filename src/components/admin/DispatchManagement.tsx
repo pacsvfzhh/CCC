@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ArrowLeft,
@@ -547,6 +547,10 @@ export default function DispatchManagement() {
   const [targetOrderAvailability, setTargetOrderAvailability] = useState<'loading' | 'available' | 'empty' | 'error'>('loading');
   const memberMoveInFlightRef = useRef(false);
   const [bulkInput, setBulkInput] = useState('');
+  const parsedImportOrders = useMemo(() => bulkInput
+    .split(/\n\s*\n/)
+    .map((item) => item.trim())
+    .filter(Boolean), [bulkInput]);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [importProgress, setImportProgress] = useState<{
     current: number;
@@ -1395,10 +1399,7 @@ export default function DispatchManagement() {
     const target = selectedPool;
     if (!isSuperAdmin || !target || target.archived_at || selectedGroup?.archived_at)
       return notify('error', '目前訂單池已無法匯入訂單。');
-    const contents = bulkInput
-      .split(/\n\s*\n/)
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const contents = parsedImportOrders;
     if (!contents.length)
       return notify(
         'error',
@@ -2339,6 +2340,7 @@ export default function DispatchManagement() {
                     <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 lg:flex-nowrap">
                       <label className="shrink-0 text-sm font-semibold text-cyan-100" htmlFor="bulk-orders">訂單內容</label>
                       <p id="bulk-orders-help" className="text-xs text-slate-400">貼上多筆訂單，使用一個空白行區分每筆內容。</p>
+                      <span className="ml-auto shrink-0 whitespace-nowrap rounded-lg border border-cyan-300/35 bg-cyan-400/10 px-2.5 py-1 text-xs font-medium text-cyan-100" aria-live="polite">待匯入 <strong className="font-bold tabular-nums text-white">{parsedImportOrders.length.toLocaleString('zh-TW')}</strong> 筆訂單</span>
                     </div>
                     <textarea id="bulk-orders" aria-describedby="bulk-orders-help" className={`${poolInputClass} dispatch-orders-scroll !mt-0 h-full min-h-0 w-full resize-none font-mono leading-relaxed`}
                       placeholder={'第一筆訂單\n\n第二筆訂單'} value={bulkInput} disabled={busy}
