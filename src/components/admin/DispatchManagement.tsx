@@ -2882,43 +2882,61 @@ export default function DispatchManagement() {
 
       {showDeleteAll &&
         createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm sm:p-5">
             <div
-              role="dialog"
+              role="alertdialog"
               aria-modal="true"
-              aria-label="確認刪除全部訂單"
-              className="w-full max-w-md rounded-xl border border-rose-500 bg-slate-800 p-5"
+              aria-labelledby="delete-all-title"
+              aria-describedby="delete-all-note"
+              className="dispatch-orders-scroll max-h-[calc(100dvh-24px)] w-full max-w-lg overflow-y-auto rounded-2xl border border-rose-400/30 bg-slate-900 text-slate-100 shadow-[0_32px_90px_rgba(2,6,23,0.7)]"
             >
-              <h3 className="mb-2 text-lg font-semibold">
-                確定刪除「{selectedPool ? poolDisplayName(selectedPool) : ''}」的全部訂單？
-              </h3>
-              <p className="text-sm text-slate-300">
-                此訂單池的所有訂單（目前未封存 {selectedPool?.order_count ?? 0} 筆，另含先前封存及被篩選隱藏的訂單）都會從資料庫永久刪除，無法復原。其他訂單池不受影響；既有派單紀錄保留，但會解除與被刪訂單的連結。
-              </p>
-              <label className="mt-4 block text-sm">
-                請輸入「全部刪除」以確認
+              <div className="h-1 bg-gradient-to-r from-rose-400 via-red-500 to-orange-400" />
+              <div className="flex items-start gap-3 border-b border-rose-400/20 bg-gradient-to-r from-rose-950/85 via-slate-900 to-slate-900 px-5 py-5 sm:px-6">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-rose-400/35 bg-rose-400/15 text-rose-200"><Trash2 className="h-5 w-5" /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold tracking-widest text-rose-300">訂單管理 · 批量操作</p>
+                  <h3 id="delete-all-title" className="mt-1 text-xl font-semibold text-white">永久刪除此池全部訂單？</h3>
+                  <p className="mt-1 text-xs text-slate-300">此操作僅影響目前選取的訂單池。</p>
+                </div>
+                <button type="button" disabled={busy} onClick={() => setShowDeleteAll(false)} aria-label="關閉全部刪除確認"
+                  className="shrink-0 rounded-lg p-2 text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50"><X className="h-4 w-4" /></button>
+              </div>
+              <div className="space-y-4 px-5 py-5 sm:px-6">
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-700/80 bg-slate-950/65 px-4 py-3.5">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-400">刪除目標 · 訂單池</p>
+                    <p className="mt-1 break-words text-base font-semibold text-white">{selectedPool ? poolDisplayName(selectedPool) : ''}</p>
+                  </div>
+                  <div className="shrink-0 border-l border-slate-700 pl-4 text-right">
+                    <p className="text-xs font-medium text-slate-400">目前未封存</p>
+                    <p className="mt-0.5 text-xl font-semibold tabular-nums text-rose-200">{selectedPool?.order_count ?? 0} <span className="text-xs font-medium">筆</span></p>
+                  </div>
+                </div>
+                <div id="delete-all-note" className="flex items-start gap-2.5 rounded-xl border border-amber-400/25 bg-amber-400/10 px-3.5 py-3 text-sm leading-relaxed text-amber-100">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                  <p><strong className="font-semibold text-amber-200">無法復原。</strong>此池所有訂單都會從資料庫永久刪除，包括先前封存及目前篩選隱藏的訂單。其他訂單池不受影響；既有派單紀錄保留，但會解除與被刪訂單的連結。</p>
+                </div>
+                <label htmlFor="delete-all-confirm" className="block text-sm font-medium text-slate-200">
+                  輸入 <span className="font-semibold text-rose-300">全部刪除</span> 以確認
+                </label>
                 <input
-                  className={`${inputClass} mt-1`}
+                  id="delete-all-confirm"
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-rose-400 focus:bg-white focus:ring-2 focus:ring-rose-400/25 disabled:opacity-50"
+                  placeholder="請輸入：全部刪除"
                   value={deleteConfirmInput}
-                  onChange={(event) =>
-                    setDeleteConfirmInput(event.target.value)
-                  }
-                />
-              </label>
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  className={secondaryButton}
                   disabled={busy}
-                  onClick={() => setShowDeleteAll(false)}
-                >
-                  取消
-                </button>
-                <button
-                  className="rounded-lg bg-rose-600 px-3 py-2 text-sm text-white disabled:opacity-50"
-                  disabled={busy || deleteConfirmInput !== '全部刪除'}
-                  onClick={() => void manageOrder('delete_all_permanent')}
-                >
-                  全部刪除
+                  onChange={(event) => setDeleteConfirmInput(event.target.value)}
+                />
+              </div>
+              <div className="flex flex-col-reverse gap-2 border-t border-rose-400/15 bg-slate-950/65 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+                <button type="button" disabled={busy} onClick={() => setShowDeleteAll(false)}
+                  className="min-h-10 rounded-xl border border-slate-600 bg-slate-800 px-5 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50">取消</button>
+                <button type="button" disabled={busy || deleteConfirmInput !== '全部刪除'} onClick={() => void manageOrder('delete_all_permanent')}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-rose-950/40 transition-colors hover:from-rose-500 hover:to-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:cursor-not-allowed disabled:opacity-40">
+                  {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}{busy ? '處理中…' : '永久刪除全部訂單'}
                 </button>
               </div>
             </div>
