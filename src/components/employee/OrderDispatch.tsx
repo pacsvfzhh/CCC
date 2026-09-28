@@ -218,6 +218,9 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
   const sendHeartbeatRef = useRef<(() => Promise<void>) | null>(null);
   const checkPendingOrderRef = useRef<(() => Promise<void>) | null>(null);
   const recoveryInFlightRef = useRef<Promise<RecoveryOutcome> | null>(null);
+  const membershipRevisionRef = useRef(0);
+  const membershipChangeDuringAssignmentRef = useRef(false);
+  const membershipChangeHandlerRef = useRef<() => void>(() => {});
 
   // 通知系统
   const showNotification = (notification: Omit<Notification, 'id'>) => {
@@ -364,6 +367,15 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
+  useEffect(() => {
+    const channel = supabase.channel(`employee-dispatch-group-${employee.id}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'dispatch_group_members', filter: `user_id=eq.${employee.id}`,
+      }, () => membershipChangeHandlerRef.current())
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [employee.id]);
 
   useEffect(() => {
     if (session.isWorking) {
@@ -1431,6 +1443,21 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
     dispatchTimerRef.current = null;
   };
 
+  membershipChangeHandlerRef.current = () => {
+    if (!sessionActiveRef.current || currentOrderRef.current || recoveryInFlightRef.current) return;
+    membershipRevisionRef.current += 1;
+    if (assigningDispatchRef.current) {
+      membershipChangeDuringAssignmentRef.current = true;
+      return;
+    }
+    clearDispatchTimer();
+    selectedDispatchRef.current = null;
+    dispatchPausedRef.current = false;
+    setNextOrderTime(null);
+    setDispatchPause(null);
+    if (!preparingDispatchRef.current) void scheduleNextOrder();
+  };
+
   const armDispatchTimer = (selection: DispatchSelection, generation: number, minimumDelay = 0) => {
     if (!isCurrentDispatch(selection.sessionId, generation) || selectedDispatchRef.current !== selection) return;
     clearDispatchTimer();
@@ -1480,6 +1507,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         preparingDispatchRef.current.generation === generation) return;
 
     const preparation = { sessionId, generation };
+    const membershipRevision = membershipRevisionRef.current;
     preparingDispatchRef.current = preparation;
     try {
       const auth = getStoredAuth();
@@ -1490,7 +1518,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         p_tab_id: auth.tabId,
         p_session_id: sessionId,
       });
-      if (!isCurrentDispatch(sessionId, generation)) return;
+      if (!isCurrentDispatch(sessionId, generation) || membershipRevision !== membershipRevisionRef.current) return;
       if (error) throw error;
       const prepared = data;
       if (prepared?.auto_stopped) {
@@ -1513,12 +1541,16 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
       setDispatchPause(null);
       armDispatchTimer(nextSelection, generation);
     } catch (error) {
-      if (isCurrentDispatch(sessionId, generation)) {
+      if (isCurrentDispatch(sessionId, generation) && membershipRevision === membershipRevisionRef.current) {
         console.error('Failed to prepare dispatch:', error);
         pauseDispatch('error', getOrderDispatchErrorMessage(error), sessionId, generation);
       }
     } finally {
-      if (preparingDispatchRef.current === preparation) preparingDispatchRef.current = null;
+      if (preparingDispatchRef.current === preparation) {
+        preparingDispatchRef.current = null;
+        if (membershipRevision !== membershipRevisionRef.current && isCurrentDispatch(sessionId, generation))
+          void scheduleNextOrder();
+      }
     }
   };
 
@@ -1527,6 +1559,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         (assigningDispatchRef.current?.sessionId === selection.sessionId && assigningDispatchRef.current.generation === generation)) return;
     const assignmentAttempt = { sessionId: selection.sessionId, generation };
     assigningDispatchRef.current = assignmentAttempt;
+    let assignedSuccessfully = false;
     try {
       const auth = getStoredAuth();
       if (auth?.userType !== 'employee') throw new Error('Employee session has expired. Please sign in again.');
@@ -1554,6 +1587,7 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
           selectedDispatchRef.current = null;
           setNextOrderTime(null);
           assigningDispatchRef.current = null;
+          membershipChangeDuringAssignmentRef.current = false;
           void scheduleNextOrder();
         } else if (result?.due_at) {
           const dueAt = Date.parse(result.due_at);
@@ -1584,6 +1618,8 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         dispatch_orders: { order_content: assignment.order_content },
         session_timeout_minutes: assignment.session_timeout_minutes,
       };
+      assignedSuccessfully = true;
+      currentOrderRef.current = newAssignment;
       setCurrentOrder(newAssignment);
       setShowOrderDetail(true);
       updateActivity();
@@ -1602,7 +1638,14 @@ export default function OrderDispatch({ employee, onStatusChange, onNavigateToOr
         pauseDispatch('error', getOrderDispatchErrorMessage(error), selection.sessionId, generation);
       }
     } finally {
-      if (assigningDispatchRef.current === assignmentAttempt) assigningDispatchRef.current = null;
+      if (assigningDispatchRef.current === assignmentAttempt) {
+        assigningDispatchRef.current = null;
+        if (membershipChangeDuringAssignmentRef.current) {
+          membershipChangeDuringAssignmentRef.current = false;
+          if (!assignedSuccessfully && isCurrentDispatch(selection.sessionId, generation))
+            void checkPendingOrderRef.current?.();
+        }
+      }
     }
   };
 

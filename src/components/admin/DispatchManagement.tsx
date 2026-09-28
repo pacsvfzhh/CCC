@@ -536,6 +536,7 @@ export default function DispatchManagement() {
     destination: string;
   } | null>(null);
   const [memberMoveProgress, setMemberMoveProgress] = useState<{ completed: number; total: number } | null>(null);
+  const [targetOrderAvailability, setTargetOrderAvailability] = useState<'loading' | 'available' | 'empty' | 'error'>('loading');
   const memberMoveInFlightRef = useRef(false);
   const [bulkInput, setBulkInput] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -626,6 +627,31 @@ export default function DispatchManagement() {
     const timer = setTimeout(() => setGroupSaveStatus(null), 4000);
     return () => clearTimeout(timer);
   }, [groupSaveStatus]);
+
+  useEffect(() => {
+    if (!memberMove) return;
+    let active = true;
+    setTargetOrderAvailability('loading');
+    const targetGroup = groups.find((group) => group.id === memberMove.targetGroupId);
+    const eligiblePools = pools.filter((pool) =>
+      pool.group_id === memberMove.targetGroupId && pool.is_active && !pool.archived_at &&
+      (targetGroup?.pool_selection_mode !== 'base' || pool.is_base) &&
+      (targetGroup?.pool_selection_mode !== 'weighted' || pool.trigger_probability > 0),
+    );
+    if (!eligiblePools.length) {
+      setTargetOrderAvailability('empty');
+      return;
+    }
+    void supabase.from('dispatch_group_orders')
+      .select('id', { count: 'exact', head: true })
+      .in('pool_id', eligiblePools.map((pool) => pool.id))
+      .eq('is_active', true)
+      .is('archived_at', null)
+      .then(({ count, error }) => {
+        if (active) setTargetOrderAvailability(error ? 'error' : count ? 'available' : 'empty');
+      });
+    return () => { active = false; };
+  }, [memberMove, groups, pools]);
 
   const loadWorkspace = async () => {
     const requestId = ++workspaceRequestRef.current;
@@ -2890,6 +2916,9 @@ export default function DispatchManagement() {
                   </div>
                 </div>
                 <p id="member-move-note" className="mt-4 border-l-2 border-cyan-400 bg-cyan-400/5 px-3 py-2 text-sm leading-relaxed text-slate-300">移動後會取代員工原有的分組歸屬，不會留下未指派分組的員工。</p>
+                {targetOrderAvailability === 'empty' && <p role="status" className="mt-3 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">目標分組目前沒有可派訂單。員工可移入，但新增可用訂單前不會收到新派單。</p>}
+                {targetOrderAvailability === 'error' && <p role="status" className="mt-3 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">暫時無法確認目標分組是否有可派訂單；移動員工仍可繼續。</p>}
+                {targetOrderAvailability === 'loading' && <p role="status" className="mt-3 text-xs text-slate-400">正在確認目標分組的可派訂單…</p>}
                 <div className="mt-6 flex flex-col-reverse gap-2 border-t border-slate-700/70 pt-4 sm:flex-row sm:justify-end">
                   <button
                     type="button"
