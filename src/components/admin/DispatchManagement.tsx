@@ -12,6 +12,7 @@ import {
   Save,
   Search,
   Settings,
+  Tag,
   Trash2,
   Upload,
   Users,
@@ -207,6 +208,153 @@ function WithdrawalConditionPicker({
             >
               <span className="min-w-0 flex-1 text-sm font-medium">{withdrawalModeLabels[mode]}</span>
               {value === mode && <CheckCircle className="h-4 w-4 shrink-0 text-slate-900" />}
+            </button>
+          ))}
+        </div>, document.body,
+      )}
+    </div>
+  );
+}
+
+function MemberFilterPicker({
+  id,
+  label,
+  caption,
+  value,
+  options,
+  tone,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  caption: string;
+  value: string;
+  options: { value: string; label: string }[];
+  tone: 'emerald' | 'blue' | 'violet';
+  onChange: (value: string) => void;
+}) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
+  const isOpen = menuPosition !== null;
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? label;
+  const iconClass = tone === 'emerald' ? 'bg-emerald-400/15 text-emerald-200' : tone === 'blue' ? 'bg-sky-400/15 text-sky-200' : 'bg-violet-400/15 text-violet-200';
+  const activeClass = tone === 'emerald' ? 'bg-emerald-400/15 text-emerald-100' : tone === 'blue' ? 'bg-sky-400/15 text-sky-100' : 'bg-violet-400/15 text-violet-100';
+  const borderClass = tone === 'emerald' ? 'border-emerald-300/40' : tone === 'blue' ? 'border-sky-300/40' : 'border-violet-300/40';
+  const accentClass = tone === 'emerald' ? 'text-emerald-300' : tone === 'blue' ? 'text-sky-300' : 'text-violet-300';
+
+  const positionMenu = useCallback(() => {
+    const rect = triggerRef.current!.getBoundingClientRect();
+    const width = Math.min(Math.max(rect.width, 224), window.innerWidth - 24);
+    const spaceBelow = window.innerHeight - rect.bottom - 12;
+    const spaceAbove = rect.top - 12;
+    const opensUp = spaceBelow < 180 && spaceAbove > spaceBelow;
+    const maxHeight = Math.min(300, Math.max(80, opensUp ? spaceAbove - 6 : spaceBelow - 6));
+    setMenuPosition({
+      top: opensUp ? Math.max(12, rect.top - maxHeight - 6) : rect.bottom + 6,
+      left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
+      width,
+      maxHeight,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) menuRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!triggerRef.current?.contains(event.target as Node) && !menuRef.current?.contains(event.target as Node)) setMenuPosition(null);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuPosition(null);
+        triggerRef.current?.focus();
+      }
+    };
+    const closeOnFocusOutside = (event: FocusEvent) => {
+      if (!triggerRef.current?.contains(event.target as Node) && !menuRef.current?.contains(event.target as Node)) setMenuPosition(null);
+    };
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    document.addEventListener('focusin', closeOnFocusOutside);
+    window.addEventListener('resize', positionMenu);
+    window.addEventListener('scroll', positionMenu, true);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+      document.removeEventListener('focusin', closeOnFocusOutside);
+      window.removeEventListener('resize', positionMenu);
+      window.removeEventListener('scroll', positionMenu, true);
+    };
+  }, [isOpen, positionMenu]);
+
+  return (
+    <div className="min-w-[136px] flex-1 sm:w-44 sm:flex-none">
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label={`${label}：${selectedLabel}`}
+        aria-haspopup="listbox"
+        aria-expanded={!!menuPosition}
+        aria-controls={menuPosition ? `${id}-menu` : undefined}
+        onClick={() => menuPosition ? setMenuPosition(null) : positionMenu()}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (!menuPosition) positionMenu();
+          }
+        }}
+        className={`group flex h-10 w-full min-w-0 items-center gap-2 rounded-xl border bg-slate-900/85 px-2 text-left shadow-[0_6px_16px_rgba(2,6,23,0.18)] transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${borderClass} ${menuPosition ? 'ring-1 ring-white/30' : ''}`}
+      >
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${iconClass}`}>
+          {tone === 'emerald' ? <Layers className="h-4 w-4" /> : tone === 'blue' ? <Users className="h-4 w-4" /> : <Tag className="h-4 w-4" />}
+        </span>
+        <span className="min-w-0 flex-1" title={selectedLabel}>
+          <span className="block text-[10px] leading-3 text-slate-400">{caption}</span>
+          <span className="block truncate text-xs font-semibold leading-4 text-white">{selectedLabel}</span>
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:text-white ${menuPosition ? 'rotate-180' : ''}`} />
+      </button>
+      {menuPosition && createPortal(
+        <div
+          ref={menuRef}
+          id={`${id}-menu`}
+          role="listbox"
+          aria-label={label}
+          className={`dispatch-members-scroll fixed z-[10010] overflow-y-auto overscroll-contain rounded-xl border bg-slate-900/95 p-1.5 text-slate-100 shadow-[0_22px_50px_rgba(2,6,23,0.65)] backdrop-blur-xl ${borderClass}`}
+          style={menuPosition}
+          onKeyDown={(event) => {
+            if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []);
+            const index = items.indexOf(document.activeElement as HTMLButtonElement);
+            const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length;
+            items[nextIndex]?.focus();
+          }}
+        >
+          <p className={`px-3 pb-1.5 pt-1 text-[11px] font-semibold tracking-wide ${accentClass}`}>{label}</p>
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="option"
+              aria-selected={value === option.value}
+              className={`mb-0.5 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors last:mb-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 ${value === option.value ? activeClass : 'text-slate-200 hover:bg-white/10 hover:text-white'}`}
+              onClick={() => {
+                onChange(option.value);
+                setMenuPosition(null);
+                triggerRef.current?.focus();
+              }}
+            >
+              <span className="min-w-0 flex-1 break-words font-medium">{option.label}</span>
+              {value === option.value && <CheckCircle className={`h-4 w-4 shrink-0 ${accentClass}`} />}
             </button>
           ))}
         </div>, document.body,
@@ -1690,7 +1838,7 @@ export default function DispatchManagement() {
                 <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-slate-950/85 p-2 backdrop-blur-sm sm:p-4">
                   <div role="dialog" aria-modal="true" aria-labelledby="dispatch-members-title" className="flex h-[min(820px,calc(100dvh-16px))] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-emerald-300/30 bg-slate-900 text-slate-100 shadow-[0_32px_90px_rgba(2,6,23,0.75)] sm:h-[min(820px,calc(100dvh-32px))]">
                     <div className="h-1 shrink-0 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
-                    <header className="dispatch-members-filters shrink-0 border-b border-emerald-300/20 bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-900 px-4 py-4 sm:px-6 sm:py-5">
+                    <header className="shrink-0 border-b border-emerald-300/20 bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-900 px-4 py-4 sm:px-6 sm:py-5">
                       <div className="flex items-start gap-3">
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-300/30 bg-emerald-400/15 text-emerald-200 shadow-[0_0_24px_rgba(52,211,153,0.12)]">
                           <Users className="h-5 w-5" />
@@ -1704,64 +1852,56 @@ export default function DispatchManagement() {
                       </div>
                       <div className="mt-4 flex flex-wrap items-center gap-2">
                         <div className="relative min-w-[180px] flex-1">
-                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-300" />
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-700" />
                           <input
-                            className="h-10 w-full rounded-lg border border-emerald-300/30 bg-slate-950/60 py-2 pl-10 pr-3 text-sm text-white placeholder-emerald-100/50 outline-none transition-colors focus:border-emerald-300 focus:ring-2 focus:ring-emerald-400/25"
+                            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-10 pr-3 text-sm font-medium text-slate-900 shadow-sm placeholder-slate-500 outline-none transition-colors focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-400/35"
                             placeholder="搜尋員工名稱或員工 ID"
                             aria-label="搜尋員工名稱或員工 ID"
                             value={employeeSearch}
                             onChange={(event) => setEmployeeSearch(event.target.value)}
                           />
                         </div>
-                        <label className="flex h-10 min-w-[160px] flex-1 items-center gap-2 rounded-lg border border-emerald-300/30 bg-slate-950/60 pl-3 text-xs text-emerald-200 focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-400/25 sm:w-44 sm:flex-none">
-                          分組
-                          <select
-                            className="h-full min-w-0 flex-1 bg-transparent pr-1 text-sm text-slate-100 outline-none"
-                            value={selectedGroup.id}
-                            onChange={(event) => {
-                              switchGroup(event.target.value);
-                              setMemberPanelOpen(true);
-                            }}
-                            aria-label="切換分組"
-                          >
-                            {groups.map((group) => (
-                              <option key={group.id} value={group.id}>{groupDisplayName(group)}</option>
-                            ))}
-                          </select>
-                        </label>
+                        <MemberFilterPicker
+                          id="member-group-filter"
+                          label="切換分組"
+                          caption="分組"
+                          value={selectedGroup.id}
+                          options={groups.map((group) => ({ value: group.id, label: groupDisplayName(group) }))}
+                          tone="emerald"
+                          onChange={(groupId) => {
+                            switchGroup(groupId);
+                            setMemberPanelOpen(true);
+                          }}
+                        />
                         {isSuperAdmin && (
-                          <select
-                            className="h-10 min-w-0 flex-1 rounded-lg border border-emerald-300/30 bg-slate-950/60 px-3 text-sm text-slate-100 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-400/25 sm:w-44 sm:flex-none"
+                          <MemberFilterPicker
+                            id="member-admin-filter"
+                            label="篩選管理員"
+                            caption="管理員"
                             value={employeeAdminFilter}
-                            onChange={(event) => {
-                              setEmployeeAdminFilter(event.target.value);
+                            options={[{ value: 'all', label: '所有管理員' }, ...adminNames.map((owner) => ({ value: owner.id, label: owner.username }))]}
+                            tone="blue"
+                            onChange={(adminId) => {
+                              setEmployeeAdminFilter(adminId);
                               setSelectedCurrentMembers([]);
                               setSelectedOtherMembers([]);
                             }}
-                            aria-label="依管理員篩選員工"
-                          >
-                            <option value="all">所有管理員</option>
-                            {adminNames.map((owner) => (
-                              <option key={owner.id} value={owner.id}>{owner.username}</option>
-                            ))}
-                          </select>
+                          />
                         )}
                         {tags.length > 0 && (
-                          <select
-                            className="h-10 min-w-0 flex-1 rounded-lg border border-emerald-300/30 bg-slate-950/60 px-3 text-sm text-slate-100 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-400/25 sm:w-44 sm:flex-none"
+                          <MemberFilterPicker
+                            id="member-tag-filter"
+                            label="篩選標籤"
+                            caption="標籤"
                             value={employeeTagFilter}
-                            onChange={(event) => {
-                              setEmployeeTagFilter(event.target.value);
+                            options={[{ value: 'all', label: '所有標籤' }, ...tags.map((tag) => ({ value: tag, label: tag }))]}
+                            tone="violet"
+                            onChange={(tag) => {
+                              setEmployeeTagFilter(tag);
                               setSelectedCurrentMembers([]);
                               setSelectedOtherMembers([]);
                             }}
-                            aria-label="依標籤篩選員工"
-                          >
-                            <option value="all">所有標籤</option>
-                            {tags.map((tag) => (
-                              <option key={tag} value={tag}>{tag}</option>
-                            ))}
-                          </select>
+                          />
                         )}
                         <span className="shrink-0 text-xs font-medium text-emerald-100/75">共 {visibleEmployees.length} 人</span>
                       </div>

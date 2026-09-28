@@ -115,10 +115,6 @@
 .dispatch-members-scroll::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #6ee7b7, #22d3ee) padding-box;
 }
-.dispatch-members-filters select {
-  color-scheme: dark;
-}
-
 .product-type-list-scrollbar {
   scrollbar-width: thin;
   scrollbar-gutter: stable;
