@@ -164,7 +164,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         return;
       }
 
-      console.error('[Login] Login error:', formatSupabaseError(err));
+      const invalidCredentials = err instanceof Error && err.message === 'Invalid credentials';
+      if (!invalidCredentials) console.error('[Login] Login error:', formatSupabaseError(err));
 
       const attemptIp = await getUserIP();
       const attemptResult = await recordLoginAttempt(
@@ -192,7 +193,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           setWarning(`${attemptResult.failed_attempts} failed attempt${attemptResult.failed_attempts > 1 ? 's' : ''}. Account will be locked after 5 attempts`);
         } else {
           setWarning('');
-          setError(err instanceof Error ? err.message : 'Invalid username or password');
+          setError(invalidCredentials ? 'Invalid username or password' : err instanceof Error ? err.message : 'Login failed. Please try again.');
         }
       }
     } finally {
