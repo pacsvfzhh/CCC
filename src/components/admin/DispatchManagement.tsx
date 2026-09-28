@@ -2339,9 +2339,11 @@ export default function DispatchManagement() {
                     </div>
                   </div>
                   <div className="flex min-h-0 min-w-0 flex-col">
-                    <label className="block text-sm font-semibold text-cyan-100" htmlFor="bulk-orders">訂單內容</label>
-                    <p className="mb-3 mt-1 text-xs text-slate-400">貼上多筆訂單，使用一個空白行區分每筆內容。</p>
-                    <textarea id="bulk-orders" className={`${poolInputClass} dispatch-orders-scroll !mt-0 min-h-0 w-full flex-1 resize-none font-mono leading-relaxed`}
+                    <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 lg:flex-nowrap">
+                      <label className="shrink-0 text-sm font-semibold text-cyan-100" htmlFor="bulk-orders">訂單內容</label>
+                      <p id="bulk-orders-help" className="text-xs text-slate-400">貼上多筆訂單，使用一個空白行區分每筆內容。</p>
+                    </div>
+                    <textarea id="bulk-orders" aria-describedby="bulk-orders-help" className={`${poolInputClass} dispatch-orders-scroll !mt-0 min-h-0 w-full flex-1 self-stretch resize-none font-mono leading-relaxed`}
                       placeholder={'第一筆訂單\n\n第二筆訂單'} value={bulkInput} disabled={busy}
                       onChange={(event) => setBulkInput(event.target.value)} />
                   </div>
