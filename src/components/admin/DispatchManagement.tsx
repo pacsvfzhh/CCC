@@ -548,7 +548,6 @@ export default function DispatchManagement() {
   const memberMoveInFlightRef = useRef(false);
   const [bulkInput, setBulkInput] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [importPoolId, setImportPoolId] = useState('');
   const [importProgress, setImportProgress] = useState<{
     current: number;
     total: number;
@@ -993,7 +992,6 @@ export default function DispatchManagement() {
     setEditingId(null);
     setShowBulkImport(false);
     setBulkInput('');
-    setImportPoolId(poolId);
     setOrdersOpen(true);
   };
 
@@ -1394,11 +1392,9 @@ export default function DispatchManagement() {
   };
 
   const importOrders = async () => {
-    const target = groupPools.find(
-      (pool) => pool.id === importPoolId && !pool.archived_at,
-    );
-    if (!isSuperAdmin || !target || selectedGroup?.archived_at)
-      return notify('error', '請先選擇可用的目標訂單池。');
+    const target = selectedPool;
+    if (!isSuperAdmin || !target || target.archived_at || selectedGroup?.archived_at)
+      return notify('error', '目前訂單池已無法匯入訂單。');
     const contents = bulkInput
       .split(/\n\s*\n/)
       .map((item) => item.trim())
@@ -1435,7 +1431,6 @@ export default function DispatchManagement() {
       }
       setBulkInput('');
       setShowBulkImport(false);
-      setSelectedPoolId(target.id);
       notify(
         'success',
         `已將 ${imported} 筆訂單匯入「${poolDisplayName(target)}」。`,
@@ -1450,12 +1445,7 @@ export default function DispatchManagement() {
     } finally {
       await Promise.all([
         loadWorkspace(),
-        loadOrders(
-          imported === contents.length
-            ? target.id
-            : (selectedPool?.id ?? target.id),
-          1,
-        ),
+        loadOrders(target.id, 1),
       ]);
       setImportProgress(null);
       setBusy(false);
@@ -2328,14 +2318,12 @@ export default function DispatchManagement() {
                     <h4 className="mt-2 text-lg font-semibold text-white">新增訂單至訂單池</h4>
                     <p className="mt-2 text-sm leading-relaxed text-slate-300">每筆訂單以空白行分隔；超過 2,000 筆時會自動分批送出。</p>
                     <div className="mt-5 border-t border-cyan-300/15 pt-5">
-                      <label className="block text-sm font-semibold text-cyan-100" htmlFor="import-pool">匯入目標訂單池</label>
-                      <p className="mt-1 text-xs leading-relaxed text-slate-400">可選擇目前分組中的其他可用訂單池。</p>
-                      <select id="import-pool" className={poolInputClass} value={importPoolId} disabled={busy}
-                        onChange={(event) => setImportPoolId(event.target.value)}>
-                        {groupPools.filter((pool) => !pool.archived_at).map((pool) => (
-                          <option key={pool.id} value={pool.id}>{poolDisplayName(pool)}</option>
-                        ))}
-                      </select>
+                      <p className="text-sm font-semibold text-cyan-100">匯入目標訂單池</p>
+                      <div className="mt-3 flex min-w-0 items-center gap-3 rounded-xl border border-cyan-300/35 bg-cyan-400/10 px-3.5 py-3 shadow-sm shadow-slate-950/25">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/15 text-cyan-200"><Layers className="h-4 w-4" /></span>
+                        <span className="min-w-0 break-words text-sm font-semibold text-white">{poolDisplayName(selectedPool)}</span>
+                      </div>
+                      <p className="mt-2 text-xs leading-relaxed text-cyan-100/80">只會匯入目前開啟的訂單池，不能在此切換目標。</p>
                     </div>
                   </div>
                   <div className="flex min-h-0 min-w-0 flex-col">
@@ -2360,7 +2348,7 @@ export default function DispatchManagement() {
                 )}
                 <button type="button" className={secondaryButton} disabled={busy} onClick={() => setShowBulkImport(false)}>返回列表</button>
                 <button type="button" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:from-cyan-500 hover:to-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={busy || !bulkInput.trim() || !importPoolId} onClick={() => void importOrders()}>
+                  disabled={busy || !bulkInput.trim() || !canManageOrders} onClick={() => void importOrders()}>
                   {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{busy ? '匯入中…' : '開始匯入訂單'}
                 </button>
               </div>
