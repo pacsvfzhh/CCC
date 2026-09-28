@@ -2537,7 +2537,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
     return createPortal(
       <div data-withdrawal-dropdown className="fixed z-[9999]" style={{ top: withdrawalDropdownPos.top, left: withdrawalDropdownPos.left }}>
-        <div role="menu" aria-label="提现日期筛选" className="w-[208px] overflow-hidden rounded-xl border border-orange-400/40 bg-[#1c100b] shadow-2xl shadow-black/70">
+        <div role="menu" aria-label="提现日期筛选" className="w-[180px] overflow-hidden rounded-b-xl rounded-t-sm border border-orange-400/60 bg-[#120e0d] shadow-[0_18px_36px_rgba(0,0,0,0.65)]">
           <div className="flex items-center gap-2 border-b border-orange-400/20 bg-orange-950/70 px-3 py-2">
             <Wallet className="h-4 w-4 text-orange-300" />
             <span className="flex-1 text-[11px] font-bold text-orange-100">提现日期筛选</span>
@@ -2548,7 +2548,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               role="menuitemradio"
               aria-checked={selected === 'today'}
               onClick={() => select('today')}
-              className={`flex h-9 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === 'today' ? 'border-orange-300 bg-orange-600 text-white' : 'border-orange-500/40 bg-orange-950/55 text-orange-100 hover:bg-orange-900'}`}
+              className={`flex h-9 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === 'today' ? 'border-orange-200 bg-orange-500 text-white shadow-[0_3px_12px_rgba(249,115,22,0.35)]' : 'border-orange-500/35 bg-orange-950/40 text-orange-100 hover:border-orange-400/75 hover:bg-orange-900/55 hover:text-white'}`}
             >
               <span className="min-w-0 flex-1 text-left">今天提现人数</span>
               <span className="tabular-nums">{todayCount} 人</span>
@@ -2558,7 +2558,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               role="menuitemradio"
               aria-checked={selected === 'all'}
               onClick={() => select('all')}
-              className={`flex h-8 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === 'all' ? 'border-orange-300 bg-orange-600 text-white' : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-orange-400/50 hover:bg-orange-950/60'}`}
+              className={`flex h-8 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === 'all' ? 'border-orange-200 bg-orange-500 text-white shadow-[0_3px_12px_rgba(249,115,22,0.35)]' : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-orange-400/75 hover:bg-orange-900/45 hover:text-orange-50'}`}
             >
               <span className="min-w-0 flex-1 text-left">全部提现中</span>
               <span className="tabular-nums">{pendingCount} 人</span>
@@ -2572,7 +2572,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 role="menuitemradio"
                 aria-checked={selected === date}
                 onClick={() => select(date)}
-                className={`flex h-8 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === date ? 'border-orange-300 bg-orange-600 text-white' : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-orange-400/50 hover:bg-orange-950/60'}`}
+                className={`flex h-8 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === date ? 'border-orange-200 bg-orange-500 text-white shadow-[0_3px_12px_rgba(249,115,22,0.35)]' : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-orange-400/75 hover:bg-orange-900/45 hover:text-orange-50'}`}
               >
                 <span className="min-w-0 flex-1 text-left font-mono tabular-nums">{date}</span>
                 <span className="tabular-nums">{count} 人</span>
@@ -2587,7 +2587,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 setWithdrawalDropdownOpen(null);
                 setWithdrawalDropdownPos(null);
               }}
-              className="flex h-9 w-full items-center justify-center gap-1.5 border-t border-rose-400/30 bg-rose-900/40 text-[11px] font-semibold text-rose-100 hover:bg-rose-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+              className="flex h-9 w-full items-center justify-center gap-1.5 border-t border-blue-300/35 bg-blue-700 text-[11px] font-semibold text-white hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
             >
               <X className="h-3.5 w-3.5" />清除筛选
             </button>
@@ -2604,13 +2604,13 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setWithdrawalDropdownPos(null);
       return;
     }
-    const rect = event.currentTarget.getBoundingClientRect();
-    const menuWidth = 208;
+    const rect = event.currentTarget.parentElement!.getBoundingClientRect();
+    const menuWidth = 180;
     const menuHeight = Math.min(370, 140 + getWithdrawalDateOptions(adminId).length * 36 + (withdrawalFilterByGroup.has(adminId) ? 36 : 0));
     const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
     const top = window.innerHeight - rect.bottom < menuHeight + 8
-      ? Math.max(8, rect.top - menuHeight - 6)
-      : rect.bottom + 6;
+      ? Math.max(8, rect.top - menuHeight + 1)
+      : rect.bottom - 1;
     setInactiveDaysDropdownOpen(null);
     setIdleDaysDropdownPos(null);
     setCreatedDateDropdownOpen(null);
@@ -2847,7 +2847,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             >
               <Wallet className="h-3.5 w-3.5 shrink-0" />
               <span className="min-w-0 flex-1 truncate whitespace-nowrap text-center">{selectedWithdrawal === 'today' ? '今天提现人数' : selectedWithdrawal && selectedWithdrawal !== 'all' ? selectedWithdrawal : '提現中'}</span>
-              <span className="min-w-[20px] shrink-0 rounded-full border border-orange-300/40 bg-orange-500/20 px-1.5 py-0.5 text-center text-[10px] tabular-nums leading-none">
+              <span className={`inline-flex h-5 min-w-6 shrink-0 items-center justify-center rounded-full border px-1.5 text-center text-[10px] font-extrabold tabular-nums leading-none shadow-[0_0_10px_rgba(251,146,60,0.45)] ${selectedWithdrawal ? 'border-white/80 bg-white text-orange-800' : 'border-orange-100 bg-orange-400 text-orange-950'}`}>
                 {selectedWithdrawal === 'today'
                   ? groupEmployees.filter(employee => employee.withdrawalDates?.includes(formatWithdrawalDate(new Date().toISOString()))).length
                   : selectedWithdrawal && selectedWithdrawal !== 'all'
@@ -2865,9 +2865,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   setWithdrawalDropdownPos(null);
                 }}
                 aria-label="清除提现筛选"
-                className="inline-flex h-full w-7 shrink-0 items-center justify-center border-l border-orange-200/30 bg-rose-600 text-white hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200"
+                className="inline-flex h-full w-9 shrink-0 items-center justify-center gap-0.5 border-l border-blue-200/40 bg-blue-600 text-white hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3 w-3" />
+                <span className="whitespace-nowrap text-[9px] font-bold">清除</span>
               </button>
             )}
           </div>
