@@ -628,6 +628,9 @@ export default function DispatchManagement() {
   const loadWorkspace = async () => {
     const requestId = ++workspaceRequestRef.current;
     try {
+      if (!admin || (admin.role !== 'super_admin' && admin.role !== 'secondary_admin')) {
+        throw new Error('管理員登入已失效。');
+      }
       const [groupResult, poolResult, adminResult] = await Promise.all([
         supabase
           .from('dispatch_groups')
@@ -658,7 +661,7 @@ export default function DispatchManagement() {
           .order('username')
           .order('id')
           .range(offset, offset + 499);
-        if (!isSuperAdmin && admin) query = query.eq('created_by', admin.id);
+        if (!isSuperAdmin) query = query.eq('created_by', admin.id);
         const { data: users, error } = await query;
         if (error) throw error;
         if (!users?.length) break;
@@ -716,6 +719,9 @@ export default function DispatchManagement() {
       setGroups(countedGroups);
       setPools(countedPools);
       setEmployees(employeeRows);
+      const availableEmployeeIds = new Set(employeeRows.map((employee) => employee.id));
+      setSelectedCurrentMembers((current) => current.filter((id) => availableEmployeeIds.has(id)));
+      setSelectedOtherMembers((current) => current.filter((id) => availableEmployeeIds.has(id)));
       setAdminNames(
         isSuperAdmin
           ? (adminResult?.data ?? [])
@@ -1184,6 +1190,13 @@ export default function DispatchManagement() {
   const assignMembers = async () => {
     if (!memberMove) return;
     const { ids, targetGroupId, destination } = memberMove;
+    if (!admin || (!isSuperAdmin && (
+      admin.role !== 'secondary_admin' || ids.some((id) =>
+        !employees.some((employee) => employee.id === id && employee.created_by === admin.id)
+      )
+    ))) {
+      return notify('error', '只能移動自己名下的員工；請刷新列表後重試。');
+    }
     if (
       !groups.some(
         (group) =>
@@ -1367,6 +1380,7 @@ export default function DispatchManagement() {
 
   const visibleEmployees = employees.filter(
     (employee) =>
+      (isSuperAdmin || (admin?.role === 'secondary_admin' && employee.created_by === admin.id)) &&
       (employee.username.toLowerCase().includes(employeeSearch.toLowerCase()) ||
         employee.employee_id.toLowerCase().includes(employeeSearch.toLowerCase())) &&
       (employeeAdminFilter === 'all' ||
