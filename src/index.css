@@ -115,6 +115,25 @@
 .dispatch-members-scroll::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #6ee7b7, #22d3ee) padding-box;
 }
+.dispatch-members-scroll[data-tone="emerald"] {
+  --member-filter-thumb: #10b981;
+  --member-filter-thumb-light: #6ee7b7;
+}
+.dispatch-members-scroll[data-tone="blue"] {
+  --member-filter-thumb: #0ea5e9;
+  --member-filter-thumb-light: #7dd3fc;
+}
+.dispatch-members-scroll[data-tone="violet"] {
+  --member-filter-thumb: #8b5cf6;
+  --member-filter-thumb-light: #c4b5fd;
+}
+.dispatch-members-scroll[data-tone] {
+  scrollbar-color: var(--member-filter-thumb) #0f172a;
+}
+.dispatch-members-scroll[data-tone]::-webkit-scrollbar-thumb,
+.dispatch-members-scroll[data-tone]::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--member-filter-thumb-light), var(--member-filter-thumb)) padding-box;
+}
 .product-type-list-scrollbar {
   scrollbar-width: thin;
   scrollbar-gutter: stable;

@@ -236,7 +236,8 @@ function MemberFilterPicker({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<{
-    top: number;
+    top?: number;
+    bottom?: number;
     left: number;
     width: number;
     maxHeight: number;
@@ -244,9 +245,12 @@ function MemberFilterPicker({
   const isOpen = menuPosition !== null;
   const selectedLabel = options.find((option) => option.value === value)?.label ?? label;
   const iconClass = tone === 'emerald' ? 'bg-emerald-400/15 text-emerald-200' : tone === 'blue' ? 'bg-sky-400/15 text-sky-200' : 'bg-violet-400/15 text-violet-200';
-  const activeClass = tone === 'emerald' ? 'bg-emerald-400/15 text-emerald-100' : tone === 'blue' ? 'bg-sky-400/15 text-sky-100' : 'bg-violet-400/15 text-violet-100';
+  const activeClass = tone === 'emerald' ? 'border-emerald-400 bg-emerald-400/20 text-emerald-50' : tone === 'blue' ? 'border-sky-400 bg-sky-400/20 text-sky-50' : 'border-violet-400 bg-violet-400/20 text-violet-50';
+  const hoverClass = tone === 'emerald' ? 'hover:bg-emerald-400/10' : tone === 'blue' ? 'hover:bg-sky-400/10' : 'hover:bg-violet-400/10';
   const borderClass = tone === 'emerald' ? 'border-emerald-300/40' : tone === 'blue' ? 'border-sky-300/40' : 'border-violet-300/40';
   const accentClass = tone === 'emerald' ? 'text-emerald-300' : tone === 'blue' ? 'text-sky-300' : 'text-violet-300';
+  const headerClass = tone === 'emerald' ? 'border-emerald-400/20 bg-emerald-400/5' : tone === 'blue' ? 'border-sky-400/20 bg-sky-400/5' : 'border-violet-400/20 bg-violet-400/5';
+  const focusClass = tone === 'emerald' ? 'focus-visible:ring-emerald-300' : tone === 'blue' ? 'focus-visible:ring-sky-300' : 'focus-visible:ring-violet-300';
 
   const positionMenu = useCallback(() => {
     const rect = triggerRef.current!.getBoundingClientRect();
@@ -254,9 +258,10 @@ function MemberFilterPicker({
     const spaceBelow = window.innerHeight - rect.bottom - 12;
     const spaceAbove = rect.top - 12;
     const opensUp = spaceBelow < 180 && spaceAbove > spaceBelow;
-    const maxHeight = Math.min(300, Math.max(80, opensUp ? spaceAbove - 6 : spaceBelow - 6));
+    const maxHeight = Math.min(264, Math.max(80, opensUp ? spaceAbove - 6 : spaceBelow - 6));
     setMenuPosition({
-      top: opensUp ? Math.max(12, rect.top - maxHeight - 6) : rect.bottom + 6,
+      top: opensUp ? undefined : rect.bottom + 6,
+      bottom: opensUp ? window.innerHeight - rect.top + 6 : undefined,
       left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
       width,
       maxHeight,
@@ -328,7 +333,8 @@ function MemberFilterPicker({
           id={`${id}-menu`}
           role="listbox"
           aria-label={label}
-          className={`dispatch-members-scroll fixed z-[10010] overflow-y-auto overscroll-contain rounded-xl border bg-slate-900/95 p-1.5 text-slate-100 shadow-[0_22px_50px_rgba(2,6,23,0.65)] backdrop-blur-xl ${borderClass}`}
+          data-tone={tone}
+          className={`dispatch-members-scroll fixed z-[10010] overflow-y-auto overscroll-contain rounded-xl border bg-gradient-to-b from-slate-800 to-slate-900 p-1 text-slate-100 shadow-[0_20px_48px_rgba(2,6,23,0.65)] ring-1 ring-white/10 ${borderClass}`}
           style={menuPosition}
           onKeyDown={(event) => {
             if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
@@ -339,14 +345,14 @@ function MemberFilterPicker({
             items[nextIndex]?.focus();
           }}
         >
-          <p className={`px-3 pb-1.5 pt-1 text-[11px] font-semibold tracking-wide ${accentClass}`}>{label}</p>
+          <p className={`mb-1 rounded-md border-b px-2.5 py-1.5 text-[11px] font-semibold tracking-wide ${headerClass} ${accentClass}`}>{label}</p>
           {options.map((option) => (
             <button
               key={option.value}
               type="button"
               role="option"
               aria-selected={value === option.value}
-              className={`mb-0.5 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors last:mb-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 ${value === option.value ? activeClass : 'text-slate-200 hover:bg-white/10 hover:text-white'}`}
+              className={`mb-0.5 flex min-h-8 w-full items-center gap-2 rounded-md border-l-2 px-2.5 py-1 text-left text-[13px] leading-4 transition-colors last:mb-0 focus-visible:outline-none focus-visible:ring-2 ${focusClass} ${value === option.value ? activeClass : `border-transparent text-slate-200 hover:text-white ${hoverClass}`}`}
               onClick={() => {
                 onChange(option.value);
                 setMenuPosition(null);
@@ -354,7 +360,7 @@ function MemberFilterPicker({
               }}
             >
               <span className="min-w-0 flex-1 break-words font-medium">{option.label}</span>
-              {value === option.value && <CheckCircle className={`h-4 w-4 shrink-0 ${accentClass}`} />}
+              {value === option.value && <CheckCircle className={`h-3.5 w-3.5 shrink-0 ${accentClass}`} />}
             </button>
           ))}
         </div>, document.body,
