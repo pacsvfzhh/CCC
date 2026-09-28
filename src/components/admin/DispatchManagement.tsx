@@ -2132,85 +2132,94 @@ export default function DispatchManagement() {
                     </div>
                   )}
                 </div>
-                <div className="min-w-0 divide-y divide-cyan-400/20">
-                  {groupPools.map((pool) => (
-                    <article
-                      key={pool.id}
-                      className="min-w-0 bg-gradient-to-r from-cyan-950/25 via-blue-950/10 to-transparent px-3 py-5 transition-colors hover:from-cyan-950/40 first:pt-3 sm:px-4"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h4 className="break-words text-base font-semibold text-white">
-                            {poolDisplayName(pool)}{' '}
-                            {pool.is_base && <span className="ml-1 rounded bg-amber-400/15 px-2 py-0.5 text-[10px] text-amber-200">基本池</span>}
-                          </h4>
-                          <p className="mt-1 text-xs text-slate-400">{pool.order_count} 筆訂單</p>
-                        </div>
-                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${pool.archived_at ? 'bg-rose-500/15 text-rose-200' : pool.is_active ? 'bg-emerald-500/15 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>
-                          {pool.archived_at ? '已封存' : pool.is_active ? '已啟用' : '已停用'}
-                        </span>
-                      </div>
-                      <div className="mt-4 grid gap-x-5 gap-y-3 text-xs sm:grid-cols-2 xl:grid-cols-3">
-                        <div><span className="block text-cyan-300/80">派單間隔</span><strong className="mt-1 block text-sm text-white">{pool.dispatch_interval_min}–{pool.dispatch_interval_max} 秒</strong></div>
-                        <div><span className="block text-cyan-300/80">池內選單模式</span><strong className="mt-1 block text-sm text-white">{pool.dispatch_order_mode === 'random' ? '隨機選單' : '依序選單'}</strong></div>
-                        <div><span className="block text-amber-300/80">觸發概率</span><strong className="mt-1 block text-sm text-white">{pool.trigger_probability}%</strong></div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-700 pt-3">
-                        <button type="button" className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-2 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500" onClick={() => openOrders(pool.id)}><PackageSearch className="h-4 w-4" />查看訂單</button>
-                        {isSuperAdmin && !selectedGroup.archived_at && (
-                          <div className="flex flex-wrap items-center gap-2 text-xs">
-                            {!pool.archived_at ? (
-                              <>
+                <div className="min-w-0 overflow-hidden rounded-xl border border-cyan-300/20 bg-slate-950/45 shadow-[0_16px_40px_rgba(2,6,23,0.2)]">
+                  <div className="hidden border-b border-cyan-300/20 bg-gradient-to-r from-blue-900/70 via-cyan-900/45 to-slate-900/80 px-4 py-2.5 text-[11px] font-semibold tracking-wide text-cyan-100/80 xl:grid xl:grid-cols-[minmax(170px,1fr)_minmax(265px,1.15fr)_minmax(320px,auto)] xl:gap-5">
+                    <span>訂單池 / 訂單數</span>
+                    <span>派單設定</span>
+                    <span className="text-right">操作</span>
+                  </div>
+                  <div className="divide-y divide-cyan-300/15">
+                    {groupPools.map((pool, index) => (
+                      <div
+                        key={pool.id}
+                        className={`relative min-w-0 transition-colors ${pool.archived_at ? 'bg-gradient-to-r from-rose-950/30 via-slate-900/50 to-slate-950/40' : pool.is_base ? 'bg-gradient-to-r from-amber-950/35 via-blue-950/30 to-cyan-950/20 hover:from-amber-900/40 hover:via-blue-900/35' : 'bg-gradient-to-r from-blue-950/35 via-slate-900/35 to-cyan-950/15 hover:from-blue-900/40 hover:via-cyan-900/25'}`}
+                      >
+                        <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${pool.archived_at ? 'from-rose-400 via-rose-600 to-transparent' : pool.is_base ? 'from-amber-300 via-amber-500 to-transparent' : 'from-cyan-300 via-blue-500 to-transparent'}`} />
+                        <div className="grid min-w-0 items-center gap-x-5 gap-y-3 px-3 py-3 pl-4 sm:px-4 sm:pl-5 xl:grid-cols-[minmax(170px,1fr)_minmax(265px,1.15fr)_minmax(320px,auto)]">
+                          <div className="flex min-w-0 items-start gap-3">
+                            <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[11px] font-semibold tabular-nums ${pool.is_base ? 'border-amber-300/35 bg-amber-400/15 text-amber-100' : 'border-cyan-300/25 bg-cyan-400/10 text-cyan-100'}`}>{String(index + 1).padStart(2, '0')}</span>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <h4 className="min-w-0 break-words text-sm font-semibold text-white">{poolDisplayName(pool)}</h4>
+                                {pool.is_base && <span className="rounded-md border border-amber-400/30 bg-amber-400/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-100">基本池</span>}
+                              </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                                <span className="font-medium tabular-nums text-slate-300">{pool.order_count} 筆訂單</span>
+                                <span aria-hidden="true" className="text-slate-600">·</span>
+                                <span className={`inline-flex items-center gap-1.5 font-medium ${pool.archived_at ? 'text-rose-300' : pool.is_active ? 'text-emerald-300' : 'text-amber-300'}`}>
+                                  <span className={`h-1.5 w-1.5 rounded-full ${pool.archived_at ? 'bg-rose-400' : pool.is_active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                                  {pool.archived_at ? '已封存' : pool.is_active ? '已啟用' : '已停用'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="grid min-w-0 grid-cols-3 gap-2 text-xs sm:gap-3">
+                            <div className="min-w-0"><span className="block whitespace-nowrap text-[11px] text-cyan-200/70">派單間隔</span><strong className="mt-0.5 block whitespace-nowrap text-xs font-semibold tabular-nums text-slate-100 sm:text-sm">{pool.dispatch_interval_min}–{pool.dispatch_interval_max} 秒</strong></div>
+                            <div className="min-w-0 border-l border-cyan-300/15 pl-2 sm:pl-3"><span className="block whitespace-nowrap text-[11px] text-cyan-200/70">池內選單</span><strong className="mt-0.5 block whitespace-nowrap text-xs font-semibold text-slate-100 sm:text-sm">{pool.dispatch_order_mode === 'random' ? '隨機選單' : '依序選單'}</strong></div>
+                            <div className="min-w-0 border-l border-amber-300/15 pl-2 sm:pl-3"><span className="block whitespace-nowrap text-[11px] text-amber-200/80">觸發概率</span><strong className="mt-0.5 block text-xs font-semibold tabular-nums text-amber-100 sm:text-sm">{pool.trigger_probability}%</strong></div>
+                          </div>
+                          <div className="flex min-w-0 flex-wrap items-center gap-1.5 xl:justify-end">
+                            <button type="button" className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:from-cyan-500 hover:to-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300" onClick={() => openOrders(pool.id)}><PackageSearch className="h-3.5 w-3.5" />查看訂單</button>
+                            {isSuperAdmin && !selectedGroup.archived_at && (
+                              !pool.archived_at ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1 rounded-lg border border-blue-400/30 bg-blue-500/10 px-2.5 py-1.5 text-xs font-medium text-blue-100 transition-colors hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50"
+                                    disabled={busy}
+                                    onClick={() => {
+                                      setSelectedPoolId(pool.id);
+                                      setPoolDraft(poolToDraft(pool));
+                                      setPoolForm('edit');
+                                    }}
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />編輯設定
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:opacity-50"
+                                    disabled={busy}
+                                    onClick={() => void togglePool(pool)}
+                                  >
+                                    {pool.is_active ? '停用' : '啟用'}
+                                  </button>
+                                  {!pool.is_base && (
+                                    <button
+                                      type="button"
+                                      className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-100 transition-colors hover:bg-rose-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50"
+                                      disabled={busy}
+                                      onClick={() => setArchiveTarget({ type: 'pool', id: pool.id, name: poolDisplayName(pool) })}
+                                    >
+                                      封存
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
                                 <button
-                                className="inline-flex items-center gap-1 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-blue-200 hover:bg-blue-500/20 disabled:opacity-50"
-                                disabled={busy}
-                                onClick={() => {
-                                  setSelectedPoolId(pool.id);
-                                  setPoolDraft(poolToDraft(pool));
-                                  setPoolForm('edit');
-                                }}
-                              >
-                                <Edit2 className="h-3.5 w-3.5" />編輯設定
-                              </button>
-                              <button
-                                className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
-                                disabled={busy}
-                                onClick={() => void togglePool(pool)}
-                              >
-                                {pool.is_active ? '停用' : '啟用'}
-                              </button>
-                              {!pool.is_base && (
-                                <button
-                                  className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50"
+                                  type="button"
+                                  className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-2.5 py-1.5 text-xs font-medium text-blue-100 transition-colors hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50"
                                   disabled={busy}
-                                  onClick={() =>
-                                    setArchiveTarget({
-                                      type: 'pool',
-                                      id: pool.id,
-                                      name: poolDisplayName(pool),
-                                    })
-                                  }
+                                  onClick={() => void changeArchive('pool', pool.id, false)}
                                 >
-                                  封存
+                                  還原
                                 </button>
-                              )}
-                            </>
-                          ) : (
-                            <button
-                              className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-blue-200 hover:bg-blue-500/20 disabled:opacity-50"
-                              disabled={busy}
-                              onClick={() =>
-                                void changeArchive('pool', pool.id, false)
-                              }
-                            >
-                              還原
-                            </button>
-                          )}
+                              )
+                            )}
+                          </div>
                         </div>
-                      )}
                       </div>
-                    </article>
-                  ))}
+                    ))}
+                  </div>
                   {!groupPools.length && (
                     <div className="flex min-h-64 flex-col items-center justify-center gap-3 px-4 py-12 text-center">
                       <Layers className="h-10 w-10 text-cyan-300/60" />
