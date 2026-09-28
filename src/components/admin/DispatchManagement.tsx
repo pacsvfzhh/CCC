@@ -2639,32 +2639,62 @@ export default function DispatchManagement() {
 
       {memberMove &&
         createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
             <div
               role="dialog"
               aria-modal="true"
-              aria-label="確認移動員工"
-              className="w-full max-w-md rounded-xl border border-emerald-500 bg-slate-800 p-5"
+              aria-labelledby="member-move-title"
+              aria-describedby="member-move-note"
+              className="dispatch-members-scroll max-h-[calc(100dvh-32px)] w-full max-w-lg overflow-y-auto rounded-2xl border border-emerald-300/30 bg-slate-900 text-slate-100 shadow-[0_32px_80px_rgba(2,6,23,0.75)]"
             >
-              <h3 className="mb-2 text-lg font-semibold">確定移動員工？</h3>
-              <p className="break-words text-sm text-slate-300">
-                確定將 {memberMove.ids.length} 位員工移至「{memberMove.destination}」？原有分組歸屬會被取代，不會留下未指派分組的員工。
-              </p>
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  className={secondaryButton}
-                  disabled={busy}
-                  onClick={() => setMemberMove(null)}
-                >
-                  取消
-                </button>
-                <button
-                  className={primaryButton}
-                  disabled={busy}
-                  onClick={() => void assignMembers()}
-                >
-                  {busy ? '移動中…' : '確認移動'}
-                </button>
+              <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+              <div className="border-b border-emerald-400/20 bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-900 px-5 py-5 sm:px-6">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/35 bg-emerald-400/15 text-emerald-200 shadow-[0_0_22px_rgba(52,211,153,0.12)]">
+                    <Users className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold tracking-wide text-emerald-300">分組成員調整</p>
+                    <h3 id="member-move-title" className="mt-1 text-xl font-semibold text-white">確認移動員工</h3>
+                    <p className="mt-1 text-sm text-emerald-100/75">請確認移動人數與目標分組。</p>
+                  </div>
+                  <button type="button" aria-label="關閉確認視窗" disabled={busy} onClick={() => setMemberMove(null)} className="shrink-0 rounded-lg p-1.5 text-emerald-100/70 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:opacity-50"><X className="h-5 w-5" /></button>
+                </div>
+              </div>
+              <div className="px-5 py-5 sm:px-6">
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-400/25 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 px-4 py-4">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-400/15 text-lg font-bold text-emerald-200">{memberMove.ids.length}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-slate-400">即將移動的員工</p>
+                    <p className="mt-0.5 text-sm font-semibold text-white">{memberMove.ids.length} 位員工</p>
+                  </div>
+                  <span aria-hidden="true" className="text-xl font-semibold text-emerald-300">→</span>
+                  <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
+                    <p className="text-xs text-slate-400">目標分組</p>
+                    <p className="mt-0.5 break-words text-sm font-semibold text-emerald-200">{memberMove.destination}</p>
+                  </div>
+                </div>
+                <p id="member-move-note" className="mt-4 border-l-2 border-cyan-400 bg-cyan-400/5 px-3 py-2 text-sm leading-relaxed text-slate-300">移動後會取代員工原有的分組歸屬，不會留下未指派分組的員工。</p>
+                <div className="mt-6 flex flex-col-reverse gap-2 border-t border-slate-700/70 pt-4 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    className="min-h-10 rounded-lg border border-slate-600 bg-slate-800 px-5 py-2 text-sm font-medium text-slate-200 transition-colors hover:border-slate-400 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={busy}
+                    onClick={() => setMemberMove(null)}
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-950/40 transition-colors hover:from-emerald-500 hover:to-teal-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={busy}
+                    aria-busy={busy}
+                    onClick={() => void assignMembers()}
+                  >
+                    {busy && <RefreshCw className="h-4 w-4 animate-spin" />}
+                    {busy ? '移動中…' : '確認移動'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>,
