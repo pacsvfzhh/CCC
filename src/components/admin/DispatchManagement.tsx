@@ -1926,7 +1926,7 @@ export default function DispatchManagement() {
                           <div className="dispatch-members-scroll min-h-32 max-h-72 flex-1 overflow-y-auto overscroll-contain bg-slate-950/30 md:min-h-0 md:max-h-none">
                             <div className="divide-y divide-slate-700/60">
                               {currentMembers.map((employee) => (
-                                <label key={employee.id} className={`flex min-w-0 cursor-pointer items-start gap-3 px-4 py-3 transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-emerald-300/70 sm:px-5 ${selectedCurrentMembers.includes(employee.id) ? 'bg-emerald-400/15' : 'hover:bg-slate-800/70'}`}>
+                                <label key={employee.id} className={`flex min-w-0 cursor-pointer items-start gap-3 px-4 py-2 transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-emerald-300/70 sm:px-5 ${selectedCurrentMembers.includes(employee.id) ? 'bg-emerald-400/15' : 'hover:bg-slate-800/70'}`}>
                                   <input
                                     type="checkbox"
                                     className="mt-1 h-4 w-4 shrink-0 accent-emerald-400"
@@ -1938,7 +1938,7 @@ export default function DispatchManagement() {
                                       <span className="break-words text-sm font-semibold text-white">{employee.username}</span>
                                       <span className="break-all text-xs text-emerald-200/80">員工 ID：{employee.employee_id}</span>
                                     </span>
-                                    {employee.remarks && <span className="mt-1 block break-words text-xs text-slate-400">備註：{employee.remarks}</span>}
+                                    {employee.remarks && <span className="mt-0.5 block break-words text-xs text-slate-400">備註：{employee.remarks}</span>}
                                   </span>
                                 </label>
                               ))}
@@ -1972,7 +1972,7 @@ export default function DispatchManagement() {
                           <div className="dispatch-members-scroll min-h-32 max-h-72 flex-1 overflow-y-auto overscroll-contain bg-slate-950/30 md:min-h-0 md:max-h-none">
                             <div className="divide-y divide-slate-700/60">
                               {otherMembers.map((employee) => (
-                                <label key={employee.id} className={`flex min-w-0 cursor-pointer items-start gap-3 px-4 py-3 transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-cyan-300/70 sm:px-5 ${selectedOtherMembers.includes(employee.id) ? 'bg-cyan-400/15' : 'hover:bg-slate-800/70'}`}>
+                                <label key={employee.id} className={`flex min-w-0 cursor-pointer items-start gap-3 px-4 py-2 transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-cyan-300/70 sm:px-5 ${selectedOtherMembers.includes(employee.id) ? 'bg-cyan-400/15' : 'hover:bg-slate-800/70'}`}>
                                   <input
                                     type="checkbox"
                                     className="mt-1 h-4 w-4 shrink-0 accent-cyan-400"
@@ -1984,8 +1984,8 @@ export default function DispatchManagement() {
                                       <span className="break-words text-sm font-semibold text-white">{employee.username}</span>
                                       <span className="break-all text-xs text-cyan-200/80">員工 ID：{employee.employee_id}</span>
                                     </span>
-                                    <span className="mt-1 block break-words text-xs text-cyan-200/80">所屬分組：{displayGroupById(employee.group_id)}</span>
-                                    {employee.remarks && <span className="mt-1 block break-words text-xs text-slate-400">備註：{employee.remarks}</span>}
+                                    <span className="mt-0.5 block break-words text-xs text-cyan-200/80">所屬分組：{displayGroupById(employee.group_id)}</span>
+                                    {employee.remarks && <span className="mt-0.5 block break-words text-xs text-slate-400">備註：{employee.remarks}</span>}
                                   </span>
                                 </label>
                               ))}
