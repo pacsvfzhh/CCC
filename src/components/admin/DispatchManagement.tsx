@@ -28,7 +28,7 @@ import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 
 const PAGE_SIZE = 25;
-const IMPORT_BATCH_SIZE = 2000;
+const IMPORT_BATCH_SIZE = 250;
 const inputClass =
   'w-full min-w-0 rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500';
 const secondaryButton =
@@ -1408,6 +1408,7 @@ export default function DispatchManagement() {
     setBusy(true);
     setImportProgress({ current: 0, total: contents.length });
     let imported = 0;
+    let importError: string | null = null;
     try {
       const token = getAdminFinancialSessionToken();
       for (let index = 0; index < contents.length; index += IMPORT_BATCH_SIZE) {
@@ -1424,30 +1425,30 @@ export default function DispatchManagement() {
         if (error) throw error;
         if ((data as { affected?: number } | null)?.affected !== batch.length) {
           throw new Error(
-            '匯入筆數與提交筆數不符，請重新整理後再試。',
+            '匯入筆數與提交筆數不符，請重新整理核對後再試。',
           );
         }
         imported += batch.length;
         setImportProgress({ current: imported, total: contents.length });
       }
-      setBulkInput('');
-      setShowBulkImport(false);
-      notify(
-        'success',
-        `已將 ${imported} 筆訂單匯入「${poolDisplayName(target)}」。`,
-      );
     } catch (error) {
-      // Keep only the unsubmitted batches, so retrying does not duplicate successful ones.
+      // The failed response may still have committed its batch; retain it for verification.
       setBulkInput(contents.slice(imported).join('\n\n'));
-      notify(
-        'error',
-        `已匯入 ${imported} / ${contents.length} 筆訂單；未匯入的內容已保留，可重試。${formatSupabaseError(error)}`,
-      );
+      importError = `已確認匯入 ${imported} / ${contents.length} 筆訂單；其餘內容已保留。部分結果可能尚未確認，請先刷新核對後再重試，避免重複。${formatSupabaseError(error)}`;
     } finally {
-      await Promise.all([
+      const [workspaceLoaded, ordersLoaded] = await Promise.all([
         loadWorkspace(),
         loadOrders(target.id, 1),
       ]);
+      if (importError) {
+        notify('error', importError);
+      } else {
+        setBulkInput('');
+        setShowBulkImport(false);
+        notify('success', workspaceLoaded && ordersLoaded
+          ? `已將 ${imported} 筆訂單匯入「${poolDisplayName(target)}」。`
+          : `已將 ${imported} 筆訂單匯入「${poolDisplayName(target)}」，但重新載入資料失敗；請按「刷新」確認。`);
+      }
       setImportProgress(null);
       setBusy(false);
     }
@@ -2317,7 +2318,7 @@ export default function DispatchManagement() {
                   <div className="dispatch-orders-scroll min-h-0 min-w-0 overflow-y-auto border-b border-cyan-300/20 px-2 pb-3 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-3">
                     <p className="text-xs font-semibold tracking-widest text-cyan-300">批量匯入</p>
                     <h4 className="mt-2 text-lg font-semibold text-white">新增訂單至訂單池</h4>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-300">每筆訂單以空白行分隔；超過 2,000 筆時會自動分批送出。</p>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-300">每筆訂單以空白行分隔；超過 250 筆時會自動分批送出。</p>
                     <div className="mt-5 border-t border-cyan-300/15 pt-5">
                       <p className="text-sm font-semibold text-cyan-100">匯入目標訂單池</p>
                       <div className="mt-3 min-w-0 rounded-xl border border-cyan-300/55 bg-gradient-to-br from-cyan-900/85 via-blue-950/85 to-slate-950 px-4 py-4 shadow-lg shadow-cyan-950/30">
@@ -2351,8 +2352,11 @@ export default function DispatchManagement() {
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-cyan-300/15 bg-slate-900 px-4 py-3 sm:px-6">
                 {importProgress && (
                   <div className="mr-auto min-w-[180px] flex-1 text-xs text-blue-200 sm:max-w-xs" role="status">
-                    已匯入 {importProgress.current} / {importProgress.total} 筆
-                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-700">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>資料庫已確認 {importProgress.current.toLocaleString('zh-TW')} / {importProgress.total.toLocaleString('zh-TW')} 筆</span>
+                      <strong className="tabular-nums text-white">{Math.round((importProgress.current / importProgress.total) * 100)}%</strong>
+                    </div>
+                    <div role="progressbar" aria-label="訂單匯入進度" aria-valuemin={0} aria-valuemax={importProgress.total} aria-valuenow={importProgress.current} className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-700">
                       <div className="h-full rounded-full bg-blue-400 transition-[width]" style={{ width: `${Math.round((importProgress.current / importProgress.total) * 100)}%` }} />
                     </div>
                   </div>
