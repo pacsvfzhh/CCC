@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, ArrowLeft, Users, Building2, CheckCircle, XCircle, Shield, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, Users, Building2, CheckCircle, XCircle, Shield, RotateCcw, Settings2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface AdminGroup {
@@ -40,12 +40,13 @@ export default function AdminGroupConfiguration() {
   const [loginTitle, setLoginTitle] = useState('');
   const [loginSubtitle, setLoginSubtitle] = useState('');
   const [savingLoginSettings, setSavingLoginSettings] = useState(false);
-  const [loginSettingsExpanded, setLoginSettingsExpanded] = useState(false);
 
   useEffect(() => {
-    loadGroups();
-    loadGlobalDefaults();
-    loadLoginPageSettings();
+    void (async () => {
+      const defaults = await loadGlobalDefaults();
+      await loadGroups(true, defaults);
+    })();
+    void loadLoginPageSettings();
   }, []);
 
   const loadLoginPageSettings = async () => {
@@ -87,7 +88,7 @@ export default function AdminGroupConfiguration() {
     }
   }, [groups, selectedGroup]);
 
-  const loadGlobalDefaults = async () => {
+  const loadGlobalDefaults = async (): Promise<ConfigFormValues> => {
     try {
       const { data, error } = await supabase
         .from('admin_configs')
@@ -102,16 +103,19 @@ export default function AdminGroupConfiguration() {
         defaults[config.config_type] = config.config_value;
       });
 
-      setGlobalDefaults({
+      const values = {
         company_name: defaults.company_name || '',
         currency_unit: defaults.currency_unit || 'USDC',
-      });
+      };
+      setGlobalDefaults(values);
+      return values;
     } catch (error) {
       console.error('Error loading global defaults:', error);
+      return { company_name: '', currency_unit: 'USDC' };
     }
   };
 
-  const loadGroups = async (showLoadingState = true) => {
+  const loadGroups = async (showLoadingState = true, defaults: ConfigFormValues = { company_name: '', currency_unit: 'USDC' }) => {
     try {
       if (showLoadingState) {
         setLoading(true);
@@ -156,6 +160,13 @@ export default function AdminGroupConfiguration() {
       });
 
       setGroups(sortedGroups);
+      if (showLoadingState && sortedGroups.length) {
+        setSelectedGroup(sortedGroups[0]);
+        setFormValues({
+          company_name: sortedGroups[0].configs.company_name || defaults.company_name,
+          currency_unit: sortedGroups[0].configs.currency_unit || defaults.currency_unit || 'USDC',
+        });
+      }
     } catch (error) {
       console.error('Error loading groups:', error);
     } finally {
@@ -275,9 +286,10 @@ export default function AdminGroupConfiguration() {
       if (error) throw error;
 
       await loadGroups(false);
+      if (selectedGroup?.id === deleteTargetId) setFormValues(globalDefaults);
       setNotification({
         type: 'success',
-        message: 'Configuration reset to global defaults successfully',
+        message: '已還原全域預設。',
       });
       setShowDeleteConfirm(false);
       setDeleteTargetId(null);
@@ -292,362 +304,122 @@ export default function AdminGroupConfiguration() {
 
   if (loading) {
     return (
-      <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-8 text-center">
-        <div className="text-slate-400">Loading admin groups...</div>
-      </div>
-    );
-  }
-
-  if (selectedGroup) {
-    return (
-      <div className="space-y-6">
-        {notification && (
-          <div
-            className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-6 py-4 rounded-lg shadow-2xl border backdrop-blur-xl transition-all duration-300 animate-in slide-in-from-top ${
-              notification.type === 'success'
-                ? 'bg-green-900/90 border-green-500/50 text-green-100'
-                : 'bg-red-900/90 border-red-500/50 text-red-100'
-            }`}
-          >
-            {notification.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 text-green-400" />
-            ) : (
-              <XCircle className="w-5 h-5 text-red-400" />
-            )}
-            <span className="font-medium">{notification.message}</span>
-            <button
-              onClick={() => setNotification(null)}
-              className="ml-2 text-white/60 hover:text-white transition-colors"
-            >
-              ×
-            </button>
-          </div>
-        )}
-
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-slate-900 border border-red-500/30 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
-              <h3 className="text-xl font-bold text-white mb-4">Reset Configuration?</h3>
-              <p className="text-slate-300 mb-6">
-                Are you sure you want to reset all configurations for this admin? They will use global defaults.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowDeleteConfirm(false);
-                    setDeleteTargetId(null);
-                  }}
-                  className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors"
-                >
-                  Reset
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <button
-          onClick={() => setSelectedGroup(null)}
-          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Groups
-        </button>
-
-        <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-6">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold text-white mb-2">
-              Configure Admin: {selectedGroup.username}
-            </h2>
-            <p className="text-slate-400 text-sm">
-              Set the brand and currency for this admin's team. Withdrawal rules and employee groups are managed in Order Assignment.
-            </p>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-500/10 via-cyan-500/10 to-blue-500/10 border border-blue-500/30 rounded-xl p-5 mb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-              <h3 className="text-blue-300 font-semibold">Current Active Parameters</h3>
-              {Object.keys(selectedGroup.configs).length > 0 ? (
-                <span className="ml-auto px-2.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
-                  Custom
-                </span>
-              ) : (
-                <span className="ml-auto px-2.5 py-0.5 bg-slate-500/20 text-slate-400 text-xs rounded-full border border-slate-500/30">
-                  Global
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                <div className="text-xs text-slate-400 mb-1">Brand Name</div>
-                <div className="text-lg font-bold text-white truncate">
-                  {selectedGroup.configs.company_name || globalDefaults.company_name || 'Not Set'}
-                </div>
-              </div>
-              <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                <div className="text-xs text-slate-400 mb-1">Currency</div>
-                <div className="text-lg font-bold text-white">
-                  {selectedGroup.configs.currency_unit || globalDefaults.currency_unit || 'USDC'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <form onSubmit={handleSave} className="space-y-6">
-            <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-6">
-              <h3 className="text-yellow-400 font-semibold mb-4 flex items-center gap-2">
-                <Building2 className="w-5 h-5" />
-                Brand Name
-              </h3>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  value={formValues.company_name}
-                  onChange={(e) => setFormValues({ ...formValues, company_name: e.target.value })}
-                  required
-                  maxLength={50}
-                  className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  placeholder="Enter brand name"
-                />
-                <p className="text-slate-500 text-xs mt-1">
-                  This brand name will be displayed to all employees under this admin
-                </p>
-              </div>
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Currency Unit
-                </label>
-                <input
-                  type="text"
-                  value={formValues.currency_unit}
-                  onChange={(e) => setFormValues({ ...formValues, currency_unit: e.target.value.replace(/\s+/g, '') })}
-                  required
-                  maxLength={10}
-                  className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  placeholder="USDC"
-                />
-                <p className="text-slate-500 text-xs mt-1">
-                  Currency unit displayed on employee pages (e.g., USDT, USD, BTC)
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setSelectedGroup(null)}
-                disabled={saving}
-                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-              >
-                Close
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <Save className="w-5 h-5" />
-                {saving ? 'Saving...' : 'Save Configuration'}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDeleteConfig(selectedGroup.id)}
-                disabled={saving}
-                className="px-6 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg font-medium transition-colors border border-red-500/30 disabled:opacity-50"
-              >
-                Reset to Global
-              </button>
-            </div>
-          </form>
-        </div>
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center bg-slate-950/40 text-sm text-cyan-100">
+        正在載入設定…
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto bg-slate-950/45 text-slate-100">
       {notification && (
-        <div
-          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-6 py-4 rounded-lg shadow-2xl border backdrop-blur-xl transition-all duration-300 animate-in slide-in-from-top ${
-            notification.type === 'success'
-              ? 'bg-green-900/90 border-green-500/50 text-green-100'
-              : 'bg-red-900/90 border-red-500/50 text-red-100'
-          }`}
-        >
-          {notification.type === 'success' ? (
-            <CheckCircle className="w-5 h-5 text-green-400" />
-          ) : (
-            <XCircle className="w-5 h-5 text-red-400" />
-          )}
-          <span className="font-medium">{notification.message}</span>
-          <button
-            onClick={() => setNotification(null)}
-            className="ml-2 text-white/60 hover:text-white transition-colors"
-          >
-            ×
-          </button>
+        <div role={notification.type === 'error' ? 'alert' : 'status'} className={`fixed right-4 top-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl ${notification.type === 'success' ? 'border-emerald-400/50 bg-emerald-950 text-emerald-50' : 'border-rose-400/50 bg-rose-950 text-rose-50'}`}>
+          {notification.type === 'success' ? <CheckCircle className="h-5 w-5 shrink-0 text-emerald-300" /> : <XCircle className="h-5 w-5 shrink-0 text-rose-300" />}
+          <span>{notification.message}</span>
+          <button type="button" onClick={() => setNotification(null)} aria-label="關閉提示" className="ml-2 rounded p-1 text-slate-300 hover:text-white">×</button>
         </div>
       )}
 
-      <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-6">
-        <p className="text-slate-400 text-sm">
-          Manage configurations for each secondary admin and their teams
-        </p>
-      </div>
-
-      <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-purple-500/20 overflow-hidden">
-        <button
-          onClick={() => setLoginSettingsExpanded(!loginSettingsExpanded)}
-          className="w-full p-6 flex items-center justify-between hover:bg-slate-800/50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Shield className="w-5 h-5 text-purple-400" />
-            <div className="text-left">
-              <h2 className="text-xl font-bold text-white">Login Page Settings</h2>
-              <p className="text-slate-400 text-sm mt-1">
-                Customize the login page title and subtitle
-              </p>
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="reset-admin-title" className="w-full max-w-md rounded-2xl border border-rose-400/35 bg-slate-900 p-6 shadow-2xl">
+            <h3 id="reset-admin-title" className="text-lg font-semibold text-white">還原團隊設定？</h3>
+            <p className="mt-3 text-sm leading-relaxed text-slate-300">將移除這位管理員的品牌名稱與幣別自訂值，改用全域預設。其他設定不受影響。</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button type="button" onClick={() => { setShowDeleteConfirm(false); setDeleteTargetId(null); }} className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">取消</button>
+              <button type="button" onClick={() => void confirmDelete()} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500">確認還原</button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {loginTitle && (
-              <span className="px-3 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30">
-                Customized
-              </span>
-            )}
-            {loginSettingsExpanded ? (
-              <ChevronUp className="w-5 h-5 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-slate-400" />
-            )}
+        </div>
+      )}
+
+      <header className="border-b border-cyan-400/20 bg-gradient-to-r from-blue-950/70 via-slate-900/70 to-cyan-950/40 px-4 py-5 sm:px-7 lg:px-9">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-400/15 text-cyan-200"><Settings2 className="h-5 w-5" /></span>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-300">系統設定</p>
+            <h1 className="mt-0.5 text-2xl font-semibold text-white">設定</h1>
+            <p className="mt-1 text-sm text-slate-300">管理登入畫面文案及各管理員團隊的品牌與顯示幣別。</p>
           </div>
-        </button>
+        </div>
+      </header>
 
-        {loginSettingsExpanded && (
-          <div className="p-6 pt-0 border-t border-purple-500/10">
-            <form onSubmit={handleSaveLoginSettings} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Login Page Title
-                </label>
-                <input
-                  type="text"
-                  value={loginTitle}
-                  onChange={(e) => setLoginTitle(e.target.value)}
-                  required
-                  maxLength={100}
-                  className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="e.g., Your company name"
-                />
-                <p className="text-slate-500 text-xs mt-1">
-                  This will be displayed as the main title on the login page
-                </p>
-              </div>
+      <section className="grid gap-5 border-b border-cyan-400/15 px-4 py-6 sm:px-7 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10 lg:px-9">
+        <div>
+          <div className="flex items-center gap-2 text-base font-semibold text-white"><Shield className="h-5 w-5 text-violet-300" />登入畫面</div>
+          <p className="mt-2 text-sm leading-relaxed text-slate-400">調整登入頁的標題與副標題，儲存後會套用到登入畫面。</p>
+        </div>
+        <form onSubmit={handleSaveLoginSettings} className="min-w-0">
+          <div className="grid gap-4 xl:grid-cols-2">
+            <label className="block min-w-0 text-sm font-medium text-slate-200">登入標題
+              <input type="text" value={loginTitle} onChange={(event) => setLoginTitle(event.target.value)} required maxLength={100} placeholder="輸入登入頁標題" className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-300/40" />
+            </label>
+            <label className="block min-w-0 text-sm font-medium text-slate-200">登入副標題
+              <input type="text" value={loginSubtitle} onChange={(event) => setLoginSubtitle(event.target.value)} required maxLength={200} placeholder="輸入登入頁副標題" className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-300/40" />
+            </label>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button type="submit" disabled={savingLoginSettings} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-50"><Save className="h-4 w-4" />{savingLoginSettings ? '儲存中…' : '儲存登入設定'}</button>
+          </div>
+        </form>
+      </section>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Login Page Subtitle
-                </label>
-                <input
-                  type="text"
-                  value={loginSubtitle}
-                  onChange={(e) => setLoginSubtitle(e.target.value)}
-                  required
-                  maxLength={200}
-                  className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="e.g., BLOCKCHAIN TRADING PLATFORM"
-                />
-                <p className="text-slate-500 text-xs mt-1">
-                  This will be displayed below the title on the login page
-                </p>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={savingLoginSettings}
-                  className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  {savingLoginSettings ? 'Saving...' : 'Save Login Settings'}
+      <section className="flex min-h-[360px] flex-1 flex-col lg:grid lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)]">
+        <div className="min-w-0 border-b border-cyan-400/15 bg-slate-900/35 lg:border-b-0 lg:border-r">
+          <div className="px-4 pb-3 pt-6 sm:px-7 lg:px-6">
+            <div className="flex items-center gap-2 text-base font-semibold text-white"><Users className="h-5 w-5 text-cyan-300" />管理員團隊</div>
+            <p className="mt-1 text-xs leading-relaxed text-slate-400">選擇管理員，在右側編輯其團隊設定。</p>
+          </div>
+          {groups.length ? (
+            <div className="flex gap-1 overflow-x-auto px-3 pb-4 sm:px-6 lg:flex-col lg:overflow-visible lg:px-3">
+              {groups.map((group) => (
+                <button key={group.id} type="button" onClick={() => handleGroupSelect(group)} disabled={saving} aria-pressed={selectedGroup?.id === group.id} className={`flex min-w-[155px] items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors disabled:opacity-50 lg:w-full lg:min-w-0 ${selectedGroup?.id === group.id ? 'bg-cyan-500/15 text-white ring-1 ring-inset ring-cyan-400/40' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}>
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${group.role === 'super_admin' ? 'bg-amber-400/15 text-amber-200' : 'bg-blue-400/15 text-blue-200'}`}><Building2 className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{group.username}</span><span className="block text-[11px] text-slate-400">{group.role === 'super_admin' ? '超級管理員' : '二級管理員'}</span></span>
+                  {Object.keys(group.configs).length > 0 && <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" title="已自訂" />}
                 </button>
-              </div>
-            </form>
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          ) : <p className="px-6 py-8 text-sm text-slate-400">目前沒有管理員。</p>}
+        </div>
 
-      <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 overflow-hidden">
-        {groups.length === 0 ? (
-          <div className="p-12 text-center">
-            <Users className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-400">No secondary admins found</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-700/50 bg-slate-800/50">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">Admin</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">Status</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groups.map((group) => {
-                  const hasCustomConfig = Object.keys(group.configs).length > 0;
-                  return (
-                    <tr
-                      key={group.id}
-                      className="border-b border-slate-700/30 hover:bg-slate-800/50 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="font-semibold text-white">
-                            {group.username}
-                          </div>
-                          {group.configs.company_name && (
-                            <div className="text-sm text-slate-500">{group.configs.company_name}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {hasCustomConfig ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
-                            Custom
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-500/20 text-slate-400 text-xs rounded-full border border-slate-500/30">
-                            Global
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => handleGroupSelect(group)}
-                          className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg text-sm font-medium transition-colors border border-blue-500/30"
-                        >
-                          Configure
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        <div className="min-w-0 px-4 py-6 sm:px-7 lg:px-9">
+          {selectedGroup ? (
+            <>
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-cyan-400/15 pb-5">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold tracking-wide text-cyan-300">團隊品牌與幣別</p>
+                  <h2 className="mt-1 break-words text-xl font-semibold text-white">{selectedGroup.username}</h2>
+                  <p className="mt-1 text-sm text-slate-400">提款規則和員工分組請至「訂單指派」管理。</p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${Object.keys(selectedGroup.configs).length ? 'bg-emerald-400/15 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>
+                  {Object.keys(selectedGroup.configs).length ? '已自訂' : '使用全域預設'}
+                </span>
+              </div>
+              <div className="grid gap-4 border-b border-cyan-400/15 py-5 text-sm sm:grid-cols-2">
+                <div><p className="text-xs text-slate-400">目前品牌名稱</p><p className="mt-1 break-words font-semibold text-white">{selectedGroup.configs.company_name || globalDefaults.company_name || '尚未設定'}</p></div>
+                <div><p className="text-xs text-slate-400">目前顯示幣別</p><p className="mt-1 font-semibold text-white">{selectedGroup.configs.currency_unit || globalDefaults.currency_unit || 'USDC'}</p></div>
+              </div>
+              <form onSubmit={handleSave} className="pt-5">
+                <div className="grid gap-5 xl:grid-cols-2">
+                  <label className="block min-w-0 text-sm font-medium text-slate-200">品牌名稱
+                    <input type="text" value={formValues.company_name} onChange={(event) => setFormValues({ ...formValues, company_name: event.target.value })} required maxLength={50} placeholder="輸入品牌名稱" className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40" />
+                    <span className="mt-2 block text-xs font-normal text-slate-400">顯示給此管理員團隊的員工。</span>
+                  </label>
+                  <label className="block min-w-0 text-sm font-medium text-slate-200">顯示幣別
+                    <input type="text" value={formValues.currency_unit} onChange={(event) => setFormValues({ ...formValues, currency_unit: event.target.value.replace(/\s+/g, '') })} required maxLength={10} placeholder="例如 USDC" className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40" />
+                    <span className="mt-2 block text-xs font-normal text-slate-400">例如 USDC、USDT、USD。</span>
+                  </label>
+                </div>
+                <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-cyan-400/15 pt-5">
+                  <button type="submit" disabled={saving} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50"><Save className="h-4 w-4" />{saving ? '儲存中…' : '儲存團隊設定'}</button>
+                  {Object.keys(selectedGroup.configs).length > 0 && <button type="button" onClick={() => void handleDeleteConfig(selectedGroup.id)} disabled={saving} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-rose-400/35 px-4 py-2 text-sm font-medium text-rose-200 hover:bg-rose-400/10 disabled:opacity-50"><RotateCcw className="h-4 w-4" />還原全域預設</button>}
+                </div>
+              </form>
+            </>
+          ) : <div className="py-12 text-sm text-slate-400">選擇管理員後即可編輯團隊設定。</div>}
+        </div>
+      </section>
     </div>
   );
 }

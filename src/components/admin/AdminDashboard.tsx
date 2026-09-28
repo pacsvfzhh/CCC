@@ -1530,7 +1530,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
               </div>
             )}
             {loadedTabs.has('config') && (
-              <div className={activeTab === 'config' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
+              <div className={activeTab === 'config' ? admin.role === 'super_admin' ? 'flex min-h-0 w-full flex-1 flex-col overflow-hidden' : 'min-h-0 flex-1 overflow-y-auto px-2 py-1.5 sm:px-3 sm:py-2 lg:px-4' : 'hidden'}>
                 {admin.role === 'super_admin' ? (
                   <SystemConfiguration admin={admin} />
                 ) : (
