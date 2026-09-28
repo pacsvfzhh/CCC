@@ -115,7 +115,7 @@
 .dispatch-members-scroll::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #6ee7b7, #22d3ee) padding-box;
 }
-.dispatch-members-scroll select {
+.dispatch-members-filters select {
   color-scheme: dark;
 }
 
