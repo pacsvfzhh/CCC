@@ -535,6 +535,8 @@ export default function DispatchManagement() {
     targetGroupId: string;
     destination: string;
   } | null>(null);
+  const [memberMoveProgress, setMemberMoveProgress] = useState<{ completed: number; total: number } | null>(null);
+  const memberMoveInFlightRef = useRef(false);
   const [bulkInput, setBulkInput] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [importPoolId, setImportPoolId] = useState('');
@@ -832,8 +834,10 @@ export default function DispatchManagement() {
     void loadWorkspaceRef.current();
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
+      if (memberMoveInFlightRef.current) return;
       clearTimeout(refreshTimer);
       refreshTimer = setTimeout(() => {
+        if (memberMoveInFlightRef.current) return;
         void loadWorkspaceRef.current();
         const { poolId, page: currentPage, status } = orderViewRef.current;
         if (poolId) void loadOrdersRef.current(poolId, currentPage, status);
@@ -1188,7 +1192,7 @@ export default function DispatchManagement() {
   };
 
   const assignMembers = async () => {
-    if (!memberMove) return;
+    if (!memberMove || busy) return;
     const { ids, targetGroupId, destination } = memberMove;
     if (!admin || (!isSuperAdmin && (
       admin.role !== 'secondary_admin' || ids.some((id) =>
@@ -1205,56 +1209,72 @@ export default function DispatchManagement() {
     ) {
       return notify('error', '目標分組未啟用。');
     }
+    const movedIds = new Set(ids);
+    const originalGroups = new Map(employees.filter((employee) => movedIds.has(employee.id)).map((employee) => [employee.id, employee.group_id]));
+    const groupChanges = new Map<string, number>();
+    for (const id of ids) {
+      const previousGroupId = originalGroups.get(id);
+      if (previousGroupId === targetGroupId) continue;
+      if (previousGroupId) groupChanges.set(previousGroupId, (groupChanges.get(previousGroupId) ?? 0) - 1);
+      groupChanges.set(targetGroupId, (groupChanges.get(targetGroupId) ?? 0) + 1);
+    }
+    memberMoveInFlightRef.current = true;
+    ++workspaceRequestRef.current;
     setBusy(true);
-    const succeeded: string[] = [];
+    setMemberMove(null);
+    setMemberMoveProgress({ completed: 0, total: ids.length });
+    setEmployees((current) => current.map((employee) => movedIds.has(employee.id) ? { ...employee, group_id: targetGroupId } : employee));
+    setGroups((current) => current.map((group) => ({ ...group, member_count: group.member_count + (groupChanges.get(group.id) ?? 0) })));
+    const succeeded = new Set<string>();
     let firstError: string | null = null;
     try {
       const token = getAdminFinancialSessionToken();
-      for (const id of ids) {
-        try {
-          const { data, error } = await supabase.rpc(
-            'admin_assign_dispatch_group_member',
-            {
+      let nextIndex = 0;
+      await Promise.all(Array.from({ length: Math.min(5, ids.length) }, async () => {
+        while (nextIndex < ids.length) {
+          const id = ids[nextIndex++];
+          try {
+            const { data, error } = await supabase.rpc('admin_assign_dispatch_group_member', {
               p_admin_session_token: token,
               p_user_id: id,
               p_group_id: targetGroupId,
-            },
-          );
-          if (error) throw error;
-          if (
-            !(data as { member?: { user_id: string } } | null)?.member?.user_id
-          ) {
-            throw new Error('指派後未收到員工歸屬資料。');
+            });
+            if (error) throw error;
+            const member = (data as { member?: { user_id: string; group_id: string } } | null)?.member;
+            if (member?.user_id !== id || member.group_id !== targetGroupId)
+              throw new Error('指派後未收到正確的員工歸屬資料。');
+            succeeded.add(id);
+          } catch (error) {
+            firstError ??= formatSupabaseError(error);
+          } finally {
+            setMemberMoveProgress((current) => current && { ...current, completed: current.completed + 1 });
           }
-          succeeded.push(id);
-        } catch (error) {
-          firstError ??= formatSupabaseError(error);
         }
-      }
-      setSelectedCurrentMembers((current) =>
-        current.filter((id) => !succeeded.includes(id)),
-      );
-      setSelectedOtherMembers((current) =>
-        current.filter((id) => !succeeded.includes(id)),
-      );
-      setMemberMove(null);
-      const refreshed = await loadWorkspace();
-      if (firstError)
-        notify(
-          'error',
-          `已將 ${succeeded.length} / ${ids.length} 位員工移至「${destination}」；其餘失敗：${firstError}`,
-        );
-      else if (refreshed)
-        notify(
-          'success',
-          `已將 ${succeeded.length} 位員工移至「${destination}」。`,
-        );
+      }));
     } catch (error) {
-      notify(
-        'error',
-        '指派員工失敗：' + formatSupabaseError(error),
-      );
+      firstError ??= formatSupabaseError(error);
     } finally {
+      const failedIds = ids.filter((id) => !succeeded.has(id));
+      const failedSet = new Set(failedIds);
+      const rollbackCounts = new Map<string, number>();
+      for (const id of failedIds) {
+        const previousGroupId = originalGroups.get(id);
+        if (previousGroupId === targetGroupId) continue;
+        if (previousGroupId) rollbackCounts.set(previousGroupId, (rollbackCounts.get(previousGroupId) ?? 0) + 1);
+        rollbackCounts.set(targetGroupId, (rollbackCounts.get(targetGroupId) ?? 0) - 1);
+      }
+      setEmployees((current) => current.map((employee) => failedSet.has(employee.id) ? { ...employee, group_id: originalGroups.get(employee.id) ?? null } : employee));
+      setGroups((current) => current.map((group) => ({ ...group, member_count: group.member_count + (rollbackCounts.get(group.id) ?? 0) })));
+      setSelectedCurrentMembers((current) => current.filter((id) => !succeeded.has(id)));
+      setSelectedOtherMembers((current) => current.filter((id) => !succeeded.has(id)));
+      if (failedIds.length) {
+        notify('error', `已將 ${succeeded.size} / ${ids.length} 位員工移至「${destination}」；其餘未移動：${firstError ?? '請重試。'}`);
+      } else {
+        notify('success', `已將 ${succeeded.size} 位員工移至「${destination}」。`);
+      }
+      void loadWorkspace();
+      memberMoveInFlightRef.current = false;
+      setMemberMoveProgress(null);
       setBusy(false);
     }
   };
@@ -1868,6 +1888,7 @@ export default function DispatchManagement() {
                           <p className="text-[11px] font-semibold tracking-[0.16em] text-emerald-300">ORDER GROUP / MEMBERS</p>
                           <h3 id="dispatch-members-title" className="mt-1 break-words text-lg font-semibold leading-snug text-white sm:text-xl">{groupDisplayName(selectedGroup)} <span className="text-emerald-300">· 分組成員</span></h3>
                           <p className="mt-1 text-xs leading-relaxed text-emerald-50/70">選取員工後，可將其移入此分組或移回已啟用的預設分組。</p>
+                          {memberMoveProgress && <p role="status" className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-cyan-200"><RefreshCw className="h-3 w-3 animate-spin" />正在確認分組變更 {memberMoveProgress.completed}/{memberMoveProgress.total}，未成功的員工會回到原分組。</p>}
                         </div>
                         <button type="button" onClick={() => setMemberPanelOpen(false)} disabled={busy} aria-label="關閉成員管理" className="shrink-0 rounded-xl border border-white/10 bg-white/5 p-2 text-slate-200 transition-colors hover:border-white/25 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:opacity-50"><X className="h-5 w-5" /></button>
                       </div>
