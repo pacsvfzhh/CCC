@@ -2837,17 +2837,17 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
         {/* Withdrawing */}
         <div data-withdrawal-dropdown className="ml-2 inline-flex items-center">
-          <div className={`inline-flex h-8 shrink-0 overflow-hidden rounded-lg border shadow-md transition-all ${selectedWithdrawal ? 'border-orange-200 bg-orange-600 shadow-orange-950/50' : 'border-orange-500/70 bg-orange-950/55 shadow-orange-950/30 hover:border-orange-300/90 hover:bg-orange-900/75'}`}>
+          <div className={`inline-flex h-8 w-[180px] shrink-0 overflow-hidden rounded-lg border shadow-md transition-all ${selectedWithdrawal ? 'border-orange-200 bg-orange-600 shadow-orange-950/50' : 'border-orange-500/70 bg-orange-950/55 shadow-orange-950/30 hover:border-orange-300/90 hover:bg-orange-900/75'}`}>
             <button
               type="button"
               onClick={event => handleWithdrawalClick(adminId, event)}
               aria-haspopup="menu"
               aria-expanded={withdrawalDropdownOpen === adminId}
-              className="inline-flex h-full items-center gap-1.5 px-2.5 text-[11px] font-semibold text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="inline-flex h-full min-w-0 flex-1 items-center justify-center gap-1 px-1.5 text-[11px] font-semibold text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
             >
               <Wallet className="h-3.5 w-3.5 shrink-0" />
-              <span className="whitespace-nowrap">{selectedWithdrawal === 'today' ? '今天提现人数' : selectedWithdrawal && selectedWithdrawal !== 'all' ? selectedWithdrawal : '提現中'}</span>
-              <span className="min-w-[20px] rounded-full border border-orange-300/40 bg-orange-500/20 px-1.5 py-0.5 text-center text-[10px] tabular-nums leading-none">
+              <span className="min-w-0 flex-1 truncate whitespace-nowrap text-center">{selectedWithdrawal === 'today' ? '今天提现人数' : selectedWithdrawal && selectedWithdrawal !== 'all' ? selectedWithdrawal : '提現中'}</span>
+              <span className="min-w-[20px] shrink-0 rounded-full border border-orange-300/40 bg-orange-500/20 px-1.5 py-0.5 text-center text-[10px] tabular-nums leading-none">
                 {selectedWithdrawal === 'today'
                   ? groupEmployees.filter(employee => employee.withdrawalDates?.includes(formatWithdrawalDate(new Date().toISOString()))).length
                   : selectedWithdrawal && selectedWithdrawal !== 'all'
@@ -2865,7 +2865,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   setWithdrawalDropdownPos(null);
                 }}
                 aria-label="清除提现筛选"
-                className="inline-flex h-full w-8 items-center justify-center border-l border-orange-200/30 bg-rose-600 text-white hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200"
+                className="inline-flex h-full w-7 shrink-0 items-center justify-center border-l border-orange-200/30 bg-rose-600 text-white hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
