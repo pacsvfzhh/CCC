@@ -2728,13 +2728,23 @@ export default function DispatchManagement() {
                   <p id="pool-order-mode-label" className="text-sm font-medium text-slate-200">池內選單模式</p>
                   <div role="group" aria-labelledby="pool-order-mode-label" className="mt-2 grid grid-cols-2 gap-2">
                     {([
-                      { value: 'random', label: '隨機選單', description: '從池內訂單隨機抽取' },
-                      { value: 'sequential', label: '依序選單', description: '按訂單排列順序選取' },
+                      {
+                        value: 'random', label: '隨機選單', description: '從池內訂單隨機抽取',
+                        selectedClass: 'border-violet-200 bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white ring-2 ring-violet-300/70 shadow-lg shadow-violet-950/40',
+                        unselectedClass: 'border-violet-400/30 bg-violet-400/5 text-violet-200/70 hover:border-violet-400/70 hover:bg-violet-400/10',
+                        focusClass: 'focus-visible:ring-violet-300',
+                      },
+                      {
+                        value: 'sequential', label: '依序選單', description: '按訂單排列順序選取',
+                        selectedClass: 'border-amber-200 bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 ring-2 ring-amber-300/80 shadow-lg shadow-amber-950/40',
+                        unselectedClass: 'border-amber-400/30 bg-amber-400/5 text-amber-200/70 hover:border-amber-400/70 hover:bg-amber-400/10',
+                        focusClass: 'focus-visible:ring-amber-300',
+                      },
                     ] as const).map((mode) => (
                       <button key={mode.value} type="button" aria-pressed={poolDraft.dispatch_order_mode === mode.value} disabled={busy} onClick={() => setPoolDraft({ ...poolDraft, dispatch_order_mode: mode.value })}
-                        className={`min-w-0 rounded-xl border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50 ${poolDraft.dispatch_order_mode === mode.value ? 'border-blue-300/70 bg-blue-500/20 text-white ring-1 ring-blue-400/30' : 'border-slate-700 bg-slate-950/40 text-slate-400 hover:border-slate-500 hover:text-slate-200'}`}>
-                        <span className="flex items-center justify-between gap-1 text-sm font-semibold">{mode.label}{poolDraft.dispatch_order_mode === mode.value && <CheckCircle className="h-4 w-4 shrink-0 text-blue-300" />}</span>
-                        <span className="mt-1 block text-xs opacity-80">{mode.description}</span>
+                        className={`min-w-0 rounded-xl border px-3 py-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50 ${mode.focusClass} ${poolDraft.dispatch_order_mode === mode.value ? mode.selectedClass : mode.unselectedClass}`}>
+                        <span className="flex items-center justify-between gap-1 text-sm font-semibold">{mode.label}{poolDraft.dispatch_order_mode === mode.value && <CheckCircle className="h-5 w-5 shrink-0" />}</span>
+                        <span className="mt-1 block text-xs opacity-85">{mode.description}</span>
                       </button>
                     ))}
                   </div>
