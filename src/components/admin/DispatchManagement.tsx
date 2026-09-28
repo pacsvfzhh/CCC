@@ -2319,11 +2319,20 @@ export default function DispatchManagement() {
                     <p className="mt-2 text-sm leading-relaxed text-slate-300">每筆訂單以空白行分隔；超過 2,000 筆時會自動分批送出。</p>
                     <div className="mt-5 border-t border-cyan-300/15 pt-5">
                       <p className="text-sm font-semibold text-cyan-100">匯入目標訂單池</p>
-                      <div className="mt-3 flex min-w-0 items-center gap-3 rounded-xl border border-cyan-300/35 bg-cyan-400/10 px-3.5 py-3 shadow-sm shadow-slate-950/25">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/15 text-cyan-200"><Layers className="h-4 w-4" /></span>
-                        <span className="min-w-0 break-words text-sm font-semibold text-white">{poolDisplayName(selectedPool)}</span>
+                      <div className="mt-3 min-w-0 rounded-xl border border-cyan-300/55 bg-gradient-to-br from-cyan-900/85 via-blue-950/85 to-slate-950 px-4 py-4 shadow-lg shadow-cyan-950/30">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-400/20 text-cyan-100"><Layers className="h-5 w-5" /></span>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-medium text-cyan-200">目前開啟的訂單池</p>
+                            <p className="mt-0.5 break-words text-base font-bold text-white">{poolDisplayName(selectedPool)}</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-t border-cyan-200/20 pt-3">
+                          <span className="text-xs font-medium text-cyan-100/85">目前未封存訂單</span>
+                          <strong className="text-xl font-bold tabular-nums text-cyan-100">{selectedPool.order_count.toLocaleString('zh-TW')} <span className="text-xs font-medium">筆</span></strong>
+                        </div>
                       </div>
-                      <p className="mt-2 text-xs leading-relaxed text-cyan-100/80">只會匯入目前開啟的訂單池，不能在此切換目標。</p>
+                      <p className="mt-2 text-xs leading-relaxed text-cyan-100/80">訂單只會匯入此池，不會影響其他訂單池。</p>
                     </div>
                   </div>
                   <div className="flex min-h-0 min-w-0 flex-col">
