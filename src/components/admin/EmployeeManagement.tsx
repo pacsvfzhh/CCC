@@ -120,6 +120,7 @@ interface EmployeeWithAdmin extends Employee {
   pendingWithdrawalAmount: number;
   pendingWithdrawalDate: string | null;
   pendingWithdrawals?: PendingWithdrawalRecord[];
+  withdrawalDates?: string[];
   statsLoaded: boolean;
 }
 
@@ -320,8 +321,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   type InactiveDaysRange = '2-3' | '3-7' | '7-15' | '15+';
   const [inactiveDaysFilterByGroup, setInactiveDaysFilterByGroup] = useState<Map<string, InactiveDaysRange>>(new Map());
   const [inactiveDaysDropdownOpen, setInactiveDaysDropdownOpen] = useState<string | null>(null);
-  // Pending withdrawal filter per group
-  const [pendingWithdrawalFilterByGroup, setPendingWithdrawalFilterByGroup] = useState<Set<string>>(new Set());
+  const [withdrawalFilterByGroup, setWithdrawalFilterByGroup] = useState<Map<string, string>>(new Map());
+  const [withdrawalDropdownOpen, setWithdrawalDropdownOpen] = useState<string | null>(null);
+  const [withdrawalDropdownPos, setWithdrawalDropdownPos] = useState<{ top: number; left: number } | null>(null);
   // Summary filter per group
   const [summaryFilterByGroup, setSummaryFilterByGroup] = useState<Map<string, SummaryFilter>>(new Map());
   const [createdDateFilterByGroup, setCreatedDateFilterByGroup] = useState<Map<string, string>>(new Map());
@@ -422,6 +424,28 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [adminFilterOpen]);
+
+  useEffect(() => {
+    if (!withdrawalDropdownOpen) return;
+    const close = (event: MouseEvent) => {
+      if (!(event.target as HTMLElement).closest('[data-withdrawal-dropdown]')) {
+        setWithdrawalDropdownOpen(null);
+        setWithdrawalDropdownPos(null);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setWithdrawalDropdownOpen(null);
+        setWithdrawalDropdownPos(null);
+      }
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [withdrawalDropdownOpen]);
 
   useEffect(() => {
     if (!inactiveDaysDropdownOpen) return;
@@ -1076,15 +1100,19 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
     try {
       const sessionToken = getAdminFinancialSessionToken();
-      const [employeeSnapshotResult, planAssignmentResult] = await Promise.all([
+      const [employeeSnapshotResult, planAssignmentResult, withdrawalResult] = await Promise.all([
         supabase.rpc('get_employee_management_snapshot', {
           p_admin_session_token: sessionToken,
         }),
         supabase.rpc('get_notification_automation_plan_assignments', {
           p_admin_session_token: sessionToken,
         }),
+        supabase.rpc('get_withdrawals_for_admin', {
+          p_admin_session_token: sessionToken,
+        }),
       ]);
       if (employeeSnapshotResult.error) throw employeeSnapshotResult.error;
+      if (withdrawalResult.error) throw withdrawalResult.error;
       if (planAssignmentResult.error && isFinancialAdminSessionError(planAssignmentResult.error)) throw planAssignmentResult.error;
 
       const snapshot = employeeSnapshotResult.data;
@@ -1105,6 +1133,12 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       }
 
       const adminMap = new Map(snapshot.admins.map(adminInfo => [adminInfo.id, adminInfo]));
+      const withdrawalDatesByUser = new Map<string, Set<string>>();
+      (withdrawalResult.data || []).forEach(withdrawal => {
+        const dates = withdrawalDatesByUser.get(withdrawal.user_id) || new Set<string>();
+        dates.add(formatWithdrawalDate(withdrawal.created_at));
+        withdrawalDatesByUser.set(withdrawal.user_id, dates);
+      });
       const baseGroups = new Map<string, EmployeeGroup>();
       snapshot.admins.forEach(adminInfo => {
         baseGroups.set(adminInfo.id, {
@@ -1147,6 +1181,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           pendingWithdrawalAmount: Number(employee.pendingWithdrawalAmount) || 0,
           pendingWithdrawalDate: employee.pendingWithdrawalDate || null,
           pendingWithdrawals,
+          withdrawalDates: Array.from(withdrawalDatesByUser.get(employee.id) || []),
           statsLoaded: true,
         });
       });
@@ -1739,10 +1774,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     return <ArrowUp className="h-3.5 w-3.5 text-white" />;
   };
 
-  const clearPendingWithdrawalFilter = (adminId: string) => {
-    setPendingWithdrawalFilterByGroup(prev => {
+  const clearWithdrawalFilter = (adminId: string) => {
+    setWithdrawalFilterByGroup(prev => {
       if (!prev.has(adminId)) return prev;
-      const next = new Set(prev);
+      const next = new Map(prev);
       next.delete(adminId);
       return next;
     });
@@ -1793,11 +1828,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       next.delete(adminId);
       return next;
     });
-    setPendingWithdrawalFilterByGroup(prev => {
-      const next = new Set(prev);
-      next.delete(adminId);
-      return next;
-    });
+    clearWithdrawalFilter(adminId);
     setSummaryFilterByGroup(prev => {
       const next = new Map(prev);
       next.delete(adminId);
@@ -1820,12 +1851,14 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     });
     setInactiveDaysDropdownOpen(null);
     setIdleDaysDropdownPos(null);
+    setWithdrawalDropdownOpen(null);
+    setWithdrawalDropdownPos(null);
     setCreatedDateDropdownOpen(null);
     setCreatedDateDropdownPos(null);
   };
 
   const handleActiveFilter = (adminId: string, filter: 'all' | 'active' | 'inactive') => {
-    clearPendingWithdrawalFilter(adminId);
+    clearWithdrawalFilter(adminId);
     setActiveFilterByGroup(prev => {
       const newMap = new Map(prev);
       if (filter === 'all') newMap.delete(adminId);
@@ -1837,7 +1870,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const getActiveFilter = (adminId: string): 'all' | 'active' | 'inactive' => activeFilterByGroup.get(adminId) || 'all';
 
   const handleWorkStatusFilter = (adminId: string, status: 'online' | 'offline' | 'never_started') => {
-    clearPendingWithdrawalFilter(adminId);
+    clearWithdrawalFilter(adminId);
     setWorkStatusFilterByGroup(prev => {
       const newMap = new Map(prev);
       const current = newMap.get(adminId) || new Set<'online' | 'offline' | 'never_started'>();
@@ -1853,7 +1886,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
   const getWorkStatusFilter = (adminId: string): Set<'online' | 'offline' | 'never_started'> => workStatusFilterByGroup.get(adminId) || new Set();
 
   const handleSummaryFilter = (adminId: string, filter: SummaryFilter) => {
-    clearPendingWithdrawalFilter(adminId);
+    clearWithdrawalFilter(adminId);
     setSummaryFilterByGroup(prev => {
       const next = new Map(prev);
       if (next.get(adminId) === filter) next.delete(adminId);
@@ -2069,13 +2102,19 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
           }
         })();
 
-        const matchesPendingWithdrawal = !pendingWithdrawalFilterByGroup.has(group.admin.id) || emp.hasPendingWithdrawal;
+        const withdrawalFilter = withdrawalFilterByGroup.get(group.admin.id);
+        const matchesWithdrawal = !withdrawalFilter
+          || (withdrawalFilter === 'today'
+            ? emp.withdrawalDates?.includes(formatWithdrawalDate(today.toISOString()))
+            : withdrawalFilter === 'all'
+              ? emp.hasPendingWithdrawal
+              : emp.pendingWithdrawals?.some(withdrawal => formatWithdrawalDate(withdrawal.created_at) === withdrawalFilter));
         const matchesCreatedDate = !createdDateFilter || getUTCDateKey(emp.created_at) === createdDateFilter;
         const matchesFinancial = !financialFilter
           || (financialFilter === 'wallet' && (emp.walletBalance || 0) > 0)
           || (financialFilter === 'today_commission' && emp.todayCommission > 0);
 
-        return matchesSearch && matchesTags && matchesActive && matchesWorkStatus && matchesSummary && matchesInactiveDays && matchesPendingWithdrawal && matchesCreatedDate && matchesFinancial;
+        return matchesSearch && matchesTags && matchesActive && matchesWorkStatus && matchesSummary && matchesInactiveDays && matchesWithdrawal && matchesCreatedDate && matchesFinancial;
       }),
       group.admin.id
     );
@@ -2084,7 +2123,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     createdDateFilterByGroup,
     financialFilterByGroup,
     inactiveDaysFilterByGroup,
-    pendingWithdrawalFilterByGroup,
+    withdrawalFilterByGroup,
     searchTerm,
     selectedTagsByGroup,
     sortEmployees,
@@ -2455,8 +2494,129 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       : rect.bottom + 6;
     setInactiveDaysDropdownOpen(null);
     setIdleDaysDropdownPos(null);
+    setWithdrawalDropdownOpen(null);
+    setWithdrawalDropdownPos(null);
     setCreatedDateDropdownPos({ top, left });
     setCreatedDateDropdownOpen(adminId);
+  };
+
+  const getWithdrawalDateOptions = (adminId: string) => {
+    const groupEmployees = employeeGroups.find(group => group.admin.id === adminId)?.employees || [];
+    const counts = new Map<string, Set<string>>();
+    groupEmployees.forEach(employee => {
+      employee.pendingWithdrawals?.forEach(withdrawal => {
+        const date = formatWithdrawalDate(withdrawal.created_at);
+        const users = counts.get(date) || new Set<string>();
+        users.add(employee.id);
+        counts.set(date, users);
+      });
+    });
+    return Array.from(counts, ([date, users]) => ({ date, count: users.size }))
+      .sort((left, right) => right.date.localeCompare(left.date));
+  };
+
+  const renderWithdrawalPortal = (adminId: string) => {
+    if (withdrawalDropdownOpen !== adminId || !withdrawalDropdownPos) return null;
+    const groupEmployees = employeeGroups.find(group => group.admin.id === adminId)?.employees || [];
+    const selected = withdrawalFilterByGroup.get(adminId);
+    const todayKey = formatWithdrawalDate(new Date().toISOString());
+    const todayCount = groupEmployees.filter(employee => employee.withdrawalDates?.includes(todayKey)).length;
+    const pendingCount = groupEmployees.filter(employee => employee.hasPendingWithdrawal).length;
+    const options = getWithdrawalDateOptions(adminId);
+
+    const select = (value: string) => {
+      setWithdrawalFilterByGroup(prev => {
+        const next = new Map(prev);
+        if (selected === value) next.delete(adminId);
+        else next.set(adminId, value);
+        return next;
+      });
+      setWithdrawalDropdownOpen(null);
+      setWithdrawalDropdownPos(null);
+    };
+
+    return createPortal(
+      <div data-withdrawal-dropdown className="fixed z-[9999]" style={{ top: withdrawalDropdownPos.top, left: withdrawalDropdownPos.left }}>
+        <div role="menu" aria-label="提现日期筛选" className="w-[208px] overflow-hidden rounded-xl border border-orange-400/40 bg-[#1c100b] shadow-2xl shadow-black/70">
+          <div className="flex items-center gap-2 border-b border-orange-400/20 bg-orange-950/70 px-3 py-2">
+            <Wallet className="h-4 w-4 text-orange-300" />
+            <span className="flex-1 text-[11px] font-bold text-orange-100">提现日期筛选</span>
+          </div>
+          <div className="space-y-1 p-1.5">
+            <button
+              type="button"
+              role="menuitemradio"
+              aria-checked={selected === 'today'}
+              onClick={() => select('today')}
+              className={`flex h-9 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === 'today' ? 'border-orange-300 bg-orange-600 text-white' : 'border-orange-500/40 bg-orange-950/55 text-orange-100 hover:bg-orange-900'}`}
+            >
+              <span className="min-w-0 flex-1 text-left">今天提现人数</span>
+              <span className="tabular-nums">{todayCount} 人</span>
+            </button>
+            <button
+              type="button"
+              role="menuitemradio"
+              aria-checked={selected === 'all'}
+              onClick={() => select('all')}
+              className={`flex h-8 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === 'all' ? 'border-orange-300 bg-orange-600 text-white' : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-orange-400/50 hover:bg-orange-950/60'}`}
+            >
+              <span className="min-w-0 flex-1 text-left">全部提现中</span>
+              <span className="tabular-nums">{pendingCount} 人</span>
+            </button>
+          </div>
+          <div className="employee-date-menu-scrollbar max-h-[210px] space-y-1 overflow-y-auto border-t border-orange-400/15 p-1.5">
+            {options.length > 0 ? options.map(({ date, count }) => (
+              <button
+                key={date}
+                type="button"
+                role="menuitemradio"
+                aria-checked={selected === date}
+                onClick={() => select(date)}
+                className={`flex h-8 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === date ? 'border-orange-300 bg-orange-600 text-white' : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-orange-400/50 hover:bg-orange-950/60'}`}
+              >
+                <span className="min-w-0 flex-1 text-left font-mono tabular-nums">{date}</span>
+                <span className="tabular-nums">{count} 人</span>
+              </button>
+            )) : <p className="py-3 text-center text-[10px] text-slate-400">暂无提现中记录</p>}
+          </div>
+          {selected && (
+            <button
+              type="button"
+              onClick={() => {
+                clearWithdrawalFilter(adminId);
+                setWithdrawalDropdownOpen(null);
+                setWithdrawalDropdownPos(null);
+              }}
+              className="flex h-9 w-full items-center justify-center gap-1.5 border-t border-rose-400/30 bg-rose-900/40 text-[11px] font-semibold text-rose-100 hover:bg-rose-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+            >
+              <X className="h-3.5 w-3.5" />清除筛选
+            </button>
+          )}
+        </div>
+      </div>,
+      document.body,
+    );
+  };
+
+  const handleWithdrawalClick = (adminId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (withdrawalDropdownOpen === adminId) {
+      setWithdrawalDropdownOpen(null);
+      setWithdrawalDropdownPos(null);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 208;
+    const menuHeight = Math.min(370, 140 + getWithdrawalDateOptions(adminId).length * 36 + (withdrawalFilterByGroup.has(adminId) ? 36 : 0));
+    const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
+    const top = window.innerHeight - rect.bottom < menuHeight + 8
+      ? Math.max(8, rect.top - menuHeight - 6)
+      : rect.bottom + 6;
+    setInactiveDaysDropdownOpen(null);
+    setIdleDaysDropdownPos(null);
+    setCreatedDateDropdownOpen(null);
+    setCreatedDateDropdownPos(null);
+    setWithdrawalDropdownPos({ top, left });
+    setWithdrawalDropdownOpen(adminId);
   };
 
   const renderIdleDaysPortal = (adminId: string) => {
@@ -2487,7 +2647,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   role="menuitemradio"
                   aria-checked={isSelected}
                   onClick={() => {
-                    clearPendingWithdrawalFilter(adminId);
+                    clearWithdrawalFilter(adminId);
                     setInactiveDaysFilterByGroup(prev => {
                       const newMap = new Map(prev);
                       if (isSelected) newMap.delete(adminId);
@@ -2557,6 +2717,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     } else {
       setCreatedDateDropdownOpen(null);
       setCreatedDateDropdownPos(null);
+      setWithdrawalDropdownOpen(null);
+      setWithdrawalDropdownPos(null);
       const rect = e.currentTarget.getBoundingClientRect();
       const menuWidth = 190;
       const menuHeight = 194;
@@ -2578,7 +2740,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const currentActive = getActiveFilter(adminId);
     const currentWorkStatus = getWorkStatusFilter(adminId);
     const hasIdleFilter = inactiveDaysFilterByGroup.has(adminId);
-    const hasPendingFilter = pendingWithdrawalFilterByGroup.has(adminId);
+    const selectedWithdrawal = withdrawalFilterByGroup.get(adminId);
     const selectedCreatedDate = createdDateFilterByGroup.get(adminId);
     const pendingWithdrawalCount = groupEmployees.filter(employee => employee.hasPendingWithdrawal).length;
 
@@ -2624,7 +2786,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         {/* Work status: ALL / Online / Offline / Never Started */}
         <button
           onClick={() => {
-            clearPendingWithdrawalFilter(adminId);
+            clearWithdrawalFilter(adminId);
             setWorkStatusFilterByGroup(prev => {
               const newMap = new Map(prev);
               newMap.delete(adminId);
@@ -2674,34 +2836,43 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
         <div className="w-px h-4 bg-slate-600 shrink-0 mx-1" />
 
         {/* Withdrawing */}
-        <div className="ml-2 inline-flex items-center">
-          <button
-            onClick={() => {
-              setPendingWithdrawalFilterByGroup(prev => {
-                const next = new Set(prev);
-                if (next.has(adminId)) next.delete(adminId);
-                else next.add(adminId);
-                return next;
-              });
-            }}
-            aria-pressed={hasPendingFilter}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold shadow-md transition-all ${
-              hasPendingFilter
-                ? 'border-orange-200 bg-orange-500 text-white shadow-orange-950/50 ring-1 ring-orange-300/40'
-                : 'border-orange-500/70 bg-orange-950/55 text-orange-200 shadow-orange-950/30 hover:border-orange-300/90 hover:bg-orange-900/75 hover:text-orange-50'
-            }`}
-          >
-            <Wallet className="h-3.5 w-3.5" />
-            <span>提現中</span>
-            <span className={`min-w-[20px] rounded-full border px-1.5 py-0.5 text-center text-[10px] tabular-nums leading-none ${
-              hasPendingFilter
-                ? 'border-white/30 bg-white/20 text-white'
-                : 'border-orange-400/40 bg-orange-500/20 text-orange-300'
-            }`}>
-              {pendingWithdrawalCount}
-            </span>
-          </button>
+        <div data-withdrawal-dropdown className="ml-2 inline-flex items-center">
+          <div className={`inline-flex h-8 shrink-0 overflow-hidden rounded-lg border shadow-md transition-all ${selectedWithdrawal ? 'border-orange-200 bg-orange-600 shadow-orange-950/50' : 'border-orange-500/70 bg-orange-950/55 shadow-orange-950/30 hover:border-orange-300/90 hover:bg-orange-900/75'}`}>
+            <button
+              type="button"
+              onClick={event => handleWithdrawalClick(adminId, event)}
+              aria-haspopup="menu"
+              aria-expanded={withdrawalDropdownOpen === adminId}
+              className="inline-flex h-full items-center gap-1.5 px-2.5 text-[11px] font-semibold text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+            >
+              <Wallet className="h-3.5 w-3.5 shrink-0" />
+              <span className="whitespace-nowrap">{selectedWithdrawal === 'today' ? '今天提现人数' : selectedWithdrawal && selectedWithdrawal !== 'all' ? selectedWithdrawal : '提現中'}</span>
+              <span className="min-w-[20px] rounded-full border border-orange-300/40 bg-orange-500/20 px-1.5 py-0.5 text-center text-[10px] tabular-nums leading-none">
+                {selectedWithdrawal === 'today'
+                  ? groupEmployees.filter(employee => employee.withdrawalDates?.includes(formatWithdrawalDate(new Date().toISOString()))).length
+                  : selectedWithdrawal && selectedWithdrawal !== 'all'
+                    ? getWithdrawalDateOptions(adminId).find(option => option.date === selectedWithdrawal)?.count || 0
+                    : pendingWithdrawalCount}
+              </span>
+              <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${withdrawalDropdownOpen === adminId ? 'rotate-180' : ''}`} />
+            </button>
+            {selectedWithdrawal && (
+              <button
+                type="button"
+                onClick={() => {
+                  clearWithdrawalFilter(adminId);
+                  setWithdrawalDropdownOpen(null);
+                  setWithdrawalDropdownPos(null);
+                }}
+                aria-label="清除提现筛选"
+                className="inline-flex h-full w-8 items-center justify-center border-l border-orange-200/30 bg-rose-600 text-white hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
+        {renderWithdrawalPortal(adminId)}
 
         {/* Idle Days */}
         <div data-inactive-days-dropdown className="ml-2 inline-flex items-center">
