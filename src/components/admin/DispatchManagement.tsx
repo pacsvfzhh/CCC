@@ -430,7 +430,7 @@ type PoolDraft = Pick<
   dispatch_interval_max: string;
 };
 
-type OrderAction = 'edit' | 'toggle' | 'delete' | 'delete_all';
+type OrderAction = 'edit' | 'toggle' | 'delete_permanent' | 'delete_all_permanent';
 
 const emptyGroupDraft: GroupDraft = {
   group_name: '',
@@ -1373,13 +1373,19 @@ export default function DispatchManagement() {
       if (refreshed && ordersRefreshed)
         notify(
           'success',
-          action === 'delete_all'
-            ? `已封存「${poolDisplayName(selectedPool)}」中的 ${result.affected} 筆訂單。`
-            : `訂單已${action === 'delete' ? '封存' : action === 'toggle' ? '更新狀態' : '儲存'}。`,
+          action === 'delete_all_permanent'
+            ? `已永久刪除「${poolDisplayName(selectedPool)}」中的 ${result.affected} 筆訂單。`
+            : `訂單已${action === 'delete_permanent' ? '永久刪除' : action === 'toggle' ? '更新狀態' : '儲存'}。`,
         );
     } catch (error) {
       await Promise.all([loadWorkspace(), loadOrders(selectedPool.id, page)]);
-      notify('error', '訂單操作失敗：' + formatSupabaseError(error));
+      const message = formatSupabaseError(error);
+      notify('error',
+        (action === 'delete_permanent' || action === 'delete_all_permanent') &&
+        message.includes('Invalid dispatch order action or pool.')
+          ? '目前資料庫尚未支援永久刪除，訂單未變更；請先完成資料庫更新。'
+          : '訂單操作失敗：' + message,
+      );
     } finally {
       setBusy(false);
     }
@@ -2323,7 +2329,7 @@ export default function DispatchManagement() {
               <div className="flex flex-wrap gap-2 sm:ml-auto">
                 <button type="button" disabled={!canManageOrders || busy || ordersLoading} onClick={() => { setImportPoolId(selectedPool.id); setBulkInput(''); setShowBulkImport(true); }}
                   className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"><Upload className="h-3.5 w-3.5" />匯入訂單</button>
-                <button type="button" disabled={!canManageOrders || busy || ordersLoading || selectedPool.order_count === 0} onClick={() => { setDeleteConfirmInput(''); setShowDeleteAll(true); }}
+                <button type="button" disabled={!canManageOrders || busy || ordersLoading} onClick={() => { setDeleteConfirmInput(''); setShowDeleteAll(true); }}
                   className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />全部刪除</button>
               </div>
             )}
@@ -2853,19 +2859,19 @@ export default function DispatchManagement() {
             </div>
             <div className="space-y-4 px-5 py-5 sm:px-6">
               <div className="rounded-xl border border-slate-700/80 bg-slate-950/65 p-4">
-                <p className="mb-2 text-xs font-semibold text-rose-200">即將封存的訂單</p>
+                <p className="mb-2 text-xs font-semibold text-rose-200">即將永久刪除的訂單</p>
                 <p className="dispatch-orders-scroll max-h-36 overflow-y-auto whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-slate-200">
                   {deleteOrder.order_content.slice(0, 200)}{deleteOrder.order_content.length > 200 ? '…' : ''}
                 </p>
               </div>
               <p id="delete-order-note" className="flex items-start gap-2 rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-3 text-sm leading-relaxed text-amber-100">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />此操作會封存訂單，不再顯示於此列表；既有派單紀錄會保留。
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />此訂單將從資料庫永久刪除，無法復原。既有派單紀錄保留，但不再連結此訂單。
               </p>
             </div>
             <div className="flex flex-col-reverse gap-2 border-t border-rose-400/15 bg-slate-950/65 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
               <button type="button" disabled={busy} onClick={() => setDeleteOrder(null)}
                 className="min-h-10 rounded-xl border border-slate-600 bg-slate-800 px-5 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50">取消</button>
-              <button type="button" disabled={busy} onClick={() => void manageOrder('delete', deleteOrder.id)}
+              <button type="button" disabled={busy} onClick={() => void manageOrder('delete_permanent', deleteOrder.id)}
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-rose-950/40 transition-colors hover:from-rose-500 hover:to-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50">
                 {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}{busy ? '處理中…' : '確認刪除'}
               </button>
@@ -2887,7 +2893,7 @@ export default function DispatchManagement() {
                 確定刪除「{selectedPool ? poolDisplayName(selectedPool) : ''}」的全部訂單？
               </h3>
               <p className="text-sm text-slate-300">
-                此訂單池中全部 {selectedPool?.order_count ?? 0} 筆未封存的訂單（包括目前篩選條件隱藏的訂單）都會封存，不影響其他訂單池。
+                此訂單池的所有訂單（目前未封存 {selectedPool?.order_count ?? 0} 筆，另含先前封存及被篩選隱藏的訂單）都會從資料庫永久刪除，無法復原。其他訂單池不受影響；既有派單紀錄保留，但會解除與被刪訂單的連結。
               </p>
               <label className="mt-4 block text-sm">
                 請輸入「全部刪除」以確認
@@ -2910,7 +2916,7 @@ export default function DispatchManagement() {
                 <button
                   className="rounded-lg bg-rose-600 px-3 py-2 text-sm text-white disabled:opacity-50"
                   disabled={busy || deleteConfirmInput !== '全部刪除'}
-                  onClick={() => void manageOrder('delete_all')}
+                  onClick={() => void manageOrder('delete_all_permanent')}
                 >
                   全部刪除
                 </button>
