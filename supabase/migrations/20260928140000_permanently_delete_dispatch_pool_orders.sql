@@ -19,16 +19,22 @@ BEGIN
     RAISE EXCEPTION 'Only a super administrator can manage dispatch orders.';
   END IF;
   IF p_pool_id IS NULL OR p_action IS NULL OR p_action NOT IN (
-    'import', 'edit', 'toggle', 'delete', 'delete_all',
-    'delete_permanent', 'delete_all_permanent'
+    'import', 'edit', 'toggle', 'delete_permanent', 'delete_all_permanent'
   ) THEN
     RAISE EXCEPTION 'Invalid dispatch order action or pool.';
   END IF;
+  -- Match assignment creation's group-before-pool lock order without blocking submissions.
+  PERFORM 1 FROM public.dispatch_groups AS dispatch_group
+  WHERE dispatch_group.id = (
+    SELECT pool.group_id FROM public.dispatch_order_pools AS pool WHERE pool.id = p_pool_id
+  ) AND dispatch_group.archived_at IS NULL
+  FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Dispatch pool not found or archived.';
+  END IF;
   PERFORM 1 FROM public.dispatch_order_pools AS pool
-  JOIN public.dispatch_groups AS dispatch_group ON dispatch_group.id = pool.group_id
   WHERE pool.id = p_pool_id AND pool.archived_at IS NULL
-    AND dispatch_group.archived_at IS NULL
-  FOR UPDATE OF pool, dispatch_group;
+  FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Dispatch pool not found or archived.';
   END IF;
@@ -46,8 +52,8 @@ BEGIN
     CROSS JOIN unnest(p_contents) AS item(value)
     WHERE pool.id = p_pool_id;
     GET DIAGNOSTICS v_count = ROW_COUNT;
-  ELSIF p_action IN ('delete', 'delete_all', 'delete_permanent', 'delete_all_permanent') THEN
-    IF p_action IN ('delete_all', 'delete_all_permanent') THEN
+  ELSIF p_action IN ('delete_permanent', 'delete_all_permanent') THEN
+    IF p_action = 'delete_all_permanent' THEN
       IF p_order_id IS NOT NULL OR p_content IS NOT NULL OR p_contents IS NOT NULL THEN
         RAISE EXCEPTION 'Delete all does not take order contents or an order ID.';
       END IF;
@@ -65,33 +71,15 @@ BEGIN
     UPDATE public.dispatch_assignments AS assignment
     SET order_content_snapshot = COALESCE(assignment.order_content_snapshot, dispatch_order.order_content),
         group_id = COALESCE(assignment.group_id, dispatch_order.group_id),
-        pool_id = COALESCE(assignment.pool_id, dispatch_order.pool_id),
-        dispatch_success_rate_snapshot = COALESCE(assignment.dispatch_success_rate_snapshot,
-                                                  pool.dispatch_success_rate, dispatch_group.dispatch_success_rate),
-        grab_success_rate_snapshot = COALESCE(assignment.grab_success_rate_snapshot,
-                                              assignment.dispatch_success_rate_snapshot, dispatch_group.grab_success_rate),
-        commission_rate_snapshot = COALESCE(assignment.commission_rate_snapshot,
-                                            dispatch_group.commission_rate),
-        session_timeout_minutes_snapshot = COALESCE(assignment.session_timeout_minutes_snapshot,
-                                                    pool.session_timeout_minutes, dispatch_group.session_timeout_minutes),
-        submit_wait_min_seconds_snapshot = COALESCE(assignment.submit_wait_min_seconds_snapshot,
-                                                    dispatch_group.submit_wait_min_seconds),
-        submit_wait_max_seconds_snapshot = COALESCE(assignment.submit_wait_max_seconds_snapshot,
-                                                    dispatch_group.submit_wait_max_seconds)
+        pool_id = COALESCE(assignment.pool_id, dispatch_order.pool_id)
     FROM public.dispatch_group_orders AS dispatch_order
-    JOIN public.dispatch_groups AS dispatch_group ON dispatch_group.id = dispatch_order.group_id
-    JOIN public.dispatch_order_pools AS pool ON pool.id = dispatch_order.pool_id
     WHERE assignment.dispatch_order_id = dispatch_order.id
       AND dispatch_order.pool_id = p_pool_id
-      AND (p_action IN ('delete_all', 'delete_all_permanent') OR dispatch_order.id = p_order_id)
+      AND (p_action = 'delete_all_permanent' OR dispatch_order.id = p_order_id)
       AND (assignment.order_content_snapshot IS NULL OR assignment.group_id IS NULL
-        OR assignment.pool_id IS NULL OR assignment.dispatch_success_rate_snapshot IS NULL
-        OR assignment.grab_success_rate_snapshot IS NULL OR assignment.commission_rate_snapshot IS NULL
-        OR assignment.session_timeout_minutes_snapshot IS NULL
-        OR assignment.submit_wait_min_seconds_snapshot IS NULL
-        OR assignment.submit_wait_max_seconds_snapshot IS NULL);
+        OR assignment.pool_id IS NULL);
 
-    IF p_action IN ('delete_all', 'delete_all_permanent') THEN
+    IF p_action = 'delete_all_permanent' THEN
       DELETE FROM public.dispatch_group_orders WHERE pool_id = p_pool_id;
     ELSE
       DELETE FROM public.dispatch_group_orders WHERE id = p_order_id AND pool_id = p_pool_id;
@@ -118,7 +106,7 @@ BEGIN
     v_count := 1;
   END IF;
   RETURN jsonb_build_object('success', true, 'action', p_action, 'affected', v_count,
-                            'order', CASE WHEN p_action IN ('edit', 'toggle', 'delete', 'delete_permanent')
+                            'order', CASE WHEN p_action IN ('edit', 'toggle', 'delete_permanent')
                                           THEN to_jsonb(v_order) ELSE NULL END);
 END;
 $function$;

@@ -2718,7 +2718,7 @@ export interface Database {
         Args: {
           p_admin_session_token: string;
           p_pool_id: string;
-          p_action: 'import' | 'edit' | 'toggle' | 'delete' | 'delete_all' | 'delete_permanent' | 'delete_all_permanent';
+          p_action: 'import' | 'edit' | 'toggle' | 'delete_permanent' | 'delete_all_permanent';
           p_order_id?: string | null;
           p_content?: string | null;
           p_contents?: string[] | null;
