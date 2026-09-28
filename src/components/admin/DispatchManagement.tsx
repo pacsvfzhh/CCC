@@ -2321,30 +2321,27 @@ export default function DispatchManagement() {
           </div>
           {showBulkImport && isSuperAdmin ? (
             <>
-              <div className="dispatch-orders-scroll min-h-0 flex-1 overflow-y-auto bg-gradient-to-br from-blue-950/45 via-slate-900 to-slate-950 px-4 py-5 sm:px-6 sm:py-7">
-                <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-300/15 pb-4">
-                    <div>
-                      <p className="text-xs font-semibold tracking-widest text-cyan-300">批量匯入</p>
-                      <h4 className="mt-1 text-lg font-semibold text-white">新增訂單至訂單池</h4>
-                      <p className="mt-1 text-sm text-slate-300">每筆訂單以空白行分隔；超過 2,000 筆時會自動分批送出。</p>
+              <div className="min-h-0 flex-1 overflow-hidden bg-gradient-to-br from-blue-950/45 via-slate-900 to-slate-950 p-4 sm:p-6">
+                <div className="grid h-full min-h-0 grid-rows-[minmax(0,55%)_minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(220px,280px)_minmax(0,1fr)] lg:grid-rows-1 lg:gap-6">
+                  <div className="dispatch-orders-scroll min-h-0 min-w-0 overflow-y-auto border-b border-cyan-300/20 pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
+                    <p className="text-xs font-semibold tracking-widest text-cyan-300">批量匯入</p>
+                    <h4 className="mt-2 text-lg font-semibold text-white">新增訂單至訂單池</h4>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-300">每筆訂單以空白行分隔；超過 2,000 筆時會自動分批送出。</p>
+                    <div className="mt-5 border-t border-cyan-300/15 pt-5">
+                      <label className="block text-sm font-semibold text-cyan-100" htmlFor="import-pool">匯入目標訂單池</label>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-400">可選擇目前分組中的其他可用訂單池。</p>
+                      <select id="import-pool" className={poolInputClass} value={importPoolId} disabled={busy}
+                        onChange={(event) => setImportPoolId(event.target.value)}>
+                        {groupPools.filter((pool) => !pool.archived_at).map((pool) => (
+                          <option key={pool.id} value={pool.id}>{poolDisplayName(pool)}</option>
+                        ))}
+                      </select>
                     </div>
-                    <span className="rounded-lg border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs font-medium text-cyan-100">匯入後可在訂單列表檢視</span>
                   </div>
-                  <div className="max-w-xl">
-                    <label className="block text-sm font-semibold text-cyan-100" htmlFor="import-pool">匯入目標訂單池</label>
-                    <p className="mt-1 text-xs text-slate-400">可選擇目前分組中的其他可用訂單池。</p>
-                    <select id="import-pool" className={poolInputClass} value={importPoolId} disabled={busy}
-                      onChange={(event) => setImportPoolId(event.target.value)}>
-                      {groupPools.filter((pool) => !pool.archived_at).map((pool) => (
-                        <option key={pool.id} value={pool.id}>{poolDisplayName(pool)}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="min-w-0">
+                  <div className="flex min-h-0 min-w-0 flex-col">
                     <label className="block text-sm font-semibold text-cyan-100" htmlFor="bulk-orders">訂單內容</label>
-                    <p className="mt-1 text-xs text-slate-400">貼上多筆訂單，使用一個空白行區分每筆內容。</p>
-                    <textarea id="bulk-orders" className={`${poolInputClass} dispatch-orders-scroll !mt-3 h-[clamp(240px,48vh,500px)] resize-none font-mono leading-relaxed`}
+                    <p className="mb-3 mt-1 text-xs text-slate-400">貼上多筆訂單，使用一個空白行區分每筆內容。</p>
+                    <textarea id="bulk-orders" className={`${poolInputClass} dispatch-orders-scroll !mt-0 min-h-0 w-full flex-1 resize-none font-mono leading-relaxed`}
                       placeholder={'第一筆訂單\n\n第二筆訂單'} value={bulkInput} disabled={busy}
                       onChange={(event) => setBulkInput(event.target.value)} />
                   </div>
