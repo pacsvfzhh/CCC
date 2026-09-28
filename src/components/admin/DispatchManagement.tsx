@@ -2308,7 +2308,7 @@ export default function DispatchManagement() {
             )}
           </div>
           {showBulkImport && selectedPool && isSuperAdmin && (
-            <div className="max-h-[45vh] shrink-0 space-y-2 overflow-y-auto border-b border-cyan-400/20 bg-gradient-to-r from-blue-950/60 to-slate-900 px-4 py-4 sm:px-6">
+            <div className="dispatch-orders-scroll max-h-[45vh] shrink-0 space-y-2 overflow-y-auto border-b border-cyan-400/20 bg-gradient-to-r from-blue-950/60 to-slate-900 px-4 py-4 sm:px-6">
               <label
                 className="block text-xs font-semibold text-cyan-200"
                 htmlFor="import-pool"
@@ -2338,7 +2338,7 @@ export default function DispatchManagement() {
               </label>
               <textarea
                 id="bulk-orders"
-                className={`${poolInputClass} min-h-32 resize-y font-mono`}
+                className={`${poolInputClass} dispatch-orders-scroll min-h-32 resize-y font-mono`}
                 placeholder={'第一筆訂單\n\n第二筆訂單'}
                 value={bulkInput}
                 disabled={busy}
@@ -2378,7 +2378,7 @@ export default function DispatchManagement() {
               </div>
             </div>
           )}
-          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-950/70">
+          <div className="dispatch-orders-scroll min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-950/70">
             <div className={`sticky top-0 z-10 hidden items-center gap-x-4 border-b border-cyan-300/20 bg-gradient-to-r from-blue-900/90 via-cyan-950/90 to-slate-900/95 px-6 py-2.5 text-[11px] font-semibold tracking-wide text-cyan-100 lg:grid ${canManageOrders ? 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px_198px]' : 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px]'}`}>
               <span>序號</span><span>訂單內容</span><span>狀態</span><span>建立時間</span>{canManageOrders && <span className="text-right">操作</span>}
             </div>
@@ -2412,14 +2412,14 @@ export default function DispatchManagement() {
                   <div className="col-span-2 min-w-0 lg:col-span-1">
                     {editingId === order.id ? (
                       <>
-                        <textarea className={`${poolInputClass} !mt-0 min-h-28 resize-y font-mono`} value={editContent} onChange={(event) => setEditContent(event.target.value)} aria-label="編輯訂單內容" />
+                        <textarea className={`${poolInputClass} dispatch-orders-scroll !mt-0 min-h-28 resize-y font-mono`} value={editContent} onChange={(event) => setEditContent(event.target.value)} aria-label="編輯訂單內容" />
                         <div className="mt-2 flex flex-wrap gap-2">
                           <button type="button" className={primaryButton} disabled={busy || !editContent.trim()} onClick={() => void manageOrder('edit', order.id, editContent.trim())}><Save className="mr-1 inline h-3 w-3" />儲存</button>
                           <button type="button" className={secondaryButton} disabled={busy} onClick={() => setEditingId(null)}>取消</button>
                         </div>
                       </>
                     ) : (
-                      <p className="max-h-20 overflow-auto whitespace-pre-wrap break-all font-mono text-xs leading-5 text-slate-100">{order.order_content}</p>
+                      <p className="dispatch-orders-scroll max-h-20 overflow-auto whitespace-pre-wrap break-all font-mono text-xs leading-5 text-slate-100">{order.order_content}</p>
                     )}
                   </div>
                   <span className={`col-start-2 w-fit rounded-full border px-2.5 py-1 text-xs font-medium lg:col-auto ${order.is_active ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-amber-400/30 bg-amber-400/10 text-amber-200'}`}>{order.is_active ? '已啟用' : '未啟用'}</span>

@@ -94,6 +94,33 @@
   scrollbar-color: #3b82f6 transparent;
 }
 
+.dispatch-orders-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #0891b2 #0f172a;
+  overscroll-behavior: contain;
+}
+.dispatch-orders-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.dispatch-orders-scroll::-webkit-scrollbar-track {
+  margin-block: 4px;
+  border-radius: 999px;
+  background: #0f172a;
+}
+.dispatch-orders-scroll::-webkit-scrollbar-thumb {
+  min-height: 32px;
+  border: 2px solid #0f172a;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #22d3ee, #2563eb) padding-box;
+}
+.dispatch-orders-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #67e8f9, #3b82f6) padding-box;
+}
+.dispatch-orders-scroll::-webkit-scrollbar-corner {
+  background: #0f172a;
+}
+
 .dispatch-members-scroll {
   scrollbar-width: thin;
   scrollbar-color: #0d9488 #0f172a;
