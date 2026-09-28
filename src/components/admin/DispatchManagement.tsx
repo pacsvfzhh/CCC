@@ -1915,15 +1915,15 @@ export default function DispatchManagement() {
                     <div className="dispatch-members-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-900 md:overflow-hidden">
                       <div className="grid min-h-full min-w-0 grid-cols-1 md:h-full md:min-h-0 md:grid-cols-2">
                         <section className="flex min-w-0 flex-col md:min-h-0">
-                          <div className="flex shrink-0 items-center gap-3 border-b border-emerald-400/20 bg-emerald-500/10 px-4 py-3 sm:px-5">
-                            <Users className="h-5 w-5 shrink-0 text-emerald-300" />
+                          <div className="flex shrink-0 items-center gap-3 border-b-2 border-emerald-400/70 bg-gradient-to-r from-emerald-900 via-teal-900 to-emerald-950 px-4 py-3 shadow-[0_5px_14px_rgba(2,44,34,0.35)] sm:px-5">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-emerald-300/30 bg-emerald-300/15 text-emerald-200"><Users className="h-5 w-5" /></span>
                             <div className="min-w-0 flex-1">
-                              <h4 className="text-sm font-semibold text-emerald-100">目前分組</h4>
-                              <p className="text-xs text-emerald-100/65">已指派至此分組的員工</p>
+                              <h4 className="text-sm font-semibold text-white">目前分組</h4>
+                              <p className="text-xs text-emerald-100/80">已指派至此分組的員工</p>
                             </div>
-                            <span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-100">{currentMembers.length} 人</span>
+                            <span className="rounded-full border border-emerald-300/40 bg-emerald-300/20 px-2.5 py-1 text-xs font-semibold text-emerald-50">{currentMembers.length} 人</span>
                           </div>
-                          <div className="dispatch-members-scroll min-h-32 max-h-72 flex-1 overflow-y-auto overscroll-contain md:min-h-0 md:max-h-none">
+                          <div className="dispatch-members-scroll min-h-32 max-h-72 flex-1 overflow-y-auto overscroll-contain bg-slate-950/30 md:min-h-0 md:max-h-none">
                             <div className="divide-y divide-slate-700/60">
                               {currentMembers.map((employee) => (
                                 <label key={employee.id} className={`flex min-w-0 cursor-pointer items-start gap-3 px-4 py-3 transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-emerald-300/70 sm:px-5 ${selectedCurrentMembers.includes(employee.id) ? 'bg-emerald-400/15' : 'hover:bg-slate-800/70'}`}>
@@ -1961,15 +1961,15 @@ export default function DispatchManagement() {
                           </div>
                         </section>
                         <section className="flex min-w-0 flex-col border-t border-cyan-400/30 md:min-h-0 md:border-l md:border-t-0">
-                          <div className="flex shrink-0 items-center gap-3 border-b border-cyan-400/20 bg-cyan-500/10 px-4 py-3 sm:px-5">
-                            <Users className="h-5 w-5 shrink-0 text-cyan-300" />
+                          <div className="flex shrink-0 items-center gap-3 border-b-2 border-sky-400/70 bg-gradient-to-r from-sky-900 via-blue-900 to-slate-900 px-4 py-3 shadow-[0_5px_14px_rgba(8,47,73,0.4)] sm:px-5">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-sky-300/30 bg-sky-300/15 text-sky-200"><Users className="h-5 w-5" /></span>
                             <div className="min-w-0 flex-1">
-                              <h4 className="text-sm font-semibold text-cyan-100">其他分組／未指派</h4>
-                              <p className="text-xs text-cyan-100/65">選取後移入目前分組</p>
+                              <h4 className="text-sm font-semibold text-white">其他分組／未指派</h4>
+                              <p className="text-xs text-sky-100/80">選取後移入目前分組</p>
                             </div>
-                            <span className="rounded-full bg-cyan-400/15 px-2.5 py-1 text-xs font-semibold text-cyan-100">{otherMembers.length} 人</span>
+                            <span className="rounded-full border border-sky-300/40 bg-sky-300/20 px-2.5 py-1 text-xs font-semibold text-sky-50">{otherMembers.length} 人</span>
                           </div>
-                          <div className="dispatch-members-scroll min-h-32 max-h-72 flex-1 overflow-y-auto overscroll-contain md:min-h-0 md:max-h-none">
+                          <div className="dispatch-members-scroll min-h-32 max-h-72 flex-1 overflow-y-auto overscroll-contain bg-slate-950/30 md:min-h-0 md:max-h-none">
                             <div className="divide-y divide-slate-700/60">
                               {otherMembers.map((employee) => (
                                 <label key={employee.id} className={`flex min-w-0 cursor-pointer items-start gap-3 px-4 py-3 transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-cyan-300/70 sm:px-5 ${selectedOtherMembers.includes(employee.id) ? 'bg-cyan-400/15' : 'hover:bg-slate-800/70'}`}>
