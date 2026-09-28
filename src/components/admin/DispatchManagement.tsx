@@ -633,7 +633,7 @@ export default function DispatchManagement() {
           .order('is_base', { ascending: false })
           .order('created_at'),
         isSuperAdmin
-          ? supabase.from('admins').select('id, username').order('username')
+          ? supabase.from('admins').select('id, username').neq('role', 'emergency_admin').order('username')
           : Promise.resolve(null),
       ]);
       if (groupResult.error) throw groupResult.error;
