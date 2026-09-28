@@ -8,6 +8,9 @@ import {
   Layers,
   PackageSearch,
   Plus,
+  PowerOff,
+  Clock3,
+  AlertTriangle,
   RefreshCw,
   Save,
   Search,
@@ -31,6 +34,8 @@ const secondaryButton =
   'rounded-lg border border-slate-600 bg-slate-700/60 px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50';
 const primaryButton =
   'rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50';
+const poolInputClass =
+  'mt-1.5 w-full min-w-0 rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm font-medium text-slate-900 placeholder-slate-400 shadow-sm outline-none transition-colors focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50';
 
 interface DispatchGroup {
   id: string;
@@ -524,6 +529,7 @@ export default function DispatchManagement() {
   const [pendingGroupActive, setPendingGroupActive] = useState<boolean | null>(null);
   const [poolForm, setPoolForm] = useState<'create' | 'edit' | null>(null);
   const [poolDraft, setPoolDraft] = useState<PoolDraft>(emptyPoolDraft);
+  const [poolToggleTarget, setPoolToggleTarget] = useState<DispatchPool | null>(null);
   const [probabilityDraft, setProbabilityDraft] = useState<Record<string, string>>({});
   const [archiveTarget, setArchiveTarget] = useState<{
     type: 'group' | 'pool';
@@ -601,6 +607,7 @@ export default function DispatchManagement() {
       memberPanelOpen ||
       ordersOpen ||
       poolForm ||
+      poolToggleTarget ||
       archiveTarget ||
       memberMove ||
       deleteOrder ||
@@ -919,6 +926,7 @@ export default function DispatchManagement() {
     setGroupSettingsOpen(false);
     setMemberPanelOpen(false);
     setOrdersOpen(false);
+    setPoolToggleTarget(null);
     setEditingId(null);
     setShowBulkImport(false);
     setBulkInput('');
@@ -1205,6 +1213,7 @@ export default function DispatchManagement() {
         p_changes: { is_active: !pool.is_active },
       });
       if (error) throw error;
+      setPoolToggleTarget(null);
       if (await loadWorkspace())
         notify('success', `訂單池已${pool.is_active ? '停用' : '啟用'}。`);
     } catch (error) {
@@ -2189,7 +2198,7 @@ export default function DispatchManagement() {
                                     type="button"
                                     className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:opacity-50"
                                     disabled={busy}
-                                    onClick={() => void togglePool(pool)}
+                                    onClick={() => pool.is_active ? setPoolToggleTarget(pool) : void togglePool(pool)}
                                   >
                                     {pool.is_active ? '停用' : '啟用'}
                                   </button>
@@ -2235,81 +2244,54 @@ export default function DispatchManagement() {
             <aside
               role="dialog"
               aria-modal="true"
-              aria-label="訂單管理"
-              className="flex h-[min(860px,calc(100dvh-24px))] min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-cyan-300/30 bg-slate-900 shadow-2xl"
+              aria-labelledby="pool-orders-title"
+              className="flex h-[min(860px,calc(100dvh-24px))] min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-cyan-300/30 bg-slate-900 text-slate-100 shadow-[0_32px_90px_rgba(2,6,23,0.7)]"
             >
-          <div className="shrink-0 border-b border-slate-700 bg-gradient-to-r from-blue-950 to-cyan-950 p-4">
-            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="flex items-center gap-2 font-semibold text-white"><PackageSearch className="h-4 w-4 text-cyan-300" />訂單管理</h3>
-            <p className="mt-1 break-words text-xs text-slate-300">
-              {selectedGroup ? groupDisplayName(selectedGroup) : '請選擇分組'} /{' '}
-              {selectedPool ? poolDisplayName(selectedPool) : '請選擇訂單池'}
-            </p></div><button type="button" onClick={() => { setOrdersOpen(false); setShowBulkImport(false); setEditingId(null); }} disabled={busy} aria-label="關閉訂單管理" className="shrink-0 rounded-lg p-1.5 text-slate-200 hover:bg-white/10"><X className="h-5 w-5" /></button></div>
-            {selectedPool && (
-              <>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <select
-                    className={`${inputClass} flex-1`}
-                    aria-label="依狀態篩選訂單"
-                    value={orderFilter}
-                    onChange={(event) =>
-                      setOrderFilter(
-                        event.target.value as 'all' | 'active' | 'inactive',
-                      )
-                    }
-                  >
-                    <option value="all">全部訂單</option>
-                    <option value="active">已啟用</option>
-                    <option value="inactive">未啟用</option>
-                  </select>
-                  <span className="text-xs text-slate-400">
-                    共 {totalCount} 筆
-                  </span>
-                </div>
-                {isSuperAdmin && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      className={primaryButton}
-                      disabled={!canManageOrders || busy}
-                      onClick={() => {
-                        setImportPoolId(selectedPool.id);
-                        setBulkInput('');
-                        setShowBulkImport(true);
-                      }}
-                    >
-                      <Upload className="mr-1 inline h-4 w-4" />
-                      匯入
-                    </button>
-                    <button
-                      className={secondaryButton}
-                      disabled={
-                        !canManageOrders ||
-                        busy ||
-                        selectedPool.order_count === 0
-                      }
-                      onClick={() => {
-                        setDeleteConfirmInput('');
-                        setShowDeleteAll(true);
-                      }}
-                    >
-                      <Trash2 className="mr-1 inline h-4 w-4" />
-                      全部刪除
-                    </button>
-                  </div>
-                )}
-              </>
+          <div className="h-1 shrink-0 bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500" />
+          <div className="shrink-0 border-b border-cyan-300/15 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 px-4 py-4 sm:px-6 sm:py-5">
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-400/10 text-cyan-200"><PackageSearch className="h-5 w-5" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold tracking-widest text-cyan-300">{selectedGroup ? groupDisplayName(selectedGroup) : '訂單分組'} · 訂單池</p>
+                <h3 id="pool-orders-title" className="mt-1 break-words text-xl font-semibold text-white">{poolDisplayName(selectedPool)} <span className="text-slate-300">/ 訂單管理</span></h3>
+                <p className="mt-1 text-xs text-slate-300">檢視及管理此池的訂單內容與狀態。</p>
+              </div>
+              <span className={`hidden shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold sm:block ${selectedPool.archived_at ? 'border-rose-400/30 bg-rose-400/10 text-rose-200' : selectedPool.is_active ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-amber-400/30 bg-amber-400/10 text-amber-200'}`}>{selectedPool.archived_at ? '已封存' : selectedPool.is_active ? '已啟用' : '已停用'}</span>
+              <button type="button" onClick={() => { setOrdersOpen(false); setShowBulkImport(false); setEditingId(null); }} disabled={busy} aria-label="關閉訂單管理" className="shrink-0 rounded-lg border border-white/10 bg-white/5 p-2 text-slate-300 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"><X className="h-4 w-4" /></button>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-cyan-300/15 bg-slate-900/95 px-4 py-3 sm:px-6">
+            <div role="group" aria-label="依狀態篩選訂單" className="flex min-w-0 flex-wrap gap-1 rounded-xl border border-slate-700 bg-slate-950/70 p-1">
+              {([
+                { value: 'all', label: '全部訂單' },
+                { value: 'active', label: '已啟用' },
+                { value: 'inactive', label: '未啟用' },
+              ] as const).map((option) => (
+                <button type="button" key={option.value} aria-pressed={orderFilter === option.value} onClick={() => setOrderFilter(option.value)}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${orderFilter === option.value ? 'bg-cyan-500/20 text-cyan-100 shadow-sm ring-1 ring-cyan-400/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>{option.label}</button>
+              ))}
+            </div>
+            <span className="whitespace-nowrap text-xs font-medium tabular-nums text-cyan-200">共 {totalCount} 筆</span>
+            {isSuperAdmin && (
+              <div className="flex flex-wrap gap-2 sm:ml-auto">
+                <button type="button" disabled={!canManageOrders || busy} onClick={() => { setImportPoolId(selectedPool.id); setBulkInput(''); setShowBulkImport(true); }}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"><Upload className="h-3.5 w-3.5" />匯入訂單</button>
+                <button type="button" disabled={!canManageOrders || busy || selectedPool.order_count === 0} onClick={() => { setDeleteConfirmInput(''); setShowDeleteAll(true); }}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />全部刪除</button>
+              </div>
             )}
           </div>
           {showBulkImport && selectedPool && isSuperAdmin && (
-            <div className="max-h-[45vh] shrink-0 space-y-2 overflow-y-auto border-b border-slate-700 bg-slate-900/40 p-4">
+            <div className="max-h-[45vh] shrink-0 space-y-2 overflow-y-auto border-b border-cyan-400/20 bg-gradient-to-r from-blue-950/60 to-slate-900 px-4 py-4 sm:px-6">
               <label
-                className="block text-xs font-medium text-slate-300"
+                className="block text-xs font-semibold text-cyan-200"
                 htmlFor="import-pool"
               >
                 匯入目標訂單池
               </label>
               <select
                 id="import-pool"
-                className={inputClass}
+                className={poolInputClass}
                 value={importPoolId}
                 disabled={busy}
                 onChange={(event) => setImportPoolId(event.target.value)}
@@ -2323,14 +2305,14 @@ export default function DispatchManagement() {
                   ))}
               </select>
               <label
-                className="block text-xs text-slate-300"
+                className="block text-xs font-semibold text-cyan-200"
                 htmlFor="bulk-orders"
               >
                 每筆訂單請以空白行分隔
               </label>
               <textarea
                 id="bulk-orders"
-                className={`${inputClass} min-h-32 resize-y font-mono`}
+                className={`${poolInputClass} min-h-32 resize-y font-mono`}
                 placeholder={'第一筆訂單\n\n第二筆訂單'}
                 value={bulkInput}
                 disabled={busy}
@@ -2370,7 +2352,7 @@ export default function DispatchManagement() {
               </div>
             </div>
           )}
-          <div className="min-h-0 min-w-0 flex-1 space-y-2 overflow-y-auto p-4">
+          <div className="min-h-0 min-w-0 flex-1 space-y-2.5 overflow-y-auto bg-gradient-to-b from-slate-900 via-slate-950/80 to-slate-950 p-3 sm:p-5">
             {ordersLoading && (
               <p
                 className="py-3 text-center text-xs text-slate-400"
@@ -2385,7 +2367,7 @@ export default function DispatchManagement() {
               </p>
             ) : ordersLoading ||
               ordersPoolId !== selectedPool.id ? null : !orders.length ? (
-              <p className="py-12 text-center text-sm text-slate-400">
+              <div className="flex min-h-56 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-cyan-300/20 bg-cyan-400/5 px-4 py-10 text-center"><PackageSearch className="h-9 w-9 text-cyan-300/60" /><p className="text-sm font-medium text-slate-300">
                 此訂單池沒有
                 {orderFilter === 'all'
                   ? ''
@@ -2393,21 +2375,18 @@ export default function DispatchManagement() {
                     ? '已啟用的'
                     : '未啟用的'}
                 訂單。
-              </p>
+              </p></div>
             ) : (
               orders.map((order, index) => (
                 <article
                   key={order.id}
-                  className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/40 p-3"
+                  className="min-w-0 overflow-hidden rounded-xl border border-slate-700/80 bg-gradient-to-r from-slate-800/80 to-slate-900/75 p-3 shadow-sm sm:p-4"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
-                    <span className="text-slate-400">
-                      #{(page - 1) * PAGE_SIZE + index + 1} ·{' '}
-                      {new Date(order.created_at).toLocaleString('zh-TW')}
-                    </span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span className="flex items-center gap-2 text-slate-400"><span className="rounded-md border border-cyan-300/20 bg-cyan-400/10 px-2 py-1 font-semibold tabular-nums text-cyan-200">#{(page - 1) * PAGE_SIZE + index + 1}</span>{new Date(order.created_at).toLocaleString('zh-TW')}</span>
                     <span
                       className={
-                        order.is_active ? 'text-emerald-300' : 'text-slate-400'
+                        order.is_active ? 'rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 font-medium text-emerald-200' : 'rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 font-medium text-amber-200'
                       }
                     >
                       {order.is_active ? '已啟用' : '未啟用'}
@@ -2416,7 +2395,7 @@ export default function DispatchManagement() {
                   {editingId === order.id ? (
                     <>
                       <textarea
-                        className={`${inputClass} mt-2 min-h-28 resize-y font-mono`}
+                        className={`${poolInputClass} mt-3 min-h-28 resize-y font-mono`}
                         value={editContent}
                         onChange={(event) => setEditContent(event.target.value)}
                         aria-label="編輯訂單內容"
@@ -2447,13 +2426,13 @@ export default function DispatchManagement() {
                     </>
                   ) : (
                     <>
-                      <p className="mt-2 whitespace-pre-wrap break-all font-mono text-xs text-slate-100">
+                      <p className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-slate-700/80 bg-slate-950/60 px-3 py-3 font-mono text-xs leading-relaxed text-slate-100">
                         {order.order_content}
                       </p>
                       {canManageOrders && (
-                        <div className="mt-2 flex flex-wrap gap-3 border-t border-slate-700 pt-2 text-xs">
+                        <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-700/80 pt-3 text-xs">
                           <button
-                            className="text-blue-300 hover:text-white disabled:opacity-50"
+                            className="inline-flex items-center rounded-lg border border-blue-400/30 bg-blue-400/10 px-2.5 py-1.5 font-medium text-blue-200 hover:bg-blue-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50"
                             disabled={busy}
                             onClick={() => {
                               setEditingId(order.id);
@@ -2464,14 +2443,14 @@ export default function DispatchManagement() {
                             編輯
                           </button>
                           <button
-                            className="text-amber-300 hover:text-white disabled:opacity-50"
+                            className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-2.5 py-1.5 font-medium text-amber-200 hover:bg-amber-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:opacity-50"
                             disabled={busy}
                             onClick={() => void manageOrder('toggle', order.id)}
                           >
                             {order.is_active ? '停用' : '啟用'}
                           </button>
                           <button
-                            className="text-rose-400 hover:text-white disabled:opacity-50"
+                            className="inline-flex items-center rounded-lg border border-rose-400/30 bg-rose-400/10 px-2.5 py-1.5 font-medium text-rose-200 hover:bg-rose-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50"
                             disabled={busy}
                             onClick={() => setDeleteOrder(order)}
                           >
@@ -2487,7 +2466,7 @@ export default function DispatchManagement() {
             )}
           </div>
           {selectedPool && totalCount > 0 && (
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-slate-700 bg-slate-950/70 p-3 text-xs">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-cyan-300/15 bg-slate-950/95 px-4 py-3 text-xs sm:px-6">
               <span className="text-slate-400">
                 {(page - 1) * PAGE_SIZE + 1}–
                 {Math.min(page * PAGE_SIZE, totalCount)}／共 {totalCount} 筆 · 第{' '}
@@ -2531,7 +2510,7 @@ export default function DispatchManagement() {
                     max={totalPages}
                     value={pageInput}
                     onChange={(event) => setPageInput(event.target.value)}
-                    className={`${inputClass} w-20 flex-none py-1.5`}
+                    className={`${poolInputClass} !mt-0 w-20 flex-none !py-1.5`}
                   />
                   <button type="submit" disabled={ordersLoading || !pageInput} className={primaryButton}>跳轉</button>
                 </form>
@@ -2714,124 +2693,94 @@ export default function DispatchManagement() {
         </div>, document.body,
       )}
 
-      {poolForm &&
-        selectedGroup &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4">
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-label={poolForm === 'create' ? '建立訂單池' : '編輯訂單池'}
-              className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-600 bg-slate-800 p-5 shadow-2xl"
-            >
-              <h3 className="mb-1 text-lg font-semibold">
-                {poolForm === 'create'
-                  ? '建立訂單池'
-                  : `設定「${selectedPool ? poolDisplayName(selectedPool) : ''}」`}
-              </h3>
-              <p className="mb-4 text-xs text-slate-400">
-                {groupDisplayName(selectedGroup)} · 訂單池獨立設定
-              </p>
-              <div className="space-y-3">
-                <label className="block text-sm">
-                  訂單池名稱 *
-                  <input
-                    className={`${inputClass} mt-1`}
-                    value={poolDraft.pool_name}
-                    onChange={(event) =>
-                      setPoolDraft({
-                        ...poolDraft,
-                        pool_name: event.target.value,
-                      })
-                    }
-                  />
+      {poolForm && selectedGroup && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm sm:p-5">
+          <div role="dialog" aria-modal="true" aria-labelledby="pool-form-title" className="flex max-h-[calc(100dvh-24px)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 text-slate-100 shadow-[0_32px_90px_rgba(2,6,23,0.7)] sm:max-h-[calc(100dvh-40px)]">
+            <div className="h-1 shrink-0 bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500" />
+            <div className="flex shrink-0 items-start gap-3 border-b border-cyan-300/15 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 px-4 py-4 sm:px-6 sm:py-5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-400/10 text-cyan-200">{poolForm === 'create' ? <Plus className="h-5 w-5" /> : <Settings className="h-5 w-5" />}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold tracking-widest text-cyan-300">{groupDisplayName(selectedGroup)} · 訂單池管理</p>
+                <h3 id="pool-form-title" className="mt-1 break-words text-xl font-semibold text-white">{poolForm === 'create' ? '建立訂單池' : `編輯「${selectedPool ? poolDisplayName(selectedPool) : ''}」`}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-slate-300">設定池內派單節奏與訂單選擇方式。</p>
+              </div>
+              <button type="button" disabled={busy} onClick={() => setPoolForm(null)} aria-label="關閉訂單池設定" className="shrink-0 rounded-lg border border-white/10 bg-white/5 p-2 text-slate-300 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="min-h-0 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
+              <section>
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-cyan-100"><span className="flex h-6 w-6 items-center justify-center rounded-md bg-cyan-400/15 text-xs text-cyan-300">01</span>基本資料</div>
+                <label className="block text-sm font-medium text-slate-200">訂單池名稱 <span className="text-cyan-300">*</span>
+                  <input className={poolInputClass} value={poolDraft.pool_name} disabled={busy} placeholder="輸入訂單池名稱" onChange={(event) => setPoolDraft({ ...poolDraft, pool_name: event.target.value })} />
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="min-w-0 text-sm">
-                    最短派單間隔（秒）
-                    <input
-                      type="number"
-                      min="1"
-                      max="3000"
-                      className={`${inputClass} mt-1`}
-                      value={poolDraft.dispatch_interval_min}
-                      onChange={(event) =>
-                        setPoolDraft({
-                          ...poolDraft,
-                          dispatch_interval_min: event.target.value,
-                        })
-                      }
-                    />
+              </section>
+              <section className="border-t border-slate-700/80 pt-5">
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-blue-100"><span className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-400/15 text-xs text-blue-300">02</span>派單規則</div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="min-w-0 text-sm font-medium text-slate-200">最短派單間隔 <span className="text-slate-400">/ 秒</span>
+                    <input type="number" min="1" max="3000" className={poolInputClass} value={poolDraft.dispatch_interval_min} disabled={busy} onChange={(event) => setPoolDraft({ ...poolDraft, dispatch_interval_min: event.target.value })} />
                   </label>
-                  <label className="min-w-0 text-sm">
-                    最長派單間隔（秒）
-                    <input
-                      type="number"
-                      min="1"
-                      max="3000"
-                      className={`${inputClass} mt-1`}
-                      value={poolDraft.dispatch_interval_max}
-                      onChange={(event) =>
-                        setPoolDraft({
-                          ...poolDraft,
-                          dispatch_interval_max: event.target.value,
-                        })
-                      }
-                    />
+                  <label className="min-w-0 text-sm font-medium text-slate-200">最長派單間隔 <span className="text-slate-400">/ 秒</span>
+                    <input type="number" min="1" max="3000" className={poolInputClass} value={poolDraft.dispatch_interval_max} disabled={busy} onChange={(event) => setPoolDraft({ ...poolDraft, dispatch_interval_max: event.target.value })} />
                   </label>
                 </div>
-                <label className="block text-sm">
-                  池內選單模式
-                  <select
-                    className={`${inputClass} mt-1`}
-                    value={poolDraft.dispatch_order_mode}
-                    onChange={(event) =>
-                      setPoolDraft({
-                        ...poolDraft,
-                        dispatch_order_mode: event.target.value as
-                          | 'random'
-                          | 'sequential',
-                      })
-                    }
-                  >
-                    <option value="random">隨機選單</option>
-                    <option value="sequential">依序選單</option>
-                  </select>
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={poolDraft.is_active}
-                    onChange={(event) =>
-                      setPoolDraft({
-                        ...poolDraft,
-                        is_active: event.target.checked,
-                      })
-                    }
-                  />
-                  啟用訂單池
-                </label>
-              </div>
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  className={secondaryButton}
-                  disabled={busy}
-                  onClick={() => setPoolForm(null)}
-                >
-                  取消
+                <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-blue-200/80"><Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0" />間隔範圍為 1–3000 秒，最短不得大於最長。</p>
+                <div className="mt-4">
+                  <p id="pool-order-mode-label" className="text-sm font-medium text-slate-200">池內選單模式</p>
+                  <div role="group" aria-labelledby="pool-order-mode-label" className="mt-2 grid grid-cols-2 gap-2">
+                    {([
+                      { value: 'random', label: '隨機選單', description: '從池內訂單隨機抽取' },
+                      { value: 'sequential', label: '依序選單', description: '按訂單排列順序選取' },
+                    ] as const).map((mode) => (
+                      <button key={mode.value} type="button" aria-pressed={poolDraft.dispatch_order_mode === mode.value} disabled={busy} onClick={() => setPoolDraft({ ...poolDraft, dispatch_order_mode: mode.value })}
+                        className={`min-w-0 rounded-xl border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50 ${poolDraft.dispatch_order_mode === mode.value ? 'border-blue-300/70 bg-blue-500/20 text-white ring-1 ring-blue-400/30' : 'border-slate-700 bg-slate-950/40 text-slate-400 hover:border-slate-500 hover:text-slate-200'}`}>
+                        <span className="flex items-center justify-between gap-1 text-sm font-semibold">{mode.label}{poolDraft.dispatch_order_mode === mode.value && <CheckCircle className="h-4 w-4 shrink-0 text-blue-300" />}</span>
+                        <span className="mt-1 block text-xs opacity-80">{mode.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </section>
+              <section className="border-t border-slate-700/80 pt-5">
+                <button type="button" role="switch" aria-checked={poolDraft.is_active} disabled={busy} onClick={() => setPoolDraft({ ...poolDraft, is_active: !poolDraft.is_active })}
+                  className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50 ${poolDraft.is_active ? 'border-emerald-400/30 bg-emerald-400/10 hover:bg-emerald-400/15' : 'border-amber-400/30 bg-amber-400/10 hover:bg-amber-400/15'}`}>
+                  <span className={`relative h-6 w-11 shrink-0 rounded-full ${poolDraft.is_active ? 'bg-emerald-500' : 'bg-slate-600'}`} aria-hidden="true"><span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${poolDraft.is_active ? 'translate-x-5' : ''}`} /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-white">{poolDraft.is_active ? '啟用訂單池' : '停用訂單池'}</span><span className="mt-0.5 block text-xs text-slate-300">{poolDraft.is_active ? '儲存後可依分組規則參與派單' : '儲存後不再參與新的派單'}</span></span>
+                  <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ${poolDraft.is_active ? 'bg-emerald-400/20 text-emerald-200' : 'bg-amber-400/20 text-amber-200'}`}>{poolDraft.is_active ? '已啟用' : '已停用'}</span>
                 </button>
-                <button
-                  className={primaryButton}
-                  disabled={busy}
-                  onClick={() => void savePool()}
-                >
-                  {busy ? '儲存中…' : '儲存訂單池'}
-                </button>
-              </div>
+              </section>
             </div>
-          </div>,
-          document.body,
-        )}
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-cyan-300/15 bg-slate-950/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-end sm:px-6">
+              <button type="button" disabled={busy} onClick={() => setPoolForm(null)} className="min-h-10 rounded-xl border border-slate-600 bg-slate-800 px-5 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50">取消</button>
+              <button type="button" disabled={busy || !poolDraft.pool_name.trim()} onClick={() => void savePool()}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition-colors hover:from-cyan-500 hover:to-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50">
+                {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {busy ? '儲存中…' : poolForm === 'create' ? '建立訂單池' : '儲存變更'}
+              </button>
+            </div>
+          </div>
+        </div>, document.body,
+      )}
+
+      {poolToggleTarget && createPortal(
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm sm:p-5">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="pool-stop-title" aria-describedby="pool-stop-description" className="max-h-[calc(100dvh-24px)] w-full max-w-md overflow-y-auto rounded-2xl border border-amber-400/30 bg-slate-900 text-slate-100 shadow-[0_32px_90px_rgba(2,6,23,0.7)]">
+            <div className="h-1 bg-gradient-to-r from-amber-300 via-orange-500 to-rose-500" />
+            <div className="flex items-start gap-3 bg-gradient-to-r from-amber-950/70 to-slate-900 px-5 py-5 sm:px-6">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/35 bg-amber-400/15 text-amber-200"><PowerOff className="h-5 w-5" /></span>
+              <div className="min-w-0 flex-1"><p className="text-xs font-semibold tracking-widest text-amber-300">訂單池狀態變更</p><h3 id="pool-stop-title" className="mt-1 text-xl font-semibold text-white">停用訂單池？</h3></div>
+              <button type="button" disabled={busy} onClick={() => setPoolToggleTarget(null)} aria-label="關閉停用確認" className="shrink-0 rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:opacity-50"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-4 px-5 pb-5 sm:px-6">
+              <div className="rounded-xl border border-slate-700 bg-slate-950/50 px-4 py-3"><p className="text-xs text-slate-400">即將停用</p><p className="mt-1 break-words text-base font-semibold text-white">{poolDisplayName(poolToggleTarget)}</p><p className="mt-1 text-xs text-slate-400">{selectedGroup ? groupDisplayName(selectedGroup) : '訂單分組'} · {poolToggleTarget.order_count} 筆訂單</p></div>
+              <p id="pool-stop-description" className="flex items-start gap-2 text-sm leading-relaxed text-amber-100"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />停用後，此池不再參與新的派單；池內訂單與既有派單紀錄會保留，之後可重新啟用。</p>
+            </div>
+            <div className="flex flex-col-reverse gap-2 border-t border-amber-400/15 bg-slate-950/60 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+              <button type="button" disabled={busy} onClick={() => setPoolToggleTarget(null)} className="min-h-10 rounded-xl border border-slate-600 bg-slate-800 px-5 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50">取消</button>
+              <button type="button" disabled={busy} onClick={() => void togglePool(poolToggleTarget)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-orange-950/30 hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:opacity-50">{busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4" />}{busy ? '處理中…' : '確認停用'}</button>
+            </div>
+          </div>
+        </div>, document.body,
+      )}
 
       {archiveTarget &&
         createPortal(
