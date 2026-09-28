@@ -2328,7 +2328,7 @@ export default function DispatchManagement() {
                           </div>
                         </div>
                         <div className="mt-4 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-t border-cyan-200/20 pt-3">
-                          <span className="text-xs font-medium text-cyan-100/85">目前未封存訂單</span>
+                          <span className="text-xs font-medium text-cyan-100/85">目前已有訂單數量</span>
                           <strong className="text-xl font-bold tabular-nums text-cyan-100">{selectedPool.order_count.toLocaleString('zh-TW')} <span className="text-xs font-medium">筆</span></strong>
                         </div>
                       </div>
