@@ -68,7 +68,8 @@ export default function ProductTypeManagement({
   } | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [productTypeToDelete, setProductTypeToDelete] = useState<{ id: string; name: string; is_active: boolean } | null>(null);
+  const [productTypeToDelete, setProductTypeToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [removingProduct, setRemovingProduct] = useState(false);
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [isSorting, setIsSorting] = useState(false);
   const [draftOrder, setDraftOrder] = useState<ProductType[]>([]);
@@ -372,51 +373,37 @@ export default function ProductTypeManagement({
   };
 
   const requestDelete = (productType: ProductType) => {
-    setProductTypeToDelete({ id: productType.id, name: productType.name, is_active: productType.is_active });
+    setProductTypeToDelete({ id: productType.id, name: productType.name });
     setShowDeleteConfirm(true);
   };
 
   const confirmDelete = async () => {
-    if (!productTypeToDelete) return;
+    if (!productTypeToDelete || removingProduct) return;
 
     const previousProducts = productTypes;
-    const permanentlyDelete = !productTypeToDelete.is_active;
-    setProductTypes(current => permanentlyDelete
-      ? current.filter(item => item.id !== productTypeToDelete.id)
-      : current.map(item => item.id === productTypeToDelete.id ? { ...item, is_active: false } : item));
+    setRemovingProduct(true);
+    setProductTypes(current => current.map(item => (
+      item.id === productTypeToDelete.id ? { ...item, is_active: false } : item
+    )));
 
     try {
-      if (permanentlyDelete) {
-        const { error } = await supabase
-          .from('product_types')
-          .delete()
-          .eq('id', productTypeToDelete.id);
+      const { data, error } = await supabase
+        .from('product_types')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('id', productTypeToDelete.id)
+        .select()
+        .single();
 
-        if (error) throw error;
-        setNotification({ type: 'success', message: '產品已永久刪除' });
-      } else {
-        const { data, error } = await supabase
-          .from('product_types')
-          .update({ is_active: false, updated_at: new Date().toISOString() })
-          .eq('id', productTypeToDelete.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        setProductTypes(current => sortProductTypes(current.map(item => item.id === data.id ? data : item)));
-        setNotification({ type: 'success', message: '產品已移除，歷史訂單仍完整保留' });
-      }
+      if (error) throw error;
+      setProductTypes(current => sortProductTypes(current.map(item => item.id === data.id ? data : item)));
+      setNotification({ type: 'success', message: '產品已移除，歷史訂單仍完整保留' });
     } catch (error: unknown) {
       setProductTypes(previousProducts);
       const message = formatSupabaseError(error);
       console.error('Error removing product type:', message);
-      setNotification({
-        type: 'error',
-        message: message.includes('23503') || message.toLocaleLowerCase().includes('foreign key')
-          ? '此產品仍被歷史訂單使用，為保留訂單資料而無法永久刪除。'
-          : message || '移除產品失敗',
-      });
+      setNotification({ type: 'error', message: message || '移除產品失敗' });
     } finally {
+      setRemovingProduct(false);
       setShowDeleteConfirm(false);
       setProductTypeToDelete(null);
     }
@@ -570,14 +557,16 @@ export default function ProductTypeManagement({
           <Eye className="h-4 w-4" />
         )}
       </button>
-      <button
-        type="button"
-        onClick={() => requestDelete(productType)}
-        aria-label={`${productType.is_active ? '移除' : '永久刪除'} ${productType.name}`}
-        className="rounded-md p-1.5 text-rose-300 transition hover:bg-rose-500/15 hover:text-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
+      {productType.is_active && (
+        <button
+          type="button"
+          onClick={() => requestDelete(productType)}
+          aria-label={`移除 ${productType.name}`}
+          className="rounded-md p-1.5 text-rose-300 transition hover:bg-rose-500/15 hover:text-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 
@@ -1101,30 +1090,21 @@ export default function ProductTypeManagement({
 
       {showDeleteConfirm && productTypeToDelete && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div role="dialog" aria-modal="true" aria-labelledby="remove-product-title" className={`w-full max-w-md rounded-2xl border bg-slate-900 p-5 shadow-2xl ${productTypeToDelete.is_active ? 'border-amber-400/30' : 'border-rose-400/30'}`}>
+          <div role="dialog" aria-modal="true" aria-labelledby="remove-product-title" className="w-full max-w-md rounded-2xl border border-amber-400/30 bg-slate-900 p-5 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className={`flex h-11 w-11 items-center justify-center rounded-xl border ${productTypeToDelete.is_active ? 'border-amber-400/20 bg-amber-400/10 text-amber-300' : 'border-rose-400/20 bg-rose-400/10 text-rose-300'}`}>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/10 text-amber-300">
                 <Trash2 className="h-5 w-5" />
               </div>
               <div>
-                <h2 id="remove-product-title" className="text-lg font-semibold text-white">{productTypeToDelete.is_active ? '移除產品' : '永久刪除產品'}</h2>
-                <p className="text-xs text-slate-400">{productTypeToDelete.is_active ? '產品會停用，歷史資料會完整保留' : '此操作不可還原，且歷史訂單關聯會阻止刪除'}</p>
+                <h2 id="remove-product-title" className="text-lg font-semibold text-white">移除產品</h2>
+                <p className="text-xs text-slate-400">產品會停用，歷史資料會完整保留</p>
               </div>
             </div>
             <div className="my-5 rounded-xl border border-slate-700 bg-slate-950/70 p-4">
               <p className="text-sm font-semibold text-white">{productTypeToDelete.name}</p>
               <div className="mt-3 space-y-2 text-xs">
-                {productTypeToDelete.is_active ? (
-                  <>
-                    <p className="flex items-center gap-2 text-emerald-300"><CheckCircle className="h-4 w-4" />歷史訂單與報表資料將完整保留</p>
-                    <p className="flex items-center gap-2 text-amber-300"><AlertTriangle className="h-4 w-4" />員工端將不再顯示此產品</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="flex items-center gap-2 text-rose-300"><AlertTriangle className="h-4 w-4" />將從產品列表永久移除</p>
-                    <p className="flex items-center gap-2 text-amber-300"><AlertTriangle className="h-4 w-4" />若仍有歷史訂單關聯，系統會阻止刪除</p>
-                  </>
-                )}
+                <p className="flex items-center gap-2 text-emerald-300"><CheckCircle className="h-4 w-4" />歷史訂單與報表資料將完整保留</p>
+                <p className="flex items-center gap-2 text-amber-300"><AlertTriangle className="h-4 w-4" />員工端將不再顯示此產品</p>
               </div>
             </div>
             <div className="flex gap-3">
@@ -1134,16 +1114,18 @@ export default function ProductTypeManagement({
                   setShowDeleteConfirm(false);
                   setProductTypeToDelete(null);
                 }}
-                className="min-h-11 flex-1 rounded-xl border border-slate-700 bg-slate-800 text-sm font-medium text-slate-200 transition hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                disabled={removingProduct}
+                className="min-h-11 flex-1 rounded-xl border border-slate-700 bg-slate-800 text-sm font-medium text-slate-200 transition hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50"
               >
                 取消
               </button>
               <button
                 type="button"
                 onClick={() => void confirmDelete()}
-                className={`min-h-11 flex-1 rounded-xl text-sm font-semibold text-white transition focus:outline-none focus-visible:ring-2 ${productTypeToDelete.is_active ? 'bg-amber-600 hover:bg-amber-500 focus-visible:ring-amber-300' : 'bg-rose-600 hover:bg-rose-500 focus-visible:ring-rose-300'}`}
+                disabled={removingProduct}
+                className="min-h-11 flex-1 rounded-xl bg-amber-600 text-sm font-semibold text-white transition hover:bg-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:opacity-50"
               >
-                {productTypeToDelete.is_active ? '確認移除' : '永久刪除'}
+                {removingProduct ? '移除中…' : '確認移除'}
               </button>
             </div>
           </div>
