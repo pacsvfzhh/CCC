@@ -518,6 +518,7 @@ export default function DispatchManagement() {
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [pendingPage, setPendingPage] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
@@ -557,6 +558,7 @@ export default function DispatchManagement() {
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
   const ordersRequestRef = useRef(0);
+  const manualPageRequestRef = useRef(false);
   const workspaceRequestRef = useRef(0);
 
   const selectedGroup =
@@ -790,9 +792,17 @@ export default function DispatchManagement() {
     poolId: string,
     requestedPage = 1,
     status = orderFilter,
+    manualPageChange = false,
   ) => {
+    if (!manualPageChange && manualPageRequestRef.current) return false;
     const requestId = ++ordersRequestRef.current;
-    setOrdersLoading(true);
+    if (manualPageChange) {
+      manualPageRequestRef.current = true;
+      setPendingPage(requestedPage);
+    }
+    if (manualPageChange || ordersPoolId !== poolId || requestedPage !== page) {
+      setOrdersLoading(true);
+    }
     try {
       const from = (requestedPage - 1) * PAGE_SIZE;
       let query = supabase
@@ -813,6 +823,7 @@ export default function DispatchManagement() {
           poolId,
           Math.max(1, Math.ceil(total / PAGE_SIZE)),
           status,
+          manualPageChange,
         );
       }
       setOrders(data as unknown as DispatchOrder[]);
@@ -822,13 +833,21 @@ export default function DispatchManagement() {
       return true;
     } catch (error) {
       if (requestId !== ordersRequestRef.current) return false;
-      setOrders([]);
-      setOrdersPoolId(poolId);
-      setTotalCount(0);
+      if (!manualPageChange) {
+        setOrders([]);
+        setOrdersPoolId(poolId);
+        setTotalCount(0);
+      }
       notify('error', '載入訂單失敗：' + formatSupabaseError(error));
       return false;
     } finally {
-      if (requestId === ordersRequestRef.current) setOrdersLoading(false);
+      if (requestId === ordersRequestRef.current) {
+        setOrdersLoading(false);
+        if (manualPageChange) {
+          manualPageRequestRef.current = false;
+          setPendingPage(null);
+        }
+      }
     }
   };
 
@@ -898,6 +917,8 @@ export default function DispatchManagement() {
   }, []);
 
   useEffect(() => {
+    manualPageRequestRef.current = false;
+    setPendingPage(null);
     if (ordersOpen && selectedPool?.id) {
       void loadOrdersRef.current(selectedPool.id, 1, orderFilter);
     } else {
@@ -2259,12 +2280,12 @@ export default function DispatchManagement() {
               <span className={`hidden shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold sm:block ${selectedPool.archived_at ? 'border-rose-400/30 bg-rose-400/10 text-rose-200' : selectedPool.is_active ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-amber-400/30 bg-amber-400/10 text-amber-200'}`}>{selectedPool.archived_at ? '已封存' : selectedPool.is_active ? '已啟用' : '已停用'}</span>
               <div className="flex flex-wrap items-center gap-2 xl:ml-auto xl:flex-nowrap">
                 <span className="whitespace-nowrap rounded-lg border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs font-semibold tabular-nums text-cyan-100">
-                  {ordersLoading ? '正在載入訂單…' : totalCount ? `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, totalCount)} / 共 ${totalCount} 筆` : '目前沒有訂單'} · 第 {page} / {totalPages} 頁
+                  {ordersLoading ? '正在載入訂單…' : totalCount ? `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, totalCount)} / 共 ${totalCount} 筆` : '目前沒有訂單'} · 第 {pendingPage ?? page} / {totalPages} 頁
                 </span>
                 <div role="group" className="flex items-center gap-1.5" aria-label="訂單分頁">
-                  <button type="button" disabled={page <= 1 || ordersLoading} onClick={() => void loadOrders(selectedPool.id, page - 1)}
+                  <button type="button" disabled={page <= 1 || ordersLoading} onClick={() => void loadOrders(selectedPool.id, page - 1, orderFilter, true)}
                     className="min-h-9 rounded-lg border border-cyan-300/30 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40">上一頁</button>
-                  <button type="button" disabled={page >= totalPages || ordersLoading} onClick={() => void loadOrders(selectedPool.id, page + 1)}
+                  <button type="button" disabled={page >= totalPages || ordersLoading} onClick={() => void loadOrders(selectedPool.id, page + 1, orderFilter, true)}
                     className="min-h-9 rounded-lg border border-cyan-300/30 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40">下一頁</button>
                 </div>
                 <form className="flex items-center gap-1.5 rounded-lg border border-blue-300/25 bg-blue-400/10 p-1" onSubmit={(event) => {
@@ -2275,7 +2296,7 @@ export default function DispatchManagement() {
                     return;
                   }
                   setPageInput('');
-                  void loadOrders(selectedPool.id, targetPage);
+                  void loadOrders(selectedPool.id, targetPage, orderFilter, true);
                 }}>
                   <label htmlFor="order-page" className="shrink-0 pl-2 text-xs font-semibold text-blue-100">跳至頁碼</label>
                   <input id="order-page" type="number" min={1} max={totalPages} value={pageInput} onChange={(event) => setPageInput(event.target.value)}
@@ -2300,9 +2321,9 @@ export default function DispatchManagement() {
             </div>
             {isSuperAdmin && (
               <div className="flex flex-wrap gap-2 sm:ml-auto">
-                <button type="button" disabled={!canManageOrders || busy} onClick={() => { setImportPoolId(selectedPool.id); setBulkInput(''); setShowBulkImport(true); }}
+                <button type="button" disabled={!canManageOrders || busy || ordersLoading} onClick={() => { setImportPoolId(selectedPool.id); setBulkInput(''); setShowBulkImport(true); }}
                   className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"><Upload className="h-3.5 w-3.5" />匯入訂單</button>
-                <button type="button" disabled={!canManageOrders || busy || selectedPool.order_count === 0} onClick={() => { setDeleteConfirmInput(''); setShowDeleteAll(true); }}
+                <button type="button" disabled={!canManageOrders || busy || ordersLoading || selectedPool.order_count === 0} onClick={() => { setDeleteConfirmInput(''); setShowDeleteAll(true); }}
                   className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />全部刪除</button>
               </div>
             )}
@@ -2378,24 +2399,18 @@ export default function DispatchManagement() {
               </div>
             </div>
           )}
-          <div className="dispatch-orders-scroll min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-950/70">
+          <div aria-busy={ordersLoading} className="dispatch-orders-scroll min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-950/70">
             <div className={`sticky top-0 z-10 hidden items-center gap-x-4 border-b border-cyan-300/20 bg-gradient-to-r from-blue-900/90 via-cyan-950/90 to-slate-900/95 px-6 py-2.5 text-[11px] font-semibold tracking-wide text-cyan-100 lg:grid ${canManageOrders ? 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px_198px]' : 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px]'}`}>
               <span>序號</span><span>訂單內容</span><span>狀態</span><span>建立時間</span>{canManageOrders && <span className="text-right">操作</span>}
             </div>
-            {ordersLoading && (
-              <p
-                className="py-3 text-center text-xs text-slate-400"
-                role="status"
-              >
-                正在載入訂單…
-              </p>
+            {ordersLoading && !orders.length && (
+              <p className="py-8 text-center text-sm text-cyan-200" role="status">正在載入訂單…</p>
             )}
             {!selectedPool ? (
               <p className="py-12 text-center text-sm text-slate-400">
                 請選擇訂單池以檢視訂單。
               </p>
-            ) : ordersLoading ||
-              ordersPoolId !== selectedPool.id ? null : !orders.length ? (
+            ) : ordersPoolId !== selectedPool.id ? null : !orders.length && !ordersLoading ? (
               <div className="flex min-h-56 flex-col items-center justify-center gap-2 px-4 py-10 text-center"><PackageSearch className="h-9 w-9 text-cyan-300/60" /><p className="text-sm font-medium text-slate-300">
                 此訂單池沒有
                 {orderFilter === 'all'
@@ -2407,15 +2422,15 @@ export default function DispatchManagement() {
               </p></div>
             ) : (
               orders.map((order, index) => (
-                <div key={order.id} className={`grid min-w-0 grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 border-b border-cyan-300/10 px-4 py-2.5 transition-colors even:bg-slate-800/30 hover:bg-cyan-400/5 sm:px-6 lg:items-center lg:gap-x-4 ${canManageOrders ? 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px_198px]' : 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px]'}`}>
+                <div key={order.id} className={`grid min-w-0 grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 border-b border-cyan-300/10 px-4 py-2.5 transition-opacity even:bg-slate-800/30 hover:bg-cyan-400/5 sm:px-6 lg:items-center lg:gap-x-4 ${ordersLoading ? 'pointer-events-none opacity-45' : ''} ${canManageOrders ? 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px_198px]' : 'lg:grid-cols-[56px_minmax(0,1fr)_110px_170px]'}`}>
                   <span className="font-mono text-xs font-semibold tabular-nums text-cyan-300/80">{String((page - 1) * PAGE_SIZE + index + 1).padStart(2, '0')}</span>
                   <div className="col-span-2 min-w-0 lg:col-span-1">
                     {editingId === order.id ? (
                       <>
                         <textarea className={`${poolInputClass} dispatch-orders-scroll !mt-0 min-h-28 resize-y font-mono`} value={editContent} onChange={(event) => setEditContent(event.target.value)} aria-label="編輯訂單內容" />
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <button type="button" className={primaryButton} disabled={busy || !editContent.trim()} onClick={() => void manageOrder('edit', order.id, editContent.trim())}><Save className="mr-1 inline h-3 w-3" />儲存</button>
-                          <button type="button" className={secondaryButton} disabled={busy} onClick={() => setEditingId(null)}>取消</button>
+                          <button type="button" className={primaryButton} disabled={busy || ordersLoading || !editContent.trim()} onClick={() => void manageOrder('edit', order.id, editContent.trim())}><Save className="mr-1 inline h-3 w-3" />儲存</button>
+                          <button type="button" className={secondaryButton} disabled={busy || ordersLoading} onClick={() => setEditingId(null)}>取消</button>
                         </div>
                       </>
                     ) : (
@@ -2426,9 +2441,9 @@ export default function DispatchManagement() {
                   <time dateTime={order.created_at} className="col-start-3 min-w-0 text-right text-[11px] tabular-nums text-slate-400 lg:col-auto lg:text-left lg:text-xs">{new Date(order.created_at).toLocaleString('zh-TW')}</time>
                   {canManageOrders && editingId !== order.id && (
                     <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-1.5 lg:col-auto lg:justify-end">
-                      <button type="button" className="inline-flex min-h-8 items-center rounded-md border border-blue-400/30 bg-blue-400/10 px-2.5 text-xs font-medium text-blue-200 hover:bg-blue-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50" disabled={busy} onClick={() => { setEditingId(order.id); setEditContent(order.order_content); }}><Edit2 className="mr-1 h-3 w-3" />編輯</button>
-                      <button type="button" className="min-h-8 rounded-md border border-amber-400/30 bg-amber-400/10 px-2.5 text-xs font-medium text-amber-200 hover:bg-amber-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:opacity-50" disabled={busy} onClick={() => void manageOrder('toggle', order.id)}>{order.is_active ? '停用' : '啟用'}</button>
-                      <button type="button" className="inline-flex min-h-8 items-center rounded-md border border-rose-400/30 bg-rose-400/10 px-2.5 text-xs font-medium text-rose-200 hover:bg-rose-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50" disabled={busy} onClick={() => setDeleteOrder(order)}><Trash2 className="mr-1 h-3 w-3" />刪除</button>
+                      <button type="button" className="inline-flex min-h-8 items-center rounded-md border border-blue-400/30 bg-blue-400/10 px-2.5 text-xs font-medium text-blue-200 hover:bg-blue-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50" disabled={busy || ordersLoading} onClick={() => { setEditingId(order.id); setEditContent(order.order_content); }}><Edit2 className="mr-1 h-3 w-3" />編輯</button>
+                      <button type="button" className="min-h-8 rounded-md border border-amber-400/30 bg-amber-400/10 px-2.5 text-xs font-medium text-amber-200 hover:bg-amber-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:opacity-50" disabled={busy || ordersLoading} onClick={() => void manageOrder('toggle', order.id)}>{order.is_active ? '停用' : '啟用'}</button>
+                      <button type="button" className="inline-flex min-h-8 items-center rounded-md border border-rose-400/30 bg-rose-400/10 px-2.5 text-xs font-medium text-rose-200 hover:bg-rose-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50" disabled={busy || ordersLoading} onClick={() => setDeleteOrder(order)}><Trash2 className="mr-1 h-3 w-3" />刪除</button>
                     </div>
                   )}
                 </div>
@@ -2821,42 +2836,43 @@ export default function DispatchManagement() {
           document.body,
         )}
 
-      {deleteOrder &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4">
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-label="確認刪除訂單"
-              className="w-full max-w-md rounded-xl border border-rose-500 bg-slate-800 p-5"
-            >
-              <h3 className="mb-2 text-lg font-semibold">確定刪除訂單？</h3>
-              <p className="break-all text-sm text-slate-300">
-                {deleteOrder.order_content.slice(0, 200)}
-              </p>
-              <p className="mt-2 text-xs text-slate-400">
-                此訂單將封存，派單紀錄會保留。
-              </p>
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  className={secondaryButton}
-                  disabled={busy}
-                  onClick={() => setDeleteOrder(null)}
-                >
-                  取消
-                </button>
-                <button
-                  className="rounded-lg bg-rose-600 px-3 py-2 text-sm text-white disabled:opacity-50"
-                  disabled={busy}
-                  onClick={() => void manageOrder('delete', deleteOrder.id)}
-                >
-                  刪除
-                </button>
+      {deleteOrder && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm sm:p-5">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="delete-order-title" aria-describedby="delete-order-note"
+            className="dispatch-orders-scroll max-h-[calc(100dvh-24px)] w-full max-w-lg overflow-y-auto rounded-2xl border border-rose-400/30 bg-slate-900 text-slate-100 shadow-[0_32px_90px_rgba(2,6,23,0.7)]">
+            <div className="h-1 bg-gradient-to-r from-rose-400 via-red-500 to-orange-400" />
+            <div className="flex items-start gap-3 border-b border-rose-400/20 bg-gradient-to-r from-rose-950/85 via-slate-900 to-slate-900 px-5 py-5 sm:px-6">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-rose-400/35 bg-rose-400/15 text-rose-200"><Trash2 className="h-5 w-5" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold tracking-widest text-rose-300">訂單管理 · 單筆操作</p>
+                <h3 id="delete-order-title" className="mt-1 text-xl font-semibold text-white">確定刪除訂單？</h3>
+                <p className="mt-1 text-xs text-slate-300">請確認以下訂單內容再繼續。</p>
               </div>
+              <button type="button" disabled={busy} onClick={() => setDeleteOrder(null)} aria-label="關閉刪除確認"
+                className="shrink-0 rounded-lg p-2 text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50"><X className="h-4 w-4" /></button>
             </div>
-          </div>,
-          document.body,
-        )}
+            <div className="space-y-4 px-5 py-5 sm:px-6">
+              <div className="rounded-xl border border-slate-700/80 bg-slate-950/65 p-4">
+                <p className="mb-2 text-xs font-semibold text-rose-200">即將封存的訂單</p>
+                <p className="dispatch-orders-scroll max-h-36 overflow-y-auto whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-slate-200">
+                  {deleteOrder.order_content.slice(0, 200)}{deleteOrder.order_content.length > 200 ? '…' : ''}
+                </p>
+              </div>
+              <p id="delete-order-note" className="flex items-start gap-2 rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-3 text-sm leading-relaxed text-amber-100">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />此操作會封存訂單，不再顯示於此列表；既有派單紀錄會保留。
+              </p>
+            </div>
+            <div className="flex flex-col-reverse gap-2 border-t border-rose-400/15 bg-slate-950/65 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+              <button type="button" disabled={busy} onClick={() => setDeleteOrder(null)}
+                className="min-h-10 rounded-xl border border-slate-600 bg-slate-800 px-5 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50">取消</button>
+              <button type="button" disabled={busy} onClick={() => void manageOrder('delete', deleteOrder.id)}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-rose-950/40 transition-colors hover:from-rose-500 hover:to-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50">
+                {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}{busy ? '處理中…' : '確認刪除'}
+              </button>
+            </div>
+          </div>
+        </div>, document.body,
+      )}
 
       {showDeleteAll &&
         createPortal(
