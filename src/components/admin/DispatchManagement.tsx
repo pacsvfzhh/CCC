@@ -2193,16 +2193,6 @@ export default function DispatchManagement() {
                                   >
                                     {pool.is_active ? '停用' : '啟用'}
                                   </button>
-                                  {!pool.is_base && (
-                                    <button
-                                      type="button"
-                                      className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-100 transition-colors hover:bg-rose-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50"
-                                      disabled={busy}
-                                      onClick={() => setArchiveTarget({ type: 'pool', id: pool.id, name: poolDisplayName(pool) })}
-                                    >
-                                      封存
-                                    </button>
-                                  )}
                                 </>
                               ) : (
                                 <button
