@@ -10,6 +10,7 @@ import {
   Plus,
   RefreshCw,
   Save,
+  Search,
   Settings,
   Trash2,
   Upload,
@@ -1683,207 +1684,165 @@ export default function DispatchManagement() {
           {selectedGroup && (
             <>
               {memberPanelOpen && createPortal(
-                <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm">
-                  <div role="dialog" aria-modal="true" aria-label="分組成員管理" className="flex max-h-[calc(100dvh-24px)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-emerald-300/30 bg-slate-900 shadow-2xl">
-                    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-700 px-4 py-3"><div className="min-w-0"><h3 className="font-semibold text-white">{groupDisplayName(selectedGroup)} · 分組成員</h3><p className="text-xs text-slate-400">選擇員工後可移至此分組或預設分組</p></div><button type="button" onClick={() => setMemberPanelOpen(false)} disabled={busy} aria-label="關閉成員管理" className="rounded-lg p-1.5 text-slate-300 hover:bg-slate-700"><X className="h-5 w-5" /></button></div>
-                    <div className="min-h-0 overflow-y-auto p-4">
-                      <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h3 className="flex items-center gap-2 font-semibold">
-                      <Users className="h-4 w-4 text-emerald-400" />
-                      分組成員
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      將員工指派至此分組，或移回已啟用的預設分組。
-                    </p>
-                  </div>
-                </div>
-                <div className="mb-3 flex flex-wrap gap-2">
-                  <input
-                    className={`${inputClass} min-w-[160px] flex-1`}
-                    placeholder="搜尋員工"
-                    aria-label="搜尋員工"
-                    value={employeeSearch}
-                    onChange={(event) => setEmployeeSearch(event.target.value)}
-                  />
-                  {isSuperAdmin && (
-                    <select
-                      className={`${inputClass} w-auto max-w-full`}
-                      value={employeeAdminFilter}
-                      onChange={(event) => {
-                        setEmployeeAdminFilter(event.target.value);
-                        setSelectedCurrentMembers([]);
-                        setSelectedOtherMembers([]);
-                      }}
-                      aria-label="依管理員篩選員工"
-                    >
-                      <option value="all">所有管理員</option>
-                      {adminNames.map((owner) => (
-                        <option key={owner.id} value={owner.id}>
-                          {owner.username}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {tags.length > 0 && (
-                    <select
-                      className={`${inputClass} w-auto max-w-full`}
-                      value={employeeTagFilter}
-                      onChange={(event) => {
-                        setEmployeeTagFilter(event.target.value);
-                        setSelectedCurrentMembers([]);
-                        setSelectedOtherMembers([]);
-                      }}
-                      aria-label="依標籤篩選員工"
-                    >
-                      <option value="all">所有標籤</option>
-                      {tags.map((tag) => (
-                        <option key={tag} value={tag}>
-                          {tag}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
-                  <div className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/30 p-3">
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <h4 className="text-sm font-medium text-emerald-300">
-                        目前分組（{currentMembers.length}）
-                      </h4>
-                      {!selectedGroup.is_default && (
-                        <button
-                          className={secondaryButton}
-                          disabled={
-                            !selectedCurrentMembers.length ||
-                            !defaultGroup ||
-                            busy
-                          }
-                          title={
-                            !defaultGroup
-                              ? '沒有可用的已啟用預設分組'
-                              : undefined
-                          }
-                          onClick={() =>
-                            defaultGroup &&
-                            setMemberMove({
-                              ids: selectedCurrentMembers,
-                              targetGroupId: defaultGroup.id,
-                              destination: groupDisplayName(defaultGroup),
-                            })
-                          }
-                        >
-                          移至預設分組（{selectedCurrentMembers.length}）
-                        </button>
-                      )}
-                    </div>
-                    <div className="max-h-64 space-y-1 overflow-y-auto">
-                      {currentMembers.map((employee) => (
-                        <label
-                          key={employee.id}
-                          className="flex min-w-0 cursor-pointer items-start gap-2 rounded-lg p-2 text-sm hover:bg-slate-700/50"
-                        >
-                          <input
-                            type="checkbox"
-                            className="mt-1 accent-blue-500"
-                            checked={selectedCurrentMembers.includes(
-                              employee.id,
-                            )}
-                            onChange={() =>
-                              setSelectedCurrentMembers((current) =>
-                                current.includes(employee.id)
-                                  ? current.filter((id) => id !== employee.id)
-                                  : [...current, employee.id],
-                              )
-                            }
-                          />
-                          <span className="min-w-0 break-words">
-                            {employee.username}
-                            {employee.remarks && (
-                              <span className="block text-xs text-slate-400">
-                                {employee.remarks}
-                              </span>
-                            )}
-                          </span>
-                        </label>
-                      ))}
-                      {!currentMembers.length && (
-                        <p className="py-5 text-center text-xs text-slate-400">
-                          沒有符合條件的成員。
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="min-w-0 rounded-lg border border-slate-700 bg-slate-900/30 p-3">
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <h4 className="text-sm font-medium text-amber-300">
-                        其他分組／未指派（{otherMembers.length}）
-                      </h4>
-                      <button
-                        className={primaryButton}
-                        disabled={
-                          !selectedOtherMembers.length ||
-                          !selectedGroup.is_active ||
-                          !!selectedGroup.archived_at ||
-                          busy
-                        }
-                        onClick={() =>
-                          setMemberMove({
-                            ids: selectedOtherMembers,
-                            targetGroupId: selectedGroup.id,
-                            destination: groupDisplayName(selectedGroup),
-                          })
-                        }
-                      >
-                        移至此分組（{selectedOtherMembers.length}）
-                      </button>
-                    </div>
-                    <div className="max-h-64 space-y-1 overflow-y-auto">
-                      {otherMembers.map((employee) => (
-                        <label
-                          key={employee.id}
-                          className="flex min-w-0 cursor-pointer items-start gap-2 rounded-lg p-2 text-sm hover:bg-slate-700/50"
-                        >
-                          <input
-                            type="checkbox"
-                            className="mt-1 accent-blue-500"
-                            checked={selectedOtherMembers.includes(employee.id)}
-                            onChange={() =>
-                              setSelectedOtherMembers((current) =>
-                                current.includes(employee.id)
-                                  ? current.filter((id) => id !== employee.id)
-                                  : [...current, employee.id],
-                              )
-                            }
-                          />
-                          <span className="min-w-0 break-words">
-                            {employee.username}
-                            <span className="block text-xs text-slate-400">
-                              {displayGroupById(employee.group_id)}
-                            </span>
-                            {employee.remarks && (
-                              <span className="block text-xs text-slate-400">
-                                {employee.remarks}
-                              </span>
-                            )}
-                          </span>
-                        </label>
-                      ))}
-                      {!otherMembers.length && (
-                        <p className="py-5 text-center text-xs text-slate-400">
-                          沒有符合條件的員工。
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {!defaultGroup && !selectedGroup.is_default && (
-                  <p className="mt-2 text-xs text-amber-300">
-                    若要移出成員，預設分組必須處於啟用狀態。
-                  </p>
-                )}
-                      </section>
+                <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-slate-950/85 p-2 backdrop-blur-sm sm:p-4">
+                  <div role="dialog" aria-modal="true" aria-labelledby="dispatch-members-title" className="flex max-h-[calc(100dvh-16px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-emerald-300/30 bg-slate-900 text-slate-100 shadow-[0_32px_90px_rgba(2,6,23,0.75)] sm:max-h-[calc(100dvh-32px)]">
+                    <div className="h-1 shrink-0 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+                    <header className="shrink-0 border-b border-emerald-300/20 bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-900 px-4 py-4 sm:px-6 sm:py-5">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-300/30 bg-emerald-400/15 text-emerald-200 shadow-[0_0_24px_rgba(52,211,153,0.12)]">
+                          <Users className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-semibold tracking-[0.16em] text-emerald-300">ORDER GROUP / MEMBERS</p>
+                          <h3 id="dispatch-members-title" className="mt-1 break-words text-lg font-semibold leading-snug text-white sm:text-xl">{groupDisplayName(selectedGroup)} <span className="text-emerald-300">· 分組成員</span></h3>
+                          <p className="mt-1 text-xs leading-relaxed text-emerald-50/70">選取員工後，可將其移入此分組或移回已啟用的預設分組。</p>
+                        </div>
+                        <button type="button" onClick={() => setMemberPanelOpen(false)} disabled={busy} aria-label="關閉成員管理" className="shrink-0 rounded-xl border border-white/10 bg-white/5 p-2 text-slate-200 transition-colors hover:border-white/25 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:opacity-50"><X className="h-5 w-5" /></button>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2 pl-0 sm:pl-14">
+                        <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-100">目前分組 {currentMembers.length} 人</span>
+                        <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-100">可移入 {otherMembers.length} 人</span>
+                      </div>
+                    </header>
+                    <div className="dispatch-members-scroll min-h-0 overflow-y-auto overscroll-contain bg-[radial-gradient(ellipse_at_top_left,rgba(16,185,129,0.08),transparent_48%)] px-4 py-4 sm:px-6 sm:py-5">
+                      <div className="rounded-xl border border-slate-700/80 bg-slate-800/65 p-3 shadow-inner shadow-slate-950/30 sm:p-4">
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <div>
+                            <h4 className="text-sm font-semibold text-white">尋找員工</h4>
+                            <p className="mt-0.5 text-xs text-slate-400">依姓名、所屬管理員或標籤縮小名單</p>
+                          </div>
+                          <span className="shrink-0 text-xs text-slate-400">共 {visibleEmployees.length} 人</span>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                          <div className="relative min-w-0">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-300" />
+                            <input
+                              className="h-10 w-full min-w-0 rounded-lg border border-slate-600 bg-slate-950/70 py-2 pl-10 pr-3 text-sm text-white placeholder-slate-400 outline-none transition-colors focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/25"
+                              placeholder="搜尋員工名稱"
+                              aria-label="搜尋員工"
+                              value={employeeSearch}
+                              onChange={(event) => setEmployeeSearch(event.target.value)}
+                            />
+                          </div>
+                          {isSuperAdmin && (
+                            <select
+                              className="h-10 min-w-0 rounded-lg border border-slate-600 bg-slate-950/70 px-3 text-sm text-slate-100 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/25 sm:max-w-48"
+                              value={employeeAdminFilter}
+                              onChange={(event) => {
+                                setEmployeeAdminFilter(event.target.value);
+                                setSelectedCurrentMembers([]);
+                                setSelectedOtherMembers([]);
+                              }}
+                              aria-label="依管理員篩選員工"
+                            >
+                              <option value="all">所有管理員</option>
+                              {adminNames.map((owner) => (
+                                <option key={owner.id} value={owner.id}>{owner.username}</option>
+                              ))}
+                            </select>
+                          )}
+                          {tags.length > 0 && (
+                            <select
+                              className="h-10 min-w-0 rounded-lg border border-slate-600 bg-slate-950/70 px-3 text-sm text-slate-100 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/25 sm:max-w-48"
+                              value={employeeTagFilter}
+                              onChange={(event) => {
+                                setEmployeeTagFilter(event.target.value);
+                                setSelectedCurrentMembers([]);
+                                setSelectedOtherMembers([]);
+                              }}
+                              aria-label="依標籤篩選員工"
+                            >
+                              <option value="all">所有標籤</option>
+                              {tags.map((tag) => (
+                                <option key={tag} value={tag}>{tag}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+                        <section className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-emerald-400/25 bg-slate-950/45 shadow-[0_12px_32px_rgba(2,6,23,0.22)]">
+                          <div className="flex items-center gap-3 border-b border-emerald-400/15 bg-gradient-to-r from-emerald-500/15 to-transparent px-4 py-3">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-400/15 text-emerald-300"><Users className="h-4 w-4" /></span>
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-sm font-semibold text-emerald-100">目前分組</h4>
+                              <p className="text-[11px] text-emerald-100/60">已指派至此分組的員工</p>
+                            </div>
+                            <span className="rounded-full border border-emerald-400/30 bg-emerald-400/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-100">{currentMembers.length}</span>
+                          </div>
+                          <div className="dispatch-members-scroll max-h-52 min-h-32 space-y-1 overflow-y-auto overscroll-contain p-2 sm:max-h-72">
+                            {currentMembers.map((employee) => (
+                              <label key={employee.id} className={`flex min-w-0 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors focus-within:ring-2 focus-within:ring-emerald-300/70 ${selectedCurrentMembers.includes(employee.id) ? 'border-emerald-400/55 bg-emerald-400/15' : 'border-transparent bg-slate-800/45 hover:border-emerald-400/25 hover:bg-slate-800'}`}>
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4 shrink-0 accent-emerald-400"
+                                  checked={selectedCurrentMembers.includes(employee.id)}
+                                  onChange={() => setSelectedCurrentMembers((current) => current.includes(employee.id) ? current.filter((id) => id !== employee.id) : [...current, employee.id])}
+                                />
+                                <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-400/15 text-xs font-bold text-emerald-200">{employee.username.slice(0, 1).toUpperCase()}</span>
+                                <span className="min-w-0 flex-1 break-words text-sm font-medium text-slate-100">
+                                  {employee.username}
+                                  {employee.remarks && <span className="mt-0.5 block break-words text-xs font-normal text-slate-400">{employee.remarks}</span>}
+                                </span>
+                              </label>
+                            ))}
+                            {!currentMembers.length && <p className="px-3 py-10 text-center text-sm text-slate-400">沒有符合條件的成員</p>}
+                          </div>
+                          <div className="mt-auto border-t border-emerald-400/15 bg-slate-900/75 p-3">
+                            {!selectedGroup.is_default ? (
+                              <button
+                                type="button"
+                                className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-sm font-semibold text-emerald-100 transition-colors hover:bg-emerald-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-45"
+                                disabled={!selectedCurrentMembers.length || !defaultGroup || busy}
+                                title={!defaultGroup ? '沒有可用的已啟用預設分組' : undefined}
+                                onClick={() => defaultGroup && setMemberMove({ ids: selectedCurrentMembers, targetGroupId: defaultGroup.id, destination: groupDisplayName(defaultGroup) })}
+                              >
+                                移至預設分組（{selectedCurrentMembers.length}）<span aria-hidden="true">→</span>
+                              </button>
+                            ) : <p className="py-2 text-center text-xs text-slate-400">這是預設分組，無需移回。</p>}
+                          </div>
+                        </section>
+                        <section className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-cyan-400/25 bg-slate-950/45 shadow-[0_12px_32px_rgba(2,6,23,0.22)]">
+                          <div className="flex items-center gap-3 border-b border-cyan-400/15 bg-gradient-to-r from-cyan-500/15 to-transparent px-4 py-3">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-400/15 text-cyan-300"><Users className="h-4 w-4" /></span>
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-sm font-semibold text-cyan-100">其他分組／未指派</h4>
+                              <p className="text-[11px] text-cyan-100/60">選取後移入目前分組</p>
+                            </div>
+                            <span className="rounded-full border border-cyan-400/30 bg-cyan-400/15 px-2.5 py-0.5 text-xs font-semibold text-cyan-100">{otherMembers.length}</span>
+                          </div>
+                          <div className="dispatch-members-scroll max-h-52 min-h-32 space-y-1 overflow-y-auto overscroll-contain p-2 sm:max-h-72">
+                            {otherMembers.map((employee) => (
+                              <label key={employee.id} className={`flex min-w-0 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors focus-within:ring-2 focus-within:ring-cyan-300/70 ${selectedOtherMembers.includes(employee.id) ? 'border-cyan-400/55 bg-cyan-400/15' : 'border-transparent bg-slate-800/45 hover:border-cyan-400/25 hover:bg-slate-800'}`}>
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4 shrink-0 accent-cyan-400"
+                                  checked={selectedOtherMembers.includes(employee.id)}
+                                  onChange={() => setSelectedOtherMembers((current) => current.includes(employee.id) ? current.filter((id) => id !== employee.id) : [...current, employee.id])}
+                                />
+                                <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-400/15 text-xs font-bold text-cyan-200">{employee.username.slice(0, 1).toUpperCase()}</span>
+                                <span className="min-w-0 flex-1 break-words text-sm font-medium text-slate-100">
+                                  {employee.username}
+                                  <span className="mt-0.5 block text-xs font-normal text-cyan-200/80">{displayGroupById(employee.group_id)}</span>
+                                  {employee.remarks && <span className="mt-0.5 block break-words text-xs font-normal text-slate-400">{employee.remarks}</span>}
+                                </span>
+                              </label>
+                            ))}
+                            {!otherMembers.length && <p className="px-3 py-10 text-center text-sm text-slate-400">沒有符合條件的員工</p>}
+                          </div>
+                          <div className="mt-auto border-t border-cyan-400/15 bg-slate-900/75 p-3">
+                            <button
+                              type="button"
+                              className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-950/30 transition-colors hover:from-cyan-500 hover:to-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-45"
+                              disabled={!selectedOtherMembers.length || !selectedGroup.is_active || !!selectedGroup.archived_at || busy}
+                              onClick={() => setMemberMove({ ids: selectedOtherMembers, targetGroupId: selectedGroup.id, destination: groupDisplayName(selectedGroup) })}
+                            >
+                              移至此分組（{selectedOtherMembers.length}）<span aria-hidden="true">→</span>
+                            </button>
+                          </div>
+                        </section>
+                      </div>
+                      {!defaultGroup && !selectedGroup.is_default && <p className="mt-3 rounded-lg border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">若要移出成員，預設分組必須處於啟用狀態。</p>}
                     </div>
                   </div>
                 </div>, document.body,
