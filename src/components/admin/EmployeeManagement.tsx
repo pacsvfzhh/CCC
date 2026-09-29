@@ -2548,7 +2548,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               role="menuitemradio"
               aria-checked={selected === 'today'}
               onClick={() => select('today')}
-              className={`flex h-9 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === 'today' ? 'border-orange-200 bg-orange-500 text-white shadow-[0_3px_12px_rgba(249,115,22,0.35)]' : 'border-orange-500/35 bg-orange-950/40 text-orange-100 hover:border-orange-400/75 hover:bg-orange-900/55 hover:text-white'}`}
+              className={`flex h-7 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${selected === 'today' ? 'border-cyan-200 bg-cyan-600 text-white shadow-[0_3px_12px_rgba(8,145,178,0.35)]' : 'border-cyan-500/40 bg-cyan-950/45 text-cyan-100 hover:border-cyan-300/75 hover:bg-cyan-900/70 hover:text-white'}`}
             >
               <span className="min-w-0 flex-1 text-left">今天提现人数</span>
               <span className="tabular-nums">{todayCount} 人</span>
@@ -2558,7 +2558,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               role="menuitemradio"
               aria-checked={selected === 'all'}
               onClick={() => select('all')}
-              className={`flex h-8 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === 'all' ? 'border-orange-200 bg-orange-500 text-white shadow-[0_3px_12px_rgba(249,115,22,0.35)]' : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-orange-400/75 hover:bg-orange-900/45 hover:text-orange-50'}`}
+              className={`flex h-7 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${selected === 'all' ? 'border-blue-200 bg-blue-600 text-white shadow-[0_3px_12px_rgba(37,99,235,0.35)]' : 'border-blue-500/35 bg-blue-950/40 text-blue-100 hover:border-blue-300/70 hover:bg-blue-900/65 hover:text-white'}`}
             >
               <span className="min-w-0 flex-1 text-left">全部提现中</span>
               <span className="tabular-nums">{pendingCount} 人</span>
@@ -2572,7 +2572,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                 role="menuitemradio"
                 aria-checked={selected === date}
                 onClick={() => select(date)}
-                className={`flex h-8 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === date ? 'border-orange-200 bg-orange-500 text-white shadow-[0_3px_12px_rgba(249,115,22,0.35)]' : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-orange-400/75 hover:bg-orange-900/45 hover:text-orange-50'}`}
+                className={`flex h-7 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${selected === date ? 'border-orange-200 bg-orange-500 text-white shadow-[0_3px_12px_rgba(249,115,22,0.35)]' : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-orange-400/75 hover:bg-orange-900/45 hover:text-orange-50'}`}
               >
                 <span className="min-w-0 flex-1 text-left font-mono tabular-nums">{date}</span>
                 <span className="tabular-nums">{count} 人</span>
@@ -2606,7 +2606,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     }
     const rect = event.currentTarget.parentElement!.getBoundingClientRect();
     const menuWidth = 180;
-    const menuHeight = Math.min(370, 140 + getWithdrawalDateOptions(adminId).length * 36 + (withdrawalFilterByGroup.has(adminId) ? 36 : 0));
+    const optionCount = getWithdrawalDateOptions(adminId).length;
+    const menuHeight = 105 + (optionCount ? Math.min(210, 9 + optionCount * 32) : 49) + (withdrawalFilterByGroup.has(adminId) ? 36 : 0);
     const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
     const top = window.innerHeight - rect.bottom < menuHeight + 8
       ? Math.max(8, rect.top - menuHeight + 1)
