@@ -2866,10 +2866,9 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   setWithdrawalDropdownPos(null);
                 }}
                 aria-label="清除提现筛选"
-                className="inline-flex h-full w-9 shrink-0 items-center justify-center gap-0.5 border-l border-blue-200/40 bg-blue-600 text-white hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
+                className="inline-flex h-full w-8 shrink-0 items-center justify-center border-l border-blue-200/40 bg-blue-600 text-white hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
               >
-                <X className="h-3 w-3" />
-                <span className="whitespace-nowrap text-[9px] font-bold">清除</span>
+                <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
