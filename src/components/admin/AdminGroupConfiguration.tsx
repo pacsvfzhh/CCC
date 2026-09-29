@@ -351,6 +351,7 @@ export default function AdminGroupConfiguration() {
             <div className="divide-y divide-cyan-400/10">
               {groups.map(group => {
                 const values = formValuesByGroup[group.id];
+                const isSavingGroup = savingGroupId === group.id;
                 const customized = Object.keys(group.configs).length > 0;
                 const isDirty = values.company_name !== (group.configs.company_name || globalDefaults.company_name)
                   || values.currency_unit !== (group.configs.currency_unit || globalDefaults.currency_unit || 'USDC');
@@ -365,13 +366,13 @@ export default function AdminGroupConfiguration() {
                       </div>
                     </div>
                     <label className="min-w-0 text-xs font-medium text-slate-300"><span className="lg:sr-only">品牌名稱</span>
-                      <input type="text" value={values.company_name} onChange={(event) => setFormValuesByGroup(current => ({ ...current, [group.id]: { ...current[group.id], company_name: event.target.value } }))} required maxLength={50} placeholder="輸入品牌名稱" disabled={savingGroupId === group.id} className="mt-1.5 w-full rounded-lg border border-slate-600 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60 lg:mt-0" />
+                      <input type="text" value={values.company_name} onChange={(event) => setFormValuesByGroup(current => ({ ...current, [group.id]: { ...current[group.id], company_name: event.target.value } }))} required maxLength={50} placeholder="輸入品牌名稱" disabled={isSavingGroup} className="mt-1.5 w-full rounded-lg border border-slate-600 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60 lg:mt-0" />
                     </label>
                     <label className="min-w-0 text-xs font-medium text-slate-300"><span className="lg:sr-only">顯示幣別</span>
-                      <input type="text" value={values.currency_unit} onChange={(event) => setFormValuesByGroup(current => ({ ...current, [group.id]: { ...current[group.id], currency_unit: event.target.value.replace(/\s+/g, '') } }))} required maxLength={10} placeholder="例如 USDC" disabled={savingGroupId === group.id} className="mt-1.5 w-full rounded-lg border border-slate-600 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60 lg:mt-0" />
+                      <input type="text" value={values.currency_unit} onChange={(event) => setFormValuesByGroup(current => ({ ...current, [group.id]: { ...current[group.id], currency_unit: event.target.value.replace(/\s+/g, '') } }))} required maxLength={10} placeholder="例如 USDC" disabled={isSavingGroup} className="mt-1.5 w-full rounded-lg border border-slate-600 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60 lg:mt-0" />
                     </label>
                     <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-1">
-                      <button type="submit" disabled={savingGroupId !== null} className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50"><Save className="h-3.5 w-3.5" />{savingGroupId === group.id ? '儲存中…' : '儲存'}</button>
+                      <button type="submit" disabled={savingGroupId !== null} className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50"><Save className="h-3.5 w-3.5" />{isSavingGroup ? '儲存中…' : '儲存'}</button>
                       {customized && <button type="button" onClick={() => void handleDeleteConfig(group.id)} disabled={savingGroupId !== null} className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-400/35 px-3 text-xs font-medium text-rose-200 hover:bg-rose-400/10 disabled:opacity-50"><RotateCcw className="h-3.5 w-3.5" />還原預設</button>}
                     </div>
                   </form>
