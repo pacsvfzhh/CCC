@@ -298,7 +298,7 @@ export default function AdminGroupConfiguration() {
   }
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto bg-slate-950/45 text-slate-100">
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-slate-950/45 text-slate-100">
       {notification && (
         <div role={notification.type === 'error' ? 'alert' : 'status'} className={`fixed right-4 top-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl ${notification.type === 'success' ? 'border-emerald-400/50 bg-emerald-950 text-emerald-50' : 'border-rose-400/50 bg-rose-950 text-rose-50'}`}>
           {notification.type === 'success' ? <CheckCircle className="h-5 w-5 shrink-0 text-emerald-300" /> : <XCircle className="h-5 w-5 shrink-0 text-rose-300" />}
@@ -320,7 +320,7 @@ export default function AdminGroupConfiguration() {
         </div>
       )}
 
-      <section className="grid gap-4 border-y border-violet-300/20 bg-gradient-to-r from-[#302052] via-[#1c3262] to-[#12465a] px-4 py-4 shadow-[inset_0_1px_0_rgba(221,214,254,0.12)] sm:px-7 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-center lg:gap-6 lg:px-9 xl:grid-cols-[220px_minmax(0,1fr)]">
+      <section className="grid shrink-0 gap-4 border-y border-violet-300/20 bg-gradient-to-r from-[#302052] via-[#1c3262] to-[#12465a] px-4 py-4 shadow-[inset_0_1px_0_rgba(221,214,254,0.12)] sm:px-7 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-center lg:gap-6 lg:px-9 xl:grid-cols-[220px_minmax(0,1fr)]">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-400/35 to-cyan-400/20 text-white shadow-sm shadow-indigo-950/40 ring-1 ring-inset ring-white/25"><Shield className="h-[18px] w-[18px]" /></span>
           <div className="min-w-0">
@@ -339,13 +339,13 @@ export default function AdminGroupConfiguration() {
         </form>
       </section>
 
-      <section className="flex min-h-[360px] flex-1 flex-col">
+      <section className="flex min-h-0 flex-1 flex-col">
         {groups.length ? (
-          <div className="min-w-0 flex-1">
-            <div className="hidden gap-4 border-b border-cyan-200/30 bg-gradient-to-r from-[#253565] via-[#215075] to-[#155867] px-4 py-3 text-xs font-semibold tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:px-7 lg:grid lg:grid-cols-[minmax(150px,1.1fr)_minmax(180px,1.7fr)_minmax(110px,.8fr)_minmax(170px,1.1fr)] lg:px-9">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <div className="hidden shrink-0 gap-4 border-b border-cyan-200/30 bg-gradient-to-r from-[#253565] via-[#215075] to-[#155867] px-4 py-3 text-xs font-semibold tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:px-7 lg:grid lg:grid-cols-[minmax(150px,1.1fr)_minmax(180px,1.7fr)_minmax(110px,.8fr)_minmax(170px,1.1fr)] lg:px-9">
               <span>管理員 / 狀態</span><span>品牌名稱</span><span>顯示幣別</span><span>操作</span>
             </div>
-            <div className="divide-y divide-cyan-400/10">
+            <div className="admin-team-list-scroll min-h-0 flex-1 divide-y divide-cyan-400/10 overflow-y-auto overscroll-contain">
               {groups.map(group => {
                 const values = formValuesByGroup[group.id];
                 const isSavingGroup = savingGroupId === group.id;
