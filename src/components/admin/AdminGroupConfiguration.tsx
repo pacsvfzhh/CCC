@@ -304,23 +304,22 @@ export default function AdminGroupConfiguration() {
         </div>
       )}
 
-      <section className="grid gap-5 border-b border-cyan-400/15 px-4 py-6 sm:px-7 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10 lg:px-9">
-        <div>
-          <div className="flex items-center gap-2 text-base font-semibold text-white"><Shield className="h-5 w-5 text-violet-300" />登入畫面</div>
-          <p className="mt-2 text-sm leading-relaxed text-slate-400">調整登入頁的標題與副標題，儲存後會套用到登入畫面。</p>
+      <section className="grid gap-4 border-b border-violet-400/15 bg-gradient-to-r from-slate-900/80 via-slate-900/40 to-indigo-950/30 px-4 py-4 sm:px-7 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-center lg:gap-6 lg:px-9 xl:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-400/10 text-violet-300 ring-1 ring-inset ring-violet-300/20"><Shield className="h-[18px] w-[18px]" /></span>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-white">登入畫面</h2>
+            <p className="mt-0.5 text-xs text-slate-400">標題與副標題</p>
+          </div>
         </div>
-        <form onSubmit={handleSaveLoginSettings} className="min-w-0">
-          <div className="grid gap-4 xl:grid-cols-2">
-            <label className="block min-w-0 text-sm font-medium text-slate-200">登入標題
-              <input type="text" value={loginTitle} onChange={(event) => setLoginTitle(event.target.value)} required maxLength={100} placeholder="輸入登入頁標題" className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-300/40" />
-            </label>
-            <label className="block min-w-0 text-sm font-medium text-slate-200">登入副標題
-              <input type="text" value={loginSubtitle} onChange={(event) => setLoginSubtitle(event.target.value)} required maxLength={200} placeholder="輸入登入頁副標題" className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-300/40" />
-            </label>
-          </div>
-          <div className="mt-4 flex justify-end">
-            <button type="submit" disabled={savingLoginSettings} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-50"><Save className="h-4 w-4" />{savingLoginSettings ? '儲存中…' : '儲存登入設定'}</button>
-          </div>
+        <form onSubmit={handleSaveLoginSettings} className="grid min-w-0 gap-3 sm:grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+          <label className="block min-w-0 text-[11px] font-medium tracking-wide text-slate-400">登入標題
+            <input type="text" value={loginTitle} onChange={(event) => setLoginTitle(event.target.value)} required maxLength={100} placeholder="輸入登入頁標題" className="mt-1 h-9 w-full rounded-lg border border-slate-600/70 bg-slate-950/70 px-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition-colors focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20" />
+          </label>
+          <label className="block min-w-0 text-[11px] font-medium tracking-wide text-slate-400">登入副標題
+            <input type="text" value={loginSubtitle} onChange={(event) => setLoginSubtitle(event.target.value)} required maxLength={200} placeholder="輸入登入頁副標題" className="mt-1 h-9 w-full rounded-lg border border-slate-600/70 bg-slate-950/70 px-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition-colors focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20" />
+          </label>
+          <button type="submit" disabled={savingLoginSettings} className="inline-flex h-9 items-center justify-center gap-2 self-end rounded-lg border border-violet-300/20 bg-violet-600 px-4 text-xs font-semibold text-white shadow-sm shadow-violet-950/50 transition-colors hover:bg-violet-500 disabled:opacity-50 sm:col-span-2 md:col-span-1"><Save className="h-3.5 w-3.5" />{savingLoginSettings ? '儲存中…' : '儲存設定'}</button>
         </form>
       </section>
 
