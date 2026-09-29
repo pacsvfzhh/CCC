@@ -26,6 +26,30 @@
   opacity: 1;
 }
 
+.login-settings-scroll {
+  color-scheme: light;
+  scrollbar-width: thin;
+  scrollbar-color: #a78bfa #f1f5f9;
+}
+
+.login-settings-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.login-settings-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+
+.login-settings-scroll::-webkit-scrollbar-thumb {
+  background: #a78bfa;
+  border-radius: 999px;
+}
+
+.login-settings-scroll::-webkit-scrollbar-thumb:hover {
+  background: #8b5cf6;
+}
+
 /* Chat textarea themed scrollbar */
 .chat-textarea-scroll::-webkit-scrollbar {
   width: 6px;
