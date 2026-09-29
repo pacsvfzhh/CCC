@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Save, CheckCircle, XCircle, Building2, ArrowLeftRight } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Building2, CheckCircle, Loader2, Pencil, Save, Shield, XCircle } from 'lucide-react';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { Admin } from '../../types';
 
@@ -7,314 +7,214 @@ interface SecondaryAdminConfigurationProps {
   admin: Admin;
 }
 
+interface BrandingValues {
+  company_name: string;
+  currency_unit: string;
+}
+
 export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminConfigurationProps) {
-  const [formValues, setFormValues] = useState({
-    company_name: '',
-    currency_unit: '',
-  });
-  const [globalDefaults, setGlobalDefaults] = useState({
-    company_name: '',
-    currency_unit: '',
-  });
+  const [formValues, setFormValues] = useState<BrandingValues>({ company_name: '', currency_unit: '' });
+  const [savedCustomValues, setSavedCustomValues] = useState<Partial<BrandingValues>>({});
+  const [globalDefaults, setGlobalDefaults] = useState<BrandingValues>({ company_name: '', currency_unit: 'USDC' });
   const [brandingMode, setBrandingMode] = useState<'custom' | 'global'>('global');
+  const [editBrandingMode, setEditBrandingMode] = useState<'custom' | 'global'>('global');
   const [brandingModeConfigId, setBrandingModeConfigId] = useState<string | null>(null);
-  const [savedValues, setSavedValues] = useState({ company_name: '', currency_unit: '' });
+  const [loginTitle, setLoginTitle] = useState('');
+  const [loginSubtitle, setLoginSubtitle] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [notification, setNotification] = useState<{
-    type: 'success' | 'error';
-    message: string;
-  } | null>(null);
-  const loadConfigsRef = useRef<(() => Promise<void>) | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  useEffect(() => {
-    void loadConfigsRef.current?.();
-  }, []);
-
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => {
-        setNotification(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [notification]);
-
-  const loadConfigs = async () => {
+  const loadConfigs = useCallback(async () => {
     try {
       setLoading(true);
-
       const { data, error } = await supabase
         .from('admin_configs')
-        .select('*')
+        .select('id, admin_id, config_type, config_value')
         .or(`admin_id.eq.${admin.id},admin_id.is.null`)
         .in('config_type', ['company_name', 'currency_unit', 'branding_mode']);
-
       if (error) throw error;
 
-      const configMap: Record<string, string> = {};
-      const globalMap: Record<string, string> = {};
+      const custom: Partial<BrandingValues> = {};
+      const global: Partial<BrandingValues> = {};
       const modeConfig = data?.find(config => config.admin_id === admin.id && config.config_type === 'branding_mode');
-
       data?.forEach(config => {
-        if (config.config_type === 'branding_mode') return;
-        if (config.admin_id === admin.id) {
-          configMap[config.config_type] = config.config_value;
-        } else if (config.admin_id === null) {
-          globalMap[config.config_type] = config.config_value;
-        }
+        if (config.config_type !== 'company_name' && config.config_type !== 'currency_unit') return;
+        if (config.admin_id === admin.id) custom[config.config_type] = config.config_value;
+        if (config.admin_id === null) global[config.config_type] = config.config_value;
       });
 
-      const mode = modeConfig?.config_value === 'global' || (!modeConfig && !Object.keys(configMap).length) ? 'global' : 'custom';
+      const mode = modeConfig?.config_value === 'global' || (!modeConfig && !Object.keys(custom).length) ? 'global' : 'custom';
+      const defaults = { company_name: global.company_name || '', currency_unit: global.currency_unit || 'USDC' };
+      setGlobalDefaults(defaults);
+      setSavedCustomValues(custom);
+      setFormValues({ company_name: custom.company_name || defaults.company_name, currency_unit: custom.currency_unit || defaults.currency_unit });
       setBrandingMode(mode);
+      setEditBrandingMode(mode);
       setBrandingModeConfigId(modeConfig?.id || null);
-
-      setGlobalDefaults({
-        company_name: globalMap.company_name || '',
-        currency_unit: globalMap.currency_unit || 'USDC',
-      });
-
-      const values = {
-        company_name: mode === 'global' ? globalMap.company_name || '' : configMap.company_name || globalMap.company_name || '',
-        currency_unit: mode === 'global' ? globalMap.currency_unit || 'USDC' : configMap.currency_unit || globalMap.currency_unit || 'USDC',
-      };
-      setFormValues(values);
-      setSavedValues(values);
     } catch (error) {
       console.error('Error loading configs:', error);
+      setNotification({ type: 'error', message: '載入管理員設定失敗，請稍後再試。' });
     } finally {
       setLoading(false);
     }
-  };
-  loadConfigsRef.current = loadConfigs;
+  }, [admin.id]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => { void loadConfigs(); }, [loadConfigs]);
+
+  useEffect(() => {
+    void (async () => {
+      const { data, error } = await supabase.from('system_configs').select('key, value').in('key', ['login_title', 'login_subtitle']);
+      if (error) {
+        console.error('Error loading login page settings:', error);
+        return;
+      }
+      setLoginTitle(String(data?.find(config => config.key === 'login_title')?.value || ''));
+      setLoginSubtitle(String(data?.find(config => config.key === 'login_subtitle')?.value || ''));
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!notification) return;
+    const timer = setTimeout(() => setNotification(null), 5000);
+    return () => clearTimeout(timer);
+  }, [notification]);
+
+  const handleSave = async (event: React.FormEvent) => {
+    event.preventDefault();
     setSaving(true);
-
     try {
-      for (const [configType, configValue] of Object.entries(formValues)) {
-        if (!configValue || configValue === '') {
-          throw new Error(`${configType} cannot be empty`);
+      const ownValuesChanged = formValues.company_name !== (savedCustomValues.company_name || globalDefaults.company_name)
+        || formValues.currency_unit !== (savedCustomValues.currency_unit || globalDefaults.currency_unit);
+      const saveOwnValues = ownValuesChanged || (editBrandingMode === 'custom'
+        && (!savedCustomValues.company_name || !savedCustomValues.currency_unit));
+      let modeConfigId = brandingModeConfigId;
+
+      if (saveOwnValues) {
+        if (!formValues.company_name || !formValues.currency_unit) throw new Error('品牌名稱及顯示幣別不可留空');
+
+        if (editBrandingMode === 'global' && !modeConfigId) {
+          const { data, error } = await supabase.from('admin_configs')
+            .insert({ admin_id: admin.id, config_type: 'branding_mode', config_value: 'global', updated_at: new Date().toISOString() })
+            .select('id').single();
+          if (error) throw error;
+          modeConfigId = data.id;
+          setBrandingModeConfigId(data.id);
         }
 
-        await supabase
-          .from('admin_configs')
-          .delete()
-          .eq('config_type', configType)
-          .eq('admin_id', admin.id);
-
-        const { error: insertError } = await supabase
-          .from('admin_configs')
-          .insert({
-            admin_id: admin.id,
-            config_type: configType,
-            config_value: configValue,
-            updated_at: new Date().toISOString(),
-          });
-
-        if (insertError) throw insertError;
+        for (const [configType, configValue] of Object.entries(formValues)) {
+          const record = { config_value: configValue, updated_at: new Date().toISOString() };
+          const { error } = savedCustomValues[configType as keyof BrandingValues] !== undefined
+            ? await supabase.from('admin_configs').update(record).eq('admin_id', admin.id).eq('config_type', configType)
+            : await supabase.from('admin_configs').insert({ admin_id: admin.id, config_type: configType, ...record });
+          if (error) throw error;
+          setSavedCustomValues(current => ({ ...current, [configType]: configValue }));
+        }
       }
 
-      setNotification({
-        type: 'success',
-        message: 'Configuration saved successfully',
-      });
+      if (editBrandingMode !== brandingMode) {
+        if (modeConfigId) {
+          const { error } = await supabase.from('admin_configs')
+            .update({ config_value: editBrandingMode, updated_at: new Date().toISOString() }).eq('id', modeConfigId);
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase.from('admin_configs')
+            .insert({ admin_id: admin.id, config_type: 'branding_mode', config_value: editBrandingMode, updated_at: new Date().toISOString() })
+            .select('id').single();
+          if (error) throw error;
+          modeConfigId = data.id;
+        }
+      }
 
-      await loadConfigsRef.current?.();
-    } catch (error: unknown) {
-      console.error('Error saving configs:', error);
-      setNotification({
-        type: 'error',
-        message: `Failed to save configuration: ${formatSupabaseError(error) || 'Unknown error'}`,
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSwitchBrandingMode = async () => {
-    if (formValues.company_name !== savedValues.company_name || formValues.currency_unit !== savedValues.currency_unit) {
-      setNotification({ type: 'error', message: '請先儲存修改，再切換設定來源。' });
-      return;
-    }
-
-    const nextMode = brandingMode === 'global' ? 'custom' : 'global';
-    setSaving(true);
-    try {
-      const record = { admin_id: admin.id, config_type: 'branding_mode', config_value: nextMode, updated_at: new Date().toISOString() };
-      const { error } = brandingModeConfigId
-        ? await supabase.from('admin_configs').update(record).eq('id', brandingModeConfigId)
-        : await supabase.from('admin_configs').insert(record);
-      if (error) throw error;
-
-      await loadConfigsRef.current?.();
-      setNotification({ type: 'success', message: `已切換為${nextMode === 'global' ? '使用超管設定' : '使用自己的設定'}。` });
+      setBrandingModeConfigId(modeConfigId);
+      setBrandingMode(editBrandingMode);
+      setNotification({ type: 'success', message: '設定已儲存。' });
     } catch (error) {
-      console.error('Error switching branding mode:', error);
-      setNotification({ type: 'error', message: '切換設定來源失敗，請稍後再試。' });
+      console.error('Error saving configs:', error);
+      setNotification({ type: 'error', message: `儲存設定失敗：${formatSupabaseError(error) || '請稍後再試。'}` });
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return (
-      <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-8 text-center">
-        <div className="text-slate-400">Loading configuration...</div>
-      </div>
-    );
+    return <div className="flex min-h-0 w-full flex-1 items-center justify-center bg-slate-950/40 text-sm text-cyan-100">正在載入設定…</div>;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto bg-slate-950/45 text-slate-100">
       {notification && (
-        <div
-          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-6 py-4 rounded-lg shadow-2xl border backdrop-blur-xl transition-all duration-300 animate-in slide-in-from-top ${
-            notification.type === 'success'
-              ? 'bg-green-900/90 border-green-500/50 text-green-100'
-              : 'bg-red-900/90 border-red-500/50 text-red-100'
-          }`}
-        >
-          {notification.type === 'success' ? (
-            <CheckCircle className="w-5 h-5 text-green-400" />
-          ) : (
-            <XCircle className="w-5 h-5 text-red-400" />
-          )}
-          <span className="font-medium">{notification.message}</span>
-          <button
-            onClick={() => setNotification(null)}
-            className="ml-2 text-white/60 hover:text-white transition-colors"
-          >
-            ×
-          </button>
+        <div role={notification.type === 'error' ? 'alert' : 'status'} className={`fixed right-4 top-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl ${notification.type === 'success' ? 'border-emerald-400/50 bg-emerald-950 text-emerald-50' : 'border-rose-400/50 bg-rose-950 text-rose-50'}`}>
+          {notification.type === 'success' ? <CheckCircle className="h-5 w-5 shrink-0 text-emerald-300" /> : <XCircle className="h-5 w-5 shrink-0 text-rose-300" />}
+          <span>{notification.message}</span>
+          <button type="button" onClick={() => setNotification(null)} aria-label="關閉提示" className="ml-2 rounded p-1 text-slate-300 hover:text-white">×</button>
         </div>
       )}
 
-      <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-6">
-        <p className="text-slate-400 text-sm mb-4">
-          Set your team's brand name and display currency. Withdrawal rules and employee groups are managed in Order Assignment.
-        </p>
-      </div>
-
-      <div className="bg-gradient-to-br from-blue-500/10 via-cyan-500/10 to-blue-500/10 border border-blue-500/30 rounded-xl p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-          <h3 className="text-blue-300 font-semibold">Current Active Parameters</h3>
-          {brandingMode === 'custom' ? (
-            <span className="ml-auto px-2.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
-              使用自己設定
-            </span>
-          ) : (
-            <span className="ml-auto px-2.5 py-0.5 bg-slate-500/20 text-slate-400 text-xs rounded-full border border-slate-500/30">
-              使用超管設定
-            </span>
-          )}
+      <section className="grid shrink-0 gap-4 border-y border-violet-300/20 bg-gradient-to-r from-[#302052] via-[#1c3262] to-[#12465a] px-4 py-4 shadow-[inset_0_1px_0_rgba(221,214,254,0.12)] sm:px-7 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-center lg:gap-6 lg:px-9 xl:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-400/35 to-cyan-400/20 text-white ring-1 ring-inset ring-white/25"><Shield className="h-[18px] w-[18px]" /></span>
+          <div className="min-w-0"><h2 className="text-sm font-semibold text-white">登入畫面</h2><p className="mt-0.5 text-xs text-violet-100/90">標題與副標題 · 僅供查看</p></div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-            <div className="text-xs text-slate-400 mb-1">Brand Name</div>
-            <div className="text-lg font-bold text-white truncate">
-              {formValues.company_name || 'Not Set'}
+        <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+          <div className="min-w-0 text-xs font-semibold tracking-wide text-slate-100">登入標題
+            <p className="mt-1 flex min-h-9 items-center break-words rounded-lg border border-slate-300/80 bg-slate-50 px-3 py-1.5 text-sm font-normal leading-5 text-slate-900">{loginTitle || '未設定'}</p>
+          </div>
+          <div className="min-w-0 text-xs font-semibold tracking-wide text-slate-100">登入副標題
+            <p className="mt-1 flex min-h-9 items-center break-words rounded-lg border border-slate-300/80 bg-slate-50 px-3 py-1.5 text-sm font-normal leading-5 text-slate-900">{loginSubtitle || '未設定'}</p>
+          </div>
+        </div>
+      </section>
+
+      <form onSubmit={handleSave} className="flex w-full flex-1 flex-col bg-[#17283d]">
+        <div className="flex items-center gap-3 border-b border-cyan-300/20 bg-gradient-to-r from-[#253565] via-[#215075] to-[#155867] px-4 py-4 sm:px-7 lg:px-9">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-cyan-100"><Building2 className="h-5 w-5" aria-hidden="true" /></span>
+          <div className="min-w-0"><h2 className="text-base font-semibold text-white">我的設定</h2><p className="break-words text-sm text-cyan-100">{admin.username} · 二級管理員</p></div>
+          <span className={`ml-auto shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${brandingMode === 'global' ? 'border-amber-300/60 bg-amber-400/20 text-amber-100' : 'border-blue-300/60 bg-blue-500/25 text-blue-100'}`}>目前使用{brandingMode === 'global' ? '超管設定' : '自己設定'}</span>
+        </div>
+
+        <div className="w-full max-w-4xl space-y-5 px-4 py-5 sm:px-7 sm:py-6 lg:px-9">
+          <section>
+            <h3 className="text-sm font-semibold text-white">設定來源</h3>
+            <p className="mt-1 text-xs text-slate-300">目前使用{brandingMode === 'global' ? '超管設定' : '自己設定'}；選擇後按「儲存設定」才會生效。</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <button type="button" aria-pressed={editBrandingMode === 'global'} disabled={saving} onClick={() => setEditBrandingMode('global')} className={`min-h-[82px] rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${editBrandingMode === 'global' ? 'border-amber-300 bg-gradient-to-br from-amber-500/35 via-amber-500/20 to-yellow-400/15 text-amber-50 shadow-lg shadow-amber-950/30 ring-2 ring-amber-300/55' : 'border-slate-600/45 bg-slate-950/25 text-slate-400 hover:border-amber-400/40 hover:bg-amber-400/[0.06] hover:text-amber-100'}`}>
+                <span className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-sm font-semibold"><Shield className="h-4 w-4 shrink-0" aria-hidden="true" />使用超管設定</span><span className={`inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-amber-950 ${editBrandingMode === 'global' ? '' : 'invisible'}`}><CheckCircle className="h-3 w-3" aria-hidden="true" />已選擇</span></span>
+                <span className="mt-1.5 block text-xs opacity-80">顯示超管的品牌與幣別</span>
+              </button>
+              <button type="button" aria-pressed={editBrandingMode === 'custom'} disabled={saving} onClick={() => setEditBrandingMode('custom')} className={`min-h-[82px] rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${editBrandingMode === 'custom' ? 'border-blue-300 bg-gradient-to-br from-blue-500/40 via-blue-500/25 to-cyan-400/15 text-blue-50 shadow-lg shadow-blue-950/30 ring-2 ring-blue-300/55' : 'border-slate-600/45 bg-slate-950/25 text-slate-400 hover:border-blue-400/40 hover:bg-blue-400/[0.06] hover:text-blue-100'}`}>
+                <span className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-sm font-semibold"><Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />使用自己設定</span><span className={`inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-300 px-2 py-0.5 text-[10px] font-bold text-blue-950 ${editBrandingMode === 'custom' ? '' : 'invisible'}`}><CheckCircle className="h-3 w-3" aria-hidden="true" />已選擇</span></span>
+                <span className="mt-1.5 block text-xs opacity-80">顯示自己設定的品牌與幣別</span>
+              </button>
             </div>
-          </div>
-          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-            <div className="text-xs text-slate-400 mb-1">Currency</div>
-            <div className="text-lg font-bold text-white">{formValues.currency_unit || 'USDC'}</div>
-          </div>
-        </div>
-      </div>
+          </section>
 
-      <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-blue-500/20 rounded-lg flex-shrink-0">
-            <Building2 className="w-5 h-5 text-blue-400" />
-          </div>
-          <div>
-            <p className="text-sm text-blue-200 font-semibold mb-1">Your Team's Configuration</p>
-            <p className="text-sm text-blue-300/80">
-              You can customize your team's brand name and currency. Super admins set withdrawal rules for each order group in Order Assignment.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-6">
-        <form onSubmit={handleSave} className="space-y-6">
-          <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-6">
-            <h3 className="text-yellow-400 font-semibold mb-4 flex items-center gap-2">
-              <Building2 className="w-5 h-5" />
-              My Brand Name
-            </h3>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Your Brand Name
+          <section className="border-t border-slate-500/40 pt-5">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-blue-100"><Pencil className="h-4 w-4" aria-hidden="true" />自己的設定</h3>
+            <p className="mt-1 text-xs leading-5 text-blue-200/80">自己的品牌與幣別會保留，切換設定來源也不會刪除。</p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,2.5fr)_minmax(150px,1fr)]">
+              <label className="block min-w-0 text-xs font-semibold text-slate-200">品牌名稱
+                <input type="text" value={formValues.company_name} onChange={event => setFormValues(current => ({ ...current, company_name: event.target.value }))} required={editBrandingMode === 'custom'} maxLength={50} disabled={saving} placeholder="輸入品牌名稱" className="mt-1.5 h-10 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60" />
               </label>
-              <input
-                type="text"
-                value={formValues.company_name}
-                onChange={(e) => setFormValues({ ...formValues, company_name: e.target.value })}
-                disabled={brandingMode === 'global' || saving}
-                required
-                maxLength={50}
-                className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                placeholder="Enter your brand name"
-              />
-              <p className="text-slate-500 text-xs mt-1">
-                This name will appear in the header for all your employees
-              </p>
-              {globalDefaults.company_name && (
-                <p className="text-slate-600 text-xs mt-1">
-                  Global default: {globalDefaults.company_name}
-                </p>
-              )}
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Currency Unit
+              <label className="block min-w-0 text-xs font-semibold text-slate-200">顯示幣別
+                <input type="text" value={formValues.currency_unit} onChange={event => setFormValues(current => ({ ...current, currency_unit: event.target.value.replace(/\s+/g, '') }))} required={editBrandingMode === 'custom'} maxLength={10} disabled={saving} placeholder="例如 USDC" className="mt-1.5 h-10 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60" />
               </label>
-              <input
-                type="text"
-                value={formValues.currency_unit}
-                onChange={(e) => setFormValues({ ...formValues, currency_unit: e.target.value.replace(/\s+/g, '') })}
-                disabled={brandingMode === 'global' || saving}
-                required
-                maxLength={10}
-                className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                placeholder="USDC"
-              />
-              <p className="text-slate-500 text-xs mt-1">
-                Currency unit displayed on employee pages (e.g., USDT, USD, BTC)
-              </p>
-              {globalDefaults.currency_unit && (
-                <p className="text-slate-600 text-xs mt-1">
-                  Global default: {globalDefaults.currency_unit}
-                </p>
-              )}
             </div>
-          </div>
+          </section>
 
-          <div className="flex gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={saving || brandingMode === 'global'}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <Save className="w-5 h-5" />
-              {saving ? 'Saving...' : 'Save Configuration'}
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleSwitchBrandingMode()}
-              disabled={saving}
-              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
-            >
-              <ArrowLeftRight className="w-5 h-5" />
-              {brandingMode === 'custom' ? '改用超管設定' : '改用自己設定'}
-            </button>
-          </div>
-        </form>
-      </div>
+          <section className="border-t border-slate-500/40 pt-5">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-100"><Shield className="h-4 w-4" aria-hidden="true" />超管設定 · 對照</h3>
+            <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(0,2.5fr)_minmax(150px,1fr)]">
+              <div className="min-w-0"><p className="text-xs text-amber-100/70">品牌名稱</p><p className="mt-1 break-words text-sm font-medium text-slate-100">{globalDefaults.company_name || '未設定'}</p></div>
+              <div className="min-w-0"><p className="text-xs text-amber-100/70">顯示幣別</p><p className="mt-1 break-words text-sm font-medium text-slate-100">{globalDefaults.currency_unit || '未設定'}</p></div>
+            </div>
+          </section>
+        </div>
+
+        <div className="flex justify-end border-t border-white/10 bg-slate-950/25 px-4 py-4 sm:px-7 lg:px-9">
+          <button type="submit" disabled={saving} className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-4 text-sm font-semibold text-white hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="h-4 w-4" aria-hidden="true" />}{saving ? '儲存中…' : '儲存設定'}</button>
+        </div>
+      </form>
     </div>
   );
 }
