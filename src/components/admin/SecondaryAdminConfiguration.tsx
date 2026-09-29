@@ -160,6 +160,18 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
 
         <div className="w-full max-w-4xl flex-1 space-y-5 px-4 py-5 sm:px-7 sm:py-6 lg:px-9">
           <section>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-cyan-100"><Shield className="h-4 w-4" aria-hidden="true" />登入畫面 <span className="text-xs font-normal text-slate-400">· 僅供查看</span></h3>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="min-w-0 text-xs font-semibold text-slate-200">登入標題
+                <p className="mt-1.5 flex min-h-10 items-center break-words rounded-lg border border-slate-300/80 bg-slate-50 px-3 py-2 text-sm font-normal leading-5 text-slate-900">{loginTitle || '未設定'}</p>
+              </div>
+              <div className="min-w-0 text-xs font-semibold text-slate-200">登入副標題
+                <p className="mt-1.5 flex min-h-10 items-center break-words rounded-lg border border-slate-300/80 bg-slate-50 px-3 py-2 text-sm font-normal leading-5 text-slate-900">{loginSubtitle || '未設定'}</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="border-t border-slate-500/40 pt-5">
             <h3 className="text-sm font-semibold text-white">設定來源</h3>
             <p className="mt-1 text-xs text-slate-300">目前使用{brandingMode === 'global' ? '超管設定' : '自己設定'}；選擇後按「儲存設定」才會生效。</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -192,18 +204,6 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
             <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(0,2.5fr)_minmax(150px,1fr)]">
               <div className="min-w-0"><p className="text-xs text-amber-100/70">品牌名稱</p><p className="mt-1 break-words text-sm font-medium text-slate-100">{globalDefaults.company_name || '未設定'}</p></div>
               <div className="min-w-0"><p className="text-xs text-amber-100/70">顯示幣別</p><p className="mt-1 break-words text-sm font-medium text-slate-100">{globalDefaults.currency_unit || '未設定'}</p></div>
-            </div>
-          </section>
-
-          <section className="border-t border-slate-500/40 pt-5">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-cyan-100"><Shield className="h-4 w-4" aria-hidden="true" />登入畫面 <span className="text-xs font-normal text-slate-400">· 僅供查看</span></h3>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="min-w-0 text-xs font-semibold text-slate-200">登入標題
-                <p className="mt-1.5 flex min-h-10 items-center break-words rounded-lg border border-slate-300/80 bg-slate-50 px-3 py-2 text-sm font-normal leading-5 text-slate-900">{loginTitle || '未設定'}</p>
-              </div>
-              <div className="min-w-0 text-xs font-semibold text-slate-200">登入副標題
-                <p className="mt-1.5 flex min-h-10 items-center break-words rounded-lg border border-slate-300/80 bg-slate-50 px-3 py-2 text-sm font-normal leading-5 text-slate-900">{loginSubtitle || '未設定'}</p>
-              </div>
             </div>
           </section>
         </div>
