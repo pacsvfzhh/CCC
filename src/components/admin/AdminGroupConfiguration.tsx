@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Save, Users, Building2, CheckCircle, XCircle, Shield, RotateCcw } from 'lucide-react';
+import { Save, Users, Building2, CheckCircle, XCircle, Shield, RotateCcw, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface AdminGroup {
@@ -335,7 +335,7 @@ export default function AdminGroupConfiguration() {
           <label className="block min-w-0 text-xs font-semibold tracking-wide text-slate-100">登入副標題
             <textarea ref={loginSubtitleRef} value={loginSubtitle} onChange={(event) => setLoginSubtitle(event.target.value.replace(/[\r\n]+/g, ' '))} required maxLength={200} rows={1} placeholder="輸入登入頁副標題" className="login-settings-scroll mt-1 block h-9 max-h-[52px] w-full resize-none overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 px-3 py-[5px] text-sm leading-5 text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-500 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-400/20" />
           </label>
-          <button type="submit" disabled={savingLoginSettings} className="inline-flex h-9 items-center justify-center gap-2 self-end rounded-lg border border-white/20 bg-gradient-to-r from-violet-600 to-blue-600 px-4 text-xs font-semibold text-white shadow-md shadow-indigo-950/30 transition-all hover:from-violet-500 hover:to-blue-500 disabled:opacity-50 sm:col-span-2 md:col-span-1"><Save className="h-3.5 w-3.5" />{savingLoginSettings ? '儲存中…' : '儲存設定'}</button>
+          <button type="submit" disabled={savingLoginSettings} aria-busy={savingLoginSettings} className="inline-flex h-9 items-center justify-center gap-2 self-end rounded-lg border border-white/20 bg-gradient-to-r from-violet-600 to-blue-600 px-4 text-xs font-semibold text-white shadow-md shadow-indigo-950/30 transition-all hover:from-violet-500 hover:to-blue-500 disabled:cursor-wait disabled:opacity-80 sm:col-span-2 md:col-span-1">{savingLoginSettings ? <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Save className="h-3.5 w-3.5" aria-hidden="true" />}{savingLoginSettings ? '儲存中…' : '儲存設定'}</button>
         </form>
       </section>
 
