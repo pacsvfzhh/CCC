@@ -2537,7 +2537,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
 
     return createPortal(
       <div data-withdrawal-dropdown className="fixed z-[9999]" style={{ top: withdrawalDropdownPos.top, left: withdrawalDropdownPos.left }}>
-        <div role="menu" aria-label="提现日期筛选" className="w-[180px] overflow-hidden rounded-b-xl rounded-t-sm border border-orange-400/60 bg-[#120e0d] shadow-[0_18px_36px_rgba(0,0,0,0.65)]">
+        <div role="menu" aria-label="提现日期筛选" className="w-[180px] overflow-hidden rounded-xl border border-orange-400/60 bg-[#120e0d] shadow-[0_18px_36px_rgba(0,0,0,0.65)]">
           <div className="flex items-center gap-2 border-b border-orange-400/20 bg-orange-950/70 px-3 py-2">
             <Wallet className="h-4 w-4 text-orange-300" />
             <span className="flex-1 text-[11px] font-bold text-orange-100">提现日期筛选</span>
@@ -2619,8 +2619,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const menuHeight = 105 + (optionCount ? Math.min(210, 9 + optionCount * 32) : 49) + (withdrawalFilterByGroup.has(adminId) ? 34 : 0);
     const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
     const top = window.innerHeight - rect.bottom < menuHeight + 8
-      ? Math.max(8, rect.top - menuHeight + 1)
-      : rect.bottom - 1;
+      ? Math.max(8, rect.top - menuHeight - 6)
+      : rect.bottom + 6;
     setInactiveDaysDropdownOpen(null);
     setIdleDaysDropdownPos(null);
     setCreatedDateDropdownOpen(null);
