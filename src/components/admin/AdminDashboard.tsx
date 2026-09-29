@@ -1532,7 +1532,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
             {loadedTabs.has('config') && (
               <div className={activeTab === 'config' ? 'flex min-h-0 w-full flex-1 flex-col overflow-hidden' : 'hidden'}>
                 {admin.role === 'super_admin' ? (
-                  <SystemConfiguration admin={admin} />
+                  <SystemConfiguration admin={admin} isActive={activeTab === 'config'} />
                 ) : (
                   <SecondaryAdminConfiguration admin={admin} />
                 )}

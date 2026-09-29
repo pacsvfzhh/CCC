@@ -4,11 +4,12 @@ import SecondaryAdminConfiguration from './SecondaryAdminConfiguration';
 
 interface SystemConfigurationProps {
   admin: Admin;
+  isActive: boolean;
 }
 
-export default function SystemConfiguration({ admin }: SystemConfigurationProps) {
+export default function SystemConfiguration({ admin, isActive }: SystemConfigurationProps) {
   if (admin.role === 'super_admin') {
-    return <AdminGroupConfiguration />;
+    return <AdminGroupConfiguration isActive={isActive} />;
   }
 
   return <SecondaryAdminConfiguration admin={admin} />;

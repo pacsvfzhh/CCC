@@ -20,7 +20,7 @@ interface ConfigFormValues {
   currency_unit: string;
 }
 
-export default function AdminGroupConfiguration() {
+export default function AdminGroupConfiguration({ isActive }: { isActive: boolean }) {
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingGroupId, setSavingGroupId] = useState<string | null>(null);
@@ -56,12 +56,39 @@ export default function AdminGroupConfiguration() {
   }, [loading, loginTitle, loginSubtitle]);
 
   useEffect(() => {
-    void (async () => {
-      await loadGlobalDefaults();
-      await loadGroups();
-    })();
     void loadLoginPageSettings();
   }, []);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    const refresh = () => {
+      void loadGlobalDefaults();
+      void loadGroups();
+    };
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(refresh, 150);
+    };
+    const refreshOnReturn = () => {
+      if (document.visibilityState === 'visible') scheduleRefresh();
+    };
+
+    refresh();
+    const channel = supabase.channel('admin-group-settings-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_configs' }, scheduleRefresh)
+      .subscribe();
+    window.addEventListener('focus', refreshOnReturn);
+    document.addEventListener('visibilitychange', refreshOnReturn);
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      window.removeEventListener('focus', refreshOnReturn);
+      document.removeEventListener('visibilitychange', refreshOnReturn);
+      void supabase.removeChannel(channel);
+    };
+  }, [isActive]);
 
   const loadLoginPageSettings = async () => {
     try {
@@ -122,8 +149,6 @@ export default function AdminGroupConfiguration() {
 
   const loadGroups = async () => {
     try {
-      setLoading(true);
-
       const { data: adminsData, error: adminsError } = await supabase
         .from('admins')
         .select('id, username, role, created_at')
