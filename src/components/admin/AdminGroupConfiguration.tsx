@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Users, Building2, CheckCircle, XCircle, Shield, RotateCcw, Settings2 } from 'lucide-react';
+import { Save, Users, Building2, CheckCircle, XCircle, Shield, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface AdminGroup {
@@ -303,17 +303,6 @@ export default function AdminGroupConfiguration() {
           </div>
         </div>
       )}
-
-      <header className="border-b border-cyan-400/20 bg-gradient-to-r from-blue-950/70 via-slate-900/70 to-cyan-950/40 px-4 py-5 sm:px-7 lg:px-9">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-400/15 text-cyan-200"><Settings2 className="h-5 w-5" /></span>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-300">系統設定</p>
-            <h1 className="mt-0.5 text-2xl font-semibold text-white">設定</h1>
-            <p className="mt-1 text-sm text-slate-300">管理登入畫面文案及各管理員團隊的品牌與顯示幣別。</p>
-          </div>
-        </div>
-      </header>
 
       <section className="grid gap-5 border-b border-cyan-400/15 px-4 py-6 sm:px-7 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10 lg:px-9">
         <div>
