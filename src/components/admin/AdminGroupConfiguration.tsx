@@ -402,7 +402,7 @@ export default function AdminGroupConfiguration() {
             aria-labelledby="edit-group-title"
             onSubmit={(event) => void handleSave(event, editingGroup.id)}
             onKeyDown={(event) => { if (event.key === 'Escape' && savingGroupId === null) setEditingGroupId(null); }}
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-cyan-300/25 bg-[#17283d] shadow-2xl shadow-slate-950/70"
+            className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-cyan-300/25 bg-[#17283d] shadow-2xl shadow-slate-950/70"
           >
             <div className="flex items-start justify-between gap-4 border-b border-cyan-300/20 bg-gradient-to-r from-[#253565] via-[#215075] to-[#155867] px-5 py-4 sm:px-6">
               <div className="flex min-w-0 items-center gap-3">
@@ -415,11 +415,11 @@ export default function AdminGroupConfiguration() {
               <button type="button" onClick={() => setEditingGroupId(null)} disabled={savingGroupId !== null} aria-label="關閉編輯面板" className="rounded-lg p-1.5 text-cyan-100/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"><X className="h-5 w-5" /></button>
             </div>
 
-            <div className="space-y-5 p-5 sm:p-6">
-              <section className="rounded-xl border border-blue-400/25 bg-blue-500/[0.08] p-4">
+            <div className="space-y-5 px-5 py-5 sm:px-7 sm:py-6">
+              <section>
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-blue-100"><Pencil className="h-4 w-4" aria-hidden="true" />{editingGroup.role === 'super_admin' ? '超管自己的設定' : '此管理員自己的設定'}</h3>
                 {editingGroup.role !== 'super_admin' && editingGroup.brandingMode === 'global' && <p className="mt-1 text-xs leading-5 text-blue-200/80">目前使用超管設定。儲存自己的內容後，可在列表切換為「使用自己設定」。</p>}
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,2.5fr)_minmax(150px,1fr)]">
                   <label className="block min-w-0 text-xs font-semibold text-slate-200">品牌名稱
                     <input type="text" autoFocus value={editValues.company_name} onChange={(event) => setEditValues(current => ({ ...current, company_name: event.target.value }))} required maxLength={50} disabled={savingGroupId !== null} placeholder="輸入品牌名稱" className="mt-1.5 h-10 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60" />
                   </label>
@@ -429,14 +429,14 @@ export default function AdminGroupConfiguration() {
                 </div>
               </section>
 
-              <section className="rounded-xl border border-amber-300/25 bg-amber-400/[0.07] p-4">
+              <section className="border-t border-slate-500/40 pt-5">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-100"><Shield className="h-4 w-4" aria-hidden="true" />超管設定 · 對照</h3>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <div className="min-w-0 rounded-lg border border-amber-300/15 bg-slate-950/25 px-3 py-2">
+                <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(0,2.5fr)_minmax(150px,1fr)]">
+                  <div className="min-w-0">
                     <p className="text-xs text-amber-100/70">品牌名稱</p>
                     <p className="mt-1 break-words text-sm font-medium text-slate-100">{globalDefaults.company_name || '未設定'}</p>
                   </div>
-                  <div className="min-w-0 rounded-lg border border-amber-300/15 bg-slate-950/25 px-3 py-2">
+                  <div className="min-w-0">
                     <p className="text-xs text-amber-100/70">顯示幣別</p>
                     <p className="mt-1 break-words text-sm font-medium text-slate-100">{globalDefaults.currency_unit || '未設定'}</p>
                   </div>
