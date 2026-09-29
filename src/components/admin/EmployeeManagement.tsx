@@ -2548,7 +2548,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               role="menuitemradio"
               aria-checked={selected === 'today'}
               onClick={() => select('today')}
-              className={`flex h-7 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${selected === 'today' ? 'border-cyan-200 bg-cyan-600 text-white shadow-[0_3px_12px_rgba(8,145,178,0.35)]' : 'border-cyan-500/40 bg-cyan-950/45 text-cyan-100 hover:border-cyan-300/75 hover:bg-cyan-900/70 hover:text-white'}`}
+              className={`flex h-7 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 ${selected === 'today' ? 'border-emerald-200 bg-emerald-600 text-white shadow-[0_3px_12px_rgba(5,150,105,0.4)]' : 'border-emerald-500/55 bg-emerald-950/65 text-emerald-100 hover:border-emerald-300/85 hover:bg-emerald-800/70 hover:text-white'}`}
             >
               <span className="min-w-0 flex-1 text-left">今天提现人数</span>
               <span className="tabular-nums">{todayCount} 人</span>
@@ -2558,7 +2558,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
               role="menuitemradio"
               aria-checked={selected === 'all'}
               onClick={() => select('all')}
-              className={`flex h-7 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${selected === 'all' ? 'border-blue-200 bg-blue-600 text-white shadow-[0_3px_12px_rgba(37,99,235,0.35)]' : 'border-blue-500/35 bg-blue-950/40 text-blue-100 hover:border-blue-300/70 hover:bg-blue-900/65 hover:text-white'}`}
+              className={`flex h-7 w-full items-center gap-2 rounded-lg border px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 ${selected === 'all' ? 'border-violet-200 bg-violet-600 text-white shadow-[0_3px_12px_rgba(124,58,237,0.4)]' : 'border-violet-500/55 bg-violet-950/65 text-violet-100 hover:border-violet-300/85 hover:bg-violet-800/70 hover:text-white'}`}
             >
               <span className="min-w-0 flex-1 text-left">全部提现中</span>
               <span className="tabular-nums">{pendingCount} 人</span>
@@ -2580,17 +2580,26 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
             )) : <p className="py-3 text-center text-[10px] text-slate-400">暂无提现中记录</p>}
           </div>
           {selected && (
-            <button
-              type="button"
-              onClick={() => {
-                clearWithdrawalFilter(adminId);
-                setWithdrawalDropdownOpen(null);
-                setWithdrawalDropdownPos(null);
-              }}
-              className="flex h-9 w-full items-center justify-center gap-1.5 border-t border-blue-300/35 bg-blue-700 text-[11px] font-semibold text-white hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-            >
-              <X className="h-3.5 w-3.5" />清除筛选
-            </button>
+            <div className="flex h-[34px] items-stretch border-t border-rose-400/25 bg-[linear-gradient(90deg,rgba(76,5,25,0.4),rgba(30,10,30,0.3))]">
+              <div className="flex min-w-0 flex-1 flex-col justify-center px-2 py-1">
+                <p className="text-[7px] font-bold uppercase leading-none tracking-[0.12em] text-rose-300/65">当前筛选</p>
+                <p className="mt-1 truncate text-[9px] font-semibold leading-none text-rose-100/90" title={selected === 'today' ? '今天提现人数' : selected === 'all' ? '全部提现中' : selected}>
+                  {selected === 'today' ? '今天提现人数' : selected === 'all' ? '全部提现中' : selected}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  clearWithdrawalFilter(adminId);
+                  setWithdrawalDropdownOpen(null);
+                  setWithdrawalDropdownPos(null);
+                }}
+                className="inline-flex min-w-[68px] shrink-0 items-center justify-center gap-1.5 border-l border-rose-300/35 bg-rose-600 px-3 text-[11px] font-bold text-white shadow-[-5px_0_16px_rgba(190,18,60,0.18)] transition-colors hover:bg-rose-500 active:bg-rose-700 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/60"
+              >
+                <X className="h-3.5 w-3.5" />
+                清除
+              </button>
+            </div>
           )}
         </div>
       </div>,
@@ -2607,7 +2616,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const rect = event.currentTarget.parentElement!.getBoundingClientRect();
     const menuWidth = 180;
     const optionCount = getWithdrawalDateOptions(adminId).length;
-    const menuHeight = 105 + (optionCount ? Math.min(210, 9 + optionCount * 32) : 49) + (withdrawalFilterByGroup.has(adminId) ? 36 : 0);
+    const menuHeight = 105 + (optionCount ? Math.min(210, 9 + optionCount * 32) : 49) + (withdrawalFilterByGroup.has(adminId) ? 34 : 0);
     const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - menuWidth - 8));
     const top = window.innerHeight - rect.bottom < menuHeight + 8
       ? Math.max(8, rect.top - menuHeight + 1)
