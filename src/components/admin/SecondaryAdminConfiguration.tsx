@@ -161,12 +161,14 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
         <div className="mx-auto w-full max-w-6xl flex-1 space-y-5 px-4 py-5 sm:px-7 sm:py-6 lg:px-9">
           <section>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-cyan-100"><Shield className="h-4 w-4" aria-hidden="true" />登入畫面 <span className="text-xs font-normal text-slate-400">· 僅供查看</span></h3>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="min-w-0 text-xs font-semibold text-slate-200">登入標題
-                <p className="mt-1.5 flex min-h-10 items-center break-words rounded-lg border border-slate-300/80 bg-slate-50 px-3 py-2 text-sm font-normal leading-5 text-slate-900">{loginTitle || '未設定'}</p>
+            <div className="mt-4 grid gap-5 sm:grid-cols-2">
+              <div className="min-w-0 border-l-2 border-cyan-400/70 pl-4">
+                <p className="text-xs font-semibold text-cyan-200">登入標題</p>
+                <p className="mt-1.5 break-words text-base font-semibold leading-6 text-white">{loginTitle || '未設定'}</p>
               </div>
-              <div className="min-w-0 text-xs font-semibold text-slate-200">登入副標題
-                <p className="mt-1.5 flex min-h-10 items-center break-words rounded-lg border border-slate-300/80 bg-slate-50 px-3 py-2 text-sm font-normal leading-5 text-slate-900">{loginSubtitle || '未設定'}</p>
+              <div className="min-w-0 border-l-2 border-cyan-400/70 pl-4">
+                <p className="text-xs font-semibold text-cyan-200">登入副標題</p>
+                <p className="mt-1.5 break-words text-base font-semibold leading-6 text-white">{loginSubtitle || '未設定'}</p>
               </div>
             </div>
           </section>
