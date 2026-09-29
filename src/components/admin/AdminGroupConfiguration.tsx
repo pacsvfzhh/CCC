@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Save, Building2, CheckCircle, XCircle, Shield, ArrowLeftRight, Loader2, Pencil, X } from 'lucide-react';
+import { Save, Building2, CheckCircle, XCircle, Shield, Loader2, Pencil, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface AdminGroup {
@@ -24,9 +24,9 @@ export default function AdminGroupConfiguration() {
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingGroupId, setSavingGroupId] = useState<string | null>(null);
-  const [switchingGroupId, setSwitchingGroupId] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<ConfigFormValues>({ company_name: '', currency_unit: '' });
+  const [editBrandingMode, setEditBrandingMode] = useState<'custom' | 'global'>('global');
   const [globalDefaults, setGlobalDefaults] = useState<ConfigFormValues>({
     company_name: '',
     currency_unit: '',
@@ -178,6 +178,7 @@ export default function AdminGroupConfiguration() {
       company_name: group.configs.company_name || globalDefaults.company_name,
       currency_unit: group.configs.currency_unit || globalDefaults.currency_unit || 'USDC',
     });
+    setEditBrandingMode(group.brandingMode);
     setEditingGroupId(group.id);
   };
 
@@ -187,52 +188,60 @@ export default function AdminGroupConfiguration() {
     setSavingGroupId(groupId);
 
     try {
-      for (const [configType, configValue] of Object.entries(values)) {
-        if (!configValue || configValue === '') {
-          throw new Error(`${configType === 'company_name' ? '品牌名稱' : '顯示幣別'}不可留空`);
+      const savedGroup = groups.find(group => group.id === groupId)!;
+      const nextMode = savedGroup.role === 'super_admin' ? 'custom' : editBrandingMode;
+      const ownValuesChanged = values.company_name !== (savedGroup.configs.company_name || globalDefaults.company_name)
+        || values.currency_unit !== (savedGroup.configs.currency_unit || globalDefaults.currency_unit || 'USDC');
+      const saveOwnValues = ownValuesChanged || ((savedGroup.role === 'super_admin' || nextMode === 'custom')
+        && (!savedGroup.configs.company_name || !savedGroup.configs.currency_unit));
+      let modeConfigId = savedGroup.brandingModeConfigId;
+
+      if (saveOwnValues) {
+        for (const [configType, configValue] of Object.entries(values)) {
+          if (!configValue) throw new Error(`${configType === 'company_name' ? '品牌名稱' : '顯示幣別'}不可留空`);
+        }
+
+        if (savedGroup.role === 'secondary_admin' && nextMode === 'global' && !modeConfigId) {
+          const { data, error } = await supabase.from('admin_configs')
+            .insert({ admin_id: groupId, config_type: 'branding_mode', config_value: 'global', updated_at: new Date().toISOString() })
+            .select('id').single();
+          if (error) throw error;
+          modeConfigId = data.id;
+          setGroups(current => current.map(group => group.id === groupId ? { ...group, brandingModeConfigId: data.id } : group));
+        }
+
+        const { error: deleteError } = await supabase.from('admin_configs')
+          .delete().eq('admin_id', groupId).in('config_type', Object.keys(values));
+        if (deleteError) throw deleteError;
+
+        const configRecords = Object.entries(values).map(([configType, configValue]) => ({
+          admin_id: groupId,
+          config_type: configType,
+          config_value: configValue,
+          updated_at: new Date().toISOString(),
+        }));
+        const { error: insertError } = await supabase.from('admin_configs').insert(configRecords);
+        if (insertError) throw insertError;
+      }
+
+      if (nextMode !== savedGroup.brandingMode) {
+        if (modeConfigId) {
+          const { error } = await supabase.from('admin_configs')
+            .update({ config_value: nextMode, updated_at: new Date().toISOString() }).eq('id', modeConfigId);
+          if (error) throw error;
+        } else if (savedGroup.role === 'secondary_admin') {
+          const { data, error } = await supabase.from('admin_configs')
+            .insert({ admin_id: groupId, config_type: 'branding_mode', config_value: nextMode, updated_at: new Date().toISOString() })
+            .select('id').single();
+          if (error) throw error;
+          modeConfigId = data.id;
         }
       }
 
-      const savedGroup = groups.find(group => group.id === groupId);
-      if (savedGroup?.role === 'secondary_admin' && savedGroup.brandingMode === 'global' && !savedGroup.brandingModeConfigId) {
-        const { data, error: modeError } = await supabase
-          .from('admin_configs')
-          .insert({ admin_id: groupId, config_type: 'branding_mode', config_value: 'global', updated_at: new Date().toISOString() })
-          .select('id')
-          .single();
-        if (modeError) throw modeError;
-        setGroups(current => current.map(group => group.id === groupId ? { ...group, brandingModeConfigId: data.id } : group));
-      }
-
-      const { error: deleteError } = await supabase
-        .from('admin_configs')
-        .delete()
-        .eq('admin_id', groupId)
-        .in('config_type', Object.keys(values));
-      if (deleteError) throw deleteError;
-
-      const configRecords = Object.entries(values).map(([configType, configValue]) => ({
-        admin_id: groupId,
-        config_type: configType,
-        config_value: configValue,
-        updated_at: new Date().toISOString(),
-      }));
-
-      const { error: insertError } = await supabase
-        .from('admin_configs')
-        .insert(configRecords);
-
-      if (insertError) throw insertError;
-
-      if (savedGroup?.role === 'super_admin' && savedGroup.brandingModeConfigId && savedGroup.brandingMode === 'global') {
-        const { error: modeError } = await supabase
-          .from('admin_configs')
-          .update({ config_value: 'custom', updated_at: new Date().toISOString() })
-          .eq('id', savedGroup.brandingModeConfigId);
-        if (modeError) throw modeError;
-      }
-
-      setGroups(current => current.map(group => group.id === groupId ? { ...group, brandingMode: group.role === 'super_admin' ? 'custom' : group.brandingMode, configs: { ...values } } : group));
+      setGroups(current => current.map(group => group.id === groupId ? {
+        ...group, brandingMode: nextMode, brandingModeConfigId: modeConfigId,
+        configs: saveOwnValues ? { ...values } : group.configs,
+      } : group));
       setEditingGroupId(null);
 
       setNotification({
@@ -247,26 +256,6 @@ export default function AdminGroupConfiguration() {
       });
     } finally {
       setSavingGroupId(null);
-    }
-  };
-
-  const handleSwitchBrandingMode = async (group: AdminGroup) => {
-    const nextMode = group.brandingMode === 'global' ? 'custom' : 'global';
-    setSwitchingGroupId(group.id);
-    try {
-      const modeRecord = { admin_id: group.id, config_type: 'branding_mode', config_value: nextMode, updated_at: new Date().toISOString() };
-      const { data, error } = group.brandingModeConfigId
-        ? await supabase.from('admin_configs').update(modeRecord).eq('id', group.brandingModeConfigId).select('id').single()
-        : await supabase.from('admin_configs').insert(modeRecord).select('id').single();
-      if (error) throw error;
-
-      setGroups(current => current.map(item => item.id === group.id ? { ...item, brandingMode: nextMode, brandingModeConfigId: data.id } : item));
-      setNotification({ type: 'success', message: `「${group.username}」已切換為${nextMode === 'global' ? '使用超管設定' : '使用自己的設定'}。` });
-    } catch (error) {
-      console.error('Error switching branding mode:', error);
-      setNotification({ type: 'error', message: '切換設定來源失敗，請稍後再試。' });
-    } finally {
-      setSwitchingGroupId(null);
     }
   };
 
@@ -346,12 +335,11 @@ export default function AdminGroupConfiguration() {
       <section className="flex min-h-0 flex-1 flex-col">
         {groups.length ? (
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <div className="hidden shrink-0 gap-3 border-b border-cyan-200/30 bg-gradient-to-r from-[#253565] via-[#215075] to-[#155867] px-4 py-3 text-xs font-semibold tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:px-7 lg:grid lg:grid-cols-[minmax(105px,1fr)_minmax(138px,1fr)_minmax(125px,1.35fr)_minmax(88px,.75fr)_minmax(168px,1.35fr)] lg:px-9">
+            <div className="hidden shrink-0 gap-3 border-b border-cyan-200/30 bg-gradient-to-r from-[#253565] via-[#215075] to-[#155867] px-4 py-3 text-xs font-semibold tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:px-7 lg:grid lg:grid-cols-[minmax(105px,1fr)_minmax(138px,1fr)_minmax(170px,2fr)_minmax(88px,.75fr)_minmax(85px,.7fr)] lg:px-9">
               <span>管理員</span><span>設定來源</span><span>品牌名稱</span><span>顯示幣別</span><span>操作</span>
             </div>
             <div className="admin-team-list-scroll min-h-0 flex-1 divide-y divide-cyan-400/10 overflow-y-auto overscroll-contain">
               {groups.map(group => {
-                const isSwitchingGroup = switchingGroupId === group.id;
                 const isSuperAdmin = group.role === 'super_admin';
                 const usesSuperSettings = isSuperAdmin || group.brandingMode === 'global';
                 const activeValues = group.brandingMode === 'global' ? globalDefaults : {
@@ -359,7 +347,7 @@ export default function AdminGroupConfiguration() {
                   currency_unit: group.configs.currency_unit || globalDefaults.currency_unit || 'USDC',
                 };
                 return (
-                  <div key={group.id} className="grid min-w-0 gap-2 px-4 py-3 transition-colors odd:bg-slate-900/20 hover:bg-cyan-950/25 sm:grid-cols-2 sm:gap-3 sm:px-7 lg:grid-cols-[minmax(105px,1fr)_minmax(138px,1fr)_minmax(125px,1.35fr)_minmax(88px,.75fr)_minmax(168px,1.35fr)] lg:items-center lg:px-9">
+                  <div key={group.id} className="grid min-w-0 gap-2 px-4 py-3 transition-colors odd:bg-slate-900/20 hover:bg-cyan-950/25 sm:grid-cols-2 sm:gap-3 sm:px-7 lg:grid-cols-[minmax(105px,1fr)_minmax(138px,1fr)_minmax(170px,2fr)_minmax(88px,.75fr)_minmax(85px,.7fr)] lg:items-center lg:px-9">
                     <div className="flex min-w-0 items-center gap-2.5">
                       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${group.role === 'super_admin' ? 'bg-amber-400/15 text-amber-200' : 'bg-blue-400/15 text-blue-200'}`}><Building2 className="h-4 w-4" /></span>
                       <div className="min-w-0">
@@ -380,11 +368,8 @@ export default function AdminGroupConfiguration() {
                     <div className="min-w-0 text-xs text-slate-300"><span className="lg:sr-only">顯示幣別</span>
                       <span className="block truncate text-sm font-medium text-slate-100 lg:leading-8" title={activeValues.currency_unit}>{activeValues.currency_unit || '未設定'}</span>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-1">
-                      <button type="button" onClick={() => openEditGroup(group)} disabled={savingGroupId !== null || switchingGroupId !== null} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50"><Pencil className="h-3.5 w-3.5" aria-hidden="true" />編輯</button>
-                      {!isSuperAdmin && (
-                        <button type="button" onClick={() => void handleSwitchBrandingMode(group)} disabled={savingGroupId !== null || switchingGroupId !== null} className={`inline-flex h-8 w-[124px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2 text-xs font-semibold transition-colors disabled:opacity-50 ${group.brandingMode === 'custom' ? 'border-amber-400/60 bg-amber-500/20 text-amber-100 hover:bg-amber-400/30' : 'border-blue-400/60 bg-blue-500/20 text-blue-100 hover:bg-blue-400/30'}`}>{isSwitchingGroup ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowLeftRight className="h-3.5 w-3.5" />}{isSwitchingGroup ? '切換中…' : group.brandingMode === 'custom' ? '改用超管設定' : '改用自己設定'}</button>
-                      )}
+                    <div className="flex items-center sm:col-span-2 lg:col-span-1">
+                      <button type="button" onClick={() => openEditGroup(group)} disabled={savingGroupId !== null} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50"><Pencil className="h-3.5 w-3.5" aria-hidden="true" />編輯</button>
                     </div>
                   </div>
                 );
@@ -416,15 +401,31 @@ export default function AdminGroupConfiguration() {
             </div>
 
             <div className="space-y-5 px-5 py-5 sm:px-7 sm:py-6">
-              <section>
+              {editingGroup.role !== 'super_admin' && (
+                <section>
+                  <h3 className="text-sm font-semibold text-white">設定來源</h3>
+                  <p className="mt-1 text-xs text-slate-300">目前使用{editingGroup.brandingMode === 'global' ? '超管設定' : '自己設定'}；選擇後按「儲存設定」才會生效。</p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <button type="button" aria-pressed={editBrandingMode === 'global'} disabled={savingGroupId !== null} onClick={() => setEditBrandingMode('global')} className={`rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${editBrandingMode === 'global' ? 'border-amber-300 bg-amber-400/20 text-amber-50 ring-2 ring-amber-300/30' : 'border-slate-500/60 bg-slate-800/45 text-slate-200 hover:border-amber-300/60 hover:bg-amber-400/10'}`}>
+                      <span className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-sm font-semibold"><Shield className="h-4 w-4" aria-hidden="true" />使用超管設定</span>{editBrandingMode === 'global' && <span className="shrink-0 rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-amber-950">已選擇</span>}</span>
+                      <span className="mt-1.5 block text-xs opacity-80">顯示超管的品牌與幣別</span>
+                    </button>
+                    <button type="button" aria-pressed={editBrandingMode === 'custom'} disabled={savingGroupId !== null} onClick={() => setEditBrandingMode('custom')} className={`rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${editBrandingMode === 'custom' ? 'border-blue-300 bg-blue-500/25 text-blue-50 ring-2 ring-blue-300/30' : 'border-slate-500/60 bg-slate-800/45 text-slate-200 hover:border-blue-300/60 hover:bg-blue-500/10'}`}>
+                      <span className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-sm font-semibold"><Building2 className="h-4 w-4" aria-hidden="true" />使用自己設定</span>{editBrandingMode === 'custom' && <span className="shrink-0 rounded-full bg-blue-300 px-2 py-0.5 text-[10px] font-bold text-blue-950">已選擇</span>}</span>
+                      <span className="mt-1.5 block text-xs opacity-80">顯示此管理員的自訂內容</span>
+                    </button>
+                  </div>
+                </section>
+              )}
+              <section className={editingGroup.role === 'super_admin' ? '' : 'border-t border-slate-500/40 pt-5'}>
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-blue-100"><Pencil className="h-4 w-4" aria-hidden="true" />{editingGroup.role === 'super_admin' ? '超管自己的設定' : '此管理員自己的設定'}</h3>
-                {editingGroup.role !== 'super_admin' && editingGroup.brandingMode === 'global' && <p className="mt-1 text-xs leading-5 text-blue-200/80">目前使用超管設定。儲存自己的內容後，可在列表切換為「使用自己設定」。</p>}
+                {editingGroup.role !== 'super_admin' && editBrandingMode === 'global' && <p className="mt-1 text-xs leading-5 text-blue-200/80">選擇超管設定時，自己的品牌與幣別仍會保留；切回自己設定即可使用。</p>}
                 <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,2.5fr)_minmax(150px,1fr)]">
                   <label className="block min-w-0 text-xs font-semibold text-slate-200">品牌名稱
-                    <input type="text" autoFocus value={editValues.company_name} onChange={(event) => setEditValues(current => ({ ...current, company_name: event.target.value }))} required maxLength={50} disabled={savingGroupId !== null} placeholder="輸入品牌名稱" className="mt-1.5 h-10 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60" />
+                    <input type="text" autoFocus value={editValues.company_name} onChange={(event) => setEditValues(current => ({ ...current, company_name: event.target.value }))} required={editingGroup.role === 'super_admin' || editBrandingMode === 'custom'} maxLength={50} disabled={savingGroupId !== null} placeholder="輸入品牌名稱" className="mt-1.5 h-10 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60" />
                   </label>
                   <label className="block min-w-0 text-xs font-semibold text-slate-200">顯示幣別
-                    <input type="text" value={editValues.currency_unit} onChange={(event) => setEditValues(current => ({ ...current, currency_unit: event.target.value.replace(/\s+/g, '') }))} required maxLength={10} disabled={savingGroupId !== null} placeholder="例如 USDC" className="mt-1.5 h-10 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60" />
+                    <input type="text" value={editValues.currency_unit} onChange={(event) => setEditValues(current => ({ ...current, currency_unit: event.target.value.replace(/\s+/g, '') }))} required={editingGroup.role === 'super_admin' || editBrandingMode === 'custom'} maxLength={10} disabled={savingGroupId !== null} placeholder="例如 USDC" className="mt-1.5 h-10 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60" />
                   </label>
                 </div>
               </section>
