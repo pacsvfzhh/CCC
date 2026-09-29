@@ -320,22 +320,22 @@ export default function AdminGroupConfiguration() {
         </div>
       )}
 
-      <section className="grid gap-4 border-b border-violet-400/15 bg-gradient-to-r from-slate-900/80 via-slate-900/40 to-indigo-950/30 px-4 py-4 sm:px-7 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-center lg:gap-6 lg:px-9 xl:grid-cols-[220px_minmax(0,1fr)]">
+      <section className="grid gap-4 border-y border-violet-300/20 bg-gradient-to-r from-[#302052] via-[#1c3262] to-[#12465a] px-4 py-4 shadow-[inset_0_1px_0_rgba(221,214,254,0.12)] sm:px-7 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-center lg:gap-6 lg:px-9 xl:grid-cols-[220px_minmax(0,1fr)]">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-400/10 text-violet-300 ring-1 ring-inset ring-violet-300/20"><Shield className="h-[18px] w-[18px]" /></span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-400/35 to-cyan-400/20 text-white shadow-sm shadow-indigo-950/40 ring-1 ring-inset ring-white/25"><Shield className="h-[18px] w-[18px]" /></span>
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-white">登入畫面</h2>
-            <p className="mt-0.5 text-xs text-slate-400">標題與副標題</p>
+            <p className="mt-0.5 text-xs text-violet-100/90">標題與副標題</p>
           </div>
         </div>
         <form onSubmit={handleSaveLoginSettings} className="grid min-w-0 gap-3 sm:grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
-          <label className="block min-w-0 text-[11px] font-medium tracking-wide text-slate-400">登入標題
+          <label className="block min-w-0 text-xs font-semibold tracking-wide text-slate-100">登入標題
             <textarea ref={loginTitleRef} value={loginTitle} onChange={(event) => setLoginTitle(event.target.value.replace(/[\r\n]+/g, ' '))} required maxLength={100} rows={1} placeholder="輸入登入頁標題" className="login-settings-scroll mt-1 block h-9 max-h-[52px] w-full resize-none overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 px-3 py-[5px] text-sm leading-5 text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-500 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-400/20" />
           </label>
-          <label className="block min-w-0 text-[11px] font-medium tracking-wide text-slate-400">登入副標題
+          <label className="block min-w-0 text-xs font-semibold tracking-wide text-slate-100">登入副標題
             <textarea ref={loginSubtitleRef} value={loginSubtitle} onChange={(event) => setLoginSubtitle(event.target.value.replace(/[\r\n]+/g, ' '))} required maxLength={200} rows={1} placeholder="輸入登入頁副標題" className="login-settings-scroll mt-1 block h-9 max-h-[52px] w-full resize-none overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 px-3 py-[5px] text-sm leading-5 text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-500 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-400/20" />
           </label>
-          <button type="submit" disabled={savingLoginSettings} className="inline-flex h-9 items-center justify-center gap-2 self-end rounded-lg border border-violet-300/20 bg-violet-600 px-4 text-xs font-semibold text-white shadow-sm shadow-violet-950/50 transition-colors hover:bg-violet-500 disabled:opacity-50 sm:col-span-2 md:col-span-1"><Save className="h-3.5 w-3.5" />{savingLoginSettings ? '儲存中…' : '儲存設定'}</button>
+          <button type="submit" disabled={savingLoginSettings} className="inline-flex h-9 items-center justify-center gap-2 self-end rounded-lg border border-white/20 bg-gradient-to-r from-violet-600 to-blue-600 px-4 text-xs font-semibold text-white shadow-md shadow-indigo-950/30 transition-all hover:from-violet-500 hover:to-blue-500 disabled:opacity-50 sm:col-span-2 md:col-span-1"><Save className="h-3.5 w-3.5" />{savingLoginSettings ? '儲存中…' : '儲存設定'}</button>
         </form>
       </section>
 
