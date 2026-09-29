@@ -336,26 +336,33 @@ export default function AdminGroupConfiguration() {
       <section className="flex min-h-0 flex-1 flex-col">
         {groups.length ? (
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <div className="hidden shrink-0 gap-4 border-b border-cyan-200/30 bg-gradient-to-r from-[#253565] via-[#215075] to-[#155867] px-4 py-3 text-xs font-semibold tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:px-7 lg:grid lg:grid-cols-[minmax(150px,1.1fr)_minmax(180px,1.7fr)_minmax(110px,.8fr)_minmax(170px,1.1fr)] lg:px-9">
-              <span>管理員 / 狀態</span><span>品牌名稱</span><span>顯示幣別</span><span>操作</span>
+            <div className="hidden shrink-0 gap-3 border-b border-cyan-200/30 bg-gradient-to-r from-[#253565] via-[#215075] to-[#155867] px-4 py-3 text-xs font-semibold tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:px-7 lg:grid lg:grid-cols-[minmax(105px,1fr)_minmax(138px,1fr)_minmax(125px,1.35fr)_minmax(88px,.75fr)_minmax(168px,1.35fr)] lg:px-9">
+              <span>管理員</span><span>設定來源</span><span>品牌名稱</span><span>顯示幣別</span><span>操作</span>
             </div>
             <div className="admin-team-list-scroll min-h-0 flex-1 divide-y divide-cyan-400/10 overflow-y-auto overscroll-contain">
               {groups.map(group => {
                 const values = formValuesByGroup[group.id];
                 const isSavingGroup = savingGroupId === group.id;
                 const isSwitchingGroup = switchingGroupId === group.id;
+                const usesSuperSettings = group.role === 'super_admin' || group.brandingMode === 'global';
                 const needsOwnValues = group.brandingMode === 'custom' && (!group.configs.company_name || !group.configs.currency_unit);
                 const isDirty = needsOwnValues || values.company_name !== (group.brandingMode === 'global' ? globalDefaults.company_name : group.configs.company_name || globalDefaults.company_name)
                   || values.currency_unit !== (group.brandingMode === 'global' ? globalDefaults.currency_unit : group.configs.currency_unit || globalDefaults.currency_unit || 'USDC');
                 return (
-                  <form key={group.id} onSubmit={(event) => void handleSave(event, group.id)} className="grid min-w-0 gap-2 px-4 py-3 transition-colors odd:bg-slate-900/20 hover:bg-cyan-950/25 sm:grid-cols-2 sm:gap-3 sm:px-7 lg:grid-cols-[minmax(150px,1.1fr)_minmax(180px,1.7fr)_minmax(110px,.8fr)_minmax(170px,1.1fr)] lg:items-center lg:px-9">
-                    <div className="flex min-w-0 items-center gap-2.5 sm:col-span-2 lg:col-span-1">
+                  <form key={group.id} onSubmit={(event) => void handleSave(event, group.id)} className="grid min-w-0 gap-2 px-4 py-3 transition-colors odd:bg-slate-900/20 hover:bg-cyan-950/25 sm:grid-cols-2 sm:gap-3 sm:px-7 lg:grid-cols-[minmax(105px,1fr)_minmax(138px,1fr)_minmax(125px,1.35fr)_minmax(88px,.75fr)_minmax(168px,1.35fr)] lg:items-center lg:px-9">
+                    <div className="flex min-w-0 items-center gap-2.5">
                       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${group.role === 'super_admin' ? 'bg-amber-400/15 text-amber-200' : 'bg-blue-400/15 text-blue-200'}`}><Building2 className="h-4 w-4" /></span>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-white" title={group.username}>{group.username}</p>
                         <p className="text-[11px] text-slate-400">{group.role === 'super_admin' ? '超級管理員' : '二級管理員'}</p>
-                        <div className="mt-1"><span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${isDirty ? 'bg-amber-400/15 text-amber-200' : group.brandingMode === 'custom' ? 'bg-emerald-400/15 text-emerald-200' : 'bg-sky-400/15 text-sky-200'}`}>{isDirty ? needsOwnValues ? '待儲存自己設定' : '未儲存' : group.brandingMode === 'custom' ? '使用自己設定' : '使用超管設定'}</span></div>
                       </div>
+                    </div>
+                    <div className="min-w-0 self-center">
+                      <span className="mb-1 block text-xs font-medium text-slate-300 lg:sr-only">設定來源</span>
+                      <span className={`inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold shadow-sm ${usesSuperSettings ? 'border-amber-300/60 bg-gradient-to-r from-amber-400/25 to-yellow-500/15 text-amber-100 shadow-amber-500/15' : 'border-blue-300/60 bg-gradient-to-r from-blue-500/30 to-cyan-400/15 text-blue-100 shadow-blue-500/15'}`}>
+                        {usesSuperSettings ? <Shield className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+                        <span>{isDirty ? needsOwnValues ? '待儲存自己設定' : '未儲存' : group.role === 'super_admin' ? group.brandingMode === 'custom' ? '超管自己設定' : '超管全域設定' : group.brandingMode === 'custom' ? '使用自己設定' : '使用超管設定'}</span>
+                      </span>
                     </div>
                     <label className="min-w-0 text-xs font-medium text-slate-300"><span className="lg:sr-only">品牌名稱</span>
                       <input type="text" value={values.company_name} onChange={(event) => setFormValuesByGroup(current => ({ ...current, [group.id]: { ...current[group.id], company_name: event.target.value } }))} required maxLength={50} placeholder="輸入品牌名稱" disabled={group.brandingMode === 'global' || isSavingGroup || isSwitchingGroup} className="mt-1 h-8 w-full rounded-lg border border-slate-600 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:bg-slate-200 disabled:text-slate-600 lg:mt-0" />
