@@ -57,32 +57,17 @@ export function useCompanyName(adminId?: string | null) {
           table: 'admin_configs',
           filter: "config_type=eq.company_name"
         },
-        (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const newRecord = payload.new as { config_value?: string; admin_id?: string | null };
-
-            if (adminId === undefined) {
-              if (newRecord.admin_id === null && newRecord.config_value) {
-                setCompanyName(newRecord.config_value);
-                writeCachedName(null, newRecord.config_value);
-              }
-            } else if (adminId === null) {
-              if (newRecord.admin_id === null && newRecord.config_value) {
-                setCompanyName(newRecord.config_value);
-                writeCachedName(null, newRecord.config_value);
-              }
-            } else {
-              if (newRecord.admin_id === adminId && newRecord.config_value) {
-                setCompanyName(newRecord.config_value);
-                writeCachedName(adminId, newRecord.config_value);
-              } else if (newRecord.admin_id === null && newRecord.config_value) {
-                void loadCompanyNameRef.current?.();
-              }
-            }
-          } else if (payload.eventType === 'DELETE') {
-            void loadCompanyNameRef.current?.();
-          }
-        }
+        () => { void loadCompanyNameRef.current?.(); }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'admin_configs',
+          filter: 'config_type=eq.branding_mode'
+        },
+        () => { void loadCompanyNameRef.current?.(); }
       )
       .subscribe();
 
@@ -117,8 +102,8 @@ export function useCompanyName(adminId?: string | null) {
       } else {
         const { data, error } = await supabase
           .from('admin_configs')
-          .select('*')
-          .eq('config_type', 'company_name')
+          .select('admin_id, config_type, config_value')
+          .in('config_type', ['company_name', 'branding_mode'])
           .or(`admin_id.eq.${adminId},admin_id.is.null`);
 
         if (error) {
@@ -126,19 +111,15 @@ export function useCompanyName(adminId?: string | null) {
           return;
         }
 
-        const adminConfig = data?.find(c => c.admin_id === adminId);
-        const globalConfig = data?.find(c => c.admin_id === null);
+        const adminConfig = data?.find(c => c.admin_id === adminId && c.config_type === 'company_name');
+        const globalConfig = data?.find(c => c.admin_id === null && c.config_type === 'company_name');
+        const useGlobal = data?.some(c => c.admin_id === adminId && c.config_type === 'branding_mode' && c.config_value === 'global');
+        const finalValue = (useGlobal ? globalConfig?.config_value : adminConfig?.config_value || globalConfig?.config_value) || DEFAULT_COMPANY_NAME;
 
-        const finalValue = adminConfig?.config_value || globalConfig?.config_value;
-
-        if (finalValue) {
-          setCompanyName(finalValue);
-          if (adminConfig?.config_value) {
-            writeCachedName(adminId, adminConfig.config_value);
-          }
-          if (globalConfig?.config_value) {
-            writeCachedName(null, globalConfig.config_value);
-          }
+        setCompanyName(finalValue);
+        writeCachedName(adminId, finalValue);
+        if (globalConfig?.config_value) {
+          writeCachedName(null, globalConfig.config_value);
         }
       }
     } catch (error) {

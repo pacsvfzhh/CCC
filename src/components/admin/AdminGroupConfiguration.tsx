@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Save, Building2, CheckCircle, XCircle, Shield, RotateCcw, Loader2 } from 'lucide-react';
+import { Save, Building2, CheckCircle, XCircle, Shield, ArrowLeftRight, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface AdminGroup {
@@ -7,6 +7,8 @@ interface AdminGroup {
   username: string;
   role: string;
   created_at: string;
+  brandingMode: 'custom' | 'global';
+  brandingModeConfigId: string | null;
   configs: {
     company_name?: string;
     currency_unit?: string;
@@ -22,6 +24,7 @@ export default function AdminGroupConfiguration() {
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingGroupId, setSavingGroupId] = useState<string | null>(null);
+  const [switchingGroupId, setSwitchingGroupId] = useState<string | null>(null);
   const [formValuesByGroup, setFormValuesByGroup] = useState<Record<string, ConfigFormValues>>({});
   const [globalDefaults, setGlobalDefaults] = useState<ConfigFormValues>({
     company_name: '',
@@ -31,8 +34,6 @@ export default function AdminGroupConfiguration() {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [loginTitle, setLoginTitle] = useState('');
   const [loginSubtitle, setLoginSubtitle] = useState('');
   const [savingLoginSettings, setSavingLoginSettings] = useState(false);
@@ -132,24 +133,27 @@ export default function AdminGroupConfiguration() {
 
       const { data: configsData, error: configsError } = await supabase
         .from('admin_configs')
-        .select('admin_id, config_type, config_value')
+        .select('id, admin_id, config_type, config_value')
         .not('admin_id', 'is', null)
-        .in('config_type', ['company_name', 'currency_unit']);
+        .in('config_type', ['company_name', 'currency_unit', 'branding_mode']);
 
       if (configsError) throw configsError;
 
       const groupsWithConfigs: AdminGroup[] = (adminsData || []).map((admin) => {
         const adminConfigs = configsData?.filter(c => c.admin_id === admin.id) || [];
         const configs: Record<string, string> = {};
-        adminConfigs.forEach(config => {
+        adminConfigs.filter(config => config.config_type !== 'branding_mode').forEach(config => {
           configs[config.config_type] = config.config_value;
         });
+        const modeConfig = adminConfigs.find(config => config.config_type === 'branding_mode');
 
         return {
           id: admin.id,
           username: admin.username,
           role: admin.role,
           created_at: admin.created_at,
+          brandingMode: modeConfig?.config_value === 'global' || (!modeConfig && !Object.keys(configs).length) ? 'global' : 'custom',
+          brandingModeConfigId: modeConfig?.id || null,
           configs,
         };
       });
@@ -162,8 +166,8 @@ export default function AdminGroupConfiguration() {
 
       setGroups(sortedGroups);
       setFormValuesByGroup(Object.fromEntries(sortedGroups.map(group => [group.id, {
-        company_name: group.configs.company_name || defaults.company_name,
-        currency_unit: group.configs.currency_unit || defaults.currency_unit || 'USDC',
+        company_name: group.brandingMode === 'global' ? defaults.company_name : group.configs.company_name || defaults.company_name,
+        currency_unit: group.brandingMode === 'global' ? defaults.currency_unit : group.configs.currency_unit || defaults.currency_unit || 'USDC',
       }])));
     } catch (error) {
       console.error('Error loading groups:', error);
@@ -221,9 +225,41 @@ export default function AdminGroupConfiguration() {
     }
   };
 
-  const handleDeleteConfig = async (groupId: string) => {
-    setDeleteTargetId(groupId);
-    setShowDeleteConfirm(true);
+  const handleSwitchBrandingMode = async (group: AdminGroup) => {
+    const currentValues = formValuesByGroup[group.id];
+    const savedValues = group.brandingMode === 'global' ? globalDefaults : {
+      company_name: group.configs.company_name || globalDefaults.company_name,
+      currency_unit: group.configs.currency_unit || globalDefaults.currency_unit,
+    };
+    if (currentValues.company_name !== savedValues.company_name || currentValues.currency_unit !== savedValues.currency_unit) {
+      setNotification({ type: 'error', message: '請先儲存此團隊的修改，再切換設定來源。' });
+      return;
+    }
+
+    const nextMode = group.brandingMode === 'global' ? 'custom' : 'global';
+    setSwitchingGroupId(group.id);
+    try {
+      const modeRecord = { admin_id: group.id, config_type: 'branding_mode', config_value: nextMode, updated_at: new Date().toISOString() };
+      const { data, error } = group.brandingModeConfigId
+        ? await supabase.from('admin_configs').update(modeRecord).eq('id', group.brandingModeConfigId).select('id').single()
+        : await supabase.from('admin_configs').insert(modeRecord).select('id').single();
+      if (error) throw error;
+
+      setGroups(current => current.map(item => item.id === group.id ? { ...item, brandingMode: nextMode, brandingModeConfigId: data.id } : item));
+      setFormValuesByGroup(current => ({
+        ...current,
+        [group.id]: nextMode === 'global' ? { ...globalDefaults } : {
+          company_name: group.configs.company_name || globalDefaults.company_name,
+          currency_unit: group.configs.currency_unit || globalDefaults.currency_unit,
+        },
+      }));
+      setNotification({ type: 'success', message: `「${group.username}」已切換為${nextMode === 'global' ? '使用超管設定' : '使用自己的設定'}。` });
+    } catch (error) {
+      console.error('Error switching branding mode:', error);
+      setNotification({ type: 'error', message: '切換設定來源失敗，請稍後再試。' });
+    } finally {
+      setSwitchingGroupId(null);
+    }
   };
 
   const handleSaveLoginSettings = async (e: React.FormEvent) => {
@@ -260,35 +296,6 @@ export default function AdminGroupConfiguration() {
     }
   };
 
-  const confirmDelete = async () => {
-    if (!deleteTargetId) return;
-
-    try {
-      const { error } = await supabase
-        .from('admin_configs')
-        .delete()
-        .eq('admin_id', deleteTargetId)
-        .in('config_type', ['company_name', 'currency_unit']);
-
-      if (error) throw error;
-
-      setGroups(current => current.map(group => group.id === deleteTargetId ? { ...group, configs: {} } : group));
-      setFormValuesByGroup(current => ({ ...current, [deleteTargetId]: { ...globalDefaults } }));
-      setNotification({
-        type: 'success',
-        message: '已還原全域預設。',
-      });
-      setShowDeleteConfirm(false);
-      setDeleteTargetId(null);
-    } catch (error) {
-      console.error('Error deleting config:', error);
-      setNotification({
-        type: 'error',
-        message: '還原團隊設定失敗，請稍後再試。',
-      });
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex min-h-0 w-full flex-1 items-center justify-center bg-slate-950/40 text-sm text-cyan-100">
@@ -304,19 +311,6 @@ export default function AdminGroupConfiguration() {
           {notification.type === 'success' ? <CheckCircle className="h-5 w-5 shrink-0 text-emerald-300" /> : <XCircle className="h-5 w-5 shrink-0 text-rose-300" />}
           <span>{notification.message}</span>
           <button type="button" onClick={() => setNotification(null)} aria-label="關閉提示" className="ml-2 rounded p-1 text-slate-300 hover:text-white">×</button>
-        </div>
-      )}
-
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div role="alertdialog" aria-modal="true" aria-labelledby="reset-admin-title" className="w-full max-w-md rounded-2xl border border-rose-400/35 bg-slate-900 p-6 shadow-2xl">
-            <h3 id="reset-admin-title" className="text-lg font-semibold text-white">還原團隊設定？</h3>
-            <p className="mt-3 text-sm leading-relaxed text-slate-300">將移除這位管理員的品牌名稱與幣別自訂值，改用全域預設。其他設定不受影響。</p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={() => { setShowDeleteConfirm(false); setDeleteTargetId(null); }} className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">取消</button>
-              <button type="button" onClick={() => void confirmDelete()} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500">確認還原</button>
-            </div>
-          </div>
         </div>
       )}
 
@@ -349,28 +343,29 @@ export default function AdminGroupConfiguration() {
               {groups.map(group => {
                 const values = formValuesByGroup[group.id];
                 const isSavingGroup = savingGroupId === group.id;
-                const customized = Object.keys(group.configs).length > 0;
-                const isDirty = values.company_name !== (group.configs.company_name || globalDefaults.company_name)
-                  || values.currency_unit !== (group.configs.currency_unit || globalDefaults.currency_unit || 'USDC');
+                const isSwitchingGroup = switchingGroupId === group.id;
+                const needsOwnValues = group.brandingMode === 'custom' && (!group.configs.company_name || !group.configs.currency_unit);
+                const isDirty = needsOwnValues || values.company_name !== (group.brandingMode === 'global' ? globalDefaults.company_name : group.configs.company_name || globalDefaults.company_name)
+                  || values.currency_unit !== (group.brandingMode === 'global' ? globalDefaults.currency_unit : group.configs.currency_unit || globalDefaults.currency_unit || 'USDC');
                 return (
-                  <form key={group.id} onSubmit={(event) => void handleSave(event, group.id)} className="grid min-w-0 gap-4 px-4 py-5 transition-colors odd:bg-slate-900/20 hover:bg-cyan-950/25 sm:grid-cols-2 sm:px-7 lg:grid-cols-[minmax(150px,1.1fr)_minmax(180px,1.7fr)_minmax(110px,.8fr)_minmax(170px,1.1fr)] lg:items-center lg:px-9">
-                    <div className="flex min-w-0 items-center gap-3 sm:col-span-2 lg:col-span-1">
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${group.role === 'super_admin' ? 'bg-amber-400/15 text-amber-200' : 'bg-blue-400/15 text-blue-200'}`}><Building2 className="h-5 w-5" /></span>
+                  <form key={group.id} onSubmit={(event) => void handleSave(event, group.id)} className="grid min-w-0 gap-2 px-4 py-3 transition-colors odd:bg-slate-900/20 hover:bg-cyan-950/25 sm:grid-cols-2 sm:gap-3 sm:px-7 lg:grid-cols-[minmax(150px,1.1fr)_minmax(180px,1.7fr)_minmax(110px,.8fr)_minmax(170px,1.1fr)] lg:items-center lg:px-9">
+                    <div className="flex min-w-0 items-center gap-2.5 sm:col-span-2 lg:col-span-1">
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${group.role === 'super_admin' ? 'bg-amber-400/15 text-amber-200' : 'bg-blue-400/15 text-blue-200'}`}><Building2 className="h-4 w-4" /></span>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-white" title={group.username}>{group.username}</p>
                         <p className="text-[11px] text-slate-400">{group.role === 'super_admin' ? '超級管理員' : '二級管理員'}</p>
-                        <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${isDirty ? 'bg-amber-400/15 text-amber-200' : customized ? 'bg-emerald-400/15 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>{isDirty ? '未儲存' : customized ? '已自訂' : '全域預設'}</span>
+                        <div className="mt-1"><span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${isDirty ? 'bg-amber-400/15 text-amber-200' : group.brandingMode === 'custom' ? 'bg-emerald-400/15 text-emerald-200' : 'bg-sky-400/15 text-sky-200'}`}>{isDirty ? needsOwnValues ? '待儲存自己設定' : '未儲存' : group.brandingMode === 'custom' ? '使用自己設定' : '使用超管設定'}</span></div>
                       </div>
                     </div>
                     <label className="min-w-0 text-xs font-medium text-slate-300"><span className="lg:sr-only">品牌名稱</span>
-                      <input type="text" value={values.company_name} onChange={(event) => setFormValuesByGroup(current => ({ ...current, [group.id]: { ...current[group.id], company_name: event.target.value } }))} required maxLength={50} placeholder="輸入品牌名稱" disabled={isSavingGroup} className="mt-1.5 w-full rounded-lg border border-slate-600 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60 lg:mt-0" />
+                      <input type="text" value={values.company_name} onChange={(event) => setFormValuesByGroup(current => ({ ...current, [group.id]: { ...current[group.id], company_name: event.target.value } }))} required maxLength={50} placeholder="輸入品牌名稱" disabled={group.brandingMode === 'global' || isSavingGroup || isSwitchingGroup} className="mt-1 h-8 w-full rounded-lg border border-slate-600 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:bg-slate-200 disabled:text-slate-600 lg:mt-0" />
                     </label>
                     <label className="min-w-0 text-xs font-medium text-slate-300"><span className="lg:sr-only">顯示幣別</span>
-                      <input type="text" value={values.currency_unit} onChange={(event) => setFormValuesByGroup(current => ({ ...current, [group.id]: { ...current[group.id], currency_unit: event.target.value.replace(/\s+/g, '') } }))} required maxLength={10} placeholder="例如 USDC" disabled={isSavingGroup} className="mt-1.5 w-full rounded-lg border border-slate-600 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:opacity-60 lg:mt-0" />
+                      <input type="text" value={values.currency_unit} onChange={(event) => setFormValuesByGroup(current => ({ ...current, [group.id]: { ...current[group.id], currency_unit: event.target.value.replace(/\s+/g, '') } }))} required maxLength={10} placeholder="例如 USDC" disabled={group.brandingMode === 'global' || isSavingGroup || isSwitchingGroup} className="mt-1 h-8 w-full rounded-lg border border-slate-600 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-300/40 disabled:bg-slate-200 disabled:text-slate-600 lg:mt-0" />
                     </label>
                     <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-1">
-                      <button type="submit" disabled={savingGroupId !== null} className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50"><Save className="h-3.5 w-3.5" />{isSavingGroup ? '儲存中…' : '儲存'}</button>
-                      {customized && <button type="button" onClick={() => void handleDeleteConfig(group.id)} disabled={savingGroupId !== null} className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-400/35 px-3 text-xs font-medium text-rose-200 hover:bg-rose-400/10 disabled:opacity-50"><RotateCcw className="h-3.5 w-3.5" />還原預設</button>}
+                      <button type="submit" disabled={group.brandingMode === 'global' || savingGroupId !== null || switchingGroupId !== null} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50">{isSavingGroup ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}{isSavingGroup ? '儲存中…' : '儲存'}</button>
+                      <button type="button" onClick={() => void handleSwitchBrandingMode(group)} disabled={savingGroupId !== null || switchingGroupId !== null} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-sky-400/35 bg-sky-400/10 px-2.5 text-xs font-medium text-sky-100 hover:bg-sky-400/20 disabled:opacity-50">{isSwitchingGroup ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowLeftRight className="h-3.5 w-3.5" />}{isSwitchingGroup ? '切換中…' : group.brandingMode === 'custom' ? '改用超管設定' : '改用自己設定'}</button>
                     </div>
                   </form>
                 );
