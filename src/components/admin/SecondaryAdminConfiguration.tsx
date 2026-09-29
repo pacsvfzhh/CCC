@@ -221,7 +221,7 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
               <p className="text-xs font-bold text-white">確認變更</p>
               <p className="mt-0.5 text-xs text-cyan-100/85">儲存後才會套用最新設定</p>
             </div>
-            <button type="submit" disabled={saving} className="ml-auto inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-cyan-100/70 bg-gradient-to-r from-cyan-400 to-sky-500 px-5 text-sm font-bold text-slate-950 shadow-[0_6px_18px_rgba(6,30,49,0.3)] transition-all hover:from-cyan-300 hover:to-sky-400 hover:shadow-[0_8px_22px_rgba(6,30,49,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-wait disabled:opacity-60">{saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="h-4 w-4" aria-hidden="true" />}{saving ? '儲存中…' : '儲存設定'}</button>
+            <button type="submit" disabled={saving} className="ml-auto inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-blue-200/70 bg-gradient-to-r from-blue-700 to-indigo-700 px-5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(6,30,49,0.4)] transition-all hover:from-blue-600 hover:to-indigo-600 hover:shadow-[0_8px_22px_rgba(6,30,49,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-wait disabled:opacity-60">{saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="h-4 w-4" aria-hidden="true" />}{saving ? '儲存中…' : '儲存設定'}</button>
           </div>
         </div>
       </form>
