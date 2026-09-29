@@ -1800,14 +1800,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setSearchTerm(nextTerm);
   };
 
-  const resetEmployeeListFilters = (adminId: string) => {
-    handleSearchTermChange('');
-    setResetFeedbackAdminId(adminId);
-    if (resetFeedbackTimeoutRef.current) clearTimeout(resetFeedbackTimeoutRef.current);
-    resetFeedbackTimeoutRef.current = setTimeout(() => {
-      setResetFeedbackAdminId(currentId => currentId === adminId ? null : currentId);
-      resetFeedbackTimeoutRef.current = null;
-    }, 900);
+  const clearOtherEmployeeFilters = (adminId: string) => {
     setSortByGroup(prev => {
       const next = new Map(prev);
       next.delete(adminId);
@@ -1828,7 +1821,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       next.delete(adminId);
       return next;
     });
-    clearWithdrawalFilter(adminId);
     setSummaryFilterByGroup(prev => {
       const next = new Map(prev);
       next.delete(adminId);
@@ -1849,6 +1841,18 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       next.delete(adminId);
       return next;
     });
+  };
+
+  const resetEmployeeListFilters = (adminId: string) => {
+    handleSearchTermChange('');
+    setResetFeedbackAdminId(adminId);
+    if (resetFeedbackTimeoutRef.current) clearTimeout(resetFeedbackTimeoutRef.current);
+    resetFeedbackTimeoutRef.current = setTimeout(() => {
+      setResetFeedbackAdminId(currentId => currentId === adminId ? null : currentId);
+      resetFeedbackTimeoutRef.current = null;
+    }, 900);
+    clearOtherEmployeeFilters(adminId);
+    clearWithdrawalFilter(adminId);
     setInactiveDaysDropdownOpen(null);
     setIdleDaysDropdownPos(null);
     setWithdrawalDropdownOpen(null);
@@ -2525,6 +2529,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     const options = getWithdrawalDateOptions(adminId);
 
     const select = (value: string) => {
+      if (selected !== value) clearOtherEmployeeFilters(adminId);
       setWithdrawalFilterByGroup(prev => {
         const next = new Map(prev);
         if (selected === value) next.delete(adminId);
