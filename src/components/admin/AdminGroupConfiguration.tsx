@@ -359,8 +359,8 @@ export default function AdminGroupConfiguration() {
                     </div>
                     <div className="min-w-0 self-center">
                       <span className="mb-1 block text-xs font-medium text-slate-300 lg:sr-only">設定來源</span>
-                      <span className={`inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold shadow-sm ${usesSuperSettings ? 'border-amber-300/60 bg-gradient-to-r from-amber-400/25 to-yellow-500/15 text-amber-100 shadow-amber-500/15' : 'border-blue-300/60 bg-gradient-to-r from-blue-500/30 to-cyan-400/15 text-blue-100 shadow-blue-500/15'}`}>
-                        {usesSuperSettings ? <Shield className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+                      <span className={`inline-flex h-6 max-w-full items-center gap-1 rounded-md border px-2 text-[11px] font-semibold shadow-sm ${usesSuperSettings ? 'border-amber-300/60 bg-gradient-to-r from-amber-400/25 to-yellow-500/15 text-amber-100 shadow-amber-500/15' : 'border-blue-300/60 bg-gradient-to-r from-blue-500/30 to-cyan-400/15 text-blue-100 shadow-blue-500/15'}`}>
+                        {usesSuperSettings ? <Shield className="h-3 w-3 shrink-0" aria-hidden="true" /> : <Building2 className="h-3 w-3 shrink-0" aria-hidden="true" />}
                         <span>{isDirty ? needsOwnValues ? '待儲存自己設定' : '未儲存' : group.role === 'super_admin' ? group.brandingMode === 'custom' ? '超管自己設定' : '超管全域設定' : group.brandingMode === 'custom' ? '使用自己設定' : '使用超管設定'}</span>
                       </span>
                     </div>
