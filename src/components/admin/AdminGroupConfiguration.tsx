@@ -338,7 +338,7 @@ export default function AdminGroupConfiguration() {
             <div className="hidden shrink-0 gap-3 border-b border-cyan-200/30 bg-gradient-to-r from-[#253565] via-[#215075] to-[#155867] px-4 py-3 text-xs font-semibold tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:px-7 lg:grid lg:grid-cols-[minmax(105px,1fr)_minmax(138px,1fr)_minmax(170px,2fr)_minmax(88px,.75fr)_minmax(85px,.7fr)] lg:px-9">
               <span>管理員</span><span>設定來源</span><span>品牌名稱</span><span>顯示幣別</span><span>操作</span>
             </div>
-            <div className="admin-team-list-scroll min-h-0 flex-1 divide-y divide-cyan-400/10 overflow-y-auto overscroll-contain">
+            <div className="admin-team-list-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-950/15">
               {groups.map(group => {
                 const isSuperAdmin = group.role === 'super_admin';
                 const usesSuperSettings = isSuperAdmin || group.brandingMode === 'global';
@@ -347,9 +347,10 @@ export default function AdminGroupConfiguration() {
                   currency_unit: group.configs.currency_unit || globalDefaults.currency_unit || 'USDC',
                 };
                 return (
-                  <div key={group.id} className="grid min-w-0 gap-2 px-4 py-3 transition-colors odd:bg-slate-900/20 hover:bg-cyan-950/25 sm:grid-cols-2 sm:gap-3 sm:px-7 lg:grid-cols-[minmax(105px,1fr)_minmax(138px,1fr)_minmax(170px,2fr)_minmax(88px,.75fr)_minmax(85px,.7fr)] lg:items-center lg:px-9">
+                  <div key={group.id} className={`group relative isolate grid min-w-0 gap-2 border-b border-cyan-300/10 px-4 py-3 transition-[background-color,border-color,box-shadow] duration-200 hover:z-[1] hover:border-cyan-300/35 hover:shadow-[inset_0_1px_0_rgba(125,211,252,0.14),inset_0_-1px_0_rgba(125,211,252,0.12)] sm:grid-cols-2 sm:gap-3 sm:px-7 lg:grid-cols-[minmax(105px,1fr)_minmax(138px,1fr)_minmax(170px,2fr)_minmax(88px,.75fr)_minmax(85px,.7fr)] lg:items-center lg:px-9 ${isSuperAdmin ? 'bg-gradient-to-r from-amber-400/[0.08] via-slate-900/25 to-slate-900/15 hover:from-amber-400/[0.16] hover:via-[#243a4a] hover:to-[#17435b]' : 'bg-gradient-to-r from-blue-400/[0.05] via-slate-900/25 to-slate-900/15 hover:from-blue-400/[0.18] hover:via-[#233f58] hover:to-[#12536b]'}`}>
+                    <span aria-hidden="true" className={`pointer-events-none absolute inset-y-3 left-0 w-[3px] rounded-r-full transition-all duration-200 group-hover:inset-y-2 group-hover:w-1 ${isSuperAdmin ? 'bg-amber-400/60 group-hover:bg-amber-300' : 'bg-sky-400/45 group-hover:bg-cyan-300'}`} />
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${group.role === 'super_admin' ? 'bg-amber-400/15 text-amber-200' : 'bg-blue-400/15 text-blue-200'}`}><Building2 className="h-4 w-4" /></span>
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset transition-[background-color,box-shadow] duration-200 ${isSuperAdmin ? 'bg-amber-400/15 text-amber-200 ring-amber-300/20 group-hover:bg-amber-400/25 group-hover:shadow-[0_0_14px_rgba(251,191,36,0.16)]' : 'bg-blue-400/15 text-blue-200 ring-blue-300/20 group-hover:bg-blue-400/25 group-hover:shadow-[0_0_14px_rgba(56,189,248,0.18)]'}`}><Building2 className="h-4 w-4" /></span>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-white" title={group.username}>{group.username}</p>
                         <p className="text-[11px] text-slate-400">{group.role === 'super_admin' ? '超級管理員' : '二級管理員'}</p>
@@ -369,7 +370,7 @@ export default function AdminGroupConfiguration() {
                       <span className="block truncate text-sm font-medium text-slate-100 lg:leading-8" title={activeValues.currency_unit}>{activeValues.currency_unit || '未設定'}</span>
                     </div>
                     <div className="flex items-center sm:col-span-2 lg:col-span-1">
-                      <button type="button" onClick={() => openEditGroup(group)} disabled={savingGroupId !== null} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 text-xs font-semibold text-white hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50"><Pencil className="h-3.5 w-3.5" aria-hidden="true" />編輯</button>
+                      <button type="button" onClick={() => openEditGroup(group)} disabled={savingGroupId !== null} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 text-xs font-semibold text-white shadow-sm shadow-blue-950/40 transition-all hover:from-cyan-400 hover:to-blue-500 hover:shadow-md hover:shadow-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50"><Pencil className="h-3.5 w-3.5" aria-hidden="true" />編輯</button>
                     </div>
                   </div>
                 );
