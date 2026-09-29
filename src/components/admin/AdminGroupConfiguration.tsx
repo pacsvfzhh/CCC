@@ -235,18 +235,32 @@ export default function AdminGroupConfiguration({ isActive }: { isActive: boolea
           setGroups(current => current.map(group => group.id === groupId ? { ...group, brandingModeConfigId: data.id } : group));
         }
 
-        const { error: deleteError } = await supabase.from('admin_configs')
-          .delete().eq('admin_id', groupId).in('config_type', Object.keys(values));
-        if (deleteError) throw deleteError;
-
         const configRecords = Object.entries(values).map(([configType, configValue]) => ({
           admin_id: groupId,
           config_type: configType,
           config_value: configValue,
           updated_at: new Date().toISOString(),
         }));
-        const { error: insertError } = await supabase.from('admin_configs').insert(configRecords);
-        if (insertError) throw insertError;
+        const { error: upsertError } = await supabase.from('admin_configs')
+          .upsert(configRecords, { onConflict: 'admin_id,config_type' });
+        if (upsertError) throw upsertError;
+      }
+
+      if (savedGroup.role === 'super_admin' && (saveOwnValues
+        || values.company_name !== globalDefaults.company_name
+        || values.currency_unit !== globalDefaults.currency_unit)) {
+        for (const [configType, configValue] of Object.entries(values)) {
+          const record = { config_value: configValue, updated_at: new Date().toISOString() };
+          const { data, error } = await supabase.from('admin_configs')
+            .update(record).is('admin_id', null).eq('config_type', configType).select('id');
+          if (error) throw error;
+          if (!data?.length) {
+            const { error: insertError } = await supabase.from('admin_configs')
+              .insert({ admin_id: null, config_type: configType, ...record });
+            if (insertError) throw insertError;
+          }
+        }
+        setGlobalDefaults(values);
       }
 
       if (nextMode !== savedGroup.brandingMode) {

@@ -35,10 +35,11 @@ export function useCompanyName(adminId?: string | null) {
   const [companyName, setCompanyName] = useState<string>(() => readCachedName(adminId) || DEFAULT_COMPANY_NAME);
   const [loading, setLoading] = useState(true);
   const loadCompanyNameRef = useRef<(() => Promise<void>) | null>(null);
+  const adminIdRef = useRef(adminId);
+  adminIdRef.current = adminId;
 
   useEffect(() => {
-    const cached = readCachedName(adminId);
-    if (cached) setCompanyName(cached);
+    setCompanyName(readCachedName(adminId) || DEFAULT_COMPANY_NAME);
 
     if (supabaseConfigurationError) {
       setLoading(false);
@@ -95,6 +96,7 @@ export function useCompanyName(adminId?: string | null) {
           return;
         }
 
+        if (adminIdRef.current !== adminId) return;
         if (data?.config_value) {
           setCompanyName(data.config_value);
           writeCachedName(null, data.config_value);
@@ -110,6 +112,7 @@ export function useCompanyName(adminId?: string | null) {
           console.warn('[Company Name] Unable to load company name:', error);
           return;
         }
+        if (adminIdRef.current !== adminId) return;
 
         const adminConfig = data?.find(c => c.admin_id === adminId && c.config_type === 'company_name');
         const globalConfig = data?.find(c => c.admin_id === null && c.config_type === 'company_name');
@@ -125,7 +128,7 @@ export function useCompanyName(adminId?: string | null) {
     } catch (error) {
       console.warn('[Company Name] Unable to load company name:', error);
     } finally {
-      setLoading(false);
+      if (adminIdRef.current === adminId) setLoading(false);
     }
   };
   loadCompanyNameRef.current = loadCompanyName;

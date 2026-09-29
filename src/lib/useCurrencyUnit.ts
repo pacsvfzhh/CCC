@@ -41,7 +41,7 @@ export function useCurrencyUnit(adminId?: string | null) {
           .in('config_type', ['currency_unit', 'branding_mode'])
           .or(`admin_id.eq.${currentAdminId},admin_id.is.null`);
 
-        if (error) return;
+        if (error || adminIdRef.current !== currentAdminId) return;
 
         const adminConfig = data?.find(c => c.admin_id === currentAdminId && c.config_type === 'currency_unit');
         const globalConfig = data?.find(c => c.admin_id === null && c.config_type === 'currency_unit');
@@ -65,12 +65,16 @@ export function useCurrencyUnit(adminId?: string | null) {
   }, []);
 
   useEffect(() => {
-    if (!adminId) return;
+    if (!adminId) {
+      setCurrencyUnit(DEFAULT_CURRENCY);
+      return;
+    }
 
     try {
-      const cached = localStorage.getItem(getCacheKey(adminId));
-      if (cached) setCurrencyUnit(cached);
-    } catch { /* ignore */ }
+      setCurrencyUnit(localStorage.getItem(getCacheKey(adminId)) || DEFAULT_CURRENCY);
+    } catch {
+      setCurrencyUnit(DEFAULT_CURRENCY);
+    }
 
     loadCurrencyUnit();
 
