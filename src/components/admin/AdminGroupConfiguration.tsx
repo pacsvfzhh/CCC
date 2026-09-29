@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Save, Users, Building2, CheckCircle, XCircle, Shield, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -36,6 +36,22 @@ export default function AdminGroupConfiguration() {
   const [loginTitle, setLoginTitle] = useState('');
   const [loginSubtitle, setLoginSubtitle] = useState('');
   const [savingLoginSettings, setSavingLoginSettings] = useState(false);
+  const loginTitleRef = useRef<HTMLTextAreaElement>(null);
+  const loginSubtitleRef = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const resizeTextareas = () => {
+      for (const textarea of [loginTitleRef.current, loginSubtitleRef.current]) {
+        if (!textarea) continue;
+        textarea.style.height = '36px';
+        textarea.style.height = `${Math.min(52, Math.max(36, textarea.scrollHeight + 2))}px`;
+      }
+    };
+
+    resizeTextareas();
+    window.addEventListener('resize', resizeTextareas);
+    return () => window.removeEventListener('resize', resizeTextareas);
+  }, [loading, loginTitle, loginSubtitle]);
 
   useEffect(() => {
     void (async () => {
@@ -314,10 +330,10 @@ export default function AdminGroupConfiguration() {
         </div>
         <form onSubmit={handleSaveLoginSettings} className="grid min-w-0 gap-3 sm:grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
           <label className="block min-w-0 text-[11px] font-medium tracking-wide text-slate-400">登入標題
-            <textarea value={loginTitle} onChange={(event) => setLoginTitle(event.target.value.replace(/[\r\n]+/g, ' '))} required maxLength={100} rows={2} placeholder="輸入登入頁標題" className="login-settings-scroll mt-1 block h-[52px] w-full resize-none overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 px-3 py-[5px] text-sm leading-5 text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-500 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-400/20" />
+            <textarea ref={loginTitleRef} value={loginTitle} onChange={(event) => setLoginTitle(event.target.value.replace(/[\r\n]+/g, ' '))} required maxLength={100} rows={1} placeholder="輸入登入頁標題" className="login-settings-scroll mt-1 block h-9 max-h-[52px] w-full resize-none overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 px-3 py-[5px] text-sm leading-5 text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-500 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-400/20" />
           </label>
           <label className="block min-w-0 text-[11px] font-medium tracking-wide text-slate-400">登入副標題
-            <textarea value={loginSubtitle} onChange={(event) => setLoginSubtitle(event.target.value.replace(/[\r\n]+/g, ' '))} required maxLength={200} rows={2} placeholder="輸入登入頁副標題" className="login-settings-scroll mt-1 block h-[52px] w-full resize-none overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 px-3 py-[5px] text-sm leading-5 text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-500 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-400/20" />
+            <textarea ref={loginSubtitleRef} value={loginSubtitle} onChange={(event) => setLoginSubtitle(event.target.value.replace(/[\r\n]+/g, ' '))} required maxLength={200} rows={1} placeholder="輸入登入頁副標題" className="login-settings-scroll mt-1 block h-9 max-h-[52px] w-full resize-none overflow-y-auto rounded-lg border border-slate-300 bg-slate-50 px-3 py-[5px] text-sm leading-5 text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-500 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-400/20" />
           </label>
           <button type="submit" disabled={savingLoginSettings} className="inline-flex h-9 items-center justify-center gap-2 self-end rounded-lg border border-violet-300/20 bg-violet-600 px-4 text-xs font-semibold text-white shadow-sm shadow-violet-950/50 transition-colors hover:bg-violet-500 disabled:opacity-50 sm:col-span-2 md:col-span-1"><Save className="h-3.5 w-3.5" />{savingLoginSettings ? '儲存中…' : '儲存設定'}</button>
         </form>
