@@ -342,7 +342,7 @@ export default function AdminGroupConfiguration() {
       <section className="flex min-h-[360px] flex-1 flex-col">
         {groups.length ? (
           <div className="min-w-0 flex-1">
-            <div className="hidden gap-4 border-b border-cyan-400/15 bg-slate-950/40 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 sm:px-7 lg:grid lg:grid-cols-[minmax(150px,1.1fr)_minmax(180px,1.7fr)_minmax(110px,.8fr)_minmax(170px,1.1fr)] lg:px-9">
+            <div className="hidden gap-4 border-b border-cyan-200/30 bg-gradient-to-r from-[#253565] via-[#215075] to-[#155867] px-4 py-3 text-xs font-semibold tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:px-7 lg:grid lg:grid-cols-[minmax(150px,1.1fr)_minmax(180px,1.7fr)_minmax(110px,.8fr)_minmax(170px,1.1fr)] lg:px-9">
               <span>管理員 / 狀態</span><span>品牌名稱</span><span>顯示幣別</span><span>操作</span>
             </div>
             <div className="divide-y divide-cyan-400/10">
