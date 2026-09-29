@@ -1,3 +1,4 @@
+/* @refresh reset */
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Users, Settings, FileText, LogOut, Shield, Package, UserCheck, Zap, Database, Lock, Eye, EyeOff, Bell, PackageSearch, MessageCircle, Search, History, UserCog, Activity, Headphones, ChevronDown, ChevronUp, ChevronsUpDown, SlidersHorizontal, RotateCcw, Save, X } from 'lucide-react';
 import type { PointerEvent as ReactPointerEvent } from 'react';

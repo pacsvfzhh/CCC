@@ -34,9 +34,10 @@ function writeCachedName(adminId: string | null | undefined, value: string) {
 export function useCompanyName(adminId?: string | null) {
   const [companyName, setCompanyName] = useState<string>(() => readCachedName(adminId) || DEFAULT_COMPANY_NAME);
   const [loading, setLoading] = useState(true);
-  const loadCompanyNameRef = useRef<(() => Promise<void>) | null>(null);
-  const adminIdRef = useRef(adminId);
-  adminIdRef.current = adminId;
+  const loadCompanyNameRef = useRef<{
+    adminId: string | null | undefined;
+    load: () => Promise<void>;
+  } | null>(null);
 
   useEffect(() => {
     setCompanyName(readCachedName(adminId) || DEFAULT_COMPANY_NAME);
@@ -46,7 +47,7 @@ export function useCompanyName(adminId?: string | null) {
       return;
     }
 
-    void loadCompanyNameRef.current?.();
+    void loadCompanyNameRef.current?.load();
 
     const channel = supabase
       .channel(`company-name-changes-${adminId || 'global'}`)
@@ -58,7 +59,7 @@ export function useCompanyName(adminId?: string | null) {
           table: 'admin_configs',
           filter: "config_type=eq.company_name"
         },
-        () => { void loadCompanyNameRef.current?.(); }
+        () => { void loadCompanyNameRef.current?.load(); }
       )
       .on(
         'postgres_changes',
@@ -68,7 +69,7 @@ export function useCompanyName(adminId?: string | null) {
           table: 'admin_configs',
           filter: 'config_type=eq.branding_mode'
         },
-        () => { void loadCompanyNameRef.current?.(); }
+        () => { void loadCompanyNameRef.current?.load(); }
       )
       .subscribe();
 
@@ -96,7 +97,7 @@ export function useCompanyName(adminId?: string | null) {
           return;
         }
 
-        if (adminIdRef.current !== adminId) return;
+        if (loadCompanyNameRef.current?.adminId !== adminId) return;
         if (data?.config_value) {
           setCompanyName(data.config_value);
           writeCachedName(null, data.config_value);
@@ -112,7 +113,7 @@ export function useCompanyName(adminId?: string | null) {
           console.warn('[Company Name] Unable to load company name:', error);
           return;
         }
-        if (adminIdRef.current !== adminId) return;
+        if (loadCompanyNameRef.current?.adminId !== adminId) return;
 
         const adminConfig = data?.find(c => c.admin_id === adminId && c.config_type === 'company_name');
         const globalConfig = data?.find(c => c.admin_id === null && c.config_type === 'company_name');
@@ -128,10 +129,10 @@ export function useCompanyName(adminId?: string | null) {
     } catch (error) {
       console.warn('[Company Name] Unable to load company name:', error);
     } finally {
-      if (adminIdRef.current === adminId) setLoading(false);
+      if (loadCompanyNameRef.current?.adminId === adminId) setLoading(false);
     }
   };
-  loadCompanyNameRef.current = loadCompanyName;
+  loadCompanyNameRef.current = { adminId, load: loadCompanyName };
 
   return { companyName, loading };
 }
