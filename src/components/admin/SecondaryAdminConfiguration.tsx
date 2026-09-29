@@ -152,10 +152,15 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
       )}
 
       <form onSubmit={handleSave} className="flex w-full flex-1 flex-col">
-        <div className="flex items-center gap-3 border-b border-cyan-300/25 bg-gradient-to-r from-[#1d3059] via-[#194461] to-[#146071] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_10px_30px_rgba(2,12,27,0.18)] sm:px-7 lg:px-9">
+        <div className="flex flex-wrap items-center gap-3 border-b border-cyan-300/25 bg-gradient-to-r from-[#1d3059] via-[#194461] to-[#146071] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_10px_30px_rgba(2,12,27,0.18)] sm:px-7 lg:px-9">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-200/35 bg-gradient-to-br from-cyan-300/25 to-blue-500/20 text-cyan-50 shadow-[0_4px_15px_rgba(8,145,178,0.2)]"><Building2 className="h-5 w-5" aria-hidden="true" /></span>
           <div className="min-w-0"><h2 className="text-base font-semibold text-white">我的設定</h2><p className="break-words text-sm text-cyan-100">{admin.username} · 二級管理員</p></div>
-          <span className={`ml-auto shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${brandingMode === 'global' ? 'border-amber-300/60 bg-amber-300/20 text-amber-50' : 'border-cyan-300/60 bg-cyan-300/20 text-cyan-50'}`}>目前使用{brandingMode === 'global' ? '超管設定' : '自己設定'}</span>
+          <span className={`ml-auto inline-flex min-h-9 shrink-0 items-center gap-2 rounded-xl border px-2.5 py-1 text-xs font-bold tracking-wide shadow-lg ring-1 ring-inset ${brandingMode === 'global' ? 'border-amber-200 bg-gradient-to-r from-amber-200 via-amber-300 to-yellow-400 text-amber-950 shadow-amber-950/30 ring-white/50' : 'border-cyan-100 bg-gradient-to-r from-sky-200 via-cyan-300 to-teal-300 text-slate-950 shadow-cyan-950/30 ring-white/50'}`}>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-950/15">
+              {brandingMode === 'global' ? <Shield className="h-4 w-4" aria-hidden="true" /> : <Building2 className="h-4 w-4" aria-hidden="true" />}
+            </span>
+            目前使用{brandingMode === 'global' ? '超管設定' : '自己設定'}
+          </span>
         </div>
 
         <div className="mx-auto w-full max-w-6xl flex-1 space-y-5 px-4 py-5 sm:px-7 sm:py-6 lg:px-9">
