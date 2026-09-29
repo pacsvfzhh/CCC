@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Save, Users, Building2, CheckCircle, XCircle, Shield, RotateCcw, Loader2 } from 'lucide-react';
+import { Save, Building2, CheckCircle, XCircle, Shield, RotateCcw, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface AdminGroup {
@@ -340,13 +340,6 @@ export default function AdminGroupConfiguration() {
       </section>
 
       <section className="flex min-h-[360px] flex-1 flex-col">
-        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-cyan-400/20 bg-slate-900/30 px-4 py-5 sm:px-7 lg:px-9">
-          <div>
-            <h2 className="flex items-center gap-2 text-base font-semibold text-white"><Users className="h-5 w-5 text-cyan-300" />管理員團隊</h2>
-            <p className="mt-1 text-xs text-slate-400">在每位管理員旁直接編輯品牌與幣別；提款規則和員工分組請至「訂單指派」管理。</p>
-          </div>
-          <span className="text-xs font-medium tabular-nums text-cyan-200">{groups.length} 個團隊</span>
-        </div>
         {groups.length ? (
           <div className="min-w-0 flex-1">
             <div className="hidden gap-4 border-b border-cyan-400/15 bg-slate-950/40 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 sm:px-7 lg:grid lg:grid-cols-[minmax(150px,1.1fr)_minmax(180px,1.7fr)_minmax(110px,.8fr)_minmax(170px,1.1fr)] lg:px-9">
