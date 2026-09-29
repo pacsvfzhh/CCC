@@ -215,9 +215,13 @@ export default function SecondaryAdminConfiguration({ admin }: SecondaryAdminCon
           </section>
         </div>
 
-        <div className="border-t border-cyan-200/20 bg-[#0b1b2e]/55">
-          <div className="mx-auto flex w-full max-w-6xl justify-end px-4 py-4 sm:px-7 lg:px-9">
-            <button type="submit" disabled={saving} className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-cyan-200/30 bg-gradient-to-r from-cyan-600 to-blue-600 px-4 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(8,145,178,0.2)] transition-all hover:from-cyan-500 hover:to-blue-500 hover:shadow-[0_8px_22px_rgba(8,145,178,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="h-4 w-4" aria-hidden="true" />}{saving ? '儲存中…' : '儲存設定'}</button>
+        <div className="border-t border-cyan-200/40 bg-gradient-to-r from-[#213a59] via-[#1b4c64] to-[#125a62] shadow-[0_-10px_28px_rgba(3,16,31,0.22),inset_0_1px_0_rgba(255,255,255,0.1)]">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-3 px-4 py-3 sm:px-7 lg:px-9">
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-white">確認變更</p>
+              <p className="mt-0.5 text-xs text-cyan-100/85">儲存後才會套用最新設定</p>
+            </div>
+            <button type="submit" disabled={saving} className="ml-auto inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-cyan-100/70 bg-gradient-to-r from-cyan-400 to-sky-500 px-5 text-sm font-bold text-slate-950 shadow-[0_6px_18px_rgba(6,30,49,0.3)] transition-all hover:from-cyan-300 hover:to-sky-400 hover:shadow-[0_8px_22px_rgba(6,30,49,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-wait disabled:opacity-60">{saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="h-4 w-4" aria-hidden="true" />}{saving ? '儲存中…' : '儲存設定'}</button>
           </div>
         </div>
       </form>
