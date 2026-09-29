@@ -180,7 +180,7 @@ export default function AdminGroupConfiguration() {
     try {
       for (const [configType, configValue] of Object.entries(values)) {
         if (!configValue || configValue === '') {
-          throw new Error(`${configType} cannot be empty`);
+          throw new Error(`${configType === 'company_name' ? '品牌名稱' : '顯示幣別'}不可留空`);
         }
       }
 
@@ -214,7 +214,7 @@ export default function AdminGroupConfiguration() {
       console.error('Error saving config:', error);
       setNotification({
         type: 'error',
-        message: `Failed to save: ${error instanceof Error ? error.message : String(error)}`,
+        message: '儲存團隊設定失敗，請檢查欄位後再試。',
       });
     } finally {
       setSavingGroupId(null);
@@ -247,13 +247,13 @@ export default function AdminGroupConfiguration() {
 
       setNotification({
         type: 'success',
-        message: 'Login page settings saved successfully',
+        message: '登入畫面設定已儲存。',
       });
     } catch (error: unknown) {
       console.error('Error saving login settings:', error);
       setNotification({
         type: 'error',
-        message: `Failed to save: ${error instanceof Error ? error.message : String(error)}`,
+        message: '儲存登入畫面設定失敗，請稍後再試。',
       });
     } finally {
       setSavingLoginSettings(false);
@@ -284,7 +284,7 @@ export default function AdminGroupConfiguration() {
       console.error('Error deleting config:', error);
       setNotification({
         type: 'error',
-        message: 'Failed to reset configuration',
+        message: '還原團隊設定失敗，請稍後再試。',
       });
     }
   };
