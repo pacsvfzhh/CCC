@@ -259,7 +259,8 @@ BEGIN
       WHERE u.valid_order_data_id = ANY(v_recyclable_ids) AND u.created_at < v_cutoff;
       GET DIAGNOSTICS v_references_deleted = ROW_COUNT;
 
-      UPDATE public.valid_order_data AS vod SET is_active = true
+      UPDATE public.valid_order_data AS vod
+      SET is_active = true, deactivated_at = NULL, deactivation_reason = NULL
       WHERE vod.id = ANY(v_recyclable_ids) AND vod.is_active = false
         AND NOT EXISTS (
           SELECT 1 FROM public.used_order_data AS u WHERE u.valid_order_data_id = vod.id
