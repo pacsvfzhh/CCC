@@ -21,11 +21,6 @@ interface ConfigFormValues {
   currency_unit: string;
 }
 
-type SharedConfigRpc = (
-  name: 'admin_save_shared_system_config',
-  args: { p_admin_session_token: string; p_key: string; p_value: string }
-) => PromiseLike<{ error: Error | null }>;
-
 export default function AdminGroupConfiguration({ isActive }: { isActive: boolean }) {
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -316,7 +311,7 @@ export default function AdminGroupConfiguration({ isActive }: { isActive: boolea
 
       const token = getAdminFinancialSessionToken();
       for (const update of updates) {
-        const { error } = await (supabase.rpc as unknown as SharedConfigRpc)('admin_save_shared_system_config', {
+        const { error } = await supabase.rpc('admin_save_shared_system_config', {
           p_admin_session_token: token,
           p_key: update.key,
           p_value: update.value,

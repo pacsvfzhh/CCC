@@ -8,7 +8,6 @@ import { getAdminFinancialSessionToken, logout, updateStoredUsername } from '../
 import { useCompanyName } from '../../lib/useCompanyName';
 import { AdminBackground } from '../AdminBackground';
 import { formatSupabaseError, isFinancialAdminSessionError, supabase } from '../../lib/supabase';
-import { autoCleanupService } from '../../services/autoCleanupService';
 import { invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 import AdminPageLoading from './AdminPageLoading';
 
@@ -104,11 +103,6 @@ interface NavigationPreferences {
   order: AdminTabId[];
   labels: Partial<Record<AdminTabId, string>>;
 }
-
-type SharedConfigRpc = (
-  name: 'admin_save_shared_system_config',
-  args: { p_admin_session_token: string; p_key: 'admin_navigation_preferences'; p_value: NavigationPreferences }
-) => PromiseLike<{ error: Error | null }>;
 
 const legacyNavigationLabelTranslations: Record<string, string> = {
   Employees: '員工詳情數據',
@@ -228,7 +222,7 @@ async function loadSharedNavigationPreferences(legacyOwnerId: string | null): Pr
 
 async function saveSharedNavigationPreferences(preferences: NavigationPreferences) {
   try {
-    const { error } = await (supabase.rpc as unknown as SharedConfigRpc)('admin_save_shared_system_config', {
+    const { error } = await supabase.rpc('admin_save_shared_system_config', {
       p_admin_session_token: getAdminFinancialSessionToken(),
       p_key: NAVIGATION_PREFERENCES_KEY,
       p_value: preferences,
@@ -936,10 +930,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // 启动自动清理服务
-    autoCleanupService.start(admin.id);
-    console.log('[Admin Dashboard] Auto cleanup service started');
-
     // Set up real-time subscriptions for withdrawals
     const withdrawalChannel = supabase
       .channel('admin-withdrawals')
@@ -1082,9 +1072,6 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
       supabase.removeChannel(customerServiceChannel);
       supabase.removeChannel(accountLocksChannel);
 
-      // 停止自动清理服务
-      autoCleanupService.stop();
-      console.log('[Admin Dashboard] Auto cleanup service stopped');
     };
   }, [loadPendingCounts, loadLockedAccountsCount, admin.id, admin.role]);
 

@@ -67,15 +67,6 @@ type AnnouncementInsert = AnnouncementUpdate & Pick<Announcement, 'created_by'>;
 type StatusFilter = 'all' | 'pinned' | 'hidden' | 'global';
 type WorkspaceMode = 'preview' | 'edit';
 type EditorMode = 'create' | 'edit';
-type SharedConfigRpc = (
-  name: 'admin_save_shared_system_config',
-  args: {
-    p_admin_session_token: string;
-    p_key: 'announcement_carousel_enabled' | 'announcement_carousel_speed';
-    p_value: boolean | number;
-  }
-) => PromiseLike<{ error: Error | null }>;
-
 const MAX_ANNOUNCEMENT_CONTENT_BYTES = 500 * 1024;
 
 const emptyDraft = (): AnnouncementDraft => ({
@@ -456,14 +447,14 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     setCarouselErrorMessage(null);
     try {
       const token = getAdminFinancialSessionToken();
-      const { error: enabledError } = await (supabase.rpc as unknown as SharedConfigRpc)('admin_save_shared_system_config', {
+      const { error: enabledError } = await supabase.rpc('admin_save_shared_system_config', {
         p_admin_session_token: token,
         p_key: 'announcement_carousel_enabled',
         p_value: enabled,
       });
       if (enabledError) throw enabledError;
 
-      const { error: speedError } = await (supabase.rpc as unknown as SharedConfigRpc)('admin_save_shared_system_config', {
+      const { error: speedError } = await supabase.rpc('admin_save_shared_system_config', {
         p_admin_session_token: token,
         p_key: 'announcement_carousel_speed',
         p_value: carouselSpeed,

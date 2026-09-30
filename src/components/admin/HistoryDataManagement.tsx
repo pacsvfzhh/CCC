@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, AlertTriangle, CheckCircle, Database, Info, RefreshCw, Save, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { autoCleanupService, CleanupSchedule } from '../../services/autoCleanupService';
+import type { Database as DatabaseSchema } from '../../types/database';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { safeToLocaleString } from '../../lib/safeUtils';
+
+type CleanupSchedule = DatabaseSchema['public']['Functions']['admin_get_history_cleanup_schedule']['Returns'][number];
 
 interface CleanupConfig {
   category: string;
@@ -26,10 +28,11 @@ interface PreviewResult {
   total_records: number;
   records_to_delete: number;
   records_to_keep: number;
-  oldest_record: string;
+  oldest_record: string | null;
   cutoff_date: string;
   estimated_space: string;
   risk_level: string;
+  retention_days: number;
 }
 
 interface CleanupResult {
@@ -76,6 +79,7 @@ export default function HistoryDataManagement() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [autoCleanupSchedule, setAutoCleanupSchedule] = useState<CleanupSchedule[]>([]);
+  const [scheduleLoaded, setScheduleLoaded] = useState(false);
   const [editingRetention, setEditingRetention] = useState<Record<string, number>>({});
   const [editingTime, setEditingTime] = useState<Record<string, string>>({});
   const [savingTable, setSavingTable] = useState<string | null>(null);
@@ -129,11 +133,16 @@ export default function HistoryDataManagement() {
 
   const loadAutoCleanupSchedule = async (): Promise<boolean> => {
     try {
-      const schedule = await autoCleanupService.getCurrentSchedule();
-      setAutoCleanupSchedule(schedule);
+      const { data, error } = await supabase.rpc('admin_get_history_cleanup_schedule', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+      });
+      if (error) throw error;
+      setAutoCleanupSchedule(data ?? []);
+      setScheduleLoaded(true);
       return true;
     } catch (err) {
       console.error('Error loading auto cleanup schedule:', err);
+      setScheduleLoaded(false);
       setError('載入自動清理排程失敗，請稍後重試。');
       return false;
     }
@@ -161,76 +170,69 @@ export default function HistoryDataManagement() {
 
   const handleToggleEnabled = async (tableName: string) => {
     const scheduleItem = getScheduleForTable(tableName);
-    const currentEnabled = scheduleItem?.enabled ?? false;
-
-    const updatedSchedule = autoCleanupSchedule.map(item => {
-      if (item.table_name === tableName) {
-        return { ...item, enabled: !currentEnabled };
-      }
-      return item;
-    });
-
-    // If the table doesn't exist in schedule yet, add it
-    if (!scheduleItem) {
-      updatedSchedule.push({
-        table_name: tableName,
-        days_to_keep: configs.find(c => c.table_name === tableName)?.default_retention_days || 90,
-        schedule_time: '03:00',
-        enabled: true
-      });
-    }
+    if (!scheduleItem) return;
 
     setSavingTable(tableName);
-    const success = await autoCleanupService.updateSchedule(updatedSchedule);
-    if (success) {
-      setAutoCleanupSchedule(updatedSchedule);
+    setError(null);
+    try {
+      const { error } = await supabase.rpc('admin_save_history_cleanup_schedule', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_table_name: tableName,
+        p_days_to_keep: scheduleItem.days_to_keep,
+        p_schedule_time: scheduleItem.schedule_time,
+        p_enabled: !scheduleItem.enabled,
+      });
+      if (error) throw error;
+      const results = await Promise.all([loadConfigs(true), loadAutoCleanupSchedule()]);
+      if (!results.every(Boolean)) return;
       setSavedTable(tableName);
       setTimeout(() => setSavedTable(null), 2000);
+    } catch (err) {
+      console.error('Error saving auto cleanup schedule:', err);
+      setError('儲存自動清理設定失敗，請稍後重試。');
+    } finally {
+      setSavingTable(null);
     }
-    setSavingTable(null);
   };
 
   const handleSaveSchedule = async (tableName: string) => {
     const scheduleItem = getScheduleForTable(tableName);
+    if (!scheduleItem) return;
     const newDays = editingRetention[tableName];
     const newTime = editingTime[tableName];
-
     if (newDays === undefined && newTime === undefined) return;
 
-    const updatedSchedule = autoCleanupSchedule.map(item => {
-      if (item.table_name === tableName) {
-        return {
-          ...item,
-          days_to_keep: newDays ?? item.days_to_keep,
-          schedule_time: newTime ?? item.schedule_time
-        };
-      }
-      return item;
-    });
-
-    // If the table doesn't exist in schedule, add it
-    if (!scheduleItem) {
-      const config = configs.find(c => c.table_name === tableName);
-      updatedSchedule.push({
-        table_name: tableName,
-        days_to_keep: newDays ?? config?.default_retention_days ?? 90,
-        schedule_time: newTime ?? '03:00',
-        enabled: true
-      });
-    }
-
     setSavingTable(tableName);
-    const success = await autoCleanupService.updateSchedule(updatedSchedule);
-    if (success) {
-      setAutoCleanupSchedule(updatedSchedule);
-      delete editingRetention[tableName];
-      delete editingTime[tableName];
-      setEditingRetention({ ...editingRetention });
-      setEditingTime({ ...editingTime });
+    setError(null);
+    try {
+      const { error } = await supabase.rpc('admin_save_history_cleanup_schedule', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_table_name: tableName,
+        p_days_to_keep: newDays ?? scheduleItem.days_to_keep,
+        p_schedule_time: newTime ?? scheduleItem.schedule_time,
+        p_enabled: scheduleItem.enabled,
+      });
+      if (error) throw error;
+      const results = await Promise.all([loadConfigs(true), loadAutoCleanupSchedule()]);
+      if (!results.every(Boolean)) return;
+      setEditingRetention(prev => {
+        const next = { ...prev };
+        delete next[tableName];
+        return next;
+      });
+      setEditingTime(prev => {
+        const next = { ...prev };
+        delete next[tableName];
+        return next;
+      });
       setSavedTable(tableName);
       setTimeout(() => setSavedTable(null), 2000);
+    } catch (err) {
+      console.error('Error saving auto cleanup schedule:', err);
+      setError('儲存自動清理設定失敗，請稍後重試。');
+    } finally {
+      setSavingTable(null);
     }
-    setSavingTable(null);
   };
 
   const handlePreview = async (config: CleanupConfig) => {
@@ -239,9 +241,9 @@ export default function HistoryDataManagement() {
       setError(null);
       setSelectedTable(config);
 
-      const { data, error } = await supabase.rpc('preview_cleanup', {
+      const { data, error } = await supabase.rpc('admin_preview_history_cleanup', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
         p_table_name: config.table_name,
-        p_days_to_keep: 0
       });
 
       if (error) throw error;
@@ -258,17 +260,17 @@ export default function HistoryDataManagement() {
   };
 
   const handleExecuteCleanup = async () => {
-    if (!selectedTable) return;
+    if (!selectedTable || !previewResult) return;
 
     try {
       setProcessing(true);
       setError(null);
       setShowPreviewModal(false);
 
-      const { data, error } = await supabase.rpc('execute_cleanup', {
+      const { data, error } = await supabase.rpc('admin_execute_history_cleanup', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_table_name: selectedTable.table_name,
-        p_days_to_keep: 0
+        p_expected_retention_days: previewResult.retention_days,
       });
 
       if (error) throw error;
@@ -278,7 +280,7 @@ export default function HistoryDataManagement() {
       }
     } catch (err) {
       console.error('Error executing cleanup:', err);
-      setError('執行清理失敗，請稍後重試。');
+      setError('執行清理失敗，設定或資料可能已變更，請重新預覽。');
     } finally {
       setProcessing(false);
     }
@@ -321,6 +323,9 @@ export default function HistoryDataManagement() {
       case 'due_soon': return 'text-amber-700';
       case 'Recently cleaned':
       case 'up_to_date': return 'text-emerald-700';
+      case 'disabled': return 'text-slate-500';
+      case 'waiting': return 'text-sky-700';
+      case 'due': return 'text-orange-700';
       default: return 'text-slate-600';
     }
   };
@@ -334,7 +339,10 @@ export default function HistoryDataManagement() {
       case 'Consider cleanup':
       case 'due_soon': return '建議清理';
       case 'Recently cleaned':
-      case 'up_to_date': return '近期已清理';
+      case 'up_to_date': return '今日排程已完成';
+      case 'disabled': return '自動清理已關閉';
+      case 'waiting': return '等待今日排程';
+      case 'due': return '今日排程待執行';
       default: return '狀態未知';
     }
   };
@@ -385,7 +393,7 @@ export default function HistoryDataManagement() {
             </div>
             <div className="min-w-0">
               <h2 className="text-lg font-extrabold tracking-tight text-white">歷史資料管理</h2>
-              <p className="mt-0.5 text-xs leading-5 text-slate-200">直接編輯各類資料的保留天數與執行時間；自動清理可逐項開關，修改後請分別儲存。</p>
+              <p className="mt-0.5 text-xs leading-5 text-slate-200">各類資料可分別設定保留天數和每日執行時間（UTC）；自動清理可逐項開關。</p>
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
@@ -427,7 +435,7 @@ export default function HistoryDataManagement() {
                     <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-blue-950">資料類型</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-blue-950">紀錄／大小</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-blue-950">保留天數</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-blue-950">執行時間</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-blue-950">執行時間（UTC）</th>
                     <th className="px-5 py-3 text-center text-xs font-semibold tracking-wider text-blue-950">自動清理</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-blue-950">狀態</th>
                     <th className="px-5 py-3 text-right text-xs font-semibold tracking-wider text-blue-950">操作</th>
@@ -439,8 +447,8 @@ export default function HistoryDataManagement() {
                   const currentDays = editingRetention[config.table_name] ?? scheduleItem?.days_to_keep ?? config.default_retention_days;
                   const currentTime = editingTime[config.table_name] ?? scheduleItem?.schedule_time ?? '03:00';
                   const isEnabled = scheduleItem?.enabled ?? false;
-                  const hasChanges = (editingRetention[config.table_name] !== undefined && editingRetention[config.table_name] !== (scheduleItem?.days_to_keep ?? config.default_retention_days))
-                    || (editingTime[config.table_name] !== undefined && editingTime[config.table_name] !== (scheduleItem?.schedule_time ?? '03:00'));
+                  const hasChanges = scheduleLoaded && scheduleItem && ((editingRetention[config.table_name] !== undefined && editingRetention[config.table_name] !== (scheduleItem?.days_to_keep ?? config.default_retention_days))
+                    || (editingTime[config.table_name] !== undefined && editingTime[config.table_name] !== (scheduleItem?.schedule_time ?? '03:00')));
                   const isSaving = savingTable === config.table_name;
                   const justSaved = savedTable === config.table_name;
 
@@ -470,6 +478,7 @@ export default function HistoryDataManagement() {
                             value={currentDays}
                             onChange={(e) => handleRetentionChange(config.table_name, Math.max(config.min_retention_days, parseInt(e.target.value) || 0))}
                             min={config.min_retention_days}
+                            disabled={!scheduleLoaded || !scheduleItem || isSaving}
                             aria-label={`${getTableName(config)}保留天數`}
                             className="w-20 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                           />
@@ -481,6 +490,7 @@ export default function HistoryDataManagement() {
                           type="time"
                           value={currentTime}
                           onChange={(e) => handleTimeChange(config.table_name, e.target.value)}
+                          disabled={!scheduleLoaded || !scheduleItem || isSaving}
                           aria-label={`${getTableName(config)}執行時間`}
                           className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                         />
@@ -488,7 +498,7 @@ export default function HistoryDataManagement() {
                       <td className="px-5 py-4 text-center">
                         <button
                           onClick={() => handleToggleEnabled(config.table_name)}
-                          disabled={isSaving}
+                          disabled={isSaving || !scheduleLoaded || !scheduleItem}
                           type="button"
                           role="switch"
                           aria-checked={isEnabled}
@@ -544,7 +554,7 @@ export default function HistoryDataManagement() {
                               e.preventDefault();
                               handlePreview(config);
                             }}
-                            disabled={processing}
+                            disabled={processing || !scheduleLoaded || !scheduleItem}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 transition-colors hover:border-rose-400 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -590,7 +600,7 @@ export default function HistoryDataManagement() {
                 </div>
               </div>
 
-              <p className="text-xs text-amber-700">手動清理不套用自動排程的保留天數，請確認上方預覽筆數。</p>
+              <p className="text-xs text-amber-700">手動清理使用此資料類型的保留期限（{previewResult.retention_days} 天），只處理到期且符合條件的資料；請確認預覽筆數。</p>
 
               {selectedTable.table_name !== 'valid_order_data' && (
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">

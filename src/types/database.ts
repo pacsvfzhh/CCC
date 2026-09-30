@@ -984,6 +984,7 @@ export interface Database {
           retention_days: number;
           auto_cleanup_enabled: boolean | null;
           cleanup_schedule: string | null;
+          schedule_time_utc: string;
         };
         Insert: {
           id?: string;
@@ -1003,6 +1004,7 @@ export interface Database {
           retention_days: number;
           auto_cleanup_enabled?: boolean | null;
           cleanup_schedule?: string | null;
+          schedule_time_utc?: string;
         };
         Update: {
           id?: string;
@@ -1022,6 +1024,7 @@ export interface Database {
           retention_days?: number;
           auto_cleanup_enabled?: boolean | null;
           cleanup_schedule?: string | null;
+          schedule_time_utc?: string;
         };
         Relationships: [];
       };
@@ -1037,6 +1040,8 @@ export interface Database {
           message: string | null;
           error_details: string | null;
           created_at: string;
+          run_source: 'manual' | 'automatic' | null;
+          scheduled_for: string | null;
         };
         Insert: {
           id?: string;
@@ -1049,6 +1054,8 @@ export interface Database {
           message?: string | null;
           error_details?: string | null;
           created_at?: string;
+          run_source?: 'manual' | 'automatic' | null;
+          scheduled_for?: string | null;
         };
         Update: {
           id?: string;
@@ -1061,6 +1068,8 @@ export interface Database {
           message?: string | null;
           error_details?: string | null;
           created_at?: string;
+          run_source?: 'manual' | 'automatic' | null;
+          scheduled_for?: string | null;
         };
         Relationships: [];
       };
@@ -3255,6 +3264,58 @@ export interface Database {
       process_pending_orders: {
         Args: Record<string, never>;
         Returns: unknown;
+      };
+      admin_save_shared_system_config: {
+        Args: { p_admin_session_token: string; p_key: string; p_value: unknown };
+        Returns: undefined;
+      };
+      admin_get_history_cleanup_schedule: {
+        Args: { p_admin_session_token: string };
+        Returns: Array<{
+          table_name: string;
+          days_to_keep: number;
+          schedule_time: string;
+          enabled: boolean;
+          last_cleanup_at: string | null;
+        }>;
+      };
+      admin_save_history_cleanup_schedule: {
+        Args: {
+          p_admin_session_token: string;
+          p_table_name: string;
+          p_days_to_keep: number;
+          p_schedule_time: string;
+          p_enabled: boolean;
+        };
+        Returns: undefined;
+      };
+      admin_preview_history_cleanup: {
+        Args: { p_admin_session_token: string; p_table_name: string };
+        Returns: Array<{
+          table_name: string;
+          total_records: number;
+          records_to_delete: number;
+          records_to_keep: number;
+          oldest_record: string | null;
+          cutoff_date: string;
+          estimated_space: string;
+          risk_level: string;
+          retention_days: number;
+        }>;
+      };
+      admin_execute_history_cleanup: {
+        Args: {
+          p_admin_session_token: string;
+          p_table_name: string;
+          p_expected_retention_days: number;
+        };
+        Returns: Array<{
+          success: boolean;
+          records_deleted: number;
+          space_freed: string;
+          execution_time_ms: number;
+          message: string;
+        }>;
       };
       execute_cleanup: {
         Args: {

@@ -151,6 +151,8 @@ const isReadOnlyRpcRequest = (input: RequestInfo | URL, method: string) => {
   return functionName.startsWith('get_')
     || functionName.startsWith('count_')
     || functionName === 'preview_cleanup'
+    || functionName === 'admin_preview_history_cleanup'
+    || functionName === 'admin_get_history_cleanup_schedule'
     || functionName === 'check_login_rate_limit'
     || functionName === 'validate_employee_session';
 };
