@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, AlertTriangle, CheckCircle, Info, RefreshCw, Save, Check } from 'lucide-react';
+import { Trash2, AlertTriangle, CheckCircle, Database, Info, RefreshCw, Save, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { autoCleanupService, CleanupSchedule } from '../../services/autoCleanupService';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
@@ -66,6 +66,8 @@ const formatSize = (size: string) => size.replace(/\bbytes?\b/gi, '位元組').r
 export default function HistoryDataManagement() {
   const [configs, setConfigs] = useState<CleanupConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<CleanupConfig | null>(null);
   const [previewResult, setPreviewResult] = useState<PreviewResult | null>(null);
@@ -102,7 +104,7 @@ export default function HistoryDataManagement() {
     }
   }, [showPreviewModal, showConfirmModal]);
 
-  const loadConfigs = async (silent = false) => {
+  const loadConfigs = async (silent = false): Promise<boolean> => {
     try {
       if (!silent) {
         setLoading(true);
@@ -115,21 +117,34 @@ export default function HistoryDataManagement() {
 
       if (error) throw error;
       setConfigs(data || []);
+      return true;
     } catch (err) {
       console.error('Error loading cleanup configs:', err);
       setError('載入歷史資料失敗，請稍後重試。');
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const loadAutoCleanupSchedule = async () => {
+  const loadAutoCleanupSchedule = async (): Promise<boolean> => {
     try {
       const schedule = await autoCleanupService.getCurrentSchedule();
       setAutoCleanupSchedule(schedule);
+      return true;
     } catch (err) {
       console.error('Error loading auto cleanup schedule:', err);
+      setError('載入自動清理排程失敗，請稍後重試。');
+      return false;
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setError(null);
+    const results = await Promise.all([loadConfigs(true), loadAutoCleanupSchedule()]);
+    setLastRefreshedAt(results.every(Boolean) ? new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : null);
+    setRefreshing(false);
   };
 
   const getScheduleForTable = useCallback((tableName: string) => {
@@ -360,20 +375,32 @@ export default function HistoryDataManagement() {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white text-slate-900">
-      <div className="shrink-0 border-b border-blue-200 bg-gradient-to-r from-blue-50 via-white to-cyan-50 px-4 py-4 sm:px-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">歷史資料管理</h2>
-            <p className="mt-1 text-xs leading-5 text-slate-600">直接編輯各類資料的保留天數與執行時間；自動清理可逐項開關，修改後請分別儲存。</p>
+      <div className="relative isolate shrink-0 overflow-hidden border-b border-blue-200 bg-[linear-gradient(110deg,#eaf4ff_0%,#e1f3fb_40%,#edf0ff_75%,#fff4e8_100%)] px-4 py-4 sm:px-6">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-amber-400" />
+        <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-20 h-44 w-60 rounded-full bg-cyan-300/35 blur-3xl" />
+        <div className="relative flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-sky-600 to-cyan-500 text-white shadow-[0_10px_24px_-12px_rgba(37,99,235,0.8)] ring-1 ring-blue-300/70">
+              <Database className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg font-extrabold tracking-tight text-slate-900">歷史資料管理</h2>
+              <p className="mt-0.5 text-xs leading-5 text-slate-600">直接編輯各類資料的保留天數與執行時間；自動清理可逐項開關，修改後請分別儲存。</p>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => loadConfigs()}
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            重新整理
-          </button>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              aria-busy={refreshing}
+              className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/60 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 px-4 py-2.5 text-xs font-bold text-white shadow-[0_8px_20px_-9px_rgba(37,99,235,0.8)] transition-all hover:brightness-110 hover:shadow-[0_10px_22px_-8px_rgba(37,99,235,0.85)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : 'transition-transform duration-300 group-hover:rotate-45'}`} aria-hidden="true" />
+              {refreshing ? '刷新中…' : '刷新'}
+            </button>
+            {lastRefreshedAt && <span role="status" className="text-[10px] text-blue-700">上次刷新 {lastRefreshedAt}</span>}
+          </div>
         </div>
       </div>
 
