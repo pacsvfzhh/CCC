@@ -3474,7 +3474,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                 <span className={`inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black ${historyFilterMode !== 'new' ? 'bg-white text-emerald-700' : 'bg-slate-500/50 text-slate-200'}`}>{scoped.length}</span>
                               )}
                             </button>
-                            <button type="button" onClick={() => setHistoryFilterMode('new')} className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${scopedNew > 0 ? 'session-unread-action text-white shadow-lg shadow-orange-500/30' : historyFilterMode === 'new' ? 'bg-orange-500 text-white' : 'bg-slate-700/50 text-slate-300 ring-1 ring-slate-600/50 hover:bg-slate-600/50 hover:text-white'}`}>
+                            <button type="button" onClick={() => setHistoryFilterMode('new')} className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${historyFilterMode === 'new' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30' : scopedNew > 0 ? 'bg-orange-700 text-white shadow-lg shadow-orange-500/30 hover:bg-orange-600' : 'bg-slate-700/50 text-slate-300 ring-1 ring-slate-600/50 hover:bg-slate-600/50 hover:text-white'}`}>
                               {scopedNew > 0 && historyFilterMode !== 'new' && (
                                 <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-orange-500 rounded-full ring-2 ring-slate-900" />
                               )}
