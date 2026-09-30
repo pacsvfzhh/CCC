@@ -130,25 +130,36 @@ export default function AdminGroupPicker({ service, groups, unreadCounts, fallba
             </div>
 
             <div className="flex w-full max-w-[560px] shrink-0 flex-wrap justify-start gap-2 lg:justify-end">
-              <div className="group/metric w-[104px] rounded-xl border border-cyan-400/25 bg-gradient-to-br from-cyan-500/15 via-cyan-500/5 to-slate-950/35 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(165,243,252,0.12)]">
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-cyan-200/80"><Users className="h-3 w-3 shrink-0" /> <span className="truncate">群組</span></div>
-                <div className="mt-1 text-base font-bold text-cyan-50">{groups.length}</div>
+              <div className="group/metric relative w-[104px] overflow-hidden rounded-xl border border-cyan-300/35 bg-gradient-to-br from-cyan-400/25 via-cyan-900/25 to-slate-950/70 px-2.5 py-2 shadow-[0_10px_24px_-16px_rgba(34,211,238,0.55),inset_0_1px_0_rgba(165,243,252,0.25)] transition-[border-color,box-shadow] duration-300 hover:border-cyan-200/70 hover:shadow-[0_10px_26px_-12px_rgba(34,211,238,0.5),inset_0_1px_0_rgba(165,243,252,0.4)]">
+                <span aria-hidden="true" className="pointer-events-none absolute -right-3 -top-5 h-12 w-12 rounded-full border border-cyan-200/20 bg-cyan-300/10 blur-[1px]" />
+                <span aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/70 to-transparent" />
+                <div className="relative flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-cyan-100/90"><Users className="h-3 w-3 shrink-0 text-cyan-300" /> <span className="truncate">群組</span></div>
+                <div className="relative mt-1 text-base font-bold tabular-nums text-cyan-50">{groups.length}</div>
               </div>
-              <div className="group/metric w-[104px] rounded-xl border border-violet-400/25 bg-gradient-to-br from-violet-500/15 via-violet-500/5 to-slate-950/35 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(221,214,254,0.12)]">
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-violet-200/80"><UserCog className="h-3 w-3 shrink-0" /> <span className="truncate">員工</span></div>
-                <div className="mt-1 text-base font-bold text-violet-50">{totalEmployees}</div>
+              <div className="group/metric relative w-[104px] overflow-hidden rounded-xl border border-violet-300/35 bg-gradient-to-br from-violet-400/25 via-violet-900/25 to-slate-950/70 px-2.5 py-2 shadow-[0_10px_24px_-16px_rgba(167,139,250,0.55),inset_0_1px_0_rgba(221,214,254,0.25)] transition-[border-color,box-shadow] duration-300 hover:border-violet-200/70 hover:shadow-[0_10px_26px_-12px_rgba(167,139,250,0.5),inset_0_1px_0_rgba(221,214,254,0.4)]">
+                <span aria-hidden="true" className="pointer-events-none absolute -right-3 -top-5 h-12 w-12 rounded-full border border-violet-200/20 bg-violet-300/10 blur-[1px]" />
+                <span aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/70 to-transparent" />
+                <div className="relative flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-violet-100/90"><UserCog className="h-3 w-3 shrink-0 text-violet-300" /> <span className="truncate">員工</span></div>
+                <div className="relative mt-1 text-base font-bold tabular-nums text-violet-50">{totalEmployees}</div>
               </div>
-              <div className="group/metric w-[104px] rounded-xl border border-sky-400/25 bg-gradient-to-br from-sky-500/15 via-sky-500/5 to-slate-950/35 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)]">
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-sky-200/80"><MessageCircle className="h-3 w-3 shrink-0" /> <span className="truncate">客戶</span></div>
-                <div className="mt-1 text-base font-bold text-sky-50">{totalCustomers}</div>
+              <div className="group/metric relative w-[104px] overflow-hidden rounded-xl border border-sky-300/35 bg-gradient-to-br from-sky-400/25 via-sky-900/25 to-slate-950/70 px-2.5 py-2 shadow-[0_10px_24px_-16px_rgba(56,189,248,0.55),inset_0_1px_0_rgba(186,230,253,0.25)] transition-[border-color,box-shadow] duration-300 hover:border-sky-200/70 hover:shadow-[0_10px_26px_-12px_rgba(56,189,248,0.5),inset_0_1px_0_rgba(186,230,253,0.4)]">
+                <span aria-hidden="true" className="pointer-events-none absolute -right-3 -top-5 h-12 w-12 rounded-full border border-sky-200/20 bg-sky-300/10 blur-[1px]" />
+                <span aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/70 to-transparent" />
+                <div className="relative flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-sky-100/90"><MessageCircle className="h-3 w-3 shrink-0 text-sky-300" /> <span className="truncate">客戶</span></div>
+                <div className="relative mt-1 text-base font-bold tabular-nums text-sky-50">{totalCustomers}</div>
               </div>
-              <div className="group/metric w-[104px] rounded-xl border border-indigo-400/25 bg-gradient-to-br from-indigo-500/15 via-indigo-500/5 to-slate-950/35 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(199,210,254,0.12)]">
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-indigo-200/80"><Activity className="h-3 w-3 shrink-0" /> <span className="truncate">對話</span></div>
-                <div className="mt-1 text-base font-bold text-indigo-50">{totalConversations}</div>
+              <div className="group/metric relative w-[104px] overflow-hidden rounded-xl border border-indigo-300/35 bg-gradient-to-br from-indigo-400/25 via-indigo-900/25 to-slate-950/70 px-2.5 py-2 shadow-[0_10px_24px_-16px_rgba(129,140,248,0.55),inset_0_1px_0_rgba(199,210,254,0.25)] transition-[border-color,box-shadow] duration-300 hover:border-indigo-200/70 hover:shadow-[0_10px_26px_-12px_rgba(129,140,248,0.5),inset_0_1px_0_rgba(199,210,254,0.4)]">
+                <span aria-hidden="true" className="pointer-events-none absolute -right-3 -top-5 h-12 w-12 rounded-full border border-indigo-200/20 bg-indigo-300/10 blur-[1px]" />
+                <span aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/70 to-transparent" />
+                <div className="relative flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-indigo-100/90"><Activity className="h-3 w-3 shrink-0 text-indigo-300" /> <span className="truncate">對話</span></div>
+                <div className="relative mt-1 text-base font-bold tabular-nums text-indigo-50">{totalConversations}</div>
               </div>
-              <div className="group/metric w-[104px] rounded-xl border border-orange-400/30 bg-gradient-to-br from-orange-500/20 via-amber-500/10 to-slate-950/35 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(253,186,116,0.14)]">
-                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-orange-200/85"><BellRing className="h-3 w-3 shrink-0" /> <span className="truncate">未讀</span></div>
-                <div className={`mt-1 text-base font-bold ${totalUnread > 0 ? 'text-orange-100' : 'text-orange-200/70'}`}>{totalUnread}</div>
+              <div className="group/metric relative w-[104px] overflow-hidden rounded-xl border border-orange-300/45 bg-gradient-to-br from-orange-400/30 via-amber-900/25 to-slate-950/70 px-2.5 py-2 shadow-[0_10px_24px_-16px_rgba(251,146,60,0.65),inset_0_1px_0_rgba(253,186,116,0.3)] transition-[border-color,box-shadow] duration-300 hover:border-orange-200/75 hover:shadow-[0_10px_26px_-12px_rgba(251,146,60,0.6),inset_0_1px_0_rgba(253,186,116,0.45)]">
+                <span aria-hidden="true" className="pointer-events-none absolute -right-3 -top-5 h-12 w-12 rounded-full border border-orange-200/25 bg-orange-300/15 blur-[1px]" />
+                <span aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-orange-200/80 to-transparent" />
+                {totalUnread > 0 && <span aria-hidden="true" className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_9px_rgba(253,186,116,0.9)] motion-safe:animate-pulse" />}
+                <div className="relative flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-orange-100/90"><BellRing className="h-3 w-3 shrink-0 text-orange-300" /> <span className="truncate">未讀</span></div>
+                <div className={`relative mt-1 text-base font-bold tabular-nums ${totalUnread > 0 ? 'text-orange-50' : 'text-orange-200/70'}`}>{totalUnread}</div>
               </div>
             </div>
           </div>
