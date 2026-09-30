@@ -3994,25 +3994,24 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
                             <button
                               type="button"
                               onClick={() => setHistoryFilterMode('new')}
-                              className={`relative flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
-                                scopedNew > 0
-                                  ? historyFilterMode === 'new'
-                                    ? 'border-orange-300 bg-gradient-to-r from-orange-700 via-orange-600 to-rose-700 text-white shadow-lg shadow-orange-500/40 hover:-translate-y-0.5 hover:shadow-orange-500/50'
-                                    : 'border-orange-400/70 bg-gradient-to-r from-orange-800 via-orange-700 to-rose-700 text-white shadow-lg shadow-orange-500/25 hover:-translate-y-0.5 hover:brightness-110'
-                                  : historyFilterMode === 'new'
-                                    ? 'border-orange-300 bg-gradient-to-r from-orange-700 to-rose-700 text-white shadow-lg shadow-orange-500/30'
+                              aria-pressed={historyFilterMode === 'new'}
+                              className={`relative flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${
+                                historyFilterMode === 'new'
+                                  ? 'border-orange-300 bg-gradient-to-r from-orange-600 via-orange-500 to-rose-600 text-white shadow-lg shadow-orange-500/45 ring-2 ring-orange-300/30 hover:brightness-110'
+                                  : scopedNew > 0
+                                    ? 'border-orange-400/80 bg-orange-800/90 text-orange-50 shadow-md shadow-orange-900/20 hover:border-orange-300 hover:bg-orange-700'
                                     : 'border-slate-600/50 bg-slate-700/50 text-slate-300 hover:border-slate-500 hover:bg-slate-600/50 hover:text-white'
                               }`}
                             >
                               {scopedNew > 0 && historyFilterMode !== 'new' && (
-                                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-sm shadow-cyan-400/80 ring-2 ring-slate-900" />
+                                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-amber-300 shadow-sm shadow-amber-400/80 ring-2 ring-slate-900" />
                               )}
                               <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden="true" />
                               <span>新的</span>
                               {scopedNew > 0 ? (
-                                <span className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-cyan-200 px-1.5 text-[11px] font-black text-cyan-950 shadow-sm shadow-cyan-400/60 ring-2 ring-white/30">{scopedNew}</span>
+                                <span className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-white px-1.5 text-[11px] font-black text-orange-700 shadow-sm shadow-orange-950/20">{scopedNew}</span>
                               ) : (
-                                <span className={`inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black ${historyFilterMode === 'new' ? 'bg-white/20 text-white/70' : 'bg-slate-500/50 text-slate-400'}`}>0</span>
+                                <span className={`inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black ${historyFilterMode === 'new' ? 'bg-white text-orange-700' : 'bg-slate-500/50 text-slate-400'}`}>0</span>
                               )}
                             </button>
                           </>
