@@ -394,7 +394,7 @@ export default function HistoryDataManagement() {
               onClick={handleRefresh}
               disabled={refreshing}
               aria-busy={refreshing}
-              className="group inline-flex items-center gap-2 rounded-lg border border-cyan-300/60 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-[0_8px_20px_-9px_rgba(34,211,238,0.65)] transition-all hover:brightness-110 hover:shadow-[0_10px_22px_-8px_rgba(34,211,238,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-wait disabled:opacity-70"
+              className="group inline-flex h-[38px] w-[104px] items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-cyan-300/60 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 px-2 text-xs font-bold text-white shadow-[0_8px_20px_-9px_rgba(34,211,238,0.65)] transition-all hover:brightness-110 hover:shadow-[0_10px_22px_-8px_rgba(34,211,238,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-wait disabled:opacity-70"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : 'transition-transform duration-300 group-hover:rotate-45'}`} aria-hidden="true" />
               {refreshing ? '刷新中…' : '刷新'}
