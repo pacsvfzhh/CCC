@@ -1,53 +1,19 @@
-CREATE FUNCTION private.enforce_conversation_source_type()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-BEGIN
-  SELECT customer.source_type INTO NEW.source_type
-  FROM public.simulated_customers AS customer
-  WHERE customer.id = NEW.customer_id
-  FOR SHARE;
-  RETURN NEW;
-END;
-$function$;
-
-REVOKE ALL ON FUNCTION private.enforce_conversation_source_type() FROM PUBLIC, anon, authenticated;
-
-CREATE TRIGGER trg_enforce_conversation_source_type
-BEFORE INSERT OR UPDATE OF customer_id, source_type ON public.customer_employee_conversations
-FOR EACH ROW EXECUTE FUNCTION private.enforce_conversation_source_type();
-
-CREATE FUNCTION private.sync_customer_conversation_source_type()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-BEGIN
-  UPDATE public.customer_employee_conversations
-  SET source_type = NEW.source_type
-  WHERE customer_id = NEW.id
-    AND source_type IS DISTINCT FROM NEW.source_type;
-  RETURN NEW;
-END;
-$function$;
-
-REVOKE ALL ON FUNCTION private.sync_customer_conversation_source_type() FROM PUBLIC, anon, authenticated;
-
-CREATE TRIGGER trg_sync_customer_conversation_source_type
-AFTER UPDATE OF source_type ON public.simulated_customers
-FOR EACH ROW
-WHEN (OLD.source_type IS DISTINCT FROM NEW.source_type)
-EXECUTE FUNCTION private.sync_customer_conversation_source_type();
-
 UPDATE public.customer_employee_conversations AS conversation
 SET source_type = 'ccc_service'
 FROM public.simulated_customers AS customer
 WHERE customer.id = conversation.customer_id
   AND customer.source_type = 'ccc_service'
   AND conversation.source_type = 'aaa_service';
+
+ALTER TABLE public.simulated_customers
+  ADD CONSTRAINT simulated_customers_id_source_type_key UNIQUE (id, source_type);
+
+ALTER TABLE public.customer_employee_conversations
+  DROP CONSTRAINT customer_employee_conversations_customer_id_fkey,
+  ADD CONSTRAINT customer_employee_conversations_customer_id_fkey
+    FOREIGN KEY (customer_id, source_type)
+    REFERENCES public.simulated_customers(id, source_type)
+    ON UPDATE CASCADE ON DELETE CASCADE;
 
 CREATE OR REPLACE FUNCTION public.get_admin_groups_for_customer_service(p_source_type text DEFAULT NULL)
 RETURNS TABLE(

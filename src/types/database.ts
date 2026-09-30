@@ -1857,10 +1857,10 @@ export interface Database {
           },
           {
             foreignKeyName: 'customer_employee_conversations_customer_id_fkey';
-            columns: ['customer_id'];
+            columns: ['customer_id', 'source_type'];
             isOneToOne: false;
             referencedRelation: 'simulated_customers';
-            referencedColumns: ['id'];
+            referencedColumns: ['id', 'source_type'];
           }
         ];
       };
