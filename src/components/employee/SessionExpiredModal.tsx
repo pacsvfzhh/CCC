@@ -72,10 +72,10 @@ export default function SessionExpiredModal({
         <div className="px-6 py-8">
           <div className="space-y-4">
             <p className="text-gray-700 text-lg leading-relaxed">
-              {t.session.loggedInElsewhere}
+              {t.session.noLongerActive}
             </p>
             <p className="text-gray-600">
-              {t.session.securityReason}
+              {t.session.signInAgain}
             </p>
 
             {/* Countdown badge */}

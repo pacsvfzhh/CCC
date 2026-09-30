@@ -29,8 +29,8 @@ const en = {
   // Session expired
   session: {
     expired: 'Session Expired',
-    loggedInElsewhere: 'Your account has been logged in on another browser tab or device.',
-    securityReason: 'For security reasons, only one active session is allowed per account.',
+    noLongerActive: 'Your login session is no longer valid.',
+    signInAgain: 'Please sign in again to continue.',
     redirecting: 'Redirecting to login page',
     returnToLogin: 'Return to Login Now',
   },

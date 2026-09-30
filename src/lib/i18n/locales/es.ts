@@ -24,8 +24,8 @@ const es = {
   },
   session: {
     expired: 'Sesion expirada',
-    loggedInElsewhere: 'Su cuenta ha iniciado sesion en otra pestana o dispositivo.',
-    securityReason: 'Por razones de seguridad, solo se permite una sesion activa por cuenta.',
+    noLongerActive: 'Su sesión de inicio ya no es válida.',
+    signInAgain: 'Inicie sesión de nuevo para continuar.',
     redirecting: 'Redirigiendo a la pagina de inicio',
     returnToLogin: 'Volver al inicio ahora',
   },

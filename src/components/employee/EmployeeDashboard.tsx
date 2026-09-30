@@ -508,7 +508,11 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       if (error) throw error;
       if (data) setShowLoginPopup(true);
     } catch (error) {
-      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) {
+      const message = formatSupabaseError(error).toLowerCase();
+      if (
+        message.includes('employee session is invalid or expired')
+        || message.includes('employee session has expired')
+      ) {
         financialSessionInvalidRef.current = true;
         setShowSessionExpired(true);
         return;

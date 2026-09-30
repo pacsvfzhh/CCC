@@ -24,8 +24,8 @@ const zh = {
   },
   session: {
     expired: '会话已过期',
-    loggedInElsewhere: '您的账户已在其他浏览器标签或设备上登录。',
-    securityReason: '出于安全原因，每个账户只允许一个活动会话。',
+    noLongerActive: '当前登录会话已失效。',
+    signInAgain: '请重新登录以继续使用。',
     redirecting: '正在重定向到登录页面',
     returnToLogin: '立即返回登录',
   },
