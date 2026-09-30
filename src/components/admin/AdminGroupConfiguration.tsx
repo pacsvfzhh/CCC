@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Save, Building2, CheckCircle, XCircle, Shield, Loader2, Pencil, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { getAdminFinancialSessionToken } from '../../lib/auth';
 
 interface AdminGroup {
   id: string;
@@ -19,6 +20,11 @@ interface ConfigFormValues {
   company_name: string;
   currency_unit: string;
 }
+
+type SharedConfigRpc = (
+  name: 'admin_save_shared_system_config',
+  args: { p_admin_session_token: string; p_key: string; p_value: string }
+) => PromiseLike<{ error: Error | null }>;
 
 export default function AdminGroupConfiguration({ isActive }: { isActive: boolean }) {
   const [groups, setGroups] = useState<AdminGroup[]>([]);
@@ -308,11 +314,13 @@ export default function AdminGroupConfiguration({ isActive }: { isActive: boolea
         { key: 'login_subtitle', value: loginSubtitle }
       ];
 
+      const token = getAdminFinancialSessionToken();
       for (const update of updates) {
-        const { error } = await supabase
-          .from('system_configs')
-          .update({ value: update.value, updated_at: new Date().toISOString() })
-          .eq('key', update.key);
+        const { error } = await (supabase.rpc as unknown as SharedConfigRpc)('admin_save_shared_system_config', {
+          p_admin_session_token: token,
+          p_key: update.key,
+          p_value: update.value,
+        });
 
         if (error) throw error;
       }

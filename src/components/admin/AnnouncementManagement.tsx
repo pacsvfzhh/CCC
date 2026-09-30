@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { parse as marked, setOptions } from 'marked';
 import { supabase } from '../../lib/supabase';
+import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { Announcement, Admin } from '../../types';
 import { sanitizeAnnouncementContent } from '../../lib/sanitizeHTML';
 import { processContentImages } from '../../lib/imageOptimizer';
@@ -66,6 +67,14 @@ type AnnouncementInsert = AnnouncementUpdate & Pick<Announcement, 'created_by'>;
 type StatusFilter = 'all' | 'pinned' | 'hidden' | 'global';
 type WorkspaceMode = 'preview' | 'edit';
 type EditorMode = 'create' | 'edit';
+type SharedConfigRpc = (
+  name: 'admin_save_shared_system_config',
+  args: {
+    p_admin_session_token: string;
+    p_key: 'announcement_carousel_enabled' | 'announcement_carousel_speed';
+    p_value: boolean | number;
+  }
+) => PromiseLike<{ error: Error | null }>;
 
 const MAX_ANNOUNCEMENT_CONTENT_BYTES = 500 * 1024;
 
@@ -446,16 +455,19 @@ export default function AnnouncementManagement({ admin }: AnnouncementManagement
     setSavingCarouselSettings(true);
     setCarouselErrorMessage(null);
     try {
-      const { error: enabledError } = await supabase
-        .from('system_configs')
-        .update({ value: enabled, updated_at: new Date().toISOString() })
-        .eq('key', 'announcement_carousel_enabled');
+      const token = getAdminFinancialSessionToken();
+      const { error: enabledError } = await (supabase.rpc as unknown as SharedConfigRpc)('admin_save_shared_system_config', {
+        p_admin_session_token: token,
+        p_key: 'announcement_carousel_enabled',
+        p_value: enabled,
+      });
       if (enabledError) throw enabledError;
 
-      const { error: speedError } = await supabase
-        .from('system_configs')
-        .update({ value: carouselSpeed, updated_at: new Date().toISOString() })
-        .eq('key', 'announcement_carousel_speed');
+      const { error: speedError } = await (supabase.rpc as unknown as SharedConfigRpc)('admin_save_shared_system_config', {
+        p_admin_session_token: token,
+        p_key: 'announcement_carousel_speed',
+        p_value: carouselSpeed,
+      });
       if (speedError) throw speedError;
 
       setShowCarouselSuccessMessage(true);

@@ -105,6 +105,11 @@ interface NavigationPreferences {
   labels: Partial<Record<AdminTabId, string>>;
 }
 
+type SharedConfigRpc = (
+  name: 'admin_save_shared_system_config',
+  args: { p_admin_session_token: string; p_key: 'admin_navigation_preferences'; p_value: NavigationPreferences }
+) => PromiseLike<{ error: Error | null }>;
+
 const legacyNavigationLabelTranslations: Record<string, string> = {
   Employees: '員工詳情數據',
   Messages: '訊息',
@@ -223,17 +228,11 @@ async function loadSharedNavigationPreferences(legacyOwnerId: string | null): Pr
 
 async function saveSharedNavigationPreferences(preferences: NavigationPreferences) {
   try {
-    const { error } = await supabase
-      .from('system_configs')
-      .upsert(
-        {
-          key: NAVIGATION_PREFERENCES_KEY,
-          value: preferences,
-          description: 'Administrator navigation display preferences',
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'key' }
-      );
+    const { error } = await (supabase.rpc as unknown as SharedConfigRpc)('admin_save_shared_system_config', {
+      p_admin_session_token: getAdminFinancialSessionToken(),
+      p_key: NAVIGATION_PREFERENCES_KEY,
+      p_value: preferences,
+    });
 
     if (error) throw error;
   } catch (error: unknown) {
