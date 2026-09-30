@@ -4,7 +4,7 @@ import { Bell, Package, Wallet, BarChart3, LogOut, User, Zap, PackageSearch, X, 
 import { Employee } from '../../types';
 import { AUTH_STORAGE_KEY, getEmployeeFinancialSession, logout } from '../../lib/auth';
 import { logEmployeeLogin } from '../../lib/loginHistoryService';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { useCompanyName } from '../../lib/useCompanyName';
 import { useResponsive } from '../../lib/useResponsive';
 import { tabSessionManager } from '../../lib/TabSessionManager';
@@ -82,6 +82,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   const processRealtimeRecipientRef = useRef<((recipientId: string) => Promise<void>) | null>(null);
   const recoverRealtimeNotificationsRef = useRef<(() => Promise<void>) | null>(null);
   const notificationChannelStatusRef = useRef('CLOSED');
+  const financialSessionInvalidRef = useRef(false);
   const deliveredRecipientIdsRef = useRef(new Set<string>());
   const realtimeDeliveryChainRef = useRef<Promise<void>>(Promise.resolve());
 
@@ -345,7 +346,8 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
 
     const recoverWhileActive = () => {
       if (
-        document.visibilityState !== 'visible'
+        financialSessionInvalidRef.current
+        || document.visibilityState !== 'visible'
         || !navigator.onLine
         || notificationChannelStatusRef.current !== 'SUBSCRIBED'
       ) return;
@@ -357,7 +359,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
     };
 
     const recoverAfterInterruption = () => {
-      if (document.visibilityState !== 'visible' || !navigator.onLine) return;
+      if (financialSessionInvalidRef.current || document.visibilityState !== 'visible' || !navigator.onLine) return;
 
       void loadUnreadCountRef.current?.();
       if (notificationChannelStatusRef.current === 'SUBSCRIBED') {
@@ -494,6 +496,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
   };
 
   const checkLoginPopupMessages = async (combinedOnly = false) => {
+    if (financialSessionInvalidRef.current) return;
     try {
       const session = getEmployeeFinancialSession();
       const { data, error } = await supabase.rpc('has_pending_employee_login_notifications', {
@@ -505,6 +508,11 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
       if (error) throw error;
       if (data) setShowLoginPopup(true);
     } catch (error) {
+      if (formatSupabaseError(error).toLowerCase().includes('employee session is invalid or expired')) {
+        financialSessionInvalidRef.current = true;
+        setShowSessionExpired(true);
+        return;
+      }
       console.error('Error checking login popup messages:', error);
     }
   };
