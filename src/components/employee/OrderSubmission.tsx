@@ -9,11 +9,12 @@ import { getStoredAuth } from '../../lib/auth';
 
 interface OrderSubmissionProps {
   employeeId: string;
+  isActive: boolean;
   adminId?: string | null;
   onNavigateToDispatch?: () => void;
 }
 
-export default function OrderSubmission({ employeeId, adminId: propAdminId, onNavigateToDispatch }: OrderSubmissionProps) {
+export default function OrderSubmission({ employeeId, isActive, adminId: propAdminId, onNavigateToDispatch }: OrderSubmissionProps) {
   const { t } = useLanguage();
   const [adminId, setAdminId] = useState<string | null>(propAdminId || null);
   const currencyUnit = useCurrencyUnit(adminId);
@@ -62,8 +63,10 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
       });
   }, [employeeId, propAdminId]);
 
-  // Fetch active assignment only when employee has an active dispatch session
   useEffect(() => {
+    if (!isActive) return;
+
+    let cancelled = false;
     const fetchActiveAssignment = async () => {
       const { data: session } = await supabase
         .from('dispatch_sessions')
@@ -73,6 +76,7 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
         .limit(1)
         .maybeSingle();
 
+      if (cancelled) return;
       if (!session) {
         setActiveAssignment(null);
         return;
@@ -88,12 +92,17 @@ export default function OrderSubmission({ employeeId, adminId: propAdminId, onNa
         .order('accepted_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      setActiveAssignment(data?.assignment_id ? { id: data.id, assignment_id: data.assignment_id } : null);
+      if (!cancelled) {
+        setActiveAssignment(data?.assignment_id ? { id: data.id, assignment_id: data.assignment_id } : null);
+      }
     };
-    fetchActiveAssignment();
-    const interval = setInterval(fetchActiveAssignment, 5000);
-    return () => clearInterval(interval);
-  }, [employeeId]);
+    void fetchActiveAssignment();
+    const interval = window.setInterval(() => { void fetchActiveAssignment(); }, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [employeeId, isActive]);
 
   useEffect(() => {
     void loadProductTypesRef.current?.();

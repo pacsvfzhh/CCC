@@ -1095,7 +1095,7 @@ export default function EmployeeDashboard({ employee: initialEmployee }: Employe
             <div className="space-y-4 sm:space-y-6 pb-8" style={{ display: activeTab === 'orders' ? 'block' : 'none' }}>
               {loadedTabs.has('orders') ? (
                 <>
-                  <OrderSubmission employeeId={employee.id} adminId={employee.created_by} onNavigateToDispatch={() => {
+                  <OrderSubmission employeeId={employee.id} isActive={activeTab === 'orders'} adminId={employee.created_by} onNavigateToDispatch={() => {
                     setActiveTab('dispatch');
                     setLoadedTabs(prev => new Set([...prev, 'dispatch']));
                   }} />
