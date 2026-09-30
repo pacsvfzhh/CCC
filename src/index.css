@@ -2,6 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes unread-filter-border-travel {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+
+@keyframes unread-count-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.14); }
+}
+
+.session-unread-count {
+  animation: unread-count-breathe 1.8s ease-in-out infinite;
+}
+
+.session-unread-action {
+  isolation: isolate;
+  border-color: transparent;
+}
+
+.session-unread-action::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, #f97316, #facc15, #38bdf8, #f472b6, #f97316);
+  background-size: 300% 100%;
+  animation: unread-filter-border-travel 3s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-unread-action::before,
+  .session-unread-count {
+    animation: none;
+  }
+}
+
 .dispatch-group-settings-fields :is(input:not([type="checkbox"]), textarea, select) {
   border: 1px solid #cbd5e1;
   background-color: #f8fafc;
@@ -470,19 +512,6 @@
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
-}
-
-@keyframes managerUnreadBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
-}
-
-.manager-unread-badge {
-  animation: managerUnreadBlink 3s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .manager-unread-badge { animation: none; }
 }
 
 .message-content-dark {

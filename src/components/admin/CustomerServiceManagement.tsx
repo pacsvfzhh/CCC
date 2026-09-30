@@ -3478,7 +3478,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                               type="button"
                               onClick={() => setHistoryFilterMode('new')}
                               aria-pressed={historyFilterMode === 'new'}
-                              className={`relative flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${
+                              className={`relative flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${scopedNew > 0 ? 'session-unread-action' : ''} ${
                                 historyFilterMode === 'new'
                                   ? 'border-orange-300 bg-gradient-to-r from-orange-600 via-orange-500 to-rose-600 text-white shadow-lg shadow-orange-500/45 ring-2 ring-orange-300/30 hover:brightness-110'
                                   : scopedNew > 0
@@ -3492,7 +3492,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                               <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden="true" />
                               <span>新的</span>
                               {scopedNew > 0 ? (
-                                <span className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-white px-1.5 text-[11px] font-black text-orange-700 shadow-sm shadow-orange-950/20">{scopedNew}</span>
+                                <span className="session-unread-count inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-white px-1.5 text-[11px] font-black text-orange-700 shadow-sm shadow-orange-950/20">{scopedNew}</span>
                               ) : (
                                 <span className={`inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black ${historyFilterMode === 'new' ? 'bg-white text-orange-700' : 'bg-slate-500/50 text-slate-400'}`}>0</span>
                               )}
