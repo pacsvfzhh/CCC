@@ -375,17 +375,17 @@ export default function HistoryDataManagement() {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white text-slate-900">
-      <div className="relative isolate shrink-0 overflow-hidden border-b border-blue-200 bg-[linear-gradient(110deg,#eaf4ff_0%,#e1f3fb_40%,#edf0ff_75%,#fff4e8_100%)] px-4 py-4 sm:px-6">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-amber-400" />
-        <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-20 h-44 w-60 rounded-full bg-cyan-300/35 blur-3xl" />
+      <div className="relative isolate shrink-0 overflow-hidden border-b border-cyan-600/40 bg-[linear-gradient(112deg,#081529_0%,#14284b_35%,#0d4253_70%,#0b263e_100%)] px-4 py-4 sm:px-6">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-amber-400" />
+        <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-20 h-44 w-60 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="relative flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-sky-600 to-cyan-500 text-white shadow-[0_10px_24px_-12px_rgba(37,99,235,0.8)] ring-1 ring-blue-300/70">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500 text-white shadow-[0_10px_24px_-12px_rgba(34,211,238,0.8)] ring-1 ring-cyan-200/60">
               <Database className="h-5 w-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-lg font-extrabold tracking-tight text-slate-900">歷史資料管理</h2>
-              <p className="mt-0.5 text-xs leading-5 text-slate-600">直接編輯各類資料的保留天數與執行時間；自動清理可逐項開關，修改後請分別儲存。</p>
+              <h2 className="text-lg font-extrabold tracking-tight text-white">歷史資料管理</h2>
+              <p className="mt-0.5 text-xs leading-5 text-slate-200">直接編輯各類資料的保留天數與執行時間；自動清理可逐項開關，修改後請分別儲存。</p>
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
@@ -394,12 +394,12 @@ export default function HistoryDataManagement() {
               onClick={handleRefresh}
               disabled={refreshing}
               aria-busy={refreshing}
-              className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/60 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 px-4 py-2.5 text-xs font-bold text-white shadow-[0_8px_20px_-9px_rgba(37,99,235,0.8)] transition-all hover:brightness-110 hover:shadow-[0_10px_22px_-8px_rgba(37,99,235,0.85)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70"
+              className="group inline-flex items-center gap-2 rounded-lg border border-cyan-300/60 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-[0_8px_20px_-9px_rgba(34,211,238,0.65)] transition-all hover:brightness-110 hover:shadow-[0_10px_22px_-8px_rgba(34,211,238,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-wait disabled:opacity-70"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : 'transition-transform duration-300 group-hover:rotate-45'}`} aria-hidden="true" />
               {refreshing ? '刷新中…' : '刷新'}
             </button>
-            {lastRefreshedAt && <span role="status" className="text-[10px] text-blue-700">上次刷新 {lastRefreshedAt}</span>}
+            {lastRefreshedAt && <span role="status" className="text-[10px] text-cyan-200">上次刷新 {lastRefreshedAt}</span>}
           </div>
         </div>
       </div>
