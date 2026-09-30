@@ -91,6 +91,31 @@ ALTER TABLE public.history_cleanup_config
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.history_cleanup_config
   FROM PUBLIC, anon, authenticated;
 
+UPDATE public.valid_order_data
+SET deactivation_reason = 'manual'
+WHERE is_active = false AND deactivation_reason IS NULL;
+
+CREATE FUNCTION private.mark_manual_valid_order_deactivation()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'pg_catalog', 'pg_temp'
+AS $function$
+BEGIN
+  IF NEW.is_active = false AND OLD.is_active IS DISTINCT FROM false
+     AND NEW.deactivation_reason IS NULL THEN
+    NEW.deactivation_reason := 'manual';
+    NEW.deactivated_at := COALESCE(NEW.deactivated_at, clock_timestamp());
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER mark_manual_valid_order_deactivation
+BEFORE UPDATE OF is_active ON public.valid_order_data
+FOR EACH ROW EXECUTE FUNCTION private.mark_manual_valid_order_deactivation();
+
+REVOKE ALL ON FUNCTION private.mark_manual_valid_order_deactivation() FROM PUBLIC, anon, authenticated;
+
 ALTER TABLE public.history_cleanup_log
   ADD COLUMN run_source text,
   ADD COLUMN scheduled_for date,
@@ -185,30 +210,47 @@ BEGIN
   CASE p_table_name
     WHEN 'dispatch_assignments' THEN
       DELETE FROM public.dispatch_assignments AS a
-      WHERE a.assigned_at < v_cutoff AND a.status NOT IN ('pending', 'accepted');
+      WHERE a.assigned_at < v_cutoff AND a.status IN ('completed', 'error', 'timeout', 'cancelled');
       GET DIAGNOSTICS v_affected = ROW_COUNT;
     WHEN 'dispatch_sessions' THEN
-      DELETE FROM public.dispatch_sessions AS s WHERE s.started_at < v_cutoff;
+      DELETE FROM public.dispatch_sessions AS s
+      WHERE s.started_at < v_cutoff AND s.ended_at IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM public.dispatch_assignments AS a
+          WHERE a.dispatch_session_id = s.id AND a.status IN ('pending', 'accepted')
+        );
       GET DIAGNOSTICS v_affected = ROW_COUNT;
     WHEN 'work_sessions' THEN
-      DELETE FROM public.work_sessions AS s WHERE s.start_time < v_cutoff;
+      DELETE FROM public.work_sessions AS s
+      WHERE s.start_time < v_cutoff AND s.end_time IS NOT NULL;
       GET DIAGNOSTICS v_affected = ROW_COUNT;
     WHEN 'customer_service_sessions' THEN
-      DELETE FROM public.customer_service_sessions AS s WHERE s.created_at < v_cutoff;
+      DELETE FROM public.customer_service_sessions AS s
+      WHERE s.created_at < v_cutoff AND s.closed_at IS NOT NULL;
       GET DIAGNOSTICS v_affected = ROW_COUNT;
     WHEN 'used_order_data' THEN
-      DELETE FROM public.used_order_data AS u WHERE u.created_at < v_cutoff;
+      DELETE FROM public.used_order_data AS u
+      WHERE u.created_at < v_cutoff
+        AND NOT EXISTS (
+          SELECT 1 FROM public.orders AS o
+          WHERE o.id = u.order_id AND o.status = 'processing'
+        );
       GET DIAGNOSTICS v_affected = ROW_COUNT;
     WHEN 'valid_order_data' THEN
       SELECT array(
         SELECT vod.id
         FROM public.valid_order_data AS vod
-        WHERE vod.is_active = false AND vod.deactivation_reason IS NULL
-          AND vod.usage_count > 0 AND vod.last_used_at < v_cutoff
+        WHERE vod.is_active = false AND vod.deactivation_reason = 'used'
+          AND vod.last_used_at < v_cutoff
           AND NOT EXISTS (
             SELECT 1 FROM public.used_order_data AS u
             WHERE u.valid_order_data_id = vod.id
               AND (u.created_at IS NULL OR u.created_at >= v_cutoff)
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM public.used_order_data AS u
+            JOIN public.orders AS o ON o.id = u.order_id
+            WHERE u.valid_order_data_id = vod.id AND o.status = 'processing'
           )
         FOR UPDATE OF vod
       ) INTO v_recyclable_ids;
@@ -420,29 +462,43 @@ BEGIN
   CASE p_table_name
     WHEN 'dispatch_assignments' THEN
       SELECT count(*), count(*) FILTER (WHERE a.assigned_at < v_cutoff
-                                          AND a.status NOT IN ('pending', 'accepted')), min(a.assigned_at)
+                                          AND a.status IN ('completed', 'error', 'timeout', 'cancelled')), min(a.assigned_at)
       INTO v_total, v_to_delete, v_oldest FROM public.dispatch_assignments AS a;
     WHEN 'dispatch_sessions' THEN
-      SELECT count(*), count(*) FILTER (WHERE s.started_at < v_cutoff), min(s.started_at)
+      SELECT count(*), count(*) FILTER (WHERE s.started_at < v_cutoff
+        AND s.ended_at IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM public.dispatch_assignments AS a
+          WHERE a.dispatch_session_id = s.id AND a.status IN ('pending', 'accepted')
+        )), min(s.started_at)
       INTO v_total, v_to_delete, v_oldest FROM public.dispatch_sessions AS s;
     WHEN 'work_sessions' THEN
-      SELECT count(*), count(*) FILTER (WHERE s.start_time < v_cutoff), min(s.start_time)
+      SELECT count(*), count(*) FILTER (WHERE s.start_time < v_cutoff AND s.end_time IS NOT NULL), min(s.start_time)
       INTO v_total, v_to_delete, v_oldest FROM public.work_sessions AS s;
     WHEN 'customer_service_sessions' THEN
-      SELECT count(*), count(*) FILTER (WHERE s.created_at < v_cutoff), min(s.created_at)
+      SELECT count(*), count(*) FILTER (WHERE s.created_at < v_cutoff AND s.closed_at IS NOT NULL), min(s.created_at)
       INTO v_total, v_to_delete, v_oldest FROM public.customer_service_sessions AS s;
     WHEN 'used_order_data' THEN
-      SELECT count(*), count(*) FILTER (WHERE u.created_at < v_cutoff), min(u.created_at)
+      SELECT count(*), count(*) FILTER (WHERE u.created_at < v_cutoff
+        AND NOT EXISTS (
+          SELECT 1 FROM public.orders AS o
+          WHERE o.id = u.order_id AND o.status = 'processing'
+        )), min(u.created_at)
       INTO v_total, v_to_delete, v_oldest FROM public.used_order_data AS u;
     WHEN 'valid_order_data' THEN
       SELECT count(*) FILTER (WHERE vod.is_active = false),
              count(*) FILTER (
-               WHERE vod.is_active = false AND vod.deactivation_reason IS NULL
-                 AND vod.usage_count > 0 AND vod.last_used_at < v_cutoff
+               WHERE vod.is_active = false AND vod.deactivation_reason = 'used'
+                 AND vod.last_used_at < v_cutoff
                  AND NOT EXISTS (
                    SELECT 1 FROM public.used_order_data AS u
                    WHERE u.valid_order_data_id = vod.id
                      AND (u.created_at IS NULL OR u.created_at >= v_cutoff)
+                 )
+                 AND NOT EXISTS (
+                   SELECT 1 FROM public.used_order_data AS u
+                   JOIN public.orders AS o ON o.id = u.order_id
+                   WHERE u.valid_order_data_id = vod.id AND o.status = 'processing'
                  )
              ),
              min(vod.created_at) FILTER (WHERE vod.is_active = false)
@@ -517,6 +573,8 @@ DECLARE
   v_admin_id uuid;
   v_admin_role text;
   v_days integer;
+  v_error text;
+  v_started_at timestamptz := clock_timestamp();
 BEGIN
   SELECT context.admin_id, context.admin_role INTO v_admin_id, v_admin_role
   FROM private.get_financial_admin_context(p_admin_session_token) AS context;
@@ -539,9 +597,23 @@ BEGIN
     RAISE EXCEPTION 'History cleanup retention changed; preview again before executing.';
   END IF;
 
-  RETURN QUERY SELECT result.success, result.records_deleted, result.space_freed,
-                      result.execution_time_ms, result.message
-  FROM private.run_history_cleanup(p_table_name, v_days, v_admin_id, 'manual', NULL) AS result;
+  BEGIN
+    RETURN QUERY SELECT result.success, result.records_deleted, result.space_freed,
+                        result.execution_time_ms, result.message
+    FROM private.run_history_cleanup(p_table_name, v_days, v_admin_id, 'manual', NULL) AS result;
+  EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS v_error = MESSAGE_TEXT;
+    INSERT INTO public.history_cleanup_log (
+      table_name, admin_id, records_deleted, retention_days, status,
+      message, error_details, run_source
+    ) VALUES (
+      p_table_name, v_admin_id, 0, v_days, 'failed',
+      'Manual history cleanup failed', left(v_error, 4000), 'manual'
+    );
+    RETURN QUERY SELECT false, 0::bigint, '0 bytes'::text,
+      round(extract(epoch FROM (clock_timestamp() - v_started_at)) * 1000, 2),
+      'Manual history cleanup failed'::text;
+  END;
 END;
 $function$;
 
@@ -592,58 +664,66 @@ DECLARE
   v_success boolean;
   v_error text;
 BEGIN
-  FOR v_table IN
-    SELECT cfg.table_name
-    FROM public.history_cleanup_config AS cfg
-    WHERE cfg.can_cleanup = true AND cfg.auto_cleanup_enabled = true
-      AND cfg.schedule_time_utc <= (clock_timestamp() AT TIME ZONE 'UTC')::time
-      AND private.is_history_cleanup_table(cfg.table_name)
-    ORDER BY cfg.table_name
-  LOOP
-    v_today := (clock_timestamp() AT TIME ZONE 'UTC')::date;
-    v_utc_time := (clock_timestamp() AT TIME ZONE 'UTC')::time;
-    IF NOT pg_try_advisory_xact_lock(hashtext('history_cleanup'), hashtext(v_table.table_name)) THEN
-      CONTINUE;
-    END IF;
-
-    SELECT cfg.retention_days INTO v_days
-    FROM public.history_cleanup_config AS cfg
-    WHERE cfg.table_name = v_table.table_name AND cfg.can_cleanup = true
-      AND cfg.auto_cleanup_enabled = true AND cfg.schedule_time_utc <= v_utc_time
-    FOR UPDATE;
-    IF NOT FOUND OR EXISTS (
+  v_today := (clock_timestamp() AT TIME ZONE 'UTC')::date;
+  v_utc_time := (clock_timestamp() AT TIME ZONE 'UTC')::time;
+  SELECT cfg.table_name INTO v_table
+  FROM public.history_cleanup_config AS cfg
+  WHERE cfg.can_cleanup = true AND cfg.auto_cleanup_enabled = true
+    AND cfg.schedule_time_utc <= v_utc_time
+    AND private.is_history_cleanup_table(cfg.table_name)
+    AND NOT EXISTS (
       SELECT 1 FROM public.history_cleanup_log AS log
-      WHERE log.table_name = v_table.table_name AND log.run_source = 'automatic'
+      WHERE log.table_name = cfg.table_name AND log.run_source = 'automatic'
         AND log.scheduled_for = v_today AND log.status = 'completed'
-    ) OR (
+    )
+    AND (
       SELECT count(*) FROM public.history_cleanup_log AS log
-      WHERE log.table_name = v_table.table_name AND log.run_source = 'automatic'
+      WHERE log.table_name = cfg.table_name AND log.run_source = 'automatic'
         AND log.scheduled_for = v_today AND log.status = 'failed'
-    ) >= 3 THEN
-      CONTINUE;
-    END IF;
+    ) < 3
+  ORDER BY cfg.schedule_time_utc, cfg.table_name
+  LIMIT 1;
+  IF NOT FOUND THEN RETURN; END IF;
+  IF NOT pg_try_advisory_xact_lock(hashtext('history_cleanup'), hashtext(v_table.table_name)) THEN
+    RETURN;
+  END IF;
 
-    v_error := NULL;
-    BEGIN
-      SELECT result.success INTO v_success
-      FROM private.run_history_cleanup(v_table.table_name, v_days, NULL, 'automatic', v_today) AS result;
-      IF v_success IS DISTINCT FROM true THEN
-        RAISE EXCEPTION 'History cleanup did not complete for %', v_table.table_name;
-      END IF;
-    EXCEPTION WHEN OTHERS THEN
-      GET STACKED DIAGNOSTICS v_error = MESSAGE_TEXT;
-    END;
+  SELECT cfg.retention_days INTO v_days
+  FROM public.history_cleanup_config AS cfg
+  WHERE cfg.table_name = v_table.table_name AND cfg.can_cleanup = true
+    AND cfg.auto_cleanup_enabled = true AND cfg.schedule_time_utc <= v_utc_time
+  FOR UPDATE;
+  IF NOT FOUND OR EXISTS (
+    SELECT 1 FROM public.history_cleanup_log AS log
+    WHERE log.table_name = v_table.table_name AND log.run_source = 'automatic'
+      AND log.scheduled_for = v_today AND log.status = 'completed'
+  ) OR (
+    SELECT count(*) FROM public.history_cleanup_log AS log
+    WHERE log.table_name = v_table.table_name AND log.run_source = 'automatic'
+      AND log.scheduled_for = v_today AND log.status = 'failed'
+  ) >= 3 THEN
+    RETURN;
+  END IF;
 
-    IF v_error IS NOT NULL THEN
-      INSERT INTO public.history_cleanup_log (
-        table_name, admin_id, records_deleted, space_freed, retention_days,
-        status, message, error_details, run_source, scheduled_for
-      ) VALUES (
-        v_table.table_name, NULL, 0, '0 bytes', v_days,
-        'failed', 'Automatic history cleanup failed', left(v_error, 4000), 'automatic', v_today
-      );
+  BEGIN
+    SELECT result.success INTO v_success
+    FROM private.run_history_cleanup(v_table.table_name, v_days, NULL, 'automatic', v_today) AS result;
+    IF v_success IS DISTINCT FROM true THEN
+      RAISE EXCEPTION 'History cleanup did not complete for %', v_table.table_name;
     END IF;
-  END LOOP;
+  EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS v_error = MESSAGE_TEXT;
+  END;
+
+  IF v_error IS NOT NULL THEN
+    INSERT INTO public.history_cleanup_log (
+      table_name, admin_id, records_deleted, space_freed, retention_days,
+      status, message, error_details, run_source, scheduled_for
+    ) VALUES (
+      v_table.table_name, NULL, 0, '0 bytes', v_days,
+      'failed', 'Automatic history cleanup failed', left(v_error, 4000), 'automatic', v_today
+    );
+  END IF;
 END;
 $function$;
 

@@ -379,7 +379,12 @@ export default function ValidOrderDataManagement({ adminId }: ValidOrderDataMana
 
       const { error } = await supabase
         .from('valid_order_data')
-        .update({ is_active: newStatus, updated_at: new Date().toISOString() })
+        .update({
+          is_active: newStatus,
+          deactivated_at: newStatus ? null : new Date().toISOString(),
+          deactivation_reason: newStatus ? null : 'manual',
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', id);
 
       if (error) throw error;
