@@ -40,6 +40,29 @@ interface CleanupResult {
   message: string;
 }
 
+const tableLabels: Record<string, { name: string; description: string }> = {
+  dispatch_assignments: { name: '派單分配紀錄', description: '員工訂單派送歷史紀錄，保留過久可能影響查詢效能。' },
+  dispatch_sessions: { name: '派單會話紀錄', description: '員工每次開始與結束派單的會話紀錄。' },
+  work_sessions: { name: '工作會話紀錄', description: '員工工作時長的統計會話。' },
+  customer_service_sessions: { name: '客服會話紀錄', description: '客服與客戶之間的會話歷史。' },
+  used_order_data: { name: '訂單派送使用紀錄', description: '清理使用紀錄後，對應驗證資料可回流至可用池。' },
+  valid_order_data: { name: '訂單驗證資料回流', description: '將符合條件的已用驗證資料重新啟用，供再次派送。' },
+  valid_data_audit_log: { name: '驗證資料稽核紀錄', description: '記錄驗證資料的變更與操作。' },
+  valid_data_error_log: { name: '驗證資料錯誤紀錄', description: '記錄驗證資料的異常與錯誤。' },
+  dispatch_system_logs: { name: '派單系統日誌', description: '派單系統的執行與錯誤紀錄。' },
+  commission_audit_log: { name: '佣金稽核紀錄', description: '佣金計算與發放的稽核資料。' },
+  money_data_protection_audit: { name: '資金保護稽核', description: '資金操作的安全稽核資料。' },
+  dispatch_performance_metrics: { name: '派單效能指標', description: '派單系統的效能監測資料。' },
+  valid_data_query_performance: { name: '查詢效能紀錄', description: '驗證資料的查詢效能監測紀錄。' },
+  orders_history: { name: '訂單歷史封存', description: '已封存的歷史訂單資料。' },
+  valid_order_data_archive: { name: '驗證資料封存', description: '已封存的訂單驗證資料。' },
+  bulk_import_log: { name: '批次匯入紀錄', description: '批次資料匯入的歷史紀錄。' },
+};
+
+const getTableName = (config: CleanupConfig) => tableLabels[config.table_name]?.name ?? config.display_name;
+const getTableDescription = (config: CleanupConfig) => tableLabels[config.table_name]?.description ?? config.description;
+const formatSize = (size: string) => size.replace(/\bbytes?\b/gi, '位元組').replace(/\brecords?\b/gi, '筆紀錄').replace(/^N\/A$/i, '無資料');
+
 export default function HistoryDataManagement() {
   const [configs, setConfigs] = useState<CleanupConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +104,10 @@ export default function HistoryDataManagement() {
 
   const loadConfigs = async (silent = false) => {
     try {
-      if (!silent) setLoading(true);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
       const { data, error } = await supabase
         .from('history_cleanup_summary')
         .select('*')
@@ -91,7 +117,7 @@ export default function HistoryDataManagement() {
       setConfigs(data || []);
     } catch (err) {
       console.error('Error loading cleanup configs:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load configs');
+      setError('載入歷史資料失敗，請稍後重試。');
     } finally {
       setLoading(false);
     }
@@ -210,7 +236,7 @@ export default function HistoryDataManagement() {
       }
     } catch (err) {
       console.error('Error previewing cleanup:', err);
-      setError(err instanceof Error ? err.message : 'Failed to preview cleanup');
+      setError('無法預覽清理結果，請稍後重試。');
     } finally {
       setProcessing(false);
     }
@@ -237,7 +263,7 @@ export default function HistoryDataManagement() {
       }
     } catch (err) {
       console.error('Error executing cleanup:', err);
-      setError(err instanceof Error ? err.message : 'Failed to execute cleanup');
+      setError('執行清理失敗，請稍後重試。');
     } finally {
       setProcessing(false);
     }
@@ -252,31 +278,49 @@ export default function HistoryDataManagement() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'operational': return 'bg-red-50 text-red-800 border-red-200';
-      case 'audit': return 'bg-amber-50 text-amber-800 border-amber-200';
-      case 'performance': return 'bg-emerald-50 text-emerald-800 border-emerald-200';
-      case 'archive': return 'bg-blue-50 text-blue-800 border-blue-200';
-      default: return 'bg-gray-50 text-gray-800 border-gray-200';
+      case 'operational': return 'bg-cyan-400';
+      case 'audit': return 'bg-violet-400';
+      case 'performance': return 'bg-emerald-400';
+      case 'archive': return 'bg-amber-400';
+      default: return 'bg-slate-400';
     }
   };
 
   const getCategoryLabel = (category: string) => {
     switch (category) {
-      case 'operational': return 'High-Frequency Operations';
-      case 'audit': return 'Audit & Logs';
-      case 'performance': return 'Performance Metrics';
-      case 'archive': return 'Historical Archives';
-      default: return category;
+      case 'operational': return '日常作業資料';
+      case 'audit': return '稽核與日誌';
+      case 'performance': return '效能指標';
+      case 'archive': return '歷史封存';
+      default: return '其他資料';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Never cleaned': return 'text-red-600 bg-red-50';
-      case 'Cleanup overdue': return 'text-orange-600 bg-orange-50';
-      case 'Consider cleanup': return 'text-yellow-700 bg-yellow-50';
-      case 'Recently cleaned': return 'text-green-600 bg-green-50';
-      default: return 'text-gray-600 bg-gray-50';
+      case 'Never cleaned':
+      case 'never_cleaned': return 'text-rose-300';
+      case 'Cleanup overdue':
+      case 'needs_cleanup': return 'text-orange-300';
+      case 'Consider cleanup':
+      case 'due_soon': return 'text-amber-300';
+      case 'Recently cleaned':
+      case 'up_to_date': return 'text-emerald-300';
+      default: return 'text-slate-300';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'Never cleaned':
+      case 'never_cleaned': return '尚未清理';
+      case 'Cleanup overdue':
+      case 'needs_cleanup': return '清理逾期';
+      case 'Consider cleanup':
+      case 'due_soon': return '建議清理';
+      case 'Recently cleaned':
+      case 'up_to_date': return '近期已清理';
+      default: return '狀態未知';
     }
   };
 
@@ -284,13 +328,13 @@ export default function HistoryDataManagement() {
     switch (tableName) {
       case 'used_order_data':
         return {
-          warning: '订单派送使用记录：清理超过保留天数的派送记录后，对应的验证数据将回流到可用池，可重新被派送给员工使用。',
-          color: 'text-blue-700 bg-blue-50 border-blue-200'
+          warning: '派送紀錄清理後，對應的驗證資料可回流至可用池，供員工再次使用。',
+          color: 'text-sky-300'
         };
       case 'valid_order_data':
         return {
-          warning: '订单验证数据回流：清理超过保留天数的使用记录，让之前已派送过的验证数据重新回流到可用池，可再次被分配使用。数据不会被删除，只是重新激活为可用状态。',
-          color: 'text-blue-700 bg-blue-50 border-blue-200'
+          warning: '符合條件的驗證資料將重新啟用並回流至可用池，不會刪除驗證資料。',
+          color: 'text-sky-300'
         };
       default:
         return null;
@@ -307,90 +351,63 @@ export default function HistoryDataManagement() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-slate-900 text-slate-300">
+        <RefreshCw className="mr-3 h-5 w-5 animate-spin text-cyan-400" />
+        載入歷史資料中…
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-end">
-          <button
-            onClick={() => loadConfigs()}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors text-sm text-white"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
-      </div>
-
-      {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-800">
-            <p className="font-semibold mb-1">Inline Editing</p>
-            <p>
-              Edit retention days and execution time directly in the table below. Toggle the switch to enable/disable auto cleanup per table.
-              Changes are saved individually per row.
-            </p>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-900 text-slate-100">
+      <div className="shrink-0 border-b border-slate-700/70 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-4 py-4 sm:px-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-white">歷史資料管理</h2>
+            <p className="mt-1 text-xs leading-5 text-slate-400">直接編輯各類資料的保留天數與執行時間；自動清理可逐項開關，修改後請分別儲存。</p>
           </div>
+          <button
+            type="button"
+            onClick={() => loadConfigs()}
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition-colors hover:border-cyan-300/70 hover:bg-cyan-500/20"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            重新整理
+          </button>
         </div>
       </div>
 
-      {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-red-800">Error</p>
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          </div>
+        <div role="alert" className="flex items-center gap-2 border-b border-rose-500/30 bg-rose-950/40 px-4 py-3 text-sm text-rose-200 sm:px-6">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {error}
         </div>
       )}
 
-      {/* Data Categories */}
-      {Object.entries(groupedConfigs).map(([category, categoryConfigs]) => (
-        <div key={category} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className={`px-6 py-4 border-b ${getCategoryColor(category)}`}>
-            <h3 className="text-base font-bold">{getCategoryLabel(category)}</h3>
-            <p className="text-xs mt-0.5 opacity-70">
-              {categoryConfigs.length} table{categoryConfigs.length !== 1 ? 's' : ''}
-            </p>
-          </div>
+      <div className="min-h-0 flex-1 overflow-y-auto scrollbar-dark">
+        {configs.length === 0 && <p className="px-6 py-12 text-center text-sm text-slate-400">目前沒有可管理的歷史資料。</p>}
+        {Object.entries(groupedConfigs).map(([category, categoryConfigs]) => (
+          <section key={category} className="border-b border-slate-700/60 last:border-b-0">
+            <div className="flex items-center gap-3 bg-slate-800/35 px-5 py-3 sm:px-6">
+              <span aria-hidden="true" className={`h-5 w-1 rounded-full ${getCategoryColor(category)}`} />
+              <h3 className="text-sm font-bold text-slate-100">{getCategoryLabel(category)}</h3>
+              <span className="text-xs text-slate-400">{categoryConfigs.length} 項資料</span>
+            </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Data Type
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Records / Size
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Retention (days)
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Exec Time
-                  </th>
-                  <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Auto
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+            <div className="overflow-x-auto scrollbar-dark">
+              <table className="w-full min-w-[1120px]">
+                <thead className="border-y border-slate-700/60 bg-slate-950/45">
+                  <tr>
+                    <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-slate-400">資料類型</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-slate-400">紀錄／大小</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-slate-400">保留天數</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-slate-400">執行時間</th>
+                    <th className="px-5 py-3 text-center text-xs font-semibold tracking-wider text-slate-400">自動清理</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-slate-400">狀態</th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold tracking-wider text-slate-400">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/50">
                 {categoryConfigs.map((config) => {
                   const scheduleItem = getScheduleForTable(config.table_name);
                   const currentDays = editingRetention[config.table_name] ?? scheduleItem?.days_to_keep ?? config.default_retention_days;
@@ -402,23 +419,23 @@ export default function HistoryDataManagement() {
                   const justSaved = savedTable === config.table_name;
 
                   return (
-                    <tr key={config.table_name} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={config.table_name} className="transition-colors hover:bg-slate-800/45">
                       <td className="px-5 py-4">
                         <div>
-                          <div className="font-medium text-gray-900 text-sm">{config.display_name}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">{config.description}</div>
+                          <div className="text-sm font-semibold text-slate-100">{getTableName(config)}</div>
+                          <div className="mt-0.5 text-xs text-slate-400">{getTableDescription(config)}</div>
                           {getTableWarning(config.table_name) && (
-                            <div className={`mt-2 text-xs px-2.5 py-1.5 rounded-md border ${getTableWarning(config.table_name)!.color}`}>
+                            <div className={`mt-1.5 text-xs ${getTableWarning(config.table_name)!.color}`}>
                               {getTableWarning(config.table_name)!.warning}
                             </div>
                           )}
                         </div>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold tabular-nums text-slate-100">
                           {safeToLocaleString(config.current_record_count)}
                         </div>
-                        <div className="text-xs text-gray-500">{config.current_size}</div>
+                        <div className="text-xs text-slate-400">{formatSize(config.current_size)}</div>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
@@ -427,9 +444,10 @@ export default function HistoryDataManagement() {
                             value={currentDays}
                             onChange={(e) => handleRetentionChange(config.table_name, Math.max(config.min_retention_days, parseInt(e.target.value) || 0))}
                             min={config.min_retention_days}
-                            className="w-20 px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                            aria-label={`${getTableName(config)}保留天數`}
+                            className="w-20 rounded-lg border border-slate-600 bg-slate-950/70 px-2 py-1.5 text-center text-sm text-white outline-none transition-colors focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
                           />
-                          <span className="text-xs text-gray-400">min {config.min_retention_days}</span>
+                          <span className="text-xs text-slate-400">至少 {config.min_retention_days} 天</span>
                         </div>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
@@ -437,15 +455,20 @@ export default function HistoryDataManagement() {
                           type="time"
                           value={currentTime}
                           onChange={(e) => handleTimeChange(config.table_name, e.target.value)}
-                          className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                          aria-label={`${getTableName(config)}執行時間`}
+                          className="rounded-lg border border-slate-600 bg-slate-950/70 px-2 py-1.5 text-sm text-white outline-none [color-scheme:dark] focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
                         />
                       </td>
                       <td className="px-5 py-4 text-center">
                         <button
                           onClick={() => handleToggleEnabled(config.table_name)}
                           disabled={isSaving}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
-                            isEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                          type="button"
+                          role="switch"
+                          aria-checked={isEnabled}
+                          aria-label={`${getTableName(config)}自動清理`}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                            isEnabled ? 'bg-cyan-500' : 'bg-slate-600'
                           }`}
                         >
                           <span
@@ -456,12 +479,13 @@ export default function HistoryDataManagement() {
                         </button>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getStatusColor(config.cleanup_status)}`}>
-                          {config.cleanup_status}
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${getStatusColor(config.cleanup_status)}`}>
+                          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
+                          {getStatusLabel(config.cleanup_status)}
                         </span>
                         {config.last_cleanup_at && (
-                          <div className="text-xs text-gray-400 mt-1">
-                            Last: {new Date(config.last_cleanup_at).toLocaleDateString()}
+                          <div className="mt-1 text-xs text-slate-400">
+                            上次：{new Date(config.last_cleanup_at).toLocaleDateString('zh-TW')}
                           </div>
                         )}
                       </td>
@@ -471,20 +495,21 @@ export default function HistoryDataManagement() {
                             <button
                               onClick={() => handleSaveSchedule(config.table_name)}
                               disabled={isSaving}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-xs font-medium"
+                              type="button"
+                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
                             >
                               {isSaving ? (
                                 <RefreshCw className="w-3 h-3 animate-spin" />
                               ) : (
                                 <Save className="w-3 h-3" />
                               )}
-                              Save
+                              儲存
                             </button>
                           )}
                           {justSaved && !hasChanges && (
-                            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-300">
                               <Check className="w-3 h-3" />
-                              Saved
+                              已儲存
                             </span>
                           )}
                           <button
@@ -494,21 +519,22 @@ export default function HistoryDataManagement() {
                               handlePreview(config);
                             }}
                             disabled={processing}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs font-medium"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-200 transition-colors hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Trash2 className="w-3 h-3" />
-                            Clean
+                            清理
                           </button>
                         </div>
                       </td>
                     </tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ))}
+      </div>
 
       {/* Preview Modal */}
       {showPreviewModal && previewResult && selectedTable && createPortal(
@@ -520,8 +546,8 @@ export default function HistoryDataManagement() {
                   <Trash2 className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Confirm Cleanup</h3>
-                  <p className="text-sm text-gray-600">{selectedTable.display_name}</p>
+                  <h3 className="text-lg font-bold text-gray-900">確認清理</h3>
+                  <p className="text-sm text-gray-600">{getTableName(selectedTable)}</p>
                 </div>
               </div>
             </div>
@@ -529,56 +555,57 @@ export default function HistoryDataManagement() {
             <div className="px-6 py-5 space-y-4">
               <div className="text-center">
                 <div className="text-4xl font-bold text-red-600 mb-1">
-                  {previewResult.total_records.toLocaleString()}
+                  {previewResult.records_to_delete.toLocaleString()}
                 </div>
                 <div className="text-gray-600 text-sm">
                   {selectedTable.table_name === 'valid_order_data'
-                    ? 'records will be recycled back to available pool'
-                    : 'records will be deleted (all data)'}
+                    ? '筆驗證資料將回流至可用池'
+                    : '筆符合條件的紀錄將被刪除'}
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Space to Free:</span>
-                  <span className="font-medium text-blue-600">
-                    {previewResult.estimated_space}
-                  </span>
-                </div>
-              </div>
+              <p className="text-xs text-amber-700">手動清理不套用自動排程的保留天數，請確認上方預覽筆數。</p>
 
-              {previewResult.total_records === 0 ? (
+              {selectedTable.table_name !== 'valid_order_data' && (
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">預估釋出空間：</span>
+                    <span className="font-medium text-blue-600">{formatSize(previewResult.estimated_space)}</span>
+                  </div>
+                </div>
+              )}
+
+              {previewResult.records_to_delete === 0 ? (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <span className="text-sm text-green-800">No records to clean. Data is already empty.</span>
+                  <span className="text-sm text-green-800">目前沒有符合條件的紀錄需要清理。</span>
                 </div>
               ) : selectedTable.table_name === 'valid_order_data' ? (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
                   <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  <span className="text-sm text-blue-800">This will recycle all used data back into the available pool. No data will be permanently deleted.</span>
+                  <span className="text-sm text-blue-800">符合條件的驗證資料將重新啟用並回流至可用池；驗證資料不會被永久刪除。</span>
                 </div>
               ) : (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  <span className="text-sm text-red-800">This will delete ALL records and cannot be undone!</span>
+                  <span className="text-sm text-red-800">將刪除所有符合條件的紀錄，此操作無法復原。</span>
                 </div>
               )}
 
-              {selectedTable.table_name === 'used_order_data' && previewResult.total_records > 0 && (
+              {selectedTable.table_name === 'used_order_data' && previewResult.records_to_delete > 0 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-sm text-blue-800 font-medium mb-1">订单派送使用记录</p>
+                  <p className="text-sm text-blue-800 font-medium mb-1">訂單派送使用紀錄</p>
                   <p className="text-xs text-blue-700">
-                    清理超过保留天数的派送记录后，对应的验证数据将回流到可用池，可重新被派送给员工。
+                    清理派送紀錄後，對應的驗證資料可回流至可用池，供員工再次使用。
                   </p>
                 </div>
               )}
 
-              {selectedTable.table_name === 'valid_order_data' && previewResult.total_records > 0 && (
+              {selectedTable.table_name === 'valid_order_data' && previewResult.records_to_delete > 0 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-sm text-blue-800 font-medium mb-1">订单验证数据回流</p>
+                  <p className="text-sm text-blue-800 font-medium mb-1">訂單驗證資料回流</p>
                   <p className="text-xs text-blue-700">
-                    将超过保留天数的已使用验证数据重新激活为可用状态，回流到数据池中供再次派送。
-                    数据不会被删除，仅清除使用记录并恢复为可派送状态。
+                    符合條件的已用驗證資料將重新啟用，供再次派送；相關使用紀錄會被清除。
                   </p>
                 </div>
               )}
@@ -593,15 +620,15 @@ export default function HistoryDataManagement() {
                 }}
                 className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium text-sm"
               >
-                Cancel
+                取消
               </button>
               <button
                 type="button"
                 onClick={handleExecuteCleanup}
-                disabled={processing || previewResult.total_records === 0}
+                disabled={processing || previewResult.records_to_delete === 0}
                 className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
               >
-                {processing ? 'Processing...' : selectedTable.table_name === 'valid_order_data' ? 'Recycle All' : 'Delete All'}
+                {processing ? '處理中…' : selectedTable.table_name === 'valid_order_data' ? '確認回流' : '確認刪除'}
               </button>
             </div>
           </div>
@@ -621,30 +648,32 @@ export default function HistoryDataManagement() {
                   <AlertTriangle className="w-6 h-6 text-red-600" />
                 )}
                 <h3 className="text-lg font-bold text-gray-900">
-                  {cleanupResult.success ? 'Cleanup Complete' : 'Cleanup Failed'}
+                  {cleanupResult.success ? '清理完成' : '清理失敗'}
                 </h3>
               </div>
             </div>
 
             <div className="px-6 py-4 space-y-4">
-              <p className="text-gray-700 text-sm">{cleanupResult.message}</p>
+              <p className="text-gray-700 text-sm">{cleanupResult.success ? '本次操作已完成。' : '無法完成清理，請稍後重試。'}</p>
 
               {cleanupResult.success && (
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Records Deleted:</span>
+                    <span className="text-gray-600">{selectedTable?.table_name === 'valid_order_data' ? '已回流資料：' : '已刪除紀錄：'}</span>
                     <span className="font-bold text-gray-900">
                       {cleanupResult.records_deleted.toLocaleString()}
                     </span>
                   </div>
+                  {selectedTable?.table_name !== 'valid_order_data' && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">釋出空間：</span>
+                      <span className="font-bold text-gray-900">{formatSize(cleanupResult.space_freed)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Space Freed:</span>
-                    <span className="font-bold text-gray-900">{cleanupResult.space_freed}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Execution Time:</span>
+                    <span className="text-gray-600">執行時間：</span>
                     <span className="font-bold text-gray-900">
-                      {cleanupResult.execution_time_ms.toFixed(2)} ms
+                      {cleanupResult.execution_time_ms.toFixed(2)} 毫秒
                     </span>
                   </div>
                 </div>
@@ -657,7 +686,7 @@ export default function HistoryDataManagement() {
                 onClick={handleCloseResultModal}
                 className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
               >
-                Close
+                關閉
               </button>
             </div>
           </div>

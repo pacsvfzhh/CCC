@@ -1401,7 +1401,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
           </aside>
 
           {/* Mobile: Horizontal Scrolling Tabs */}
-          <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'withdrawals' || activeTab === 'verifications' || activeTab === 'admins' || activeTab === 'validdata' || activeTab === 'config' ? 'overflow-hidden' : activeTab === 'messages' ? 'lg:overflow-hidden' : 'lg:overflow-y-auto'} scrollbar-hide`} style={activeTab === 'customerservice' ? {
+          <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'withdrawals' || activeTab === 'verifications' || activeTab === 'admins' || activeTab === 'validdata' || activeTab === 'config' || activeTab === 'history' ? 'overflow-hidden' : activeTab === 'messages' ? 'lg:overflow-hidden' : 'lg:overflow-y-auto'} scrollbar-hide`} style={activeTab === 'customerservice' ? {
             background: `
               radial-gradient(ellipse 80% 60% at 10% 15%, rgba(249,115,22,0.11) 0%, transparent 50%),
               radial-gradient(ellipse 60% 50% at 80% 10%, rgba(245,158,11,0.1) 0%, transparent 50%),
@@ -1565,7 +1565,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                   </div>
                 )}
                 {loadedTabs.has('history') && (
-                  <div className={activeTab === 'history' ? 'px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 space-y-4' : 'hidden'}>
+                  <div className={activeTab === 'history' ? 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden' : 'hidden'}>
                     <HistoryDataManagement />
                   </div>
                 )}
