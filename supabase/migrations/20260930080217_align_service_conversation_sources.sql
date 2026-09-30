@@ -7,7 +7,8 @@ AS $function$
 BEGIN
   SELECT customer.source_type INTO NEW.source_type
   FROM public.simulated_customers AS customer
-  WHERE customer.id = NEW.customer_id;
+  WHERE customer.id = NEW.customer_id
+  FOR SHARE;
   RETURN NEW;
 END;
 $function$;
@@ -42,10 +43,11 @@ WHEN (OLD.source_type IS DISTINCT FROM NEW.source_type)
 EXECUTE FUNCTION private.sync_customer_conversation_source_type();
 
 UPDATE public.customer_employee_conversations AS conversation
-SET source_type = customer.source_type
+SET source_type = 'ccc_service'
 FROM public.simulated_customers AS customer
 WHERE customer.id = conversation.customer_id
-  AND conversation.source_type IS DISTINCT FROM customer.source_type;
+  AND customer.source_type = 'ccc_service'
+  AND conversation.source_type = 'aaa_service';
 
 CREATE OR REPLACE FUNCTION public.get_admin_groups_for_customer_service(p_source_type text DEFAULT NULL)
 RETURNS TABLE(
