@@ -3482,7 +3482,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
                                 historyFilterMode === 'new'
                                   ? 'border-orange-300 bg-gradient-to-r from-orange-600 via-orange-500 to-rose-600 text-white shadow-lg shadow-orange-500/45 ring-2 ring-orange-300/30 hover:brightness-110'
                                   : scopedNew > 0
-                                    ? 'border-orange-400/80 bg-gradient-to-r from-slate-600 to-slate-700 text-white shadow-md shadow-orange-900/20 hover:border-orange-300 hover:from-slate-500 hover:to-slate-600'
+                                    ? 'border-slate-600/50 bg-slate-700/50 text-slate-200 hover:border-slate-500 hover:bg-slate-600/50 hover:text-white'
                                     : 'border-slate-600/50 bg-slate-700/50 text-slate-300 hover:border-slate-500 hover:bg-slate-600/50 hover:text-white'
                               }`}
                             >
