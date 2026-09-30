@@ -324,6 +324,10 @@ BEGIN
   INTO v_admin_id, v_admin_role
   FROM private.get_financial_admin_context(p_admin_session_token);
 
+  IF v_admin_role <> 'secondary_admin' THEN
+    RAISE EXCEPTION 'Only a secondary administrator can copy a shared template.';
+  END IF;
+
   SELECT task.* INTO v_source
   FROM public.notification_automation_tasks AS task
   WHERE task.id = p_source_task_id
