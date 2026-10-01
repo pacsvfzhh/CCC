@@ -4,7 +4,7 @@ const url = Deno.env.get('SUPABASE_URL')!;
 const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const db = createClient(url, serviceKey, { auth: { persistSession: false } });
 const evidenceBucket = 'content-audit-evidence';
-const buckets = new Set(['chat-images', 'template-images', 'announcement-images']);
+const buckets = new Set(['chat-images', 'template-images', 'announcement-images', 'super-customer-avatars']);
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -33,7 +33,7 @@ function mediaUrls(snapshot: unknown): string[] {
     for (const [key, value] of Object.entries(record)) {
       if (key === 'message' || key === 'messages' || key === 'source' || key === 'customers') {
         visit(value);
-      } else if (['content', 'message_content', 'image_url', 'rendered_html'].includes(key) && typeof value === 'string') {
+      } else if (['content', 'message_content', 'image_url', 'rendered_html', 'custom_avatar_url'].includes(key) && typeof value === 'string') {
         const matches = value.matchAll(/https?:\/\/[^\s"'<>)}]+\/storage\/v1\/object\/public\/[^\s"'<>)}]+/g);
         for (const match of matches) found.add(match[0].replace(/&amp;/g, '&'));
         for (const match of value.matchAll(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi)) {

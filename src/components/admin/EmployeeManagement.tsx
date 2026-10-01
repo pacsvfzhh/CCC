@@ -5,6 +5,7 @@ import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, ChevronDown,
 import { formatSupabaseError, isFinancialAdminSessionError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { Employee, Admin, NotificationAutomationPlan, NotificationAutomationPlanAssignment } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken, logout } from '../../lib/auth';
+import { mutateAuditedContent } from '../../lib/contentAudit';
 import EmployeeDetailModal from './EmployeeDetailModal';
 import LoginDeviceSummary from './LoginDeviceSummary';
 
@@ -1728,12 +1729,8 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      const { data, error } = await supabase.rpc('admin_delete_employee_account', {
-        p_admin_session_token: getAdminFinancialSessionToken(),
-        p_user_id: employee.id,
-      });
-      if (error) throw new Error(formatSupabaseError(error) || '發生資料庫錯誤');
-      if (!data) throw new Error('無法刪除員工。');
+      const result = await mutateAuditedContent('employee_delete', [employee.id]);
+      if (!result.success) throw new Error('無法刪除員工。');
       setEmployeeGroups(prev => prev.map(g => ({
         ...g,
         employees: g.employees.filter(emp => emp.id !== employee.id)
@@ -5517,7 +5514,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-white">確定要永久刪除這個員工帳戶嗎？</p>
-                    <p className="mt-1 text-xs leading-5 text-rose-200/80">此操作無法復原，以下資料將一併永久移除：</p>
+                    <p className="mt-1 text-xs leading-5 text-rose-200/80">帳戶無法復原；受影響的 AAA／CCC 聊天原文會保留在超管監察紀錄。其他資料依原有刪除規則處理：</p>
                   </div>
                 </div>
                 <ul className="mt-4 grid gap-2 border-t border-rose-300/15 pt-3 text-xs text-slate-300 sm:grid-cols-2">

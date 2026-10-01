@@ -3,7 +3,7 @@ import { formatSupabaseError, supabase } from './supabase';
 
 type AuditAction =
   | 'notification_edit' | 'notification_delete'
-  | 'chat_edit' | 'chat_delete' | 'conversation_delete' | 'customer_delete'
+  | 'chat_edit' | 'chat_delete' | 'conversation_delete' | 'customer_delete' | 'employee_delete'
   | 'template_edit' | 'template_delete' | 'auto_edit' | 'auto_delete';
 
 export async function mutateAuditedContent(
