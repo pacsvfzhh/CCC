@@ -409,6 +409,10 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [filterError, setFilterError] = useState<string | null>(null);
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [filterCounts, setFilterCounts] = useState<AuditFilterCounts | null>(null);
+  const [availableAdmins, setAvailableAdmins] = useState<Array<{ id: string; username: string }>>([]);
+  const [filterCountsLoading, setFilterCountsLoading] = useState(true);
+  const [filterCountsError, setFilterCountsError] = useState<string | null>(null);
+  const [filterCountsRetryKey, setFilterCountsRetryKey] = useState(0);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -460,6 +464,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     let cancelled = false;
+    setFilterCountsLoading(true);
+    setFilterCountsError(null);
     const load = async () => {
       try {
         const { data, error: rpcError } = await supabase.rpc('get_content_audit_filter_counts', {
@@ -467,14 +473,23 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         });
         if (rpcError) throw rpcError;
         if (!data || !Array.isArray(data.owners) || !data.types) throw new Error('篩選選項格式不正確。');
-        if (!cancelled) setFilterCounts(data);
+        if (!cancelled) {
+          setFilterCounts(data);
+          setAvailableAdmins(data.owners.map(owner => ({ id: owner.id, username: owner.username })));
+        }
       } catch (err) {
-        if (!cancelled) setError(`載入篩選選項失敗：${formatSupabaseError(err)}`);
+        if (cancelled) return;
+        setFilterCountsError(formatSupabaseError(err));
+        const { data: admins, error: adminsError } = await supabase.from('admins')
+          .select('id, username').order('username');
+        if (!cancelled && !adminsError && admins) setAvailableAdmins(admins);
+      } finally {
+        if (!cancelled) setFilterCountsLoading(false);
       }
     };
     void load();
     return () => { cancelled = true; };
-  }, [refreshKey]);
+  }, [refreshKey, filterCountsRetryKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -793,10 +808,12 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         </select>
       </label>}
       <label className="block text-xs font-semibold text-slate-300">所屬管理員
-        <select className={inputClass} value={draft.owner} onChange={event => setDraft(previous => ({ ...previous, owner: event.target.value }))}>
-          <option value="">全部管理員{filterCounts ? `（${filterCounts.total.toLocaleString()}）` : ''}</option>{filterCounts?.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.username}（{owner.event_count.toLocaleString()}）</option>)}
+        <select className={inputClass} value={draft.owner} onChange={event => setDraft(previous => ({ ...previous, owner: event.target.value }))} disabled={filterCountsLoading && availableAdmins.length === 0}>
+          <option value="">{!filterCounts && availableAdmins.length === 0 && filterCountsLoading ? '管理員載入中…' : !filterCounts && availableAdmins.length === 0 && filterCountsError ? '管理員載入失敗' : `全部管理員${filterCounts ? `（${filterCounts.total.toLocaleString()}）` : ''}`}</option>
+          {filterCounts ? filterCounts.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.username}（{owner.event_count.toLocaleString()}）</option>) : availableAdmins.map(admin => <option key={admin.id} value={admin.id}>{admin.username}（數量暫不可用）</option>)}
         </select>
       </label>
+      {filterCountsError && <div role="alert" className="flex items-center justify-between gap-2 text-xs text-rose-300"><span className="min-w-0 break-words">稽核數量載入失敗：{filterCountsError}{availableAdmins.length > 0 ? '；管理員清單仍可選擇。' : ''}</span><button type="button" onClick={() => setFilterCountsRetryKey(key => key + 1)} className={`shrink-0 font-bold underline ${buttonFocus}`}>重試</button></div>}
       <label className="block text-xs font-semibold text-slate-300">操作者 ID（非所屬管理員）
         <input className={inputClass} value={draft.actor} onChange={event => setDraft(previous => ({ ...previous, actor: event.target.value }))} placeholder="操作者 UUID；名稱請用關鍵字" />
       </label>
