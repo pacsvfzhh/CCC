@@ -3,7 +3,7 @@ CREATE TABLE private.content_audit_events (
   operation_id uuid NOT NULL,
   entity_type text NOT NULL CHECK (entity_type IN ('notification', 'aaa_service', 'ccc_service')),
   entity_id uuid NOT NULL,
-  action text NOT NULL CHECK (action IN ('edit', 'delete', 'conversation_delete', 'customer_delete', 'employee_delete', 'source_edit', 'source_delete')),
+  action text NOT NULL CHECK (action IN ('edit', 'delete', 'conversation_delete', 'customer_delete', 'employee_delete', 'admin_delete', 'source_edit', 'source_delete')),
   owner_admin_id uuid NOT NULL,
   actor_admin_id uuid NOT NULL,
   actor_username text NOT NULL,
@@ -63,12 +63,12 @@ CREATE TABLE private.content_audit_purge_windows (
 );
 REVOKE ALL ON private.content_audit_purge_windows FROM PUBLIC, anon, authenticated;
 
-ALTER TABLE public.messages ADD COLUMN audit_origin text NOT NULL DEFAULT 'manual_admin'
+ALTER TABLE public.messages ADD COLUMN audit_origin text NOT NULL DEFAULT 'unverified'
   CHECK (audit_origin IN ('manual_admin', 'automation', 'unverified'));
 UPDATE public.messages SET audit_origin = 'automation' WHERE automation_execution_id IS NOT NULL;
-UPDATE public.messages AS m SET audit_origin = 'unverified'
+UPDATE public.messages AS m SET audit_origin = 'manual_admin'
 WHERE m.automation_execution_id IS NULL
-  AND NOT EXISTS (
+  AND EXISTS (
     SELECT 1 FROM public.financial_operations AS operation
     WHERE operation.operation_type = 'admin_message_send'
       AND operation.result ->> 'message_id' = m.id::text
@@ -89,6 +89,48 @@ $$;
 CREATE TRIGGER classify_notification_origin BEFORE INSERT OR UPDATE OF automation_execution_id, audit_origin
 ON public.messages FOR EACH ROW EXECUTE FUNCTION private.classify_notification_origin();
 
+CREATE OR REPLACE FUNCTION public.send_admin_message_with_delivery(
+  p_admin_session_token uuid, p_recipient_ids uuid[], p_title text, p_content text,
+  p_delivery_mode text, p_priority text, p_reward_amount numeric, p_operation_id uuid
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+DECLARE
+  v_message_type text;
+  v_result jsonb;
+  v_message_id uuid;
+  v_existing_message_id uuid;
+  v_registered_mode text;
+BEGIN
+  IF p_delivery_mode NOT IN ('realtime_only', 'login_only', 'realtime_with_login_fallback') THEN
+    RAISE EXCEPTION 'Unsupported notification delivery mode.';
+  END IF;
+  SELECT (operation.result ->> 'message_id')::uuid INTO v_existing_message_id
+  FROM public.financial_operations AS operation
+  WHERE operation.operation_id = p_operation_id AND operation.operation_type = 'admin_message_send';
+  IF v_existing_message_id IS NOT NULL THEN
+    SELECT delivery_mode INTO v_registered_mode FROM public.messages WHERE id = v_existing_message_id;
+  ELSE
+    v_registered_mode := p_delivery_mode;
+  END IF;
+  INSERT INTO private.notification_delivery_operations(operation_id, delivery_mode)
+  VALUES (p_operation_id, v_registered_mode) ON CONFLICT (operation_id) DO NOTHING;
+  SELECT delivery_mode INTO v_registered_mode
+  FROM private.notification_delivery_operations WHERE operation_id = p_operation_id FOR UPDATE;
+  IF v_registered_mode IS DISTINCT FROM p_delivery_mode THEN
+    RAISE EXCEPTION 'The operation ID was already used with a different delivery mode.';
+  END IF;
+  v_message_type := CASE p_delivery_mode WHEN 'realtime_only' THEN 'realtime' ELSE 'login_popup' END;
+  v_result := public.send_admin_message_secure(
+    p_admin_session_token, p_recipient_ids, p_title, p_content,
+    v_message_type, p_priority, p_reward_amount, p_operation_id
+  );
+  v_message_id := (v_result ->> 'message_id')::uuid;
+  UPDATE public.messages SET delivery_mode = p_delivery_mode, audit_origin = 'manual_admin'
+  WHERE id = v_message_id AND automation_execution_id IS NULL;
+  RETURN v_result || jsonb_build_object('delivery_mode', p_delivery_mode);
+END;
+$$;
+
 CREATE FUNCTION private.content_audit_chat_snapshot(p_message public.customer_employee_conversations)
 RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
@@ -98,7 +140,9 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
       COALESCE(template.content, auto_message.content, card.html_content, p_message.message_content)
       ELSE NULL END,
     'customer_name', customer.customer_name,
-    'employee_name', employee.username
+    'custom_avatar_url', customer.custom_avatar_url,
+    'employee_name', employee.username,
+    'source', COALESCE(to_jsonb(template), to_jsonb(auto_message), to_jsonb(card))
   )
   FROM public.simulated_customers customer
   LEFT JOIN public.users employee ON employee.id = p_message.employee_id
@@ -108,11 +152,11 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
   WHERE customer.id = p_message.customer_id;
 $$;
 
-CREATE FUNCTION private.content_audit_media_for(p_snapshot jsonb)
+CREATE FUNCTION private.content_audit_media_for(p_snapshot jsonb, p_entity_id uuid)
 RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
   SELECT COALESCE(jsonb_object_agg(source_url, private_path), '{}'::jsonb)
-  FROM jsonb_each_text(COALESCE(NULLIF(current_setting('content_audit.media', true), ''), '{}')::jsonb) AS media(source_url, private_path)
+  FROM jsonb_each_text(COALESCE(NULLIF(current_setting('content_audit.media', true), ''), '{}')::jsonb -> p_entity_id::text) AS media(source_url, private_path)
   WHERE strpos(p_snapshot::text, source_url) > 0;
 $$;
 
@@ -163,7 +207,8 @@ BEGIN
   END IF;
 
   IF v_owner IS NULL THEN RAISE EXCEPTION 'Content audit owner is missing.'; END IF;
-  v_action := CASE WHEN TG_OP = 'UPDATE' THEN 'edit'
+  v_action := CASE WHEN TG_OP = 'UPDATE' THEN
+    CASE WHEN current_setting('content_audit.action', true) = 'source_delete' THEN 'source_delete' ELSE 'edit' END
     ELSE COALESCE(NULLIF(current_setting('content_audit.action', true), ''), 'delete') END;
   INSERT INTO private.content_audit_events (
     operation_id, entity_type, entity_id, action, owner_admin_id, actor_admin_id,
@@ -171,7 +216,7 @@ BEGIN
   ) VALUES (
     current_setting('content_audit.operation')::uuid, v_kind, OLD.id, v_action, v_owner,
     v_actor, v_admin.username, v_admin.role, v_customer, v_employee, v_before, v_after,
-    private.content_audit_media_for(v_before)
+    private.content_audit_media_for(v_before, OLD.id) || private.content_audit_media_for(v_after, OLD.id)
   );
   RETURN COALESCE(NEW, OLD);
 END;
@@ -232,7 +277,7 @@ BEGIN
       current_setting('content_audit.operation')::uuid, v_row.source_type, v_row.id,
       CASE WHEN TG_OP = 'UPDATE' THEN 'source_edit' ELSE 'source_delete' END,
       v_owner, v_actor, v_admin.username, v_admin.role, v_row.customer_id, v_row.employee_id,
-      v_before, v_after, private.content_audit_media_for(v_before)
+      v_before, v_after, private.content_audit_media_for(v_before, v_row.id) || private.content_audit_media_for(v_after, v_row.id)
     );
   END LOOP;
   RETURN CASE WHEN TG_OP = 'UPDATE' THEN NEW ELSE OLD END;
@@ -297,6 +342,16 @@ BEGIN
     IF p_action = 'customer_delete' THEN
       v_snapshots := jsonb_build_object('customers', (SELECT jsonb_agg(to_jsonb(c) ORDER BY c.id) FROM public.simulated_customers c WHERE c.id = ANY(p_target_ids)), 'messages', v_snapshots);
     END IF;
+  ELSIF p_action = 'admin_delete' THEN
+    IF v_role <> 'super_admin' OR cardinality(p_target_ids) <> 1 THEN
+      RAISE EXCEPTION 'Only a super administrator can remove one secondary administrator.';
+    END IF;
+    SELECT jsonb_build_object('admin_id', a.id, 'username', a.username,
+      'messages', (SELECT COALESCE(jsonb_agg(private.content_audit_chat_snapshot(m) ORDER BY m.id), '[]'::jsonb)
+        FROM public.customer_employee_conversations m
+        JOIN public.simulated_customers c ON c.id = m.customer_id WHERE c.admin_id = a.id))
+    INTO v_snapshots FROM public.admins a WHERE a.id = p_target_ids[1] AND a.role = 'secondary_admin';
+    v_count := CASE WHEN v_snapshots IS NULL THEN 0 ELSE 1 END;
   ELSIF p_action = 'employee_delete' THEN
     PERFORM private.assert_admin_can_manage_user(v_admin, v_role, p_target_ids[1]);
     SELECT jsonb_build_object('employee', jsonb_build_object('id', u.id, 'username', u.username, 'employee_id', u.employee_id),
@@ -353,6 +408,12 @@ BEGIN
   ELSIF p_action IN ('conversation_delete', 'customer_delete') THEN
     PERFORM 1 FROM public.simulated_customers WHERE id = ANY(p_target_ids) FOR UPDATE;
     PERFORM 1 FROM public.customer_employee_conversations WHERE customer_id = ANY(p_target_ids) FOR UPDATE;
+  ELSIF p_action = 'admin_delete' THEN
+    PERFORM 1 FROM public.admins WHERE id = p_target_ids[1] FOR UPDATE;
+    PERFORM 1 FROM public.simulated_customers WHERE admin_id = p_target_ids[1] FOR UPDATE;
+    PERFORM 1 FROM public.customer_employee_conversations m
+      JOIN public.simulated_customers c ON c.id = m.customer_id
+      WHERE c.admin_id = p_target_ids[1] FOR UPDATE OF m;
   ELSIF p_action = 'employee_delete' THEN
     PERFORM 1 FROM public.users WHERE id = p_target_ids[1] FOR UPDATE;
     PERFORM 1 FROM public.customer_employee_conversations WHERE employee_id = p_target_ids[1] FOR UPDATE;
@@ -365,20 +426,26 @@ BEGIN
   END IF;
   v_prepared := public.prepare_content_audit_change(p_admin_session_token, p_action, p_target_ids, p_employee_id);
   IF v_prepared ->> 'hash' IS DISTINCT FROM p_expected_hash THEN RAISE EXCEPTION 'Content changed; refresh and try again.'; END IF;
-  IF p_action IN ('notification_edit', 'chat_edit', 'chat_delete', 'conversation_delete', 'customer_delete', 'employee_delete', 'template_edit', 'template_delete', 'auto_edit', 'auto_delete')
+  IF p_action IN ('notification_edit', 'chat_edit', 'chat_delete', 'conversation_delete', 'customer_delete', 'employee_delete', 'admin_delete', 'template_edit', 'template_delete', 'auto_edit', 'auto_delete')
     AND cardinality(p_target_ids) <> 1 THEN RAISE EXCEPTION 'Select one record.'; END IF;
-  FOR v_media IN SELECT key, value FROM jsonb_each_text(p_media) LOOP
-    IF strpos((v_prepared -> 'snapshots')::text, v_media.key) = 0
-      OR v_media.value !~ ('^' || p_operation_id::text || '/[0-9]+$') OR NOT EXISTS (
-      SELECT 1 FROM storage.objects WHERE bucket_id = 'content-audit-evidence' AND name = v_media.value
-    ) THEN RAISE EXCEPTION 'An evidence attachment is missing.'; END IF;
+  IF EXISTS (SELECT 1 FROM jsonb_each(p_media) media WHERE jsonb_typeof(media.value) <> 'object') THEN
+    RAISE EXCEPTION 'Invalid evidence attachment manifest.';
+  END IF;
+  FOR v_media IN SELECT event.key AS entity_id, attachment.key AS source_url, attachment.value AS private_path
+    FROM jsonb_each(p_media) event CROSS JOIN LATERAL jsonb_each_text(event.value) attachment LOOP
+    IF (strpos((v_prepared -> 'snapshots')::text, v_media.source_url) = 0 AND strpos(p_payload::text, v_media.source_url) = 0)
+      OR v_media.private_path !~ ('^' || p_operation_id::text || '/' || v_media.entity_id || '/[0-9]+$')
+      OR NOT EXISTS (SELECT 1 FROM storage.objects
+        WHERE bucket_id = 'content-audit-evidence' AND name = v_media.private_path)
+    THEN RAISE EXCEPTION 'An evidence attachment is missing.'; END IF;
   END LOOP;
   PERFORM set_config('content_audit.actor', v_admin::text, true);
   PERFORM set_config('content_audit.operation', p_operation_id::text, true);
   PERFORM set_config('content_audit.media', p_media::text, true);
   PERFORM set_config('content_audit.action',
     CASE p_action WHEN 'conversation_delete' THEN 'conversation_delete' WHEN 'customer_delete' THEN 'customer_delete'
-      WHEN 'employee_delete' THEN 'employee_delete' ELSE 'delete' END, true);
+      WHEN 'employee_delete' THEN 'employee_delete' WHEN 'admin_delete' THEN 'admin_delete'
+      WHEN 'template_delete' THEN 'source_delete' WHEN 'auto_delete' THEN 'source_delete' ELSE 'delete' END, true);
 
   IF p_action = 'notification_edit' THEN
     IF char_length(trim(COALESCE(p_payload ->> 'title', ''))) NOT BETWEEN 1 AND 200
@@ -408,7 +475,15 @@ BEGIN
     DELETE FROM public.simulated_customers WHERE id = p_target_ids[1];
   ELSIF p_action = 'employee_delete' THEN
     DELETE FROM public.customer_employee_conversations WHERE employee_id = p_target_ids[1];
-    PERFORM public.admin_delete_employee_account(p_admin_session_token, p_target_ids[1]);
+    IF NOT public.admin_delete_employee_account(p_admin_session_token, p_target_ids[1]) THEN
+      RAISE EXCEPTION 'Employee account could not be removed.';
+    END IF;
+  ELSIF p_action = 'admin_delete' THEN
+    DELETE FROM public.customer_employee_conversations m USING public.simulated_customers c
+    WHERE m.customer_id = c.id AND c.admin_id = p_target_ids[1];
+    IF NOT public.admin_delete_secondary_account(p_admin_session_token, p_target_ids[1]) THEN
+      RAISE EXCEPTION 'Secondary administrator could not be removed.';
+    END IF;
   ELSIF p_action = 'template_edit' THEN
     UPDATE public.cs_message_templates
       SET name = COALESCE(p_payload ->> 'name', name), title = CASE WHEN p_payload ? 'title' THEN p_payload ->> 'title' ELSE title END,
@@ -424,6 +499,7 @@ BEGIN
       SET source_template_id = NULL, rich_card_content_id = v_frozen_id
       WHERE source_template_id = p_target_ids[1] AND message_type = 'rich_card';
     END IF;
+    DELETE FROM public.rich_card_contents WHERE source_template_id = p_target_ids[1];
     DELETE FROM public.cs_message_templates WHERE id = p_target_ids[1];
   ELSIF p_action = 'auto_edit' THEN
     UPDATE public.customer_auto_messages
@@ -443,6 +519,7 @@ BEGIN
       SET source_auto_message_id = NULL, rich_card_content_id = v_frozen_id
       WHERE source_auto_message_id = p_target_ids[1] AND message_type = 'rich_card';
     END IF;
+    DELETE FROM public.rich_card_contents WHERE source_auto_message_id = p_target_ids[1];
     DELETE FROM public.customer_auto_messages WHERE id = p_target_ids[1];
   END IF;
   GET DIAGNOSTICS v_changed = ROW_COUNT;
@@ -552,6 +629,7 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
 DECLARE v_admin uuid; v_event private.content_audit_events%ROWTYPE; v_paths jsonb;
 BEGIN
   v_admin := private.assert_content_audit_purge(p_admin_session_token);
+  PERFORM pg_advisory_xact_lock(hashtext('content-audit-purge-media'));
   IF length(trim(COALESCE(p_reason, ''))) NOT BETWEEN 10 AND 500 THEN RAISE EXCEPTION 'Enter a reason between 10 and 500 characters.'; END IF;
   SELECT * INTO v_event FROM private.content_audit_events WHERE id = p_event_id FOR UPDATE;
   IF v_event.id IS NULL OR v_event.cleared_at IS NOT NULL THEN RAISE EXCEPTION 'Evidence is not available.'; END IF;
@@ -597,6 +675,22 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION public.list_content_audit_orphan_media()
+RETURNS text[] LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+  SELECT COALESCE(array_agg(candidate.name), ARRAY[]::text[]) FROM (
+    SELECT object.name FROM storage.objects object
+    WHERE object.bucket_id = 'content-audit-evidence'
+      AND object.created_at < clock_timestamp() - interval '24 hours'
+      AND object.name ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}/[0-9]+$'
+      AND NOT EXISTS (
+        SELECT 1 FROM private.content_audit_events event
+        WHERE event.operation_id::text = split_part(object.name, '/', 1)
+      )
+    ORDER BY object.created_at LIMIT 100
+  ) candidate;
+$$;
+
 INSERT INTO storage.buckets (id, name, public) VALUES ('content-audit-evidence', 'content-audit-evidence', false)
 ON CONFLICT (id) DO NOTHING;
 DROP POLICY IF EXISTS "Anyone can update chat images" ON storage.objects;
@@ -623,7 +717,7 @@ BEGIN
 END;
 $$;
 
-REVOKE UPDATE, DELETE ON public.messages FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.messages FROM anon, authenticated;
 REVOKE UPDATE (title, content) ON public.messages FROM anon, authenticated;
 REVOKE UPDATE, DELETE ON public.customer_employee_conversations FROM anon, authenticated;
 GRANT UPDATE (is_read, read_at) ON public.customer_employee_conversations TO anon, authenticated;
@@ -643,6 +737,7 @@ REVOKE ALL ON FUNCTION public.update_admin_message_content_with_session(uuid, uu
 REVOKE ALL ON FUNCTION public.delete_messages(uuid[], uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.delete_all_messages_for_admin(uuid, uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.admin_delete_employee_account(uuid, uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.admin_delete_secondary_account(uuid, uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.prepare_content_audit_change(uuid, text, uuid[], uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.commit_content_audit_change(uuid, text, uuid[], uuid, text, jsonb, uuid, jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.prepare_content_audit_change(uuid, text, uuid[], uuid) TO service_role;

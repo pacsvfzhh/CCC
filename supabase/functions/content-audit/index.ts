@@ -9,6 +9,7 @@ const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+  'Access-Control-Expose-Headers': 'X-Audit-Media-Type',
   'Cache-Control': 'no-store',
 };
 
@@ -33,7 +34,7 @@ function mediaUrls(snapshot: unknown): string[] {
     for (const [key, value] of Object.entries(record)) {
       if (key === 'message' || key === 'messages' || key === 'source' || key === 'customers') {
         visit(value);
-      } else if (['content', 'message_content', 'image_url', 'rendered_html', 'custom_avatar_url'].includes(key) && typeof value === 'string') {
+      } else if (['content', 'message_content', 'image_url', 'rendered_html', 'html_content', 'custom_avatar_url'].includes(key) && typeof value === 'string') {
         const matches = value.matchAll(/https?:\/\/[^\s"'<>)}]+\/storage\/v1\/object\/public\/[^\s"'<>)}]+/g);
         for (const match of matches) found.add(match[0].replace(/&amp;/g, '&'));
         for (const match of value.matchAll(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi)) {
@@ -44,7 +45,6 @@ function mediaUrls(snapshot: unknown): string[] {
     }
   }
   visit(snapshot);
-  if (found.size > 150) throw new Error('Too many attachments to preserve in one operation.');
   return [...found];
 }
 
@@ -64,7 +64,17 @@ function storagePath(originalUrl: string) {
   return { bucket, objectPath };
 }
 
+async function clearStaleCopies() {
+  const { data: paths, error } = await db.rpc('list_content_audit_orphan_media');
+  if (error) throw error;
+  if (paths?.length) {
+    const { error: removeError } = await db.storage.from(evidenceBucket).remove(paths);
+    if (removeError) throw removeError;
+  }
+}
+
 async function mutate(body: Change) {
+  await clearStaleCopies().catch(error => console.error('Could not collect uncommitted evidence:', error));
   const { data: prepared, error: prepareError } = await db.rpc('prepare_content_audit_change', {
     p_admin_session_token: body.sessionToken,
     p_action: body.action,
@@ -72,39 +82,52 @@ async function mutate(body: Change) {
     p_employee_id: body.employeeId ?? null,
   });
   if (prepareError) throw prepareError;
-  const urls = mediaUrls(prepared.snapshots);
+  const snapshots = prepared.snapshots as unknown;
+  const entries = Array.isArray(snapshots) ? snapshots
+    : snapshots && typeof snapshots === 'object' && 'messages' in snapshots ? snapshots.messages : null;
+  const messages = Array.isArray(entries) ? entries : [];
   const operationId = crypto.randomUUID();
   const copied: string[] = [];
-  const manifest: Record<string, string> = {};
+  const manifest: Record<string, Record<string, string>> = {};
   try {
-    for (const [index, original] of urls.entries()) {
-      const { bucket, objectPath } = storagePath(original);
-      const { data: blob, error: downloadError } = await db.storage.from(bucket).download(objectPath);
-      if (downloadError || !blob) throw new Error('Unable to preserve an original attachment; content was not changed.');
-      const privatePath = `${operationId}/${index}`;
-      const { error: uploadError } = await db.storage.from(evidenceBucket).upload(privatePath, blob, {
-        contentType: blob.type || 'application/octet-stream', upsert: false,
-      });
-      if (uploadError) throw new Error('Unable to preserve an original attachment; content was not changed.');
-      copied.push(privatePath);
-      manifest[original] = privatePath;
+    for (const item of messages) {
+      if (body.action === 'notification_delete' && item?.message?.automation_execution_id) continue;
+      const id = item?.message?.id;
+      if (typeof id !== 'string') throw new Error('The evidence snapshot is invalid.');
+      const urls = mediaUrls(item);
+      if (body.action.endsWith('_edit')) {
+        for (const url of mediaUrls(body.payload ?? {})) if (!urls.includes(url)) urls.push(url);
+      }
+      manifest[id] = {};
+      for (const [index, original] of urls.entries()) {
+        const { bucket, objectPath } = storagePath(original);
+        const { data: blob, error: downloadError } = await db.storage.from(bucket).download(objectPath);
+        if (downloadError || !blob) throw new Error('Unable to preserve an attachment; content was not changed.');
+        const privatePath = `${operationId}/${id}/${index}`;
+        const { error: uploadError } = await db.storage.from(evidenceBucket).upload(privatePath, blob, {
+          contentType: blob.type || 'application/octet-stream', upsert: false,
+        });
+        if (uploadError) throw new Error('Unable to preserve an attachment; content was not changed.');
+        copied.push(privatePath);
+        manifest[id][original] = privatePath;
+      }
     }
-    const { data, error } = await db.rpc('commit_content_audit_change', {
-      p_admin_session_token: body.sessionToken,
-      p_action: body.action,
-      p_target_ids: body.targetIds,
-      p_employee_id: body.employeeId ?? null,
-      p_expected_hash: prepared.hash,
-      p_payload: body.payload ?? {},
-      p_operation_id: operationId,
-      p_media: manifest,
-    });
-    if (error) throw error;
-    return response(data);
   } catch (error) {
     if (copied.length) await db.storage.from(evidenceBucket).remove(copied);
     throw error;
   }
+  const { data, error } = await db.rpc('commit_content_audit_change', {
+    p_admin_session_token: body.sessionToken,
+    p_action: body.action,
+    p_target_ids: body.targetIds,
+    p_employee_id: body.employeeId ?? null,
+    p_expected_hash: prepared.hash,
+    p_payload: body.payload ?? {},
+    p_operation_id: operationId,
+    p_media: manifest,
+  });
+  if (error) throw error;
+  return response(data);
 }
 
 Deno.serve(async (request) => {
@@ -125,7 +148,7 @@ Deno.serve(async (request) => {
       const { data: blob, error: downloadError } = await db.storage.from(evidenceBucket).download(body.path);
       if (downloadError || !blob) return response({ error: 'Evidence attachment is unavailable.' }, 404);
       return new Response(blob, {
-        headers: { ...cors, 'Content-Type': blob.type || 'application/octet-stream', 'X-Content-Type-Options': 'nosniff' },
+        headers: { ...cors, 'Content-Type': 'application/octet-stream', 'X-Audit-Media-Type': blob.type, 'X-Content-Type-Options': 'nosniff' },
       });
     }
     if (body.action === 'clear') {

@@ -27,11 +27,12 @@ export async function clearAuditedContent(eventId: string, reason: string): Prom
 }
 
 export async function loadAuditedImage(eventId: string, path: string): Promise<string> {
-  const { data, error } = await supabase.functions.invoke('content-audit', {
+  const { data, error, response } = await supabase.functions.invoke('content-audit', {
     body: { action: 'media', eventId, path, sessionToken: getAdminFinancialSessionToken() },
   });
-  if (error || !(data instanceof Blob) || !/^image\/(png|jpeg|webp|gif)$/.test(data.type)) {
+  const mediaType = response?.headers.get('X-Audit-Media-Type') ?? '';
+  if (error || !(data instanceof Blob) || !/^image\/(png|jpeg|webp|gif)$/.test(mediaType)) {
     throw new Error(formatSupabaseError(error || new Error('The evidence image is unavailable.')));
   }
-  return URL.createObjectURL(data);
+  return URL.createObjectURL(new Blob([data], { type: mediaType }));
 }
