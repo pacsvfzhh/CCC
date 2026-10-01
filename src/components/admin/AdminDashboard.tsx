@@ -1552,7 +1552,7 @@ export default function AdminDashboard({ admin }: AdminDashboardProps) {
                 )}
                 {loadedTabs.has('history') && (
                   <div className={activeTab === 'history' ? 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden' : 'hidden'}>
-                    <HistoryDataManagement />
+                    <HistoryDataManagement isActive={activeTab === 'history'} />
                   </div>
                 )}
               </>

@@ -193,8 +193,9 @@ BEGIN
       v_old_html := OLD.content;
       v_new_html := CASE WHEN TG_OP = 'UPDATE' THEN NEW.content ELSE NULL END;
     END IF;
-    v_before := private.content_audit_chat_snapshot(v_row) || jsonb_build_object('rendered_html', v_old_html);
-    v_after := private.content_audit_chat_snapshot(v_row) || jsonb_build_object('rendered_html', v_new_html);
+    v_before := private.content_audit_chat_snapshot(v_row) || jsonb_build_object('rendered_html', v_old_html, 'source', to_jsonb(OLD));
+    v_after := private.content_audit_chat_snapshot(v_row) || jsonb_build_object('rendered_html', v_new_html,
+      'source', CASE WHEN TG_OP = 'UPDATE' THEN to_jsonb(NEW) ELSE NULL END);
     INSERT INTO private.content_audit_events (
       operation_id, entity_type, entity_id, action, owner_admin_id, actor_admin_id,
       actor_username, actor_role, customer_id, employee_id, before_data, after_data, media_refs
@@ -303,6 +304,8 @@ DECLARE
   v_prepared jsonb;
   v_changed integer;
   v_media record;
+  v_frozen_id uuid;
+  v_source_content text;
 BEGIN
   SELECT admin_id, admin_role INTO v_admin, v_role FROM private.get_financial_admin_context(p_admin_session_token);
   IF p_operation_id IS NULL OR jsonb_typeof(p_media) <> 'object' THEN RAISE EXCEPTION 'Invalid audit operation.'; END IF;
@@ -355,6 +358,7 @@ BEGIN
   ELSIF p_action = 'conversation_delete' THEN
     DELETE FROM public.customer_employee_conversations WHERE customer_id = p_target_ids[1] AND employee_id = p_employee_id;
   ELSIF p_action = 'customer_delete' THEN
+    DELETE FROM public.customer_employee_conversations WHERE customer_id = p_target_ids[1];
     DELETE FROM public.simulated_customers WHERE id = p_target_ids[1];
   ELSIF p_action = 'template_edit' THEN
     UPDATE public.cs_message_templates
@@ -363,14 +367,33 @@ BEGIN
           content = COALESCE(p_payload ->> 'content', content), content_type = COALESCE(p_payload ->> 'content_type', content_type), updated_at = now()
       WHERE id = p_target_ids[1];
   ELSIF p_action = 'template_delete' THEN
+    SELECT content INTO v_source_content FROM public.cs_message_templates WHERE id = p_target_ids[1];
+    IF EXISTS (SELECT 1 FROM public.customer_employee_conversations
+      WHERE source_template_id = p_target_ids[1] AND message_type = 'rich_card') THEN
+      INSERT INTO public.rich_card_contents(html_content) VALUES (v_source_content) RETURNING id INTO v_frozen_id;
+      UPDATE public.customer_employee_conversations
+      SET source_template_id = NULL, rich_card_content_id = v_frozen_id
+      WHERE source_template_id = p_target_ids[1] AND message_type = 'rich_card';
+    END IF;
     DELETE FROM public.cs_message_templates WHERE id = p_target_ids[1];
   ELSIF p_action = 'auto_edit' THEN
     UPDATE public.customer_auto_messages
       SET name = COALESCE(p_payload ->> 'name', name), title = CASE WHEN p_payload ? 'title' THEN p_payload ->> 'title' ELSE title END,
           subtitle = CASE WHEN p_payload ? 'subtitle' THEN p_payload ->> 'subtitle' ELSE subtitle END,
-          content = COALESCE(p_payload ->> 'content', content), updated_at = now()
+          content = COALESCE(p_payload ->> 'content', content),
+          content_type = COALESCE(p_payload ->> 'content_type', content_type),
+          message_type = COALESCE(p_payload ->> 'message_type', message_type),
+          sort_order = COALESCE((p_payload ->> 'sort_order')::integer, sort_order), updated_at = now()
       WHERE id = p_target_ids[1];
   ELSIF p_action = 'auto_delete' THEN
+    SELECT content INTO v_source_content FROM public.customer_auto_messages WHERE id = p_target_ids[1];
+    IF EXISTS (SELECT 1 FROM public.customer_employee_conversations
+      WHERE source_auto_message_id = p_target_ids[1] AND message_type = 'rich_card') THEN
+      INSERT INTO public.rich_card_contents(html_content) VALUES (v_source_content) RETURNING id INTO v_frozen_id;
+      UPDATE public.customer_employee_conversations
+      SET source_auto_message_id = NULL, rich_card_content_id = v_frozen_id
+      WHERE source_auto_message_id = p_target_ids[1] AND message_type = 'rich_card';
+    END IF;
     DELETE FROM public.customer_auto_messages WHERE id = p_target_ids[1];
   END IF;
   GET DIAGNOSTICS v_changed = ROW_COUNT;
@@ -501,6 +524,7 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
 DECLARE v_admin uuid; v_event private.content_audit_events%ROWTYPE;
 BEGIN
   v_admin := private.assert_content_audit_purge(p_admin_session_token);
+  PERFORM pg_advisory_xact_lock(hashtext('content-audit-purge-media'));
   SELECT * INTO v_event FROM private.content_audit_events WHERE id = p_event_id FOR UPDATE;
   IF v_event.cleared_at IS NOT NULL THEN RETURN jsonb_build_object('success', true); END IF;
   IF v_event.id IS NULL OR v_event.cleared_by IS DISTINCT FROM v_admin OR v_event.clear_started_at IS NULL THEN
@@ -522,20 +546,43 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('content-audit-evidence',
 ON CONFLICT (id) DO NOTHING;
 DROP POLICY IF EXISTS "Anyone can update chat images" ON storage.objects;
 DROP POLICY IF EXISTS "Anyone can delete chat images" ON storage.objects;
+DROP POLICY IF EXISTS "Anyone can update announcement images" ON storage.objects;
+DROP POLICY IF EXISTS "Anyone can delete announcement images" ON storage.objects;
 DROP POLICY IF EXISTS "Public can delete from announcement-images" ON storage.objects;
 DROP POLICY IF EXISTS "Public can update announcement-images" ON storage.objects;
 DROP POLICY IF EXISTS "Anyone can update template images" ON storage.objects;
 DROP POLICY IF EXISTS "Anyone can delete template images" ON storage.objects;
 
+CREATE OR REPLACE FUNCTION public.cleanup_expired_messages()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+BEGIN
+  DELETE FROM public.messages WHERE automation_execution_id IS NOT NULL AND expires_at < now();
+END;
+$$;
+CREATE OR REPLACE FUNCTION public.cleanup_old_messages()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+BEGIN
+  DELETE FROM public.messages WHERE automation_execution_id IS NOT NULL AND created_at < now() - interval '30 days';
+END;
+$$;
+
 REVOKE UPDATE, DELETE ON public.messages FROM anon, authenticated;
+REVOKE UPDATE (title, content) ON public.messages FROM anon, authenticated;
 REVOKE UPDATE, DELETE ON public.customer_employee_conversations FROM anon, authenticated;
 GRANT UPDATE (is_read, read_at) ON public.customer_employee_conversations TO anon, authenticated;
 REVOKE DELETE ON public.simulated_customers FROM anon, authenticated;
 REVOKE UPDATE, DELETE ON public.cs_message_templates FROM anon, authenticated;
-GRANT UPDATE (name, title, subtitle, content_type, sort_order, is_pinned, updated_at) ON public.cs_message_templates TO anon, authenticated;
+GRANT UPDATE (name, sort_order, is_pinned, updated_at) ON public.cs_message_templates TO anon, authenticated;
 REVOKE UPDATE, DELETE ON public.customer_auto_messages FROM anon, authenticated;
-GRANT UPDATE (name, title, subtitle, sort_order, is_enabled, updated_at) ON public.customer_auto_messages TO anon, authenticated;
+GRANT UPDATE (name, sort_order, is_enabled, updated_at) ON public.customer_auto_messages TO anon, authenticated;
 REVOKE UPDATE, DELETE ON public.rich_card_contents FROM anon, authenticated;
+REVOKE UPDATE ON public.simulated_customers FROM anon, authenticated;
+GRANT UPDATE (badge_type, customer_avatar, customer_id, customer_name, custom_avatar_url,
+  employee_always_visible, employee_pin_top, is_active, is_super, super_customer_title,
+  target_employee_id, target_employee_ids, vip_label, auto_messages_enabled, is_pinned,
+  remarks, updated_at) ON public.simulated_customers TO anon, authenticated;
 
 REVOKE ALL ON FUNCTION public.update_admin_message_content_with_session(uuid, uuid, text, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.delete_messages(uuid[], uuid) FROM PUBLIC, anon, authenticated;

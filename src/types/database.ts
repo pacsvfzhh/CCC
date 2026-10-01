@@ -797,6 +797,7 @@ export interface Database {
           reward_amount: number | null;
           reward_currency: string | null;
           automation_execution_id: string | null;
+          audit_origin: 'manual_admin' | 'automation' | 'unverified';
           expires_at: string | null;
           created_at: string;
         };
@@ -813,6 +814,7 @@ export interface Database {
           reward_amount?: number | null;
           reward_currency?: string | null;
           automation_execution_id?: string | null;
+          audit_origin?: 'manual_admin' | 'automation' | 'unverified';
           expires_at?: string | null;
           created_at?: string | null;
         };
@@ -829,6 +831,7 @@ export interface Database {
           reward_amount?: number | null;
           reward_currency?: string | null;
           automation_execution_id?: string | null;
+          audit_origin?: 'manual_admin' | 'automation' | 'unverified';
           expires_at?: string | null;
           created_at?: string | null;
         };
@@ -2340,6 +2343,28 @@ export interface Database {
       };
     };
     Functions: {
+      list_content_audit_events: {
+        Args: {
+          p_admin_session_token: string;
+          p_type?: string | null;
+          p_actor?: string | null;
+          p_action?: string | null;
+          p_search?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_page?: number;
+          p_page_size?: number;
+        };
+        Returns: { total: number; items: Array<Record<string, unknown>> };
+      };
+      get_content_audit_event: {
+        Args: { p_admin_session_token: string; p_event_id: string };
+        Returns: Record<string, unknown> | null;
+      };
+      set_content_audit_purge_window: {
+        Args: { p_admin_session_token: string; p_enabled: boolean };
+        Returns: string | null;
+      };
       create_admin_financial_session: {
         Args: { p_password: string; p_username: string };
         Returns: {

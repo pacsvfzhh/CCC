@@ -9,6 +9,7 @@ import CustomerAvatarPicker, { CustomerAvatarDisplay } from './CustomerAvatarPic
 import EmployeeMetadataPopover from './EmployeeMetadataPopover';
 import type { Database } from '../../types/database';
 import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
+import { mutateAuditedContent } from '../../lib/contentAudit';
 import { uploadStorageObjectWithProgress } from '../../lib/storageUpload';
 
 function extractImageOnlyUrl(content: string): string | null {
@@ -1651,16 +1652,11 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     const content = getTemplateContent();
     if (isTemplateContentEmpty()) return;
     try {
-      const { error } = await supabase
-        .from('cs_message_templates')
-        .update({
-          name: templateForm.name.trim(),
-          content: templateForm.content_type === 'richtext' ? content : content.trim(),
-          content_type: templateForm.content_type,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', editingTemplate.id);
-      if (error) throw error;
+      await mutateAuditedContent('template_edit', [editingTemplate.id], {
+        name: templateForm.name.trim(),
+        content: templateForm.content_type === 'richtext' ? content : content.trim(),
+        content_type: templateForm.content_type,
+      });
       setEditingTemplate(null);
       setTemplateForm({ name: '', content: '', content_type: 'richtext' });
       if (templateEditorRef.current) templateEditorRef.current.innerHTML = '';
@@ -1673,11 +1669,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
   const handleDeleteTemplate = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('cs_message_templates')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+      await mutateAuditedContent('template_delete', [id]);
       setNotification({ type: 'success', text: '範本已刪除！' });
       loadTemplates();
     } catch (error: unknown) {
@@ -2141,15 +2133,10 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setConfirmDialog({
       show: true,
       title: '刪除客戶',
-      message: `確定要刪除客戶「${customerToDelete?.customer_name || '此客戶'}」嗎？所有對話歷史將永久刪除。`,
+      message: `確定要移除客戶「${customerToDelete?.customer_name || '此客戶'}」嗎？所有對話會從原頁移除，改刪原文保留在超管監察紀錄。`,
       onConfirm: async () => {
         try {
-          const { error } = await supabase
-            .from('simulated_customers')
-            .delete()
-            .eq('id', customerId);
-
-          if (error) throw error;
+          await mutateAuditedContent('customer_delete', [customerId]);
 
           invalidateAdminWorkspaceDataCache(selectedAdminId || adminId, 'customer');
           setNotification({ type: 'success', text: '客戶已成功刪除！' });
@@ -2584,24 +2571,11 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setConfirmDialog({
       show: true,
       title: '刪除訊息',
-      message: '確定要刪除此訊息嗎？',
+      message: '從原頁移除此訊息並保留超管監察紀錄？',
       onConfirm: async () => {
         try {
-          console.log('Attempting to delete message:', messageId);
-          const { data, error } = await supabase
-            .from('customer_employee_conversations')
-            .delete()
-            .eq('id', messageId)
-            .select();
-
-          console.log('Delete response:', { data, error });
-
-          if (error) {
-            console.error('Delete error:', formatSupabaseError(error));
-            throw error;
-          }
-
-          setNotification({ type: 'success', text: '訊息已成功刪除' });
+          await mutateAuditedContent('chat_delete', [messageId]);
+          setNotification({ type: 'success', text: '訊息已從原頁移除，原文已留證' });
           loadMessages();
           loadConversationHistory();
         } catch (error: unknown) {
@@ -2629,22 +2603,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     }, 50);
   };
 
-  const extractStoragePath = (publicUrl: string): string | null => {
-    const marker = '/object/public/chat-images/';
-    const idx = publicUrl.indexOf(marker);
-    return idx === -1 ? null : publicUrl.substring(idx + marker.length);
-  };
-
-  const cleanupStorageImage = async (imageUrl: string) => {
-    const path = extractStoragePath(imageUrl);
-    if (!path) return;
-    try {
-      await supabase.storage.from('chat-images').remove([path]);
-    } catch {
-      return;
-    }
-  };
-
   const handleReplaceImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     const msgId = replacingImageMsgIdRef.current;
@@ -2660,24 +2618,12 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
     setReplacingImageMsgId(msgId);
     try {
-      const { data: oldMsg } = await supabase
-        .from('customer_employee_conversations')
-        .select('image_url')
-        .eq('id', msgId)
-        .maybeSingle();
-      const oldImageUrl = oldMsg?.image_url;
       const fileExt = file.name.split('.').pop();
       const fileName = `chat-replace-${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
       const { data, error: uploadError } = await supabase.storage.from('chat-images').upload(fileName, file);
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('chat-images').getPublicUrl(data.path);
-      const { error: updateError } = await supabase
-        .from('customer_employee_conversations')
-        .update({ image_url: publicUrl })
-        .eq('id', msgId);
-      if (updateError) throw updateError;
-
-      if (oldImageUrl) await cleanupStorageImage(oldImageUrl);
+      await mutateAuditedContent('chat_edit', [msgId], { image_url: publicUrl });
       setNotification({ type: 'success', text: '圖片已成功替換' });
       preserveScrollUntilRef.current = Date.now() + 2000;
       loadMessages();
@@ -2698,12 +2644,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     if (!textOnly.trim() && !hasImages) return;
 
     try {
-      const { error } = await supabase
-        .from('customer_employee_conversations')
-        .update({ message_content: newContent })
-        .eq('id', editingMessageId);
-
-      if (error) throw error;
+      await mutateAuditedContent('chat_edit', [editingMessageId], { message_content: newContent });
 
       setEditingMessageId(null);
       setEditingContent('');
@@ -2816,29 +2757,11 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setConfirmDialog({
       show: true,
       title: '刪除對話',
-      message: `確定要刪除與 ${selectedEmployee.username} 的完整對話嗎？此操作無法復原。`,
+      message: `確定要從原頁移除與 ${selectedEmployee.username} 的完整對話嗎？所有訊息原文將保留在超管監察紀錄。`,
       onConfirm: async () => {
         try {
-          console.log('Deleting conversation:', {
-            customerId: selectedCustomer.id,
-            employeeId: selectedEmployee.id
-          });
-
-          const { data, error } = await supabase
-            .from('customer_employee_conversations')
-            .delete()
-            .eq('customer_id', selectedCustomer.id)
-            .eq('employee_id', selectedEmployee.id)
-            .select();
-
-          console.log('Delete conversation response:', { data, error });
-
-          if (error) {
-            console.error('Delete conversation error:', formatSupabaseError(error));
-            throw error;
-          }
-
-          setNotification({ type: 'success', text: `對話已刪除（已移除 ${data?.length || 0} 則訊息）` });
+          const result = await mutateAuditedContent('conversation_delete', [selectedCustomer.id], {}, selectedEmployee.id);
+          setNotification({ type: 'success', text: `對話已從原頁移除（${result.changed_count} 則訊息已留證）` });
           conversationMessagesCacheRef.current.delete(`${selectedCustomer.id}:${selectedEmployee.id}`);
           setMessages([]);
           loadConversationHistory();

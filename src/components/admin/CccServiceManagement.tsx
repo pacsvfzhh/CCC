@@ -9,11 +9,11 @@ import { formatSupabaseError, supabase } from '../../lib/supabase';
 import { getCachedAdminWorkspaceData, getCachedConversationSummaries, invalidateAdminWorkspaceDataCache, invalidateConversationSummariesCache, prefetchAdminGroups, prefetchAdminWorkspaceData, prefetchConversationSummaries } from '../../lib/serviceWorkspaceCache';
 import { stripTailwindStyles, sanitizeChatMessage } from '../../lib/sanitizeHTML';
 import { processContentImages } from '../../lib/imageOptimizer';
-import { cleanupContentImages } from '../../lib/storageCleanup';
 import AdminGroupPicker, { type AdminGroup } from './AdminGroupPicker';
 import EmployeeMetadataPopover from './EmployeeMetadataPopover';
 import type { Database } from '../../types/database';
 import { createFinancialOperationId, getAdminFinancialSessionToken } from '../../lib/auth';
+import { mutateAuditedContent } from '../../lib/contentAudit';
 import { uploadStorageObjectWithProgress } from '../../lib/storageUpload';
 
 function extractImageOnlyUrl(content: string): string | null {
@@ -1940,18 +1940,13 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
       const optimizedContent = (templateForm.content_type === 'richtext' || templateForm.content_type === 'rich_card')
         ? await processContentImages(content, folder)
         : content.trim();
-      const { error } = await supabase
-        .from('cs_message_templates')
-        .update({
-          name: templateForm.name.trim(),
-          title: templateForm.content_type === 'rich_card' && templateForm.title.trim() ? templateForm.title.trim() : null,
-          subtitle: templateForm.content_type === 'rich_card' && templateForm.subtitle.trim() ? templateForm.subtitle.trim() : null,
-          content: optimizedContent,
-          content_type: templateForm.content_type,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', editingTemplate.id);
-      if (error) throw error;
+      await mutateAuditedContent('template_edit', [editingTemplate.id], {
+        name: templateForm.name.trim(),
+        title: templateForm.content_type === 'rich_card' && templateForm.title.trim() ? templateForm.title.trim() : null,
+        subtitle: templateForm.content_type === 'rich_card' && templateForm.subtitle.trim() ? templateForm.subtitle.trim() : null,
+        content: optimizedContent,
+        content_type: templateForm.content_type,
+      });
       setEditingTemplate(null);
       setTemplateForm({ name: '', title: '', subtitle: '', content: '', content_type: 'richtext' });
       if (templateEditorRef.current) templateEditorRef.current.innerHTML = '';
@@ -1967,16 +1962,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
   const handleDeleteTemplate = async (id: string) => {
     try {
-      const tpl = messageTemplates.find(t => t.id === id);
-      if (tpl?.content) {
-        await cleanupContentImages(tpl.content).catch(() => {});
-      }
-      await supabase.from('rich_card_contents').delete().eq('source_template_id', id).then(() => {});
-      const { error } = await supabase
-        .from('cs_message_templates')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+      await mutateAuditedContent('template_delete', [id]);
       setNotification({ type: 'success', text: '範本已刪除！' });
       loadTemplates();
     } catch (error: unknown) {
@@ -2522,54 +2508,10 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     setConfirmDialog({
       show: true,
       title: '刪除經理',
-      message: `確定要刪除經理「${customerToDelete?.customer_name || '此經理'}」嗎？所有對話歷史將永久刪除。`,
+      message: `確定要移除經理「${customerToDelete?.customer_name || '此經理'}」嗎？所有對話會從原頁移除，原文保留在超管監察紀錄。`,
       onConfirm: async () => {
         try {
-          const { data: convos } = await supabase
-            .from('customer_employee_conversations')
-            .select('id, image_url, rich_card_content_id')
-            .eq('customer_id', customerId);
-
-          if (convos?.length) {
-            const imageUrls = convos
-              .filter(c => c.image_url)
-              .map(c => c.image_url as string);
-            if (imageUrls.length) {
-              const paths = imageUrls
-                .map(url => {
-                  const marker = '/storage/v1/object/public/chat-images/';
-                  const idx = url.indexOf(marker);
-                  return idx >= 0 ? url.slice(idx + marker.length) : null;
-                })
-                .filter((p): p is string => !!p);
-              if (paths.length) {
-                await supabase.storage.from('chat-images').remove(paths).catch(() => {});
-              }
-            }
-            const rcIds = convos
-              .filter(c => c.rich_card_content_id)
-              .map(c => c.rich_card_content_id as string);
-            if (rcIds.length) {
-              const { data: rcRows } = await supabase
-                .from('rich_card_contents')
-                .select('id, html_content')
-                .in('id', rcIds);
-              if (rcRows?.length) {
-                for (const rc of rcRows) {
-                  await cleanupContentImages(rc.html_content).catch(() => {});
-                }
-              }
-            }
-          }
-
-          await supabase.from('rich_card_contents').delete().eq('customer_id', customerId).then(() => {});
-
-          const { error } = await supabase
-            .from('simulated_customers')
-            .delete()
-            .eq('id', customerId);
-
-          if (error) throw error;
+          await mutateAuditedContent('customer_delete', [customerId]);
 
           invalidateAdminWorkspaceDataCache(selectedAdminId || adminId, 'manager');
           setNotification({ type: 'success', text: '經理已成功刪除！' });
@@ -3014,45 +2956,15 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     }
   };
 
-  const extractStoragePath = (publicUrl: string): string | null => {
-    try {
-      const marker = '/object/public/chat-images/';
-      const idx = publicUrl.indexOf(marker);
-      if (idx !== -1) return publicUrl.substring(idx + marker.length);
-      return null;
-    } catch { return null; }
-  };
-
-  const cleanupStorageImage = async (imageUrl: string) => {
-    const path = extractStoragePath(imageUrl);
-    if (!path) return;
-    try {
-      await supabase.storage.from('chat-images').remove([path]);
-    } catch {
-      return;
-    }
-  };
-
   const handleDeleteMessage = (messageId: string) => {
     setConfirmDialog({
       show: true,
       title: '刪除訊息',
-      message: '確定要刪除此訊息嗎？',
+      message: '從原頁移除此訊息並保留超管監察紀錄？',
       onConfirm: async () => {
         try {
-          const { data, error } = await supabase
-            .from('customer_employee_conversations')
-            .delete()
-            .eq('id', messageId)
-            .select();
-
-          if (error) throw error;
-
-          if (data?.[0]?.message_type === 'image' && data[0].image_url) {
-            await cleanupStorageImage(data[0].image_url);
-          }
-
-          setNotification({ type: 'success', text: '訊息已成功刪除' });
+          await mutateAuditedContent('chat_delete', [messageId]);
+          setNotification({ type: 'success', text: '訊息已從原頁移除，原文已留證' });
           loadMessages();
           loadConversationHistory();
         } catch (error: unknown) {
@@ -3089,25 +3001,12 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     }
     setReplacingImageMsgId(msgId);
     try {
-      const { data: oldMsg } = await supabase
-        .from('customer_employee_conversations')
-        .select('image_url')
-        .eq('id', msgId)
-        .maybeSingle();
-      const oldImageUrl = oldMsg?.image_url;
-
       const fileExt = file.name.split('.').pop();
       const fileName = `chat-replace-${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
       const { data, error: uploadError } = await supabase.storage.from('chat-images').upload(fileName, file);
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('chat-images').getPublicUrl(data.path);
-      const { error: updateError } = await supabase
-        .from('customer_employee_conversations')
-        .update({ image_url: publicUrl })
-        .eq('id', msgId);
-      if (updateError) throw updateError;
-
-      if (oldImageUrl) await cleanupStorageImage(oldImageUrl);
+      await mutateAuditedContent('chat_edit', [msgId], { image_url: publicUrl });
 
       setNotification({ type: 'success', text: '圖片已成功替換' });
       preserveScrollUntilRef.current = Date.now() + 2000;
@@ -3129,12 +3028,7 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     if (!textOnly.trim() && !hasImages) return;
 
     try {
-      const { error } = await supabase
-        .from('customer_employee_conversations')
-        .update({ message_content: newContent })
-        .eq('id', editingMessageId);
-
-      if (error) throw error;
+      await mutateAuditedContent('chat_edit', [editingMessageId], { message_content: newContent });
 
       setEditingMessageId(null);
       setEditingContent('');
@@ -3286,29 +3180,11 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
     setConfirmDialog({
       show: true,
       title: '刪除對話',
-      message: `確定要刪除與 ${selectedEmployee.username} 的完整對話嗎？此操作無法復原。`,
+      message: `確定要從原頁移除與 ${selectedEmployee.username} 的完整對話嗎？所有訊息原文將保留在超管監察紀錄。`,
       onConfirm: async () => {
         try {
-          console.log('Deleting conversation:', {
-            customerId: selectedCustomer.id,
-            employeeId: selectedEmployee.id
-          });
-
-          const { data, error } = await supabase
-            .from('customer_employee_conversations')
-            .delete()
-            .eq('customer_id', selectedCustomer.id)
-            .eq('employee_id', selectedEmployee.id)
-            .select();
-
-          console.log('Delete conversation response:', { data, error });
-
-          if (error) {
-            console.error('Delete conversation error:', formatSupabaseError(error));
-            throw error;
-          }
-
-          setNotification({ type: 'success', text: `對話已刪除（已移除 ${data?.length || 0} 則訊息）` });
+          const result = await mutateAuditedContent('conversation_delete', [selectedCustomer.id], {}, selectedEmployee.id);
+          setNotification({ type: 'success', text: `對話已從原頁移除（${result.changed_count} 則訊息已留證）` });
           conversationMessagesCacheRef.current.delete(`${selectedCustomer.id}:${selectedEmployee.id}`);
           setMessages([]);
           loadConversationHistory();

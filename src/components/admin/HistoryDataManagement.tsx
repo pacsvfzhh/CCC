@@ -5,6 +5,7 @@ import { formatSupabaseError, isFinancialAdminSessionError, isSupabaseTransientE
 import type { Database as DatabaseSchema } from '../../types/database';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { safeToLocaleString } from '../../lib/safeUtils';
+import ContentAuditPanel from './ContentAuditPanel';
 
 type CleanupSchedule = DatabaseSchema['public']['Functions']['admin_get_history_cleanup_schedule']['Returns'][number];
 
@@ -70,7 +71,9 @@ const hourOptions = Array.from({ length: 24 }, (_, hour) => String(hour).padStar
 const minuteOptions = Array.from({ length: 12 }, (_, step) => String(step * 5).padStart(2, '0'));
 const quickTimes = ['00:00', '02:00', '02:30', '03:00', '06:00'];
 
-export default function HistoryDataManagement() {
+export default function HistoryDataManagement({ isActive }: { isActive: boolean }) {
+  const [showAudit, setShowAudit] = useState(false);
+  const auditActivations = useRef<number[]>([]);
   const [configs, setConfigs] = useState<CleanupConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -96,6 +99,22 @@ export default function HistoryDataManagement() {
     loadAutoCleanupSchedule();
     return () => { scheduleRequestId.current += 1; };
   }, []);
+
+  useEffect(() => {
+    if (!isActive) {
+      setShowAudit(false);
+      auditActivations.current = [];
+    }
+  }, [isActive]);
+
+  const handleAuditActivation = () => {
+    const now = Date.now();
+    auditActivations.current = [...auditActivations.current.filter(time => now - time <= 1100), now];
+    if (auditActivations.current.length >= 3) {
+      auditActivations.current = [];
+      setShowAudit(true);
+    }
+  };
 
   const isTimePickerOpen = timePicker !== null;
 
@@ -408,6 +427,10 @@ export default function HistoryDataManagement() {
     return acc;
   }, {} as Record<string, CleanupConfig[]>);
 
+  if (showAudit && isActive) {
+    return <ContentAuditPanel onBack={() => setShowAudit(false)} />;
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center bg-white text-slate-600">
@@ -424,9 +447,15 @@ export default function HistoryDataManagement() {
         <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-20 h-44 w-60 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="relative flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500 text-white shadow-[0_10px_24px_-12px_rgba(34,211,238,0.8)] ring-1 ring-cyan-200/60">
+            <button
+              type="button"
+              onClick={handleAuditActivation}
+              aria-label="開啟內容稽核總覽：一秒內連續按三次"
+              title="一秒內連續按三次開啟內容稽核總覽"
+              className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500 text-white shadow-[0_10px_24px_-12px_rgba(34,211,238,0.8)] ring-1 ring-cyan-200/60 transition-colors hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+            >
               <Database className="h-5 w-5" aria-hidden="true" />
-            </div>
+            </button>
             <div className="min-w-0">
               <h2 className="text-lg font-extrabold tracking-tight text-white">歷史資料管理</h2>
               <p className="mt-0.5 text-xs leading-5 text-slate-200">各類資料可分別設定保留天數和每日執行時間（UTC）；自動清理可逐項開關。</p>

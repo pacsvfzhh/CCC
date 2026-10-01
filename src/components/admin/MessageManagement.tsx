@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { formatSupabaseError, isSupabaseAbortError, supabase } from '../../lib/supabase';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
+import { mutateAuditedContent } from '../../lib/contentAudit';
 import { useCurrencyUnit } from '../../lib/useCurrencyUnit';
 import EmployeeNotificationDetailPanel from '../employee/EmployeeNotificationDetailPanel';
 import TiptapEditor, { type TiptapEditorRef } from './TiptapEditor';
@@ -997,15 +998,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     setDeleting(true);
     try {
       const messageIdsArray = Array.from(selectedMessageIds);
-      const { data, error } = await supabase.rpc('delete_messages', {
-        message_ids: messageIdsArray,
-        requesting_admin_id: admin.id
-      });
-      if (error) throw error;
-
-      const result = data as { success: boolean; deleted_count: number; failed_count: number };
-      if (result.success) {
-        setNotification({ type: 'success', message: `已成功刪除 ${result.deleted_count} 則訊息` });
+      let deletedCount = 0;
+      for (let index = 0; index < messageIdsArray.length; index += 50) {
+        const result = await mutateAuditedContent('notification_delete', messageIdsArray.slice(index, index + 50));
+        deletedCount += result.changed_count;
+      }
+      if (deletedCount > 0) {
+        setNotification({ type: 'success', message: `已從原頁移除 ${deletedCount} 則訊息，手動通知已保留監察紀錄` });
         await loadSentMessages();
         setShowDeleteConfirm(false);
         setDeleteMode(null);
@@ -1026,15 +1025,13 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
     setDeleting(true);
     try {
-      const { data, error } = await supabase.rpc('delete_messages', {
-        message_ids: manualMessageIds,
-        requesting_admin_id: admin.id,
-      });
-      if (error) throw error;
-
-      const result = data as { success: boolean; deleted_count: number; failed_count: number };
-      if (result.success) {
-        setNotification({ type: 'success', message: `已成功刪除 ${result.deleted_count} 則訊息` });
+      let deletedCount = 0;
+      for (let index = 0; index < manualMessageIds.length; index += 50) {
+        const result = await mutateAuditedContent('notification_delete', manualMessageIds.slice(index, index + 50));
+        deletedCount += result.changed_count;
+      }
+      if (deletedCount > 0) {
+        setNotification({ type: 'success', message: `已從原頁移除 ${deletedCount} 則訊息，手動通知已保留監察紀錄` });
         await loadSentMessages();
         setShowDeleteConfirm(false);
         setDeleteMode(null);
@@ -1069,14 +1066,9 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
 
     setSaving(true);
     try {
-      const { error } = await supabase.rpc('update_admin_message_content_with_session', {
-        p_admin_session_token: getAdminFinancialSessionToken(),
-        p_message_id: selectedMessageDetail.id,
-        p_title: editForm.title.trim(),
-        p_content: htmlContent,
+      await mutateAuditedContent('notification_edit', [selectedMessageDetail.id], {
+        title: editForm.title.trim(), content: htmlContent,
       });
-
-      if (error) throw error;
 
       setSelectedMessageDetail({ ...selectedMessageDetail, title: editForm.title.trim(), content: htmlContent });
       setEditingMessage(false);
@@ -2729,7 +2721,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">確認刪除</h3>
-                  <p className="text-sm text-slate-400">此操作無法復原</p>
+                  <p className="text-sm text-slate-400">從原頁移除，手動通知原文仍保留在超管監察紀錄</p>
                 </div>
               </div>
               <div className="bg-slate-800/50 rounded-lg p-4 mb-6">

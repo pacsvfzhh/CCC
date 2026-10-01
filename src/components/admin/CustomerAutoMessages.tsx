@@ -4,7 +4,7 @@ import { Plus, Trash2, Zap, MessageSquarePlus, Megaphone, BookOpen, X, Bold, Und
 import TiptapEditor, { TiptapEditorRef } from './TiptapEditor';
 import { supabase } from '../../lib/supabase';
 import { processContentImages } from '../../lib/imageOptimizer';
-import { cleanupContentImages } from '../../lib/storageCleanup';
+import { mutateAuditedContent } from '../../lib/contentAudit';
 
 export interface AutoMessage {
   id: string;
@@ -202,7 +202,7 @@ export default function CustomerAutoMessages({
         sort_order: sortOrder, is_enabled: true,
       };
       if (editingMsg) {
-        await supabase.from('customer_auto_messages').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingMsg.id);
+        await mutateAuditedContent('auto_edit', [editingMsg.id], payload);
       } else {
         await supabase.from('customer_auto_messages').insert(payload);
       }
@@ -243,7 +243,7 @@ export default function CustomerAutoMessages({
         sort_order: sortOrder, is_enabled: true,
       };
       if (editingMsg) {
-        await supabase.from('customer_auto_messages').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingMsg.id);
+        await mutateAuditedContent('auto_edit', [editingMsg.id], payload);
       } else {
         await supabase.from('customer_auto_messages').insert(payload);
       }
@@ -264,16 +264,11 @@ export default function CustomerAutoMessages({
   };
 
   const handleDelete = async (id: string) => {
-    const msg = visibleMessages.find(m => m.id === id);
-    if (msg?.content) {
-      await cleanupContentImages(msg.content).catch(() => {});
-    }
     if (!customerId) {
       onDraftMessagesChange?.(draftMessages.filter(message => message.id !== id));
       return;
     }
-    await supabase.from('rich_card_contents').delete().eq('source_auto_message_id', id).then(() => {});
-    await supabase.from('customer_auto_messages').delete().eq('id', id);
+    await mutateAuditedContent('auto_delete', [id]);
     loadAutoMessages();
   };
 
