@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight, Clock3, Database,
-  FileText, Gift, Image as ImageIcon, LockKeyhole, Megaphone, MessageCircle, RefreshCw, Search, ShieldCheck, Star, Trash2, User, X,
+  AlertTriangle, ArrowLeft, ChevronRight, Database,
+  Gift, Image as ImageIcon, LockKeyhole, Megaphone, MessageCircle, RefreshCw, Search, ShieldCheck, Star, Trash2, User, X,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { clearAuditedContent, loadAuditedMedia } from '../../lib/contentAudit';
@@ -384,6 +384,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [listRetryKey, setListRetryKey] = useState(0);
+  const [listLoadError, setListLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<AuditEvent | null>(null);
@@ -400,12 +402,12 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [reason, setReason] = useState('');
   const [clearing, setClearing] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const expiryRef = useRef<string | null>(null);
   const enablingRef = useRef(false);
   const disposedRef = useRef(false);
   const secondsLeft = expiry ? Math.max(0, Math.ceil((new Date(expiry).getTime() - now) / 1000)) : 0;
   const purgeUnlocked = secondsLeft > 0;
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // The dashboard keeps tabs mounted while hidden. The parent unmounts this panel on tab exit.
   useEffect(() => {
@@ -448,8 +450,11 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    setEvents([]);
-    setTotal(0);
+    setListLoadError(false);
+    if (page === 0) {
+      setEvents([]);
+      setTotal(0);
+    }
     const load = async () => {
       try {
         const { data, error: rpcError } = await supabase.rpc('list_content_audit_cards', {
@@ -468,18 +473,40 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
           throw new Error('稽核清單格式不正確。');
         }
         if (!cancelled) {
-          setEvents(data.items as unknown as AuditEvent[]);
+          const nextItems = data.items as unknown as AuditEvent[];
+          setEvents(previous => {
+            if (page === 0) return nextItems;
+            const known = new Set(previous.map(item => item.card_id));
+            return [...previous, ...nextItems.filter(item => !known.has(item.card_id))];
+          });
           setTotal(Number(data.total) || 0);
         }
       } catch (err) {
-        if (!cancelled) setError(`載入稽核紀錄失敗：${formatSupabaseError(err)}`);
+        if (!cancelled) {
+          setListLoadError(true);
+          setError(`載入稽核紀錄失敗：${formatSupabaseError(err)}`);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
     void load();
     return () => { cancelled = true; };
-  }, [filters, page, refreshKey]);
+  }, [filters, page, refreshKey, listRetryKey]);
+
+  useEffect(() => {
+    if (loading || listLoadError || events.length === 0 || events.length >= total) return;
+    const node = loadMoreRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        observer.disconnect();
+        setPage(current => current + 1);
+      }
+    }, { rootMargin: '120px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [events.length, total, loading, listLoadError]);
 
   useEffect(() => {
     if (!selectedCard) return;
@@ -687,6 +714,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       if (disposedRef.current) return;
       setClearTarget(null);
       setReason('');
+      setPage(0);
       setRefreshKey(key => key + 1);
       setDetailKey(key => key + 1);
       // One confirmation authorizes one record only. Lock again after a successful clear.
@@ -698,6 +726,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     } catch (err) {
       if (!disposedRef.current) {
         setError(`清除證據失敗：${formatSupabaseError(err)}。若已開始清除，請重新啟用模式並重試此筆事件。`);
+        setPage(0);
         setRefreshKey(key => key + 1);
         setDetailKey(key => key + 1);
       }
@@ -750,7 +779,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-500/10 text-cyan-300"><ShieldCheck className="h-5 w-5" aria-hidden="true" /></span>
             <div className="min-w-0"><h1 className="text-lg font-black text-white sm:text-xl">內容稽核總覽</h1><p className="text-[11px] text-slate-400">手動通知與客服對話異動 · 時間均為 UTC+8</p></div>
           </div>
-          <button type="button" onClick={() => setRefreshKey(key => key + 1)} disabled={loading} className={`inline-flex h-9 items-center gap-2 rounded-xl border border-cyan-300/35 bg-cyan-500/10 px-3 text-xs font-bold text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-50 ${buttonFocus}`}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />刷新清單</button>
+          <button type="button" onClick={() => { setPage(0); setRefreshKey(key => key + 1); setDetailKey(key => key + 1); }} disabled={loading} className={`inline-flex h-9 items-center gap-2 rounded-xl border border-cyan-300/35 bg-cyan-500/10 px-3 text-xs font-bold text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-50 ${buttonFocus}`}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />刷新清單</button>
         </div>
       </header>
 
@@ -777,30 +806,33 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
             <div className="flex min-w-0 items-center gap-2"><LockKeyhole className={`h-4 w-4 shrink-0 ${purgeUnlocked ? 'text-amber-300' : 'text-emerald-300'}`} aria-hidden="true" /><div><p className="text-xs font-bold text-white">清除模式：{purgeUnlocked ? '限時開啟' : '已鎖定'}</p><p className="text-[11px] text-slate-400">{purgeUnlocked ? `剩餘 ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')} · 到期 ${formatAuditTime(expiry)}` : '僅超級管理員可啟用；五分鐘後自動鎖定'}</p></div></div>
             <button type="button" onClick={() => void toggleWindow()} disabled={windowBusy || clearing} className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50 ${purgeUnlocked ? 'border-rose-400/40 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25' : 'border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'} ${buttonFocus}`}>{windowBusy ? '處理中…' : purgeUnlocked ? '立即鎖定' : '啟用五分鐘清除模式'}</button>
           </section>
-          <div className="flex min-h-0 flex-1 flex-col xl:grid xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-            <section aria-label="稽核事件清單" className="flex min-w-0 flex-none flex-col border-b border-slate-700 xl:min-h-0 xl:border-b-0 xl:border-r xl:overflow-y-auto">
-              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 bg-slate-950/50 px-4 py-3"><h2 className="text-sm font-black text-white">異動紀錄</h2><span className="text-xs text-cyan-200">共 {total.toLocaleString()} 筆</span></div>
-              <div className="space-y-2.5 p-3 sm:p-4 xl:min-h-0 xl:flex-1">
-                {loading ? <p role="status" className="py-12 text-center text-sm text-slate-400">載入稽核紀錄中…</p> : events.length === 0 ? <p className="py-12 text-center text-sm text-slate-400">沒有符合條件的稽核紀錄。</p> : events.map(item => (
-                  <button key={item.card_id} type="button" onClick={() => selectEvent(item.card_id)} aria-pressed={selectedId === item.card_id} className={`w-full min-w-0 rounded-xl border p-3 text-left transition-colors ${selectedId === item.card_id ? 'border-cyan-300/70 bg-cyan-600/20' : 'border-slate-700 bg-slate-950/60 hover:border-cyan-400/35 hover:bg-slate-800'} ${buttonFocus}`}>
-                    <span className="flex flex-wrap items-center justify-between gap-2"><span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-cyan-300" aria-hidden="true" /><strong className="text-xs text-white">{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : item.notification_origin === 'unverified' ? '通知 · 來源待核實' : '通知' : typeLabels[item.entity_type] ?? item.entity_type}</strong><span className="rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-100">{actionLabels[item.action] ?? item.action}</span></span>{item.cleared_count === item.message_count ? <span className="text-[10px] font-bold text-rose-300">證據已清除</span> : item.cleared_count > 0 ? <span className="text-[10px] font-bold text-amber-300">已清除 {item.cleared_count} / {item.message_count} 則</span> : item.clear_started_at ? <span className="text-[10px] font-bold text-amber-300">清除未完成</span> : <span className="text-[10px] text-emerald-300">證據保留中</span>}</span>
-                    <span className="mt-2 block break-words text-xs leading-5 text-slate-300">{item.action === 'conversation_delete' ? `完整對話 · ${item.message_count} 則訊息` : readableText(item.summary) || '（無摘要）'}</span>
-                    <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400">{item.action === 'conversation_delete' && <span>員工：<strong className="text-slate-200">{item.employee_account || item.employee_id || '—'}</strong></span>}<span>操作者：<strong className="text-slate-200">{item.actor_username}</strong></span><span>所屬管理員：<span className="break-all text-slate-300">{item.owner_username || item.owner_admin_id}</span></span></span>
-                    <span className="mt-2 block text-[11px] tabular-nums text-cyan-200"><Clock3 className="mr-1 inline h-3 w-3" aria-hidden="true" />{formatAuditTime(item.occurred_at)}</span>
-                  </button>
+          <div className="flex min-h-0 flex-1 flex-col xl:grid xl:grid-cols-[292px_minmax(0,1fr)]">
+            <section aria-label="稽核事件清單" className="flex max-h-[42vh] min-w-0 flex-none flex-col overflow-y-auto border-b border-slate-700 xl:max-h-none xl:min-h-0 xl:border-b-0 xl:border-r">
+              <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 bg-slate-950 px-3 py-2.5"><h2 className="text-sm font-black text-white">異動紀錄</h2><span className="text-xs text-cyan-200">共 {total.toLocaleString()} 筆</span></div>
+              <ol className="min-w-0 divide-y divide-slate-700/70">
+                {events.length === 0 && !loading && <li className="px-3 py-10 text-center text-xs text-slate-400">沒有符合條件的紀錄。</li>}
+                {events.map((item, index) => (
+                  <li key={item.card_id}>
+                    <button type="button" onClick={() => selectEvent(item.card_id)} aria-pressed={selectedId === item.card_id} className={`flex w-full min-w-0 items-start gap-2 border-l-[3px] px-2.5 py-2.5 text-left transition-colors ${selectedId === item.card_id ? 'border-cyan-300 bg-cyan-600/15' : 'border-transparent bg-slate-950/30 hover:bg-slate-800/80'} ${buttonFocus}`}>
+                      <span className="w-6 shrink-0 pt-0.5 text-right text-[11px] font-bold tabular-nums text-cyan-300">{index + 1}.</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center justify-between gap-2"><strong className="truncate text-xs text-white">{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : item.notification_origin === 'unverified' ? '通知 · 待核實' : '通知' : typeLabels[item.entity_type] ?? item.entity_type}</strong><span className="shrink-0 text-[10px] text-cyan-200">{actionLabels[item.action] ?? item.action}</span></span>
+                        <span className="mt-0.5 block truncate text-[11px] text-slate-300">{item.action === 'conversation_delete' ? `對話 ${item.message_count} 則 · ${item.employee_account || item.employee_id || '—'}` : readableText(item.summary) || '（無摘要）'}</span>
+                        <span className="mt-1 flex items-center justify-between gap-2 text-[10px] text-slate-400"><span className="min-w-0 truncate" title={`操作者：${item.actor_username} · 所屬管理員：${item.owner_username || item.owner_admin_id}`}>{item.actor_username} · {item.owner_username || item.owner_admin_id}</span><time className="shrink-0 tabular-nums">{formatChatTime(item.occurred_at)}</time></span>
+                        {(item.cleared_count > 0 || item.clear_started_at) && <span className={`mt-1 block text-[10px] ${item.cleared_count === item.message_count ? 'text-rose-300' : 'text-amber-300'}`}>{item.cleared_count === item.message_count ? '證據已清除' : item.clear_started_at ? '清除未完成' : `已清除 ${item.cleared_count} / ${item.message_count} 則`}</span>}
+                      </span>
+                    </button>
+                  </li>
                 ))}
-              </div>
-              <div className="flex shrink-0 items-center justify-between gap-2 border-t border-slate-700 bg-slate-950/50 px-3 py-3 text-xs text-slate-300 sm:px-4">
-                <span>{total === 0 ? '0 筆' : `${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, total)} / ${total}`} · 第 {page + 1} / {pageCount} 頁</span>
-                <span className="flex gap-1"><button type="button" onClick={() => { setPage(value => value - 1); setSelectedId(null); setSelectedCard(null); setDetail(null); setConversation(null); }} disabled={loading || page === 0} aria-label="上一頁" className={`rounded-lg border border-slate-600 p-1.5 hover:bg-slate-800 disabled:opacity-40 ${buttonFocus}`}><ChevronLeft className="h-4 w-4" /></button><button type="button" onClick={() => { setPage(value => value + 1); setSelectedId(null); setSelectedCard(null); setDetail(null); setConversation(null); }} disabled={loading || page + 1 >= pageCount} aria-label="下一頁" className={`rounded-lg border border-slate-600 p-1.5 hover:bg-slate-800 disabled:opacity-40 ${buttonFocus}`}><ChevronRight className="h-4 w-4" /></button></span>
-              </div>
+              </ol>
+              <div ref={loadMoreRef} className="shrink-0 py-2 text-center text-xs text-slate-400" role="status">{loading ? '載入中…' : listLoadError ? <button type="button" onClick={() => setListRetryKey(key => key + 1)} className={`text-cyan-200 underline ${buttonFocus}`}>載入失敗，點此重試</button> : events.length < total ? '往下捲動載入更多' : null}</div>
             </section>
 
-            <section ref={detailRef} aria-label="稽核事件詳情" className="min-h-0 min-w-0 scroll-mt-2 xl:overflow-y-auto">
-              <div className="border-b border-slate-700 bg-slate-950/50 px-4 py-3"><h2 className="text-sm font-black text-white">內容查看</h2></div>
+            <section ref={detailRef} aria-label="稽核事件詳情" className={`flex min-h-0 min-w-0 scroll-mt-2 flex-col ${conversation ? 'xl:overflow-hidden' : 'xl:overflow-y-auto'}`}>
+              <div className="shrink-0 border-b border-slate-700 bg-slate-950/50 px-4 py-3"><h2 className="text-sm font-black text-white">內容查看{selectedCard && <span className="ml-2 text-xs font-medium text-cyan-200">· {actionLabels[selectedCard.action]}</span>}</h2></div>
               {!selectedId ? <p className="px-4 py-12 text-center text-sm text-slate-400">點選左側卡片查看內容。</p> : detailLoading ? <p role="status" className="px-4 py-12 text-center text-sm text-slate-400">載入詳情中…</p> : conversation ? (
-                <div className="p-3 sm:p-4">
-                  <section className={`flex h-[70vh] min-h-[360px] max-h-[720px] min-w-0 flex-col overflow-hidden rounded-xl border shadow-xl ${conversation.entity_type === 'aaa_service' ? 'border-orange-400/30' : 'border-emerald-400/30'}`}>
+                <div className="flex min-h-[520px] min-w-0 flex-col p-2 sm:p-3 xl:min-h-0 xl:flex-1 xl:p-0">
+                  <section className={`flex h-[70vh] min-h-[500px] min-w-0 flex-col overflow-hidden rounded-xl border shadow-xl xl:h-full xl:min-h-0 xl:flex-1 xl:rounded-none xl:border-0 ${conversation.entity_type === 'aaa_service' ? 'border-orange-400/30' : 'border-emerald-400/30'}`}>
                     <div className={`flex shrink-0 flex-wrap items-center gap-3 border-b px-4 py-3 ${conversation.entity_type === 'aaa_service' ? 'border-orange-400/30 bg-gradient-to-r from-slate-950 to-orange-950/70' : 'border-emerald-400/30 bg-gradient-to-r from-slate-950 to-emerald-950/70'}`}>
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/10"><MessageCircle className="h-5 w-5 text-white" /></div>
                       <div className="min-w-0"><h3 className="text-sm font-bold text-white">聊天會話記錄 · {conversation.total} 則</h3><p className="text-[11px] text-slate-300">刪除時間：{formatAuditTime(conversation.occurred_at)}</p></div>
