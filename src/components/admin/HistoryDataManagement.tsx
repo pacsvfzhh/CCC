@@ -441,7 +441,16 @@ export default function HistoryDataManagement() {
             </div>
 
             <div className="overflow-x-auto scrollbar-dark">
-              <table className="w-full min-w-[1120px]">
+              <table className="w-full min-w-[1200px] table-fixed">
+                <colgroup>
+                  <col className="w-[23%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[18%]" />
+                </colgroup>
                 <thead className="border-b border-blue-200 bg-gradient-to-r from-blue-100 via-sky-100 to-cyan-100">
                   <tr>
                     <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-blue-950">資料類型</th>
@@ -516,11 +525,11 @@ export default function HistoryDataManagement() {
                             disabled={!scheduleLoaded || !scheduleItem || isSaving}
                             aria-label={`${getTableName(config)}執行時間（UTC），輸入四位數，例如 0930`}
                             aria-invalid={invalidTime}
+                            title={invalidTime ? '請輸入有效時間，例如 0930' : '直接輸入四位數時間，例如 0930'}
                             placeholder="HH:MM"
                             maxLength={5}
                             className={`w-20 rounded-lg border bg-white px-2 py-1.5 text-center text-sm tabular-nums text-slate-900 outline-none transition-colors focus:ring-2 ${invalidTime ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'}`}
                           />
-                          {invalidTime && <span className="text-xs text-rose-600">請輸入有效時間，如 0930</span>}
                         </div>
                       </td>
                       <td className="px-5 py-4 text-center">
@@ -555,27 +564,28 @@ export default function HistoryDataManagement() {
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {hasChanges && (
-                            <button
-                              onClick={() => handleSaveSchedule(config)}
-                              disabled={isSaving || invalidDays || invalidTime}
-                              type="button"
-                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
-                            >
-                              {isSaving ? (
-                                <RefreshCw className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Save className="w-3 h-3" />
-                              )}
-                              儲存
-                            </button>
-                          )}
-                          {justSaved && !hasChanges && (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
-                              <Check className="w-3 h-3" />
-                              已儲存
-                            </span>
-                          )}
+                          <div className="flex w-[72px] shrink-0 justify-end">
+                            {hasChanges ? (
+                              <button
+                                onClick={() => handleSaveSchedule(config)}
+                                disabled={isSaving || invalidDays || invalidTime}
+                                type="button"
+                                className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                              >
+                                {isSaving ? (
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Save className="w-3 h-3" />
+                                )}
+                                儲存
+                              </button>
+                            ) : justSaved ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+                                <Check className="w-3 h-3" />
+                                已儲存
+                              </span>
+                            ) : null}
+                          </div>
                           <button
                             type="button"
                             onClick={(e) => {
