@@ -26,6 +26,7 @@ interface AuditEvent {
   employee_id: string | null;
   occurred_at: string;
   summary: string;
+  notification_origin?: 'manual_admin' | 'automation' | 'unverified' | null;
   cleared_at: string | null;
   clear_started_at: string | null;
 }
@@ -54,7 +55,7 @@ const PAGE_SIZE = 30;
 const emptyFilters: AuditFilters = { type: '', owner: '', actor: '', action: '', search: '', from: '', to: '' };
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const typeLabels: Record<AuditType, string> = {
-  notification: '手動通知', aaa_service: 'AAA 客服', ccc_service: 'CCC 客服',
+  notification: '通知（手動／待核實）', aaa_service: 'AAA 客服', ccc_service: 'CCC 客服',
 };
 const actionLabels: Record<AuditAction, string> = {
   edit: '編輯', delete: '刪除', conversation_delete: '刪除對話', customer_delete: '刪除客戶',
@@ -540,7 +541,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
               <div className="space-y-2.5 p-3 sm:p-4 xl:min-h-0 xl:flex-1">
                 {loading ? <p role="status" className="py-12 text-center text-sm text-slate-400">載入稽核紀錄中…</p> : events.length === 0 ? <p className="py-12 text-center text-sm text-slate-400">沒有符合條件的稽核紀錄。</p> : events.map(item => (
                   <button key={item.id} type="button" onClick={() => selectEvent(item.id)} aria-pressed={selectedId === item.id} className={`w-full min-w-0 rounded-xl border p-3 text-left transition-colors ${selectedId === item.id ? 'border-cyan-300/70 bg-cyan-600/20' : 'border-slate-700 bg-slate-950/60 hover:border-cyan-400/35 hover:bg-slate-800'} ${buttonFocus}`}>
-                    <span className="flex flex-wrap items-center justify-between gap-2"><span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-cyan-300" aria-hidden="true" /><strong className="text-xs text-white">{typeLabels[item.entity_type] ?? item.entity_type}</strong><span className="rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-100">{actionLabels[item.action] ?? item.action}</span></span>{item.cleared_at ? <span className="text-[10px] font-bold text-rose-300">證據已清除</span> : item.clear_started_at ? <span className="text-[10px] font-bold text-amber-300">清除未完成</span> : <span className="text-[10px] text-emerald-300">證據保留中</span>}</span>
+                    <span className="flex flex-wrap items-center justify-between gap-2"><span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-cyan-300" aria-hidden="true" /><strong className="text-xs text-white">{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : item.notification_origin === 'unverified' ? '通知 · 來源待核實' : '通知' : typeLabels[item.entity_type] ?? item.entity_type}</strong><span className="rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-100">{actionLabels[item.action] ?? item.action}</span></span>{item.cleared_at ? <span className="text-[10px] font-bold text-rose-300">證據已清除</span> : item.clear_started_at ? <span className="text-[10px] font-bold text-amber-300">清除未完成</span> : <span className="text-[10px] text-emerald-300">證據保留中</span>}</span>
                     <span className="mt-2 block break-words text-xs leading-5 text-slate-300">{item.summary || '（無摘要）'}</span>
                     <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400"><span>操作者：<strong className="text-slate-200">{item.actor_username}</strong></span><span>所屬管理員：<span className="break-all text-slate-300">{item.owner_username || item.owner_admin_id}</span></span></span>
                     <span className="mt-2 block text-[11px] tabular-nums text-cyan-200"><Clock3 className="mr-1 inline h-3 w-3" aria-hidden="true" />{formatAuditTime(item.occurred_at)}</span>

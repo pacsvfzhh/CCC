@@ -37,9 +37,9 @@ function mediaUrls(snapshot: unknown): string[] {
       } else if (['content', 'message_content', 'image_url', 'rendered_html', 'html_content', 'custom_avatar_url'].includes(key) && typeof value === 'string') {
         const matches = value.matchAll(/https?:\/\/[^\s"'<>)}]+\/storage\/v1\/object\/public\/[^\s"'<>)}]+/g);
         for (const match of matches) found.add(match[0].replace(/&amp;/g, '&'));
-        for (const match of value.matchAll(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi)) {
+        for (const match of value.matchAll(/<(?:img|video|source)\b[^>]*\b(?:src|poster)\s*=\s*["']([^"']+)["']/gi)) {
           if (/^https?:\/\//i.test(match[1])) found.add(match[1].replace(/&amp;/g, '&'));
-          else if (!/^data:image\//i.test(match[1])) throw new Error('An image cannot be preserved from its source.');
+          else if (!/^data:(?:image|video)\//i.test(match[1])) throw new Error('A media attachment cannot be preserved from its source.');
         }
       }
     }

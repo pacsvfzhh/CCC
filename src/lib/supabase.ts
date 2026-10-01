@@ -2,6 +2,10 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
 const REQUEST_TIMEOUT_MS = 8000;
+const AUDIT_REQUEST_TIMEOUT_MS = 120000;
+const getRequestTimeout = (input: RequestInfo | URL) =>
+  /\/functions\/v1\/content-audit(?:\?|\/|$)/.test(input instanceof Request ? input.url : input.toString())
+    ? AUDIT_REQUEST_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
 const MAX_NETWORK_RETRIES = 2;
 const NETWORK_RETRY_DELAY_MS = 250;
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -208,7 +212,7 @@ const fetchWithXhrFallback: typeof fetch = async (input, init) => {
 
     xhr.open(method, url, true);
     xhr.responseType = 'arraybuffer';
-    xhr.timeout = REQUEST_TIMEOUT_MS;
+    xhr.timeout = getRequestTimeout(input);
     xhr.withCredentials = (init?.credentials || request?.credentials) === 'include';
     headers.forEach((value, key) => xhr.setRequestHeader(key, value));
 
@@ -280,7 +284,7 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
       const timeoutError = new Error('Supabase request timed out. Check your project URL and network connection.');
       timeoutError.name = 'SupabaseTimeoutError';
       controller.abort(timeoutError);
-    }, REQUEST_TIMEOUT_MS);
+    }, getRequestTimeout(input));
     const forwardCallerAbort = () => controller.abort(createSupabaseAbortError());
 
     callerSignal?.addEventListener('abort', forwardCallerAbort, { once: true });

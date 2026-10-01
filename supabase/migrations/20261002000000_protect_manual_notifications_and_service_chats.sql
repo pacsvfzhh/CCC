@@ -22,6 +22,7 @@ CREATE TABLE private.content_audit_events (
   cleared_username text
 );
 CREATE INDEX content_audit_events_time_idx ON private.content_audit_events (occurred_at DESC, id DESC);
+CREATE INDEX content_audit_events_type_time_idx ON private.content_audit_events (entity_type, occurred_at DESC, id DESC);
 CREATE INDEX content_audit_events_actor_idx ON private.content_audit_events (actor_admin_id, occurred_at DESC);
 CREATE INDEX content_audit_events_owner_idx ON private.content_audit_events (owner_admin_id, occurred_at DESC);
 CREATE INDEX content_audit_events_entity_idx ON private.content_audit_events (entity_type, entity_id, occurred_at DESC);
@@ -448,6 +449,14 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION private.content_audit_storage_urls(p_snapshot jsonb)
+RETURNS text[] LANGUAGE sql IMMUTABLE SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+  SELECT COALESCE(array_agg(DISTINCT replace(rtrim((capture.urls)[1], chr(92)), '&amp;', '&')), ARRAY[]::text[])
+  FROM regexp_matches(COALESCE(p_snapshot, '{}'::jsonb)::text,
+    'https?://[^"''[:space:]<>)}]+/storage/v1/object/public/[^"''[:space:]<>)}]+', 'g') AS capture(urls);
+$$;
+
 CREATE FUNCTION public.commit_content_audit_change(
   p_admin_session_token uuid, p_action text, p_target_ids uuid[], p_employee_id uuid,
   p_expected_hash text, p_payload jsonb, p_operation_id uuid, p_media jsonb DEFAULT '{}'::jsonb
@@ -463,6 +472,11 @@ DECLARE
   v_source_content text;
   v_source record;
   v_cards uuid[];
+  v_entries jsonb;
+  v_item jsonb;
+  v_entity_id text;
+  v_source_url text;
+  v_manifest_count integer := 0;
 BEGIN
   SELECT admin_id, admin_role INTO v_admin, v_role FROM private.get_financial_admin_context(p_admin_session_token);
   IF p_operation_id IS NULL OR jsonb_typeof(p_media) <> 'object' THEN RAISE EXCEPTION 'Invalid audit operation.'; END IF;
@@ -507,12 +521,49 @@ BEGIN
   IF EXISTS (SELECT 1 FROM jsonb_each(p_media) media WHERE jsonb_typeof(media.value) <> 'object') THEN
     RAISE EXCEPTION 'Invalid evidence attachment manifest.';
   END IF;
+  v_entries := CASE WHEN jsonb_typeof(v_prepared -> 'snapshots') = 'array' THEN v_prepared -> 'snapshots'
+    ELSE COALESCE(v_prepared -> 'snapshots' -> 'messages', '[]'::jsonb) END;
+  FOR v_item IN SELECT value FROM jsonb_array_elements(v_entries) entries(value) LOOP
+    IF p_action = 'notification_delete' AND v_item -> 'message' ->> 'automation_execution_id' IS NOT NULL THEN CONTINUE; END IF;
+    v_entity_id := v_item -> 'message' ->> 'id';
+    IF v_entity_id IS NULL OR NOT (p_media ? v_entity_id) THEN
+      RAISE EXCEPTION 'A message is missing from the evidence attachment manifest.';
+    END IF;
+    v_manifest_count := v_manifest_count + 1;
+    FOR v_source_url IN SELECT unnest(private.content_audit_storage_urls(jsonb_build_object(
+      'content', v_item -> 'message' -> 'content',
+      'message_content', v_item -> 'message' -> 'message_content',
+      'image_url', v_item -> 'message' -> 'image_url',
+      'source_content', v_item -> 'source' -> 'content',
+      'source_html', v_item -> 'source' -> 'html_content',
+      'rendered_html', v_item -> 'rendered_html',
+      'custom_avatar_url', v_item -> 'custom_avatar_url'))) LOOP
+      IF NOT ((p_media -> v_entity_id) ? v_source_url) THEN
+        RAISE EXCEPTION 'An original attachment was not preserved.';
+      END IF;
+    END LOOP;
+    IF p_action IN ('notification_edit', 'chat_edit', 'template_edit', 'auto_edit') THEN
+      FOR v_source_url IN SELECT unnest(private.content_audit_storage_urls(jsonb_build_object(
+        'content', p_payload -> 'content', 'message_content', p_payload -> 'message_content',
+        'image_url', p_payload -> 'image_url', 'html_content', p_payload -> 'html_content'))) LOOP
+        IF NOT ((p_media -> v_entity_id) ? v_source_url) THEN
+          RAISE EXCEPTION 'A new attachment was not preserved.';
+        END IF;
+      END LOOP;
+    END IF;
+  END LOOP;
+  IF (SELECT count(*) FROM jsonb_each(p_media)) <> v_manifest_count THEN
+    RAISE EXCEPTION 'The evidence attachment manifest contains unexpected records.';
+  END IF;
   FOR v_media IN SELECT event.key AS entity_id, attachment.key AS source_url, attachment.value AS private_path
     FROM jsonb_each(p_media) event CROSS JOIN LATERAL jsonb_each_text(event.value) attachment LOOP
-    IF (strpos((v_prepared -> 'snapshots')::text, v_media.source_url) = 0
-        AND strpos((v_prepared -> 'snapshots')::text, replace(v_media.source_url, '&', '&amp;')) = 0
-        AND strpos(p_payload::text, v_media.source_url) = 0
-        AND strpos(p_payload::text, replace(v_media.source_url, '&', '&amp;')) = 0)
+    SELECT item INTO v_item FROM jsonb_array_elements(v_entries) entries(item)
+    WHERE item -> 'message' ->> 'id' = v_media.entity_id;
+    IF (strpos(v_item::text, v_media.source_url) = 0
+        AND strpos(v_item::text, replace(v_media.source_url, '&', '&amp;')) = 0
+        AND (p_action NOT IN ('notification_edit', 'chat_edit', 'template_edit', 'auto_edit')
+          OR (strpos(p_payload::text, v_media.source_url) = 0
+            AND strpos(p_payload::text, replace(v_media.source_url, '&', '&amp;')) = 0)))
       OR v_media.private_path !~ ('^' || p_operation_id::text || '/shared/[0-9]+$')
       OR NOT EXISTS (SELECT 1 FROM storage.objects
         WHERE bucket_id = 'content-audit-evidence' AND name = v_media.private_path)
@@ -591,7 +642,9 @@ BEGIN
       SET source_template_id = NULL, rich_card_content_id = v_frozen_id, content_frozen = true
       WHERE source_template_id = p_target_ids[1] AND message_type = 'rich_card' AND NOT content_frozen;
     END IF;
-    DELETE FROM public.rich_card_contents WHERE source_template_id = p_target_ids[1];
+    DELETE FROM public.rich_card_contents card WHERE card.source_template_id = p_target_ids[1]
+      AND NOT EXISTS (SELECT 1 FROM public.customer_employee_conversations message
+        WHERE message.rich_card_content_id = card.id);
     DELETE FROM public.cs_message_templates WHERE id = p_target_ids[1];
   ELSIF p_action = 'auto_edit' THEN
     UPDATE public.customer_auto_messages
@@ -611,14 +664,15 @@ BEGIN
       SET source_auto_message_id = NULL, rich_card_content_id = v_frozen_id, content_frozen = true
       WHERE source_auto_message_id = p_target_ids[1] AND message_type = 'rich_card' AND NOT content_frozen;
     END IF;
-    DELETE FROM public.rich_card_contents WHERE source_auto_message_id = p_target_ids[1];
+    DELETE FROM public.rich_card_contents card WHERE card.source_auto_message_id = p_target_ids[1]
+      AND NOT EXISTS (SELECT 1 FROM public.customer_employee_conversations message
+        WHERE message.rich_card_content_id = card.id);
     DELETE FROM public.customer_auto_messages WHERE id = p_target_ids[1];
   END IF;
   GET DIAGNOSTICS v_changed = ROW_COUNT;
   IF v_cards IS NOT NULL THEN
     DELETE FROM public.rich_card_contents card
-    WHERE card.id = ANY(v_cards) AND card.source_template_id IS NULL
-      AND card.source_auto_message_id IS NULL
+    WHERE card.id = ANY(v_cards)
       AND NOT EXISTS (SELECT 1 FROM public.customer_employee_conversations message
         WHERE message.rich_card_content_id = card.id);
   END IF;
@@ -668,6 +722,7 @@ BEGIN
     SELECT jsonb_agg(to_jsonb(page) ORDER BY page.occurred_at DESC, page.id DESC)
     FROM (SELECT id, operation_id, entity_type, entity_id, action, owner_admin_id, actor_admin_id,
           actor_username, actor_role, owner_username, customer_id, employee_id, occurred_at, cleared_at, clear_started_at,
+          before_data -> 'message' ->> 'audit_origin' AS notification_origin,
           left(COALESCE(before_data -> 'message' ->> 'title', before_data -> 'message' ->> 'message_content', ''), 160) AS summary
       FROM private.content_audit_events filtered
       WHERE (p_type IS NULL OR filtered.entity_type = p_type)
@@ -821,7 +876,7 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
 $$;
 
 INSERT INTO storage.buckets (id, name, public) VALUES ('content-audit-evidence', 'content-audit-evidence', false)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET public = false;
 DROP POLICY IF EXISTS "Anyone can update chat images" ON storage.objects;
 DROP POLICY IF EXISTS "Anyone can delete chat images" ON storage.objects;
 DROP POLICY IF EXISTS "Anyone can update announcement images" ON storage.objects;
@@ -832,6 +887,23 @@ DROP POLICY IF EXISTS "Anyone can update template images" ON storage.objects;
 DROP POLICY IF EXISTS "Anyone can delete template images" ON storage.objects;
 DROP POLICY IF EXISTS "Allow authenticated users to delete super customer avatars" ON storage.objects;
 DROP POLICY IF EXISTS "Allow authenticated users to update their super customer avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Allow authenticated users to update their super customer avatars" ON storage.objects;
+
+CREATE OR REPLACE FUNCTION public.cleanup_admin_data()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+BEGIN
+  DELETE FROM public.rich_card_contents card
+  WHERE (card.source_template_id IN (SELECT id FROM public.cs_message_templates WHERE admin_id = OLD.id::text)
+      OR card.source_auto_message_id IN (SELECT id FROM public.customer_auto_messages
+        WHERE customer_id IN (SELECT id FROM public.simulated_customers WHERE admin_id = OLD.id)))
+    AND NOT EXISTS (SELECT 1 FROM public.customer_employee_conversations message
+      WHERE message.rich_card_content_id = card.id);
+  DELETE FROM public.cs_message_templates WHERE admin_id = OLD.id::text;
+  DELETE FROM public.history_cleanup_log WHERE admin_id = OLD.id;
+  RETURN OLD;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.cleanup_expired_messages()
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER
@@ -894,6 +966,7 @@ REVOKE ALL ON FUNCTION private.freeze_rich_card_version(text) FROM PUBLIC, anon,
 REVOKE ALL ON FUNCTION private.freeze_service_rich_card() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.content_audit_chat_snapshot(public.customer_employee_conversations) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.content_audit_media_for(jsonb, uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION private.content_audit_storage_urls(jsonb) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.capture_content_audit_change() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.capture_content_audit_source_change() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.assert_content_audit_purge(uuid) FROM PUBLIC, anon, authenticated;
