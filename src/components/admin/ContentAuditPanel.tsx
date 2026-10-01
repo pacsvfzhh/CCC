@@ -76,6 +76,12 @@ interface ConversationDetail {
   items: ConversationMessage[];
 }
 
+interface ChatIdentity {
+  customerName: string | null;
+  employeeNumber: string | null;
+  employeeNumberSource: 'archived' | 'current' | null;
+}
+
 interface AuditFilters {
   type: '' | AuditType;
   owner: string;
@@ -91,7 +97,7 @@ const TRANSCRIPT_PAGE_SIZE = 100;
 const emptyFilters: AuditFilters = { type: '', owner: '', actor: '', action: '', search: '', from: '', to: '' };
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const typeLabels: Record<AuditType, string> = {
-  notification: '通知（手動／待核實）', aaa_service: 'AAA 客服', ccc_service: 'CCC 客服',
+  notification: '通知（手動／待核實）', aaa_service: '模擬客戶', ccc_service: '經理',
 };
 const actionLabels: Record<AuditAction, string> = {
   edit: '編輯', delete: '刪除', conversation_delete: '刪除對話', customer_delete: '刪除客戶',
@@ -121,6 +127,22 @@ function localDayStart(date: string, nextDay = false): string {
   const start = new Date(`${date}T00:00:00+08:00`);
   if (nextDay) start.setTime(start.getTime() + 24 * 60 * 60 * 1000);
   return start.toISOString();
+}
+
+async function getChatIdentity(snapshot: unknown, employeeId: string | null): Promise<ChatIdentity> {
+  const archived = snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)
+    ? snapshot as Record<string, unknown> : null;
+  const customerName = typeof archived?.customer_name === 'string' ? archived.customer_name : null;
+  const archivedNumber = typeof archived?.employee_number === 'string' ? archived.employee_number : null;
+  if (archivedNumber) return { customerName, employeeNumber: archivedNumber, employeeNumberSource: 'archived' };
+  if (!archived || !employeeId) return { customerName, employeeNumber: null, employeeNumberSource: null };
+
+  const { data } = await supabase.from('users').select('employee_id').eq('id', employeeId).maybeSingle();
+  return {
+    customerName,
+    employeeNumber: data?.employee_id || null,
+    employeeNumberSource: data?.employee_id ? 'current' : null,
+  };
 }
 
 const displayTags = [
@@ -391,6 +413,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [selectedCard, setSelectedCard] = useState<AuditEvent | null>(null);
   const [detail, setDetail] = useState<AuditDetail | null>(null);
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
+  const [chatIdentity, setChatIdentity] = useState<ChatIdentity | null>(null);
   const [conversationPage, setConversationPage] = useState(0);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailKey, setDetailKey] = useState(0);
@@ -513,6 +536,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     let cancelled = false;
     setDetail(null);
     setConversation(null);
+    setChatIdentity(null);
     setDetailLoading(true);
     const load = async () => {
       try {
@@ -527,15 +551,34 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
             p_page_size: TRANSCRIPT_PAGE_SIZE,
           });
           if (rpcError) throw rpcError;
-          if (!data || typeof data !== 'object' || !('items' in data)) throw new Error('找不到此對話。');
-          if (!cancelled) setConversation(data as unknown as ConversationDetail);
+          if (!data || typeof data !== 'object' || !('items' in data) || !Array.isArray(data.items)) throw new Error('找不到此對話。');
+          const record = data as unknown as ConversationDetail;
+          const evidenceId = record.items.find(item => !item.cleared_at)?.id;
+          let identity: ChatIdentity = { customerName: null, employeeNumber: null, employeeNumberSource: null };
+          if (evidenceId) {
+            const { data: eventData, error: eventError } = await supabase.rpc('get_content_audit_event', {
+              p_admin_session_token: getAdminFinancialSessionToken(), p_event_id: evidenceId,
+            });
+            if (eventError) throw eventError;
+            identity = await getChatIdentity((eventData as AuditDetail | null)?.before_data, selectedCard.employee_id);
+          }
+          if (!cancelled) {
+            setChatIdentity(identity);
+            setConversation(record);
+          }
         } else {
           const { data, error: rpcError } = await supabase.rpc('get_content_audit_event', {
             p_admin_session_token: getAdminFinancialSessionToken(), p_event_id: selectedCard.id,
           });
           if (rpcError) throw rpcError;
           if (!data || typeof data !== 'object' || !('id' in data)) throw new Error('找不到此稽核事件。');
-          if (!cancelled) setDetail(data as unknown as AuditDetail);
+          const record = data as unknown as AuditDetail;
+          const identity = record.entity_type === 'notification'
+            ? null : await getChatIdentity(record.before_data, record.employee_id);
+          if (!cancelled) {
+            setChatIdentity(identity);
+            setDetail(record);
+          }
         }
       } catch (err) {
         if (!cancelled) setError(`載入稽核詳情失敗：${formatSupabaseError(err)}`);
@@ -777,7 +820,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
           <div className="flex min-w-0 items-center gap-3">
             <button type="button" onClick={() => void handleBack()} disabled={windowBusy || clearing} aria-label="返回歷史資料管理並鎖定清除模式" className={`flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-rose-400/40 bg-rose-500/15 px-2.5 text-xs font-bold text-rose-200 hover:bg-rose-500/25 disabled:opacity-50 ${buttonFocus}`}><ArrowLeft className="h-4 w-4" aria-hidden="true" />返回</button>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-500/10 text-cyan-300"><ShieldCheck className="h-5 w-5" aria-hidden="true" /></span>
-            <div className="min-w-0"><h1 className="text-lg font-black text-white sm:text-xl">內容稽核總覽</h1><p className="text-[11px] text-slate-400">手動通知與客服對話異動 · 時間均為 UTC+8</p></div>
+            <div className="min-w-0"><h1 className="text-lg font-black text-white sm:text-xl">內容稽核總覽</h1><p className="text-[11px] text-slate-400">手動通知、模擬客戶與經理對話異動 · 時間均為 UTC+8</p></div>
           </div>
           <button type="button" onClick={() => { setPage(0); setRefreshKey(key => key + 1); setDetailKey(key => key + 1); }} disabled={loading} className={`inline-flex h-9 items-center gap-2 rounded-xl border border-cyan-300/35 bg-cyan-500/10 px-3 text-xs font-bold text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-50 ${buttonFocus}`}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />刷新清單</button>
         </div>
@@ -817,7 +860,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                       <span className="w-6 shrink-0 pt-0.5 text-right text-[11px] font-bold tabular-nums text-cyan-300">{index + 1}.</span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center justify-between gap-2"><strong className="truncate text-xs text-white">{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : item.notification_origin === 'unverified' ? '通知 · 待核實' : '通知' : typeLabels[item.entity_type] ?? item.entity_type}</strong><span className="shrink-0 text-[10px] text-cyan-200">{actionLabels[item.action] ?? item.action}</span></span>
-                        <span className="mt-0.5 block truncate text-[11px] text-slate-300">{item.action === 'conversation_delete' ? `對話 ${item.message_count} 則 · ${item.employee_account || item.employee_id || '—'}` : readableText(item.summary) || '（無摘要）'}</span>
+                        <span className="mt-0.5 block truncate text-[11px] text-slate-300">{item.action === 'conversation_delete' ? `對話 ${item.message_count} 則 · ${item.employee_account || '員工帳號未留存'}` : readableText(item.summary) || '（無摘要）'}</span>
                         <span className="mt-1 flex items-center justify-between gap-2 text-[10px] text-slate-400"><span className="min-w-0 truncate" title={`操作者：${item.actor_username} · 所屬管理員：${item.owner_username || item.owner_admin_id}`}>{item.actor_username} · {item.owner_username || item.owner_admin_id}</span><time className="shrink-0 tabular-nums">{formatChatTime(item.occurred_at)}</time></span>
                         {(item.cleared_count > 0 || item.clear_started_at) && <span className={`mt-1 block text-[10px] ${item.cleared_count === item.message_count ? 'text-rose-300' : 'text-amber-300'}`}>{item.cleared_count === item.message_count ? '證據已清除' : item.clear_started_at ? '清除未完成' : `已清除 ${item.cleared_count} / ${item.message_count} 則`}</span>}
                       </span>
@@ -837,14 +880,15 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/10"><MessageCircle className="h-5 w-5 text-white" /></div>
                       <div className="min-w-0"><h3 className="text-sm font-bold text-white">聊天會話記錄 · {conversation.total} 則</h3><p className="text-[11px] text-slate-300">刪除時間：{formatAuditTime(conversation.occurred_at)}</p></div>
                     </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-white/10 bg-slate-900 px-4 py-2 text-xs text-slate-200">
-                      <span className="inline-flex items-center gap-1.5"><User className="h-4 w-4 text-blue-300" />客戶</span>
-                      <span className="h-5 w-px bg-white/15" />
-                      <span className="min-w-0 break-all font-semibold">員工：{conversation.employee_account} <span className="font-normal text-slate-400">· ID {conversation.employee_id}</span></span>
+                    <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b border-white/10 bg-slate-900 px-4 py-2 text-xs text-slate-200">
+                      <span className="min-w-0 break-words">所屬管理員：<strong className="text-white">{selectedCard?.owner_username || selectedCard?.owner_admin_id || '未留存'}</strong></span>
+                      <span className="inline-flex min-w-0 items-center gap-1.5 break-words"><User className="h-4 w-4 shrink-0 text-blue-300" />角色：<strong className="text-white">{chatIdentity?.customerName || '名稱未留存'}</strong></span>
+                      <span className="min-w-0 break-words">員工：<strong className="text-white">{conversation.employee_account}</strong></span>
+                      <span className="min-w-0 break-all">員工 ID{chatIdentity?.employeeNumberSource === 'current' ? '（目前帳戶）' : ''}：<strong className="text-white">{chatIdentity?.employeeNumber || '無法查得'}</strong></span>
                     </div>
                     <div className={`min-h-0 flex-1 space-y-3 overflow-y-auto p-4 scrollbar-dark ${conversation.entity_type === 'aaa_service' ? 'bg-[linear-gradient(180deg,#24170f_0%,#1b1513_40%,#24170f_100%)]' : 'bg-[linear-gradient(180deg,#0b2118_0%,#101c19_40%,#0b2118_100%)]'}`}>
                       {conversation.items.map(message => (
-                        <ConversationTranscript key={message.id} message={message} senderName={message.sender_type === 'employee' ? conversation.employee_account : '客戶'} workspace={conversation.entity_type} purgeUnlocked={purgeUnlocked && !clearing && !windowBusy}
+                        <ConversationTranscript key={message.id} message={message} senderName={message.sender_type === 'employee' ? conversation.employee_account : chatIdentity?.customerName || '客戶'} workspace={conversation.entity_type} purgeUnlocked={purgeUnlocked && !clearing && !windowBusy}
                           onClear={id => { setReason(''); setClearTarget({ id }); }} />
                       ))}
                     </div>
@@ -857,7 +901,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
               ) : !detail ? <p className="px-4 py-12 text-center text-sm text-slate-400">無法顯示此事件。請重新選取或刷新。</p> : (
                 <div className="min-w-0 space-y-4 p-3 sm:p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2"><span className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-bold text-cyan-100">{typeLabels[detail.entity_type] ?? detail.entity_type} · {actionLabels[detail.action] ?? detail.action}</span>{detail.cleared_at ? <span className="text-xs font-bold text-rose-300">證據已清除</span> : <button type="button" onClick={() => { setReason(''); setClearTarget(detail); }} disabled={!purgeUnlocked || clearing || windowBusy} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />清除此筆證據</button>}</div>
-                  <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2"><MetadataRow label="操作時間 (UTC+8)" value={formatAuditTime(detail.occurred_at)} /><MetadataRow label="操作者" value={detail.actor_username} /><MetadataRow label="所屬管理員" value={detail.owner_username ?? detail.owner_admin_id} />{detail.employee_id && <MetadataRow label="員工 ID" value={detail.employee_id} />}{detail.cleared_at && <MetadataRow label="正式清除時間 (UTC+8)" value={formatAuditTime(detail.cleared_at)} />}{detail.clear_started_at && !detail.cleared_at && <MetadataRow label="證據清除狀態" value="清除尚未完成" />}{detail.clear_reason && <MetadataRow label="清除原因" value={detail.clear_reason} />}</dl>
+                  <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2"><MetadataRow label="操作時間 (UTC+8)" value={formatAuditTime(detail.occurred_at)} /><MetadataRow label="操作者" value={detail.actor_username} /><MetadataRow label="所屬管理員" value={detail.owner_username ?? detail.owner_admin_id} />{detail.entity_type !== 'notification' && <><MetadataRow label="角色名稱" value={detail.cleared_at ? '已清除' : chatIdentity?.customerName || '名稱未留存'} /><MetadataRow label="員工帳號" value={detail.cleared_at ? '已清除' : detail.employee_account} /><MetadataRow label={chatIdentity?.employeeNumberSource === 'current' ? '員工 ID（目前帳戶）' : '員工 ID'} value={detail.cleared_at ? '已清除' : chatIdentity?.employeeNumber || '無法查得'} /></>}{detail.cleared_at && <MetadataRow label="正式清除時間 (UTC+8)" value={formatAuditTime(detail.cleared_at)} />}{detail.clear_started_at && !detail.cleared_at && <MetadataRow label="證據清除狀態" value="清除尚未完成" />}{detail.clear_reason && <MetadataRow label="清除原因" value={detail.clear_reason} />}</dl>
                   <div className="grid min-w-0 gap-3"><Snapshot title={detail.action === 'edit' || detail.action === 'source_edit' ? '修改前' : '從原頁移除前'} data={detail.before_data} cleared={Boolean(detail.cleared_at)} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />{detail.after_data != null && <Snapshot title="修改後" data={detail.after_data} cleared={Boolean(detail.cleared_at)} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />}</div>
                   <section><h3 className="mb-2 text-xs font-bold text-white">同一對象的版本歷程</h3><div className="space-y-1.5">{(detail.timeline ?? []).map(version => <button key={version.id} type="button" onClick={() => selectEvent(version.id)} aria-pressed={version.id === detail.id} className={`flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs ${version.id === detail.id ? 'border-cyan-400/50 bg-cyan-500/15 text-white' : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-800'} ${buttonFocus}`}><span>{actionLabels[version.action] ?? version.action}{version.cleared_at ? ' · 已清除' : ''}</span><span className="tabular-nums">{formatAuditTime(version.occurred_at)}</span></button>)}</div></section>
                 </div>
