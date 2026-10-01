@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight, Clock3, Database,
-  FileText, Image as ImageIcon, LockKeyhole, RefreshCw, Search, ShieldCheck, Trash2,
+  FileText, Gift, Image as ImageIcon, LockKeyhole, RefreshCw, Search, ShieldCheck, Star, Trash2,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { clearAuditedContent, loadAuditedMedia } from '../../lib/contentAudit';
+import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
+import EmployeeNotificationDetailPanel from '../employee/EmployeeNotificationDetailPanel';
 
 type AuditType = 'notification' | 'aaa_service' | 'ccc_service';
 type AuditAction = 'edit' | 'delete' | 'conversation_delete' | 'customer_delete' | 'employee_delete' | 'admin_delete' | 'source_edit' | 'source_delete';
@@ -59,6 +61,8 @@ interface ConversationMessage {
   media_refs: Record<string, string>;
   cleared_at: string | null;
   clear_started_at: string | null;
+  customer_name?: string | null;
+  employee_name?: string | null;
 }
 
 interface ConversationDetail {
@@ -111,94 +115,140 @@ function localDayStart(date: string, nextDay = false): string {
   return start.toISOString();
 }
 
+const displayTags = [
+  'p', 'br', 'div', 'span', 'strong', 'em', 'u', 'b', 'i', 's', 'h1', 'h2', 'h3', 'h4',
+  'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'hr',
+];
+
+function safeDisplayHtml(value: string): string {
+  return sanitizeHTML(value, { allowedTags: displayTags, allowedAttributes: [] });
+}
+
 function readableText(value: string | null): string {
   if (!value) return '';
-  const document = new DOMParser().parseFromString(value, 'text/html');
-  document.querySelectorAll('script, style, iframe, svg, math, template').forEach(element => element.remove());
+  const document = new DOMParser().parseFromString(safeDisplayHtml(value), 'text/html');
   document.querySelectorAll('br').forEach(element => element.replaceWith('\n'));
   document.querySelectorAll('p, div, li, h1, h2, h3, h4, blockquote, tr').forEach(element => element.append('\n'));
   return (document.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
 }
 
-function ConversationTranscript({ message, purgeUnlocked, onClear }: {
+function AuditRichText({ html }: { html: string }) {
+  return <div className="chat-rich-content min-w-0 break-words whitespace-pre-wrap text-sm leading-6 [&_p]:my-1 [&_ul]:ml-4 [&_ul]:list-disc [&_ol]:ml-4 [&_ol]:list-decimal" style={{ overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: safeDisplayHtml(html) }} />;
+}
+
+function ConversationTranscript({ message, senderName, workspace, purgeUnlocked, onClear }: {
   message: ConversationMessage;
+  senderName: string;
+  workspace: AuditType;
   purgeUnlocked: boolean;
   onClear: (id: string) => void;
 }) {
-  const content = message.message_type === 'rich_card'
-    ? message.rendered_html || message.message_content
-    : message.message_content;
-  const text = message.message_type === 'image' ? '' : readableText(content);
+  const isCustomer = message.sender_type === 'customer';
+  const content = message.message_type === 'rich_card' ? message.rendered_html || (message.title ? null : message.message_content) : message.message_content;
   const attachments = Object.entries(message.media_refs || {}).filter(([source]) =>
-    source === message.image_url || Boolean(message.message_content?.includes(source)) || Boolean(message.rendered_html?.includes(source)));
+    [message.image_url, message.message_content, message.rendered_html].some(value =>
+      value?.includes(source) || value?.includes(source.replace(/&/g, '&amp;'))));
   const rating = message.rating_data;
-  const structured = message.message_type === 'rating_result'
-    ? `評分：${typeof rating?.rating === 'number' ? rating.rating : '未提供'}${typeof rating?.comment === 'string' ? `\n評語：${rating.comment}` : ''}`
-    : message.message_type === 'tip'
-      ? `打賞：${typeof rating?.tip_amount === 'number' ? rating.tip_amount : '未提供'}` : '';
+  const accent = workspace === 'aaa_service' ? 'border-orange-300/50' : 'border-emerald-300/50';
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <strong className="text-cyan-100">{message.sender_type === 'employee' ? '員工' : '客戶'}</strong>
-        {message.created_at && <span className="text-slate-400">{formatAuditTime(message.created_at)}</span>}
+    <div className={`flex min-w-0 ${isCustomer ? 'justify-end' : 'justify-start'}`}>
+      <div className={`min-w-0 max-w-[90%] rounded-[20px] border-2 p-3 shadow-lg sm:max-w-[80%] ${isCustomer ? 'rounded-tr-md border-slate-200 bg-white text-slate-800' : `rounded-tl-md bg-slate-800 text-slate-100 ${accent}`}`}>
+        <div className={`mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b pb-1.5 text-xs font-bold ${isCustomer ? 'border-slate-200 text-blue-700' : 'border-white/15 text-white'}`}>
+          <span>{senderName}</span>
+          {message.created_at && <time className={`text-[10px] font-normal ${isCustomer ? 'text-slate-500' : 'text-slate-400'}`}>{formatAuditTime(message.created_at)}</time>}
+        </div>
+        {message.cleared_at ? <p className="text-xs opacity-70">此則內容已正式清除。</p> : (
+          <>
+            {message.message_type === 'rating_request' && <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-blue-700"><Star className="mr-1 inline h-4 w-4" />評分請求</div>}
+            {message.message_type === 'rating_result' && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800"><strong>服務評分</strong><div className="my-1 flex gap-0.5">{[1, 2, 3, 4, 5].map(star => <Star key={star} className={`h-4 w-4 ${star <= Number(rating?.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />)}</div>{typeof rating?.comment === 'string' && <p className="whitespace-pre-wrap break-words text-xs">{rating.comment}</p>}</div>}
+            {message.message_type === 'tip' && <div className="rounded-xl border border-amber-300 bg-gradient-to-br from-amber-950 to-orange-900 px-4 py-3 text-amber-100"><Gift className="mr-2 inline h-4 w-4" />已送出打賞 <strong className="ml-2 text-lg text-white">${typeof rating?.tip_amount === 'number' ? rating.tip_amount.toFixed(2) : '—'}</strong></div>}
+            {message.message_type === 'rich_card' && <div className="mb-2 rounded-xl bg-blue-600 px-3 py-2 text-white"><strong>{message.title ? readableText(message.title) : '訊息卡片'}</strong>{message.subtitle && <p className="mt-1 text-xs text-blue-100">{readableText(message.subtitle)}</p>}</div>}
+            {content && message.message_type !== 'image' && !['rating_request', 'rating_result', 'tip'].includes(message.message_type || '') && <AuditRichText html={content} />}
+            {attachments.length > 0 && <div className="mt-2 space-y-2">{attachments.map(([, path]) =>
+              <EvidenceMedia key={`${message.id}:${path}`} eventId={message.id} path={path} />
+            )}</div>}
+            {message.message_type === 'image' && attachments.length === 0 && <p className="text-xs opacity-70">圖片檔案無法還原。</p>}
+            {purgeUnlocked && <button type="button" onClick={() => onClear(message.id)} className={`mt-3 rounded-lg border border-rose-400/40 px-2 py-1 text-xs text-rose-500 hover:bg-rose-500/10 ${buttonFocus}`}>清除此則證據</button>}
+          </>
+        )}
       </div>
-      {message.cleared_at ? <p className="mt-2 text-xs text-slate-400">此則聊天證據已清除。</p> : (
-        <>
-          {message.title && <p className="mt-2 text-sm font-bold text-white">{readableText(message.title)}</p>}
-          {message.subtitle && <p className="mt-1 text-xs text-slate-300">{readableText(message.subtitle)}</p>}
-          {(text || structured) && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">{[text, structured].filter(Boolean).join('\n')}</p>}
-          {message.message_type === 'image' && <p className="mt-2 text-xs text-slate-300">圖片訊息</p>}
-          {attachments.length > 0 && <div className="mt-2 space-y-2">{attachments.map(([source, path]) =>
-            <EvidenceMedia key={`${message.id}:${path}`} eventId={message.id} source={source} path={path} showSource={false} />
-          )}</div>}
-          {!text && !structured && !attachments.length && message.message_type !== 'image' && <p className="mt-2 text-xs text-slate-400">沒有可顯示的文字內容。</p>}
-          {purgeUnlocked && <button type="button" onClick={() => onClear(message.id)} className={`mt-3 rounded-lg border border-rose-400/40 px-2 py-1 text-xs text-rose-200 hover:bg-rose-500/10 ${buttonFocus}`}>清除此則證據</button>}
-        </>
-      )}
     </div>
   );
 }
 
-function Snapshot({ title, data, cleared }: { title: string; data: unknown; cleared: boolean }) {
+function Snapshot({ title, data, cleared, type, eventId, mediaRefs, employeeAccount }: {
+  title: string;
+  data: unknown;
+  cleared: boolean;
+  type: AuditType;
+  eventId: string;
+  mediaRefs: Record<string, string> | null;
+  employeeAccount: string | null;
+}) {
   const snapshot = data && typeof data === 'object' && !Array.isArray(data)
     ? data as Record<string, unknown> : null;
   const message = snapshot?.message && typeof snapshot.message === 'object' && !Array.isArray(snapshot.message)
     ? snapshot.message as Record<string, unknown> : null;
-  const fields = [
-    ['標題', message?.title], ['內容（純文字／HTML 原始碼）', message?.content ?? message?.message_content],
-    ['渲染內容原始碼（不執行）', snapshot?.rendered_html],
-  ].filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].length > 0);
+  const snapshotText = JSON.stringify(data) ?? '';
+  const refs = Object.fromEntries(Object.entries(mediaRefs || {}).filter(([source, path]) =>
+    typeof path === 'string' && (snapshotText.includes(source) || snapshotText.includes(source.replace(/&/g, '&amp;')))));
 
-  return (
-    <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-      <h4 className="mb-2 text-xs font-bold text-cyan-200">{title}</h4>
-      {data == null ? (
-        <p className="text-xs text-slate-400">{cleared ? '此版本的證據內容已清除。' : '此操作沒有對應的內容快照。'}</p>
-      ) : (
-        <div className="space-y-3">
-          {fields.map(([label, text]) => (
-            <div key={label}>
-              <p className="mb-1 text-[11px] font-semibold text-slate-400">{label}</p>
-              <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-slate-800 bg-slate-900 p-2 text-xs leading-5 text-slate-200">{text}</pre>
-            </div>
-          ))}
-          <details>
-            <summary className="cursor-pointer text-xs font-semibold text-cyan-300">查看完整 JSON 快照（純文字）</summary>
-            <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-slate-800 bg-slate-900 p-2 text-xs leading-5 text-slate-200">{JSON.stringify(data, null, 2)}</pre>
-          </details>
+  if (!message) return <p className="text-xs text-slate-400">{cleared ? '此內容已正式清除。' : '沒有可顯示的內容。'}</p>;
+
+  if (type === 'notification') {
+    const recipients = Array.isArray(snapshot?.recipients) ? snapshot.recipients as Array<Record<string, unknown>> : null;
+    const priority = String(message.priority);
+    return (
+      <section className="min-w-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-950/60">
+        <h4 className="px-3 py-2 text-xs font-bold text-cyan-200">{title}</h4>
+        <div className="h-[390px] max-w-full overflow-hidden">
+          <EmployeeNotificationDetailPanel embedded readOnlyPreview onClose={() => {}} message={{
+            title: String(message.title || ''), content: safeDisplayHtml(String(message.content || '')),
+            message_type: message.message_type === 'login_popup' ? 'login_popup' : 'realtime',
+            priority: priority === 'low' || priority === 'high' || priority === 'urgent' ? priority : 'normal',
+            notification_category: typeof message.notification_category === 'string' ? message.notification_category : null,
+            reward_amount: typeof message.reward_amount === 'number' ? message.reward_amount : null,
+            reward_currency: typeof message.reward_currency === 'string' ? message.reward_currency : null,
+            created_at: typeof message.created_at === 'string' ? message.created_at : null,
+            is_read: false,
+          }} />
         </div>
-      )}
-    </section>
-  );
+        {(recipients || Object.keys(refs).length > 0) && <div className="space-y-2 border-t border-slate-700 p-3 text-xs text-slate-300">
+          {recipients && <p>收件人 {recipients.length} 位 · 已讀 {recipients.filter(item => item.is_read === true).length} 位</p>}
+          {Object.entries(refs).map(([, path]) => <EvidenceMedia key={`${eventId}:${path}`} eventId={eventId} path={path} />)}
+        </div>}
+      </section>
+    );
+  }
+
+  const chat: ConversationMessage = {
+    id: eventId,
+    created_at: typeof message.created_at === 'string' ? message.created_at : null,
+    sender_type: typeof message.sender_type === 'string' ? message.sender_type : null,
+    message_type: typeof message.message_type === 'string' ? message.message_type : null,
+    message_content: typeof message.message_content === 'string' ? message.message_content : null,
+    image_url: typeof message.image_url === 'string' ? message.image_url : null,
+    title: typeof message.title === 'string' ? message.title : null,
+    subtitle: typeof message.subtitle === 'string' ? message.subtitle : null,
+    rating_data: message.rating_data && typeof message.rating_data === 'object' && !Array.isArray(message.rating_data) ? message.rating_data as Record<string, unknown> : null,
+    rendered_html: typeof snapshot?.rendered_html === 'string' ? snapshot.rendered_html : null,
+    media_refs: refs,
+    cleared_at: null,
+    clear_started_at: null,
+  };
+
+  return <section className="min-w-0 rounded-xl border border-slate-700 bg-slate-950/40 p-3"><h4 className="mb-3 text-xs font-bold text-cyan-200">{title}</h4><ConversationTranscript message={chat} senderName={chat.sender_type === 'customer' ? String(snapshot?.customer_name || '客戶') : String(snapshot?.employee_name || employeeAccount || '員工')} workspace={type} purgeUnlocked={false} onClear={() => {}} /></section>;
 }
 
-function EvidenceMedia({ eventId, source, path, showSource = true }: { eventId: string; source: string; path: string; showSource?: boolean }) {
+function EvidenceMedia({ eventId, path }: { eventId: string; path: string }) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const loadingRef = useRef(false);
   const activeRef = useRef(true);
 
   useEffect(() => {
@@ -210,8 +260,9 @@ function EvidenceMedia({ eventId, source, path, showSource = true }: { eventId: 
     };
   }, [eventId, path]);
 
-  const load = async () => {
-    if (loading || objectUrl) return;
+  const load = useCallback(async () => {
+    if (loadingRef.current || objectUrlRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -224,18 +275,31 @@ function EvidenceMedia({ eventId, source, path, showSource = true }: { eventId: 
       setMediaType(media.type);
       setObjectUrl(media.url);
     } catch (err) {
-      if (activeRef.current) setError(`載入封存媒體失敗：${formatSupabaseError(err)}`);
+      if (activeRef.current) setError(`載入圖片失敗：${formatSupabaseError(err)}`);
     } finally {
+      loadingRef.current = false;
       if (activeRef.current) setLoading(false);
     }
-  };
+  }, [eventId, path]);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        void load();
+        observer.disconnect();
+      }
+    }, { rootMargin: '160px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [load]);
 
   return (
-    <div className="min-w-0 rounded-lg border border-slate-700 bg-slate-950/60 p-3">
-      {showSource && <p className="break-all text-[11px] text-slate-400">原始來源：{source}</p>}
-      {objectUrl && mediaType === 'video/mp4' ? <video src={objectUrl} controls preload="none" className="mt-2 max-h-64 max-w-full rounded-lg" /> : objectUrl ? <img src={objectUrl} alt="安全載入的封存證據圖片" className="mt-2 max-h-64 max-w-full rounded-lg object-contain" /> : (
-        <button type="button" onClick={() => void load()} disabled={loading} className={`mt-2 inline-flex items-center gap-2 rounded-lg border border-cyan-400/35 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-50 ${buttonFocus}`}>
-          <ImageIcon className="h-4 w-4" aria-hidden="true" />{loading ? '載入中…' : '安全載入封存媒體'}
+    <div ref={containerRef} className="min-w-0">
+      {objectUrl && mediaType === 'video/mp4' ? <video src={objectUrl} controls preload="none" className="max-h-64 max-w-full rounded-lg" /> : objectUrl ? <img src={objectUrl} alt="封存圖片" className="max-h-64 max-w-full rounded-lg object-contain" /> : (
+        <button type="button" onClick={() => void load()} disabled={loading} className={`inline-flex items-center gap-2 rounded-lg border border-cyan-400/35 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-50 ${buttonFocus}`}>
+          <ImageIcon className="h-4 w-4" aria-hidden="true" />{loading ? '圖片載入中…' : error ? '重試載入圖片' : '查看圖片'}
         </button>
       )}
       {error && <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p>}
@@ -613,9 +677,6 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     </form>
   );
 
-  const media = detail && !detail.cleared_at && detail.media_refs && typeof detail.media_refs === 'object'
-    ? Object.entries(detail.media_refs).filter((entry): entry is [string, string] => typeof entry[1] === 'string') : [];
-
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-100">
       <header className="shrink-0 border-b border-cyan-300/20 bg-[radial-gradient(circle_at_82%_0%,rgba(6,182,212,0.18),transparent_34%),linear-gradient(90deg,#020617_0%,#0f172a_55%,#083344_100%)] px-3 py-3 shadow-[0_8px_24px_rgba(2,6,23,0.32)] sm:px-5">
@@ -659,7 +720,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                 {loading ? <p role="status" className="py-12 text-center text-sm text-slate-400">載入稽核紀錄中…</p> : events.length === 0 ? <p className="py-12 text-center text-sm text-slate-400">沒有符合條件的稽核紀錄。</p> : events.map(item => (
                   <button key={item.card_id} type="button" onClick={() => selectEvent(item.card_id)} aria-pressed={selectedId === item.card_id} className={`w-full min-w-0 rounded-xl border p-3 text-left transition-colors ${selectedId === item.card_id ? 'border-cyan-300/70 bg-cyan-600/20' : 'border-slate-700 bg-slate-950/60 hover:border-cyan-400/35 hover:bg-slate-800'} ${buttonFocus}`}>
                     <span className="flex flex-wrap items-center justify-between gap-2"><span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-cyan-300" aria-hidden="true" /><strong className="text-xs text-white">{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : item.notification_origin === 'unverified' ? '通知 · 來源待核實' : '通知' : typeLabels[item.entity_type] ?? item.entity_type}</strong><span className="rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-100">{actionLabels[item.action] ?? item.action}</span></span>{item.cleared_count === item.message_count ? <span className="text-[10px] font-bold text-rose-300">證據已清除</span> : item.cleared_count > 0 ? <span className="text-[10px] font-bold text-amber-300">已清除 {item.cleared_count} / {item.message_count} 則</span> : item.clear_started_at ? <span className="text-[10px] font-bold text-amber-300">清除未完成</span> : <span className="text-[10px] text-emerald-300">證據保留中</span>}</span>
-                    <span className="mt-2 block break-words text-xs leading-5 text-slate-300">{item.action === 'conversation_delete' ? `完整對話 · ${item.message_count} 則訊息` : item.summary || '（無摘要）'}</span>
+                    <span className="mt-2 block break-words text-xs leading-5 text-slate-300">{item.action === 'conversation_delete' ? `完整對話 · ${item.message_count} 則訊息` : readableText(item.summary) || '（無摘要）'}</span>
                     <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400">{item.action === 'conversation_delete' && <span>員工：<strong className="text-slate-200">{item.employee_account || item.employee_id || '—'}</strong></span>}<span>操作者：<strong className="text-slate-200">{item.actor_username}</strong></span><span>所屬管理員：<span className="break-all text-slate-300">{item.owner_username || item.owner_admin_id}</span></span></span>
                     <span className="mt-2 block text-[11px] tabular-nums text-cyan-200"><Clock3 className="mr-1 inline h-3 w-3" aria-hidden="true" />{formatAuditTime(item.occurred_at)}</span>
                   </button>
@@ -672,8 +733,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
             </section>
 
             <section ref={detailRef} aria-label="稽核事件詳情" className="min-h-0 min-w-0 scroll-mt-2 xl:overflow-y-auto">
-              <div className="border-b border-slate-700 bg-slate-950/50 px-4 py-3"><h2 className="text-sm font-black text-white">事件詳情與版本歷程</h2></div>
-              {!selectedId ? <p className="px-4 py-12 text-center text-sm text-slate-400">選取一筆事件，查看異動前後的證據與版本歷程。</p> : detailLoading ? <p role="status" className="px-4 py-12 text-center text-sm text-slate-400">載入詳情中…</p> : conversation ? (
+              <div className="border-b border-slate-700 bg-slate-950/50 px-4 py-3"><h2 className="text-sm font-black text-white">內容查看</h2></div>
+              {!selectedId ? <p className="px-4 py-12 text-center text-sm text-slate-400">點選左側卡片查看內容。</p> : detailLoading ? <p role="status" className="px-4 py-12 text-center text-sm text-slate-400">載入詳情中…</p> : conversation ? (
                 <div className="space-y-4 p-3 sm:p-4">
                   <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <MetadataRow label="刪除時間 (UTC+8)" value={formatAuditTime(conversation.occurred_at)} />
@@ -682,8 +743,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                   </dl>
                   <section>
                     <h3 className="mb-2 text-sm font-bold text-white">聊天會話記錄 · {conversation.total} 則</h3>
-                    <div className="space-y-2">{conversation.items.map(message => (
-                      <ConversationTranscript key={message.id} message={message} purgeUnlocked={purgeUnlocked && !clearing && !windowBusy}
+                    <div className="space-y-3 rounded-xl bg-slate-950/60 p-3">{conversation.items.map(message => (
+                      <ConversationTranscript key={message.id} message={message} senderName={message.sender_type === 'employee' ? conversation.employee_account : '客戶'} workspace={conversation.entity_type} purgeUnlocked={purgeUnlocked && !clearing && !windowBusy}
                         onClear={id => { setReason(''); setClearTarget({ id }); }} />
                     ))}</div>
                     {conversation.total > TRANSCRIPT_PAGE_SIZE && <div className="mt-3 flex items-center justify-between text-xs text-slate-300">
@@ -695,9 +756,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
               ) : !detail ? <p className="px-4 py-12 text-center text-sm text-slate-400">無法顯示此事件。請重新選取或刷新。</p> : (
                 <div className="min-w-0 space-y-4 p-3 sm:p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2"><span className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-bold text-cyan-100">{typeLabels[detail.entity_type] ?? detail.entity_type} · {actionLabels[detail.action] ?? detail.action}</span>{detail.cleared_at ? <span className="text-xs font-bold text-rose-300">證據已清除</span> : <button type="button" onClick={() => { setReason(''); setClearTarget(detail); }} disabled={!purgeUnlocked || clearing || windowBusy} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />清除此筆證據</button>}</div>
-                  <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2"><MetadataRow label="事件 ID" value={detail.id} /><MetadataRow label="操作批次 ID" value={detail.operation_id} /><MetadataRow label="對象 ID" value={detail.entity_id} /><MetadataRow label="發生時間 (UTC+8)" value={formatAuditTime(detail.occurred_at)} /><MetadataRow label="操作者（實際執行異動）" value={`${detail.actor_username} · ${detail.actor_role} · ${detail.actor_admin_id}`} /><MetadataRow label="所屬管理員（資料擁有者）" value={`${detail.owner_username ?? '—'} · ${detail.owner_admin_id}`} /><MetadataRow label="客戶 ID" value={detail.customer_id} /><MetadataRow label="員工 ID" value={detail.employee_id} /><MetadataRow label="清除開始 (UTC+8)" value={detail.clear_started_at ? formatAuditTime(detail.clear_started_at) : null} /><MetadataRow label="清除完成 (UTC+8)" value={detail.cleared_at ? formatAuditTime(detail.cleared_at) : null} />{detail.clear_reason && <MetadataRow label="清除原因" value={detail.clear_reason} />}{detail.cleared_by && <MetadataRow label="清除操作者" value={`${detail.cleared_username ?? '—'} · ${detail.cleared_by}`} />}</dl>
-                  <div className="grid min-w-0 gap-3"><Snapshot title="異動前" data={detail.before_data} cleared={Boolean(detail.cleared_at)} /><Snapshot title="異動後" data={detail.after_data} cleared={Boolean(detail.cleared_at)} /></div>
-                  {media.length > 0 && <section><h3 className="mb-2 flex items-center gap-2 text-xs font-bold text-white"><ImageIcon className="h-4 w-4 text-cyan-300" aria-hidden="true" />封存媒體 · {media.length} 個</h3><p className="mb-2 text-[11px] text-slate-400">附件僅透過安全驗證請求取得，原始網址只作文字參考。</p><div className="space-y-2">{media.map(([source, path]) => <EvidenceMedia key={`${detail.id}:${path}`} eventId={detail.id} source={source} path={path} />)}</div></section>}
+                  <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2"><MetadataRow label="操作時間 (UTC+8)" value={formatAuditTime(detail.occurred_at)} /><MetadataRow label="操作者" value={detail.actor_username} /><MetadataRow label="所屬管理員" value={detail.owner_username ?? detail.owner_admin_id} />{detail.employee_id && <MetadataRow label="員工 ID" value={detail.employee_id} />}{detail.cleared_at && <MetadataRow label="正式清除時間 (UTC+8)" value={formatAuditTime(detail.cleared_at)} />}{detail.clear_started_at && !detail.cleared_at && <MetadataRow label="證據清除狀態" value="清除尚未完成" />}{detail.clear_reason && <MetadataRow label="清除原因" value={detail.clear_reason} />}</dl>
+                  <div className="grid min-w-0 gap-3"><Snapshot title={detail.action === 'edit' || detail.action === 'source_edit' ? '修改前' : '從原頁移除前'} data={detail.before_data} cleared={Boolean(detail.cleared_at)} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />{detail.after_data != null && <Snapshot title="修改後" data={detail.after_data} cleared={Boolean(detail.cleared_at)} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />}</div>
                   <section><h3 className="mb-2 text-xs font-bold text-white">同一對象的版本歷程</h3><div className="space-y-1.5">{(detail.timeline ?? []).map(version => <button key={version.id} type="button" onClick={() => selectEvent(version.id)} aria-pressed={version.id === detail.id} className={`flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs ${version.id === detail.id ? 'border-cyan-400/50 bg-cyan-500/15 text-white' : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-800'} ${buttonFocus}`}><span>{actionLabels[version.action] ?? version.action}{version.cleared_at ? ' · 已清除' : ''}</span><span className="tabular-nums">{formatAuditTime(version.occurred_at)}</span></button>)}</div></section>
                 </div>
               )}
