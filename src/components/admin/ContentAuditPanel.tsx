@@ -810,7 +810,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
             <section aria-label="稽核事件清單" className="flex max-h-[42vh] min-w-0 flex-none flex-col overflow-y-auto border-b border-slate-700 xl:max-h-none xl:min-h-0 xl:border-b-0 xl:border-r">
               <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 bg-slate-950 px-3 py-2.5"><h2 className="text-sm font-black text-white">異動紀錄</h2><span className="text-xs text-cyan-200">共 {total.toLocaleString()} 筆</span></div>
               <ol className="min-w-0 divide-y divide-slate-700/70">
-                {events.length === 0 && !loading && <li className="px-3 py-10 text-center text-xs text-slate-400">沒有符合條件的紀錄。</li>}
+                {events.length === 0 && !loading && !listLoadError && <li className="px-3 py-10 text-center text-xs text-slate-400">沒有符合條件的紀錄。</li>}
                 {events.map((item, index) => (
                   <li key={item.card_id}>
                     <button type="button" onClick={() => selectEvent(item.card_id)} aria-pressed={selectedId === item.card_id} className={`flex w-full min-w-0 items-start gap-2 border-l-[3px] px-2.5 py-2.5 text-left transition-colors ${selectedId === item.card_id ? 'border-cyan-300 bg-cyan-600/15' : 'border-transparent bg-slate-950/30 hover:bg-slate-800/80'} ${buttonFocus}`}>
