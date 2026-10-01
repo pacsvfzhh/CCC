@@ -1004,12 +1004,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         deletedCount += result.changed_count;
       }
       if (deletedCount > 0) {
-        setNotification({ type: 'success', message: `已從原頁移除 ${deletedCount} 則訊息，手動通知已保留監察紀錄` });
-        await loadSentMessages();
+        const deletedIds = new Set(messageIdsArray);
+        setSentMessages(previous => previous.filter(message => !deletedIds.has(message.id)));
         setShowDeleteConfirm(false);
         setDeleteMode(null);
         setSelectedMessageDetail(null);
         exitSelectionMode();
+        setNotification({ type: 'success', message: '刪除成功' });
+        void loadSentMessages(true);
       }
     } catch (error) {
       console.error('Error deleting messages:', error);
@@ -1031,12 +1033,14 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
         deletedCount += result.changed_count;
       }
       if (deletedCount > 0) {
-        setNotification({ type: 'success', message: `已從原頁移除 ${deletedCount} 則訊息，手動通知已保留監察紀錄` });
-        await loadSentMessages();
+        const deletedIds = new Set(manualMessageIds);
+        setSentMessages(previous => previous.filter(message => !deletedIds.has(message.id)));
         setShowDeleteConfirm(false);
         setDeleteMode(null);
         setSelectedMessageDetail(null);
         exitSelectionMode();
+        setNotification({ type: 'success', message: '刪除成功' });
+        void loadSentMessages(true);
       }
     } catch (error) {
       console.error('Error deleting all messages:', error);
@@ -2721,7 +2725,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">確認刪除</h3>
-                  <p className="text-sm text-slate-400">從原頁移除，手動通知原文仍保留在超管監察紀錄</p>
+                  <p className="text-sm text-slate-400">請確認是否刪除所選訊息</p>
                 </div>
               </div>
               <div className="bg-slate-800/50 rounded-lg p-4 mb-6">

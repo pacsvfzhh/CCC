@@ -261,6 +261,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirmDeleting, setConfirmDeleting] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     show: boolean;
     title: string;
@@ -1670,7 +1671,7 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
   const handleDeleteTemplate = async (id: string) => {
     try {
       await mutateAuditedContent('template_delete', [id]);
-      setNotification({ type: 'success', text: '範本已刪除！' });
+      setNotification({ type: 'success', text: '刪除成功' });
       loadTemplates();
     } catch (error: unknown) {
       setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, '刪除範本失敗') });
@@ -2120,21 +2121,23 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setConfirmDialog({
       show: true,
       title: '刪除客戶',
-      message: `確定要移除客戶「${customerToDelete?.customer_name || '此客戶'}」嗎？所有對話會從原頁移除，改刪原文保留在超管監察紀錄。`,
+      message: `確定刪除客戶「${customerToDelete?.customer_name || '此客戶'}」及其所有對話嗎？`,
       onConfirm: async () => {
+        setConfirmDeleting(true);
         try {
           await mutateAuditedContent('customer_delete', [customerId]);
 
           invalidateAdminWorkspaceDataCache(selectedAdminId || adminId, 'customer');
-          setNotification({ type: 'success', text: '客戶已成功刪除！' });
           if (selectedCustomer?.id === customerId) {
             setSelectedCustomer(null);
             setSelectedEmployee(null);
           }
           setCustomers(prev => prev.filter(c => c.id !== customerId));
-          setConfirmDialog(null);
+          setNotification({ type: 'success', text: '刪除成功' });
         } catch (error: unknown) {
           setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, '刪除客戶失敗') });
+        } finally {
+          setConfirmDeleting(false);
           setConfirmDialog(null);
         }
       }
@@ -2558,18 +2561,27 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setConfirmDialog({
       show: true,
       title: '刪除訊息',
-      message: '從原頁移除此訊息並保留超管監察紀錄？',
+      message: '確定刪除此訊息嗎？',
       onConfirm: async () => {
+        setConfirmDeleting(true);
         try {
           await mutateAuditedContent('chat_delete', [messageId]);
-          setNotification({ type: 'success', text: '訊息已從原頁移除，原文已留證' });
-          loadMessages();
-          loadConversationHistory();
+          if (selectedCustomer && selectedEmployee) {
+            const cacheKey = `${selectedCustomer.id}:${selectedEmployee.id}`;
+            conversationMessagesCacheRef.current.set(cacheKey,
+              (conversationMessagesCacheRef.current.get(cacheKey) || []).filter(message => message.id !== messageId));
+          }
+          setMessages(previous => previous.filter(message => message.id !== messageId));
+          setNotification({ type: 'success', text: '刪除成功' });
+          void loadMessages();
+          void loadConversationHistory();
         } catch (error: unknown) {
           console.error('Delete failed:', formatSupabaseError(error));
           setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, '刪除訊息失敗') });
+        } finally {
+          setConfirmDeleting(false);
+          setConfirmDialog(null);
         }
-        setConfirmDialog(null);
       },
     });
   };
@@ -2744,19 +2756,22 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
     setConfirmDialog({
       show: true,
       title: '刪除對話',
-      message: `確定要從原頁移除與 ${selectedEmployee.username} 的完整對話嗎？所有訊息原文將保留在超管監察紀錄。`,
+      message: `確定刪除與 ${selectedEmployee.username} 的完整對話嗎？`,
       onConfirm: async () => {
+        setConfirmDeleting(true);
         try {
-          const result = await mutateAuditedContent('conversation_delete', [selectedCustomer.id], {}, selectedEmployee.id);
-          setNotification({ type: 'success', text: `對話已從原頁移除（${result.changed_count} 則訊息已留證）` });
+          await mutateAuditedContent('conversation_delete', [selectedCustomer.id], {}, selectedEmployee.id);
           conversationMessagesCacheRef.current.delete(`${selectedCustomer.id}:${selectedEmployee.id}`);
           setMessages([]);
-          loadConversationHistory();
+          setNotification({ type: 'success', text: '刪除成功' });
+          void loadConversationHistory();
         } catch (error: unknown) {
           console.error('Delete conversation failed:', formatSupabaseError(error));
           setNotification({ type: 'error', text: getCustomerServiceErrorMessage(error, '刪除對話失敗') });
+        } finally {
+          setConfirmDeleting(false);
+          setConfirmDialog(null);
         }
-        setConfirmDialog(null);
       },
     });
   };
@@ -5007,13 +5022,15 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
             <div className="flex gap-3">
               <button
                 onClick={confirmDialog.onConfirm}
-                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
+                disabled={confirmDeleting}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:cursor-wait disabled:opacity-60"
               >
-                刪除
+                {confirmDeleting ? '刪除中…' : '刪除'}
               </button>
               <button
                 onClick={() => setConfirmDialog(null)}
-                className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
+                disabled={confirmDeleting}
+                className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors disabled:cursor-wait disabled:opacity-60"
               >
                 取消
               </button>
