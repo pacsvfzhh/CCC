@@ -65,8 +65,7 @@ const tableLabels: Record<string, { name: string; description: string }> = {
 const getTableName = (config: CleanupConfig) => tableLabels[config.table_name]?.name ?? config.display_name;
 const getTableDescription = (config: CleanupConfig) => tableLabels[config.table_name]?.description ?? config.description;
 const formatSize = (size: string) => size.replace(/\bbytes?\b/gi, '位元組').replace(/\brecords?\b/gi, '筆紀錄').replace(/^N\/A$/i, '無資料');
-const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
-const minutes = Array.from({ length: 60 }, (_, minute) => String(minute).padStart(2, '0'));
+const utcTimePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export default function HistoryDataManagement() {
   const [configs, setConfigs] = useState<CleanupConfig[]>([]);
@@ -169,7 +168,12 @@ export default function HistoryDataManagement() {
   };
 
   const handleTimeChange = (tableName: string, time: string) => {
-    setEditingTime(prev => ({ ...prev, [tableName]: time }));
+    const shortHourTime = time.match(/^(\d{1,2}):(\d{2})$/);
+    const digits = time.replace(/\D/g, '').slice(0, 4);
+    const formatted = shortHourTime && shortHourTime[1].length === 1
+      ? `${shortHourTime[1].padStart(2, '0')}:${shortHourTime[2]}`
+      : digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
+    setEditingTime(prev => ({ ...prev, [tableName]: formatted }));
   };
 
   const handleToggleEnabled = async (tableName: string) => {
@@ -207,7 +211,8 @@ export default function HistoryDataManagement() {
     const newTime = editingTime[tableName];
     if (newDays === undefined && newTime === undefined) return;
     const daysToKeep = Number(newDays ?? scheduleItem.days_to_keep);
-    if (newDays === '' || !Number.isInteger(daysToKeep) || daysToKeep < config.min_retention_days || daysToKeep > 2147483647) return;
+    const scheduleTime = newTime ?? scheduleItem.schedule_time;
+    if (newDays === '' || !Number.isInteger(daysToKeep) || daysToKeep < config.min_retention_days || daysToKeep > 2147483647 || !utcTimePattern.test(scheduleTime)) return;
 
     setSavingTable(tableName);
     setError(null);
@@ -216,7 +221,7 @@ export default function HistoryDataManagement() {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_table_name: tableName,
         p_days_to_keep: daysToKeep,
-        p_schedule_time: newTime ?? scheduleItem.schedule_time,
+        p_schedule_time: scheduleTime,
         p_enabled: scheduleItem.enabled,
       });
       if (error) throw error;
@@ -456,6 +461,7 @@ export default function HistoryDataManagement() {
                   const daysToKeep = Number(currentDays);
                   const invalidDays = !/^\d+$/.test(currentDays) || !Number.isInteger(daysToKeep)
                     || daysToKeep < config.min_retention_days || daysToKeep > 2147483647;
+                  const invalidTime = !utcTimePattern.test(currentTime);
                   const isEnabled = scheduleItem?.enabled ?? false;
                   const hasChanges = scheduleLoaded && scheduleItem && ((editingRetention[config.table_name] !== undefined && (invalidDays || daysToKeep !== scheduleItem.days_to_keep))
                     || (editingTime[config.table_name] !== undefined && editingTime[config.table_name] !== scheduleItem.schedule_time));
@@ -499,26 +505,22 @@ export default function HistoryDataManagement() {
                         </div>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1" role="group" aria-label={`${getTableName(config)}執行時間（UTC）`}>
-                          <select
-                            value={currentTime.slice(0, 2)}
-                            onChange={(e) => handleTimeChange(config.table_name, `${e.target.value}:${currentTime.slice(3, 5)}`)}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={currentTime}
+                            onFocus={(e) => e.currentTarget.select()}
+                            onClick={(e) => e.currentTarget.select()}
+                            onChange={(e) => handleTimeChange(config.table_name, e.target.value)}
                             disabled={!scheduleLoaded || !scheduleItem || isSaving}
-                            aria-label="小時"
-                            className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                          >
-                            {hours.map(hour => <option key={hour} value={hour}>{hour}</option>)}
-                          </select>
-                          <span className="text-sm font-medium text-slate-500" aria-hidden="true">:</span>
-                          <select
-                            value={currentTime.slice(3, 5)}
-                            onChange={(e) => handleTimeChange(config.table_name, `${currentTime.slice(0, 2)}:${e.target.value}`)}
-                            disabled={!scheduleLoaded || !scheduleItem || isSaving}
-                            aria-label="分鐘"
-                            className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                          >
-                            {minutes.map(minute => <option key={minute} value={minute}>{minute}</option>)}
-                          </select>
+                            aria-label={`${getTableName(config)}執行時間（UTC），輸入四位數，例如 0930`}
+                            aria-invalid={invalidTime}
+                            placeholder="HH:MM"
+                            maxLength={5}
+                            className={`w-20 rounded-lg border bg-white px-2 py-1.5 text-center text-sm tabular-nums text-slate-900 outline-none transition-colors focus:ring-2 ${invalidTime ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'}`}
+                          />
+                          {invalidTime && <span className="text-xs text-rose-600">請輸入有效時間，如 0930</span>}
                         </div>
                       </td>
                       <td className="px-5 py-4 text-center">
@@ -556,7 +558,7 @@ export default function HistoryDataManagement() {
                           {hasChanges && (
                             <button
                               onClick={() => handleSaveSchedule(config)}
-                              disabled={isSaving || invalidDays}
+                              disabled={isSaving || invalidDays || invalidTime}
                               type="button"
                               className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
                             >
