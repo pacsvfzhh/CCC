@@ -110,6 +110,13 @@ function formatAuditTime(value: string | null): string {
   }).format(date)} (UTC+8)`;
 }
 
+function formatChatTime(value: string): string {
+  return new Intl.DateTimeFormat('zh-TW', {
+    timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).format(new Date(value));
+}
+
 function localDayStart(date: string, nextDay = false): string {
   const start = new Date(`${date}T00:00:00+08:00`);
   if (nextDay) start.setTime(start.getTime() + 24 * 60 * 60 * 1000);
@@ -142,10 +149,10 @@ function ArchivedRichContent({ html, eventId, mediaRefs }: { html: string; event
   return <div className="chat-rich-content min-w-0 break-words text-sm leading-6 [&_p]:my-1 [&_ul]:ml-4 [&_ul]:list-disc [&_ol]:ml-4 [&_ol]:list-decimal" style={{ overflowWrap: 'anywhere' }}>
     {parts.map((part, index) => /^<(img|video)\b/i.test(part) ? (
       media.filter(([source]) => part.includes(source) || part.includes(source.replace(/&/g, '&amp;'))).length > 0
-        ? media.filter(([source]) => part.includes(source) || part.includes(source.replace(/&/g, '&amp;'))).map(([, path]) => <EvidenceMedia key={`${index}:${path}`} eventId={eventId} path={path} />)
+        ? media.filter(([source]) => part.includes(source) || part.includes(source.replace(/&/g, '&amp;'))).map(([, path]) => <EvidenceMedia key={`${eventId}:${index}:${path}`} eventId={eventId} path={path} />)
         : <p key={index} className="text-xs opacity-70">圖片檔案無法還原。</p>
     ) : part ? <div key={index} className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: safeDisplayHtml(part) }} /> : null)}
-    {media.filter(([, path]) => !inlinePaths.has(path)).map(([, path]) => <EvidenceMedia key={path} eventId={eventId} path={path} />)}
+    {media.filter(([, path]) => !inlinePaths.has(path)).map(([, path]) => <EvidenceMedia key={`${eventId}:${path}`} eventId={eventId} path={path} />)}
   </div>;
 }
 
@@ -164,6 +171,7 @@ function ConversationTranscript({ message, senderName, workspace, purgeUnlocked,
   const attachments = Object.fromEntries(Object.entries(message.media_refs || {}).filter(([source]) =>
     [message.image_url, message.message_content, message.rendered_html].some(value =>
       value?.includes(source) || value?.includes(source.replace(/&/g, '&amp;')))));
+  const imagePath = (message.image_url && attachments[message.image_url]) || Object.values(attachments)[0];
 
   useEffect(() => {
     if (!cardOpen) return;
@@ -189,13 +197,13 @@ function ConversationTranscript({ message, senderName, workspace, purgeUnlocked,
                   {message.message_type === 'rating_request' && <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-blue-700"><Star className="mr-1 inline h-4 w-4" />評分請求</div>}
                   {message.message_type === 'rating_result' && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800"><strong>服務評分</strong><div className="my-1 flex gap-0.5">{[1, 2, 3, 4, 5].map(star => <Star key={star} className={`h-4 w-4 ${star <= Number(rating?.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />)}</div>{typeof rating?.comment === 'string' && <p className="whitespace-pre-wrap break-words text-xs">{rating.comment}</p>}</div>}
                   {message.message_type === 'tip' && <div className="rounded-xl border border-amber-300 bg-gradient-to-br from-amber-950 to-orange-900 px-4 py-3 text-amber-100"><Gift className="mr-2 inline h-4 w-4" />已送出打賞 <strong className="ml-2 text-lg text-white">${typeof rating?.tip_amount === 'number' ? rating.tip_amount.toFixed(2) : '—'}</strong></div>}
-                  {message.message_type === 'image' ? (message.image_url && attachments[message.image_url] ? <EvidenceMedia eventId={message.id} path={attachments[message.image_url]} /> : <p className="text-xs opacity-70">圖片檔案無法還原。</p>) : !['rating_request', 'rating_result', 'tip'].includes(message.message_type || '') && <ArchivedRichContent html={message.message_content || ''} eventId={message.id} mediaRefs={attachments} />}
+                  {message.message_type === 'image' ? (imagePath ? <EvidenceMedia key={`${message.id}:${imagePath}`} eventId={message.id} path={imagePath} /> : <p className="text-xs opacity-70">圖片檔案無法還原。</p>) : !['rating_request', 'rating_result', 'tip'].includes(message.message_type || '') && <ArchivedRichContent html={message.message_content || ''} eventId={message.id} mediaRefs={attachments} />}
                 </>
               )}
               {purgeUnlocked && !message.cleared_at && <button type="button" onClick={() => onClear(message.id)} className={`mt-3 rounded-lg border border-rose-400/40 px-2 py-1 text-xs text-rose-500 hover:bg-rose-500/10 ${buttonFocus}`}>清除此則證據</button>}
             </div>
           )}
-          {message.created_at && <time className={`mt-1 block text-[10px] ${isCustomer ? 'text-right text-slate-400' : 'text-slate-500'}`}>{formatAuditTime(message.created_at)}</time>}
+          {message.created_at && <time className={`mt-1 block text-[10px] ${isCustomer ? 'text-right text-slate-400' : 'text-slate-500'}`}>{formatChatTime(message.created_at)}</time>}
           {message.message_type === 'rich_card' && purgeUnlocked && !message.cleared_at && <button type="button" onClick={() => onClear(message.id)} className={`mt-2 rounded-lg border border-rose-400/40 px-2 py-1 text-xs text-rose-300 hover:bg-rose-500/10 ${buttonFocus}`}>清除此則證據</button>}
         </div>
       </div>
@@ -292,11 +300,14 @@ function EvidenceMedia({ eventId, path }: { eventId: string; path: string }) {
   const objectUrlRef = useRef<string | null>(null);
   const loadingRef = useRef(false);
   const activeRef = useRef(true);
+  const requestVersionRef = useRef(0);
 
   useEffect(() => {
     activeRef.current = true;
+    requestVersionRef.current += 1;
     return () => {
       activeRef.current = false;
+      requestVersionRef.current += 1;
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     };
@@ -304,12 +315,13 @@ function EvidenceMedia({ eventId, path }: { eventId: string; path: string }) {
 
   const load = useCallback(async () => {
     if (loadingRef.current || objectUrlRef.current) return;
+    const requestVersion = requestVersionRef.current;
     loadingRef.current = true;
     setLoading(true);
     setError(null);
     try {
       const media = await loadAuditedMedia(eventId, path);
-      if (!activeRef.current) {
+      if (!activeRef.current || requestVersion !== requestVersionRef.current) {
         URL.revokeObjectURL(media.url);
         return;
       }
@@ -317,10 +329,12 @@ function EvidenceMedia({ eventId, path }: { eventId: string; path: string }) {
       setMediaType(media.type);
       setObjectUrl(media.url);
     } catch (err) {
-      if (activeRef.current) setError(`載入圖片失敗：${formatSupabaseError(err)}`);
+      if (activeRef.current && requestVersion === requestVersionRef.current) setError(`載入圖片失敗：${formatSupabaseError(err)}`);
     } finally {
-      loadingRef.current = false;
-      if (activeRef.current) setLoading(false);
+      if (requestVersion === requestVersionRef.current) {
+        loadingRef.current = false;
+        if (activeRef.current) setLoading(false);
+      }
     }
   }, [eventId, path]);
 
