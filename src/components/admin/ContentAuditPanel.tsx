@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  AlertTriangle, ArrowLeft, ChevronRight, Database,
+  AlertTriangle, ArrowLeft, ChevronDown, ChevronRight, Database,
   Gift, Image as ImageIcon, LockKeyhole, Megaphone, MessageCircle, RefreshCw, Search, ShieldCheck, Star, Trash2, User, X,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
@@ -91,7 +91,6 @@ interface AuditFilterCounts {
 interface AuditFilters {
   type: '' | AuditType;
   owner: string;
-  actor: string;
   action: '' | AuditAction;
   search: string;
   from: string;
@@ -100,8 +99,7 @@ interface AuditFilters {
 
 const PAGE_SIZE = 30;
 const TRANSCRIPT_PAGE_SIZE = 100;
-const emptyFilters: AuditFilters = { type: '', owner: '', actor: '', action: '', search: '', from: '', to: '' };
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const emptyFilters: AuditFilters = { type: '', owner: '', action: '', search: '', from: '', to: '' };
 const typeLabels: Record<AuditType, string> = {
   notification: '通知（手動／待核實）', aaa_service: '模擬客戶', ccc_service: '經理',
 };
@@ -403,6 +401,54 @@ function MetadataRow({ label, value }: { label: string; value: string | null }) 
   return <div className="min-w-0 rounded-lg border border-slate-700/70 bg-slate-950/40 p-2"><dt className="text-[11px] font-semibold text-slate-400">{label}</dt><dd className="mt-1 break-all text-xs text-slate-100">{value || '—'}</dd></div>;
 }
 
+function OwnerPicker({ selected, owners, total, loading, error, onRetry, onSelect }: {
+  selected: string;
+  owners: Array<{ id: string; username: string; event_count: number | null }>;
+  total: number | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  onSelect: (owner: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const selectedOwner = owners.find(owner => owner.id === selected);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  return <div ref={containerRef} className="relative shrink-0">
+    <button ref={triggerRef} type="button" aria-label={`所屬管理員：${selected ? selectedOwner?.username || '已選管理員' : '全部管理員'}`} aria-expanded={open} onClick={() => setOpen(value => !value)} className={`flex h-9 w-[148px] items-center gap-1.5 rounded-xl border border-cyan-300/25 bg-slate-800/80 px-2.5 text-left text-xs font-semibold text-white shadow-[0_3px_12px_rgba(2,6,23,0.28)] transition hover:border-cyan-300/55 hover:bg-slate-800 ${buttonFocus}`}>
+      <User className="h-3.5 w-3.5 shrink-0 text-cyan-300" aria-hidden="true" /><span className="min-w-0 flex-1 truncate" title={selectedOwner?.username || '全部管理員'}>{selectedOwner?.username || (selected ? '已選管理員' : '全部管理員')}</span><ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+    </button>
+    {open && <div className="absolute right-0 top-[calc(100%+7px)] z-50 w-[246px] max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-900 shadow-[0_16px_40px_rgba(2,6,23,0.55)]">
+      <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-cyan-950/65 to-slate-900 px-3 py-2"><span className="text-[11px] font-bold text-cyan-100">所屬管理員</span><span className="text-[10px] text-slate-400">{owners.length} 位</span></div>
+      <div className="max-h-56 overflow-y-auto p-1.5 scrollbar-dark" aria-label="選擇所屬管理員">
+        {[{ id: '', username: '全部管理員', event_count: total }, ...owners].map(owner => <button key={owner.id} type="button" aria-pressed={selected === owner.id} onClick={() => { onSelect(owner.id); setOpen(false); }} className={`flex h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 text-left text-xs transition-colors ${selected === owner.id ? 'bg-cyan-500/15 font-bold text-cyan-100' : 'text-slate-200 hover:bg-slate-800 hover:text-white'} ${buttonFocus}`}><span className="min-w-0 truncate">{owner.username}</span><span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] tabular-nums ${selected === owner.id ? 'bg-cyan-400/15 text-cyan-200' : 'bg-slate-800 text-slate-400'}`}>{owner.event_count === null ? '—' : owner.event_count.toLocaleString()}</span></button>)}
+        {owners.length === 0 && <p className="px-2.5 py-2 text-[11px] text-slate-400">{loading ? '正在載入管理員…' : '管理員名單暫不可用'}</p>}
+      </div>
+      {error && <div className="flex items-center justify-between gap-2 border-t border-rose-400/20 bg-rose-950/20 px-3 py-2 text-[11px] text-rose-200"><span>數量暫不可用</span><button type="button" onClick={onRetry} className={`font-bold text-cyan-200 underline ${buttonFocus}`}>重試載入</button></div>}
+    </div>}
+  </div>;
+}
+
 export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [draft, setDraft] = useState<AuditFilters>(emptyFilters);
   const [filters, setFilters] = useState<AuditFilters>(emptyFilters);
@@ -413,6 +459,9 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [filterCountsLoading, setFilterCountsLoading] = useState(true);
   const [filterCountsError, setFilterCountsError] = useState<string | null>(null);
   const [filterCountsRetryKey, setFilterCountsRetryKey] = useState(0);
+  const [ownerTypeCounts, setOwnerTypeCounts] = useState<{ owner: string; types: Record<AuditType, number> } | null>(null);
+  const [ownerCountsError, setOwnerCountsError] = useState<{ owner: string; message: string } | null>(null);
+  const [ownerCountsRetryKey, setOwnerCountsRetryKey] = useState(0);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -492,6 +541,37 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   }, [refreshKey, filterCountsRetryKey]);
 
   useEffect(() => {
+    if (!filters.owner) {
+      setOwnerTypeCounts(null);
+      setOwnerCountsError(null);
+      return;
+    }
+    let cancelled = false;
+    setOwnerTypeCounts(null);
+    setOwnerCountsError(null);
+    const load = async () => {
+      try {
+        const owner = filters.owner;
+        const types = {} as Record<AuditType, number>;
+        await Promise.all((Object.keys(typeLabels) as AuditType[]).map(async type => {
+          const { data, error: rpcError } = await supabase.rpc('list_content_audit_cards', {
+            p_admin_session_token: getAdminFinancialSessionToken(),
+            p_owner: owner, p_type: type, p_page: 0, p_page_size: 1,
+          });
+          if (rpcError) throw rpcError;
+          if (!data || typeof data.total !== 'number') throw new Error('分類數量格式不正確。');
+          types[type] = data.total;
+        }));
+        if (!cancelled) setOwnerTypeCounts({ owner, types });
+      } catch (err) {
+        if (!cancelled) setOwnerCountsError({ owner: filters.owner, message: formatSupabaseError(err) });
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [filters.owner, refreshKey, ownerCountsRetryKey]);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -506,7 +586,6 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
           p_admin_session_token: getAdminFinancialSessionToken(),
           p_type: filters.type || null,
           p_owner: filters.owner || null,
-          p_actor: filters.actor || null,
           p_action: filters.action || null,
           p_search: filters.search || null,
           p_from: filters.from ? localDayStart(filters.from) : null,
@@ -709,11 +788,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
 
   const applyFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const next = { ...draft, actor: draft.actor.trim(), search: draft.search.trim() };
-    if (next.actor && !uuidPattern.test(next.actor)) {
-      setFilterError('操作者 ID 必須是有效的 UUID；若要搜尋名稱，請使用關鍵字。');
-      return;
-    }
+    const next = { ...draft, search: draft.search.trim() };
     if (next.from && next.to && next.from > next.to) {
       setFilterError('結束日期不能早於開始日期。');
       return;
@@ -742,8 +817,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setRefreshKey(key => key + 1);
   };
 
-  const selectType = (type: AuditFilters['type']) => {
-    const next = { ...filters, type };
+  const selectQuickFilter = (change: Partial<Pick<AuditFilters, 'type' | 'owner'>>) => {
+    const next = { ...filters, ...change };
     setDraft(next);
     setFilters(next);
     setPage(0);
@@ -800,23 +875,26 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     }
   };
 
+  const ownerOptions = filterCounts
+    ? filterCounts.owners
+    : availableAdmins.map(admin => ({ ...admin, event_count: null }));
+  const scopedTypes = filters.owner
+    ? ownerTypeCounts?.owner === filters.owner ? ownerTypeCounts.types : null
+    : filterCounts?.types ?? null;
+  const scopedTotal = filters.owner
+    ? filterCounts?.owners.find(owner => owner.id === filters.owner)?.event_count
+      ?? (scopedTypes ? Object.values(scopedTypes).reduce((sum, count) => sum + count, 0) : null)
+    : filterCounts?.total ?? null;
+
   const filterForm = (showType: boolean) => (
     <form onSubmit={applyFilters} className="space-y-3">
       {showType && <label className="block text-xs font-semibold text-slate-300">資料類型
         <select className={inputClass} value={draft.type} onChange={event => setDraft(previous => ({ ...previous, type: event.target.value as AuditFilters['type'] }))}>
-          <option value="">全部類型{filterCounts ? `（${filterCounts.total.toLocaleString()}）` : ''}</option>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}{filterCounts ? `（${filterCounts.types[value as AuditType].toLocaleString()}）` : ''}</option>)}
+          <option value="">全部類型{scopedTotal !== null ? `（${scopedTotal.toLocaleString()}）` : ''}</option>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}{scopedTypes ? `（${scopedTypes[value as AuditType].toLocaleString()}）` : ''}</option>)}
         </select>
       </label>}
-      <label className="block text-xs font-semibold text-slate-300">所屬管理員
-        <select className={inputClass} value={draft.owner} onChange={event => setDraft(previous => ({ ...previous, owner: event.target.value }))} disabled={filterCountsLoading && availableAdmins.length === 0}>
-          <option value="">{!filterCounts && availableAdmins.length === 0 && filterCountsLoading ? '管理員載入中…' : !filterCounts && availableAdmins.length === 0 && filterCountsError ? '管理員載入失敗' : `全部管理員${filterCounts ? `（${filterCounts.total.toLocaleString()}）` : ''}`}</option>
-          {filterCounts ? filterCounts.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.username}（{owner.event_count.toLocaleString()}）</option>) : availableAdmins.map(admin => <option key={admin.id} value={admin.id}>{admin.username}（數量暫不可用）</option>)}
-        </select>
-      </label>
       {filterCountsError && <div role="alert" className="flex items-center justify-between gap-2 text-xs text-rose-300"><span className="min-w-0 break-words">稽核數量載入失敗：{filterCountsError}{availableAdmins.length > 0 ? '；管理員清單仍可選擇。' : ''}</span><button type="button" onClick={() => setFilterCountsRetryKey(key => key + 1)} className={`shrink-0 font-bold underline ${buttonFocus}`}>重試</button></div>}
-      <label className="block text-xs font-semibold text-slate-300">操作者 ID（非所屬管理員）
-        <input className={inputClass} value={draft.actor} onChange={event => setDraft(previous => ({ ...previous, actor: event.target.value }))} placeholder="操作者 UUID；名稱請用關鍵字" />
-      </label>
+      {ownerCountsError?.owner === filters.owner && <div role="alert" className="flex items-center justify-between gap-2 text-xs text-rose-300"><span className="min-w-0 break-words">管理員分類數量載入失敗：{ownerCountsError.message}</span><button type="button" onClick={() => setOwnerCountsRetryKey(key => key + 1)} className={`shrink-0 font-bold underline ${buttonFocus}`}>重試</button></div>}
       <label className="block text-xs font-semibold text-slate-300">操作類型
         <select className={inputClass} value={draft.action} onChange={event => setDraft(previous => ({ ...previous, action: event.target.value as AuditFilters['action'] }))}>
           <option value="">全部操作</option>{Object.entries(actionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -852,18 +930,19 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
 
       {error && <div role="alert" className="flex shrink-0 items-start gap-2 border-b border-rose-500/30 bg-rose-950/50 px-4 py-2.5 text-xs text-rose-200"><AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /><span className="min-w-0 break-words">{error}</span><button type="button" onClick={() => setError(null)} className="ml-auto shrink-0 underline">關閉</button></div>}
 
-      <div className="shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden">
+      <div className="relative z-20 shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden">
+        <div className="mb-2 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Database className="h-4 w-4 text-cyan-300" aria-hidden="true" /><h2 className="text-xs font-black text-white">稽核篩選</h2></div><OwnerPicker selected={filters.owner} owners={ownerOptions} total={filterCounts?.total ?? null} loading={filterCountsLoading} error={filterCountsError} onRetry={() => setFilterCountsRetryKey(key => key + 1)} onSelect={owner => selectQuickFilter({ owner })} /></div>
         <details className="group max-h-[65vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-          <summary className="cursor-pointer text-xs font-bold text-cyan-200">篩選事件 · 類型／操作者／操作／日期</summary>
+          <summary className="cursor-pointer text-xs font-bold text-cyan-200">篩選條件 · 類型／操作／日期</summary>
           <div className="mt-3">{filterForm(true)}</div>
         </details>
       </div>
 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[270px_minmax(0,1fr)]">
         <aside className="hidden min-h-0 flex-col overflow-y-auto border-r border-slate-700/90 bg-[linear-gradient(180deg,#0b1220_0%,#0b1220_48%,#111827_100%)] p-3 lg:flex">
-          <div className="mb-3 flex items-center gap-2 border-b border-cyan-300/15 pb-3"><Database className="h-4 w-4 text-cyan-300" aria-hidden="true" /><h2 className="text-xs font-black text-white">稽核篩選</h2></div>
+          <div className="relative z-20 mb-3 flex items-center justify-between gap-1.5 border-b border-cyan-300/15 pb-3"><div className="flex shrink-0 items-center gap-1.5"><Database className="h-4 w-4 text-cyan-300" aria-hidden="true" /><h2 className="text-xs font-black text-white">稽核篩選</h2></div><OwnerPicker selected={filters.owner} owners={ownerOptions} total={filterCounts?.total ?? null} loading={filterCountsLoading} error={filterCountsError} onRetry={() => setFilterCountsRetryKey(key => key + 1)} onSelect={owner => selectQuickFilter({ owner })} /></div>
           <div className="mb-4 space-y-1">{([['', '全部事件'], ...Object.entries(typeLabels)] as Array<[AuditFilters['type'], string]>).map(([type, label]) => (
-            <button key={type} type="button" onClick={() => selectType(type)} aria-pressed={filters.type === type} className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold ${filters.type === type ? 'bg-gradient-to-r from-cyan-700 to-blue-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} ${buttonFocus}`}><span className="truncate">{label}</span>{filterCounts && <span className={`shrink-0 rounded-md px-1.5 py-0.5 tabular-nums ${filters.type === type ? 'bg-white/15 text-white' : 'bg-slate-800 text-slate-300'}`}>{(type ? filterCounts.types[type] : filterCounts.total).toLocaleString()}</span>}</button>
+            <button key={type} type="button" onClick={() => selectQuickFilter({ type })} aria-pressed={filters.type === type} className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold ${filters.type === type ? 'bg-gradient-to-r from-cyan-700 to-blue-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} ${buttonFocus}`}><span className="truncate">{label}</span><span className={`shrink-0 rounded-md px-1.5 py-0.5 tabular-nums ${filters.type === type ? 'bg-white/15 text-white' : 'bg-slate-800 text-slate-300'}`}>{type ? scopedTypes?.[type]?.toLocaleString() ?? '…' : scopedTotal?.toLocaleString() ?? '…'}</span></button>
           ))}</div>
           {filterForm(false)}
         </aside>
