@@ -2346,6 +2346,14 @@ export interface Database {
       };
     };
     Functions: {
+      get_content_audit_filter_counts: {
+        Args: { p_admin_session_token: string };
+        Returns: {
+          total: number;
+          types: { notification: number; aaa_service: number; ccc_service: number };
+          owners: Array<{ id: string; username: string; event_count: number }>;
+        };
+      };
       list_content_audit_owners: {
         Args: { p_admin_session_token: string };
         Returns: Array<{ id: string; username: string; event_count: number }>;

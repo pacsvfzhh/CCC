@@ -82,6 +82,12 @@ interface ChatIdentity {
   employeeNumberSource: 'archived' | 'current' | null;
 }
 
+interface AuditFilterCounts {
+  total: number;
+  types: Record<AuditType, number>;
+  owners: Array<{ id: string; username: string; event_count: number }>;
+}
+
 interface AuditFilters {
   type: '' | AuditType;
   owner: string;
@@ -402,7 +408,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [filters, setFilters] = useState<AuditFilters>(emptyFilters);
   const [filterError, setFilterError] = useState<string | null>(null);
   const [events, setEvents] = useState<AuditEvent[]>([]);
-  const [owners, setOwners] = useState<Array<{ id: string; username: string; event_count: number }>>([]);
+  const [filterCounts, setFilterCounts] = useState<AuditFilterCounts | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -456,13 +462,14 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     let cancelled = false;
     const load = async () => {
       try {
-        const { data, error: rpcError } = await supabase.rpc('list_content_audit_owners', {
+        const { data, error: rpcError } = await supabase.rpc('get_content_audit_filter_counts', {
           p_admin_session_token: getAdminFinancialSessionToken(),
         });
         if (rpcError) throw rpcError;
-        if (!cancelled && Array.isArray(data)) setOwners(data);
+        if (!data || !Array.isArray(data.owners) || !data.types) throw new Error('篩選選項格式不正確。');
+        if (!cancelled) setFilterCounts(data);
       } catch (err) {
-        if (!cancelled) setError(`載入管理員分組失敗：${formatSupabaseError(err)}`);
+        if (!cancelled) setError(`載入篩選選項失敗：${formatSupabaseError(err)}`);
       }
     };
     void load();
@@ -778,16 +785,16 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     }
   };
 
-  const filterForm = () => (
+  const filterForm = (showType: boolean) => (
     <form onSubmit={applyFilters} className="space-y-3">
-      <label className="block text-xs font-semibold text-slate-300">資料類型
+      {showType && <label className="block text-xs font-semibold text-slate-300">資料類型
         <select className={inputClass} value={draft.type} onChange={event => setDraft(previous => ({ ...previous, type: event.target.value as AuditFilters['type'] }))}>
-          <option value="">全部類型</option>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          <option value="">全部類型{filterCounts ? `（${filterCounts.total.toLocaleString()}）` : ''}</option>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}{filterCounts ? `（${filterCounts.types[value as AuditType].toLocaleString()}）` : ''}</option>)}
         </select>
-      </label>
+      </label>}
       <label className="block text-xs font-semibold text-slate-300">所屬管理員
         <select className={inputClass} value={draft.owner} onChange={event => setDraft(previous => ({ ...previous, owner: event.target.value }))}>
-          <option value="">全部管理員</option>{owners.map(owner => <option key={owner.id} value={owner.id}>{owner.username}</option>)}
+          <option value="">全部管理員{filterCounts ? `（${filterCounts.total.toLocaleString()}）` : ''}</option>{filterCounts?.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.username}（{owner.event_count.toLocaleString()}）</option>)}
         </select>
       </label>
       <label className="block text-xs font-semibold text-slate-300">操作者 ID（非所屬管理員）
@@ -831,7 +838,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       <div className="shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden">
         <details className="group max-h-[65vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-3">
           <summary className="cursor-pointer text-xs font-bold text-cyan-200">篩選事件 · 類型／操作者／操作／日期</summary>
-          <div className="mt-3">{filterForm()}</div>
+          <div className="mt-3">{filterForm(true)}</div>
         </details>
       </div>
 
@@ -839,9 +846,9 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         <aside className="hidden min-h-0 flex-col overflow-y-auto border-r border-slate-700/90 bg-[linear-gradient(180deg,#0b1220_0%,#0b1220_48%,#111827_100%)] p-3 lg:flex">
           <div className="mb-3 flex items-center gap-2 border-b border-cyan-300/15 pb-3"><Database className="h-4 w-4 text-cyan-300" aria-hidden="true" /><h2 className="text-xs font-black text-white">稽核篩選</h2></div>
           <div className="mb-4 space-y-1">{([['', '全部事件'], ...Object.entries(typeLabels)] as Array<[AuditFilters['type'], string]>).map(([type, label]) => (
-            <button key={type} type="button" onClick={() => selectType(type)} aria-pressed={filters.type === type} className={`w-full rounded-lg px-3 py-2 text-left text-xs font-bold ${filters.type === type ? 'bg-gradient-to-r from-cyan-700 to-blue-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} ${buttonFocus}`}>{label}</button>
+            <button key={type} type="button" onClick={() => selectType(type)} aria-pressed={filters.type === type} className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold ${filters.type === type ? 'bg-gradient-to-r from-cyan-700 to-blue-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} ${buttonFocus}`}><span className="truncate">{label}</span>{filterCounts && <span className={`shrink-0 rounded-md px-1.5 py-0.5 tabular-nums ${filters.type === type ? 'bg-white/15 text-white' : 'bg-slate-800 text-slate-300'}`}>{(type ? filterCounts.types[type] : filterCounts.total).toLocaleString()}</span>}</button>
           ))}</div>
-          {filterForm()}
+          {filterForm(false)}
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-slate-900 xl:overflow-hidden">
