@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, AlertTriangle, CheckCircle, Database, Info, RefreshCw, Save, Check } from 'lucide-react';
+import { Trash2, AlertTriangle, CheckCircle, Database, Info, RefreshCw, Save, Check, Clock, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Database as DatabaseSchema } from '../../types/database';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
@@ -66,6 +66,9 @@ const getTableName = (config: CleanupConfig) => tableLabels[config.table_name]?.
 const getTableDescription = (config: CleanupConfig) => tableLabels[config.table_name]?.description ?? config.description;
 const formatSize = (size: string) => size.replace(/\bbytes?\b/gi, '位元組').replace(/\brecords?\b/gi, '筆紀錄').replace(/^N\/A$/i, '無資料');
 const utcTimePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+const hourOptions = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
+const minuteOptions = Array.from({ length: 12 }, (_, step) => String(step * 5).padStart(2, '0'));
+const quickTimes = ['00:00', '02:00', '02:30', '03:00', '06:00'];
 
 export default function HistoryDataManagement() {
   const [configs, setConfigs] = useState<CleanupConfig[]>([]);
@@ -83,6 +86,7 @@ export default function HistoryDataManagement() {
   const [scheduleLoaded, setScheduleLoaded] = useState(false);
   const [editingRetention, setEditingRetention] = useState<Record<string, string>>({});
   const [editingTime, setEditingTime] = useState<Record<string, string>>({});
+  const [timePicker, setTimePicker] = useState<{ tableName: string; label: string; time: string } | null>(null);
   const [savingTable, setSavingTable] = useState<string | null>(null);
   const [savedTable, setSavedTable] = useState<string | null>(null);
 
@@ -91,8 +95,10 @@ export default function HistoryDataManagement() {
     loadAutoCleanupSchedule();
   }, []);
 
+  const isTimePickerOpen = timePicker !== null;
+
   useEffect(() => {
-    const anyModalOpen = showPreviewModal || showConfirmModal;
+    const anyModalOpen = showPreviewModal || showConfirmModal || isTimePickerOpen;
     if (anyModalOpen) {
       const scrollY = window.scrollY;
       document.body.style.overflow = 'hidden';
@@ -107,7 +113,16 @@ export default function HistoryDataManagement() {
         window.scrollTo(0, scrollY);
       };
     }
-  }, [showPreviewModal, showConfirmModal]);
+  }, [showPreviewModal, showConfirmModal, isTimePickerOpen]);
+
+  useEffect(() => {
+    if (!isTimePickerOpen) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setTimePicker(null);
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isTimePickerOpen]);
 
   const loadConfigs = async (silent = false): Promise<boolean> => {
     try {
@@ -528,8 +543,22 @@ export default function HistoryDataManagement() {
                             title={invalidTime ? '請輸入有效時間，例如 0930' : '直接輸入四位數時間，例如 0930'}
                             placeholder="HH:MM"
                             maxLength={5}
-                            className={`w-20 rounded-lg border bg-white px-2 py-1.5 text-center text-sm tabular-nums text-slate-900 outline-none transition-colors focus:ring-2 ${invalidTime ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'}`}
+                            className={`w-16 rounded-lg border bg-white px-1 py-1.5 text-center text-sm tabular-nums text-slate-900 outline-none transition-colors focus:ring-2 ${invalidTime ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'}`}
                           />
+                          <button
+                            type="button"
+                            onClick={() => setTimePicker({
+                              tableName: config.table_name,
+                              label: getTableName(config),
+                              time: invalidTime ? scheduleItem?.schedule_time ?? '00:00' : currentTime,
+                            })}
+                            disabled={!scheduleLoaded || !scheduleItem || isSaving}
+                            aria-label={`${getTableName(config)}選擇執行時間`}
+                            aria-haspopup="dialog"
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-blue-700 transition-colors hover:border-blue-400 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50"
+                          >
+                            <Clock className="h-4 w-4" aria-hidden="true" />
+                          </button>
                         </div>
                       </td>
                       <td className="px-5 py-4 text-center">
@@ -609,6 +638,129 @@ export default function HistoryDataManagement() {
           </section>
         ))}
       </div>
+
+      {timePicker && createPortal(
+        <div
+          className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+          onClick={() => setTimePicker(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="history-time-picker-title"
+            className="max-h-[calc(100vh-2rem)] w-full max-w-[400px] overflow-y-auto rounded-2xl bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-gradient-to-r from-slate-900 to-blue-950 px-5 py-4 text-white">
+              <div>
+                <h3 id="history-time-picker-title" className="text-base font-bold">設定執行時間</h3>
+                <p className="mt-1 text-xs text-blue-100">{timePicker.label} · UTC</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTimePicker(null)}
+                aria-label="關閉時間選擇"
+                autoFocus
+                className="rounded-lg p-1 text-blue-100 hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="space-y-5 p-5">
+              <div className="rounded-xl bg-blue-50 py-2 text-center text-2xl font-bold tabular-nums text-blue-900">
+                {timePicker.time || '--:--'} <span className="text-xs font-medium">UTC</span>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-semibold text-slate-600">常用時間</p>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {quickTimes.map(time => (
+                    <button
+                      key={time}
+                      type="button"
+                      onClick={() => setTimePicker(prev => prev && ({ ...prev, time }))}
+                      aria-pressed={timePicker.time === time}
+                      className={`rounded-lg py-1.5 text-xs font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${timePicker.time === time ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-blue-100'}`}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-semibold text-slate-600">小時</p>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {hourOptions.map(hour => (
+                    <button
+                      key={hour}
+                      type="button"
+                      onClick={() => setTimePicker(prev => prev && ({ ...prev, time: `${hour}:${prev.time.slice(3)}` }))}
+                      aria-pressed={timePicker.time.slice(0, 2) === hour}
+                      className={`rounded-lg py-1.5 text-sm font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${timePicker.time.slice(0, 2) === hour ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-blue-100'}`}
+                    >
+                      {hour}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-slate-600">分鐘</p>
+                  <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                    精確分鐘
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={timePicker.time.slice(3)}
+                      onFocus={(event) => event.currentTarget.select()}
+                      onChange={(event) => {
+                        const minute = event.target.value.replace(/\D/g, '').slice(0, 2);
+                        if (minute === '' || Number(minute) < 60) {
+                          setTimePicker(prev => prev && ({ ...prev, time: `${prev.time.slice(0, 2)}:${minute}` }));
+                        }
+                      }}
+                      onBlur={() => setTimePicker(prev => prev && ({
+                        ...prev,
+                        time: `${prev.time.slice(0, 2)}:${prev.time.slice(3).padStart(2, '0')}`,
+                      }))}
+                      aria-label="精確分鐘，00 至 59"
+                      maxLength={2}
+                      className="w-12 rounded-lg border border-slate-300 bg-white px-1 py-1 text-center font-semibold tabular-nums text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {minuteOptions.map(minute => (
+                    <button
+                      key={minute}
+                      type="button"
+                      onClick={() => setTimePicker(prev => prev && ({ ...prev, time: `${prev.time.slice(0, 2)}:${minute}` }))}
+                      aria-pressed={timePicker.time.slice(3) === minute}
+                      className={`rounded-lg py-1.5 text-sm font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${timePicker.time.slice(3) === minute ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-blue-100'}`}
+                    >
+                      {minute}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                <button type="button" onClick={() => setTimePicker(null)} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">取消</button>
+                <button
+                  type="button"
+                  disabled={!utcTimePattern.test(timePicker.time)}
+                  onClick={() => {
+                    handleTimeChange(timePicker.tableName, timePicker.time);
+                    setTimePicker(null);
+                  }}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  套用時間
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Preview Modal */}
       {showPreviewModal && previewResult && selectedTable && createPortal(
