@@ -2358,6 +2358,21 @@ export interface Database {
         Args: { p_admin_session_token: string };
         Returns: Array<{ id: string; username: string; event_count: number }>;
       };
+      list_content_audit_cards_filtered: {
+        Args: {
+          p_admin_session_token: string;
+          p_type?: string | null;
+          p_owner?: string | null;
+          p_action?: string | null;
+          p_content_search?: string | null;
+          p_identity_search?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_page?: number;
+          p_page_size?: number;
+        };
+        Returns: { total: number; items: Array<Record<string, unknown>> };
+      };
       list_content_audit_cards: {
         Args: {
           p_admin_session_token: string;

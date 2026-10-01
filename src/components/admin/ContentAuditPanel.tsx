@@ -92,14 +92,15 @@ interface AuditFilters {
   type: '' | AuditType;
   owner: string;
   action: '' | AuditAction;
-  search: string;
+  contentSearch: string;
+  identitySearch: string;
   from: string;
   to: string;
 }
 
 const PAGE_SIZE = 30;
 const TRANSCRIPT_PAGE_SIZE = 100;
-const emptyFilters: AuditFilters = { type: '', owner: '', action: '', search: '', from: '', to: '' };
+const emptyFilters: AuditFilters = { type: '', owner: '', action: '', contentSearch: '', identitySearch: '', from: '', to: '' };
 const typeLabels: Record<AuditType, string> = {
   notification: '通知（手動／待核實）', aaa_service: '模擬客戶', ccc_service: '經理',
 };
@@ -582,12 +583,13 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     }
     const load = async () => {
       try {
-        const { data, error: rpcError } = await supabase.rpc('list_content_audit_cards', {
+        const { data, error: rpcError } = await supabase.rpc('list_content_audit_cards_filtered', {
           p_admin_session_token: getAdminFinancialSessionToken(),
           p_type: filters.type || null,
           p_owner: filters.owner || null,
           p_action: filters.action || null,
-          p_search: filters.search || null,
+          p_content_search: filters.contentSearch || null,
+          p_identity_search: filters.identitySearch || null,
           p_from: filters.from ? localDayStart(filters.from) : null,
           p_to: filters.to ? localDayStart(filters.to, true) : null,
           p_page: page, p_page_size: PAGE_SIZE,
@@ -788,7 +790,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
 
   const applyFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const next = { ...draft, search: draft.search.trim() };
+    const next = { ...draft, contentSearch: draft.contentSearch.trim(), identitySearch: draft.identitySearch.trim() };
     if (next.from && next.to && next.from > next.to) {
       setFilterError('結束日期不能早於開始日期。');
       return;
@@ -900,8 +902,11 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
           <option value="">全部操作</option>{Object.entries(actionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
-      <label className="block text-xs font-semibold text-slate-300">關鍵字搜尋
-        <span className="relative block"><Search className="pointer-events-none absolute left-3 top-4 h-4 w-4 text-slate-500" aria-hidden="true" /><input className={`${inputClass} pl-9`} value={draft.search} onChange={event => setDraft(previous => ({ ...previous, search: event.target.value }))} placeholder="聊天內容、角色名稱、員工名稱或 ID" /></span>
+      <label className="block text-xs font-semibold text-slate-300">{draft.type === 'notification' ? '通知內容搜尋' : draft.type ? '聊天內容搜尋' : '內容搜尋（聊天／通知）'}
+        <span className="relative block"><Search className="pointer-events-none absolute left-3 top-4 h-4 w-4 text-slate-500" aria-hidden="true" /><input className={`${inputClass} pl-9`} value={draft.contentSearch} onChange={event => setDraft(previous => ({ ...previous, contentSearch: event.target.value }))} placeholder={draft.type === 'notification' ? '通知標題或內文' : '訊息文字或卡片內容'} /></span>
+      </label>
+      <label className="block text-xs font-semibold text-slate-300">角色／員工搜尋
+        <span className="relative block"><User className="pointer-events-none absolute left-3 top-4 h-4 w-4 text-slate-500" aria-hidden="true" /><input className={`${inputClass} pl-9`} value={draft.identitySearch} onChange={event => setDraft(previous => ({ ...previous, identitySearch: event.target.value }))} placeholder="角色名稱、員工名稱或員工 ID" /></span>
         <span className="mt-1 block text-[11px] font-normal text-slate-400">員工名稱為帳號；員工 ID 為建號時設定的編號，非系統 UID。</span>
       </label>
       <div className="grid grid-cols-2 gap-2">
@@ -934,7 +939,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       <div className="relative z-20 shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden">
         <div className="mb-2 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Database className="h-4 w-4 text-cyan-300" aria-hidden="true" /><h2 className="text-xs font-black text-white">稽核篩選</h2></div><OwnerPicker selected={filters.owner} owners={ownerOptions} total={filterCounts?.total ?? null} loading={filterCountsLoading} error={filterCountsError} onRetry={() => setFilterCountsRetryKey(key => key + 1)} onSelect={owner => selectQuickFilter({ owner })} /></div>
         <details className="group max-h-[65vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-          <summary className="cursor-pointer text-xs font-bold text-cyan-200">篩選條件 · 類型／操作／日期</summary>
+          <summary className="cursor-pointer text-xs font-bold text-cyan-200">篩選條件 · 類型／搜尋／日期</summary>
           <div className="mt-3">{filterForm(true)}</div>
         </details>
       </div>
