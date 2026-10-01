@@ -65,6 +65,8 @@ const tableLabels: Record<string, { name: string; description: string }> = {
 const getTableName = (config: CleanupConfig) => tableLabels[config.table_name]?.name ?? config.display_name;
 const getTableDescription = (config: CleanupConfig) => tableLabels[config.table_name]?.description ?? config.description;
 const formatSize = (size: string) => size.replace(/\bbytes?\b/gi, '位元組').replace(/\brecords?\b/gi, '筆紀錄').replace(/^N\/A$/i, '無資料');
+const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
+const minutes = Array.from({ length: 60 }, (_, minute) => String(minute).padStart(2, '0'));
 
 export default function HistoryDataManagement() {
   const [configs, setConfigs] = useState<CleanupConfig[]>([]);
@@ -80,7 +82,7 @@ export default function HistoryDataManagement() {
   const [processing, setProcessing] = useState(false);
   const [autoCleanupSchedule, setAutoCleanupSchedule] = useState<CleanupSchedule[]>([]);
   const [scheduleLoaded, setScheduleLoaded] = useState(false);
-  const [editingRetention, setEditingRetention] = useState<Record<string, number>>({});
+  const [editingRetention, setEditingRetention] = useState<Record<string, string>>({});
   const [editingTime, setEditingTime] = useState<Record<string, string>>({});
   const [savingTable, setSavingTable] = useState<string | null>(null);
   const [savedTable, setSavedTable] = useState<string | null>(null);
@@ -160,8 +162,10 @@ export default function HistoryDataManagement() {
     return autoCleanupSchedule.find(s => s.table_name === tableName);
   }, [autoCleanupSchedule]);
 
-  const handleRetentionChange = (tableName: string, days: number) => {
-    setEditingRetention(prev => ({ ...prev, [tableName]: days }));
+  const handleRetentionChange = (tableName: string, days: string) => {
+    if (/^\d*$/.test(days)) {
+      setEditingRetention(prev => ({ ...prev, [tableName]: days }));
+    }
   };
 
   const handleTimeChange = (tableName: string, time: string) => {
@@ -195,12 +199,15 @@ export default function HistoryDataManagement() {
     }
   };
 
-  const handleSaveSchedule = async (tableName: string) => {
+  const handleSaveSchedule = async (config: CleanupConfig) => {
+    const tableName = config.table_name;
     const scheduleItem = getScheduleForTable(tableName);
     if (!scheduleItem) return;
     const newDays = editingRetention[tableName];
     const newTime = editingTime[tableName];
     if (newDays === undefined && newTime === undefined) return;
+    const daysToKeep = Number(newDays ?? scheduleItem.days_to_keep);
+    if (newDays === '' || !Number.isInteger(daysToKeep) || daysToKeep < config.min_retention_days || daysToKeep > 2147483647) return;
 
     setSavingTable(tableName);
     setError(null);
@@ -208,7 +215,7 @@ export default function HistoryDataManagement() {
       const { error } = await supabase.rpc('admin_save_history_cleanup_schedule', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_table_name: tableName,
-        p_days_to_keep: newDays ?? scheduleItem.days_to_keep,
+        p_days_to_keep: daysToKeep,
         p_schedule_time: newTime ?? scheduleItem.schedule_time,
         p_enabled: scheduleItem.enabled,
       });
@@ -444,11 +451,14 @@ export default function HistoryDataManagement() {
                 <tbody className="divide-y divide-slate-200/80">
                 {categoryConfigs.map((config) => {
                   const scheduleItem = getScheduleForTable(config.table_name);
-                  const currentDays = editingRetention[config.table_name] ?? scheduleItem?.days_to_keep ?? config.default_retention_days;
+                  const currentDays = editingRetention[config.table_name] ?? String(scheduleItem?.days_to_keep ?? config.default_retention_days);
                   const currentTime = editingTime[config.table_name] ?? scheduleItem?.schedule_time ?? '03:00';
+                  const daysToKeep = Number(currentDays);
+                  const invalidDays = !/^\d+$/.test(currentDays) || !Number.isInteger(daysToKeep)
+                    || daysToKeep < config.min_retention_days || daysToKeep > 2147483647;
                   const isEnabled = scheduleItem?.enabled ?? false;
-                  const hasChanges = scheduleLoaded && scheduleItem && ((editingRetention[config.table_name] !== undefined && editingRetention[config.table_name] !== (scheduleItem?.days_to_keep ?? config.default_retention_days))
-                    || (editingTime[config.table_name] !== undefined && editingTime[config.table_name] !== (scheduleItem?.schedule_time ?? '03:00')));
+                  const hasChanges = scheduleLoaded && scheduleItem && ((editingRetention[config.table_name] !== undefined && (invalidDays || daysToKeep !== scheduleItem.days_to_keep))
+                    || (editingTime[config.table_name] !== undefined && editingTime[config.table_name] !== scheduleItem.schedule_time));
                   const isSaving = savingTable === config.table_name;
                   const justSaved = savedTable === config.table_name;
 
@@ -474,31 +484,47 @@ export default function HistoryDataManagement() {
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             value={currentDays}
-                            onChange={(e) => handleRetentionChange(config.table_name, Math.max(config.min_retention_days, parseInt(e.target.value) || 0))}
-                            min={config.min_retention_days}
+                            onFocus={(e) => e.currentTarget.select()}
+                            onClick={(e) => e.currentTarget.select()}
+                            onChange={(e) => handleRetentionChange(config.table_name, e.target.value)}
                             disabled={!scheduleLoaded || !scheduleItem || isSaving}
                             aria-label={`${getTableName(config)}保留天數`}
-                            className="w-20 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                            aria-invalid={invalidDays}
+                            className={`w-20 rounded-lg border bg-white px-2 py-1.5 text-center text-sm text-slate-900 outline-none transition-colors focus:ring-2 ${invalidDays ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'}`}
                           />
-                          <span className="text-xs text-slate-500">至少 {config.min_retention_days} 天</span>
+                          <span className={`text-xs ${invalidDays ? 'text-rose-600' : 'text-slate-500'}`}>至少 {config.min_retention_days} 天</span>
                         </div>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <input
-                          type="time"
-                          value={currentTime}
-                          onChange={(e) => handleTimeChange(config.table_name, e.target.value)}
-                          disabled={!scheduleLoaded || !scheduleItem || isSaving}
-                          aria-label={`${getTableName(config)}執行時間`}
-                          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                        />
+                        <div className="inline-flex items-center gap-1" role="group" aria-label={`${getTableName(config)}執行時間（UTC）`}>
+                          <select
+                            value={currentTime.slice(0, 2)}
+                            onChange={(e) => handleTimeChange(config.table_name, `${e.target.value}:${currentTime.slice(3, 5)}`)}
+                            disabled={!scheduleLoaded || !scheduleItem || isSaving}
+                            aria-label="小時"
+                            className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                          >
+                            {hours.map(hour => <option key={hour} value={hour}>{hour}</option>)}
+                          </select>
+                          <span className="text-sm font-medium text-slate-500" aria-hidden="true">:</span>
+                          <select
+                            value={currentTime.slice(3, 5)}
+                            onChange={(e) => handleTimeChange(config.table_name, `${currentTime.slice(0, 2)}:${e.target.value}`)}
+                            disabled={!scheduleLoaded || !scheduleItem || isSaving}
+                            aria-label="分鐘"
+                            className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                          >
+                            {minutes.map(minute => <option key={minute} value={minute}>{minute}</option>)}
+                          </select>
+                        </div>
                       </td>
                       <td className="px-5 py-4 text-center">
                         <button
                           onClick={() => handleToggleEnabled(config.table_name)}
-                          disabled={isSaving || !scheduleLoaded || !scheduleItem}
+                          disabled={isSaving || !scheduleLoaded || !scheduleItem || Boolean(hasChanges)}
                           type="button"
                           role="switch"
                           aria-checked={isEnabled}
@@ -529,8 +555,8 @@ export default function HistoryDataManagement() {
                         <div className="flex items-center justify-end gap-2">
                           {hasChanges && (
                             <button
-                              onClick={() => handleSaveSchedule(config.table_name)}
-                              disabled={isSaving}
+                              onClick={() => handleSaveSchedule(config)}
+                              disabled={isSaving || invalidDays}
                               type="button"
                               className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
                             >
