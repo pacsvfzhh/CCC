@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, AlertTriangle, CheckCircle, Database, Info, RefreshCw, Save, Check, Clock, X } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { formatSupabaseError, isFinancialAdminSessionError, isSupabaseTransientError, supabase } from '../../lib/supabase';
 import type { Database as DatabaseSchema } from '../../types/database';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { safeToLocaleString } from '../../lib/safeUtils';
@@ -84,6 +84,7 @@ export default function HistoryDataManagement() {
   const [processing, setProcessing] = useState(false);
   const [autoCleanupSchedule, setAutoCleanupSchedule] = useState<CleanupSchedule[]>([]);
   const [scheduleLoaded, setScheduleLoaded] = useState(false);
+  const scheduleRequestId = useRef(0);
   const [editingRetention, setEditingRetention] = useState<Record<string, string>>({});
   const [editingTime, setEditingTime] = useState<Record<string, string>>({});
   const [timePicker, setTimePicker] = useState<{ tableName: string; label: string; time: string } | null>(null);
@@ -93,6 +94,7 @@ export default function HistoryDataManagement() {
   useEffect(() => {
     loadConfigs();
     loadAutoCleanupSchedule();
+    return () => { scheduleRequestId.current += 1; };
   }, []);
 
   const isTimePickerOpen = timePicker !== null;
@@ -148,18 +150,25 @@ export default function HistoryDataManagement() {
   };
 
   const loadAutoCleanupSchedule = async (): Promise<boolean> => {
+    const requestId = ++scheduleRequestId.current;
     try {
       const { data, error } = await supabase.rpc('admin_get_history_cleanup_schedule', {
         p_admin_session_token: getAdminFinancialSessionToken(),
       });
+      if (requestId !== scheduleRequestId.current) return false;
       if (error) throw error;
       setAutoCleanupSchedule(data ?? []);
       setScheduleLoaded(true);
       return true;
     } catch (err) {
-      console.error('Error loading auto cleanup schedule:', err);
+      if (requestId !== scheduleRequestId.current) return false;
+      console.error('Error loading auto cleanup schedule:', formatSupabaseError(err));
       setScheduleLoaded(false);
-      setError('載入自動清理排程失敗，請稍後重試。');
+      setError(isFinancialAdminSessionError(err)
+        ? '管理員登入已失效，請重新登入。'
+        : isSupabaseTransientError(err)
+          ? '連線暫時不穩，請按「刷新」重試。'
+          : `載入自動清理排程失敗：${formatSupabaseError(err)}`);
       return false;
     }
   };
