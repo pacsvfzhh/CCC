@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight, Clock3, Database,
-  FileText, Gift, Image as ImageIcon, LockKeyhole, RefreshCw, Search, ShieldCheck, Star, Trash2,
+  FileText, Gift, Image as ImageIcon, LockKeyhole, Megaphone, MessageCircle, RefreshCw, Search, ShieldCheck, Star, Trash2, User, X,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { clearAuditedContent, loadAuditedMedia } from '../../lib/contentAudit';
@@ -132,8 +133,20 @@ function readableText(value: string | null): string {
   return (document.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
 }
 
-function AuditRichText({ html }: { html: string }) {
-  return <div className="chat-rich-content min-w-0 break-words whitespace-pre-wrap text-sm leading-6 [&_p]:my-1 [&_ul]:ml-4 [&_ul]:list-disc [&_ol]:ml-4 [&_ol]:list-decimal" style={{ overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: safeDisplayHtml(html) }} />;
+function ArchivedRichContent({ html, eventId, mediaRefs }: { html: string; eventId: string; mediaRefs: Record<string, string> }) {
+  const parts = html.split(/(<img\b[^>]*>|<video\b[\s\S]*?<\/video>)/gi);
+  const media = Object.entries(mediaRefs);
+  const inlinePaths = new Set(parts.filter(part => /^<(img|video)\b/i.test(part)).flatMap(part =>
+    media.filter(([source]) => part.includes(source) || part.includes(source.replace(/&/g, '&amp;'))).map(([, path]) => path)));
+
+  return <div className="chat-rich-content min-w-0 break-words text-sm leading-6 [&_p]:my-1 [&_ul]:ml-4 [&_ul]:list-disc [&_ol]:ml-4 [&_ol]:list-decimal" style={{ overflowWrap: 'anywhere' }}>
+    {parts.map((part, index) => /^<(img|video)\b/i.test(part) ? (
+      media.filter(([source]) => part.includes(source) || part.includes(source.replace(/&/g, '&amp;'))).length > 0
+        ? media.filter(([source]) => part.includes(source) || part.includes(source.replace(/&/g, '&amp;'))).map(([, path]) => <EvidenceMedia key={`${index}:${path}`} eventId={eventId} path={path} />)
+        : <p key={index} className="text-xs opacity-70">圖片檔案無法還原。</p>
+    ) : part ? <div key={index} className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: safeDisplayHtml(part) }} /> : null)}
+    {media.filter(([, path]) => !inlinePaths.has(path)).map(([, path]) => <EvidenceMedia key={path} eventId={eventId} path={path} />)}
+  </div>;
 }
 
 function ConversationTranscript({ message, senderName, workspace, purgeUnlocked, onClear }: {
@@ -143,37 +156,65 @@ function ConversationTranscript({ message, senderName, workspace, purgeUnlocked,
   purgeUnlocked: boolean;
   onClear: (id: string) => void;
 }) {
+  const [cardOpen, setCardOpen] = useState(false);
   const isCustomer = message.sender_type === 'customer';
-  const content = message.message_type === 'rich_card' ? message.rendered_html || (message.title ? null : message.message_content) : message.message_content;
-  const attachments = Object.entries(message.media_refs || {}).filter(([source]) =>
-    [message.image_url, message.message_content, message.rendered_html].some(value =>
-      value?.includes(source) || value?.includes(source.replace(/&/g, '&amp;'))));
   const rating = message.rating_data;
-  const accent = workspace === 'aaa_service' ? 'border-orange-300/50' : 'border-emerald-300/50';
+  const cardHtml = message.rendered_html || (message.message_content && /<[a-z][\s\S]*>/i.test(message.message_content) ? message.message_content : null);
+  const accent = workspace === 'aaa_service' ? 'border-orange-300/35' : 'border-emerald-300/35';
+  const attachments = Object.fromEntries(Object.entries(message.media_refs || {}).filter(([source]) =>
+    [message.image_url, message.message_content, message.rendered_html].some(value =>
+      value?.includes(source) || value?.includes(source.replace(/&/g, '&amp;')))));
+
+  useEffect(() => {
+    if (!cardOpen) return;
+    const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setCardOpen(false); };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [cardOpen]);
 
   return (
-    <div className={`flex min-w-0 ${isCustomer ? 'justify-end' : 'justify-start'}`}>
-      <div className={`min-w-0 max-w-[90%] rounded-[20px] border-2 p-3 shadow-lg sm:max-w-[80%] ${isCustomer ? 'rounded-tr-md border-slate-200 bg-white text-slate-800' : `rounded-tl-md bg-slate-800 text-slate-100 ${accent}`}`}>
-        <div className={`mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b pb-1.5 text-xs font-bold ${isCustomer ? 'border-slate-200 text-blue-700' : 'border-white/15 text-white'}`}>
-          <span>{senderName}</span>
-          {message.created_at && <time className={`text-[10px] font-normal ${isCustomer ? 'text-slate-500' : 'text-slate-400'}`}>{formatAuditTime(message.created_at)}</time>}
+    <>
+      <div className={`flex min-w-0 ${isCustomer ? 'justify-end' : 'justify-start'}`}>
+        <div className={`min-w-0 ${message.message_type === 'rich_card' ? 'w-[240px] max-w-[85%]' : 'max-w-[85%] sm:max-w-[75%]'}`}>
+          {message.message_type === 'rich_card' && !message.cleared_at ? (
+            <button type="button" onClick={() => setCardOpen(true)} className={`w-full overflow-hidden rounded-2xl text-left shadow-[0_2px_12px_rgba(37,99,246,0.15)] transition hover:scale-[1.015] hover:shadow-[0_8px_24px_rgba(37,99,246,0.22)] ${buttonFocus}`}>
+              <span className="flex items-start gap-2.5 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 px-4 pb-3.5 pt-4 text-white"><Megaphone className="mt-0.5 h-5 w-5 shrink-0" /><span className="min-w-0"><strong className="block break-words text-[13px] leading-snug">{message.title ? readableText(message.title) : '查看詳情'}</strong>{message.subtitle && <span className="mt-1 block break-words text-[11px] text-blue-100/80">{readableText(message.subtitle)}</span>}</span></span>
+              <span className="flex items-center justify-between border-t border-blue-100 bg-white px-4 py-2 text-[11px] font-medium text-blue-600">查看詳情<ChevronRight className="h-4 w-4 text-blue-400" /></span>
+            </button>
+          ) : (
+            <div className={`rounded-[20px] border-2 px-4 py-3 shadow-lg ${isCustomer ? 'rounded-tr-md border-slate-200 bg-white text-slate-800' : `rounded-tl-md bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 text-slate-100 ${accent}`}`}>
+              <div className={`mb-2 border-b pb-1.5 text-xs font-semibold ${isCustomer ? 'border-slate-200 text-blue-700' : 'border-white/15 text-white'}`}>{senderName}</div>
+              {message.cleared_at ? <p className="text-xs opacity-70">此則內容已正式清除。</p> : (
+                <>
+                  {message.message_type === 'rating_request' && <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-blue-700"><Star className="mr-1 inline h-4 w-4" />評分請求</div>}
+                  {message.message_type === 'rating_result' && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800"><strong>服務評分</strong><div className="my-1 flex gap-0.5">{[1, 2, 3, 4, 5].map(star => <Star key={star} className={`h-4 w-4 ${star <= Number(rating?.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />)}</div>{typeof rating?.comment === 'string' && <p className="whitespace-pre-wrap break-words text-xs">{rating.comment}</p>}</div>}
+                  {message.message_type === 'tip' && <div className="rounded-xl border border-amber-300 bg-gradient-to-br from-amber-950 to-orange-900 px-4 py-3 text-amber-100"><Gift className="mr-2 inline h-4 w-4" />已送出打賞 <strong className="ml-2 text-lg text-white">${typeof rating?.tip_amount === 'number' ? rating.tip_amount.toFixed(2) : '—'}</strong></div>}
+                  {message.message_type === 'image' ? (message.image_url && attachments[message.image_url] ? <EvidenceMedia eventId={message.id} path={attachments[message.image_url]} /> : <p className="text-xs opacity-70">圖片檔案無法還原。</p>) : !['rating_request', 'rating_result', 'tip'].includes(message.message_type || '') && <ArchivedRichContent html={message.message_content || ''} eventId={message.id} mediaRefs={attachments} />}
+                </>
+              )}
+              {purgeUnlocked && !message.cleared_at && <button type="button" onClick={() => onClear(message.id)} className={`mt-3 rounded-lg border border-rose-400/40 px-2 py-1 text-xs text-rose-500 hover:bg-rose-500/10 ${buttonFocus}`}>清除此則證據</button>}
+            </div>
+          )}
+          {message.created_at && <time className={`mt-1 block text-[10px] ${isCustomer ? 'text-right text-slate-400' : 'text-slate-500'}`}>{formatAuditTime(message.created_at)}</time>}
+          {message.message_type === 'rich_card' && purgeUnlocked && !message.cleared_at && <button type="button" onClick={() => onClear(message.id)} className={`mt-2 rounded-lg border border-rose-400/40 px-2 py-1 text-xs text-rose-300 hover:bg-rose-500/10 ${buttonFocus}`}>清除此則證據</button>}
         </div>
-        {message.cleared_at ? <p className="text-xs opacity-70">此則內容已正式清除。</p> : (
-          <>
-            {message.message_type === 'rating_request' && <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-blue-700"><Star className="mr-1 inline h-4 w-4" />評分請求</div>}
-            {message.message_type === 'rating_result' && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800"><strong>服務評分</strong><div className="my-1 flex gap-0.5">{[1, 2, 3, 4, 5].map(star => <Star key={star} className={`h-4 w-4 ${star <= Number(rating?.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />)}</div>{typeof rating?.comment === 'string' && <p className="whitespace-pre-wrap break-words text-xs">{rating.comment}</p>}</div>}
-            {message.message_type === 'tip' && <div className="rounded-xl border border-amber-300 bg-gradient-to-br from-amber-950 to-orange-900 px-4 py-3 text-amber-100"><Gift className="mr-2 inline h-4 w-4" />已送出打賞 <strong className="ml-2 text-lg text-white">${typeof rating?.tip_amount === 'number' ? rating.tip_amount.toFixed(2) : '—'}</strong></div>}
-            {message.message_type === 'rich_card' && <div className="mb-2 rounded-xl bg-blue-600 px-3 py-2 text-white"><strong>{message.title ? readableText(message.title) : '訊息卡片'}</strong>{message.subtitle && <p className="mt-1 text-xs text-blue-100">{readableText(message.subtitle)}</p>}</div>}
-            {content && message.message_type !== 'image' && !['rating_request', 'rating_result', 'tip'].includes(message.message_type || '') && <AuditRichText html={content} />}
-            {attachments.length > 0 && <div className="mt-2 space-y-2">{attachments.map(([, path]) =>
-              <EvidenceMedia key={`${message.id}:${path}`} eventId={message.id} path={path} />
-            )}</div>}
-            {message.message_type === 'image' && attachments.length === 0 && <p className="text-xs opacity-70">圖片檔案無法還原。</p>}
-            {purgeUnlocked && <button type="button" onClick={() => onClear(message.id)} className={`mt-3 rounded-lg border border-rose-400/40 px-2 py-1 text-xs text-rose-500 hover:bg-rose-500/10 ${buttonFocus}`}>清除此則證據</button>}
-          </>
-        )}
       </div>
-    </div>
+      {cardOpen && createPortal(
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm xl:p-6" onClick={() => setCardOpen(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby={`audit-card-${message.id}`} className="flex h-full w-full flex-col overflow-hidden bg-white shadow-2xl xl:h-auto xl:max-h-[85vh] xl:w-[680px] xl:rounded-2xl" onClick={event => event.stopPropagation()}>
+            <div className="relative shrink-0 bg-gradient-to-br from-blue-800 via-blue-600 to-blue-700 px-5 pb-5 pt-6 text-white">
+              <button type="button" autoFocus onClick={() => setCardOpen(false)} aria-label="關閉卡片詳情" className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/15 hover:bg-white/25"><X className="h-4 w-4" /></button>
+              {message.created_at && <p className="mb-3 text-xs text-blue-100">{formatAuditTime(message.created_at)}</p>}
+              <div className="flex items-start gap-3 pr-10"><span className="rounded-xl border border-white/20 bg-white/15 p-2.5"><Megaphone className="h-6 w-6" /></span><div className="min-w-0"><h2 id={`audit-card-${message.id}`} className="break-words text-lg font-bold">{message.title ? readableText(message.title) : '訊息卡片'}</h2>{message.subtitle && <p className="mt-1 break-words text-sm text-blue-100">{readableText(message.subtitle)}</p>}</div></div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-5 text-slate-700 sm:p-6">
+              {cardHtml ? <ArchivedRichContent html={cardHtml} eventId={message.id} mediaRefs={attachments} /> : <p className="text-sm text-slate-500">此卡片的內容無法還原。</p>}
+            </div>
+            <div className="shrink-0 border-t border-slate-100 bg-slate-50 px-5 py-3"><button type="button" onClick={() => setCardOpen(false)} className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-3 text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-600">關閉</button></div>
+          </div>
+        </div>, document.body,
+      )}
+    </>
   );
 }
 
@@ -246,6 +287,7 @@ function EvidenceMedia({ eventId, path }: { eventId: string; path: string }) {
   const [mediaType, setMediaType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const objectUrlRef = useRef<string | null>(null);
   const loadingRef = useRef(false);
@@ -283,6 +325,13 @@ function EvidenceMedia({ eventId, path }: { eventId: string; path: string }) {
   }, [eventId, path]);
 
   useEffect(() => {
+    if (!expanded) return;
+    const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setExpanded(false); };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [expanded]);
+
+  useEffect(() => {
     const node = containerRef.current;
     if (!node) return;
     const observer = new IntersectionObserver(entries => {
@@ -297,12 +346,13 @@ function EvidenceMedia({ eventId, path }: { eventId: string; path: string }) {
 
   return (
     <div ref={containerRef} className="min-w-0">
-      {objectUrl && mediaType === 'video/mp4' ? <video src={objectUrl} controls preload="none" className="max-h-64 max-w-full rounded-lg" /> : objectUrl ? <img src={objectUrl} alt="封存圖片" className="max-h-64 max-w-full rounded-lg object-contain" /> : (
+      {objectUrl && mediaType === 'video/mp4' ? <video src={objectUrl} controls preload="none" className="max-h-64 max-w-full rounded-lg" /> : objectUrl ? <button type="button" onClick={() => setExpanded(true)} aria-label="放大圖片" className={`block max-w-full rounded-lg ${buttonFocus}`}><img src={objectUrl} alt="封存圖片，點擊放大" className="max-h-64 max-w-full rounded-lg object-contain" /></button> : (
         <button type="button" onClick={() => void load()} disabled={loading} className={`inline-flex items-center gap-2 rounded-lg border border-cyan-400/35 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-50 ${buttonFocus}`}>
           <ImageIcon className="h-4 w-4" aria-hidden="true" />{loading ? '圖片載入中…' : error ? '重試載入圖片' : '查看圖片'}
         </button>
       )}
       {error && <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p>}
+      {expanded && objectUrl && createPortal(<div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/90 p-4" onClick={() => setExpanded(false)}><div role="dialog" aria-modal="true" aria-label="圖片預覽" className="relative flex max-h-full max-w-full items-center" onClick={event => event.stopPropagation()}><button type="button" autoFocus onClick={() => setExpanded(false)} aria-label="關閉圖片預覽" className="absolute -right-2 -top-11 rounded-full bg-white/15 p-2 text-white hover:bg-white/30"><X className="h-5 w-5" /></button><img src={objectUrl} alt="封存圖片預覽" className="max-h-[85vh] max-w-[95vw] object-contain" /></div></div>, document.body)}
     </div>
   );
 }
@@ -735,19 +785,24 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
             <section ref={detailRef} aria-label="稽核事件詳情" className="min-h-0 min-w-0 scroll-mt-2 xl:overflow-y-auto">
               <div className="border-b border-slate-700 bg-slate-950/50 px-4 py-3"><h2 className="text-sm font-black text-white">內容查看</h2></div>
               {!selectedId ? <p className="px-4 py-12 text-center text-sm text-slate-400">點選左側卡片查看內容。</p> : detailLoading ? <p role="status" className="px-4 py-12 text-center text-sm text-slate-400">載入詳情中…</p> : conversation ? (
-                <div className="space-y-4 p-3 sm:p-4">
-                  <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <MetadataRow label="刪除時間 (UTC+8)" value={formatAuditTime(conversation.occurred_at)} />
-                    <MetadataRow label="員工帳戶" value={conversation.employee_account} />
-                    <MetadataRow label="員工 ID" value={conversation.employee_id} />
-                  </dl>
-                  <section>
-                    <h3 className="mb-2 text-sm font-bold text-white">聊天會話記錄 · {conversation.total} 則</h3>
-                    <div className="space-y-3 rounded-xl bg-slate-950/60 p-3">{conversation.items.map(message => (
-                      <ConversationTranscript key={message.id} message={message} senderName={message.sender_type === 'employee' ? conversation.employee_account : '客戶'} workspace={conversation.entity_type} purgeUnlocked={purgeUnlocked && !clearing && !windowBusy}
-                        onClear={id => { setReason(''); setClearTarget({ id }); }} />
-                    ))}</div>
-                    {conversation.total > TRANSCRIPT_PAGE_SIZE && <div className="mt-3 flex items-center justify-between text-xs text-slate-300">
+                <div className="p-3 sm:p-4">
+                  <section className={`flex h-[70vh] min-h-[360px] max-h-[720px] min-w-0 flex-col overflow-hidden rounded-xl border shadow-xl ${conversation.entity_type === 'aaa_service' ? 'border-orange-400/30' : 'border-emerald-400/30'}`}>
+                    <div className={`flex shrink-0 flex-wrap items-center gap-3 border-b px-4 py-3 ${conversation.entity_type === 'aaa_service' ? 'border-orange-400/30 bg-gradient-to-r from-slate-950 to-orange-950/70' : 'border-emerald-400/30 bg-gradient-to-r from-slate-950 to-emerald-950/70'}`}>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/10"><MessageCircle className="h-5 w-5 text-white" /></div>
+                      <div className="min-w-0"><h3 className="text-sm font-bold text-white">聊天會話記錄 · {conversation.total} 則</h3><p className="text-[11px] text-slate-300">刪除時間：{formatAuditTime(conversation.occurred_at)}</p></div>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-white/10 bg-slate-900 px-4 py-2 text-xs text-slate-200">
+                      <span className="inline-flex items-center gap-1.5"><User className="h-4 w-4 text-blue-300" />客戶</span>
+                      <span className="h-5 w-px bg-white/15" />
+                      <span className="min-w-0 break-all font-semibold">員工：{conversation.employee_account} <span className="font-normal text-slate-400">· ID {conversation.employee_id}</span></span>
+                    </div>
+                    <div className={`min-h-0 flex-1 space-y-3 overflow-y-auto p-4 scrollbar-dark ${conversation.entity_type === 'aaa_service' ? 'bg-[linear-gradient(180deg,#24170f_0%,#1b1513_40%,#24170f_100%)]' : 'bg-[linear-gradient(180deg,#0b2118_0%,#101c19_40%,#0b2118_100%)]'}`}>
+                      {conversation.items.map(message => (
+                        <ConversationTranscript key={message.id} message={message} senderName={message.sender_type === 'employee' ? conversation.employee_account : '客戶'} workspace={conversation.entity_type} purgeUnlocked={purgeUnlocked && !clearing && !windowBusy}
+                          onClear={id => { setReason(''); setClearTarget({ id }); }} />
+                      ))}
+                    </div>
+                    {conversation.total > TRANSCRIPT_PAGE_SIZE && <div className="flex shrink-0 items-center justify-between border-t border-white/10 bg-slate-900 px-4 py-2 text-xs text-slate-300">
                       <span>第 {conversationPage + 1} / {Math.ceil(conversation.total / TRANSCRIPT_PAGE_SIZE)} 頁</span>
                       <span className="flex gap-2"><button type="button" disabled={conversationPage === 0} onClick={() => setConversationPage(value => value - 1)} className={`rounded-lg border border-slate-600 px-2 py-1.5 disabled:opacity-40 ${buttonFocus}`}>上一頁</button><button type="button" disabled={(conversationPage + 1) * TRANSCRIPT_PAGE_SIZE >= conversation.total} onClick={() => setConversationPage(value => value + 1)} className={`rounded-lg border border-slate-600 px-2 py-1.5 disabled:opacity-40 ${buttonFocus}`}>下一頁</button></span>
                     </div>}
