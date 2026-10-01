@@ -98,7 +98,7 @@ BEGIN
         RAISE EXCEPTION 'Login text must be a string.';
       END IF;
       IF nullif(btrim(p_value #>> '{}'), '') IS NULL
-         OR char_length(p_value #>> '{}') > CASE p_key WHEN 'login_title' THEN 100 ELSE 200 END THEN
+         OR char_length(p_value #>> '{}') > (CASE p_key WHEN 'login_title' THEN 100 ELSE 200 END) THEN
         RAISE EXCEPTION 'Login text must not be empty or exceed its length limit.';
       END IF;
   END CASE;
