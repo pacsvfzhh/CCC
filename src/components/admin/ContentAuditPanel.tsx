@@ -13,6 +13,7 @@ type AuditAction = 'edit' | 'delete' | 'conversation_delete' | 'customer_delete'
 
 interface AuditEvent {
   id: string;
+  card_id: string;
   operation_id: string;
   entity_type: AuditType;
   entity_id: string;
@@ -24,6 +25,9 @@ interface AuditEvent {
   actor_role: string;
   customer_id: string | null;
   employee_id: string | null;
+  employee_account: string | null;
+  message_count: number;
+  cleared_count: number;
   occurred_at: string;
   summary: string;
   notification_origin?: 'manual_admin' | 'automation' | 'unverified' | null;
@@ -41,6 +45,32 @@ interface AuditDetail extends Omit<AuditEvent, 'summary'> {
   timeline: Array<Pick<AuditEvent, 'id' | 'action' | 'occurred_at' | 'cleared_at'>>;
 }
 
+interface ConversationMessage {
+  id: string;
+  created_at: string | null;
+  sender_type: string | null;
+  message_type: string | null;
+  message_content: string | null;
+  image_url: string | null;
+  title: string | null;
+  subtitle: string | null;
+  rating_data: Record<string, unknown> | null;
+  rendered_html: string | null;
+  media_refs: Record<string, string>;
+  cleared_at: string | null;
+  clear_started_at: string | null;
+}
+
+interface ConversationDetail {
+  operation_id: string;
+  entity_type: AuditType;
+  occurred_at: string;
+  employee_account: string;
+  employee_id: string;
+  total: number;
+  items: ConversationMessage[];
+}
+
 interface AuditFilters {
   type: '' | AuditType;
   owner: string;
@@ -52,6 +82,7 @@ interface AuditFilters {
 }
 
 const PAGE_SIZE = 30;
+const TRANSCRIPT_PAGE_SIZE = 100;
 const emptyFilters: AuditFilters = { type: '', owner: '', actor: '', action: '', search: '', from: '', to: '' };
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const typeLabels: Record<AuditType, string> = {
@@ -78,6 +109,55 @@ function localDayStart(date: string, nextDay = false): string {
   const start = new Date(`${date}T00:00:00+08:00`);
   if (nextDay) start.setTime(start.getTime() + 24 * 60 * 60 * 1000);
   return start.toISOString();
+}
+
+function readableText(value: string | null): string {
+  if (!value) return '';
+  const document = new DOMParser().parseFromString(value, 'text/html');
+  document.querySelectorAll('script, style, iframe, svg, math, template').forEach(element => element.remove());
+  document.querySelectorAll('br').forEach(element => element.replaceWith('\n'));
+  document.querySelectorAll('p, div, li, h1, h2, h3, h4, blockquote, tr').forEach(element => element.append('\n'));
+  return (document.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function ConversationTranscript({ message, purgeUnlocked, onClear }: {
+  message: ConversationMessage;
+  purgeUnlocked: boolean;
+  onClear: (id: string) => void;
+}) {
+  const content = message.message_type === 'rich_card'
+    ? message.rendered_html || message.message_content
+    : message.message_content;
+  const text = readableText(content);
+  const attachments = Object.entries(message.media_refs || {}).filter(([source]) =>
+    source === message.image_url || Boolean(message.message_content?.includes(source)) || Boolean(message.rendered_html?.includes(source)));
+  const rating = message.rating_data;
+  const structured = message.message_type === 'rating_result'
+    ? `評分：${typeof rating?.rating === 'number' ? rating.rating : '未提供'}${typeof rating?.comment === 'string' ? `\n評語：${rating.comment}` : ''}`
+    : message.message_type === 'tip'
+      ? `打賞：${typeof rating?.tip_amount === 'number' ? rating.tip_amount : '未提供'}` : '';
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+        <strong className="text-cyan-100">{message.sender_type === 'employee' ? '員工' : '客戶'}</strong>
+        {message.created_at && <span className="text-slate-400">{formatAuditTime(message.created_at)}</span>}
+      </div>
+      {message.cleared_at ? <p className="mt-2 text-xs text-slate-400">此則聊天證據已清除。</p> : (
+        <>
+          {message.title && <p className="mt-2 text-sm font-bold text-white">{readableText(message.title)}</p>}
+          {message.subtitle && <p className="mt-1 text-xs text-slate-300">{readableText(message.subtitle)}</p>}
+          {(text || structured) && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">{[text, structured].filter(Boolean).join('\n')}</p>}
+          {message.message_type === 'image' && <p className="mt-2 text-xs text-slate-300">圖片訊息</p>}
+          {attachments.length > 0 && <div className="mt-2 space-y-2">{attachments.map(([source, path]) =>
+            <EvidenceMedia key={`${message.id}:${path}`} eventId={message.id} source={source} path={path} showSource={false} />
+          )}</div>}
+          {!text && !structured && !attachments.length && message.message_type !== 'image' && <p className="mt-2 text-xs text-slate-400">沒有可顯示的文字內容。</p>}
+          {purgeUnlocked && <button type="button" onClick={() => onClear(message.id)} className={`mt-3 rounded-lg border border-rose-400/40 px-2 py-1 text-xs text-rose-200 hover:bg-rose-500/10 ${buttonFocus}`}>清除此則證據</button>}
+        </>
+      )}
+    </div>
+  );
 }
 
 function Snapshot({ title, data, cleared }: { title: string; data: unknown; cleared: boolean }) {
@@ -113,7 +193,7 @@ function Snapshot({ title, data, cleared }: { title: string; data: unknown; clea
   );
 }
 
-function EvidenceMedia({ eventId, source, path }: { eventId: string; source: string; path: string }) {
+function EvidenceMedia({ eventId, source, path, showSource = true }: { eventId: string; source: string; path: string; showSource?: boolean }) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -152,7 +232,7 @@ function EvidenceMedia({ eventId, source, path }: { eventId: string; source: str
 
   return (
     <div className="min-w-0 rounded-lg border border-slate-700 bg-slate-950/60 p-3">
-      <p className="break-all text-[11px] text-slate-400">原始來源：{source}</p>
+      {showSource && <p className="break-all text-[11px] text-slate-400">原始來源：{source}</p>}
       {objectUrl && mediaType === 'video/mp4' ? <video src={objectUrl} controls preload="none" className="mt-2 max-h-64 max-w-full rounded-lg" /> : objectUrl ? <img src={objectUrl} alt="安全載入的封存證據圖片" className="mt-2 max-h-64 max-w-full rounded-lg object-contain" /> : (
         <button type="button" onClick={() => void load()} disabled={loading} className={`mt-2 inline-flex items-center gap-2 rounded-lg border border-cyan-400/35 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-50 ${buttonFocus}`}>
           <ImageIcon className="h-4 w-4" aria-hidden="true" />{loading ? '載入中…' : '安全載入封存媒體'}
@@ -178,14 +258,17 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedCard, setSelectedCard] = useState<AuditEvent | null>(null);
   const [detail, setDetail] = useState<AuditDetail | null>(null);
+  const [conversation, setConversation] = useState<ConversationDetail | null>(null);
+  const [conversationPage, setConversationPage] = useState(0);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailKey, setDetailKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [expiry, setExpiry] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [windowBusy, setWindowBusy] = useState(false);
-  const [clearTarget, setClearTarget] = useState<AuditDetail | null>(null);
+  const [clearTarget, setClearTarget] = useState<{ id: string } | null>(null);
   const [reason, setReason] = useState('');
   const [clearing, setClearing] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
@@ -241,7 +324,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setTotal(0);
     const load = async () => {
       try {
-        const { data, error: rpcError } = await supabase.rpc('list_content_audit_events', {
+        const { data, error: rpcError } = await supabase.rpc('list_content_audit_cards', {
           p_admin_session_token: getAdminFinancialSessionToken(),
           p_type: filters.type || null,
           p_owner: filters.owner || null,
@@ -271,18 +354,34 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   }, [filters, page, refreshKey]);
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedCard) return;
     let cancelled = false;
     setDetail(null);
+    setConversation(null);
     setDetailLoading(true);
     const load = async () => {
       try {
-        const { data, error: rpcError } = await supabase.rpc('get_content_audit_event', {
-          p_admin_session_token: getAdminFinancialSessionToken(), p_event_id: selectedId,
-        });
-        if (rpcError) throw rpcError;
-        if (!data || typeof data !== 'object' || !('id' in data)) throw new Error('找不到此稽核事件。');
-        if (!cancelled) setDetail(data as unknown as AuditDetail);
+        if (selectedCard.action === 'conversation_delete' && selectedCard.customer_id && selectedCard.employee_id) {
+          const { data, error: rpcError } = await supabase.rpc('get_content_audit_conversation', {
+            p_admin_session_token: getAdminFinancialSessionToken(),
+            p_operation_id: selectedCard.operation_id,
+            p_type: selectedCard.entity_type,
+            p_customer_id: selectedCard.customer_id,
+            p_employee_id: selectedCard.employee_id,
+            p_page: conversationPage,
+            p_page_size: TRANSCRIPT_PAGE_SIZE,
+          });
+          if (rpcError) throw rpcError;
+          if (!data || typeof data !== 'object' || !('items' in data)) throw new Error('找不到此對話。');
+          if (!cancelled) setConversation(data as unknown as ConversationDetail);
+        } else {
+          const { data, error: rpcError } = await supabase.rpc('get_content_audit_event', {
+            p_admin_session_token: getAdminFinancialSessionToken(), p_event_id: selectedCard.id,
+          });
+          if (rpcError) throw rpcError;
+          if (!data || typeof data !== 'object' || !('id' in data)) throw new Error('找不到此稽核事件。');
+          if (!cancelled) setDetail(data as unknown as AuditDetail);
+        }
       } catch (err) {
         if (!cancelled) setError(`載入稽核詳情失敗：${formatSupabaseError(err)}`);
       } finally {
@@ -291,7 +390,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     };
     void load();
     return () => { cancelled = true; };
-  }, [selectedId, detailKey]);
+  }, [selectedCard, conversationPage, detailKey]);
 
   useEffect(() => {
     if (!expiry) return;
@@ -403,7 +502,10 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setFilters(next);
     setPage(0);
     setSelectedId(null);
+    setSelectedCard(null);
     setDetail(null);
+    setConversation(null);
+    setConversationPage(0);
     setRefreshKey(key => key + 1);
   };
 
@@ -413,7 +515,10 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setFilterError(null);
     setPage(0);
     setSelectedId(null);
+    setSelectedCard(null);
     setDetail(null);
+    setConversation(null);
+    setConversationPage(0);
     setRefreshKey(key => key + 1);
   };
 
@@ -423,18 +528,30 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setFilters(next);
     setPage(0);
     setSelectedId(null);
+    setSelectedCard(null);
     setDetail(null);
+    setConversation(null);
+    setConversationPage(0);
   };
 
   const selectEvent = (id: string) => {
-    setSelectedId(id);
+    const version = detail?.timeline.find(item => item.id === id);
+    const card = events.find(item => item.card_id === id || item.id === id)
+      ?? (detail && version ? {
+        ...detail, ...version, card_id: `event:${id}`, summary: '', message_count: 1,
+        cleared_count: version.cleared_at ? 1 : 0,
+      } : null);
+    if (!card) return;
+    setSelectedCard(card);
+    setSelectedId(card.card_id);
+    setConversationPage(0);
     // On narrow screens the detail is stacked after the cards.
     if (window.innerWidth < 1280) window.requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
   const handleClear = async () => {
     const trimmed = reason.trim();
-    if (!clearTarget || clearTarget.id !== selectedId || !expiryRef.current || new Date(expiryRef.current).getTime() <= Date.now() || clearing || trimmed.length < 10 || trimmed.length > 500) return;
+    if (!clearTarget || (!conversation?.items.some(item => item.id === clearTarget.id) && clearTarget.id !== selectedCard?.id) || !expiryRef.current || new Date(expiryRef.current).getTime() <= Date.now() || clearing || trimmed.length < 10 || trimmed.length > 500) return;
     setClearing(true);
     setError(null);
     try {
@@ -470,7 +587,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       </label>
       <label className="block text-xs font-semibold text-slate-300">所屬管理員
         <select className={inputClass} value={draft.owner} onChange={event => setDraft(previous => ({ ...previous, owner: event.target.value }))}>
-          <option value="">全部管理員</option>{owners.map(owner => <option key={owner.id} value={owner.id}>{owner.username} · {owner.event_count} 筆</option>)}
+          <option value="">全部管理員</option>{owners.map(owner => <option key={owner.id} value={owner.id}>{owner.username}</option>)}
         </select>
       </label>
       <label className="block text-xs font-semibold text-slate-300">操作者 ID（非所屬管理員）
@@ -540,23 +657,42 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
               <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 bg-slate-950/50 px-4 py-3"><h2 className="text-sm font-black text-white">異動紀錄</h2><span className="text-xs text-cyan-200">共 {total.toLocaleString()} 筆</span></div>
               <div className="space-y-2.5 p-3 sm:p-4 xl:min-h-0 xl:flex-1">
                 {loading ? <p role="status" className="py-12 text-center text-sm text-slate-400">載入稽核紀錄中…</p> : events.length === 0 ? <p className="py-12 text-center text-sm text-slate-400">沒有符合條件的稽核紀錄。</p> : events.map(item => (
-                  <button key={item.id} type="button" onClick={() => selectEvent(item.id)} aria-pressed={selectedId === item.id} className={`w-full min-w-0 rounded-xl border p-3 text-left transition-colors ${selectedId === item.id ? 'border-cyan-300/70 bg-cyan-600/20' : 'border-slate-700 bg-slate-950/60 hover:border-cyan-400/35 hover:bg-slate-800'} ${buttonFocus}`}>
-                    <span className="flex flex-wrap items-center justify-between gap-2"><span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-cyan-300" aria-hidden="true" /><strong className="text-xs text-white">{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : item.notification_origin === 'unverified' ? '通知 · 來源待核實' : '通知' : typeLabels[item.entity_type] ?? item.entity_type}</strong><span className="rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-100">{actionLabels[item.action] ?? item.action}</span></span>{item.cleared_at ? <span className="text-[10px] font-bold text-rose-300">證據已清除</span> : item.clear_started_at ? <span className="text-[10px] font-bold text-amber-300">清除未完成</span> : <span className="text-[10px] text-emerald-300">證據保留中</span>}</span>
-                    <span className="mt-2 block break-words text-xs leading-5 text-slate-300">{item.summary || '（無摘要）'}</span>
-                    <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400"><span>操作者：<strong className="text-slate-200">{item.actor_username}</strong></span><span>所屬管理員：<span className="break-all text-slate-300">{item.owner_username || item.owner_admin_id}</span></span></span>
+                  <button key={item.card_id} type="button" onClick={() => selectEvent(item.card_id)} aria-pressed={selectedId === item.card_id} className={`w-full min-w-0 rounded-xl border p-3 text-left transition-colors ${selectedId === item.id ? 'border-cyan-300/70 bg-cyan-600/20' : 'border-slate-700 bg-slate-950/60 hover:border-cyan-400/35 hover:bg-slate-800'} ${buttonFocus}`}>
+                    <span className="flex flex-wrap items-center justify-between gap-2"><span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-cyan-300" aria-hidden="true" /><strong className="text-xs text-white">{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : item.notification_origin === 'unverified' ? '通知 · 來源待核實' : '通知' : typeLabels[item.entity_type] ?? item.entity_type}</strong><span className="rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-100">{actionLabels[item.action] ?? item.action}</span></span>{item.cleared_count === item.message_count ? <span className="text-[10px] font-bold text-rose-300">證據已清除</span> : item.cleared_count > 0 ? <span className="text-[10px] font-bold text-amber-300">已清除 {item.cleared_count} / {item.message_count} 則</span> : item.clear_started_at ? <span className="text-[10px] font-bold text-amber-300">清除未完成</span> : <span className="text-[10px] text-emerald-300">證據保留中</span>}</span>
+                    <span className="mt-2 block break-words text-xs leading-5 text-slate-300">{item.action === 'conversation_delete' ? `完整對話 · ${item.message_count} 則訊息` : item.summary || '（無摘要）'}</span>
+                    <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400">{item.action === 'conversation_delete' && <span>員工：<strong className="text-slate-200">{item.employee_account || item.employee_id || '—'}</strong></span>}<span>操作者：<strong className="text-slate-200">{item.actor_username}</strong></span><span>所屬管理員：<span className="break-all text-slate-300">{item.owner_username || item.owner_admin_id}</span></span></span>
                     <span className="mt-2 block text-[11px] tabular-nums text-cyan-200"><Clock3 className="mr-1 inline h-3 w-3" aria-hidden="true" />{formatAuditTime(item.occurred_at)}</span>
                   </button>
                 ))}
               </div>
               <div className="flex shrink-0 items-center justify-between gap-2 border-t border-slate-700 bg-slate-950/50 px-3 py-3 text-xs text-slate-300 sm:px-4">
                 <span>{total === 0 ? '0 筆' : `${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, total)} / ${total}`} · 第 {page + 1} / {pageCount} 頁</span>
-                <span className="flex gap-1"><button type="button" onClick={() => { setPage(value => value - 1); setSelectedId(null); setDetail(null); }} disabled={loading || page === 0} aria-label="上一頁" className={`rounded-lg border border-slate-600 p-1.5 hover:bg-slate-800 disabled:opacity-40 ${buttonFocus}`}><ChevronLeft className="h-4 w-4" /></button><button type="button" onClick={() => { setPage(value => value + 1); setSelectedId(null); setDetail(null); }} disabled={loading || page + 1 >= pageCount} aria-label="下一頁" className={`rounded-lg border border-slate-600 p-1.5 hover:bg-slate-800 disabled:opacity-40 ${buttonFocus}`}><ChevronRight className="h-4 w-4" /></button></span>
+                <span className="flex gap-1"><button type="button" onClick={() => { setPage(value => value - 1); setSelectedId(null); setSelectedCard(null); setDetail(null); setConversation(null); }} disabled={loading || page === 0} aria-label="上一頁" className={`rounded-lg border border-slate-600 p-1.5 hover:bg-slate-800 disabled:opacity-40 ${buttonFocus}`}><ChevronLeft className="h-4 w-4" /></button><button type="button" onClick={() => { setPage(value => value + 1); setSelectedId(null); setSelectedCard(null); setDetail(null); setConversation(null); }} disabled={loading || page + 1 >= pageCount} aria-label="下一頁" className={`rounded-lg border border-slate-600 p-1.5 hover:bg-slate-800 disabled:opacity-40 ${buttonFocus}`}><ChevronRight className="h-4 w-4" /></button></span>
               </div>
             </section>
 
             <section ref={detailRef} aria-label="稽核事件詳情" className="min-h-0 min-w-0 scroll-mt-2 xl:overflow-y-auto">
               <div className="border-b border-slate-700 bg-slate-950/50 px-4 py-3"><h2 className="text-sm font-black text-white">事件詳情與版本歷程</h2></div>
-              {!selectedId ? <p className="px-4 py-12 text-center text-sm text-slate-400">選取一筆事件，查看異動前後的證據與版本歷程。</p> : detailLoading ? <p role="status" className="px-4 py-12 text-center text-sm text-slate-400">載入詳情中…</p> : !detail ? <p className="px-4 py-12 text-center text-sm text-slate-400">無法顯示此事件。請重新選取或刷新。</p> : (
+              {!selectedId ? <p className="px-4 py-12 text-center text-sm text-slate-400">選取一筆事件，查看異動前後的證據與版本歷程。</p> : detailLoading ? <p role="status" className="px-4 py-12 text-center text-sm text-slate-400">載入詳情中…</p> : conversation ? (
+                <div className="space-y-4 p-3 sm:p-4">
+                  <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <MetadataRow label="刪除時間 (UTC+8)" value={formatAuditTime(conversation.occurred_at)} />
+                    <MetadataRow label="員工帳戶" value={conversation.employee_account} />
+                    <MetadataRow label="員工 ID" value={conversation.employee_id} />
+                  </dl>
+                  <section>
+                    <h3 className="mb-2 text-sm font-bold text-white">聊天會話記錄 · {conversation.total} 則</h3>
+                    <div className="space-y-2">{conversation.items.map(message => (
+                      <ConversationTranscript key={message.id} message={message} purgeUnlocked={purgeUnlocked && !clearing && !windowBusy}
+                        onClear={id => { setReason(''); setClearTarget({ id }); }} />
+                    ))}</div>
+                    {conversation.total > TRANSCRIPT_PAGE_SIZE && <div className="mt-3 flex items-center justify-between text-xs text-slate-300">
+                      <span>第 {conversationPage + 1} / {Math.ceil(conversation.total / TRANSCRIPT_PAGE_SIZE)} 頁</span>
+                      <span className="flex gap-2"><button type="button" disabled={conversationPage === 0} onClick={() => setConversationPage(value => value - 1)} className={`rounded-lg border border-slate-600 px-2 py-1.5 disabled:opacity-40 ${buttonFocus}`}>上一頁</button><button type="button" disabled={(conversationPage + 1) * TRANSCRIPT_PAGE_SIZE >= conversation.total} onClick={() => setConversationPage(value => value + 1)} className={`rounded-lg border border-slate-600 px-2 py-1.5 disabled:opacity-40 ${buttonFocus}`}>下一頁</button></span>
+                    </div>}
+                  </section>
+                </div>
+              ) : !detail ? <p className="px-4 py-12 text-center text-sm text-slate-400">無法顯示此事件。請重新選取或刷新。</p> : (
                 <div className="min-w-0 space-y-4 p-3 sm:p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2"><span className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-bold text-cyan-100">{typeLabels[detail.entity_type] ?? detail.entity_type} · {actionLabels[detail.action] ?? detail.action}</span>{detail.cleared_at ? <span className="text-xs font-bold text-rose-300">證據已清除</span> : <button type="button" onClick={() => { setReason(''); setClearTarget(detail); }} disabled={!purgeUnlocked || clearing || windowBusy} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />清除此筆證據</button>}</div>
                   <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2"><MetadataRow label="事件 ID" value={detail.id} /><MetadataRow label="操作批次 ID" value={detail.operation_id} /><MetadataRow label="對象 ID" value={detail.entity_id} /><MetadataRow label="發生時間 (UTC+8)" value={formatAuditTime(detail.occurred_at)} /><MetadataRow label="操作者（實際執行異動）" value={`${detail.actor_username} · ${detail.actor_role} · ${detail.actor_admin_id}`} /><MetadataRow label="所屬管理員（資料擁有者）" value={`${detail.owner_username ?? '—'} · ${detail.owner_admin_id}`} /><MetadataRow label="客戶 ID" value={detail.customer_id} /><MetadataRow label="員工 ID" value={detail.employee_id} /><MetadataRow label="清除開始 (UTC+8)" value={detail.clear_started_at ? formatAuditTime(detail.clear_started_at) : null} /><MetadataRow label="清除完成 (UTC+8)" value={detail.cleared_at ? formatAuditTime(detail.cleared_at) : null} />{detail.clear_reason && <MetadataRow label="清除原因" value={detail.clear_reason} />}{detail.cleared_by && <MetadataRow label="清除操作者" value={`${detail.cleared_username ?? '—'} · ${detail.cleared_by}`} />}</dl>

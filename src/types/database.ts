@@ -2350,6 +2350,33 @@ export interface Database {
         Args: { p_admin_session_token: string };
         Returns: Array<{ id: string; username: string; event_count: number }>;
       };
+      list_content_audit_cards: {
+        Args: {
+          p_admin_session_token: string;
+          p_type?: string | null;
+          p_owner?: string | null;
+          p_actor?: string | null;
+          p_action?: string | null;
+          p_search?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_page?: number;
+          p_page_size?: number;
+        };
+        Returns: { total: number; items: Array<Record<string, unknown>> };
+      };
+      get_content_audit_conversation: {
+        Args: {
+          p_admin_session_token: string;
+          p_operation_id: string;
+          p_type: string;
+          p_customer_id: string;
+          p_employee_id: string;
+          p_page?: number;
+          p_page_size?: number;
+        };
+        Returns: Record<string, unknown> | null;
+      };
       list_content_audit_events: {
         Args: {
           p_admin_session_token: string;

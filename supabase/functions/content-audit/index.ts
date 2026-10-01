@@ -81,46 +81,54 @@ async function mutate(body: Change) {
     p_employee_id: body.employeeId ?? null,
   });
   if (prepareError) throw prepareError;
-  await clearStaleCopies().catch(error => console.error('Could not collect uncommitted evidence:', error));
+  const staleCleanup = clearStaleCopies().catch(error => console.error('Could not collect uncommitted evidence:', error));
   const snapshots = prepared.snapshots as unknown;
   const entries = Array.isArray(snapshots) ? snapshots
     : snapshots && typeof snapshots === 'object' && 'messages' in snapshots ? snapshots.messages : null;
   const messages = Array.isArray(entries) ? entries : [];
   const operationId = crypto.randomUUID();
   const copied: string[] = [];
-  const copiedByUrl = new Map<string, string>();
+  const copies = new Map<string, { bucket: string; objectPath: string; privatePath: string }>();
   const manifest: Record<string, Record<string, string>> = {};
   try {
+    const addedUrls = body.action.endsWith('_edit') ? mediaUrls(body.payload ?? {}) : [];
     for (const item of messages) {
       if (body.action === 'notification_delete' && item?.message?.automation_execution_id) continue;
       const id = item?.message?.id;
       if (typeof id !== 'string') throw new Error('The evidence snapshot is invalid.');
-      const urls = mediaUrls(item);
-      if (body.action.endsWith('_edit')) {
-        for (const url of mediaUrls(body.payload ?? {})) if (!urls.includes(url)) urls.push(url);
-      }
       manifest[id] = {};
-      for (const original of urls) {
-        let privatePath = copiedByUrl.get(original);
-        if (!privatePath) {
+      for (const original of new Set([...mediaUrls(item), ...addedUrls])) {
+        let copy = copies.get(original);
+        if (!copy) {
           const { bucket, objectPath } = storagePath(original);
-          const { data: blob, error: downloadError } = await db.storage.from(bucket).download(objectPath);
-          if (downloadError || !blob) throw new Error('Unable to preserve an attachment; content was not changed.');
-          privatePath = `${operationId}/shared/${copiedByUrl.size}`;
-          const { error: uploadError } = await db.storage.from(evidenceBucket).upload(privatePath, blob, {
-            contentType: blob.type || 'application/octet-stream', upsert: false,
-          });
-          if (uploadError) throw new Error('Unable to preserve an attachment; content was not changed.');
-          copied.push(privatePath);
-          copiedByUrl.set(original, privatePath);
+          copy = { bucket, objectPath, privatePath: `${operationId}/shared/${copies.size}` };
+          copies.set(original, copy);
         }
-        manifest[id][original] = privatePath;
+        manifest[id][original] = copy.privatePath;
       }
     }
+    const pending = [...copies.values()];
+    let next = 0;
+    const copyNext = async () => {
+      while (next < pending.length) {
+        const copy = pending[next++];
+        const { data: blob, error: downloadError } = await db.storage.from(copy.bucket).download(copy.objectPath);
+        if (downloadError || !blob) throw new Error('Unable to preserve an attachment; content was not changed.');
+        const { error: uploadError } = await db.storage.from(evidenceBucket).upload(copy.privatePath, blob, {
+          contentType: blob.type || 'application/octet-stream', upsert: false,
+        });
+        if (uploadError) throw new Error('Unable to preserve an attachment; content was not changed.');
+        copied.push(copy.privatePath);
+      }
+    };
+    const results = await Promise.allSettled(Array.from({ length: Math.min(4, pending.length) }, copyNext));
+    const failed = results.find(result => result.status === 'rejected');
+    if (failed?.status === 'rejected') throw failed.reason;
   } catch (error) {
     if (copied.length) await db.storage.from(evidenceBucket).remove(copied);
     throw error;
   }
+  await staleCleanup;
   const { data, error, status } = await db.rpc('commit_content_audit_change', {
     p_admin_session_token: body.sessionToken,
     p_action: body.action,
