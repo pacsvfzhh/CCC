@@ -5,7 +5,7 @@ import {
   FileText, Image as ImageIcon, LockKeyhole, RefreshCw, Search, ShieldCheck, Trash2,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
-import { clearAuditedContent, loadAuditedImage } from '../../lib/contentAudit';
+import { clearAuditedContent, loadAuditedMedia } from '../../lib/contentAudit';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 
 type AuditType = 'notification' | 'aaa_service' | 'ccc_service';
@@ -112,8 +112,9 @@ function Snapshot({ title, data, cleared }: { title: string; data: unknown; clea
   );
 }
 
-function EvidenceImage({ eventId, source, path }: { eventId: string; source: string; path: string }) {
+function EvidenceMedia({ eventId, source, path }: { eventId: string; source: string; path: string }) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const objectUrlRef = useRef<string | null>(null);
@@ -133,15 +134,16 @@ function EvidenceImage({ eventId, source, path }: { eventId: string; source: str
     setLoading(true);
     setError(null);
     try {
-      const url = await loadAuditedImage(eventId, path);
+      const media = await loadAuditedMedia(eventId, path);
       if (!activeRef.current) {
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(media.url);
         return;
       }
-      objectUrlRef.current = url;
-      setObjectUrl(url);
+      objectUrlRef.current = media.url;
+      setMediaType(media.type);
+      setObjectUrl(media.url);
     } catch (err) {
-      if (activeRef.current) setError(`載入封存圖片失敗：${formatSupabaseError(err)}`);
+      if (activeRef.current) setError(`載入封存媒體失敗：${formatSupabaseError(err)}`);
     } finally {
       if (activeRef.current) setLoading(false);
     }
@@ -150,9 +152,9 @@ function EvidenceImage({ eventId, source, path }: { eventId: string; source: str
   return (
     <div className="min-w-0 rounded-lg border border-slate-700 bg-slate-950/60 p-3">
       <p className="break-all text-[11px] text-slate-400">原始來源：{source}</p>
-      {objectUrl ? <img src={objectUrl} alt="安全載入的封存證據圖片" className="mt-2 max-h-64 max-w-full rounded-lg object-contain" /> : (
+      {objectUrl && mediaType === 'video/mp4' ? <video src={objectUrl} controls preload="none" className="mt-2 max-h-64 max-w-full rounded-lg" /> : objectUrl ? <img src={objectUrl} alt="安全載入的封存證據圖片" className="mt-2 max-h-64 max-w-full rounded-lg object-contain" /> : (
         <button type="button" onClick={() => void load()} disabled={loading} className={`mt-2 inline-flex items-center gap-2 rounded-lg border border-cyan-400/35 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-50 ${buttonFocus}`}>
-          <ImageIcon className="h-4 w-4" aria-hidden="true" />{loading ? '載入中…' : '安全載入封存圖片'}
+          <ImageIcon className="h-4 w-4" aria-hidden="true" />{loading ? '載入中…' : '安全載入封存媒體'}
         </button>
       )}
       {error && <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p>}
@@ -558,7 +560,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                   <div className="flex flex-wrap items-center justify-between gap-2"><span className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-bold text-cyan-100">{typeLabels[detail.entity_type] ?? detail.entity_type} · {actionLabels[detail.action] ?? detail.action}</span>{detail.cleared_at ? <span className="text-xs font-bold text-rose-300">證據已清除</span> : <button type="button" onClick={() => { setReason(''); setClearTarget(detail); }} disabled={!purgeUnlocked || clearing || windowBusy} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />清除此筆證據</button>}</div>
                   <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2"><MetadataRow label="事件 ID" value={detail.id} /><MetadataRow label="操作批次 ID" value={detail.operation_id} /><MetadataRow label="對象 ID" value={detail.entity_id} /><MetadataRow label="發生時間 (UTC+8)" value={formatAuditTime(detail.occurred_at)} /><MetadataRow label="操作者（實際執行異動）" value={`${detail.actor_username} · ${detail.actor_role} · ${detail.actor_admin_id}`} /><MetadataRow label="所屬管理員（資料擁有者）" value={`${detail.owner_username ?? '—'} · ${detail.owner_admin_id}`} /><MetadataRow label="客戶 ID" value={detail.customer_id} /><MetadataRow label="員工 ID" value={detail.employee_id} /><MetadataRow label="清除開始 (UTC+8)" value={detail.clear_started_at ? formatAuditTime(detail.clear_started_at) : null} /><MetadataRow label="清除完成 (UTC+8)" value={detail.cleared_at ? formatAuditTime(detail.cleared_at) : null} />{detail.clear_reason && <MetadataRow label="清除原因" value={detail.clear_reason} />}{detail.cleared_by && <MetadataRow label="清除操作者" value={`${detail.cleared_username ?? '—'} · ${detail.cleared_by}`} />}</dl>
                   <div className="grid min-w-0 gap-3"><Snapshot title="異動前" data={detail.before_data} cleared={Boolean(detail.cleared_at)} /><Snapshot title="異動後" data={detail.after_data} cleared={Boolean(detail.cleared_at)} /></div>
-                  {media.length > 0 && <section><h3 className="mb-2 flex items-center gap-2 text-xs font-bold text-white"><ImageIcon className="h-4 w-4 text-cyan-300" aria-hidden="true" />封存圖片 · {media.length} 張</h3><p className="mb-2 text-[11px] text-slate-400">圖片僅透過安全驗證請求取得，原始網址只作文字參考。</p><div className="space-y-2">{media.map(([source, path]) => <EvidenceImage key={`${detail.id}:${path}`} eventId={detail.id} source={source} path={path} />)}</div></section>}
+                  {media.length > 0 && <section><h3 className="mb-2 flex items-center gap-2 text-xs font-bold text-white"><ImageIcon className="h-4 w-4 text-cyan-300" aria-hidden="true" />封存媒體 · {media.length} 個</h3><p className="mb-2 text-[11px] text-slate-400">附件僅透過安全驗證請求取得，原始網址只作文字參考。</p><div className="space-y-2">{media.map(([source, path]) => <EvidenceMedia key={`${detail.id}:${path}`} eventId={detail.id} source={source} path={path} />)}</div></section>}
                   <section><h3 className="mb-2 text-xs font-bold text-white">同一對象的版本歷程</h3><div className="space-y-1.5">{(detail.timeline ?? []).map(version => <button key={version.id} type="button" onClick={() => selectEvent(version.id)} aria-pressed={version.id === detail.id} className={`flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs ${version.id === detail.id ? 'border-cyan-400/50 bg-cyan-500/15 text-white' : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-800'} ${buttonFocus}`}><span>{actionLabels[version.action] ?? version.action}{version.cleared_at ? ' · 已清除' : ''}</span><span className="tabular-nums">{formatAuditTime(version.occurred_at)}</span></button>)}</div></section>
                 </div>
               )}

@@ -26,13 +26,13 @@ export async function clearAuditedContent(eventId: string, reason: string): Prom
   if (error || data?.error) throw new Error(data?.error || formatSupabaseError(error));
 }
 
-export async function loadAuditedImage(eventId: string, path: string): Promise<string> {
+export async function loadAuditedMedia(eventId: string, path: string): Promise<{ url: string; type: string }> {
   const { data, error, response } = await supabase.functions.invoke('content-audit', {
     body: { action: 'media', eventId, path, sessionToken: getAdminFinancialSessionToken() },
   });
   const mediaType = response?.headers.get('X-Audit-Media-Type') ?? '';
-  if (error || !(data instanceof Blob) || !/^image\/(png|jpeg|webp|gif)$/.test(mediaType)) {
-    throw new Error(formatSupabaseError(error || new Error('The evidence image is unavailable.')));
+  if (error || !(data instanceof Blob) || !/^(image\/(png|jpeg|webp|gif)|video\/mp4)$/.test(mediaType)) {
+    throw new Error(formatSupabaseError(error || new Error('The evidence media is unavailable.')));
   }
-  return URL.createObjectURL(new Blob([data], { type: mediaType }));
+  return { url: URL.createObjectURL(new Blob([data], { type: mediaType })), type: mediaType };
 }

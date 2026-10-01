@@ -74,7 +74,6 @@ async function clearStaleCopies() {
 }
 
 async function mutate(body: Change) {
-  await clearStaleCopies().catch(error => console.error('Could not collect uncommitted evidence:', error));
   const { data: prepared, error: prepareError } = await db.rpc('prepare_content_audit_change', {
     p_admin_session_token: body.sessionToken,
     p_action: body.action,
@@ -82,12 +81,14 @@ async function mutate(body: Change) {
     p_employee_id: body.employeeId ?? null,
   });
   if (prepareError) throw prepareError;
+  await clearStaleCopies().catch(error => console.error('Could not collect uncommitted evidence:', error));
   const snapshots = prepared.snapshots as unknown;
   const entries = Array.isArray(snapshots) ? snapshots
     : snapshots && typeof snapshots === 'object' && 'messages' in snapshots ? snapshots.messages : null;
   const messages = Array.isArray(entries) ? entries : [];
   const operationId = crypto.randomUUID();
   const copied: string[] = [];
+  const copiedByUrl = new Map<string, string>();
   const manifest: Record<string, Record<string, string>> = {};
   try {
     for (const item of messages) {
@@ -99,16 +100,20 @@ async function mutate(body: Change) {
         for (const url of mediaUrls(body.payload ?? {})) if (!urls.includes(url)) urls.push(url);
       }
       manifest[id] = {};
-      for (const [index, original] of urls.entries()) {
-        const { bucket, objectPath } = storagePath(original);
-        const { data: blob, error: downloadError } = await db.storage.from(bucket).download(objectPath);
-        if (downloadError || !blob) throw new Error('Unable to preserve an attachment; content was not changed.');
-        const privatePath = `${operationId}/${id}/${index}`;
-        const { error: uploadError } = await db.storage.from(evidenceBucket).upload(privatePath, blob, {
-          contentType: blob.type || 'application/octet-stream', upsert: false,
-        });
-        if (uploadError) throw new Error('Unable to preserve an attachment; content was not changed.');
-        copied.push(privatePath);
+      for (const original of urls) {
+        let privatePath = copiedByUrl.get(original);
+        if (!privatePath) {
+          const { bucket, objectPath } = storagePath(original);
+          const { data: blob, error: downloadError } = await db.storage.from(bucket).download(objectPath);
+          if (downloadError || !blob) throw new Error('Unable to preserve an attachment; content was not changed.');
+          privatePath = `${operationId}/shared/${copiedByUrl.size}`;
+          const { error: uploadError } = await db.storage.from(evidenceBucket).upload(privatePath, blob, {
+            contentType: blob.type || 'application/octet-stream', upsert: false,
+          });
+          if (uploadError) throw new Error('Unable to preserve an attachment; content was not changed.');
+          copied.push(privatePath);
+          copiedByUrl.set(original, privatePath);
+        }
         manifest[id][original] = privatePath;
       }
     }
@@ -116,7 +121,7 @@ async function mutate(body: Change) {
     if (copied.length) await db.storage.from(evidenceBucket).remove(copied);
     throw error;
   }
-  const { data, error } = await db.rpc('commit_content_audit_change', {
+  const { data, error, status } = await db.rpc('commit_content_audit_change', {
     p_admin_session_token: body.sessionToken,
     p_action: body.action,
     p_target_ids: body.targetIds,
@@ -126,7 +131,13 @@ async function mutate(body: Change) {
     p_operation_id: operationId,
     p_media: manifest,
   });
-  if (error) throw error;
+  if (error) {
+    if (status >= 400 && status < 500 && copied.length) {
+      const { error: cleanupError } = await db.storage.from(evidenceBucket).remove(copied);
+      if (cleanupError) console.error('Failed to discard rejected evidence copies:', cleanupError);
+    }
+    throw error;
+  }
   return response(data);
 }
 

@@ -207,7 +207,8 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
   SELECT COALESCE(jsonb_object_agg(source_url, private_path), '{}'::jsonb)
   FROM jsonb_each_text(COALESCE(NULLIF(current_setting('content_audit.media', true), ''), '{}')::jsonb -> p_entity_id::text) AS media(source_url, private_path)
-  WHERE strpos(p_snapshot::text, source_url) > 0;
+  WHERE strpos(p_snapshot::text, source_url) > 0
+    OR strpos(p_snapshot::text, replace(source_url, '&', '&amp;')) > 0;
 $$;
 
 CREATE FUNCTION private.capture_content_audit_change()
@@ -235,7 +236,9 @@ BEGIN
            NEW.rich_card_content_id, NEW.source_template_id, NEW.source_auto_message_id) THEN RETURN NEW; END IF;
   END IF;
 
-  IF TG_TABLE_NAME = 'messages' AND OLD.automation_execution_id IS NOT NULL THEN RETURN COALESCE(NEW, OLD); END IF;
+  IF TG_TABLE_NAME = 'messages' THEN
+    IF OLD.automation_execution_id IS NOT NULL THEN RETURN COALESCE(NEW, OLD); END IF;
+  END IF;
   v_actor := NULLIF(current_setting('content_audit.actor', true), '')::uuid;
   SELECT * INTO v_admin FROM public.admins WHERE id = v_actor AND is_active = true;
   IF v_admin.id IS NULL THEN RAISE EXCEPTION 'Content change requires a verified administrator session.'; END IF;
@@ -506,8 +509,11 @@ BEGIN
   END IF;
   FOR v_media IN SELECT event.key AS entity_id, attachment.key AS source_url, attachment.value AS private_path
     FROM jsonb_each(p_media) event CROSS JOIN LATERAL jsonb_each_text(event.value) attachment LOOP
-    IF (strpos((v_prepared -> 'snapshots')::text, v_media.source_url) = 0 AND strpos(p_payload::text, v_media.source_url) = 0)
-      OR v_media.private_path !~ ('^' || p_operation_id::text || '/' || v_media.entity_id || '/[0-9]+$')
+    IF (strpos((v_prepared -> 'snapshots')::text, v_media.source_url) = 0
+        AND strpos((v_prepared -> 'snapshots')::text, replace(v_media.source_url, '&', '&amp;')) = 0
+        AND strpos(p_payload::text, v_media.source_url) = 0
+        AND strpos(p_payload::text, replace(v_media.source_url, '&', '&amp;')) = 0)
+      OR v_media.private_path !~ ('^' || p_operation_id::text || '/shared/[0-9]+$')
       OR NOT EXISTS (SELECT 1 FROM storage.objects
         WHERE bucket_id = 'content-audit-evidence' AND name = v_media.private_path)
     THEN RAISE EXCEPTION 'An evidence attachment is missing.'; END IF;
@@ -631,12 +637,16 @@ DECLARE v_role text; v_result jsonb;
 BEGIN
   SELECT admin_role INTO v_role FROM private.get_financial_admin_context(p_admin_session_token);
   IF v_role <> 'super_admin' THEN RAISE EXCEPTION 'Super administrator permission is required.'; END IF;
-  SELECT COALESCE(jsonb_agg(to_jsonb(owner) ORDER BY owner.username, owner.id), '[]'::jsonb)
+  SELECT COALESCE(jsonb_agg(jsonb_build_object('id', latest.owner_admin_id,
+    'username', COALESCE(admin.username, latest.owner_username, latest.owner_admin_id::text),
+    'event_count', totals.event_count) ORDER BY COALESCE(admin.username, latest.owner_username), latest.owner_admin_id), '[]'::jsonb)
   INTO v_result FROM (
-    SELECT owner_admin_id AS id, COALESCE(max(owner_username), owner_admin_id::text) AS username,
-      count(*) AS event_count
-    FROM private.content_audit_events GROUP BY owner_admin_id
-  ) owner;
+    SELECT DISTINCT ON (owner_admin_id) owner_admin_id, owner_username
+    FROM private.content_audit_events ORDER BY owner_admin_id, occurred_at DESC, id DESC
+  ) latest
+  JOIN (SELECT owner_admin_id, count(*) AS event_count FROM private.content_audit_events
+    GROUP BY owner_admin_id) totals USING (owner_admin_id)
+  LEFT JOIN public.admins admin ON admin.id = latest.owner_admin_id;
   RETURN v_result;
 END;
 $$;
@@ -753,8 +763,9 @@ BEGIN
   ) THEN RAISE EXCEPTION 'A related evidence clear is in progress; retry after it finishes.'; END IF;
   UPDATE private.content_audit_events SET clear_reason = trim(p_reason), clear_started_at = clock_timestamp(), cleared_by = v_admin,
     cleared_username = (SELECT username FROM public.admins WHERE id = v_admin) WHERE id = p_event_id;
-  SELECT COALESCE(jsonb_agg(DISTINCT value), '[]'::jsonb) INTO v_paths
+  SELECT COALESCE(jsonb_agg(DISTINCT media.value), '[]'::jsonb) INTO v_paths
   FROM jsonb_each_text(v_event.media_refs) media
+  JOIN storage.objects object ON object.bucket_id = 'content-audit-evidence' AND object.name = media.value
   WHERE NOT EXISTS (
     SELECT 1 FROM private.content_audit_events other
     WHERE other.id <> p_event_id AND other.cleared_at IS NULL AND other.media_refs @> jsonb_build_object(media.key, media.value)
@@ -800,7 +811,7 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
     SELECT object.name FROM storage.objects object
     WHERE object.bucket_id = 'content-audit-evidence'
       AND object.created_at < clock_timestamp() - interval '24 hours'
-      AND object.name ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}/[0-9]+$'
+      AND object.name ~ '^[0-9a-f-]{36}/shared/[0-9]+$'
       AND NOT EXISTS (
         SELECT 1 FROM private.content_audit_events event
         WHERE event.operation_id::text = split_part(object.name, '/', 1)
@@ -846,7 +857,7 @@ REVOKE UPDATE, DELETE ON public.cs_message_templates FROM anon, authenticated;
 GRANT UPDATE (name, sort_order, is_pinned, updated_at) ON public.cs_message_templates TO anon, authenticated;
 REVOKE UPDATE, DELETE ON public.customer_auto_messages FROM anon, authenticated;
 GRANT UPDATE (name, sort_order, is_enabled, updated_at) ON public.customer_auto_messages TO anon, authenticated;
-REVOKE UPDATE, DELETE ON public.rich_card_contents FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.rich_card_contents FROM anon, authenticated;
 REVOKE UPDATE ON public.simulated_customers FROM anon, authenticated;
 GRANT UPDATE (badge_type, customer_avatar, customer_id, customer_name, custom_avatar_url,
   employee_always_visible, employee_pin_top, is_active, is_super, super_customer_title,
