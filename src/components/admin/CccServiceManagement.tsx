@@ -150,6 +150,7 @@ interface Message {
   read_at?: string | null;
   created_at: string;
   rich_card_content_id?: string | null;
+  content_frozen?: boolean;
   source_template_id?: string | null;
   source_auto_message_id?: string | null;
 }
@@ -479,7 +480,9 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
     try {
       let html: string | null = null;
-      if (msg.source_template_id) {
+      if (msg.content_frozen && msg.rich_card_content_id) {
+        html = await fetchFromRichCardContents(msg.rich_card_content_id);
+      } else if (msg.source_template_id) {
         html = await fetchFromTemplate(msg.source_template_id);
       } else if (msg.source_auto_message_id) {
         html = await fetchFromAutoMessage(msg.source_auto_message_id);
@@ -490,9 +493,13 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           await new Promise(r => setTimeout(r, 500));
           const { data: fresh } = await supabase
             .from('customer_employee_conversations')
-            .select('rich_card_content_id, source_template_id, source_auto_message_id')
+            .select('rich_card_content_id, content_frozen, source_template_id, source_auto_message_id')
             .eq('id', msg.id)
             .maybeSingle();
+          if (fresh?.content_frozen && fresh.rich_card_content_id) {
+            html = await fetchFromRichCardContents(fresh.rich_card_content_id);
+            break;
+          }
           if (fresh?.source_template_id) {
             html = await fetchFromTemplate(fresh.source_template_id);
             break;
@@ -2419,13 +2426,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
 
       if (customerForm.useCustomAvatar) {
         if (customerForm.customAvatarFile && customerForm.isSuper) {
-          if (editingCustomer.custom_avatar_url) {
-            const oldPath = editingCustomer.custom_avatar_url.split('/').slice(-2).join('/');
-            await supabase.storage
-              .from('super-customer-avatars')
-              .remove([oldPath]);
-          }
-
           const fileExt = customerForm.customAvatarFile.name.split('.').pop();
           const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
           const filePath = `avatars/${fileName}`;
@@ -2443,12 +2443,6 @@ function CccServiceManagement({ adminId, isSuperAdmin, isActive, initialEmployee
           customAvatarUrl = publicUrl;
         }
       } else {
-        if (editingCustomer.custom_avatar_url) {
-          const oldPath = editingCustomer.custom_avatar_url.split('/').slice(-2).join('/');
-          await supabase.storage
-            .from('super-customer-avatars')
-            .remove([oldPath]);
-        }
         customAvatarUrl = null;
       }
 

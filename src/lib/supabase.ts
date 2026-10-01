@@ -207,6 +207,7 @@ const fetchWithXhrFallback: typeof fetch = async (input, init) => {
     };
 
     xhr.open(method, url, true);
+    xhr.responseType = 'arraybuffer';
     xhr.timeout = REQUEST_TIMEOUT_MS;
     xhr.withCredentials = (init?.credentials || request?.credentials) === 'include';
     headers.forEach((value, key) => xhr.setRequestHeader(key, value));
@@ -226,7 +227,7 @@ const fetchWithXhrFallback: typeof fetch = async (input, init) => {
           }
         }
       });
-      resolveOnce(new Response(xhr.responseText, {
+      resolveOnce(new Response(xhr.response, {
         status: xhr.status,
         statusText: xhr.statusText,
         headers: responseHeaders,

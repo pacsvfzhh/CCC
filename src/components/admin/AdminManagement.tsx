@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, Shield, Trash2, Eye, EyeOff, CreditCard as Edit2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
+import { mutateAuditedContent } from '../../lib/contentAudit';
 import { Admin } from '../../types';
 
 interface AdminManagementProps {
@@ -113,13 +114,8 @@ export default function AdminManagement({ admin }: AdminManagementProps) {
   const handleDeleteAdmin = async (adminId: string) => {
     try {
       setDeleteError(null);
-      const { data, error } = await supabase.rpc('admin_delete_secondary_account', {
-        p_admin_session_token: getAdminFinancialSessionToken(),
-        p_target_admin_id: adminId,
-      });
-
-      if (error) throw error;
-      if (!data) throw new Error('Unable to delete administrator.');
+      const result = await mutateAuditedContent('admin_delete', [adminId]);
+      if (!result.success) throw new Error('Unable to delete administrator.');
 
       setDeletingAdminId(null);
       void loadAdmins();

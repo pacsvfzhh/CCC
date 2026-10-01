@@ -148,6 +148,7 @@ interface Message {
   is_read: boolean | null;
   created_at: string | null;
   rich_card_content_id?: string | null;
+  content_frozen?: boolean;
   rating_value?: number | null;
   source_template_id?: string | null;
   source_auto_message_id?: string | null;
@@ -285,19 +286,13 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   }, []);
 
   const fetchTemplateContentForViewer = useCallback(async (templateId: string): Promise<string | null> => {
-    const cacheKey = `tpl:${templateId}`;
-    const cached = richCardCacheRef.current.get(cacheKey);
-    if (cached) return cached;
     try {
       const { data, error } = await supabase
         .from('cs_message_templates')
         .select('content')
         .eq('id', templateId)
         .maybeSingle();
-      if (!error && data?.content) {
-        richCardCacheRef.current.set(cacheKey, data.content);
-        return data.content;
-      }
+      if (!error && data?.content) return data.content;
       return null;
     } catch {
       return null;
@@ -305,19 +300,13 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   }, []);
 
   const fetchAutoMsgContentForViewer = useCallback(async (autoMsgId: string): Promise<string | null> => {
-    const cacheKey = `auto:${autoMsgId}`;
-    const cached = richCardCacheRef.current.get(cacheKey);
-    if (cached) return cached;
     try {
       const { data, error } = await supabase
         .from('customer_auto_messages')
         .select('content')
         .eq('id', autoMsgId)
         .maybeSingle();
-      if (!error && data?.content) {
-        richCardCacheRef.current.set(cacheKey, data.content);
-        return data.content;
-      }
+      if (!error && data?.content) return data.content;
       return null;
     } catch {
       return null;
@@ -325,14 +314,16 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
   }, []);
 
   const prefetchRichCard = useCallback((msg: Message | IncomingMessage) => {
-    const key = msg.source_template_id ? `tpl:${msg.source_template_id}` :
+    const key = msg.content_frozen && msg.rich_card_content_id ? msg.rich_card_content_id :
+                msg.source_template_id ? `tpl:${msg.source_template_id}` :
                 msg.source_auto_message_id ? `auto:${msg.source_auto_message_id}` :
                 msg.rich_card_content_id || null;
     if (!key) return;
     if (richCardCacheRef.current.has(key)) return;
     if (richCardPrefetchingRef.current.has(key)) return;
     richCardPrefetchingRef.current.add(key);
-    const p = msg.source_template_id ? fetchTemplateContentForViewer(msg.source_template_id) :
+    const p = msg.content_frozen && msg.rich_card_content_id ? fetchRichCardContent(msg.rich_card_content_id) :
+              msg.source_template_id ? fetchTemplateContentForViewer(msg.source_template_id) :
               msg.source_auto_message_id ? fetchAutoMsgContentForViewer(msg.source_auto_message_id) :
               fetchRichCardContent(key);
     p.finally(() => richCardPrefetchingRef.current.delete(key));
@@ -342,10 +333,11 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
     richCardCancelRef.current = false;
     setViewingRichCard(msg);
 
-    const cacheKey = msg.source_template_id ? `tpl:${msg.source_template_id}` :
+    const cacheKey = msg.content_frozen && msg.rich_card_content_id ? msg.rich_card_content_id :
+                     msg.source_template_id ? `tpl:${msg.source_template_id}` :
                      msg.source_auto_message_id ? `auto:${msg.source_auto_message_id}` :
                      msg.rich_card_content_id || null;
-    if (cacheKey && richCardCacheRef.current.has(cacheKey)) {
+    if (msg.content_frozen && cacheKey && richCardCacheRef.current.has(cacheKey)) {
       setRichCardFullContent(richCardCacheRef.current.get(cacheKey)!);
       setLoadingRichCardContent(false);
       return;
@@ -356,7 +348,9 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
 
     try {
       let html: string | null = null;
-      if (msg.source_template_id) {
+      if (msg.content_frozen && msg.rich_card_content_id) {
+        html = await fetchRichCardContent(msg.rich_card_content_id);
+      } else if (msg.source_template_id) {
         html = await fetchTemplateContentForViewer(msg.source_template_id);
       } else if (msg.source_auto_message_id) {
         html = await fetchAutoMsgContentForViewer(msg.source_auto_message_id);
@@ -368,9 +362,13 @@ export default function CustomerServiceChat({ employeeId }: CustomerServiceChatP
           await new Promise(r => setTimeout(r, 150));
           const { data: fresh } = await supabase
             .from('customer_employee_conversations')
-            .select('rich_card_content_id, source_template_id, source_auto_message_id')
+            .select('rich_card_content_id, content_frozen, source_template_id, source_auto_message_id')
             .eq('id', msg.id)
             .maybeSingle();
+          if (fresh?.content_frozen && fresh.rich_card_content_id) {
+            html = await fetchRichCardContent(fresh.rich_card_content_id);
+            break;
+          }
           if (fresh?.source_template_id) {
             html = await fetchTemplateContentForViewer(fresh.source_template_id);
             break;

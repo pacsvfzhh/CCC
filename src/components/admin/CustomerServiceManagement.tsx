@@ -2047,13 +2047,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
 
       if (customerForm.useCustomAvatar) {
         if (customerForm.customAvatarFile && customerForm.isSuper) {
-          if (editingCustomer.custom_avatar_url) {
-            const oldPath = editingCustomer.custom_avatar_url.split('/').slice(-2).join('/');
-            await supabase.storage
-              .from('super-customer-avatars')
-              .remove([oldPath]);
-          }
-
           const fileExt = customerForm.customAvatarFile.name.split('.').pop();
           const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
           const filePath = `avatars/${fileName}`;
@@ -2071,12 +2064,6 @@ function CustomerServiceManagement({ adminId, isSuperAdmin, isActive, initialEmp
           customAvatarUrl = publicUrl;
         }
       } else {
-        if (editingCustomer.custom_avatar_url) {
-          const oldPath = editingCustomer.custom_avatar_url.split('/').slice(-2).join('/');
-          await supabase.storage
-            .from('super-customer-avatars')
-            .remove([oldPath]);
-        }
         customAvatarUrl = null;
       }
 

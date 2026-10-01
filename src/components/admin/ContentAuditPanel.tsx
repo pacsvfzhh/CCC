@@ -9,7 +9,7 @@ import { clearAuditedContent, loadAuditedImage } from '../../lib/contentAudit';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 
 type AuditType = 'notification' | 'aaa_service' | 'ccc_service';
-type AuditAction = 'edit' | 'delete' | 'conversation_delete' | 'customer_delete' | 'source_edit' | 'source_delete';
+type AuditAction = 'edit' | 'delete' | 'conversation_delete' | 'customer_delete' | 'employee_delete' | 'admin_delete' | 'source_edit' | 'source_delete';
 
 interface AuditEvent {
   id: string;
@@ -18,6 +18,7 @@ interface AuditEvent {
   entity_id: string;
   action: AuditAction;
   owner_admin_id: string;
+  owner_username: string | null;
   actor_admin_id: string;
   actor_username: string;
   actor_role: string;
@@ -41,6 +42,7 @@ interface AuditDetail extends Omit<AuditEvent, 'summary'> {
 
 interface AuditFilters {
   type: '' | AuditType;
+  owner: string;
   actor: string;
   action: '' | AuditAction;
   search: string;
@@ -49,14 +51,14 @@ interface AuditFilters {
 }
 
 const PAGE_SIZE = 30;
-const emptyFilters: AuditFilters = { type: '', actor: '', action: '', search: '', from: '', to: '' };
+const emptyFilters: AuditFilters = { type: '', owner: '', actor: '', action: '', search: '', from: '', to: '' };
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const typeLabels: Record<AuditType, string> = {
   notification: '手動通知', aaa_service: 'AAA 客服', ccc_service: 'CCC 客服',
 };
 const actionLabels: Record<AuditAction, string> = {
   edit: '編輯', delete: '刪除', conversation_delete: '刪除對話', customer_delete: '刪除客戶',
-  source_edit: '編輯來源', source_delete: '刪除來源',
+  employee_delete: '刪除員工', admin_delete: '刪除管理員', source_edit: '編輯來源', source_delete: '刪除來源',
 };
 const inputClass = 'mt-1.5 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus-visible:border-cyan-400 focus-visible:ring-2 focus-visible:ring-cyan-400/30';
 const buttonFocus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950';
@@ -167,6 +169,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [filters, setFilters] = useState<AuditFilters>(emptyFilters);
   const [filterError, setFilterError] = useState<string | null>(null);
   const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [owners, setOwners] = useState<Array<{ id: string; username: string; event_count: number }>>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -212,6 +215,23 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     let cancelled = false;
+    const load = async () => {
+      try {
+        const { data, error: rpcError } = await supabase.rpc('list_content_audit_owners', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+        });
+        if (rpcError) throw rpcError;
+        if (!cancelled && Array.isArray(data)) setOwners(data);
+      } catch (err) {
+        if (!cancelled) setError(`載入管理員分組失敗：${formatSupabaseError(err)}`);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [refreshKey]);
+
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError(null);
     setEvents([]);
@@ -221,6 +241,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         const { data, error: rpcError } = await supabase.rpc('list_content_audit_events', {
           p_admin_session_token: getAdminFinancialSessionToken(),
           p_type: filters.type || null,
+          p_owner: filters.owner || null,
           p_actor: filters.actor || null,
           p_action: filters.action || null,
           p_search: filters.search || null,
@@ -444,6 +465,11 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
           <option value="">全部類型</option>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
+      <label className="block text-xs font-semibold text-slate-300">所屬管理員
+        <select className={inputClass} value={draft.owner} onChange={event => setDraft(previous => ({ ...previous, owner: event.target.value }))}>
+          <option value="">全部管理員</option>{owners.map(owner => <option key={owner.id} value={owner.id}>{owner.username} · {owner.event_count} 筆</option>)}
+        </select>
+      </label>
       <label className="block text-xs font-semibold text-slate-300">操作者 ID（非所屬管理員）
         <input className={inputClass} value={draft.actor} onChange={event => setDraft(previous => ({ ...previous, actor: event.target.value }))} placeholder="操作者 UUID；名稱請用關鍵字" />
       </label>
@@ -514,7 +540,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                   <button key={item.id} type="button" onClick={() => selectEvent(item.id)} aria-pressed={selectedId === item.id} className={`w-full min-w-0 rounded-xl border p-3 text-left transition-colors ${selectedId === item.id ? 'border-cyan-300/70 bg-cyan-600/20' : 'border-slate-700 bg-slate-950/60 hover:border-cyan-400/35 hover:bg-slate-800'} ${buttonFocus}`}>
                     <span className="flex flex-wrap items-center justify-between gap-2"><span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-cyan-300" aria-hidden="true" /><strong className="text-xs text-white">{typeLabels[item.entity_type] ?? item.entity_type}</strong><span className="rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-100">{actionLabels[item.action] ?? item.action}</span></span>{item.cleared_at ? <span className="text-[10px] font-bold text-rose-300">證據已清除</span> : item.clear_started_at ? <span className="text-[10px] font-bold text-amber-300">清除未完成</span> : <span className="text-[10px] text-emerald-300">證據保留中</span>}</span>
                     <span className="mt-2 block break-words text-xs leading-5 text-slate-300">{item.summary || '（無摘要）'}</span>
-                    <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400"><span>操作者：<strong className="text-slate-200">{item.actor_username}</strong></span><span>所屬管理員 ID：<span className="break-all text-slate-300">{item.owner_admin_id}</span></span></span>
+                    <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400"><span>操作者：<strong className="text-slate-200">{item.actor_username}</strong></span><span>所屬管理員：<span className="break-all text-slate-300">{item.owner_username || item.owner_admin_id}</span></span></span>
                     <span className="mt-2 block text-[11px] tabular-nums text-cyan-200"><Clock3 className="mr-1 inline h-3 w-3" aria-hidden="true" />{formatAuditTime(item.occurred_at)}</span>
                   </button>
                 ))}
@@ -530,7 +556,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
               {!selectedId ? <p className="px-4 py-12 text-center text-sm text-slate-400">選取一筆事件，查看異動前後的證據與版本歷程。</p> : detailLoading ? <p role="status" className="px-4 py-12 text-center text-sm text-slate-400">載入詳情中…</p> : !detail ? <p className="px-4 py-12 text-center text-sm text-slate-400">無法顯示此事件。請重新選取或刷新。</p> : (
                 <div className="min-w-0 space-y-4 p-3 sm:p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2"><span className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-bold text-cyan-100">{typeLabels[detail.entity_type] ?? detail.entity_type} · {actionLabels[detail.action] ?? detail.action}</span>{detail.cleared_at ? <span className="text-xs font-bold text-rose-300">證據已清除</span> : <button type="button" onClick={() => { setReason(''); setClearTarget(detail); }} disabled={!purgeUnlocked || clearing || windowBusy} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />清除此筆證據</button>}</div>
-                  <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2"><MetadataRow label="事件 ID" value={detail.id} /><MetadataRow label="操作批次 ID" value={detail.operation_id} /><MetadataRow label="對象 ID" value={detail.entity_id} /><MetadataRow label="發生時間 (UTC+8)" value={formatAuditTime(detail.occurred_at)} /><MetadataRow label="操作者（實際執行異動）" value={`${detail.actor_username} · ${detail.actor_role} · ${detail.actor_admin_id}`} /><MetadataRow label="所屬管理員（資料擁有者）" value={detail.owner_admin_id} /><MetadataRow label="客戶 ID" value={detail.customer_id} /><MetadataRow label="員工 ID" value={detail.employee_id} /><MetadataRow label="清除開始 (UTC+8)" value={detail.clear_started_at ? formatAuditTime(detail.clear_started_at) : null} /><MetadataRow label="清除完成 (UTC+8)" value={detail.cleared_at ? formatAuditTime(detail.cleared_at) : null} />{detail.clear_reason && <MetadataRow label="清除原因" value={detail.clear_reason} />}{detail.cleared_by && <MetadataRow label="清除操作者" value={`${detail.cleared_username ?? '—'} · ${detail.cleared_by}`} />}</dl>
+                  <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2"><MetadataRow label="事件 ID" value={detail.id} /><MetadataRow label="操作批次 ID" value={detail.operation_id} /><MetadataRow label="對象 ID" value={detail.entity_id} /><MetadataRow label="發生時間 (UTC+8)" value={formatAuditTime(detail.occurred_at)} /><MetadataRow label="操作者（實際執行異動）" value={`${detail.actor_username} · ${detail.actor_role} · ${detail.actor_admin_id}`} /><MetadataRow label="所屬管理員（資料擁有者）" value={`${detail.owner_username ?? '—'} · ${detail.owner_admin_id}`} /><MetadataRow label="客戶 ID" value={detail.customer_id} /><MetadataRow label="員工 ID" value={detail.employee_id} /><MetadataRow label="清除開始 (UTC+8)" value={detail.clear_started_at ? formatAuditTime(detail.clear_started_at) : null} /><MetadataRow label="清除完成 (UTC+8)" value={detail.cleared_at ? formatAuditTime(detail.cleared_at) : null} />{detail.clear_reason && <MetadataRow label="清除原因" value={detail.clear_reason} />}{detail.cleared_by && <MetadataRow label="清除操作者" value={`${detail.cleared_username ?? '—'} · ${detail.cleared_by}`} />}</dl>
                   <div className="grid min-w-0 gap-3"><Snapshot title="異動前" data={detail.before_data} cleared={Boolean(detail.cleared_at)} /><Snapshot title="異動後" data={detail.after_data} cleared={Boolean(detail.cleared_at)} /></div>
                   {media.length > 0 && <section><h3 className="mb-2 flex items-center gap-2 text-xs font-bold text-white"><ImageIcon className="h-4 w-4 text-cyan-300" aria-hidden="true" />封存圖片 · {media.length} 張</h3><p className="mb-2 text-[11px] text-slate-400">圖片僅透過安全驗證請求取得，原始網址只作文字參考。</p><div className="space-y-2">{media.map(([source, path]) => <EvidenceImage key={`${detail.id}:${path}`} eventId={detail.id} source={source} path={path} />)}</div></section>}
                   <section><h3 className="mb-2 text-xs font-bold text-white">同一對象的版本歷程</h3><div className="space-y-1.5">{(detail.timeline ?? []).map(version => <button key={version.id} type="button" onClick={() => selectEvent(version.id)} aria-pressed={version.id === detail.id} className={`flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs ${version.id === detail.id ? 'border-cyan-400/50 bg-cyan-500/15 text-white' : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-800'} ${buttonFocus}`}><span>{actionLabels[version.action] ?? version.action}{version.cleared_at ? ' · 已清除' : ''}</span><span className="tabular-nums">{formatAuditTime(version.occurred_at)}</span></button>)}</div></section>

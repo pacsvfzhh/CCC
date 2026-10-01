@@ -1814,6 +1814,7 @@ export interface Database {
           rating_data: { rating?: number; comment?: string | null; employee_id?: string; status?: string; tip_amount?: number } | null;
           read_at: string | null;
           rich_card_content_id: string | null;
+          content_frozen: boolean;
           sender_type: 'customer' | 'employee';
           source_auto_message_id: string | null;
           source_template_id: string | null;
@@ -1833,6 +1834,7 @@ export interface Database {
           rating_data?: { rating?: number; comment?: string | null; employee_id?: string; status?: string; tip_amount?: number } | null;
           read_at?: string | null;
           rich_card_content_id?: string | null;
+          content_frozen?: boolean;
           sender_type: string;
           source_auto_message_id?: string | null;
           source_template_id?: string | null;
@@ -1852,6 +1854,7 @@ export interface Database {
           rating_data?: { rating?: number; comment?: string | null; employee_id?: string; status?: string; tip_amount?: number } | null;
           read_at?: string | null;
           rich_card_content_id?: string | null;
+          content_frozen?: boolean;
           sender_type?: string;
           source_auto_message_id?: string | null;
           source_template_id?: string | null;
