@@ -2346,10 +2346,15 @@ export interface Database {
       };
     };
     Functions: {
+      list_content_audit_owners: {
+        Args: { p_admin_session_token: string };
+        Returns: Array<{ id: string; username: string; event_count: number }>;
+      };
       list_content_audit_events: {
         Args: {
           p_admin_session_token: string;
           p_type?: string | null;
+          p_owner?: string | null;
           p_actor?: string | null;
           p_action?: string | null;
           p_search?: string | null;
