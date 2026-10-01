@@ -126,6 +126,7 @@ async function mutate(body: Change) {
     if (failed?.status === 'rejected') throw failed.reason;
   } catch (error) {
     if (copied.length) await db.storage.from(evidenceBucket).remove(copied);
+    await staleCleanup;
     throw error;
   }
   await staleCleanup;

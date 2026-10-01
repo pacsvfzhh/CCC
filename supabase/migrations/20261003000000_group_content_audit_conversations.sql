@@ -121,7 +121,7 @@ BEGIN
   )
   SELECT CASE WHEN NOT EXISTS (SELECT 1 FROM thread) THEN NULL ELSE jsonb_build_object(
     'operation_id', p_operation_id, 'entity_type', p_type,
-    'occurred_at', (SELECT min(occurred_at) FROM thread),
+    'occurred_at', (SELECT max(occurred_at) FROM thread),
     'employee_id', p_employee_id,
     'employee_account', COALESCE((SELECT employee_account FROM thread
       WHERE employee_account IS NOT NULL LIMIT 1),

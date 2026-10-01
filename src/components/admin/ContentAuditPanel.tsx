@@ -128,7 +128,7 @@ function ConversationTranscript({ message, purgeUnlocked, onClear }: {
   const content = message.message_type === 'rich_card'
     ? message.rendered_html || message.message_content
     : message.message_content;
-  const text = readableText(content);
+  const text = message.message_type === 'image' ? '' : readableText(content);
   const attachments = Object.entries(message.media_refs || {}).filter(([source]) =>
     source === message.image_url || Boolean(message.message_content?.includes(source)) || Boolean(message.rendered_html?.includes(source)));
   const rating = message.rating_data;
@@ -361,7 +361,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setDetailLoading(true);
     const load = async () => {
       try {
-        if (selectedCard.action === 'conversation_delete' && selectedCard.customer_id && selectedCard.employee_id) {
+        if (selectedCard.card_id.startsWith('conversation:') && selectedCard.customer_id && selectedCard.employee_id) {
           const { data, error: rpcError } = await supabase.rpc('get_content_audit_conversation', {
             p_admin_session_token: getAdminFinancialSessionToken(),
             p_operation_id: selectedCard.operation_id,
@@ -657,7 +657,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
               <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 bg-slate-950/50 px-4 py-3"><h2 className="text-sm font-black text-white">異動紀錄</h2><span className="text-xs text-cyan-200">共 {total.toLocaleString()} 筆</span></div>
               <div className="space-y-2.5 p-3 sm:p-4 xl:min-h-0 xl:flex-1">
                 {loading ? <p role="status" className="py-12 text-center text-sm text-slate-400">載入稽核紀錄中…</p> : events.length === 0 ? <p className="py-12 text-center text-sm text-slate-400">沒有符合條件的稽核紀錄。</p> : events.map(item => (
-                  <button key={item.card_id} type="button" onClick={() => selectEvent(item.card_id)} aria-pressed={selectedId === item.card_id} className={`w-full min-w-0 rounded-xl border p-3 text-left transition-colors ${selectedId === item.id ? 'border-cyan-300/70 bg-cyan-600/20' : 'border-slate-700 bg-slate-950/60 hover:border-cyan-400/35 hover:bg-slate-800'} ${buttonFocus}`}>
+                  <button key={item.card_id} type="button" onClick={() => selectEvent(item.card_id)} aria-pressed={selectedId === item.card_id} className={`w-full min-w-0 rounded-xl border p-3 text-left transition-colors ${selectedId === item.card_id ? 'border-cyan-300/70 bg-cyan-600/20' : 'border-slate-700 bg-slate-950/60 hover:border-cyan-400/35 hover:bg-slate-800'} ${buttonFocus}`}>
                     <span className="flex flex-wrap items-center justify-between gap-2"><span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-cyan-300" aria-hidden="true" /><strong className="text-xs text-white">{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : item.notification_origin === 'unverified' ? '通知 · 來源待核實' : '通知' : typeLabels[item.entity_type] ?? item.entity_type}</strong><span className="rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-100">{actionLabels[item.action] ?? item.action}</span></span>{item.cleared_count === item.message_count ? <span className="text-[10px] font-bold text-rose-300">證據已清除</span> : item.cleared_count > 0 ? <span className="text-[10px] font-bold text-amber-300">已清除 {item.cleared_count} / {item.message_count} 則</span> : item.clear_started_at ? <span className="text-[10px] font-bold text-amber-300">清除未完成</span> : <span className="text-[10px] text-emerald-300">證據保留中</span>}</span>
                     <span className="mt-2 block break-words text-xs leading-5 text-slate-300">{item.action === 'conversation_delete' ? `完整對話 · ${item.message_count} 則訊息` : item.summary || '（無摘要）'}</span>
                     <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400">{item.action === 'conversation_delete' && <span>員工：<strong className="text-slate-200">{item.employee_account || item.employee_id || '—'}</strong></span>}<span>操作者：<strong className="text-slate-200">{item.actor_username}</strong></span><span>所屬管理員：<span className="break-all text-slate-300">{item.owner_username || item.owner_admin_id}</span></span></span>
