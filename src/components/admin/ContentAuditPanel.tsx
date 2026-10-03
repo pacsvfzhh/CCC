@@ -453,6 +453,8 @@ function OwnerPicker({ selected, owners, total, loading, error, onRetry, onSelec
 
 export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [view, setView] = useState<'content' | 'employees'>('content');
+  const [archiveEmployeeId, setArchiveEmployeeId] = useState<string | null>(null);
+  const [returnToArchive, setReturnToArchive] = useState(false);
   const [draft, setDraft] = useState<AuditFilters>(emptyFilters);
   const [filters, setFilters] = useState<AuditFilters>(emptyFilters);
   const [filterError, setFilterError] = useState<string | null>(null);
@@ -483,7 +485,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [expiry, setExpiry] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [windowBusy, setWindowBusy] = useState(false);
-  const [clearTarget, setClearTarget] = useState<{ id: string; kind: 'content' | 'employee' } | null>(null);
+  const [clearTarget, setClearTarget] = useState<{ id: string; kind: 'content' | 'employee' | 'notification' } | null>(null);
   const [reason, setReason] = useState('');
   const [clearing, setClearing] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
@@ -856,12 +858,16 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setConversationPage(0);
   };
 
-  const closeEvent = () => {
+  const closeEvent = useCallback(() => {
     setSelectedId(null);
     setSelectedCard(null);
     setDetail(null);
     setConversation(null);
-  };
+    if (returnToArchive) {
+      setView('employees');
+      setReturnToArchive(false);
+    }
+  }, [returnToArchive]);
 
   const selectEvent = (id: string) => {
     const version = detail?.timeline.find(item => item.id === id);
@@ -881,7 +887,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') closeEvent(); };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
-  }, [selectedId, view, clearTarget]);
+  }, [selectedId, view, clearTarget, closeEvent]);
 
   const handleClear = async () => {
     const trimmed = reason.trim();
@@ -889,10 +895,14 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setClearing(true);
     setError(null);
     try {
-      if (clearTarget.kind === 'employee') {
-        const { error: rpcError } = await supabase.rpc('clear_deleted_employee_account', {
-          p_admin_session_token: getAdminFinancialSessionToken(), p_record_id: clearTarget.id, p_reason: trimmed,
-        });
+      if (clearTarget.kind === 'employee' || clearTarget.kind === 'notification') {
+        const { error: rpcError } = clearTarget.kind === 'employee'
+          ? await supabase.rpc('clear_deleted_employee_account', {
+            p_admin_session_token: getAdminFinancialSessionToken(), p_record_id: clearTarget.id, p_reason: trimmed,
+          })
+          : await supabase.rpc('clear_deleted_employee_notification', {
+            p_admin_session_token: getAdminFinancialSessionToken(), p_notification_id: clearTarget.id, p_reason: trimmed,
+          });
         if (rpcError) throw rpcError;
       } else {
         await clearAuditedContent(clearTarget.id, trimmed);
@@ -989,8 +999,10 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         <div className="flex min-w-0 items-center gap-2"><LockKeyhole className={`h-4 w-4 shrink-0 ${purgeUnlocked ? 'text-amber-300' : 'text-emerald-300'}`} aria-hidden="true" /><div><p className="text-xs font-bold text-white">清除模式：{purgeUnlocked ? '限時開啟' : '已鎖定'}</p><p className="text-[11px] text-slate-400">{purgeUnlocked ? `剩餘 ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')} · 到期 ${formatAuditTime(expiry)}` : '僅超級管理員可啟用；五分鐘後自動鎖定'}</p></div></div>
         <button type="button" onClick={() => void toggleWindow()} disabled={windowBusy || clearing} className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50 ${purgeUnlocked ? 'border-rose-400/40 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25' : 'border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'} ${buttonFocus}`}>{windowBusy ? '處理中…' : purgeUnlocked ? '立即鎖定' : '啟用五分鐘清除模式'}</button>
       </section>
-      {view === 'employees' ? <DeletedEmployeesPanel switcher={viewSwitch} refreshKey={refreshKey} purgeUnlocked={purgeUnlocked} clearing={clearing} windowBusy={windowBusy} onClear={id => { setReason(''); setClearTarget({ id, kind: 'employee' }); }} onOpenEvidence={(event, employee) => { void (async () => {
+      {view === 'employees' ? <DeletedEmployeesPanel switcher={viewSwitch} refreshKey={refreshKey} purgeUnlocked={purgeUnlocked} clearing={clearing} windowBusy={windowBusy} initialSelectedId={archiveEmployeeId} onSelectEmployee={setArchiveEmployeeId} onClear={id => { setReason(''); setClearTarget({ id, kind: 'employee' }); }} onClearNotification={id => { setReason(''); setClearTarget({ id, kind: 'notification' }); }} onOpenEvidence={(event, employee) => { void (async () => {
         if (!await switchView('content')) return;
+        setReturnToArchive(true);
+        setArchiveEmployeeId(employee.id);
         setSelectedCard({ id: event.id, card_id: `event:${event.id}`, operation_id: event.operation_id,
           entity_type: event.entity_type, entity_id: event.id, action: event.action,
           owner_admin_id: employee.owner_admin_id, owner_username: employee.owner_username,
@@ -1084,7 +1096,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         </main>
       </div></>}
 
-      {clearTarget && purgeUnlocked && <div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm sm:p-5"><div role="dialog" aria-modal="true" aria-labelledby="audit-clear-title" className="w-full max-w-lg rounded-2xl border border-rose-400/40 bg-slate-900 p-5 shadow-2xl"><div className="flex items-center gap-2 text-rose-200"><AlertTriangle className="h-5 w-5" aria-hidden="true" /><h2 id="audit-clear-title" className="text-base font-black">確認清除此筆稽核證據</h2></div><p className="mt-3 break-all text-xs text-slate-300">事件 ID：{clearTarget.id}</p><p className="mt-2 text-xs leading-5 text-rose-200">{clearTarget.kind === 'employee' ? '這會永久清除該筆已刪員工的帳號及員工編號；關聯聊天證據不受影響。帳戶識別、操作者、時間及清除原因仍會保留。' : '這會永久清除此筆事件的快照與專屬封存圖片；事件識別、操作者、時間及清除原因仍會保留。'} 無法復原，每次只確認一筆。</p><label className="mt-4 block text-xs font-bold text-slate-200">清除原因（10–500 字）<textarea autoFocus rows={3} maxLength={500} value={reason} onChange={event => setReason(event.target.value)} placeholder="請說明清除此筆證據的原因" className={`${inputClass} resize-y`} /></label>{error && <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p>}<p className="mt-1 text-[11px] text-slate-400">目前 {reason.trim().length} 字 · 模式剩餘 {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}</p><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setClearTarget(null)} disabled={clearing} className={`rounded-lg border border-slate-600 px-4 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${buttonFocus}`}>取消</button><button type="button" onClick={() => void handleClear()} disabled={clearing || reason.trim().length < 10 || reason.trim().length > 500 || !purgeUnlocked} className={`rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}>{clearing ? '清除中…' : '確認清除此筆'}</button></div></div></div>}
+      {clearTarget && purgeUnlocked && <div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm sm:p-5"><div role="dialog" aria-modal="true" aria-labelledby="audit-clear-title" className="w-full max-w-lg rounded-2xl border border-rose-400/40 bg-slate-900 p-5 shadow-2xl"><div className="flex items-center gap-2 text-rose-200"><AlertTriangle className="h-5 w-5" aria-hidden="true" /><h2 id="audit-clear-title" className="text-base font-black">確認清除此筆稽核證據</h2></div><p className="mt-3 break-all text-xs text-slate-300">事件 ID：{clearTarget.id}</p><p className="mt-2 text-xs leading-5 text-rose-200">{clearTarget.kind === 'employee' ? '這會永久清除此筆員工檔案的帳號及員工編號，但不會刪除使用中的財務歷史或其他內容證據。' : clearTarget.kind === 'notification' ? '這會清除此位員工私人檔案中的單筆通知快照；原發送給其他收件人的通知不受影響。' : '這會永久清除此筆事件的快照與專屬封存圖片；事件識別、操作者、時間及清除原因仍會保留。'} 無法復原，每次只確認一筆。</p><label className="mt-4 block text-xs font-bold text-slate-200">清除原因（10–500 字）<textarea autoFocus rows={3} maxLength={500} value={reason} onChange={event => setReason(event.target.value)} placeholder="請說明清除此筆證據的原因" className={`${inputClass} resize-y`} /></label>{error && <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p>}<p className="mt-1 text-[11px] text-slate-400">目前 {reason.trim().length} 字 · 模式剩餘 {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}</p><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setClearTarget(null)} disabled={clearing} className={`rounded-lg border border-slate-600 px-4 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${buttonFocus}`}>取消</button><button type="button" onClick={() => void handleClear()} disabled={clearing || reason.trim().length < 10 || reason.trim().length > 500 || !purgeUnlocked} className={`rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}>{clearing ? '清除中…' : '確認清除此筆'}</button></div></div></div>}
     </div>
   );
 }

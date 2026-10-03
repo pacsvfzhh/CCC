@@ -2346,11 +2346,24 @@ export interface Database {
       };
     };
     Functions: {
+      list_deleted_employee_notifications: {
+        Args: { p_admin_session_token: string; p_record_id: string; p_page?: number; p_page_size?: number };
+        Returns: { total: number; items: Array<Record<string, unknown>> };
+      };
+      get_deleted_employee_notification: {
+        Args: { p_admin_session_token: string; p_notification_id: string };
+        Returns: Record<string, unknown> | null;
+      };
+      clear_deleted_employee_notification: {
+        Args: { p_admin_session_token: string; p_notification_id: string; p_reason: string };
+        Returns: boolean;
+      };
       list_deleted_employee_accounts: {
         Args: {
           p_admin_session_token: string;
           p_owner?: string | null;
           p_search?: string | null;
+          p_source?: string | null;
           p_from?: string | null;
           p_to?: string | null;
           p_page?: number;
@@ -2363,7 +2376,7 @@ export interface Database {
         };
       };
       get_deleted_employee_account: {
-        Args: { p_admin_session_token: string; p_record_id: string; p_related_page?: number; p_related_page_size?: number };
+        Args: { p_admin_session_token: string; p_record_id: string; p_related_page?: number; p_related_page_size?: number; p_type?: string | null };
         Returns: Record<string, unknown> | null;
       };
       clear_deleted_employee_account: {
