@@ -123,11 +123,44 @@ BEGIN
     OR strpos(v_definition, 'WHERE employee.created_by = v_owner_admin_id') = 0 THEN
     RAISE EXCEPTION 'Automation dashboard has changed; review archive filters before deploying.';
   END IF;
+  IF strpos(v_definition, 'WHERE execution.owner_admin_id = v_owner_admin_id
+        ORDER BY execution.executed_at DESC') = 0 THEN
+    RAISE EXCEPTION 'Automation execution list has changed; review archive filters before deploying.';
+  END IF;
   v_definition := replace(v_definition, 'WHERE employee.created_by = visible_admin.id',
     'WHERE employee.created_by = visible_admin.id AND employee.archived_at IS NULL');
   v_definition := replace(v_definition, 'WHERE employee.created_by = v_owner_admin_id',
     'WHERE employee.created_by = v_owner_admin_id AND employee.archived_at IS NULL');
+  v_definition := replace(v_definition, 'WHERE execution.owner_admin_id = v_owner_admin_id
+        ORDER BY execution.executed_at DESC',
+    'WHERE execution.owner_admin_id = v_owner_admin_id
+          AND NOT EXISTS (SELECT 1 FROM public.users AS archived_user
+            WHERE archived_user.id = execution.user_id AND archived_user.archived_at IS NOT NULL)
+        ORDER BY execution.executed_at DESC');
   EXECUTE v_definition;
+
+  v_function := 'public.get_notification_automation_executions_v2(uuid,uuid,uuid,boolean,text)'::regprocedure;
+  v_definition := pg_get_functiondef(v_function);
+  IF strpos(v_definition, 'WHERE execution.owner_admin_id = v_owner_admin_id') = 0 THEN
+    RAISE EXCEPTION 'Automation execution search has changed; review archive filters before deploying.';
+  END IF;
+  EXECUTE replace(v_definition, 'WHERE execution.owner_admin_id = v_owner_admin_id',
+    'WHERE execution.owner_admin_id = v_owner_admin_id
+        AND NOT EXISTS (SELECT 1 FROM public.users AS archived_user
+          WHERE archived_user.id = execution.user_id AND archived_user.archived_at IS NOT NULL)');
+
+  v_function := 'public.get_notification_automation_dashboard(uuid,uuid)'::regprocedure;
+  v_definition := pg_get_functiondef(v_function);
+  IF strpos(v_definition, 'WHERE execution.owner_admin_id = v_selected_admin_id
+          OR (v_admin_role = ''super_admin'' AND v_selected_admin_id IS NULL)') = 0 THEN
+    RAISE EXCEPTION 'Legacy automation dashboard has changed; review archive filters before deploying.';
+  END IF;
+  EXECUTE replace(v_definition, 'WHERE execution.owner_admin_id = v_selected_admin_id
+          OR (v_admin_role = ''super_admin'' AND v_selected_admin_id IS NULL)',
+    'WHERE (execution.owner_admin_id = v_selected_admin_id
+          OR (v_admin_role = ''super_admin'' AND v_selected_admin_id IS NULL))
+          AND NOT EXISTS (SELECT 1 FROM public.users AS archived_user
+            WHERE archived_user.id = execution.user_id AND archived_user.archived_at IS NOT NULL)');
 
   v_function := 'public.get_notification_automation_plan_assignments(uuid)'::regprocedure;
   v_definition := pg_get_functiondef(v_function);
@@ -174,9 +207,9 @@ BEGIN
   LOOP
     EXECUTE format('CREATE POLICY archived_employee_visibility ON public.%I AS RESTRICTIVE
       FOR ALL TO anon, authenticated
-      USING (%I IS NULL OR EXISTS (SELECT 1 FROM public.users AS active_employee WHERE active_employee.id = %I))
-      WITH CHECK (%I IS NULL OR EXISTS (SELECT 1 FROM public.users AS active_employee WHERE active_employee.id = %I))',
-      v_table, v_column, v_column, v_column, v_column);
+      USING (%I IS NULL OR EXISTS (SELECT 1 FROM public.users AS active_employee WHERE active_employee.id = %I.%I))
+      WITH CHECK (%I IS NULL OR EXISTS (SELECT 1 FROM public.users AS active_employee WHERE active_employee.id = %I.%I))',
+      v_table, v_column, v_table, v_column, v_column, v_table, v_column);
   END LOOP;
 END;
 $$;
