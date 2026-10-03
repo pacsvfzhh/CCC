@@ -2346,6 +2346,30 @@ export interface Database {
       };
     };
     Functions: {
+      list_deleted_employee_accounts: {
+        Args: {
+          p_admin_session_token: string;
+          p_owner?: string | null;
+          p_search?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_page?: number;
+          p_page_size?: number;
+        };
+        Returns: {
+          total: number;
+          owners: Array<{ id: string; username: string; event_count: number }>;
+          items: Array<Record<string, unknown>>;
+        };
+      };
+      get_deleted_employee_account: {
+        Args: { p_admin_session_token: string; p_record_id: string; p_related_page?: number; p_related_page_size?: number };
+        Returns: Record<string, unknown> | null;
+      };
+      clear_deleted_employee_account: {
+        Args: { p_admin_session_token: string; p_record_id: string; p_reason: string };
+        Returns: boolean;
+      };
       get_content_audit_filter_counts: {
         Args: { p_admin_session_token: string };
         Returns: {
