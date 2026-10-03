@@ -77,6 +77,8 @@ export default function DeletedEmployeesPanel({ switcher, refreshKey, purgeUnloc
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLElement>(null);
 
+  useEffect(() => { setPage(0); }, [refreshKey]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -98,7 +100,7 @@ export default function DeletedEmployeesPanel({ switcher, refreshKey, purgeUnloc
           const next = data.items as DeletedEmployee[];
           setItems(previous => page === 0 ? next : [...previous, ...next.filter(item => !previous.some(entry => entry.id === item.id))]);
           setTotal(data.total);
-          setOwners(data.owners);
+          if (page === 0) setOwners(data.owners);
         }
       } catch (error) {
         if (!cancelled) setLoadError(formatSupabaseError(error));

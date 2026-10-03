@@ -58,7 +58,7 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
 DECLARE v_actor public.admins%ROWTYPE; v_operation uuid; v_action text;
 BEGIN
   v_action := current_setting('content_audit.action', true);
-  IF v_action NOT IN ('employee_delete', 'admin_delete')
+  IF v_action IS NULL OR v_action NOT IN ('employee_delete', 'admin_delete')
     OR NULLIF(current_setting('content_audit.operation', true), '') IS NULL THEN
     RAISE EXCEPTION 'Employee deletion requires an audited operation.';
   END IF;
@@ -117,7 +117,7 @@ BEGIN
         AND (v_search IS NULL OR record.account_username ILIKE '%' || v_search || '%'
           OR record.employee_number ILIKE '%' || v_search || '%')),
     'items', COALESCE((SELECT jsonb_agg(to_jsonb(page) ORDER BY page.deleted_at DESC, page.id DESC)
-      FROM (SELECT record.id, record.employee_id, record.account_username, record.employee_number,
+      FROM (SELECT record.id, record.operation_id, record.employee_id, record.account_username, record.employee_number,
         record.owner_admin_id, record.owner_username, record.actor_admin_id, record.actor_username,
         record.actor_role, record.deletion_source, record.deleted_at, record.cleared_at
       FROM private.deleted_employee_accounts record
@@ -127,7 +127,7 @@ BEGIN
         AND (v_search IS NULL OR record.account_username ILIKE '%' || v_search || '%'
           OR record.employee_number ILIKE '%' || v_search || '%')
       ORDER BY record.deleted_at DESC, record.id DESC LIMIT p_page_size OFFSET p_page * p_page_size) page), '[]'::jsonb),
-    'owners', COALESCE((SELECT jsonb_agg(jsonb_build_object('id', owners.owner_admin_id,
+    'owners', CASE WHEN p_page = 0 THEN COALESCE((SELECT jsonb_agg(jsonb_build_object('id', owners.owner_admin_id,
       'username', owners.owner_username, 'event_count', owners.event_count) ORDER BY owners.owner_username, owners.owner_admin_id)
       FROM (SELECT admin.id AS owner_admin_id, admin.username AS owner_username,
         COALESCE(counts.event_count, 0) AS event_count
@@ -140,7 +140,7 @@ BEGIN
             WHERE previous.owner_admin_id = counts.owner_admin_id AND previous.owner_username IS NOT NULL
             ORDER BY previous.deleted_at DESC LIMIT 1), counts.owner_admin_id::text), counts.event_count
         FROM (SELECT owner_admin_id, count(*) AS event_count FROM private.deleted_employee_accounts GROUP BY owner_admin_id) counts
-        WHERE NOT EXISTS (SELECT 1 FROM public.admins admin WHERE admin.id = counts.owner_admin_id)) owners), '[]'::jsonb)
+        WHERE NOT EXISTS (SELECT 1 FROM public.admins admin WHERE admin.id = counts.owner_admin_id)) owners), '[]'::jsonb) ELSE '[]'::jsonb END
   ) INTO v_result;
   RETURN v_result;
 END;
