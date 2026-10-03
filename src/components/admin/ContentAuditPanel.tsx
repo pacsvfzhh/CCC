@@ -856,6 +856,13 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setConversationPage(0);
   };
 
+  const closeEvent = () => {
+    setSelectedId(null);
+    setSelectedCard(null);
+    setDetail(null);
+    setConversation(null);
+  };
+
   const selectEvent = (id: string) => {
     const version = detail?.timeline.find(item => item.id === id);
     const card = events.find(item => item.card_id === id || item.id === id)
@@ -867,9 +874,14 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setSelectedCard(card);
     setSelectedId(card.card_id);
     setConversationPage(0);
-    // On narrow screens the detail is stacked after the cards.
-    if (window.innerWidth < 1280) window.requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
+
+  useEffect(() => {
+    if (!selectedId || view !== 'content' || clearTarget) return;
+    const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') closeEvent(); };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [selectedId, view, clearTarget]);
 
   const handleClear = async () => {
     const trimmed = reason.trim();
@@ -1007,21 +1019,21 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-slate-900 xl:overflow-hidden">
-          <div className="flex min-h-0 flex-1 flex-col xl:grid xl:grid-cols-[292px_minmax(0,1fr)]">
-            <section aria-label="稽核事件清單" className="flex max-h-[42vh] min-w-0 flex-none flex-col overflow-y-auto border-b border-slate-700 xl:max-h-none xl:min-h-0 xl:border-b-0 xl:border-r">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <section aria-label="稽核事件清單" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
               <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 bg-slate-950 px-3 py-2.5"><h2 className="text-sm font-black text-white">異動紀錄</h2><span className="text-xs text-cyan-200">共 {total.toLocaleString()} 筆</span></div>
+              <div className="hidden grid-cols-[50px_155px_minmax(150px,1fr)_150px_120px_180px] gap-3 border-b border-slate-700 bg-slate-800/60 px-4 py-2 text-[11px] font-bold text-slate-300 xl:grid"><span>序號</span><span>資料／操作</span><span>內容摘要</span><span>所屬管理員</span><span>實際操作者</span><span>異動時間（UTC+8）</span></div>
               <ol className="min-w-0 divide-y divide-slate-700/70">
                 {events.length === 0 && !loading && !listLoadError && <li className="px-3 py-10 text-center text-xs text-slate-400">沒有符合條件的紀錄。</li>}
                 {events.map((item, index) => (
                   <li key={item.card_id}>
-                    <button type="button" onClick={() => selectEvent(item.card_id)} aria-pressed={selectedId === item.card_id} className={`flex w-full min-w-0 items-start gap-2 border-l-[3px] px-2.5 py-2.5 text-left transition-colors ${selectedId === item.card_id ? 'border-cyan-300 bg-cyan-600/15' : 'border-transparent bg-slate-950/30 hover:bg-slate-800/80'} ${buttonFocus}`}>
-                      <span className="w-6 shrink-0 pt-0.5 text-right text-[11px] font-bold tabular-nums text-cyan-300">{index + 1}.</span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center justify-between gap-2"><strong className="truncate text-xs text-white">{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : item.notification_origin === 'unverified' ? '通知 · 待核實' : '通知' : typeLabels[item.entity_type] ?? item.entity_type}</strong><span className="shrink-0 text-[10px] text-cyan-200">{actionLabels[item.action] ?? item.action}</span></span>
-                        <span className="mt-0.5 block truncate text-[11px] text-slate-300">{item.action === 'conversation_delete' ? `對話 ${item.message_count} 則 · ${item.employee_account || '員工帳號未留存'}` : readableText(item.summary) || '（無摘要）'}</span>
-                        <span className="mt-1 flex items-center justify-between gap-2 text-[10px] text-slate-400"><span className="min-w-0 truncate" title={`操作者：${item.actor_username} · 所屬管理員：${item.owner_username || item.owner_admin_id}`}>{item.actor_username} · {item.owner_username || item.owner_admin_id}</span><time className="shrink-0 tabular-nums">{formatChatTime(item.occurred_at)}</time></span>
-                        {(item.cleared_count > 0 || item.clear_started_at) && <span className={`mt-1 block text-[10px] ${item.cleared_count === item.message_count ? 'text-rose-300' : 'text-amber-300'}`}>{item.cleared_count === item.message_count ? '證據已清除' : item.clear_started_at ? '清除未完成' : `已清除 ${item.cleared_count} / ${item.message_count} 則`}</span>}
-                      </span>
+                    <button type="button" onClick={() => selectEvent(item.card_id)} className={`grid w-full min-w-0 grid-cols-[34px_minmax(0,1fr)] items-center gap-2 border-l-[3px] px-3 py-3 text-left transition-colors xl:grid-cols-[50px_155px_minmax(150px,1fr)_150px_120px_180px] xl:gap-3 xl:px-4 ${selectedId === item.card_id ? 'border-cyan-300 bg-cyan-600/15' : 'border-transparent bg-slate-950/30 hover:bg-slate-800/80'} ${buttonFocus}`}>
+                      <span className="text-xs font-bold tabular-nums text-cyan-300">{index + 1}.</span>
+                      <span className="min-w-0 text-xs font-bold text-white">{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : '通知 · 待核實' : typeLabels[item.entity_type] ?? item.entity_type}<span className="mt-0.5 block text-[11px] font-medium text-cyan-200">{actionLabels[item.action] ?? item.action}</span></span>
+                      <span className="col-start-2 min-w-0 truncate text-xs text-slate-200 xl:col-auto" title={readableText(item.summary)}>{item.action === 'conversation_delete' ? `對話 ${item.message_count} 則 · ${item.employee_account || '員工帳號未留存'}` : readableText(item.summary) || '（無摘要）'}{item.cleared_count > 0 ? ' · 證據已清除' : item.clear_started_at ? ' · 清除未完成' : ''}</span>
+                      <span className="col-start-2 min-w-0 truncate text-[11px] text-slate-300 xl:col-auto xl:text-xs">{item.owner_username || item.owner_admin_id}</span>
+                      <span className="col-start-2 min-w-0 truncate text-[11px] text-slate-400 xl:col-auto xl:text-xs">{item.actor_username}</span>
+                      <time className="col-start-2 text-[11px] tabular-nums text-slate-400 xl:col-auto">{formatAuditTime(item.occurred_at)}</time>
                     </button>
                   </li>
                 ))}
@@ -1029,8 +1041,10 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
               <div ref={loadMoreRef} className="shrink-0 py-2 text-center text-xs text-slate-400" role="status">{loading ? '載入中…' : listLoadError ? <button type="button" onClick={() => setListRetryKey(key => key + 1)} className={`text-cyan-200 underline ${buttonFocus}`}>載入失敗，點此重試</button> : events.length < total ? '往下捲動載入更多' : null}</div>
             </section>
 
-            <section ref={detailRef} aria-label="稽核事件詳情" className={`flex min-h-0 min-w-0 scroll-mt-2 flex-col ${conversation ? 'xl:overflow-hidden' : 'xl:overflow-y-auto'}`}>
-              <div className="shrink-0 border-b border-slate-700 bg-slate-950/50 px-4 py-3"><h2 className="text-sm font-black text-white">內容查看{selectedCard && <span className="ml-2 text-xs font-medium text-cyan-200">· {actionLabels[selectedCard.action]}</span>}</h2></div>
+            {selectedId && createPortal(<div className="fixed inset-0 z-[9000] flex items-center justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:p-4" onMouseDown={event => { if (event.target === event.currentTarget && !clearTarget) closeEvent(); }}>
+              <section ref={detailRef} role="dialog" aria-modal="true" aria-labelledby="audit-detail-title" className="flex h-full min-h-0 w-full max-w-6xl flex-col overflow-hidden border border-cyan-300/25 bg-slate-900 shadow-2xl sm:h-[92vh] sm:rounded-2xl">
+              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-700 bg-slate-950 px-4 py-3"><h2 id="audit-detail-title" className="text-sm font-black text-white">內容查看{selectedCard && <span className="ml-2 text-xs font-medium text-cyan-200">· {actionLabels[selectedCard.action]}</span>}</h2><button type="button" autoFocus onClick={closeEvent} aria-label="關閉稽核詳情" className={`rounded-lg border border-slate-600 p-2 text-slate-200 hover:bg-slate-800 ${buttonFocus}`}><X className="h-4 w-4" /></button></div>
+              <div className={`min-h-0 flex-1 ${conversation ? 'overflow-hidden' : 'overflow-y-auto'}`}>
               {!selectedId ? <p className="px-4 py-12 text-center text-sm text-slate-400">點選左側卡片查看內容。</p> : detailLoading ? <p role="status" className="px-4 py-12 text-center text-sm text-slate-400">載入詳情中…</p> : conversation ? (
                 <div className="flex min-h-[520px] min-w-0 flex-col p-2 sm:p-3 xl:min-h-0 xl:flex-1 xl:p-0">
                   <section className={`flex h-[70vh] min-h-[500px] min-w-0 flex-col overflow-hidden rounded-xl border shadow-xl xl:h-full xl:min-h-0 xl:flex-1 xl:rounded-none xl:border-0 ${conversation.entity_type === 'aaa_service' ? 'border-orange-400/30' : 'border-emerald-400/30'}`}>
@@ -1064,7 +1078,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                   <section><h3 className="mb-2 text-xs font-bold text-white">同一對象的版本歷程</h3><div className="space-y-1.5">{(detail.timeline ?? []).map(version => <button key={version.id} type="button" onClick={() => selectEvent(version.id)} aria-pressed={version.id === detail.id} className={`flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs ${version.id === detail.id ? 'border-cyan-400/50 bg-cyan-500/15 text-white' : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-800'} ${buttonFocus}`}><span>{actionLabels[version.action] ?? version.action}{version.cleared_at ? ' · 已清除' : ''}</span><span className="tabular-nums">{formatAuditTime(version.occurred_at)}</span></button>)}</div></section>
                 </div>
               )}
-            </section>
+              </div>
+            </section></div>, document.body)}
           </div>
         </main>
       </div></>}
