@@ -26,8 +26,9 @@ CREATE INDEX deleted_employee_accounts_time_idx ON private.deleted_employee_acco
 CREATE INDEX deleted_employee_accounts_owner_idx ON private.deleted_employee_accounts (owner_admin_id, deleted_at DESC);
 CREATE INDEX deleted_employee_accounts_actor_idx ON private.deleted_employee_accounts (actor_admin_id, deleted_at DESC);
 CREATE INDEX deleted_employee_accounts_operation_idx ON private.deleted_employee_accounts (operation_id, employee_id);
-CREATE INDEX content_audit_events_employee_operation_idx ON private.content_audit_events (operation_id, employee_id, occurred_at DESC, id DESC)
-WHERE entity_type IN ('aaa_service', 'ccc_service') AND action IN ('employee_delete', 'admin_delete');
+CREATE INDEX content_audit_events_employee_time_idx ON private.content_audit_events (employee_id, entity_type, occurred_at DESC, id DESC)
+WHERE entity_type IN ('aaa_service', 'ccc_service');
+CREATE INDEX content_audit_recipient_employee_idx ON private.content_audit_recipient_versions (recipient_id, message_id);
 REVOKE ALL ON private.deleted_employee_accounts FROM PUBLIC, anon, authenticated;
 
 CREATE TABLE private.deleted_employee_notifications (
