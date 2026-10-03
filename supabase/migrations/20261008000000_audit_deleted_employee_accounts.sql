@@ -130,6 +130,7 @@ BEGIN
   IF v_actor.id IS NULL OR v_actor.role <> 'super_admin' OR OLD.role <> 'secondary_admin' THEN
     RAISE EXCEPTION 'Administrator deletion requires a verified super administrator.';
   END IF;
+  PERFORM private.acquire_notification_automation_configuration_lock();
   INSERT INTO private.deleted_employee_accounts (
     operation_id, employee_id, account_username, employee_number, account_created_at, account_remarks,
     owner_admin_id, owner_username, actor_admin_id, actor_username, actor_role, deletion_source
@@ -284,6 +285,11 @@ BEGIN
     RAISE EXCEPTION 'Invalid evidence page.';
   END IF;
   SELECT to_jsonb(record) || jsonb_build_object(
+    'account_summary', CASE WHEN record.cleared_at IS NULL AND employee.archived_at IS NOT NULL THEN jsonb_build_object(
+      'is_verified', employee.is_verified, 'total_income', employee.total_income,
+      'available_balance', wallet.available_balance, 'frozen_balance', wallet.frozen_balance,
+      'total_orders', (SELECT count(*) FROM public.orders o WHERE o.user_id = record.employee_id)
+    ) ELSE NULL END,
     'related_total', (SELECT count(*) FROM private.content_audit_events event
       WHERE event.employee_id = record.employee_id
         AND event.entity_type IN ('aaa_service', 'ccc_service')
@@ -303,7 +309,10 @@ BEGIN
           AND (p_type IS NULL OR event.entity_type = p_type)
         ORDER BY event.occurred_at DESC, event.id DESC
         LIMIT p_related_page_size OFFSET p_related_page * p_related_page_size) page), '[]'::jsonb)
-  ) INTO v_result FROM private.deleted_employee_accounts record WHERE record.id = p_record_id;
+  ) INTO v_result FROM private.deleted_employee_accounts record
+  LEFT JOIN public.users employee ON employee.id = record.employee_id
+  LEFT JOIN public.wallets wallet ON wallet.user_id = record.employee_id
+  WHERE record.id = p_record_id;
   RETURN v_result;
 END;
 $$;
