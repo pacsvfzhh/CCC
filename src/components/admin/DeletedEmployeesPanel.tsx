@@ -31,10 +31,10 @@ type RelatedEvidence = { id: string; operation_id: string; entity_type: 'aaa_ser
 type EmployeeDetail = DeletedEmployee & { account_summary: { is_verified: boolean; total_income: number; available_balance: number | null; frozen_balance: number | null; total_orders: number } | null; related_total: number; related_counts: { aaa_service: number; ccc_service: number }; related_items: RelatedEvidence[] };
 type NotificationRow = { id: string; title: string | null; sender_username: string | null; sent_at: string | null; is_read: string | null; audit_origin: string | null; cleared_at: string | null };
 type NotificationDetail = { id: string; message_data: Record<string, unknown> | null; recipient_data: Record<string, unknown> | null; cleared_at: string | null };
-type Filters = { owner: string; search: string; source: '' | 'employee_delete' | 'admin_delete'; from: string; to: string };
+type Filters = { owner: string; search: string };
 type Section = 'profile' | 'notifications' | 'aaa_service' | 'ccc_service';
 
-const emptyFilters: Filters = { owner: '', search: '', source: '', from: '', to: '' };
+const emptyFilters: Filters = { owner: '', search: '' };
 const PAGE_SIZE = 30;
 const RELATED_PAGE_SIZE = 20;
 const inputClass = 'mt-1.5 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus-visible:border-cyan-400 focus-visible:ring-2 focus-visible:ring-cyan-400/30';
@@ -44,12 +44,6 @@ const sections: Array<[Section, string]> = [['profile', '帳戶資料'], ['notif
 function displayTime(value: string | null): string {
   if (!value) return '—';
   return `${new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(new Date(value))} (UTC+8)`;
-}
-
-function dateBoundary(value: string, nextDay = false): string {
-  const date = new Date(`${value}T00:00:00+08:00`);
-  if (nextDay) date.setTime(date.getTime() + 86400000);
-  return date.toISOString();
 }
 
 function DetailField({ label, value }: { label: string; value: string | null }) {
@@ -140,7 +134,6 @@ export default function DeletedEmployeesPanel({ switcher, isActive, clearConfirm
 }) {
   const [draft, setDraft] = useState<Filters>(emptyFilters);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
-  const [filterError, setFilterError] = useState<string | null>(null);
   const [items, setItems] = useState<DeletedEmployee[]>([]);
   const [owners, setOwners] = useState<Array<{ id: string; username: string; event_count: number }>>([]);
   const [ownersLoaded, setOwnersLoaded] = useState(false);
@@ -189,9 +182,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, clearConfirm
       try {
         const { data, error } = await supabase.rpc('list_deleted_employee_accounts', {
           p_admin_session_token: getAdminFinancialSessionToken(), p_owner: filters.owner || null,
-          p_search: filters.search || null, p_source: filters.source || null,
-          p_from: filters.from ? dateBoundary(filters.from) : null,
-          p_to: filters.to ? dateBoundary(filters.to, true) : null, p_page: page, p_page_size: PAGE_SIZE,
+          p_search: filters.search || null, p_page: page, p_page_size: PAGE_SIZE,
         });
         if (error) throw error;
         if (!data || !Array.isArray(data.items) || !Array.isArray(data.owners) || typeof data.total !== 'number') throw new Error('已刪員工清單格式不正確。');
@@ -356,11 +347,17 @@ export default function DeletedEmployeesPanel({ switcher, isActive, clearConfirm
     onSelectEmployee(null);
   };
 
-  const applyFilters = (event: FormEvent<HTMLFormElement>) => {
+  const applySearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (draft.from && draft.to && draft.from > draft.to) { setFilterError('結束日期不能早於開始日期。'); return; }
-    setFilterError(null);
-    setFilters({ ...draft, search: draft.search.trim() });
+    setFilters(previous => ({ ...previous, search: draft.search.trim() }));
+    setPage(0);
+    setSelectedId(null);
+    onSelectEmployee(null);
+  };
+
+  const clearSearch = () => {
+    setDraft(previous => ({ ...previous, search: '' }));
+    setFilters(previous => ({ ...previous, search: '' }));
     setPage(0);
     setSelectedId(null);
     onSelectEmployee(null);
@@ -389,40 +386,25 @@ export default function DeletedEmployeesPanel({ switcher, isActive, clearConfirm
     detailPaneRef.current?.querySelector<HTMLElement>(`[data-archive-section="${target}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const resetFilters = () => {
-    setDraft(emptyFilters);
-    setFilters(emptyFilters);
-    setFilterError(null);
-    setPage(0);
-    setSelectedId(null);
-    onSelectEmployee(null);
-  };
-
   const ownerGroupsView = <div aria-label="所屬管理員分組" className="space-y-1">
     <p className="mb-2 text-xs font-bold text-slate-300">所屬管理員</p>
     {[{ id: '', username: '全部管理員', event_count: allOwnerTotal }, ...adminGroups].map(owner => <button key={owner.id} type="button" aria-pressed={filters.owner === owner.id} onClick={() => selectOwner(owner.id)} className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold ${filters.owner === owner.id ? 'bg-gradient-to-r from-cyan-700 to-blue-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'} ${focusClass}`}><span className="min-w-0 truncate">{owner.username}</span><span className="rounded-md bg-white/15 px-2 py-0.5 tabular-nums">{ownersLoaded ? owner.event_count.toLocaleString() : '…'}</span></button>)}
   </div>;
 
-  const filtersView = <form onSubmit={applyFilters} className="space-y-3">
-    <button type="button" onClick={() => selectOwner(filters.owner)} className={`flex w-full items-center justify-between rounded-lg bg-gradient-to-r from-cyan-700 to-blue-800 px-3 py-2 text-left text-xs font-bold text-white ${focusClass}`}>刪除員工 <span className="rounded-md bg-white/15 px-2 py-0.5">{ownersLoaded ? filters.owner ? adminGroups.find(owner => owner.id === filters.owner)?.event_count ?? 0 : allOwnerTotal : '…'}</span></button>
-    <label className="block text-xs font-semibold text-slate-300">刪除方式
-      <select className={inputClass} value={draft.source} onChange={event => setDraft(previous => ({ ...previous, source: event.target.value as Filters['source'] }))}>
-        <option value="">全部刪除</option><option value="employee_delete">單獨刪除員工</option><option value="admin_delete">隨管理員刪除</option>
-      </select>
-    </label>
-    <label className="block text-xs font-semibold text-slate-300">員工帳號／員工 ID
-      <span className="relative block"><Search className="pointer-events-none absolute left-3 top-4 h-4 w-4 text-slate-500" aria-hidden="true" /><input className={`${inputClass} pl-9`} value={draft.search} maxLength={100} onChange={event => setDraft(previous => ({ ...previous, search: event.target.value }))} placeholder="帳號或管理員設定的編號" /></span>
-    </label>
-    <div className="grid grid-cols-2 gap-2"><label className="min-w-0 text-xs font-semibold text-slate-300">開始日期（UTC+8）<input type="date" className={`${inputClass} min-w-0 [color-scheme:dark]`} value={draft.from} onChange={event => setDraft(previous => ({ ...previous, from: event.target.value }))} /></label><label className="min-w-0 text-xs font-semibold text-slate-300">結束日期（UTC+8）<input type="date" className={`${inputClass} min-w-0 [color-scheme:dark]`} value={draft.to} onChange={event => setDraft(previous => ({ ...previous, to: event.target.value }))} /></label></div>
-    {filterError && <p role="alert" className="text-xs text-rose-300">{filterError}</p>}
-    <div className="flex gap-2 pt-1"><button type="submit" className={`flex-1 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 px-3 py-2 text-xs font-bold text-white ${focusClass}`}>套用篩選</button><button type="button" onClick={resetFilters} className={`rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-300 ${focusClass}`}>重設</button></div>
+  const searchView = (inputId: string) => <form onSubmit={applySearch} role="search" className="space-y-2">
+    <label htmlFor={inputId} className="block text-xs font-semibold text-slate-300">員工帳號／員工 ID</label>
+    <div className="flex items-end gap-2">
+      <span className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3 top-4 h-4 w-4 text-slate-500" aria-hidden="true" /><input id={inputId} type="search" className={`${inputClass} pl-9`} value={draft.search} maxLength={100} onChange={event => setDraft(previous => ({ ...previous, search: event.target.value }))} placeholder="搜尋已刪員工" /></span>
+      <button type="submit" className={`rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 px-3 py-2 text-xs font-bold text-white ${focusClass}`}>搜尋</button>
+    </div>
+    {filters.search && <button type="button" onClick={clearSearch} className={`text-xs text-cyan-200 underline ${focusClass}`}>清除搜尋</button>}
   </form>;
 
   const message = notificationDetail?.message_data;
   return <>
-    <div className="shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden"><details className="max-h-[60vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-3"><summary className="cursor-pointer text-xs font-bold text-cyan-200">管理員分組／刪除員工篩選</summary><div className="mt-3 space-y-4">{ownerGroupsView}{filtersView}</div></details></div>
+    <div className="shrink-0 space-y-3 border-b border-slate-700 bg-slate-900 px-3 py-3 lg:hidden"><div>{switcher}</div>{searchView('deleted-employee-search-mobile')}<details className="max-h-[55vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-3"><summary className="cursor-pointer text-xs font-bold text-cyan-200">所屬管理員分組</summary><div className="mt-3">{ownerGroupsView}</div></details></div>
     <div className="grid min-h-0 flex-1 lg:grid-cols-[250px_minmax(0,1fr)]">
-      <aside className="hidden min-h-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-950 p-3 lg:flex"><div className="mb-4">{switcher}</div><div className="mb-4 border-b border-slate-700 pb-4">{ownerGroupsView}</div>{filtersView}</aside>
+      <aside className="hidden min-h-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-950 p-3 lg:flex"><div className="mb-4">{switcher}</div><div className="mb-4 border-b border-slate-700 pb-4">{searchView('deleted-employee-search-desktop')}</div>{ownerGroupsView}</aside>
       <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section aria-label="已刪員工帳戶列表" className={`${selectedId ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-900`}>
           <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-slate-700 bg-slate-950 px-4 py-3"><h2 className="text-sm font-black text-white">已刪員工帳戶</h2><span className="text-xs text-cyan-200">{total.toLocaleString()} 位</span></div>
