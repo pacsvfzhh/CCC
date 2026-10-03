@@ -236,7 +236,7 @@ function ConversationTranscript({ message, senderName, workspace, purgeUnlocked,
         </div>
       </div>
       {cardOpen && createPortal(
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm xl:p-6" onClick={() => setCardOpen(false)}>
+        <div data-audit-nested-preview className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm xl:p-6" onClick={() => setCardOpen(false)}>
           <div role="dialog" aria-modal="true" aria-labelledby={`audit-card-${message.id}`} className="flex h-full w-full flex-col overflow-hidden bg-white shadow-2xl xl:h-auto xl:max-h-[85vh] xl:w-[680px] xl:rounded-2xl" onClick={event => event.stopPropagation()}>
             <div className="relative shrink-0 bg-gradient-to-br from-blue-800 via-blue-600 to-blue-700 px-5 pb-5 pt-6 text-white">
               <button type="button" autoFocus onClick={() => setCardOpen(false)} aria-label="關閉卡片詳情" className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/15 hover:bg-white/25"><X className="h-4 w-4" /></button>
@@ -394,7 +394,7 @@ function EvidenceMedia({ eventId, path }: { eventId: string; path: string }) {
         </button>
       )}
       {error && <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p>}
-      {expanded && objectUrl && createPortal(<div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/90 p-4" onClick={() => setExpanded(false)}><div role="dialog" aria-modal="true" aria-label="圖片預覽" className="relative flex max-h-full max-w-full items-center" onClick={event => event.stopPropagation()}><button type="button" autoFocus onClick={() => setExpanded(false)} aria-label="關閉圖片預覽" className="absolute -right-2 -top-11 rounded-full bg-white/15 p-2 text-white hover:bg-white/30"><X className="h-5 w-5" /></button><img src={objectUrl} alt="封存圖片預覽" className="max-h-[85vh] max-w-[95vw] object-contain" /></div></div>, document.body)}
+      {expanded && objectUrl && createPortal(<div data-audit-nested-preview className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/90 p-4" onClick={() => setExpanded(false)}><div role="dialog" aria-modal="true" aria-label="圖片預覽" className="relative flex max-h-full max-w-full items-center" onClick={event => event.stopPropagation()}><button type="button" autoFocus onClick={() => setExpanded(false)} aria-label="關閉圖片預覽" className="absolute -right-2 -top-11 rounded-full bg-white/15 p-2 text-white hover:bg-white/30"><X className="h-5 w-5" /></button><img src={objectUrl} alt="封存圖片預覽" className="max-h-[85vh] max-w-[95vw] object-contain" /></div></div>, document.body)}
     </div>
   );
 }
@@ -885,7 +885,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     if (!selectedId || view !== 'content' || clearTarget) return;
-    const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') closeEvent(); };
+    const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !document.querySelector('[data-audit-nested-preview]')) closeEvent(); };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
   }, [selectedId, view, clearTarget, closeEvent]);
@@ -1000,9 +1000,9 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         <div className="flex min-w-0 items-center gap-2"><LockKeyhole className={`h-4 w-4 shrink-0 ${purgeUnlocked ? 'text-amber-300' : 'text-emerald-300'}`} aria-hidden="true" /><div><p className="text-xs font-bold text-white">清除模式：{purgeUnlocked ? '限時開啟' : '已鎖定'}</p><p className="text-[11px] text-slate-400">{purgeUnlocked ? `剩餘 ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')} · 到期 ${formatAuditTime(expiry)}` : '僅超級管理員可啟用；五分鐘後自動鎖定'}</p></div></div>
         <button type="button" onClick={() => void toggleWindow()} disabled={windowBusy || clearing} className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50 ${purgeUnlocked ? 'border-rose-400/40 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25' : 'border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'} ${buttonFocus}`}>{windowBusy ? '處理中…' : purgeUnlocked ? '立即鎖定' : '啟用五分鐘清除模式'}</button>
       </section>
-      {view === 'employees' ? <DeletedEmployeesPanel switcher={viewSwitch} refreshKey={refreshKey} purgeUnlocked={purgeUnlocked} clearing={clearing} windowBusy={windowBusy} initialSelectedId={archiveEmployeeId} initialSection={archiveSection} availableAdmins={availableAdmins} onSelectSection={setArchiveSection} onSelectEmployee={setArchiveEmployeeId} onClear={id => { setReason(''); setClearTarget({ id, kind: 'employee' }); }} onClearNotification={id => { setReason(''); setClearTarget({ id, kind: 'notification' }); }} onOpenEvidence={(event, employee) => { void (async () => {
-        if (!await switchView('content')) return;
+      {(view === 'employees' || returnToArchive) && <div className={`${view === 'employees' ? 'flex' : 'hidden'} min-h-0 flex-1 flex-col overflow-hidden`}><DeletedEmployeesPanel switcher={viewSwitch} refreshKey={refreshKey} purgeUnlocked={purgeUnlocked} clearing={clearing} windowBusy={windowBusy} initialSelectedId={archiveEmployeeId} initialSection={archiveSection} availableAdmins={availableAdmins} onSelectSection={setArchiveSection} onSelectEmployee={setArchiveEmployeeId} onClear={id => { setReason(''); setClearTarget({ id, kind: 'employee' }); }} onClearNotification={id => { setReason(''); setClearTarget({ id, kind: 'notification' }); }} onOpenEvidence={(event, employee) => { void (async () => {
         setReturnToArchive(true);
+        if (!await switchView('content')) { setReturnToArchive(false); return; }
         setArchiveEmployeeId(employee.id);
         setSelectedCard({ id: event.id, card_id: `event:${event.id}`, operation_id: event.operation_id,
           entity_type: event.entity_type, entity_id: event.id, action: event.action,
@@ -1013,7 +1013,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
           occurred_at: event.occurred_at, summary: '', cleared_at: event.cleared_at, clear_started_at: null });
         setSelectedId(`event:${event.id}`);
         setConversationPage(0);
-      })(); }} /> : <>
+      })(); }} /></div>}
+      {view === 'content' && <>
       <div className="relative z-20 shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden">
         <div className="mb-2 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Database className="h-4 w-4 text-cyan-300" aria-hidden="true" /><h2 className="text-xs font-black text-white">內容篩選</h2></div><OwnerPicker selected={filters.owner} owners={ownerOptions} total={filterCounts?.total ?? null} loading={filterCountsLoading} error={filterCountsError} onRetry={() => setFilterCountsRetryKey(key => key + 1)} onSelect={owner => selectQuickFilter({ owner })} /></div>
         <details className="group max-h-[65vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-3">

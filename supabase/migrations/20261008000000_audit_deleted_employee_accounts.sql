@@ -300,9 +300,12 @@ BEGIN
       FROM private.content_audit_events event WHERE event.employee_id = record.employee_id),
     'related_items', COALESCE((SELECT jsonb_agg(jsonb_build_object(
       'id', page.id, 'operation_id', page.operation_id, 'entity_type', page.entity_type, 'action', page.action,
-      'occurred_at', page.occurred_at, 'cleared_at', page.cleared_at)
+      'occurred_at', page.occurred_at, 'cleared_at', page.cleared_at,
+      'before_data', page.before_data, 'after_data', page.after_data,
+      'media_refs', page.media_refs)
       ORDER BY page.occurred_at DESC, page.id DESC)
-      FROM (SELECT event.id, event.operation_id, event.entity_type, event.action, event.occurred_at, event.cleared_at
+      FROM (SELECT event.id, event.operation_id, event.entity_type, event.action, event.occurred_at, event.cleared_at,
+          event.before_data, event.after_data, event.media_refs
         FROM private.content_audit_events event
         WHERE event.employee_id = record.employee_id
           AND event.entity_type IN ('aaa_service', 'ccc_service')
