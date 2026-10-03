@@ -2,6 +2,20 @@ ALTER TABLE public.users ADD COLUMN archived_at timestamptz;
 CREATE INDEX users_archived_at_idx ON public.users (archived_at) WHERE archived_at IS NOT NULL;
 ALTER POLICY "Allow employee access" ON public.users USING (archived_at IS NULL);
 
+CREATE FUNCTION private.reject_archived_notification_recipient()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.users WHERE id = NEW.recipient_id AND archived_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'An archived employee cannot receive notifications.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER reject_archived_notification_recipient BEFORE INSERT OR UPDATE OF recipient_id
+ON public.message_recipients FOR EACH ROW EXECUTE FUNCTION private.reject_archived_notification_recipient();
+REVOKE ALL ON FUNCTION private.reject_archived_notification_recipient() FROM PUBLIC, anon, authenticated;
+
 CREATE TABLE private.deleted_employee_accounts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   operation_id uuid NOT NULL,
@@ -126,6 +140,10 @@ BEGIN
   FOR v_user IN SELECT * FROM public.users WHERE created_by = OLD.id AND archived_at IS NULL FOR UPDATE LOOP
     PERFORM private.archive_deleted_employee_notifications(v_user.id, v_operation);
     DELETE FROM public.message_recipients WHERE recipient_id = v_user.id;
+    DELETE FROM public.notification_automation_plan_members WHERE user_id = v_user.id;
+    DELETE FROM public.notification_automation_task_recipients WHERE user_id = v_user.id;
+    DELETE FROM public.notification_automation_queue WHERE user_id = v_user.id;
+    DELETE FROM public.dispatch_group_members WHERE user_id = v_user.id;
     UPDATE public.employee_financial_sessions SET revoked_at = clock_timestamp()
       WHERE user_id = v_user.id AND revoked_at IS NULL;
     UPDATE public.users SET is_active = false, archived_at = clock_timestamp(),
@@ -182,6 +200,10 @@ BEGIN
   );
   PERFORM private.archive_deleted_employee_notifications(v_user.id, v_operation);
   DELETE FROM public.message_recipients WHERE recipient_id = v_user.id;
+  DELETE FROM public.notification_automation_plan_members WHERE user_id = v_user.id;
+  DELETE FROM public.notification_automation_task_recipients WHERE user_id = v_user.id;
+  DELETE FROM public.notification_automation_queue WHERE user_id = v_user.id;
+  DELETE FROM public.dispatch_group_members WHERE user_id = v_user.id;
   UPDATE public.employee_financial_sessions SET revoked_at = clock_timestamp()
     WHERE user_id = v_user.id AND revoked_at IS NULL;
   UPDATE public.users SET is_active = false, archived_at = clock_timestamp(),
