@@ -168,7 +168,8 @@ export default function DeletedEmployeesPanel({ switcher, isActive, clearConfirm
     ...owners,
     ...availableAdmins.filter(admin => !owners.some(owner => owner.id === admin.id))
       .map(admin => ({ ...admin, event_count: 0 })),
-  ].sort((a, b) => a.username.localeCompare(b.username, 'zh-TW'));
+  ].filter(owner => owner.username?.trim().toLowerCase() !== 'emergency_admin')
+    .sort((a, b) => a.username.localeCompare(b.username, 'zh-TW'));
   const allOwnerTotal = owners.reduce((sum, owner) => sum + owner.event_count, 0);
 
   useEffect(() => { setPage(0); }, [refreshKey]);

@@ -530,14 +530,14 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         if (!data || !Array.isArray(data.owners) || !data.types) throw new Error('篩選選項格式不正確。');
         if (!cancelled) {
           setFilterCounts(data);
-          setAvailableAdmins(data.owners.map(owner => ({ id: owner.id, username: owner.username })));
+          setAvailableAdmins(data.owners.filter(owner => owner.username?.trim().toLowerCase() !== 'emergency_admin').map(owner => ({ id: owner.id, username: owner.username })));
         }
       } catch (err) {
         if (cancelled) return;
         setFilterCountsError(formatSupabaseError(err));
         const { data: admins, error: adminsError } = await supabase.from('admins')
           .select('id, username').order('username');
-        if (!cancelled && !adminsError && admins) setAvailableAdmins(admins);
+        if (!cancelled && !adminsError && admins) setAvailableAdmins(admins.filter(admin => admin.username?.trim().toLowerCase() !== 'emergency_admin'));
       } finally {
         if (!cancelled) setFilterCountsLoading(false);
       }
@@ -937,7 +937,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   </div>;
 
   const ownerOptions = filterCounts
-    ? filterCounts.owners
+    ? filterCounts.owners.filter(owner => owner.username?.trim().toLowerCase() !== 'emergency_admin')
     : availableAdmins.map(admin => ({ ...admin, event_count: null }));
   const scopedTypes = filters.owner
     ? ownerTypeCounts?.owner === filters.owner ? ownerTypeCounts.types : null
