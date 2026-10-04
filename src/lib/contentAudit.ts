@@ -1,5 +1,5 @@
 import { getAdminFinancialSessionToken } from './auth';
-import { formatSupabaseError, supabase } from './supabase';
+import { formatSupabaseError, isSupabaseTransientError, supabase } from './supabase';
 
 type AuditAction =
   | 'notification_edit' | 'notification_delete'
@@ -15,6 +15,9 @@ export async function mutateAuditedContent(
   const { data, error } = await supabase.functions.invoke('content-audit', {
     body: { action, targetIds, payload, employeeId, sessionToken: getAdminFinancialSessionToken() },
   });
+  if (error && typeof error === 'object' && 'context' in error && isSupabaseTransientError(error.context)) {
+    throw error.context;
+  }
   if (error || data?.error) throw new Error(data?.error || formatSupabaseError(error));
   return data;
 }

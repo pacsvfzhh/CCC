@@ -1745,6 +1745,10 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setDeletingEmployee(null);
       setDeleteError(null);
     } catch (error: unknown) {
+      if (isFinancialAdminSessionError(error)) {
+        void logout(false);
+        return;
+      }
       if (isSupabaseTransientError(error)) {
         const { data: snapshot, error: refreshError } = await supabase.rpc('get_employee_management_snapshot', {
           p_admin_session_token: getAdminFinancialSessionToken(),
