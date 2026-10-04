@@ -199,10 +199,6 @@ Deno.serve(async (request) => {
     }
     if (body.action === 'execute_delete') {
       if (typeof body.jobId !== 'string' || !/^[\da-f-]{36}$/i.test(body.jobId)) return response({ error: 'Invalid confirmation.' }, 400);
-      const { error: beginError } = await db.rpc('begin_content_audit_delete', {
-        p_admin_session_token: token, p_job_id: body.jobId,
-      });
-      if (beginError) throw beginError;
       const { data: deleted, error: deleteError } = await db.rpc('finish_content_audit_delete', {
         p_admin_session_token: token, p_job_id: body.jobId,
       });

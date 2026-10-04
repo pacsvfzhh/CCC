@@ -116,8 +116,9 @@ function ArchivedChatCard({ event, onOpen }: { event: RelatedEvidence; onOpen: (
   return <article className="min-w-0 rounded-xl border border-slate-700 bg-slate-950/50 p-3 text-xs text-slate-200"><div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-2"><div className="min-w-0"><strong className="text-cyan-100">{sender}</strong><span className="ml-2 text-slate-400">{event.action === 'edit' || event.action === 'source_edit' ? '修改版本' : '移除前紀錄'}</span></div><time className="text-slate-400">{displayTime(typeof message?.created_at === 'string' ? message.created_at : event.occurred_at)}</time></div><div className="space-y-1 py-3">{event.cleared_at ? <p className="text-rose-300">此則內容已正式清除。</p> : <>{title && <p className="font-bold text-white">{title}</p>}{subtitle && <p>{subtitle}</p>}{text && <p className="whitespace-pre-wrap break-words">{text}</p>}{message?.message_type === 'rating_request' && <p>評分請求</p>}{message?.message_type === 'rating_result' && <p>服務評分：{String(rating?.rating ?? '—')} · {readableSnapshot(rating?.comment)}</p>}{message?.message_type === 'tip' && <p>打賞：{String(rating?.tip_amount ?? '—')}</p>}{attachments.map(([, path]) => <ArchivedChatMedia key={`${event.id}:${path}`} eventId={event.id} path={path} />)}{imageUrl && !attachments.length && <p className="text-slate-400">原圖無法還原。</p>}{!title && !subtitle && !text && !imageUrl && !attachments.length && !['rating_request', 'rating_result', 'tip'].includes(String(message?.message_type)) && <p className="text-slate-400">沒有可顯示的文字內容。</p>}</>}</div><button type="button" onClick={onOpen} className={`text-xs font-bold text-cyan-200 underline ${focusClass}`}>查看完整版本與操作詳情</button></article>;
 }
 
-export default function DeletedEmployeesPanel({ switcher, isActive, clearConfirmationOpen, refreshKey, purgeUnlocked, clearing, windowBusy, initialSelectedId, initialSection, availableAdmins, onSelectSection, onSelectEmployee, onClear, onClearNotification, onOpenEvidence }: {
+export default function DeletedEmployeesPanel({ switcher, purgeControl, isActive, clearConfirmationOpen, refreshKey, purgeUnlocked, clearing, windowBusy, initialSelectedId, initialSection, availableAdmins, onSelectSection, onSelectEmployee, onClear, onClearNotification, onOpenEvidence }: {
   switcher: ReactNode;
+  purgeControl: ReactNode;
   isActive: boolean;
   clearConfirmationOpen: boolean;
   refreshKey: number;
@@ -404,9 +405,9 @@ export default function DeletedEmployeesPanel({ switcher, isActive, clearConfirm
 
   const message = notificationDetail?.message_data;
   return <>
-    <div className="shrink-0 space-y-3 border-b border-slate-700 bg-slate-900 px-3 py-3 lg:hidden"><div>{switcher}</div>{searchView('deleted-employee-search-mobile')}<details className="max-h-[55vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-3"><summary className="cursor-pointer text-xs font-bold text-cyan-200">所屬管理員分組</summary><div className="mt-3">{ownerGroupsView}</div></details></div>
+    <div className="shrink-0 space-y-3 border-b border-slate-700 bg-slate-900 px-3 py-3 lg:hidden"><div>{switcher}</div>{purgeControl}{searchView('deleted-employee-search-mobile')}<details className="max-h-[55vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-3"><summary className="cursor-pointer text-xs font-bold text-cyan-200">所屬管理員分組</summary><div className="mt-3">{ownerGroupsView}</div></details></div>
     <div className="grid min-h-0 flex-1 lg:grid-cols-[250px_minmax(0,1fr)]">
-      <aside className="hidden min-h-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-950 p-3 lg:flex"><div className="mb-4">{switcher}</div><div className="mb-4 border-b border-slate-700 pb-4">{searchView('deleted-employee-search-desktop')}</div>{ownerGroupsView}</aside>
+      <aside className="hidden min-h-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-950 p-3 lg:flex"><div className="mb-4">{switcher}</div><div className="mb-4">{purgeControl}</div><div className="mb-4 border-b border-slate-700 pb-4">{searchView('deleted-employee-search-desktop')}</div>{ownerGroupsView}</aside>
       <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section aria-label="已刪員工帳戶列表" className={`${selectedId ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-900`}>
           <div className="sticky top-0 z-10 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#111b2e,#14243a)] px-3 py-2.5">

@@ -5,7 +5,6 @@ CREATE TABLE private.content_audit_delete_jobs (
   target_ids uuid[] NOT NULL,
   card_count integer NOT NULL,
   expires_at timestamptz NOT NULL DEFAULT clock_timestamp() + interval '5 minutes',
-  started_at timestamptz,
   finished_at timestamptz,
   paths_to_remove jsonb NOT NULL DEFAULT '[]'::jsonb
 );
@@ -84,35 +83,11 @@ BEGIN
   SELECT (SELECT count(*) FROM cards), (SELECT array_agg(id) FROM targets) INTO v_cards, v_ids;
 
   IF v_cards = 0 OR v_ids IS NULL THEN RAISE EXCEPTION 'No matching audit records remain.'; END IF;
-  DELETE FROM private.content_audit_delete_jobs WHERE expires_at < clock_timestamp() AND started_at IS NULL;
+  DELETE FROM private.content_audit_delete_jobs WHERE expires_at < clock_timestamp() AND finished_at IS NULL;
   INSERT INTO private.content_audit_delete_jobs(admin_id, token_hash, target_ids, card_count)
   VALUES (v_admin, private.hash_financial_token(p_admin_session_token), v_ids, v_cards)
   RETURNING id INTO v_job;
   RETURN jsonb_build_object('job_id', v_job, 'card_count', v_cards, 'event_count', cardinality(v_ids));
-END;
-$$;
-
-CREATE FUNCTION public.begin_content_audit_delete(p_admin_session_token uuid, p_job_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = pg_catalog, public, private, pg_temp AS $$
-DECLARE v_admin uuid; v_role text; v_job private.content_audit_delete_jobs%ROWTYPE;
-BEGIN
-  SELECT admin_id, admin_role INTO v_admin, v_role FROM private.get_financial_admin_context(p_admin_session_token);
-  IF v_role IS DISTINCT FROM 'super_admin' THEN RAISE EXCEPTION 'Super administrator permission is required.'; END IF;
-  PERFORM pg_advisory_xact_lock(hashtext('content-audit-purge-media'));
-  SELECT * INTO v_job FROM private.content_audit_delete_jobs WHERE id = p_job_id FOR UPDATE;
-  IF v_job.id IS NULL OR v_job.admin_id IS DISTINCT FROM v_admin
-    OR (v_job.started_at IS NULL AND (v_job.token_hash IS DISTINCT FROM private.hash_financial_token(p_admin_session_token)
-      OR v_job.expires_at <= clock_timestamp())) THEN
-    RAISE EXCEPTION 'Deletion confirmation has expired. Preview the records again.';
-  END IF;
-  IF v_job.finished_at IS NULL THEN
-    IF (SELECT count(*) FROM private.content_audit_events WHERE id = ANY(v_job.target_ids)) <> cardinality(v_job.target_ids) THEN
-      RAISE EXCEPTION 'The audit records changed. Preview the records again.';
-    END IF;
-    UPDATE private.content_audit_delete_jobs SET started_at = COALESCE(started_at, clock_timestamp()) WHERE id = p_job_id;
-  END IF;
-  RETURN jsonb_build_object('card_count', v_job.card_count, 'event_count', cardinality(v_job.target_ids));
 END;
 $$;
 
@@ -127,7 +102,10 @@ BEGIN
   PERFORM pg_advisory_xact_lock(hashtext('content-audit-purge-media'));
   SELECT * INTO v_job FROM private.content_audit_delete_jobs WHERE id = p_job_id FOR UPDATE;
   IF v_job.id IS NULL OR v_job.admin_id IS DISTINCT FROM v_admin
-    OR v_job.started_at IS NULL THEN RAISE EXCEPTION 'Begin the confirmed deletion again.'; END IF;
+    OR (v_job.finished_at IS NULL AND (v_job.token_hash IS DISTINCT FROM private.hash_financial_token(p_admin_session_token)
+      OR v_job.expires_at <= clock_timestamp())) THEN
+    RAISE EXCEPTION 'Deletion confirmation has expired. Preview the records again.';
+  END IF;
   IF v_job.finished_at IS NOT NULL THEN
     RETURN jsonb_build_object('success', true, 'deleted_events', cardinality(v_job.target_ids), 'paths_to_remove', v_job.paths_to_remove);
   END IF;
@@ -183,20 +161,18 @@ BEGIN
   SELECT admin_id, admin_role INTO v_admin, v_role FROM private.get_financial_admin_context(p_admin_session_token);
   IF v_role IS DISTINCT FROM 'super_admin' THEN RAISE EXCEPTION 'Super administrator permission is required.'; END IF;
   SELECT COALESCE(jsonb_agg(jsonb_build_object('job_id', id, 'card_count', card_count,
-    'event_count', cardinality(target_ids), 'finished_at', finished_at) ORDER BY started_at), '[]'::jsonb)
+    'event_count', cardinality(target_ids), 'finished_at', finished_at) ORDER BY finished_at), '[]'::jsonb)
     INTO v_jobs FROM private.content_audit_delete_jobs
-    WHERE admin_id = v_admin AND started_at IS NOT NULL;
+    WHERE admin_id = v_admin AND finished_at IS NOT NULL;
   RETURN v_jobs;
 END;
 $$;
 
 REVOKE ALL ON FUNCTION public.prepare_content_audit_delete FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.begin_content_audit_delete FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.finish_content_audit_delete FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.complete_content_audit_delete FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.list_content_audit_pending_deletes FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.prepare_content_audit_delete TO service_role;
-GRANT EXECUTE ON FUNCTION public.begin_content_audit_delete TO service_role;
 GRANT EXECUTE ON FUNCTION public.finish_content_audit_delete TO service_role;
 GRANT EXECUTE ON FUNCTION public.complete_content_audit_delete TO service_role;
 GRANT EXECUTE ON FUNCTION public.list_content_audit_pending_deletes TO service_role;

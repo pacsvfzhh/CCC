@@ -548,6 +548,10 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const expiryRef = useRef<string | null>(null);
   const enablingRef = useRef(false);
   const disposedRef = useRef(false);
+  const filtersRef = useRef(filters);
+  const selectedIdRef = useRef(selectedId);
+  filtersRef.current = filters;
+  selectedIdRef.current = selectedId;
   const secondsLeft = expiry ? Math.max(0, Math.ceil((new Date(expiry).getTime() - now) / 1000)) : 0;
   const purgeUnlocked = secondsLeft > 0;
 
@@ -960,6 +964,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       setDeletePreview({ ...pendingDeletes[0], scope: 'bulk' });
       return;
     }
+    const requestedFilters = filters;
+    const requestedSelection = selectedId;
     setDeleting(true);
     setError(null);
     try {
@@ -972,6 +978,10 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         from: eventId || !filters.from ? null : localDayStart(filters.from),
         to: eventId || !filters.to ? null : localDayStart(filters.to, true),
       }, eventId);
+      if (filtersRef.current !== requestedFilters || (eventId && selectedIdRef.current !== requestedSelection)) {
+        setError('篩選或選取紀錄已變更，請重新預覽刪除範圍。');
+        return;
+      }
       setDeletePreview({ ...prepared, scope: eventId ? 'single' : 'bulk' });
     } catch (err) {
       setError(`無法準備刪除：${formatSupabaseError(err)}`);
@@ -1043,6 +1053,12 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     {([['content', '內容稽核'], ['employees', '刪除員工']] as const).map(([mode, label]) => <button key={mode} type="button" aria-pressed={view === mode} disabled={windowBusy || clearing} onClick={() => void switchView(mode)} className={`rounded-lg px-3 py-2 text-xs font-black transition disabled:opacity-50 ${view === mode ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} ${buttonFocus}`}>{label}</button>)}
   </div>;
 
+  const employeePurgeControl = <section aria-label="員工檔案清除模式" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs">
+    <div className="flex items-center gap-2 font-bold text-amber-200"><LockKeyhole className="h-4 w-4" />員工檔案清除 · {purgeUnlocked ? '限時開啟' : '已鎖定'}</div>
+    <p className="mt-1 text-slate-400">{purgeUnlocked ? `剩餘 ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}` : '員工獨立檔案仍須啟用限時清除。'}</p>
+    <button type="button" onClick={() => void toggleWindow()} disabled={windowBusy || clearing} className={`mt-2 rounded-lg border px-3 py-2 font-bold disabled:opacity-50 ${purgeUnlocked ? 'border-rose-400/40 text-rose-200' : 'border-amber-400/40 text-amber-200'} ${buttonFocus}`}>{windowBusy ? '處理中…' : purgeUnlocked ? '立即鎖定' : '啟用五分鐘清除模式'}</button>
+  </section>;
+
   const ownerOptions = filterCounts
     ? filterCounts.owners.filter(owner => owner.username?.trim().toLowerCase() !== 'emergency_admin')
     : availableAdmins.map(admin => ({ ...admin, event_count: null }));
@@ -1103,11 +1119,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       {error && <div role="alert" className="flex shrink-0 items-start gap-2 border-b border-rose-500/30 bg-rose-950/50 px-4 py-2.5 text-xs text-rose-200"><AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /><span className="min-w-0 break-words">{error}</span><button type="button" onClick={() => setError(null)} className="ml-auto shrink-0 underline">關閉</button></div>}
 
       {view === 'content' && <div className="relative z-30 shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden">{viewSwitch}</div>}
-      {view === 'employees' && <section aria-label="員工檔案清除模式" className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700 bg-slate-950/65 px-3 py-3 sm:px-4">
-        <div className="flex min-w-0 items-center gap-2"><LockKeyhole className={`h-4 w-4 shrink-0 ${purgeUnlocked ? 'text-amber-300' : 'text-emerald-300'}`} aria-hidden="true" /><div><p className="text-xs font-bold text-white">清除模式：{purgeUnlocked ? '限時開啟' : '已鎖定'}</p><p className="text-[11px] text-slate-400">{purgeUnlocked ? `剩餘 ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')} · 到期 ${formatAuditTime(expiry)}` : '僅超級管理員可啟用；五分鐘後自動鎖定'}</p></div></div>
-        <button type="button" onClick={() => void toggleWindow()} disabled={windowBusy || clearing} className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50 ${purgeUnlocked ? 'border-rose-400/40 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25' : 'border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'} ${buttonFocus}`}>{windowBusy ? '處理中…' : purgeUnlocked ? '立即鎖定' : '啟用五分鐘清除模式'}</button>
-      </section>}
-      {(view === 'employees' || returnToArchive) && <div className={`${view === 'employees' ? 'flex' : 'hidden'} min-h-0 flex-1 flex-col overflow-hidden`}><DeletedEmployeesPanel switcher={viewSwitch} isActive={view === 'employees'} clearConfirmationOpen={Boolean(clearTarget)} refreshKey={refreshKey} purgeUnlocked={purgeUnlocked} clearing={clearing} windowBusy={windowBusy} initialSelectedId={archiveEmployeeId} initialSection={archiveSection} availableAdmins={availableAdmins} onSelectSection={setArchiveSection} onSelectEmployee={setArchiveEmployeeId} onClear={id => { setReason(''); setClearTarget({ id, kind: 'employee' }); }} onClearNotification={id => { setReason(''); setClearTarget({ id, kind: 'notification' }); }} onOpenEvidence={(event, employee) => { void (async () => {
+      {(view === 'employees' || returnToArchive) && <div className={`${view === 'employees' ? 'flex' : 'hidden'} min-h-0 flex-1 flex-col overflow-hidden`}><DeletedEmployeesPanel switcher={viewSwitch} purgeControl={employeePurgeControl} isActive={view === 'employees'} clearConfirmationOpen={Boolean(clearTarget)} refreshKey={refreshKey} purgeUnlocked={purgeUnlocked} clearing={clearing} windowBusy={windowBusy} initialSelectedId={archiveEmployeeId} initialSection={archiveSection} availableAdmins={availableAdmins} onSelectSection={setArchiveSection} onSelectEmployee={setArchiveEmployeeId} onClear={id => { setReason(''); setClearTarget({ id, kind: 'employee' }); }} onClearNotification={id => { setReason(''); setClearTarget({ id, kind: 'notification' }); }} onOpenEvidence={(event, employee) => { void (async () => {
         setReturnToArchive(true);
         if (!await switchView('content')) { setReturnToArchive(false); return; }
         setArchiveEmployeeId(employee.id);
