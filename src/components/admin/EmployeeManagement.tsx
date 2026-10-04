@@ -2,7 +2,7 @@ import { Fragment, useState, useEffect, useLayoutEffect, useRef, useMemo, useCal
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Search, MoreVertical, CheckCircle, XCircle, Key, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Pin, Tag, X, Users, CalendarDays, Clock, Pencil, Bell, MessageCircle, DollarSign, Headphones, Globe, Loader2, Timer, Wallet, MapPin, Clock3, History, LogIn, LogOut } from 'lucide-react';
-import { formatSupabaseError, isFinancialAdminSessionError, isSupabaseAbortError, supabase } from '../../lib/supabase';
+import { formatSupabaseError, isFinancialAdminSessionError, isSupabaseAbortError, isSupabaseTransientError, supabase } from '../../lib/supabase';
 import { Employee, Admin, NotificationAutomationPlan, NotificationAutomationPlanAssignment } from '../../types';
 import { createFinancialOperationId, getAdminFinancialSessionToken, logout } from '../../lib/auth';
 import { mutateAuditedContent } from '../../lib/contentAudit';
@@ -1745,7 +1745,21 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
       setDeletingEmployee(null);
       setDeleteError(null);
     } catch (error: unknown) {
-      setDeleteError(formatSupabaseError(error) || '刪除員工失敗。');
+      if (isSupabaseTransientError(error)) {
+        const { data: snapshot, error: refreshError } = await supabase.rpc('get_employee_management_snapshot', {
+          p_admin_session_token: getAdminFinancialSessionToken(),
+        });
+        if (!refreshError && snapshot && Array.isArray(snapshot.admins) && Array.isArray(snapshot.employees)
+          && !snapshot.employees.some(item => item.id === employee.id)) {
+          setDeletingEmployee(null);
+          void guardedLoadEmployeesRef.current?.(true);
+          return;
+        }
+        setDeleteError('請求結果尚未確認，請刷新員工列表核對狀態後再操作。');
+        void guardedLoadEmployeesRef.current?.(true);
+      } else {
+        setDeleteError(formatSupabaseError(error) || '刪除員工失敗。');
+      }
     } finally {
       setIsDeleting(false);
     }
