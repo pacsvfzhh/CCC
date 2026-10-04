@@ -114,12 +114,10 @@ async function mutate(body: Change) {
     const copyNext = async () => {
       while (next < pending.length) {
         const copy = pending[next++];
-        const { data: blob, error: downloadError } = await db.storage.from(copy.bucket).download(copy.objectPath);
-        if (downloadError || !blob) throw new Error('Unable to preserve an attachment; content was not changed.');
-        const { error: uploadError } = await db.storage.from(evidenceBucket).upload(copy.privatePath, blob, {
-          contentType: blob.type || 'application/octet-stream', upsert: false,
+        const { error: copyError } = await db.storage.from(copy.bucket).copy(copy.objectPath, copy.privatePath, {
+          destinationBucket: evidenceBucket,
         });
-        if (uploadError) throw new Error('Unable to preserve an attachment; content was not changed.');
+        if (copyError) throw new Error('Unable to preserve an attachment; content was not changed.');
         copied.push(copy.privatePath);
       }
     };

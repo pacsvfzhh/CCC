@@ -187,6 +187,7 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   const [deleteMode, setDeleteMode] = useState<'selected' | 'all' | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState<{ completed: number; total: number } | null>(null);
 
   const [editingMessage, setEditingMessage] = useState(false);
   const [editForm, setEditForm] = useState({ title: '', content: '' });
@@ -993,66 +994,42 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
   };
   loadRecipientDetailsRef.current = loadRecipientDetails;
 
-  const handleDeleteSelected = async () => {
-    if (selectedMessageIds.size === 0) return;
+  const handleConfirmDelete = async () => {
+    const messageIds = deleteMode === 'selected'
+      ? Array.from(selectedMessageIds)
+      : deleteMode === 'all' ? selectedAdminManualMessages.map(message => message.id) : [];
+    if (deleting || messageIds.length === 0) return;
+
     setDeleting(true);
+    setDeleteProgress({ completed: 0, total: messageIds.length });
+    let deletedCount = 0;
     try {
-      const messageIdsArray = Array.from(selectedMessageIds);
-      let deletedCount = 0;
-      for (let index = 0; index < messageIdsArray.length; index += 100) {
-        const result = await mutateAuditedContent('notification_delete', messageIdsArray.slice(index, index + 100));
+      for (let index = 0; index < messageIds.length; index += 100) {
+        const batch = messageIds.slice(index, index + 100);
+        const result = await mutateAuditedContent('notification_delete', batch);
         deletedCount += result.changed_count;
-      }
-      if (deletedCount > 0) {
-        const deletedIds = new Set(messageIdsArray);
+        const deletedIds = new Set(batch);
         setSentMessages(previous => previous.filter(message => !deletedIds.has(message.id)));
-        setShowDeleteConfirm(false);
-        setDeleteMode(null);
-        setSelectedMessageDetail(null);
-        exitSelectionMode();
-        setNotification({ type: 'success', message: '刪除成功' });
-        void loadSentMessages(true);
+        setSelectedMessageIds(previous => new Set([...previous].filter(id => !deletedIds.has(id))));
+        setDeleteProgress({ completed: index + batch.length, total: messageIds.length });
       }
+      setShowDeleteConfirm(false);
+      setDeleteMode(null);
+      setSelectedMessageDetail(null);
+      exitSelectionMode();
+      setNotification({ type: 'success', message: `已刪除 ${deletedCount} 則訊息` });
     } catch (error) {
       console.error('Error deleting messages:', error);
-      setNotification({ type: 'error', message: '刪除訊息失敗' });
+      setShowDeleteConfirm(false);
+      setDeleteMode(null);
+      setNotification({ type: 'error', message: deletedCount > 0
+        ? `已刪除 ${deletedCount} 則，其餘未完成；請重新整理後再試。`
+        : '刪除訊息失敗；請重新整理後確認狀態。' });
     } finally {
       setDeleting(false);
+      setDeleteProgress(null);
+      void loadSentMessages(true);
     }
-  };
-
-  const handleDeleteAll = async () => {
-    const manualMessageIds = selectedAdminManualMessages.map(message => message.id);
-    if (manualMessageIds.length === 0) return;
-
-    setDeleting(true);
-    try {
-      let deletedCount = 0;
-      for (let index = 0; index < manualMessageIds.length; index += 100) {
-        const result = await mutateAuditedContent('notification_delete', manualMessageIds.slice(index, index + 100));
-        deletedCount += result.changed_count;
-      }
-      if (deletedCount > 0) {
-        const deletedIds = new Set(manualMessageIds);
-        setSentMessages(previous => previous.filter(message => !deletedIds.has(message.id)));
-        setShowDeleteConfirm(false);
-        setDeleteMode(null);
-        setSelectedMessageDetail(null);
-        exitSelectionMode();
-        setNotification({ type: 'success', message: '刪除成功' });
-        void loadSentMessages(true);
-      }
-    } catch (error) {
-      console.error('Error deleting all messages:', error);
-      setNotification({ type: 'error', message: '刪除訊息失敗' });
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const handleConfirmDelete = () => {
-    if (deleteMode === 'selected') handleDeleteSelected();
-    else if (deleteMode === 'all') handleDeleteAll();
   };
 
   const handleStartEdit = (msg: Message) => {
@@ -2731,17 +2708,22 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
               <div className="bg-slate-800/50 rounded-lg p-4 mb-6">
                 {deleteMode === 'selected' ? (
                   <p className="text-sm text-slate-300">
-                    您即將刪除 <span className="font-semibold text-white">{selectedMessageIds.size}</span> 則已選訊息。
+                    您即將刪除 <span className="font-semibold text-white">{deleteProgress?.total ?? selectedMessageIds.size}</span> 則已選訊息。
                   </p>
                 ) : (
                   <p className="text-sm text-slate-300">
                     您即將刪除所選管理員群組的<span className="font-semibold text-white">全部手動發送訊息</span>。
-                    {selectedAdminManualMessages.length > 0 && (
-                      <span className="block mt-1 text-slate-400">（將刪除 {selectedAdminManualMessages.length} 則訊息）</span>
+                    {(deleteProgress?.total ?? selectedAdminManualMessages.length) > 0 && (
+                      <span className="block mt-1 text-slate-400">（將刪除 {deleteProgress?.total ?? selectedAdminManualMessages.length} 則訊息）</span>
                     )}
                   </p>
                 )}
               </div>
+              {deleting && deleteProgress && (
+                <div className="mb-4 text-sm text-slate-300" role="status" aria-live="polite">
+                  正在封存並移除：{deleteProgress.completed} / {deleteProgress.total} 則
+                </div>
+              )}
               <div className="flex gap-3">
                 <button onClick={() => { setShowDeleteConfirm(false); setDeleteMode(null); }} disabled={deleting}
                   className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50">
