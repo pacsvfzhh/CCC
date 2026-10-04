@@ -2,8 +2,10 @@ CREATE FUNCTION private.reject_archived_employee_chat()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
 BEGIN
-  IF TG_OP = 'UPDATE' AND NEW.employee_id IS NOT DISTINCT FROM OLD.employee_id THEN
-    RETURN NEW;
+  IF TG_OP = 'UPDATE' THEN
+    IF NEW.employee_id IS NOT DISTINCT FROM OLD.employee_id THEN
+      RETURN NEW;
+    END IF;
   END IF;
 
   PERFORM 1 FROM public.users
