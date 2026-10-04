@@ -153,6 +153,7 @@ BEGIN
   SELECT array_agg(employee_id ORDER BY employee_id) INTO v_employee_ids
   FROM private.deleted_employee_accounts WHERE id = ANY(v_job.account_ids);
   v_employee_ids := COALESCE(v_employee_ids, '{}'::uuid[]) || v_job.orphan_employee_ids;
+  PERFORM 1 FROM public.users WHERE id = ANY(v_employee_ids) ORDER BY id FOR UPDATE;
   IF v_job.orphan_fingerprint IS NOT NULL AND (
     cardinality(v_job.orphan_employee_ids) <> 1 OR
     (SELECT md5(to_jsonb(employee)::text) FROM public.users employee
@@ -168,7 +169,6 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Employee data changed or still has active chat. Deletion stopped.';
   END IF;
-  PERFORM 1 FROM public.users WHERE id = ANY(v_employee_ids) ORDER BY id FOR UPDATE;
 
   WITH identities AS (
     SELECT record.account_username AS username, record.deleted_at AS cutoff
@@ -184,9 +184,9 @@ BEGIN
       JOIN public.users employee ON employee.id = event.employee_id
       WHERE employee.id = ANY(v_employee_ids)
   )
-  DELETE FROM public.login_attempts attempts USING identities identity
-  WHERE identity.username IS NOT NULL AND attempts.identifier = identity.username
-    AND attempts.attempt_time <= identity.cutoff;
+  DELETE FROM public.login_attempts attempts USING identities source_account
+  WHERE source_account.username IS NOT NULL AND attempts.identifier = source_account.username
+    AND attempts.attempt_time <= source_account.cutoff;
   WITH identities AS (
     SELECT record.account_username AS username, record.deleted_at AS cutoff
       FROM private.deleted_employee_accounts record WHERE record.id = ANY(v_job.account_ids)
@@ -201,9 +201,9 @@ BEGIN
       JOIN public.users employee ON employee.id = event.employee_id
       WHERE employee.id = ANY(v_employee_ids)
   )
-  DELETE FROM public.financial_login_attempts attempts USING identities identity
-  WHERE identity.username IS NOT NULL AND attempts.account_type = 'employee'
-    AND attempts.username = identity.username AND attempts.last_attempt_at <= identity.cutoff;
+  DELETE FROM public.financial_login_attempts attempts USING identities source_account
+  WHERE source_account.username IS NOT NULL AND attempts.account_type = 'employee'
+    AND attempts.username = source_account.username AND attempts.last_attempt_at <= source_account.cutoff;
 
   SELECT array_agg(DISTINCT operation_id::text) INTO v_operation_ids
   FROM private.content_audit_events WHERE employee_id = ANY(v_employee_ids);

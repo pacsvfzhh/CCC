@@ -690,7 +690,8 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
       setDeletePreview(null);
       onDeleted();
     } catch (error) {
-      setDeleteError(`刪除未完成：${formatSupabaseError(error)}。若資料已移除，請重試私人附件清理。`);
+      setDeleteError(`刪除結果需核對：${formatSupabaseError(error)}。若資料已移除，請重試私人附件清理。`);
+      onDeleted();
       void listPendingEmployeeArchiveDeletions().then(setPendingCleanup).catch(() => {});
     } finally {
       setDeleting(false);
@@ -704,6 +705,10 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     try {
       await executeEmployeeArchiveDeletion(jobId);
       setPendingCleanup(await listPendingEmployeeArchiveDeletions());
+      if (deletePreview?.scope !== 'notification') {
+        setSelectedId(null);
+        onSelectEmployee(null);
+      }
       setDeletePreview(null);
       onDeleted();
     } catch (error) {
