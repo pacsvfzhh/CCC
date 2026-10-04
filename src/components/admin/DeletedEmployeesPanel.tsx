@@ -116,22 +116,16 @@ function ArchivedChatCard({ event, onOpen }: { event: RelatedEvidence; onOpen: (
   return <article className="min-w-0 rounded-xl border border-slate-700 bg-slate-950/50 p-3 text-xs text-slate-200"><div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-2"><div className="min-w-0"><strong className="text-cyan-100">{sender}</strong><span className="ml-2 text-slate-400">{event.action === 'edit' || event.action === 'source_edit' ? '修改版本' : '移除前紀錄'}</span></div><time className="text-slate-400">{displayTime(typeof message?.created_at === 'string' ? message.created_at : event.occurred_at)}</time></div><div className="space-y-1 py-3">{event.cleared_at ? <p className="text-rose-300">此則內容已正式清除。</p> : <>{title && <p className="font-bold text-white">{title}</p>}{subtitle && <p>{subtitle}</p>}{text && <p className="whitespace-pre-wrap break-words">{text}</p>}{message?.message_type === 'rating_request' && <p>評分請求</p>}{message?.message_type === 'rating_result' && <p>服務評分：{String(rating?.rating ?? '—')} · {readableSnapshot(rating?.comment)}</p>}{message?.message_type === 'tip' && <p>打賞：{String(rating?.tip_amount ?? '—')}</p>}{attachments.map(([, path]) => <ArchivedChatMedia key={`${event.id}:${path}`} eventId={event.id} path={path} />)}{imageUrl && !attachments.length && <p className="text-slate-400">原圖無法還原。</p>}{!title && !subtitle && !text && !imageUrl && !attachments.length && !['rating_request', 'rating_result', 'tip'].includes(String(message?.message_type)) && <p className="text-slate-400">沒有可顯示的文字內容。</p>}</>}</div><button type="button" onClick={onOpen} className={`text-xs font-bold text-cyan-200 underline ${focusClass}`}>查看完整版本與操作詳情</button></article>;
 }
 
-export default function DeletedEmployeesPanel({ switcher, purgeControl, isActive, clearConfirmationOpen, refreshKey, purgeUnlocked, clearing, windowBusy, initialSelectedId, initialSection, availableAdmins, onSelectSection, onSelectEmployee, onClear, onClearNotification, onOpenEvidence }: {
+export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, onDeleted, initialSelectedId, initialSection, availableAdmins, onSelectSection, onSelectEmployee, onOpenEvidence }: {
   switcher: ReactNode;
-  purgeControl: ReactNode;
   isActive: boolean;
-  clearConfirmationOpen: boolean;
   refreshKey: number;
-  purgeUnlocked: boolean;
-  clearing: boolean;
-  windowBusy: boolean;
+  onDeleted: () => void;
   initialSelectedId: string | null;
   initialSection: Section;
   availableAdmins: Array<{ id: string; username: string }>;
   onSelectSection: (section: Section) => void;
   onSelectEmployee: (id: string | null) => void;
-  onClear: (id: string) => void;
-  onClearNotification: (id: string) => void;
   onOpenEvidence: (event: RelatedEvidence, employee: DeletedEmployee) => void;
 }) {
   const [draft, setDraft] = useState<Filters>(emptyFilters);
@@ -162,6 +156,15 @@ export default function DeletedEmployeesPanel({ switcher, purgeControl, isActive
   const [notificationId, setNotificationId] = useState<string | null>(null);
   const [notificationDetail, setNotificationDetail] = useState<NotificationDetail | null>(null);
   const [notificationDetailError, setNotificationDetailError] = useState<string | null>(null);
+  const [deletePreview, setDeletePreview] = useState<{ job_id: string; account_count: number; notification_count: number; scope: 'bulk' | 'account' | 'notification' } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const filtersRef = useRef(filters);
+  const selectedIdRef = useRef(selectedId);
+  const notificationIdRef = useRef(notificationId);
+  filtersRef.current = filters;
+  selectedIdRef.current = selectedId;
+  notificationIdRef.current = notificationId;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const detailPaneRef = useRef<HTMLDivElement>(null);
   const restoredSectionRef = useRef(false);
@@ -326,7 +329,7 @@ export default function DeletedEmployeesPanel({ switcher, purgeControl, isActive
   }, [notificationId, refreshKey]);
 
   useEffect(() => {
-    if (!isActive || clearConfirmationOpen || (!selectedId && !notificationId)) return;
+    if (!isActive || deletePreview || (!selectedId && !notificationId)) return;
     const onEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       if (notificationId) setNotificationId(null);
@@ -334,7 +337,7 @@ export default function DeletedEmployeesPanel({ switcher, purgeControl, isActive
     };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
-  }, [isActive, clearConfirmationOpen, selectedId, notificationId, onSelectEmployee]);
+  }, [isActive, deletePreview, selectedId, notificationId, onSelectEmployee]);
 
   useEffect(() => {
     if (!detail || restoredSectionRef.current || !detailPaneRef.current) return;
@@ -389,6 +392,61 @@ export default function DeletedEmployeesPanel({ switcher, purgeControl, isActive
     detailPaneRef.current?.querySelector<HTMLElement>(`[data-archive-section="${target}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const prepareDeletion = async (recordId?: string, archivedNotificationId?: string) => {
+    if (deleting || (!recordId && !archivedNotificationId && (loading || loadError || total === 0))) return;
+    const requestedFilters = filters;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const { data, error } = await supabase.rpc('prepare_deleted_employee_archive_delete', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_owner: recordId || archivedNotificationId ? null : filters.owner || null,
+        p_search: recordId || archivedNotificationId ? null : filters.search || null,
+        p_record_id: recordId || null,
+        p_notification_id: archivedNotificationId || null,
+      });
+      if (error) throw error;
+      if (!data || typeof data.job_id !== 'string' || typeof data.account_count !== 'number' || typeof data.notification_count !== 'number') {
+        throw new Error('刪除範圍格式不正確。');
+      }
+      if (filtersRef.current !== requestedFilters || (recordId && selectedIdRef.current !== recordId)
+        || (archivedNotificationId && notificationIdRef.current !== archivedNotificationId)) {
+        setDeleteError('篩選或選取檔案已變更，請重新預覽刪除範圍。');
+        return;
+      }
+      setDeletePreview({ ...data, scope: archivedNotificationId ? 'notification' : recordId ? 'account' : 'bulk' });
+    } catch (error) {
+      setDeleteError(`無法準備刪除：${formatSupabaseError(error)}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const confirmDeletion = async () => {
+    if (!deletePreview || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const { data, error } = await supabase.rpc('finish_deleted_employee_archive_delete', {
+        p_admin_session_token: getAdminFinancialSessionToken(), p_job_id: deletePreview.job_id,
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error('刪除結果無法確認。請刷新清單。');
+      if (deletePreview.scope !== 'notification') {
+        setSelectedId(null);
+        onSelectEmployee(null);
+      }
+      setNotificationId(null);
+      setNotificationPage(0);
+      setDeletePreview(null);
+      onDeleted();
+    } catch (error) {
+      setDeleteError(`刪除未完成：${formatSupabaseError(error)}。若確認已過期，取消後重新預覽。`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const ownerGroupsView = <div aria-label="所屬管理員分組" className="space-y-1">
     <p className="mb-2 text-xs font-bold text-slate-300">所屬管理員</p>
     {[{ id: '', username: '全部管理員', event_count: allOwnerTotal }, ...adminGroups].map(owner => <button key={owner.id} type="button" aria-pressed={filters.owner === owner.id} onClick={() => selectOwner(owner.id)} className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold ${filters.owner === owner.id ? 'bg-gradient-to-r from-cyan-700 to-blue-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'} ${focusClass}`}><span className="min-w-0 truncate">{owner.username}</span><span className="rounded-md bg-white/15 px-2 py-0.5 tabular-nums">{ownersLoaded ? owner.event_count.toLocaleString() : '…'}</span></button>)}
@@ -405,13 +463,14 @@ export default function DeletedEmployeesPanel({ switcher, purgeControl, isActive
 
   const message = notificationDetail?.message_data;
   return <>
-    <div className="shrink-0 space-y-3 border-b border-slate-700 bg-slate-900 px-3 py-3 lg:hidden"><div>{switcher}</div>{purgeControl}{searchView('deleted-employee-search-mobile')}<details className="max-h-[55vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-3"><summary className="cursor-pointer text-xs font-bold text-cyan-200">所屬管理員分組</summary><div className="mt-3">{ownerGroupsView}</div></details></div>
+    <div className="shrink-0 space-y-3 border-b border-slate-700 bg-slate-900 px-3 py-3 lg:hidden"><div>{switcher}</div>{searchView('deleted-employee-search-mobile')}<details className="max-h-[55vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-3"><summary className="cursor-pointer text-xs font-bold text-cyan-200">所屬管理員分組</summary><div className="mt-3">{ownerGroupsView}</div></details></div>
     <div className="grid min-h-0 flex-1 lg:grid-cols-[250px_minmax(0,1fr)]">
-      <aside className="hidden min-h-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-950 p-3 lg:flex"><div className="mb-4">{switcher}</div><div className="mb-4">{purgeControl}</div><div className="mb-4 border-b border-slate-700 pb-4">{searchView('deleted-employee-search-desktop')}</div>{ownerGroupsView}</aside>
+      <aside className="hidden min-h-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-950 p-3 lg:flex"><div className="mb-4">{switcher}</div><div className="mb-4 border-b border-slate-700 pb-4">{searchView('deleted-employee-search-desktop')}</div>{ownerGroupsView}</aside>
       <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section aria-label="已刪員工帳戶列表" className={`${selectedId ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-900`}>
           <div className="sticky top-0 z-10 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#111b2e,#14243a)] px-3 py-2.5">
-            <div className="flex items-center justify-between gap-2"><h2 className="text-sm font-black text-white">已刪員工帳戶</h2><span className="rounded-md bg-cyan-400/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-200">{total.toLocaleString()} 位</span></div>
+            <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="flex items-center gap-2"><h2 className="text-sm font-black text-white">已刪員工帳戶</h2><span className="rounded-md bg-cyan-400/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-200">{total.toLocaleString()} 位</span></div><p className="mt-1 text-[10px] text-slate-400">刪除涵蓋目前篩選中尚未載入的檔案</p></div><button type="button" onClick={() => void prepareDeletion()} disabled={deleting || loading || Boolean(loadError) || total === 0} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/10 px-2.5 py-2 text-[11px] font-bold text-rose-100 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${focusClass}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{deleting ? '準備中…' : '全部刪除'}</button></div>
+            {deleteError && !selectedId && <p role="alert" className="mt-2 text-xs text-rose-300">{deleteError}</p>}
             <div className="mt-2 grid grid-cols-[28px_minmax(0,1fr)_auto] gap-2 text-[10px] font-bold text-slate-400"><span>序號</span><span>員工帳戶</span><span>操作</span></div>
           </div>
           <ol className="min-w-0 divide-y divide-slate-700/50">
@@ -439,7 +498,7 @@ export default function DeletedEmployeesPanel({ switcher, purgeControl, isActive
               {detailLoading && !detail && <p role="status" className="py-10 text-center text-sm text-slate-400">載入員工檔案中…</p>}
               {detailError && <p role="alert" className="text-sm text-rose-300">{detailError}</p>}
               {detail && <>
-                <section data-archive-section="profile" className="scroll-mt-4 space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm font-bold text-white">帳戶資料</h3><span className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100"><UserRoundX className="mr-1 inline h-4 w-4" />{detail.deletion_source === 'admin_delete' ? '隨所屬管理員刪除' : '員工帳戶已移入私人檔案'}</span></div><dl className="grid grid-cols-1 gap-2 xl:grid-cols-2"><DetailField label="員工帳號" value={detail.account_username} /><DetailField label="員工姓名" value={detail.account_real_name} /><DetailField label="管理員設定的員工 ID" value={detail.employee_number} /><DetailField label="所屬管理員" value={detail.owner_username || detail.owner_admin_id} /><DetailField label="實際刪除者" value={detail.actor_username} /><DetailField label="刪除時間" value={displayTime(detail.deleted_at)} /><DetailField label="帳戶建立時間" value={displayTime(detail.account_created_at)} /><DetailField label="備註" value={detail.account_remarks} />{detail.account_summary && <><DetailField label="帳戶驗證狀態" value={detail.account_summary.is_verified ? '已驗證' : '未驗證'} /><DetailField label="歷史總收入" value={String(detail.account_summary.total_income)} /><DetailField label="錢包可用／凍結" value={`${detail.account_summary.available_balance ?? 0} / ${detail.account_summary.frozen_balance ?? 0}`} /><DetailField label="歷史訂單總數" value={detail.account_summary.total_orders.toLocaleString()} /></>}{detail.cleared_at && <><DetailField label="正式清除時間" value={displayTime(detail.cleared_at)} /><DetailField label="清除原因" value={detail.clear_reason || null} /></>}</dl>{detail.cleared_at ? <span className="text-xs text-rose-300">帳戶資料已清除</span> : <button type="button" disabled={!purgeUnlocked || clearing || windowBusy} onClick={() => onClear(detail.id)} className={`rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200 disabled:opacity-40 ${focusClass}`}><Trash2 className="mr-1 inline h-4 w-4" />正式清除帳戶證據</button>}<p className="text-xs text-slate-400">清除帳戶資料不會清除獨立留存的通知及聊天內容。</p></section>
+                <section data-archive-section="profile" className="scroll-mt-4 space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm font-bold text-white">帳戶資料</h3><span className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100"><UserRoundX className="mr-1 inline h-4 w-4" />{detail.deletion_source === 'admin_delete' ? '隨所屬管理員刪除' : '員工帳戶已移入私人檔案'}</span></div><dl className="grid grid-cols-1 gap-2 xl:grid-cols-2"><DetailField label="員工帳號" value={detail.account_username} /><DetailField label="員工姓名" value={detail.account_real_name} /><DetailField label="管理員設定的員工 ID" value={detail.employee_number} /><DetailField label="所屬管理員" value={detail.owner_username || detail.owner_admin_id} /><DetailField label="實際刪除者" value={detail.actor_username} /><DetailField label="刪除時間" value={displayTime(detail.deleted_at)} /><DetailField label="帳戶建立時間" value={displayTime(detail.account_created_at)} /><DetailField label="備註" value={detail.account_remarks} />{detail.account_summary && <><DetailField label="帳戶驗證狀態" value={detail.account_summary.is_verified ? '已驗證' : '未驗證'} /><DetailField label="歷史總收入" value={String(detail.account_summary.total_income)} /><DetailField label="錢包可用／凍結" value={`${detail.account_summary.available_balance ?? 0} / ${detail.account_summary.frozen_balance ?? 0}`} /><DetailField label="歷史訂單總數" value={detail.account_summary.total_orders.toLocaleString()} /></>}{detail.cleared_at && <><DetailField label="正式清除時間" value={displayTime(detail.cleared_at)} /><DetailField label="清除原因" value={detail.clear_reason || null} /></>}</dl>{detail.cleared_at ? <span className="text-xs text-rose-300">帳戶資料已清除</span> : <button type="button" disabled={deleting} onClick={() => void prepareDeletion(detail.id)} className={`rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200 disabled:opacity-40 ${focusClass}`}><Trash2 className="mr-1 inline h-4 w-4" />永久刪除此員工檔案</button>}<p className="text-xs text-slate-400">同時刪除此檔案中的私人通知；內容稽核中的聊天與通知事件不受影響。</p>{deleteError && <p role="alert" className="text-xs text-rose-300">{deleteError}</p>}</section>
                 <section data-archive-section="notifications" className="scroll-mt-4 border-t border-slate-700 pt-5"><h3 className="mb-3 text-sm font-bold text-white">管理員手動通知（含舊版紀錄）· {notificationTotal} 筆</h3>{notificationLoading ? <p role="status" className="py-4 text-xs text-slate-400">載入通知檔案中…</p> : notificationError ? <p role="alert" className="text-sm text-rose-300">{notificationError}</p> : notifications.length ? <ol className="space-y-2">{notifications.map(item => <li key={item.id}><button type="button" onClick={() => { setSection('notifications'); onSelectSection('notifications'); setNotificationId(item.id); }} className={`flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/50 px-4 py-3 text-left text-xs text-white hover:border-cyan-400/50 ${focusClass}`}><span className="min-w-0 flex-1 truncate font-bold">{item.title || '已清除通知內容'}<span className="mt-1 block text-[11px] font-normal text-slate-400">發送者：{item.sender_username || '—'} · {item.is_read === 'true' ? '已讀' : '未讀'} · {item.audit_origin === 'manual_admin' ? '管理員手動發送' : item.audit_origin === 'automation' ? '系統自動發送' : item.audit_origin === 'unverified' ? '舊版手動發送' : '發送來源未留存'}</span></span><time className="text-[11px] text-slate-400">{displayTime(item.sent_at)}</time></button></li>)}</ol> : <p className="py-4 text-xs text-slate-400">沒有可查看的通知檔案。</p>}{notificationTotal > RELATED_PAGE_SIZE && <div className="mt-3 flex items-center justify-between text-xs text-slate-300"><span>第 {notificationPage + 1} / {Math.ceil(notificationTotal / RELATED_PAGE_SIZE)} 頁</span><span className="flex gap-2"><button type="button" disabled={notificationPage === 0} onClick={() => setNotificationPage(value => value - 1)} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>上一頁</button><button type="button" disabled={(notificationPage + 1) * RELATED_PAGE_SIZE >= notificationTotal} onClick={() => setNotificationPage(value => value + 1)} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>下一頁</button></span></div>}</section>
                 {(['aaa_service', 'ccc_service'] as const).map(type => <section key={type} data-archive-section={type} className="scroll-mt-4 border-t border-slate-700 pt-5"><h3 className="mb-3 text-sm font-bold text-white">{type === 'aaa_service' ? '模擬客戶' : '經理'}聊天紀錄 · {related[type].total} 筆</h3>{relatedLoading[type] ? <p role="status" className="py-4 text-xs text-slate-400">載入聊天紀錄中…</p> : relatedError[type] ? <p role="alert" className="py-4 text-xs text-rose-300">{relatedError[type]}</p> : related[type].items.length ? <ol className="space-y-2">{related[type].items.map(event => <li key={event.id}><ArchivedChatCard event={event} onOpen={() => { setSection(type); onSelectSection(type); onOpenEvidence(event, detail); }} /></li>)}</ol> : <p className="py-4 text-xs text-slate-400">沒有可查看的聊天紀錄。</p>}{related[type].total > RELATED_PAGE_SIZE && <div className="mt-3 flex items-center justify-between text-xs text-slate-300"><span>第 {relatedPages[type] + 1} / {Math.ceil(related[type].total / RELATED_PAGE_SIZE)} 頁</span><span className="flex gap-2"><button type="button" disabled={relatedPages[type] === 0} onClick={() => setRelatedPages(pages => ({ ...pages, [type]: pages[type] - 1 }))} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>上一頁</button><button type="button" disabled={(relatedPages[type] + 1) * RELATED_PAGE_SIZE >= related[type].total} onClick={() => setRelatedPages(pages => ({ ...pages, [type]: pages[type] + 1 }))} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>下一頁</button></span></div>}</section>)}
               </>}
@@ -448,6 +507,7 @@ export default function DeletedEmployeesPanel({ switcher, purgeControl, isActive
         </section>
       </div>
     </div>
-    {notificationId && createPortal(<div className="fixed inset-0 z-[9000] flex items-center justify-center bg-slate-950/85 p-0 backdrop-blur-sm sm:p-5" onMouseDown={event => { if (event.target === event.currentTarget) setNotificationId(null); }}><section role="dialog" aria-modal="true" aria-label="通知檔案詳情" className="flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-none border border-cyan-300/25 bg-slate-900 shadow-2xl sm:h-[85vh] sm:rounded-2xl"><div className="flex items-center justify-between border-b border-slate-700 px-4 py-3"><span className="text-sm font-bold text-white">員工收到的通知{notificationDetail?.cleared_at ? ' · 已清除' : ''}</span><button type="button" onClick={() => setNotificationId(null)} aria-label="關閉手動通知" className={`rounded-lg p-2 text-slate-300 hover:bg-slate-800 ${focusClass}`}><X className="h-4 w-4" /></button></div>{notificationDetailError ? <p role="alert" className="p-5 text-rose-300">{notificationDetailError}</p> : !notificationDetail ? <p role="status" className="p-5 text-slate-300">載入內容中…</p> : message ? <><div className="min-h-0 flex-1 overflow-y-auto bg-white">{/<(?:img|video|source)\b/i.test(String(message.content || '')) && <p className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900">此通知含媒體；未建立私人附件副本的圖片或影片無法在檔案中還原。</p>}<EmployeeNotificationDetailPanel embedded readOnlyPreview onClose={() => setNotificationId(null)} message={{ title: String(message.title || ''), content: sanitizeHTML(String(message.content || ''), { allowedTags: ['p','br','span','div','strong','em','u','s','b','i','ul','ol','li','blockquote','h1','h2','h3','h4'], allowedAttributes: [] }), message_type: message.message_type === 'login_popup' ? 'login_popup' : 'realtime', priority: ['low', 'normal', 'high', 'urgent'].includes(String(message.priority)) ? message.priority as 'low'|'normal'|'high'|'urgent' : 'normal', notification_category: typeof message.notification_category === 'string' ? message.notification_category : null, reward_amount: typeof message.reward_amount === 'number' ? message.reward_amount : null, reward_currency: typeof message.reward_currency === 'string' ? message.reward_currency : null, created_at: typeof message.created_at === 'string' ? message.created_at : null, is_read: notificationDetail.recipient_data?.is_read === true }} /></div>{!notificationDetail.cleared_at && <button type="button" disabled={!purgeUnlocked || clearing || windowBusy} onClick={() => onClearNotification(notificationId)} className="shrink-0 border-t border-rose-400/30 p-3 text-xs font-bold text-rose-200 disabled:opacity-40">逐筆清除此通知證據</button>}</> : <p className="p-5 text-sm text-slate-400">此筆通知內容已正式清除。</p>}</section></div>, document.body)}
+    {deletePreview && createPortal(<div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section role="dialog" aria-modal="true" aria-labelledby="employee-delete-title" className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><h2 id="employee-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.scope === 'bulk' ? '刪除目前篩選的全部員工檔案？' : deletePreview.scope === 'account' ? '刪除此員工檔案？' : '刪除此筆私人通知？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.account_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">位員工 · {deletePreview.notification_count.toLocaleString()} 筆私人通知</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.scope === 'bulk' ? '包含目前篩選條件下尚未載入的員工檔案，與每位員工檔案中的全部私人通知。' : deletePreview.scope === 'account' ? '同時移除此員工檔案中的全部私人通知。' : '只移除此筆私人通知；員工檔案和其他通知仍保留。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">這會永久移除上述私人封存資料，不另保留清除紀錄，無法還原。內容稽核中的聊天與通知事件、仍在使用的員工與財務歷史不受影響。</p>{deleteError && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{deleteError}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" autoFocus onClick={() => { setDeletePreview(null); setDeleteError(null); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${focusClass}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${focusClass}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : '確認永久刪除'}</button></div></div></section></div>, document.body)}
+    {notificationId && createPortal(<div className="fixed inset-0 z-[9000] flex items-center justify-center bg-slate-950/85 p-0 backdrop-blur-sm sm:p-5" onMouseDown={event => { if (event.target === event.currentTarget) setNotificationId(null); }}><section role="dialog" aria-modal="true" aria-label="通知檔案詳情" className="flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-none border border-cyan-300/25 bg-slate-900 shadow-2xl sm:h-[85vh] sm:rounded-2xl"><div className="flex items-center justify-between border-b border-slate-700 px-4 py-3"><span className="text-sm font-bold text-white">員工收到的通知{notificationDetail?.cleared_at ? ' · 已清除' : ''}</span><button type="button" onClick={() => setNotificationId(null)} aria-label="關閉手動通知" className={`rounded-lg p-2 text-slate-300 hover:bg-slate-800 ${focusClass}`}><X className="h-4 w-4" /></button></div>{notificationDetailError ? <p role="alert" className="p-5 text-rose-300">{notificationDetailError}</p> : !notificationDetail ? <p role="status" className="p-5 text-slate-300">載入內容中…</p> : message ? <><div className="min-h-0 flex-1 overflow-y-auto bg-white">{/<(?:img|video|source)\b/i.test(String(message.content || '')) && <p className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900">此通知含媒體；未建立私人附件副本的圖片或影片無法在檔案中還原。</p>}<EmployeeNotificationDetailPanel embedded readOnlyPreview onClose={() => setNotificationId(null)} message={{ title: String(message.title || ''), content: sanitizeHTML(String(message.content || ''), { allowedTags: ['p','br','span','div','strong','em','u','s','b','i','ul','ol','li','blockquote','h1','h2','h3','h4'], allowedAttributes: [] }), message_type: message.message_type === 'login_popup' ? 'login_popup' : 'realtime', priority: ['low', 'normal', 'high', 'urgent'].includes(String(message.priority)) ? message.priority as 'low'|'normal'|'high'|'urgent' : 'normal', notification_category: typeof message.notification_category === 'string' ? message.notification_category : null, reward_amount: typeof message.reward_amount === 'number' ? message.reward_amount : null, reward_currency: typeof message.reward_currency === 'string' ? message.reward_currency : null, created_at: typeof message.created_at === 'string' ? message.created_at : null, is_read: notificationDetail.recipient_data?.is_read === true }} /></div>{!notificationDetail.cleared_at && <button type="button" disabled={deleting} onClick={() => void prepareDeletion(undefined, notificationId)} className="shrink-0 border-t border-rose-400/30 p-3 text-xs font-bold text-rose-200 disabled:opacity-40">永久刪除此筆私人通知</button>}</> : <p className="p-5 text-sm text-slate-400">此筆通知內容已正式清除。</p>}</section></div>, document.body)}
   </>;
 }
