@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  AlertTriangle, ArrowLeft, Bell, ChevronDown, ChevronRight, Database,
+  AlertTriangle, ArrowLeft, ChevronDown, ChevronRight, Database,
   Gift, Image as ImageIcon, LockKeyhole, Megaphone, MessageCircle, RefreshCw, Search, ShieldCheck, Star, Trash2, User, X,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
@@ -1163,7 +1163,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                     {detail.cleared_at ? <p className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">此筆通知證據已正式清除。</p> : <button type="button" onClick={() => { setReason(''); setClearTarget({ id: detail.id, kind: 'content' }); }} disabled={!purgeUnlocked || clearing || windowBusy} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />清除此筆證據</button>}
                   </aside>
                   <div className="min-w-0 bg-[radial-gradient(circle_at_60%_0%,#e0eaff,#edf3fc_45%,#e2eaf6)] p-3 sm:p-5 lg:min-h-0 lg:overflow-y-auto lg:p-7">
-                    <div className="mx-auto mb-4 flex max-w-2xl items-center gap-2 text-xs font-bold text-slate-600"><span className="rounded-lg bg-blue-100 p-1.5 text-blue-600"><Bell className="h-4 w-4" /></span>員工端通知預覽<span className="ml-auto font-normal text-slate-500">唯讀檔案</span></div>
+                    <div className="mx-auto mb-4 flex max-w-2xl items-center gap-2 text-xs font-bold text-slate-600"><span className="rounded-lg bg-blue-100 p-1.5 text-blue-600"><Megaphone className="h-4 w-4" /></span>員工端通知預覽<span className="ml-auto font-normal text-slate-500">唯讀檔案</span></div>
                     <div className="space-y-5">{detail.cleared_at ? <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-500">此通知內容已正式清除。</div> : <Snapshot title={detail.action === 'edit' ? '修改前通知' : '從原頁移除前的通知'} data={detail.before_data} cleared={false} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />}{detail.after_data != null && <Snapshot title="修改後通知" data={detail.after_data} cleared={false} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />}</div>
                   </div>
                 </div>
