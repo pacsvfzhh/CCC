@@ -72,6 +72,25 @@ export async function executeAuditedDeletion(jobId: string): Promise<{ success: 
   return data;
 }
 
+export async function executeEmployeeArchiveDeletion(jobId: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('content-audit', {
+    body: { action: 'execute_employee_delete', jobId, sessionToken: getAdminFinancialSessionToken() },
+  });
+  if (error && typeof error === 'object' && 'context' in error && error.context instanceof Response) {
+    const details = await error.context.clone().json().catch(() => null);
+    throw new Error(typeof details?.error === 'string' ? details.error : formatSupabaseError(error));
+  }
+  if (error || data?.error || !data?.success) throw new Error(data?.error || formatSupabaseError(error || new Error('Employee deletion was not confirmed.')));
+}
+
+export async function listPendingEmployeeArchiveDeletions(): Promise<Array<{ job_id: string; file_count: number }>> {
+  const { data, error } = await supabase.functions.invoke('content-audit', {
+    body: { action: 'pending_employee_deletes', sessionToken: getAdminFinancialSessionToken() },
+  });
+  if (error || data?.error || !Array.isArray(data)) throw new Error(data?.error || formatSupabaseError(error || new Error('Could not load pending cleanup.')));
+  return data;
+}
+
 export async function loadAuditedMedia(eventId: string, path: string): Promise<{ url: string; type: string }> {
   const { data, error, response } = await supabase.functions.invoke('content-audit', {
     body: { action: 'media', eventId, path, sessionToken: getAdminFinancialSessionToken() },

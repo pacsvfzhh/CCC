@@ -178,6 +178,33 @@ Deno.serve(async (request) => {
         headers: { ...cors, 'Content-Type': 'application/octet-stream', 'X-Audit-Media-Type': blob.type, 'X-Content-Type-Options': 'nosniff' },
       });
     }
+    if (body.action === 'pending_employee_deletes') {
+      const { data, error } = await db.rpc('list_pending_deleted_employee_archive_deletes', {
+        p_admin_session_token: token,
+      });
+      if (error) throw error;
+      return response(data);
+    }
+    if (body.action === 'execute_employee_delete') {
+      if (typeof body.jobId !== 'string' || !/^[\da-f-]{36}$/i.test(body.jobId)) return response({ error: 'Invalid confirmation.' }, 400);
+      const { data: deleted, error: deleteError } = await db.rpc('finish_deleted_employee_archive_delete', {
+        p_admin_session_token: token, p_job_id: body.jobId,
+      });
+      if (deleteError) throw deleteError;
+      const paths = deleted.paths_to_remove as Array<{ bucket: string; path: string }>;
+      for (const bucket of [evidenceBucket, 'verification-documents']) {
+        const pending = paths.filter(item => item.bucket === bucket).map(item => item.path);
+        for (let index = 0; index < pending.length; index += 100) {
+          const { error: removeError } = await db.storage.from(bucket).remove(pending.slice(index, index + 100));
+          if (removeError) throw new Error('Employee data was deleted, but private media cleanup is incomplete. Retry this confirmation.');
+        }
+      }
+      const { error: completeError } = await db.rpc('complete_deleted_employee_archive_delete', {
+        p_admin_session_token: token, p_job_id: body.jobId,
+      });
+      if (completeError) throw completeError;
+      return response(deleted);
+    }
     if (body.action === 'pending_deletes') {
       const { data, error } = await db.rpc('list_content_audit_pending_deletes', {
         p_admin_session_token: token,
