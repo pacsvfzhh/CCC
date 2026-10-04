@@ -724,8 +724,8 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
                   </div>
                   {detail.account_summary && <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 sm:grid-cols-4">{[
                     ['驗證狀態', detail.account_summary.is_verified ? '已驗證' : '未驗證'],
-                    ['歷史總收入', String(detail.account_summary.total_income)],
-                    ['可用／凍結', `${detail.account_summary.available_balance ?? 0} / ${detail.account_summary.frozen_balance ?? 0}`],
+                    ['歷史總收入', `$${detail.account_summary.total_income}`],
+                    ['可用／凍結', `$${detail.account_summary.available_balance ?? 0} / $${detail.account_summary.frozen_balance ?? 0}`],
                     ['歷史訂單', detail.account_summary.total_orders.toLocaleString()],
                   ].map(([label, value]) => <div key={label} className="min-w-0 bg-slate-900/95 px-3 py-2.5"><p className="text-[10px] text-slate-400">{label}</p><p className="mt-1 truncate text-xs font-bold text-white" title={value}>{value}</p></div>)}</div>}
                   <div><h4 className="text-xs font-bold text-cyan-100">帳戶與操作資訊</h4><dl className="mt-1 grid grid-cols-1 gap-x-5 sm:grid-cols-2 xl:grid-cols-3"><DetailField label="員工帳號" value={detail.account_username} /><DetailField label="員工姓名" value={detail.account_real_name} /><DetailField label="員工 ID" value={detail.employee_number} /><DetailField label="所屬管理員" value={detail.owner_username || detail.owner_admin_id} /><DetailField label="實際操作者" value={detail.actor_username} /><DetailField label="封存時間" value={displayTime(detail.deleted_at)} /><DetailField label="建立時間" value={displayTime(detail.account_created_at)} /><DetailField label="備註" value={detail.account_remarks} /></dl></div>
