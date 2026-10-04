@@ -156,7 +156,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   const [notificationId, setNotificationId] = useState<string | null>(null);
   const [notificationDetail, setNotificationDetail] = useState<NotificationDetail | null>(null);
   const [notificationDetailError, setNotificationDetailError] = useState<string | null>(null);
-  const [deletePreview, setDeletePreview] = useState<{ job_id: string; account_count: number; notification_count: number; scope: 'bulk' | 'account' | 'notification' } | null>(null);
+  const [deletePreview, setDeletePreview] = useState<{ job_id: string; account_count: number; notification_count: number; scope: 'bulk' | 'account' | 'notification'; filters: Filters; recordId: string | null; notificationId: string | null } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const filtersRef = useRef(filters);
@@ -166,6 +166,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   selectedIdRef.current = selectedId;
   notificationIdRef.current = notificationId;
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const deleteDialogRef = useRef<HTMLElement>(null);
   const detailPaneRef = useRef<HTMLDivElement>(null);
   const restoredSectionRef = useRef(false);
 
@@ -414,7 +415,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
         setDeleteError('篩選或選取檔案已變更，請重新預覽刪除範圍。');
         return;
       }
-      setDeletePreview({ ...data, scope: archivedNotificationId ? 'notification' : recordId ? 'account' : 'bulk' });
+      setDeletePreview({ ...data, scope: archivedNotificationId ? 'notification' : recordId ? 'account' : 'bulk', filters: requestedFilters, recordId: recordId || null, notificationId: archivedNotificationId || null });
     } catch (error) {
       setDeleteError(`無法準備刪除：${formatSupabaseError(error)}`);
     } finally {
@@ -422,8 +423,27 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     }
   };
 
+  useEffect(() => {
+    if (!deletePreview) return;
+    const keepFocusInside = (event: FocusEvent) => {
+      const dialog = deleteDialogRef.current;
+      if (dialog && !dialog.contains(event.target as Node)) {
+        (dialog.querySelector<HTMLButtonElement>('button:not(:disabled)') || dialog).focus();
+      }
+    };
+    document.addEventListener('focusin', keepFocusInside);
+    return () => document.removeEventListener('focusin', keepFocusInside);
+  }, [deletePreview]);
+
   const confirmDeletion = async () => {
     if (!deletePreview || deleting) return;
+    if (filtersRef.current !== deletePreview.filters
+      || (deletePreview.recordId && selectedIdRef.current !== deletePreview.recordId)
+      || (deletePreview.notificationId && notificationIdRef.current !== deletePreview.notificationId)) {
+      setDeletePreview(null);
+      setDeleteError('篩選或選取檔案已變更，請重新預覽刪除範圍。');
+      return;
+    }
     setDeleting(true);
     setDeleteError(null);
     try {
@@ -507,7 +527,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
         </section>
       </div>
     </div>
-    {deletePreview && createPortal(<div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section role="dialog" aria-modal="true" aria-labelledby="employee-delete-title" className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><h2 id="employee-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.scope === 'bulk' ? '刪除目前篩選的全部員工檔案？' : deletePreview.scope === 'account' ? '刪除此員工檔案？' : '刪除此筆私人通知？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.account_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">位員工 · {deletePreview.notification_count.toLocaleString()} 筆私人通知</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.scope === 'bulk' ? '包含目前篩選條件下尚未載入的員工檔案，與每位員工檔案中的全部私人通知。' : deletePreview.scope === 'account' ? '同時移除此員工檔案中的全部私人通知。' : '只移除此筆私人通知；員工檔案和其他通知仍保留。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">這會永久移除上述私人封存資料，不另保留清除紀錄，無法還原。內容稽核中的聊天與通知事件、仍在使用的員工與財務歷史不受影響。</p>{deleteError && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{deleteError}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" autoFocus onClick={() => { setDeletePreview(null); setDeleteError(null); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${focusClass}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${focusClass}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : '確認永久刪除'}</button></div></div></section></div>, document.body)}
+    {deletePreview && createPortal(<div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section ref={deleteDialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="employee-delete-title" onKeyDown={event => { if (event.key === 'Escape' && !deleting) { setDeletePreview(null); setDeleteError(null); } if (event.key !== 'Tab') return; const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')); if (!buttons.length) { event.preventDefault(); event.currentTarget.focus(); return; } if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[buttons.length - 1].focus(); } else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) { event.preventDefault(); buttons[0].focus(); } }} className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><h2 id="employee-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.scope === 'bulk' ? '刪除目前篩選的全部員工檔案？' : deletePreview.scope === 'account' ? '刪除此員工檔案？' : '刪除此筆私人通知？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.account_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">位員工 · {deletePreview.notification_count.toLocaleString()} 筆私人通知</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.scope === 'bulk' ? '包含目前篩選條件下尚未載入的員工檔案，與每位員工檔案中的全部私人通知。' : deletePreview.scope === 'account' ? '同時移除此員工檔案中的全部私人通知。' : '只移除此筆私人通知；員工檔案和其他通知仍保留。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">這會永久移除上述私人封存資料，不另保留清除紀錄，無法還原。內容稽核中的聊天與通知事件、仍在使用的員工與財務歷史不受影響。</p>{deleteError && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{deleteError}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" autoFocus onClick={() => { setDeletePreview(null); setDeleteError(null); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${focusClass}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${focusClass}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : '確認永久刪除'}</button></div></div></section></div>, document.body)}
     {notificationId && createPortal(<div className="fixed inset-0 z-[9000] flex items-center justify-center bg-slate-950/85 p-0 backdrop-blur-sm sm:p-5" onMouseDown={event => { if (event.target === event.currentTarget) setNotificationId(null); }}><section role="dialog" aria-modal="true" aria-label="通知檔案詳情" className="flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-none border border-cyan-300/25 bg-slate-900 shadow-2xl sm:h-[85vh] sm:rounded-2xl"><div className="flex items-center justify-between border-b border-slate-700 px-4 py-3"><span className="text-sm font-bold text-white">員工收到的通知{notificationDetail?.cleared_at ? ' · 已清除' : ''}</span><button type="button" onClick={() => setNotificationId(null)} aria-label="關閉手動通知" className={`rounded-lg p-2 text-slate-300 hover:bg-slate-800 ${focusClass}`}><X className="h-4 w-4" /></button></div>{deleteError && <p role="alert" className="border-b border-rose-400/30 bg-rose-950/50 px-4 py-2 text-xs text-rose-100">{deleteError}</p>}{notificationDetailError ? <p role="alert" className="p-5 text-rose-300">{notificationDetailError}</p> : !notificationDetail ? <p role="status" className="p-5 text-slate-300">載入內容中…</p> : <>{message ? <div className="min-h-0 flex-1 overflow-y-auto bg-white">{/<(?:img|video|source)\b/i.test(String(message.content || '')) && <p className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900">此通知含媒體；未建立私人附件副本的圖片或影片無法在檔案中還原。</p>}<EmployeeNotificationDetailPanel embedded readOnlyPreview onClose={() => setNotificationId(null)} message={{ title: String(message.title || ''), content: sanitizeHTML(String(message.content || ''), { allowedTags: ['p','br','span','div','strong','em','u','s','b','i','ul','ol','li','blockquote','h1','h2','h3','h4'], allowedAttributes: [] }), message_type: message.message_type === 'login_popup' ? 'login_popup' : 'realtime', priority: ['low', 'normal', 'high', 'urgent'].includes(String(message.priority)) ? message.priority as 'low'|'normal'|'high'|'urgent' : 'normal', notification_category: typeof message.notification_category === 'string' ? message.notification_category : null, reward_amount: typeof message.reward_amount === 'number' ? message.reward_amount : null, reward_currency: typeof message.reward_currency === 'string' ? message.reward_currency : null, created_at: typeof message.created_at === 'string' ? message.created_at : null, is_read: notificationDetail.recipient_data?.is_read === true }} /></div> : <p className="min-h-0 flex-1 p-5 text-sm text-slate-400">此筆通知內容已正式清除。</p>}<button type="button" disabled={deleting} onClick={() => void prepareDeletion(undefined, notificationId)} className={`shrink-0 border-t border-rose-400/30 p-3 text-xs font-bold text-rose-200 disabled:opacity-40 ${focusClass}`}>永久刪除此筆私人通知</button></>}</section></div>, document.body)}
   </>;
 }
