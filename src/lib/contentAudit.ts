@@ -26,6 +26,32 @@ export async function clearAuditedContent(eventId: string, reason: string): Prom
   if (error || data?.error) throw new Error(data?.error || formatSupabaseError(error));
 }
 
+export interface AuditDeletionFilters {
+  type: string | null;
+  owner: string | null;
+  action: string | null;
+  contentSearch: string | null;
+  identitySearch: string | null;
+  from: string | null;
+  to: string | null;
+}
+
+export async function prepareAuditedDeletion(filters: AuditDeletionFilters, eventId?: string): Promise<{ job_id: string; card_count: number; event_count: number }> {
+  const { data, error } = await supabase.functions.invoke('content-audit', {
+    body: { action: 'prepare_delete', filters, eventId, sessionToken: getAdminFinancialSessionToken() },
+  });
+  if (error || data?.error) throw new Error(data?.error || formatSupabaseError(error));
+  return data;
+}
+
+export async function executeAuditedDeletion(jobId: string): Promise<{ success: boolean; deleted_events: number }> {
+  const { data, error } = await supabase.functions.invoke('content-audit', {
+    body: { action: 'execute_delete', jobId, sessionToken: getAdminFinancialSessionToken() },
+  });
+  if (error || data?.error) throw new Error(data?.error || formatSupabaseError(error));
+  return data;
+}
+
 export async function loadAuditedMedia(eventId: string, path: string): Promise<{ url: string; type: string }> {
   const { data, error, response } = await supabase.functions.invoke('content-audit', {
     body: { action: 'media', eventId, path, sessionToken: getAdminFinancialSessionToken() },

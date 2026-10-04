@@ -6,7 +6,7 @@ import {
   Gift, Image as ImageIcon, LockKeyhole, Megaphone, MessageCircle, RefreshCw, Search, ShieldCheck, Star, Trash2, User, X,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
-import { clearAuditedContent, loadAuditedMedia } from '../../lib/contentAudit';
+import { executeAuditedDeletion, loadAuditedMedia, prepareAuditedDeletion } from '../../lib/contentAudit';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import EmployeeNotificationDetailPanel from '../employee/EmployeeNotificationDetailPanel';
@@ -537,7 +537,9 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [expiry, setExpiry] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [windowBusy, setWindowBusy] = useState(false);
-  const [clearTarget, setClearTarget] = useState<{ id: string; kind: 'content' | 'employee' | 'notification' } | null>(null);
+  const [clearTarget, setClearTarget] = useState<{ id: string; kind: 'employee' | 'notification' } | null>(null);
+  const [deletePreview, setDeletePreview] = useState<{ job_id: string; card_count: number; event_count: number; scope: 'bulk' | 'single' } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [reason, setReason] = useState('');
   const [clearing, setClearing] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
@@ -935,30 +937,68 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   };
 
   useEffect(() => {
-    if (!selectedId || view !== 'content' || clearTarget) return;
+    if (!selectedId || view !== 'content' || clearTarget || deletePreview) return;
     const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !document.querySelector('[data-audit-nested-preview]')) closeEvent(); };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
-  }, [selectedId, view, clearTarget, closeEvent]);
+  }, [selectedId, view, clearTarget, deletePreview, closeEvent]);
+
+  const prepareDeletion = async (eventId?: string) => {
+    if (deleting || (!eventId && (!total || loading || listLoadError))) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const prepared = await prepareAuditedDeletion({
+        type: eventId ? null : filters.type || null,
+        owner: eventId ? null : filters.owner || null,
+        action: eventId ? null : filters.action || null,
+        contentSearch: eventId ? null : filters.contentSearch || null,
+        identitySearch: eventId ? null : filters.identitySearch || null,
+        from: eventId || !filters.from ? null : localDayStart(filters.from),
+        to: eventId || !filters.to ? null : localDayStart(filters.to, true),
+      }, eventId);
+      setDeletePreview({ ...prepared, scope: eventId ? 'single' : 'bulk' });
+    } catch (err) {
+      setError(`無法準備刪除：${formatSupabaseError(err)}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const confirmDeletion = async () => {
+    if (!deletePreview || deleting) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await executeAuditedDeletion(deletePreview.job_id);
+      setDeletePreview(null);
+      setSelectedId(null);
+      setSelectedCard(null);
+      setDetail(null);
+      setConversation(null);
+      setPage(0);
+      setRefreshKey(key => key + 1);
+    } catch (err) {
+      setError(`刪除未完成：${formatSupabaseError(err)}。可重試本次確認；若已過期，取消後重新預覽。`);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleClear = async () => {
     const trimmed = reason.trim();
-    if (!clearTarget || (clearTarget.kind === 'content' && !conversation?.items.some(item => item.id === clearTarget.id) && clearTarget.id !== selectedCard?.id) || !expiryRef.current || new Date(expiryRef.current).getTime() <= Date.now() || clearing || trimmed.length < 10 || trimmed.length > 500) return;
+    if (!clearTarget || !expiryRef.current || new Date(expiryRef.current).getTime() <= Date.now() || clearing || trimmed.length < 10 || trimmed.length > 500) return;
     setClearing(true);
     setError(null);
     try {
-      if (clearTarget.kind === 'employee' || clearTarget.kind === 'notification') {
-        const { error: rpcError } = clearTarget.kind === 'employee'
-          ? await supabase.rpc('clear_deleted_employee_account', {
-            p_admin_session_token: getAdminFinancialSessionToken(), p_record_id: clearTarget.id, p_reason: trimmed,
-          })
-          : await supabase.rpc('clear_deleted_employee_notification', {
-            p_admin_session_token: getAdminFinancialSessionToken(), p_notification_id: clearTarget.id, p_reason: trimmed,
-          });
-        if (rpcError) throw rpcError;
-      } else {
-        await clearAuditedContent(clearTarget.id, trimmed);
-      }
+      const { error: rpcError } = clearTarget.kind === 'employee'
+        ? await supabase.rpc('clear_deleted_employee_account', {
+          p_admin_session_token: getAdminFinancialSessionToken(), p_record_id: clearTarget.id, p_reason: trimmed,
+        })
+        : await supabase.rpc('clear_deleted_employee_notification', {
+          p_admin_session_token: getAdminFinancialSessionToken(), p_notification_id: clearTarget.id, p_reason: trimmed,
+        });
+      if (rpcError) throw rpcError;
       if (disposedRef.current) return;
       setClearTarget(null);
       setReason('');
@@ -986,11 +1026,6 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const viewSwitch = <div role="group" aria-label="稽核面板" className="inline-flex max-w-full rounded-xl border border-cyan-300/20 bg-slate-950/75 p-1 shadow-inner">
     {([['content', '內容稽核'], ['employees', '刪除員工']] as const).map(([mode, label]) => <button key={mode} type="button" aria-pressed={view === mode} disabled={windowBusy || clearing} onClick={() => void switchView(mode)} className={`rounded-lg px-3 py-2 text-xs font-black transition disabled:opacity-50 ${view === mode ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} ${buttonFocus}`}>{label}</button>)}
   </div>;
-  const detailPurgeControl = <section aria-label="正式清除模式" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs">
-    <p className="font-bold text-amber-200">清除模式：{purgeUnlocked ? '限時開啟' : '已鎖定'}</p>
-    <p className="mt-1 leading-5 text-slate-400">{purgeUnlocked ? `剩餘 ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}，每次只可清除一筆。` : '正式清除不可復原；須先限時啟用，再逐筆填寫原因及確認。'}</p>
-    <button type="button" onClick={() => void toggleWindow()} disabled={windowBusy || clearing} className={`mt-2 rounded-lg border px-3 py-2 font-bold disabled:opacity-50 ${purgeUnlocked ? 'border-rose-400/40 text-rose-200 hover:bg-rose-500/15' : 'border-amber-400/40 text-amber-200 hover:bg-amber-500/15'} ${buttonFocus}`}>{windowBusy ? '處理中…' : purgeUnlocked ? '立即鎖定' : '啟用五分鐘清除模式'}</button>
-  </section>;
 
   const ownerOptions = filterCounts
     ? filterCounts.owners.filter(owner => owner.username?.trim().toLowerCase() !== 'emergency_admin')
@@ -1052,10 +1087,10 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       {error && <div role="alert" className="flex shrink-0 items-start gap-2 border-b border-rose-500/30 bg-rose-950/50 px-4 py-2.5 text-xs text-rose-200"><AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /><span className="min-w-0 break-words">{error}</span><button type="button" onClick={() => setError(null)} className="ml-auto shrink-0 underline">關閉</button></div>}
 
       {view === 'content' && <div className="relative z-30 shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden">{viewSwitch}</div>}
-      <section aria-label="證據清除模式" className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700 bg-slate-950/65 px-3 py-3 sm:px-4">
+      {view === 'employees' && <section aria-label="員工檔案清除模式" className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700 bg-slate-950/65 px-3 py-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-2"><LockKeyhole className={`h-4 w-4 shrink-0 ${purgeUnlocked ? 'text-amber-300' : 'text-emerald-300'}`} aria-hidden="true" /><div><p className="text-xs font-bold text-white">清除模式：{purgeUnlocked ? '限時開啟' : '已鎖定'}</p><p className="text-[11px] text-slate-400">{purgeUnlocked ? `剩餘 ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')} · 到期 ${formatAuditTime(expiry)}` : '僅超級管理員可啟用；五分鐘後自動鎖定'}</p></div></div>
         <button type="button" onClick={() => void toggleWindow()} disabled={windowBusy || clearing} className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50 ${purgeUnlocked ? 'border-rose-400/40 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25' : 'border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'} ${buttonFocus}`}>{windowBusy ? '處理中…' : purgeUnlocked ? '立即鎖定' : '啟用五分鐘清除模式'}</button>
-      </section>
+      </section>}
       {(view === 'employees' || returnToArchive) && <div className={`${view === 'employees' ? 'flex' : 'hidden'} min-h-0 flex-1 flex-col overflow-hidden`}><DeletedEmployeesPanel switcher={viewSwitch} isActive={view === 'employees'} clearConfirmationOpen={Boolean(clearTarget)} refreshKey={refreshKey} purgeUnlocked={purgeUnlocked} clearing={clearing} windowBusy={windowBusy} initialSelectedId={archiveEmployeeId} initialSection={archiveSection} availableAdmins={availableAdmins} onSelectSection={setArchiveSection} onSelectEmployee={setArchiveEmployeeId} onClear={id => { setReason(''); setClearTarget({ id, kind: 'employee' }); }} onClearNotification={id => { setReason(''); setClearTarget({ id, kind: 'notification' }); }} onOpenEvidence={(event, employee) => { void (async () => {
         setReturnToArchive(true);
         if (!await switchView('content')) { setReturnToArchive(false); return; }
@@ -1098,8 +1133,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         <main className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-slate-900 xl:overflow-hidden">
           <div className="flex min-h-0 flex-1 flex-col">
             <section aria-label="稽核事件清單" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-              <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 bg-slate-950 px-3 py-2.5"><h2 className="text-sm font-black text-white">異動紀錄</h2><span className="text-xs text-cyan-200">共 {total.toLocaleString()} 筆</span></div>
-              <div className="hidden grid-cols-[36px_124px_134px_minmax(130px,1.1fr)_100px_100px_minmax(120px,1.4fr)_148px] items-center gap-2 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#16243a,#111b2e)] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400 min-[1440px]:grid"><span>序號</span><span>資料類型</span><span>操作</span><span>員工帳號／ID</span><span>所屬管理員</span><span>實際操作者</span><span>內容摘要</span><span>異動時間（UTC+8）</span></div>
+              <div className="sticky top-0 z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-400/20 bg-[radial-gradient(circle_at_78%_-70%,rgba(34,211,238,0.2),transparent_48%),linear-gradient(100deg,#111d34,#0b162a)] px-4 py-3 shadow-[0_8px_24px_rgba(2,6,23,0.2)] sm:px-5"><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-200"><Database className="h-5 w-5" /></span><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-base font-black tracking-wide text-white">異動紀錄</h2><span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-100">{total.toLocaleString()} 筆</span></div><p className="mt-0.5 text-[11px] text-slate-400">依目前篩選顯示 · 刪除涵蓋未載入的紀錄</p></div></div><button type="button" onClick={() => void prepareDeletion()} disabled={deleting || loading || listLoadError || total === 0} className={`inline-flex items-center justify-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-2.5 text-xs font-bold text-rose-100 transition hover:border-rose-300/70 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : '全部刪除'}</button></div>
+              <div className="hidden grid-cols-[36px_124px_134px_minmax(130px,1.1fr)_100px_100px_minmax(120px,1.4fr)_148px] items-center gap-2 border-b border-white/10 bg-[linear-gradient(90deg,#1e3050,#14243c)] px-4 py-3 text-[10px] font-black uppercase tracking-[0.08em] text-cyan-100/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] min-[1440px]:grid"><span>序號</span><span>資料類型</span><span>操作</span><span>員工帳號／ID</span><span>所屬管理員</span><span>實際操作者</span><span>內容摘要</span><span>異動時間（UTC+8）</span></div>
               <ol className="min-w-0 divide-y divide-slate-700/50">
                 {events.length === 0 && !loading && !listLoadError && <li className="px-3 py-10 text-center text-xs text-slate-400">沒有符合條件的紀錄。</li>}
                 {events.map((item, index) => (
@@ -1143,15 +1178,14 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                       <MetadataRow label="員工帳號" value={conversation.employee_account} />
                       <MetadataRow label={chatIdentity?.employeeNumberSource === 'current' ? '員工 ID（目前帳戶）' : '員工 ID'} value={chatIdentity?.employeeNumber || '無法查得'} />
                     </dl>
-                    {detailPurgeControl}
-                    <p className="text-xs leading-5 text-slate-400">啟用後可在右側逐則清除封存證據，不會一次清除整段對話。</p>
+                    <p className="rounded-xl border border-rose-400/20 bg-rose-400/5 px-3 py-2 text-xs leading-5 text-slate-300">右側可逐則刪除封存證據；每次刪除前都會再次確認。</p>
                   </aside>
                   <section className="flex min-h-[520px] min-w-0 flex-col lg:min-h-0">
                     <div className={`flex shrink-0 items-center gap-3 border-b border-white/10 px-4 py-3 ${conversation.entity_type === 'aaa_service' ? 'bg-gradient-to-r from-slate-950 to-orange-950/70' : 'bg-gradient-to-r from-slate-950 to-emerald-950/70'}`}><MessageCircle className="h-5 w-5 text-white" /><h3 className="text-sm font-bold text-white">原聊天內容 · {conversation.total} 則</h3></div>
                     <div className={`audit-detail-scroll min-h-0 flex-1 space-y-3 overflow-y-auto p-4 sm:p-6 ${conversation.entity_type === 'aaa_service' ? 'bg-[linear-gradient(180deg,#24170f_0%,#1b1513_40%,#24170f_100%)]' : 'bg-[linear-gradient(180deg,#0b2118_0%,#101c19_40%,#0b2118_100%)]'}`}>
                       {conversation.items.map(message => (
-                        <ConversationTranscript key={message.id} message={message} senderName={message.sender_type === 'employee' ? conversation.employee_account : chatIdentity?.customerName || '客戶'} workspace={conversation.entity_type} purgeUnlocked={purgeUnlocked && !clearing && !windowBusy}
-                          onClear={id => { setReason(''); setClearTarget({ id, kind: 'content' }); }} />
+                        <ConversationTranscript key={message.id} message={message} senderName={message.sender_type === 'employee' ? conversation.employee_account : chatIdentity?.customerName || '客戶'} workspace={conversation.entity_type} purgeUnlocked={!clearing && !deleting}
+                          onClear={id => { void prepareDeletion(id); }} />
                       ))}
                     </div>
                     {conversation.total > TRANSCRIPT_PAGE_SIZE && <div className="flex shrink-0 items-center justify-between border-t border-white/10 bg-slate-900 px-4 py-2 text-xs text-slate-300">
@@ -1169,8 +1203,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                     {snapshotNotificationOrigin(detail.before_data) === 'unverified' && <p className="rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">此通知發送於自動化通知功能上線前，依當時流程歸為舊版手動通知；舊版未留下逐筆發送操作紀錄。</p>}
                     {!detail.cleared_at && <section className="rounded-xl border border-slate-700 bg-slate-950/50 text-xs"><h4 className="border-b border-slate-700 px-3 py-2 font-bold text-cyan-200">收件員工 · {detail.recipient_identities?.length ?? 0} 位</h4>{detail.recipient_identities?.length ? <><p className="px-3 pt-2 text-[11px] text-slate-400">已讀 {detail.recipient_identities.filter(recipient => recipient.is_read).length} 位</p><ol className="audit-detail-scroll max-h-48 divide-y divide-slate-700 overflow-y-auto px-3">{detail.recipient_identities.map((recipient, index) => <li key={index} className="flex flex-wrap items-center gap-x-2 gap-y-1 py-2"><span className="min-w-0 break-all font-semibold text-white">{recipient.account || '帳號未留存'}</span><span className="text-cyan-200" title={recipient.from_current_account ? '目前帳戶，非事件時快照' : undefined}>ID {recipient.employee_number || '—'}</span><span className="ml-auto text-slate-400">{recipient.is_read ? '已讀' : '未讀'}</span></li>)}</ol></> : <p className="px-3 py-3 text-slate-400">未留存收件員工資料。</p>}</section>}
                     <section><h4 className="mb-2 text-xs font-bold text-white">同一通知的版本歷程</h4><div className="space-y-1.5">{(detail.timeline ?? []).map(version => <button key={version.id} type="button" onClick={() => selectEvent(version.id)} aria-pressed={version.id === detail.id} className={`flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left text-xs ${version.id === detail.id ? 'border-cyan-400/50 bg-cyan-500/15 text-white' : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-800'} ${buttonFocus}`}><span>{auditActionLabel(detail.entity_type, version.action)}{version.cleared_at ? ' · 已清除' : ''}</span><time dateTime={version.occurred_at} className="tabular-nums text-slate-400">{formatAuditTime(version.occurred_at)}</time></button>)}</div></section>
-                    {!detail.cleared_at && detailPurgeControl}
-                    {detail.cleared_at ? <p className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">此筆通知證據已正式清除。</p> : <button type="button" onClick={() => { setReason(''); setClearTarget({ id: detail.id, kind: 'content' }); }} disabled={!purgeUnlocked || clearing || windowBusy} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-400/40 bg-rose-500/15 px-3 py-2.5 text-xs font-bold text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />清除此筆證據</button>}
+
+                    {detail.cleared_at ? <p className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">此筆通知證據已正式清除。</p> : <button type="button" onClick={() => void prepareDeletion(detail.id)} disabled={deleting} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-400/40 bg-rose-500/15 px-3 py-2.5 text-xs font-bold text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />清除此筆證據</button>}
                   </aside>
                   <div className="audit-detail-scroll-light flex h-full min-h-0 min-w-0 flex-col overflow-y-auto bg-[#f0f5ff]">
                     {detail.cleared_at ? <div className="m-5 rounded-xl bg-white px-6 py-12 text-center text-sm text-slate-500">此通知內容已正式清除。</div> : <Snapshot title={detail.action === 'edit' ? '修改前通知' : '從原頁移除前的通知'} data={detail.before_data} cleared={false} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />}{!detail.cleared_at && detail.after_data != null && <Snapshot title="修改後通知" data={detail.after_data} cleared={false} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />}
@@ -1183,8 +1217,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                     <span className={`inline-flex rounded-md border px-2 py-1 text-[11px] font-bold ${actionStyles[detail.action]}`}>{auditActionLabel(detail.entity_type, detail.action)}</span>
                     <dl className="grid grid-cols-2 gap-2 lg:grid-cols-1"><MetadataRow label="異動時間 (UTC+8)" value={formatAuditTime(detail.occurred_at)} /><MetadataRow label="實際操作者" value={detail.actor_username} /><MetadataRow label="所屬管理員" value={detail.owner_username ?? detail.owner_admin_id} /><MetadataRow label="角色名稱" value={detail.cleared_at ? '已清除' : chatIdentity?.customerName || '名稱未留存'} /><MetadataRow label="員工帳號" value={detail.cleared_at ? '已清除' : detail.employee_account} /><MetadataRow label={chatIdentity?.employeeNumberSource === 'current' ? '員工 ID（目前帳戶）' : '員工 ID'} value={detail.cleared_at ? '已清除' : chatIdentity?.employeeNumber || '無法查得'} />{detail.cleared_at && <MetadataRow label="正式清除時間 (UTC+8)" value={formatAuditTime(detail.cleared_at)} />}{detail.clear_started_at && !detail.cleared_at && <MetadataRow label="證據清除狀態" value="清除尚未完成" />}{detail.clear_reason && <MetadataRow label="清除原因" value={detail.clear_reason} />}</dl>
                     <section><h4 className="mb-2 text-xs font-bold text-white">同一對象的版本歷程</h4><div className="space-y-1.5">{(detail.timeline ?? []).map(version => <button key={version.id} type="button" onClick={() => selectEvent(version.id)} aria-pressed={version.id === detail.id} className={`flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left text-xs ${version.id === detail.id ? 'border-cyan-400/50 bg-cyan-500/15 text-white' : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-800'} ${buttonFocus}`}><span>{auditActionLabel(detail.entity_type, version.action)}{version.cleared_at ? ' · 已清除' : ''}</span><time dateTime={version.occurred_at} className="tabular-nums text-slate-400">{formatAuditTime(version.occurred_at)}</time></button>)}</div></section>
-                    {!detail.cleared_at && detailPurgeControl}
-                    {detail.cleared_at ? <p className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">此筆聊天證據已正式清除。</p> : <button type="button" onClick={() => { setReason(''); setClearTarget({ id: detail.id, kind: 'content' }); }} disabled={!purgeUnlocked || clearing || windowBusy} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-400/40 bg-rose-500/15 px-3 py-2.5 text-xs font-bold text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />清除此筆證據</button>}
+
+                    {detail.cleared_at ? <p className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">此筆聊天證據已正式清除。</p> : <button type="button" onClick={() => void prepareDeletion(detail.id)} disabled={deleting} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-400/40 bg-rose-500/15 px-3 py-2.5 text-xs font-bold text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />清除此筆證據</button>}
                   </aside>
                   <div className={`audit-detail-scroll min-h-[480px] min-w-0 space-y-2 overflow-y-auto lg:min-h-0 ${detail.entity_type === 'aaa_service' ? 'bg-[linear-gradient(180deg,#24170f_0%,#1b1513_40%,#24170f_100%)]' : 'bg-[linear-gradient(180deg,#0b2118_0%,#101c19_40%,#0b2118_100%)]'}`}>
                     <div className={`flex items-center gap-2 border-b border-white/10 px-4 py-3 text-xs font-bold text-white ${detail.entity_type === 'aaa_service' ? 'bg-gradient-to-r from-slate-950 to-orange-950/70' : 'bg-gradient-to-r from-slate-950 to-emerald-950/70'}`}><MessageCircle className="h-4 w-4" />原聊天內容 · {detail.cleared_at ? '已清除' : detail.after_data != null ? '版本對照' : '刪除前'}</div>
@@ -1199,6 +1233,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         </main>
       </div></>}
 
+      {deletePreview && <div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section role="dialog" aria-modal="true" aria-labelledby="audit-delete-title" className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><h2 id="audit-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.scope === 'bulk' ? '刪除目前篩選的全部紀錄？' : '刪除此筆異動紀錄？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.card_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">列 · {deletePreview.event_count.toLocaleString()} 筆證據</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.scope === 'bulk' ? '包含符合篩選但尚未載入的頁面；整段對話列會刪除該段所有封存訊息。' : '只刪除目前選取的這一筆事件；不會自動刪除同一對話中的其他訊息。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">將永久移除這些稽核紀錄、原文、私有附件和清除痕跡，無法還原。原頁仍在使用的內容及「已刪員工」獨立檔案不會因此刪除。</p>{error && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{error}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => { setDeletePreview(null); setError(null); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${buttonFocus}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${buttonFocus}`}><Trash2 className="h-4 w-4" />{deleting ? '刪除中…' : '確認永久刪除'}</button></div></div></section></div>}
       {clearTarget && purgeUnlocked && <div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm sm:p-5"><div role="dialog" aria-modal="true" aria-labelledby="audit-clear-title" className="w-full max-w-lg rounded-2xl border border-rose-400/40 bg-slate-900 p-5 shadow-2xl"><div className="flex items-center gap-2 text-rose-200"><AlertTriangle className="h-5 w-5" aria-hidden="true" /><h2 id="audit-clear-title" className="text-base font-black">確認清除此筆稽核證據</h2></div><p className="mt-3 break-all text-xs text-slate-300">事件 ID：{clearTarget.id}</p><p className="mt-2 text-xs leading-5 text-rose-200">{clearTarget.kind === 'employee' ? '這會永久清除此筆員工檔案的帳號及員工編號，但不會刪除使用中的財務歷史或其他內容證據。' : clearTarget.kind === 'notification' ? '這會清除此位員工私人檔案中的單筆通知快照；原發送給其他收件人的通知不受影響。' : '這會永久清除此筆事件的快照與專屬封存圖片；事件識別、操作者、時間及清除原因仍會保留。'} 無法復原，每次只確認一筆。</p><label className="mt-4 block text-xs font-bold text-slate-200">清除原因（10–500 字）<textarea autoFocus rows={3} maxLength={500} value={reason} onChange={event => setReason(event.target.value)} placeholder="請說明清除此筆證據的原因" className={`${inputClass} resize-y`} /></label>{error && <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p>}<p className="mt-1 text-[11px] text-slate-400">目前 {reason.trim().length} 字 · 模式剩餘 {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}</p><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setClearTarget(null)} disabled={clearing} className={`rounded-lg border border-slate-600 px-4 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${buttonFocus}`}>取消</button><button type="button" onClick={() => void handleClear()} disabled={clearing || reason.trim().length < 10 || reason.trim().length > 500 || !purgeUnlocked} className={`rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}>{clearing ? '清除中…' : '確認清除此筆'}</button></div></div></div>}
     </div>
   );

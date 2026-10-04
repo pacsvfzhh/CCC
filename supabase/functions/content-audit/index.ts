@@ -171,6 +171,42 @@ Deno.serve(async (request) => {
         headers: { ...cors, 'Content-Type': 'application/octet-stream', 'X-Audit-Media-Type': blob.type, 'X-Content-Type-Options': 'nosniff' },
       });
     }
+    if (body.action === 'prepare_delete') {
+      const filters = body.filters;
+      if (!filters || typeof filters !== 'object' || Array.isArray(filters)) return response({ error: 'Invalid audit filters.' }, 400);
+      const eventId = body.eventId;
+      if (eventId !== undefined && (typeof eventId !== 'string' || !/^[\da-f-]{36}$/i.test(eventId))) return response({ error: 'Invalid event ID.' }, 400);
+      const { data, error } = await db.rpc('prepare_content_audit_delete', {
+        p_admin_session_token: token,
+        p_type: filters.type || null,
+        p_owner: filters.owner || null,
+        p_action: filters.action || null,
+        p_content_search: filters.contentSearch || null,
+        p_identity_search: filters.identitySearch || null,
+        p_from: filters.from || null,
+        p_to: filters.to || null,
+        p_event_id: eventId || null,
+      });
+      if (error) throw error;
+      return response(data);
+    }
+    if (body.action === 'execute_delete') {
+      if (typeof body.jobId !== 'string' || !/^[\da-f-]{36}$/i.test(body.jobId)) return response({ error: 'Invalid confirmation.' }, 400);
+      const { data: started, error: beginError } = await db.rpc('begin_content_audit_delete', {
+        p_admin_session_token: token, p_job_id: body.jobId,
+      });
+      if (beginError) throw beginError;
+      const paths = started.paths_to_remove as string[];
+      for (let index = 0; index < paths.length; index += 100) {
+        const { error: removeError } = await db.storage.from(evidenceBucket).remove(paths.slice(index, index + 100));
+        if (removeError) throw new Error('Evidence media cleanup is incomplete. Retry the confirmed deletion.');
+      }
+      const { data, error } = await db.rpc('finish_content_audit_delete', {
+        p_admin_session_token: token, p_job_id: body.jobId,
+      });
+      if (error) throw error;
+      return response(data);
+    }
     if (body.action === 'clear') {
       if (typeof body.eventId !== 'string' || typeof body.reason !== 'string') return response({ error: 'Invalid clear request.' }, 400);
       const { data: started, error: beginError } = await db.rpc('begin_content_audit_clear', {
