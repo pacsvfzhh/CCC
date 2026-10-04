@@ -327,12 +327,11 @@ function Snapshot({ title, data, cleared, type, eventId, mediaRefs, employeeAcco
   if (!message) return <p className="text-xs text-slate-400">{cleared ? '此內容已正式清除。' : '沒有可顯示的內容。'}</p>;
 
   if (type === 'notification') {
-    const recipients = Array.isArray(snapshot?.recipients) ? snapshot.recipients as Array<Record<string, unknown>> : null;
     const priority = String(message.priority);
     return (
-      <section className="mx-auto min-w-0 w-full max-w-2xl overflow-hidden rounded-2xl border border-blue-200/70 bg-white shadow-[0_18px_60px_rgba(30,64,175,0.16)]">
-        <h4 className="border-b border-blue-100 bg-white px-4 py-3 text-xs font-bold text-blue-700">{title}</h4>
-        <div className="h-[480px] min-h-0 overflow-hidden sm:h-[540px] lg:h-[min(66vh,610px)]">
+      <section className="flex min-h-[480px] min-w-0 flex-1 flex-col bg-[#f0f5ff]">
+        {title.startsWith('修改') && <h4 className="shrink-0 border-b border-blue-100 bg-white px-5 py-3 text-xs font-bold text-blue-700">{title}</h4>}
+        <div className="min-h-0 flex-1 overflow-hidden">
           <EmployeeNotificationDetailPanel embedded readOnlyPreview onClose={() => {}} message={{
             title: String(message.title || ''), content: safeDisplayHtml(String(message.content || '')),
             message_type: message.message_type === 'login_popup' ? 'login_popup' : 'realtime',
@@ -344,8 +343,7 @@ function Snapshot({ title, data, cleared, type, eventId, mediaRefs, employeeAcco
             is_read: false,
           }} />
         </div>
-        {(recipients || Object.keys(refs).length > 0) && <div className="space-y-2 border-t border-blue-100 bg-white p-3 text-xs text-slate-600">
-          {recipients && <p>收件人 {recipients.length} 位 · 已讀 {recipients.filter(item => item.is_read === true).length} 位</p>}
+        {Object.keys(refs).length > 0 && <div className="space-y-2 border-t border-blue-100 bg-white p-3 text-xs text-slate-600">
           {Object.entries(refs).map(([, path]) => <EvidenceMedia key={`${eventId}:${path}`} eventId={eventId} path={path} />)}
         </div>}
       </section>
@@ -1162,9 +1160,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                     <section><h4 className="mb-2 text-xs font-bold text-white">同一通知的版本歷程</h4><div className="space-y-1.5">{(detail.timeline ?? []).map(version => <button key={version.id} type="button" onClick={() => selectEvent(version.id)} aria-pressed={version.id === detail.id} className={`flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left text-xs ${version.id === detail.id ? 'border-cyan-400/50 bg-cyan-500/15 text-white' : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:bg-slate-800'} ${buttonFocus}`}><span>{auditActionLabel(detail.entity_type, version.action)}{version.cleared_at ? ' · 已清除' : ''}</span><time dateTime={version.occurred_at} className="tabular-nums text-slate-400">{formatAuditTime(version.occurred_at)}</time></button>)}</div></section>
                     {detail.cleared_at ? <p className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">此筆通知證據已正式清除。</p> : <button type="button" onClick={() => { setReason(''); setClearTarget({ id: detail.id, kind: 'content' }); }} disabled={!purgeUnlocked || clearing || windowBusy} className={`inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />清除此筆證據</button>}
                   </aside>
-                  <div className="min-w-0 bg-[radial-gradient(circle_at_60%_0%,#e0eaff,#edf3fc_45%,#e2eaf6)] p-3 sm:p-5 lg:min-h-0 lg:overflow-y-auto lg:p-7">
-                    <div className="mx-auto mb-4 flex max-w-2xl items-center gap-2 text-xs font-bold text-slate-600"><span className="rounded-lg bg-blue-100 p-1.5 text-blue-600"><Megaphone className="h-4 w-4" /></span>員工端通知預覽<span className="ml-auto font-normal text-slate-500">唯讀檔案</span></div>
-                    <div className="space-y-5">{detail.cleared_at ? <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-500">此通知內容已正式清除。</div> : <Snapshot title={detail.action === 'edit' ? '修改前通知' : '從原頁移除前的通知'} data={detail.before_data} cleared={false} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />}{detail.after_data != null && <Snapshot title="修改後通知" data={detail.after_data} cleared={false} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />}</div>
+                  <div className="flex h-full min-h-0 min-w-0 flex-col overflow-y-auto bg-[#f0f5ff]">
+                    {detail.cleared_at ? <div className="m-5 rounded-xl bg-white px-6 py-12 text-center text-sm text-slate-500">此通知內容已正式清除。</div> : <Snapshot title={detail.action === 'edit' ? '修改前通知' : '從原頁移除前的通知'} data={detail.before_data} cleared={false} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />}{!detail.cleared_at && detail.after_data != null && <Snapshot title="修改後通知" data={detail.after_data} cleared={false} type={detail.entity_type} eventId={detail.id} mediaRefs={detail.media_refs} employeeAccount={detail.employee_account} />}
                   </div>
                 </div>
               ) : (
