@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, ArrowLeft, Search, Trash2, UserRoundX, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ChevronDown, Search, Trash2, UserRoundX, X } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { loadAuditedMedia } from '../../lib/contentAudit';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
@@ -48,7 +48,7 @@ function displayTime(value: string | null): string {
 }
 
 function DetailField({ label, value }: { label: string; value: string | null }) {
-  return <div className="min-w-0 rounded-lg border border-slate-700 bg-slate-950/50 p-3"><dt className="text-[11px] font-semibold text-slate-400">{label}</dt><dd className="mt-1 break-all text-sm text-white">{value || '—'}</dd></div>;
+  return <div className="min-w-0 rounded-xl border border-white/10 bg-slate-950/45 px-4 py-3"><dt className="text-[11px] font-semibold text-slate-400">{label}</dt><dd className="mt-1 break-words text-sm font-medium text-white">{value || '—'}</dd></div>;
 }
 
 function readableSnapshot(value: unknown): string {
@@ -113,7 +113,27 @@ function ArchivedChatCard({ event, onOpen }: { event: RelatedEvidence; onOpen: (
   const title = readableSnapshot(message?.title);
   const subtitle = readableSnapshot(message?.subtitle);
 
-  return <article className="min-w-0 rounded-xl border border-slate-700 bg-slate-950/50 p-3 text-xs text-slate-200"><div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-2"><div className="min-w-0"><strong className="text-cyan-100">{sender}</strong><span className="ml-2 text-slate-400">{event.action === 'edit' || event.action === 'source_edit' ? '修改版本' : '移除前紀錄'}</span></div><time className="text-slate-400">{displayTime(typeof message?.created_at === 'string' ? message.created_at : event.occurred_at)}</time></div><div className="space-y-1 py-3">{event.cleared_at ? <p className="text-rose-300">此則內容已正式清除。</p> : <>{title && <p className="font-bold text-white">{title}</p>}{subtitle && <p>{subtitle}</p>}{text && <p className="whitespace-pre-wrap break-words">{text}</p>}{message?.message_type === 'rating_request' && <p>評分請求</p>}{message?.message_type === 'rating_result' && <p>服務評分：{String(rating?.rating ?? '—')} · {readableSnapshot(rating?.comment)}</p>}{message?.message_type === 'tip' && <p>打賞：{String(rating?.tip_amount ?? '—')}</p>}{attachments.map(([, path]) => <ArchivedChatMedia key={`${event.id}:${path}`} eventId={event.id} path={path} />)}{imageUrl && !attachments.length && <p className="text-slate-400">原圖無法還原。</p>}{!title && !subtitle && !text && !imageUrl && !attachments.length && !['rating_request', 'rating_result', 'tip'].includes(String(message?.message_type)) && <p className="text-slate-400">沒有可顯示的文字內容。</p>}</>}</div><button type="button" onClick={onOpen} className={`text-xs font-bold text-cyan-200 underline ${focusClass}`}>查看完整版本與操作詳情</button></article>;
+  return <article className="min-w-0 border-b border-white/10 px-3 py-2.5 text-xs text-slate-200 last:border-b-0"><div className="flex flex-wrap items-center justify-between gap-2"><div className="min-w-0"><strong className="text-cyan-100">{sender}</strong><span className="ml-2 text-slate-400">{event.action === 'edit' || event.action === 'source_edit' ? '修改版本' : '移除前紀錄'}</span></div><time className="text-slate-400">{displayTime(typeof message?.created_at === 'string' ? message.created_at : event.occurred_at)}</time></div><div className="space-y-1 py-2">{event.cleared_at ? <p className="text-rose-300">此則內容已正式清除。</p> : <>{title && <p className="font-bold text-white">{title}</p>}{subtitle && <p>{subtitle}</p>}{text && <p className="whitespace-pre-wrap break-words">{text}</p>}{message?.message_type === 'rating_request' && <p>評分請求</p>}{message?.message_type === 'rating_result' && <p>服務評分：{String(rating?.rating ?? '—')} · {readableSnapshot(rating?.comment)}</p>}{message?.message_type === 'tip' && <p>打賞：{String(rating?.tip_amount ?? '—')}</p>}{attachments.map(([, path]) => <ArchivedChatMedia key={`${event.id}:${path}`} eventId={event.id} path={path} />)}{imageUrl && !attachments.length && <p className="text-slate-400">原圖無法還原。</p>}{!title && !subtitle && !text && !imageUrl && !attachments.length && !['rating_request', 'rating_result', 'tip'].includes(String(message?.message_type)) && <p className="text-slate-400">沒有可顯示的文字內容。</p>}</>}</div><button type="button" onClick={onOpen} className={`text-xs font-bold text-cyan-200 underline ${focusClass}`}>查看完整版本與操作詳情</button></article>;
+}
+
+function groupRelatedEvents(items: RelatedEvidence[]) {
+  const groups = new Map<string, { id: string; name: string; events: RelatedEvidence[] }>();
+  for (const event of items) {
+    const snapshot = event.before_data?.message ? event.before_data : event.after_data;
+    const message = snapshot?.message && typeof snapshot.message === 'object' ? snapshot.message as Record<string, unknown> : null;
+    const otherMessage = event.after_data?.message && typeof event.after_data.message === 'object' ? event.after_data.message as Record<string, unknown> : null;
+    const customerId = typeof message?.customer_id === 'string' ? message.customer_id : typeof otherMessage?.customer_id === 'string' ? otherMessage.customer_id : null;
+    const id = customerId || `event:${event.id}`;
+    const name = readableSnapshot(snapshot?.customer_name || event.after_data?.customer_name) || (customerId ? `客戶 ${customerId.slice(0, 8)}` : '客戶身分未留存');
+    const group = groups.get(id);
+    if (group) {
+      group.events.push(event);
+      if (group.name.startsWith('客戶 ') || group.name === '客戶身分未留存') group.name = name;
+    } else {
+      groups.set(id, { id, name, events: [event] });
+    }
+  }
+  return Array.from(groups.values());
 }
 
 export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, onDeleted, initialSelectedId, initialSection, availableAdmins, onSelectSection, onSelectEmployee, onOpenEvidence }: {
@@ -143,7 +163,8 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   const [section, setSection] = useState<Section>(initialSection);
   const [detail, setDetail] = useState<EmployeeDetail | null>(null);
   const [related, setRelated] = useState<Record<'aaa_service' | 'ccc_service', { items: RelatedEvidence[]; total: number }>>({ aaa_service: { items: [], total: 0 }, ccc_service: { items: [], total: 0 } });
-  const [relatedPages, setRelatedPages] = useState({ aaa_service: 0, ccc_service: 0 });
+  const [relatedLoaded, setRelatedLoaded] = useState({ aaa_service: false, ccc_service: false });
+  const [relatedRetryKey, setRelatedRetryKey] = useState(0);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [relatedLoading, setRelatedLoading] = useState({ aaa_service: false, ccc_service: false });
@@ -168,7 +189,6 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const deleteDialogRef = useRef<HTMLElement>(null);
   const detailPaneRef = useRef<HTMLDivElement>(null);
-  const restoredSectionRef = useRef(false);
 
   const adminGroups = [
     ...owners,
@@ -222,70 +242,75 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   useEffect(() => {
     setDetail(null);
     setRelated({ aaa_service: { items: [], total: 0 }, ccc_service: { items: [], total: 0 } });
+    setRelatedLoaded({ aaa_service: false, ccc_service: false });
   }, [selectedId, refreshKey]);
 
   useEffect(() => {
     if (!selectedId) return;
     let cancelled = false;
     setDetailLoading(true);
-    setRelatedLoading(previous => ({ ...previous, aaa_service: true }));
     setDetailError(null);
-    setRelatedError(previous => ({ ...previous, aaa_service: null }));
     const load = async () => {
       try {
         const { data, error } = await supabase.rpc('get_deleted_employee_account', {
           p_admin_session_token: getAdminFinancialSessionToken(), p_record_id: selectedId,
-          p_related_page: relatedPages.aaa_service, p_related_page_size: RELATED_PAGE_SIZE, p_type: 'aaa_service',
+          p_related_page: 0, p_related_page_size: 1, p_type: 'aaa_service',
         });
         if (error) throw error;
         if (!data || !('id' in data)) throw new Error('找不到此員工檔案。');
         if (!cancelled) {
           const record = data as EmployeeDetail;
           setDetail(record);
-          setRelated(previous => ({ ...previous, aaa_service: { items: record.related_items, total: record.related_total } }));
         }
       } catch (error) {
         if (!cancelled) {
           setDetailError(formatSupabaseError(error));
-          setRelatedError(previous => ({ ...previous, aaa_service: formatSupabaseError(error) }));
         }
       } finally {
         if (!cancelled) {
           setDetailLoading(false);
-          setRelatedLoading(previous => ({ ...previous, aaa_service: false }));
         }
       }
     };
     void load();
     return () => { cancelled = true; };
-  }, [selectedId, relatedPages.aaa_service, refreshKey]);
+  }, [selectedId, refreshKey]);
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId || (section !== 'aaa_service' && section !== 'ccc_service') || relatedLoaded[section]) return;
+    const type = section;
     let cancelled = false;
-    setRelatedLoading(previous => ({ ...previous, ccc_service: true }));
-    setRelatedError(previous => ({ ...previous, ccc_service: null }));
+    setRelatedLoading(previous => ({ ...previous, [type]: true }));
+    setRelatedError(previous => ({ ...previous, [type]: null }));
     const load = async () => {
       try {
-        const { data, error } = await supabase.rpc('get_deleted_employee_account', {
-          p_admin_session_token: getAdminFinancialSessionToken(), p_record_id: selectedId,
-          p_related_page: relatedPages.ccc_service, p_related_page_size: RELATED_PAGE_SIZE, p_type: 'ccc_service',
-        });
-        if (error) throw error;
-        if (!data || !('id' in data)) throw new Error('找不到經理聊天紀錄。');
+        const items: RelatedEvidence[] = [];
+        let total = 0;
+        for (let page = 0; page === 0 || items.length < total; page++) {
+          if (cancelled) return;
+          const { data, error } = await supabase.rpc('get_deleted_employee_account', {
+            p_admin_session_token: getAdminFinancialSessionToken(), p_record_id: selectedId,
+            p_related_page: page, p_related_page_size: 100, p_type: type,
+          });
+          if (error) throw error;
+          if (!data || !Array.isArray(data.related_items) || typeof data.related_total !== 'number') throw new Error('聊天紀錄格式不正確。');
+          total = data.related_total;
+          items.push(...data.related_items as RelatedEvidence[]);
+          if (!data.related_items.length) break;
+        }
         if (!cancelled) {
-          const record = data as EmployeeDetail;
-          setRelated(previous => ({ ...previous, ccc_service: { items: record.related_items, total: record.related_total } }));
+          setRelated(previous => ({ ...previous, [type]: { items, total } }));
+          setRelatedLoaded(previous => ({ ...previous, [type]: true }));
         }
       } catch (error) {
-        if (!cancelled) setRelatedError(previous => ({ ...previous, ccc_service: formatSupabaseError(error) }));
+        if (!cancelled) setRelatedError(previous => ({ ...previous, [type]: formatSupabaseError(error) }));
       } finally {
-        if (!cancelled) setRelatedLoading(previous => ({ ...previous, ccc_service: false }));
+        if (!cancelled) setRelatedLoading(previous => ({ ...previous, [type]: false }));
       }
     };
     void load();
     return () => { cancelled = true; };
-  }, [selectedId, relatedPages.ccc_service, refreshKey]);
+  }, [selectedId, section, relatedLoaded, refreshKey, relatedRetryKey]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -340,12 +365,6 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     return () => window.removeEventListener('keydown', onEscape);
   }, [isActive, deletePreview, selectedId, notificationId, onSelectEmployee]);
 
-  useEffect(() => {
-    if (!detail || restoredSectionRef.current || !detailPaneRef.current) return;
-    restoredSectionRef.current = true;
-    detailPaneRef.current.querySelector<HTMLElement>(`[data-archive-section="${section}"]`)?.scrollIntoView({ block: 'start' });
-  }, [detail, section]);
-
   const selectOwner = (owner: string) => {
     setDraft(previous => ({ ...previous, owner }));
     setFilters(previous => ({ ...previous, owner }));
@@ -372,7 +391,6 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
 
   const selectEmployee = (id: string) => {
     if (selectedId === id) return;
-    restoredSectionRef.current = false;
     setDetail(null);
     setRelated({ aaa_service: { items: [], total: 0 }, ccc_service: { items: [], total: 0 } });
     setNotifications([]);
@@ -382,7 +400,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     onSelectEmployee(id);
     setSection('profile');
     onSelectSection('profile');
-    setRelatedPages({ aaa_service: 0, ccc_service: 0 });
+    setRelatedLoaded({ aaa_service: false, ccc_service: false });
     setNotificationPage(0);
     detailPaneRef.current?.scrollTo(0, 0);
   };
@@ -390,7 +408,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   const showSection = (target: Section) => {
     setSection(target);
     onSelectSection(target);
-    detailPaneRef.current?.querySelector<HTMLElement>(`[data-archive-section="${target}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    detailPaneRef.current?.scrollTo(0, 0);
   };
 
   const prepareDeletion = async (recordId?: string, archivedNotificationId?: string) => {
@@ -519,13 +537,18 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
           {!selectedId ? <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-slate-400">從左側選擇員工，查看帳戶、手動通知及兩個工作區的完整聊天紀錄。</div> : <>
             <div className="flex shrink-0 items-center gap-3 border-b border-slate-700 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 px-4 py-3"><button type="button" onClick={() => { setSelectedId(null); onSelectEmployee(null); }} aria-label="返回員工列表" className={`rounded-lg border border-slate-600 p-2 text-slate-200 lg:hidden ${focusClass}`}><ArrowLeft className="h-4 w-4" /></button><div className="min-w-0"><h2 className="truncate text-base font-black text-white">{detail?.account_username || items.find(item => item.id === selectedId)?.account_username || '已刪員工檔案'}</h2><p className="truncate text-xs text-cyan-200">員工 ID：{detail?.employee_number || items.find(item => item.id === selectedId)?.employee_number || '已清除'} · 所屬管理員：{detail?.owner_username || items.find(item => item.id === selectedId)?.owner_username || '—'}</p></div></div>
             <nav aria-label="員工檔案分類" className="grid shrink-0 grid-cols-4 border-b border-slate-700 bg-slate-950/75">{sections.map(([tab, label]) => <button key={tab} type="button" onClick={() => showSection(tab)} className={`min-w-0 border-b-2 px-1 py-3 text-[11px] font-bold sm:text-xs ${section === tab ? 'border-cyan-300 bg-cyan-500/15 text-white' : 'border-transparent text-slate-400 hover:bg-slate-800 hover:text-white'} ${focusClass}`}>{label}</button>)}</nav>
-            <div ref={detailPaneRef} className="min-h-0 flex-1 space-y-8 overflow-y-auto p-4 scrollbar-dark sm:p-5">
+            <div ref={detailPaneRef} className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_85%_0%,rgba(34,211,238,0.06),transparent_42%)] p-4 scrollbar-dark sm:p-5">
               {detailLoading && !detail && <p role="status" className="py-10 text-center text-sm text-slate-400">載入員工檔案中…</p>}
               {detailError && <p role="alert" className="text-sm text-rose-300">{detailError}</p>}
               {detail && <>
-                <section data-archive-section="profile" className="scroll-mt-4 space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm font-bold text-white">帳戶資料</h3><span className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100"><UserRoundX className="mr-1 inline h-4 w-4" />{detail.deletion_source === 'admin_delete' ? '隨所屬管理員刪除' : '員工帳戶已移入私人檔案'}</span></div><dl className="grid grid-cols-1 gap-2 xl:grid-cols-2"><DetailField label="員工帳號" value={detail.account_username} /><DetailField label="員工姓名" value={detail.account_real_name} /><DetailField label="管理員設定的員工 ID" value={detail.employee_number} /><DetailField label="所屬管理員" value={detail.owner_username || detail.owner_admin_id} /><DetailField label="實際刪除者" value={detail.actor_username} /><DetailField label="刪除時間" value={displayTime(detail.deleted_at)} /><DetailField label="帳戶建立時間" value={displayTime(detail.account_created_at)} /><DetailField label="備註" value={detail.account_remarks} />{detail.account_summary && <><DetailField label="帳戶驗證狀態" value={detail.account_summary.is_verified ? '已驗證' : '未驗證'} /><DetailField label="歷史總收入" value={String(detail.account_summary.total_income)} /><DetailField label="錢包可用／凍結" value={`${detail.account_summary.available_balance ?? 0} / ${detail.account_summary.frozen_balance ?? 0}`} /><DetailField label="歷史訂單總數" value={detail.account_summary.total_orders.toLocaleString()} /></>}{detail.cleared_at && <><DetailField label="正式清除時間" value={displayTime(detail.cleared_at)} /><DetailField label="清除原因" value={detail.clear_reason || null} /></>}</dl><button type="button" disabled={deleting} onClick={() => void prepareDeletion(detail.id)} className={`rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200 disabled:opacity-40 ${focusClass}`}><Trash2 className="mr-1 inline h-4 w-4" />永久刪除此員工檔案</button><p className="text-xs text-slate-400">同時刪除此檔案中的私人通知；內容稽核中的聊天與通知事件不受影響。</p>{deleteError && <p role="alert" className="text-xs text-rose-300">{deleteError}</p>}</section>
-                <section data-archive-section="notifications" className="scroll-mt-4 border-t border-slate-700 pt-5"><h3 className="mb-3 text-sm font-bold text-white">管理員手動通知（含舊版紀錄）· {notificationTotal} 筆</h3>{notificationLoading ? <p role="status" className="py-4 text-xs text-slate-400">載入通知檔案中…</p> : notificationError ? <p role="alert" className="text-sm text-rose-300">{notificationError}</p> : notifications.length ? <ol className="space-y-2">{notifications.map(item => <li key={item.id}><button type="button" onClick={() => { setSection('notifications'); onSelectSection('notifications'); setDeleteError(null); setNotificationId(item.id); }} className={`flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/50 px-4 py-3 text-left text-xs text-white hover:border-cyan-400/50 ${focusClass}`}><span className="min-w-0 flex-1 truncate font-bold">{item.title || '已清除通知內容'}<span className="mt-1 block text-[11px] font-normal text-slate-400">發送者：{item.sender_username || '—'} · {item.is_read === 'true' ? '已讀' : '未讀'} · {item.audit_origin === 'manual_admin' ? '管理員手動發送' : item.audit_origin === 'automation' ? '系統自動發送' : item.audit_origin === 'unverified' ? '舊版手動發送' : '發送來源未留存'}</span></span><time className="text-[11px] text-slate-400">{displayTime(item.sent_at)}</time></button></li>)}</ol> : <p className="py-4 text-xs text-slate-400">沒有可查看的通知檔案。</p>}{notificationTotal > RELATED_PAGE_SIZE && <div className="mt-3 flex items-center justify-between text-xs text-slate-300"><span>第 {notificationPage + 1} / {Math.ceil(notificationTotal / RELATED_PAGE_SIZE)} 頁</span><span className="flex gap-2"><button type="button" disabled={notificationPage === 0} onClick={() => setNotificationPage(value => value - 1)} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>上一頁</button><button type="button" disabled={(notificationPage + 1) * RELATED_PAGE_SIZE >= notificationTotal} onClick={() => setNotificationPage(value => value + 1)} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>下一頁</button></span></div>}</section>
-                {(['aaa_service', 'ccc_service'] as const).map(type => <section key={type} data-archive-section={type} className="scroll-mt-4 border-t border-slate-700 pt-5"><h3 className="mb-3 text-sm font-bold text-white">{type === 'aaa_service' ? '模擬客戶' : '經理'}聊天紀錄 · {related[type].total} 筆</h3>{relatedLoading[type] ? <p role="status" className="py-4 text-xs text-slate-400">載入聊天紀錄中…</p> : relatedError[type] ? <p role="alert" className="py-4 text-xs text-rose-300">{relatedError[type]}</p> : related[type].items.length ? <ol className="space-y-2">{related[type].items.map(event => <li key={event.id}><ArchivedChatCard event={event} onOpen={() => { setSection(type); onSelectSection(type); onOpenEvidence(event, detail); }} /></li>)}</ol> : <p className="py-4 text-xs text-slate-400">沒有可查看的聊天紀錄。</p>}{related[type].total > RELATED_PAGE_SIZE && <div className="mt-3 flex items-center justify-between text-xs text-slate-300"><span>第 {relatedPages[type] + 1} / {Math.ceil(related[type].total / RELATED_PAGE_SIZE)} 頁</span><span className="flex gap-2"><button type="button" disabled={relatedPages[type] === 0} onClick={() => setRelatedPages(pages => ({ ...pages, [type]: pages[type] - 1 }))} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>上一頁</button><button type="button" disabled={(relatedPages[type] + 1) * RELATED_PAGE_SIZE >= related[type].total} onClick={() => setRelatedPages(pages => ({ ...pages, [type]: pages[type] + 1 }))} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>下一頁</button></span></div>}</section>)}
+                <section data-archive-section="profile" className={`${section === 'profile' ? 'space-y-5' : 'hidden'}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-300/20 bg-[linear-gradient(110deg,#123047,#111d32_70%)] p-5">
+                    <div className="flex min-w-0 items-center gap-4"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 text-lg font-black text-cyan-100">{(detail.account_real_name || detail.account_username || '員').slice(0, 1)}</span><div className="min-w-0"><h3 className="truncate text-base font-black text-white">{detail.account_real_name || detail.account_username || '已刪員工'}</h3><p className="truncate text-xs text-cyan-200">{detail.account_username || '帳戶資料已清除'} · ID {detail.employee_number || '—'}</p></div></div>
+                    <span className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100"><UserRoundX className="mr-1 inline h-4 w-4" />{detail.deletion_source === 'admin_delete' ? '隨所屬管理員刪除' : '員工帳戶已移入私人檔案'}</span>
+                  </div>
+                  <div><h4 className="mb-2 text-xs font-bold tracking-wide text-slate-200">身分與刪除紀錄</h4><dl className="grid grid-cols-1 gap-2 sm:grid-cols-2"><DetailField label="員工帳號" value={detail.account_username} /><DetailField label="員工姓名" value={detail.account_real_name} /><DetailField label="管理員設定的員工 ID" value={detail.employee_number} /><DetailField label="所屬管理員" value={detail.owner_username || detail.owner_admin_id} /><DetailField label="實際刪除者" value={detail.actor_username} /><DetailField label="刪除時間" value={displayTime(detail.deleted_at)} /><DetailField label="帳戶建立時間" value={displayTime(detail.account_created_at)} /><DetailField label="備註" value={detail.account_remarks} /></dl></div>{detail.account_summary && <div><h4 className="mb-2 text-xs font-bold tracking-wide text-slate-200">歷史帳戶概況</h4><dl className="grid grid-cols-1 gap-2 sm:grid-cols-2"><DetailField label="帳戶驗證狀態" value={detail.account_summary.is_verified ? '已驗證' : '未驗證'} /><DetailField label="歷史總收入" value={String(detail.account_summary.total_income)} /><DetailField label="錢包可用／凍結" value={`${detail.account_summary.available_balance ?? 0} / ${detail.account_summary.frozen_balance ?? 0}`} /><DetailField label="歷史訂單總數" value={detail.account_summary.total_orders.toLocaleString()} /></dl></div>}{detail.cleared_at && <div><h4 className="mb-2 text-xs font-bold tracking-wide text-slate-200">正式清除紀錄</h4><dl className="grid grid-cols-1 gap-2 sm:grid-cols-2"><DetailField label="正式清除時間" value={displayTime(detail.cleared_at)} /><DetailField label="清除原因" value={detail.clear_reason || null} /></dl></div>}<div className="space-y-2 border-t border-white/10 pt-4"><button type="button" disabled={deleting} onClick={() => void prepareDeletion(detail.id)} className={`rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200 disabled:opacity-40 ${focusClass}`}><Trash2 className="mr-1 inline h-4 w-4" />永久刪除此員工檔案</button><p className="text-xs text-slate-400">同時刪除此檔案中的私人通知；內容稽核中的聊天與通知事件不受影響。</p>{deleteError && <p role="alert" className="text-xs text-rose-300">{deleteError}</p>}</div></section>
+                <section data-archive-section="notifications" className={section === 'notifications' ? '' : 'hidden'}><div className="mb-3"><h3 className="text-sm font-bold text-white">手動通知檔案 <span className="ml-1 text-xs font-medium text-cyan-200">{notificationTotal} 筆</span></h3><p className="mt-1 text-[11px] text-slate-400">含舊版紀錄 · 點選通知查看完整內容</p></div>{notificationLoading ? <p role="status" className="py-4 text-xs text-slate-400">載入通知檔案中…</p> : notificationError ? <p role="alert" className="text-sm text-rose-300">{notificationError}</p> : notifications.length ? <ol className="divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-slate-950/45">{notifications.map(item => <li key={item.id}><button type="button" onClick={() => { setSection('notifications'); onSelectSection('notifications'); setDeleteError(null); setNotificationId(item.id); }} className={`flex w-full flex-wrap items-center justify-between gap-2 border-l-2 border-transparent px-4 py-3 text-left text-xs text-white hover:border-cyan-300 hover:bg-cyan-400/[0.07] ${focusClass}`}><span className="min-w-0 flex-1 truncate font-bold">{item.title || '已清除通知內容'}<span className="mt-1 block text-[11px] font-normal text-slate-400">發送者：{item.sender_username || '—'} · {item.is_read === 'true' ? '已讀' : '未讀'} · {item.audit_origin === 'manual_admin' ? '管理員手動發送' : item.audit_origin === 'automation' ? '系統自動發送' : item.audit_origin === 'unverified' ? '舊版手動發送' : '發送來源未留存'}</span></span><time className="shrink-0 text-[11px] tabular-nums text-slate-400">{displayTime(item.sent_at)}</time></button></li>)}</ol> : <p className="py-4 text-xs text-slate-400">沒有可查看的通知檔案。</p>}{notificationTotal > RELATED_PAGE_SIZE && <div className="mt-3 flex items-center justify-between text-xs text-slate-300"><span>第 {notificationPage + 1} / {Math.ceil(notificationTotal / RELATED_PAGE_SIZE)} 頁</span><span className="flex gap-2"><button type="button" disabled={notificationPage === 0} onClick={() => setNotificationPage(value => value - 1)} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>上一頁</button><button type="button" disabled={(notificationPage + 1) * RELATED_PAGE_SIZE >= notificationTotal} onClick={() => setNotificationPage(value => value + 1)} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>下一頁</button></span></div>}</section>
+                {(['aaa_service', 'ccc_service'] as const).map(type => <section key={type} data-archive-section={type} className={section === type ? '' : 'hidden'}><h3 className="mb-3 text-sm font-bold text-white">{type === 'aaa_service' ? '模擬客戶' : '經理'}聊天紀錄 <span className="ml-1 text-xs font-medium text-cyan-200">{relatedLoaded[type] ? `${groupRelatedEvents(related[type].items).length} 段對話 · ${related[type].total} 則留證` : `${detail.related_counts?.[type] ?? 0} 則留證`}</span></h3>{relatedLoading[type] || (!relatedLoaded[type] && !relatedError[type]) ? <p role="status" className="py-4 text-xs text-slate-400">整理對話清單中…</p> : relatedError[type] ? <p role="alert" className="py-4 text-xs text-rose-300">{relatedError[type]} <button type="button" onClick={() => setRelatedRetryKey(key => key + 1)} className={`ml-2 text-cyan-200 underline ${focusClass}`}>重試</button></p> : related[type].items.length ? <ol className="divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-slate-950/45">{groupRelatedEvents(related[type].items).map(group => <li key={group.id}><details className="group"><summary className={`flex cursor-pointer list-none items-center gap-3 px-3 py-3 text-left hover:bg-cyan-400/[0.07] [&::-webkit-details-marker]:hidden ${focusClass}`}><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-xs font-bold text-cyan-200">{group.name.slice(0, 1)}</span><span className="min-w-0 flex-1"><strong className="block truncate text-xs text-white">{group.name}</strong><span className="mt-0.5 block text-[11px] text-slate-400">{group.events.length} 則留證 · 最近異動 {displayTime(group.events[0].occurred_at)}</span></span><ChevronDown className="h-4 w-4 shrink-0 text-cyan-300 transition-transform group-open:rotate-180" aria-hidden="true" /></summary><div className="border-t border-white/10 bg-slate-900/60">{group.events.map(event => <ArchivedChatCard key={event.id} event={event} onOpen={() => onOpenEvidence(event, detail)} />)}</div></details></li>)}</ol> : <p className="py-4 text-xs text-slate-400">沒有可查看的聊天紀錄。</p>}</section>)}
               </>}
             </div>
           </>}
