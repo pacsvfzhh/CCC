@@ -259,13 +259,26 @@ const fetchWithXhrFallback: typeof fetch = async (input, init) => {
   });
 };
 
+const isReadOnlyAuditRequest = (input: RequestInfo | URL, init?: RequestInit) => {
+  const url = input instanceof Request ? input.url : input.toString();
+  if (getRequestMethod(input, init) !== 'POST' || !/\/functions\/v1\/content-audit(?:\?|$)/.test(url)
+    || typeof init?.body !== 'string') return false;
+  try {
+    return ['media', 'pending_deletes'].includes(JSON.parse(init.body).action);
+  } catch {
+    return false;
+  }
+};
+
 const fetchWithNetworkFallback: typeof fetch = async (input, init) => {
   try {
     return await nativeFetch(input, init);
   } catch (error) {
     const method = getRequestMethod(input, init);
     if (!isNetworkFetchError(error)
-      || (!['GET', 'HEAD', 'OPTIONS'].includes(method) && !isReadOnlyRpcRequest(input, method))) throw error;
+      || (!['GET', 'HEAD', 'OPTIONS'].includes(method)
+        && !isReadOnlyRpcRequest(input, method)
+        && !isReadOnlyAuditRequest(input, init))) throw error;
     return fetchWithXhrFallback(input, init);
   }
 };
@@ -276,7 +289,8 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
 
   const requestMethod = getRequestMethod(input, init);
   const canRetry = ['GET', 'HEAD', 'OPTIONS'].includes(requestMethod)
-    || isReadOnlyRpcRequest(input, requestMethod);
+    || isReadOnlyRpcRequest(input, requestMethod)
+    || isReadOnlyAuditRequest(input, init);
 
   for (let attempt = 0; attempt <= MAX_NETWORK_RETRIES; attempt += 1) {
     const controller = new AbortController();

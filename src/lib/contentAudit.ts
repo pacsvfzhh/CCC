@@ -16,10 +16,14 @@ export async function mutateAuditedContent(
     body: { action, targetIds, payload, employeeId, sessionToken: getAdminFinancialSessionToken() },
   });
   if (error && typeof error === 'object' && 'context' in error) {
-    if (isSupabaseTransientError(error.context)) throw error.context;
     if (error.context instanceof Response) {
       const details = await error.context.clone().json().catch(() => null);
-      if (details && typeof details.error === 'string') throw new Error(details.error);
+      const requestError = new Error(typeof details?.error === 'string' ? details.error : formatSupabaseError(error));
+      Object.assign(requestError, { status: error.context.status });
+      throw requestError;
+    }
+    if (isSupabaseTransientError(error.context)) {
+      throw error.context instanceof Error ? error.context : new Error(formatSupabaseError(error.context));
     }
   }
   if (error || data?.error) throw new Error(data?.error || formatSupabaseError(error));
