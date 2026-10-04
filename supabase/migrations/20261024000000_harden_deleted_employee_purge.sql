@@ -23,7 +23,8 @@ BEGIN
       FROM jsonb_array_elements(operation.request_data -> 'recipient_ids')
         WITH ORDINALITY recipient(id, position)
       WHERE recipient.id #>> '{}' <> ALL(v_employee_ids::text[])
-    ))
+    )) || jsonb_build_object('_original_request_sha256',
+      encode(sha256(convert_to(operation.request_data::text, 'UTF8')), 'hex'))
     WHERE operation.operation_type = 'admin_message_send'
       AND jsonb_typeof(operation.request_data -> 'recipient_ids') = 'array'
       AND EXISTS (
@@ -53,8 +54,7 @@ BEGIN
     ORDER BY customer.id FOR UPDATE;
     IF EXISTS (
       SELECT 1 FROM public.simulated_customers customer
-      WHERE (customer.target_employee_id = ANY(v_employee_ids)
-        OR customer.target_employee_ids && v_employee_ids)
+      WHERE customer.target_employee_ids && v_employee_ids
         AND NOT EXISTS (
           SELECT 1 FROM unnest(COALESCE(customer.target_employee_ids, '{}'::uuid[])) target(id)
           WHERE target.id <> ALL(v_employee_ids)
@@ -116,9 +116,23 @@ BEGIN
     $verify_cleanup$);
 
   EXECUTE definition;
+
+  definition := pg_get_functiondef('private.begin_financial_operation(uuid, text, text, uuid, jsonb)'::regprocedure);
+  IF strpos(definition, 'v_operation.request_data IS DISTINCT FROM p_request_data') = 0 THEN
+    RAISE EXCEPTION 'Unexpected financial operation replay definition.';
+  END IF;
+  definition := replace(definition,
+    'v_operation.request_data IS DISTINCT FROM p_request_data',
+    $redacted_replay$(v_operation.request_data IS DISTINCT FROM p_request_data
+        AND NOT (p_operation_type = 'admin_message_send'
+          AND v_operation.request_data ? '_original_request_sha256'
+          AND v_operation.request_data ->> '_original_request_sha256' =
+            encode(sha256(convert_to(p_request_data::text, 'UTF8')), 'hex')))$redacted_replay$);
+  EXECUTE definition;
 END;
 $purge_patch$;
 
 REVOKE ALL ON FUNCTION public.finish_deleted_employee_archive_delete(uuid, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.finish_deleted_employee_archive_delete(uuid, uuid) TO service_role;
+REVOKE ALL ON FUNCTION private.begin_financial_operation(uuid, text, text, uuid, jsonb) FROM PUBLIC, anon, authenticated;
 NOTIFY pgrst, 'reload schema';
