@@ -967,8 +967,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[270px_minmax(0,1fr)]">
-        <aside className="relative z-20 hidden min-h-0 flex-col border-r border-cyan-300/10 bg-[radial-gradient(circle_at_0%_0%,rgba(34,211,238,0.08),transparent_45%),linear-gradient(180deg,#0a1526,#090f1d_72%,#0d1627)] p-2.5 lg:flex lg:overflow-visible [@media(max-height:760px)]:overflow-y-auto scrollbar-dark">
-          <div className="w-full rounded-xl border border-cyan-300/15 bg-[linear-gradient(160deg,rgba(30,58,89,0.45),rgba(15,23,42,0.8)_28%)] p-3 shadow-[0_12px_26px_rgba(2,6,23,0.2)]">
+        <aside className="relative z-20 hidden min-h-0 flex-col border-r border-cyan-300/10 bg-[radial-gradient(circle_at_0%_0%,rgba(34,211,238,0.08),transparent_45%),linear-gradient(180deg,#0a1526,#090f1d_72%,#0d1627)] p-3 lg:flex lg:overflow-visible [@media(max-height:760px)]:overflow-y-auto scrollbar-dark">
             <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-cyan-100"><ShieldCheck className="h-4 w-4" aria-hidden="true" />監察工作台</div>
             {viewSwitch}
             <section className="relative mt-3 border-t border-white/10 pt-2.5"><p className="mb-1 text-[11px] font-semibold text-slate-300">所屬管理員</p><OwnerPicker wide selected={filters.owner} owners={ownerOptions} total={filterCounts?.total ?? null} loading={filterCountsLoading} error={filterCountsError} onRetry={() => setFilterCountsRetryKey(key => key + 1)} onSelect={owner => selectQuickFilter({ owner })} /></section>
@@ -976,7 +975,6 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
             <button key={type} type="button" onClick={() => selectQuickFilter({ type })} aria-pressed={filters.type === type} className={`flex w-full items-center justify-between gap-2 rounded-lg border px-2.5 py-1 text-left text-xs font-bold transition-colors ${filters.type === type ? 'border-cyan-300/30 bg-gradient-to-r from-cyan-500/25 to-blue-500/15 text-white shadow-[inset_3px_0_0_#67e8f9]' : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-white'} ${buttonFocus}`}><span className="flex min-w-0 items-center gap-2">{type === 'notification' ? <Megaphone className="h-3.5 w-3.5 shrink-0 text-violet-300" /> : type ? <MessageCircle className={`h-3.5 w-3.5 shrink-0 ${type === 'aaa_service' ? 'text-amber-300' : 'text-teal-300'}`} /> : <Database className="h-3.5 w-3.5 shrink-0 text-cyan-300" />}<span className="truncate">{label}</span></span><span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] tabular-nums ${filters.type === type ? 'bg-cyan-300/15 text-cyan-100' : 'bg-slate-800 text-slate-400'}`}>{type ? scopedTypes?.[type]?.toLocaleString() ?? '…' : scopedTotal?.toLocaleString() ?? '…'}</span></button>
           ))}</div></section>
             <section className="mt-3 border-t border-white/10 pt-2.5"><div className="mb-2 flex items-center gap-2"><Search className="h-3.5 w-3.5 text-cyan-300" aria-hidden="true" /><h3 className="text-[11px] font-bold text-slate-300">進階篩選</h3></div>{filterForm(false, true)}</section>
-          </div>
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-slate-900 xl:overflow-hidden">
