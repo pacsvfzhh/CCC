@@ -65,7 +65,7 @@ BEGIN
           WHERE target.id <> ALL(v_employee_ids)
         )
     ) THEN
-      RAISE EXCEPTION 'A shared customer is assigned only to this employee. Reassign or disable that customer before permanent deletion.';
+      RAISE EXCEPTION 'A shared customer is assigned only to this employee. Reassign the customer before permanent deletion.';
     END IF;
     UPDATE public.simulated_customers customer
     SET target_employee_id = CASE WHEN customer.target_employee_id = ANY(v_employee_ids)
