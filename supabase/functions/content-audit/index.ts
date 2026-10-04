@@ -74,6 +74,7 @@ async function clearStaleCopies() {
 }
 
 async function mutate(body: Change) {
+  const startedAt = performance.now();
   const { data: prepared, error: prepareError } = await db.rpc('prepare_content_audit_change', {
     p_admin_session_token: body.sessionToken,
     p_action: body.action,
@@ -81,7 +82,8 @@ async function mutate(body: Change) {
     p_employee_id: body.employeeId ?? null,
   });
   if (prepareError) throw prepareError;
-  const staleCleanup = clearStaleCopies().catch(error => console.error('Could not collect uncommitted evidence:', error));
+  const preparedAt = performance.now();
+  EdgeRuntime.waitUntil(clearStaleCopies().catch(error => console.error('Could not collect uncommitted evidence:', error)));
   const snapshots = prepared.snapshots as unknown;
   const entries = Array.isArray(snapshots) ? snapshots
     : snapshots && typeof snapshots === 'object' && 'messages' in snapshots ? snapshots.messages : null;
@@ -126,10 +128,9 @@ async function mutate(body: Change) {
     if (failed?.status === 'rejected') throw failed.reason;
   } catch (error) {
     if (copied.length) await db.storage.from(evidenceBucket).remove(copied);
-    await staleCleanup;
     throw error;
   }
-  await staleCleanup;
+  const copiedAt = performance.now();
   const { data, error, status } = await db.rpc('commit_content_audit_change', {
     p_admin_session_token: body.sessionToken,
     p_action: body.action,
@@ -147,6 +148,14 @@ async function mutate(body: Change) {
     }
     throw error;
   }
+  console.info('content-audit mutation timing', {
+    action: body.action,
+    targets: body.targetIds.length,
+    attachments: copies.size,
+    prepareMs: Math.round(preparedAt - startedAt),
+    copyMs: Math.round(copiedAt - preparedAt),
+    commitMs: Math.round(performance.now() - copiedAt),
+  });
   return response(data);
 }
 

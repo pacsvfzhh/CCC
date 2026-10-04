@@ -999,8 +999,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     try {
       const messageIdsArray = Array.from(selectedMessageIds);
       let deletedCount = 0;
-      for (let index = 0; index < messageIdsArray.length; index += 50) {
-        const result = await mutateAuditedContent('notification_delete', messageIdsArray.slice(index, index + 50));
+      for (let index = 0; index < messageIdsArray.length; index += 100) {
+        const result = await mutateAuditedContent('notification_delete', messageIdsArray.slice(index, index + 100));
         deletedCount += result.changed_count;
       }
       if (deletedCount > 0) {
@@ -1028,8 +1028,8 @@ export default function MessageManagement({ admin, isActive = true, initialEmplo
     setDeleting(true);
     try {
       let deletedCount = 0;
-      for (let index = 0; index < manualMessageIds.length; index += 50) {
-        const result = await mutateAuditedContent('notification_delete', manualMessageIds.slice(index, index + 50));
+      for (let index = 0; index < manualMessageIds.length; index += 100) {
+        const result = await mutateAuditedContent('notification_delete', manualMessageIds.slice(index, index + 100));
         deletedCount += result.changed_count;
       }
       if (deletedCount > 0) {
