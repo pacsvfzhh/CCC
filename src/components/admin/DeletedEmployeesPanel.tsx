@@ -226,6 +226,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [notificationTotal, setNotificationTotal] = useState(0);
   const [notificationPage, setNotificationPage] = useState(0);
+  const [notificationRetryKey, setNotificationRetryKey] = useState(0);
   const [notificationLoading, setNotificationLoading] = useState(false);
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [notificationId, setNotificationId] = useState<string | null>(null);
@@ -244,6 +245,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   selectedIdRef.current = selectedId;
   notificationIdRef.current = notificationId;
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const notificationLoadMoreRef = useRef<HTMLDivElement>(null);
   const deleteDialogRef = useRef<HTMLElement>(null);
   const detailPaneRef = useRef<HTMLDivElement>(null);
 
@@ -278,7 +280,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     return request;
   }, []);
 
-  useEffect(() => { setPage(0); }, [refreshKey]);
+  useEffect(() => { setPage(0); setNotificationPage(0); }, [refreshKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -412,7 +414,9 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
         if (!data || !Array.isArray(data.items) || typeof data.total !== 'number') throw new Error('手動通知清單格式不正確。');
         if (!cancelled) {
           const rows = data.items as NotificationRow[];
-          setNotifications(rows);
+          setNotifications(previous => notificationPage === 0 ? rows : [
+            ...previous, ...rows.filter(row => !previous.some(item => item.id === row.id)),
+          ]);
           setNotificationTotal(data.total);
           const prefetch = async () => {
             for (let index = 0; index < rows.length && !cancelled; index += 4) {
@@ -429,7 +433,19 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     };
     void load();
     return () => { cancelled = true; };
-  }, [selectedId, notificationPage, refreshKey, fetchNotification]);
+  }, [selectedId, notificationPage, notificationRetryKey, refreshKey, fetchNotification]);
+
+  useEffect(() => {
+    if (section !== 'notifications' || notificationLoading || notificationError || notificationId || !notifications.length || notifications.length >= notificationTotal || !notificationLoadMoreRef.current) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        observer.disconnect();
+        setNotificationPage(current => current + 1);
+      }
+    }, { root: detailPaneRef.current, rootMargin: '120px' });
+    observer.observe(notificationLoadMoreRef.current);
+    return () => observer.disconnect();
+  }, [section, notificationLoading, notificationError, notificationId, notifications.length, notificationTotal]);
 
   useEffect(() => {
     if (!notificationId) return;
@@ -659,12 +675,12 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
                   <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3"><p className="max-w-lg text-[11px] leading-5 text-slate-400">永久刪除會清除此員工檔案及私人通知；內容稽核的聊天與通知事件仍獨立保留。</p><button type="button" disabled={deleting} onClick={() => void prepareDeletion(detail.id)} className={`shrink-0 rounded-lg border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-200 hover:bg-rose-500/20 disabled:opacity-40 ${focusClass}`}><Trash2 className="mr-1 inline h-3.5 w-3.5" />永久刪除檔案</button></div>{deleteError && <p role="alert" className="text-xs text-rose-300">{deleteError}</p>}</section>
                 <section data-archive-section="notifications" className={section === 'notifications' ? '' : 'hidden'}>
                   <div className="flex items-end justify-between gap-3 border-b border-white/10 pb-3"><div><h3 className="text-sm font-bold text-white">通知檔案 <span className="ml-1 text-xs font-medium text-cyan-200">{notificationTotal} 筆</span></h3><p className="mt-1 text-[11px] text-slate-400">點選一列查看通知內容與收件狀態</p></div></div>
-                  {notificationLoading ? <p role="status" className="py-4 text-xs text-slate-400">載入通知檔案中…</p> : notificationError ? <p role="alert" className="py-4 text-sm text-rose-300">{notificationError}</p> : notifications.length ? <ol className="divide-y divide-white/[0.08]">{notifications.map(item => <li key={item.id}><button type="button" onClick={() => { setDeleteError(null); setNotificationDetail(notificationCacheRef.current.get(item.id) ?? null); setNotificationId(item.id); }} onPointerEnter={() => { void fetchNotification(item.id).catch(() => {}); }} onFocus={() => { void fetchNotification(item.id).catch(() => {}); }} className={`group flex w-full min-w-0 items-center gap-3 py-3 text-left transition-colors hover:bg-cyan-400/[0.06] sm:px-2 ${focusClass}`}><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-400/10 text-sky-200"><Bell className="h-4 w-4" /></span><span className="min-w-0 flex-1"><strong className="block truncate text-xs text-slate-100 group-hover:text-cyan-100">{item.title || '已清除通知內容'}</strong><span className="mt-1 block truncate text-[11px] text-slate-400">{item.sender_username || '發送者未留存'} · {item.audit_origin === 'manual_admin' ? '手動發送' : item.audit_origin === 'automation' ? '系統發送' : item.audit_origin === 'unverified' ? '舊版手動發送' : '來源未留存'}</span></span><span className="shrink-0 text-right"><span className={`block text-[11px] font-semibold ${item.is_read === 'true' ? 'text-emerald-300' : 'text-amber-200'}`}>{item.is_read === 'true' ? '已讀' : '未讀'}</span><time className="mt-1 block text-[10px] tabular-nums text-slate-500">{displayTime(item.sent_at)}</time></span><ChevronRight className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-cyan-200" /></button></li>)}</ol> : <p className="py-6 text-center text-xs text-slate-400">沒有可查看的通知檔案。</p>}
-                  {notificationTotal > RELATED_PAGE_SIZE && <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-300"><span>第 {notificationPage + 1} / {Math.ceil(notificationTotal / RELATED_PAGE_SIZE)} 頁</span><span className="flex gap-2"><button type="button" disabled={notificationPage === 0} onClick={() => setNotificationPage(value => value - 1)} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>上一頁</button><button type="button" disabled={(notificationPage + 1) * RELATED_PAGE_SIZE >= notificationTotal} onClick={() => setNotificationPage(value => value + 1)} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>下一頁</button></span></div>}
+                  {notifications.length ? <ol className="divide-y divide-white/[0.08]">{notifications.map((item, index) => <li key={item.id}><button type="button" onClick={() => { setDeleteError(null); setNotificationDetail(notificationCacheRef.current.get(item.id) ?? null); setNotificationId(item.id); }} onPointerEnter={() => { void fetchNotification(item.id).catch(() => {}); }} onFocus={() => { void fetchNotification(item.id).catch(() => {}); }} className={`group flex w-full min-w-0 items-center gap-3 py-3 text-left transition-colors hover:bg-cyan-400/[0.06] sm:px-2 ${focusClass}`}><span className="w-7 shrink-0 text-center text-[11px] font-bold tabular-nums text-slate-500">{index + 1}.</span><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-400/10 text-sky-200"><Bell className="h-4 w-4" /></span><span className="min-w-0 flex-1"><strong className="block truncate text-xs text-slate-100 group-hover:text-cyan-100">{item.title || '已清除通知內容'}</strong><span className="mt-1 block truncate text-[11px] text-slate-400">{item.sender_username || '發送者未留存'} · {item.audit_origin === 'manual_admin' ? '手動發送' : item.audit_origin === 'automation' ? '系統發送' : item.audit_origin === 'unverified' ? '舊版手動發送' : '來源未留存'}</span></span><span className="shrink-0 text-right"><span className={`block text-[11px] font-semibold ${item.is_read === 'true' ? 'text-emerald-300' : 'text-amber-200'}`}>{item.is_read === 'true' ? '已讀' : '未讀'}</span><time className="mt-1 block text-[10px] tabular-nums text-slate-500">{displayTime(item.sent_at)}</time></span><ChevronRight className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-cyan-200" /></button></li>)}</ol> : !notificationLoading && !notificationError ? <p className="py-6 text-center text-xs text-slate-400">沒有可查看的通知檔案。</p> : null}
+                  <div ref={notificationLoadMoreRef} className="py-3 text-center text-xs text-slate-400" role="status">{notificationLoading ? '載入通知檔案中…' : notificationError ? <span role="alert">載入失敗：{notificationError} <button type="button" onClick={() => setNotificationRetryKey(key => key + 1)} className={`text-cyan-200 underline ${focusClass}`}>重試</button></span> : notifications.length < notificationTotal ? '往下捲動載入更多' : null}</div>
                 </section>
                 {(['aaa_service', 'ccc_service'] as const).map(type => <section key={type} data-archive-section={type} className={section === type ? '' : 'hidden'}>
                   <div className="border-b border-white/10 pb-3"><h3 className="text-sm font-bold text-white">{type === 'aaa_service' ? '模擬客戶' : '經理'}對話 <span className="ml-1 text-xs font-medium text-cyan-200">{relatedLoaded[type] ? `${(type === 'aaa_service' ? aaaGroups : cccGroups).length} 段 · ${(type === 'aaa_service' ? aaaGroups : cccGroups).reduce((count, group) => count + group.events.length, 0)} 則訊息` : `${detail.related_counts?.[type] ?? 0} 則留證`}</span></h3><p className="mt-1 text-[11px] text-slate-400">一人一列，點選查看聊天內容{relatedLoading[type] && related[type].items.length ? ' · 正在補齊其餘訊息' : ''}</p></div>{relatedError[type] && related[type].items.length > 0 && <p role="alert" className="border-b border-rose-400/20 py-2 text-xs text-rose-300">部分訊息載入失敗：{relatedError[type]} <button type="button" onClick={() => setRelatedRetryKey(key => key + 1)} className={`ml-2 text-cyan-200 underline ${focusClass}`}>重試</button></p>}
-                  {!related[type].items.length && (relatedLoading[type] || (!relatedLoaded[type] && !relatedError[type])) ? <p role="status" className="py-4 text-xs text-slate-400">整理對話清單中…</p> : relatedError[type] && !related[type].items.length ? <p role="alert" className="py-4 text-xs text-rose-300">{relatedError[type]} <button type="button" onClick={() => setRelatedRetryKey(key => key + 1)} className={`ml-2 text-cyan-200 underline ${focusClass}`}>重試</button></p> : related[type].items.length ? <ol className="divide-y divide-white/[0.08]">{(type === 'aaa_service' ? aaaGroups : cccGroups).map(group => <li key={group.id}><button type="button" onClick={() => setOpenConversation({ type, id: group.id })} className={`group flex w-full min-w-0 items-center gap-3 py-3 text-left transition-colors hover:bg-cyan-400/[0.06] sm:px-2 ${focusClass}`}><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-xs font-bold text-cyan-200">{group.name.slice(0, 1)}</span><span className="min-w-0 flex-1"><strong className="block truncate text-xs text-white group-hover:text-cyan-100">{group.name}</strong><span className="mt-1 block truncate text-[11px] text-slate-400">與 {detail.account_real_name || detail.account_username || '此員工'} 的對話 · {group.events.length} 則訊息</span></span><time className="hidden shrink-0 text-[10px] tabular-nums text-slate-500 sm:block">{displayTime(group.events[0].occurred_at)}</time><ChevronRight className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-cyan-200" /></button></li>)}</ol> : <p className="py-6 text-center text-xs text-slate-400">沒有可查看的聊天紀錄。</p>}
+                  {!related[type].items.length && (relatedLoading[type] || (!relatedLoaded[type] && !relatedError[type])) ? <p role="status" className="py-4 text-xs text-slate-400">整理對話清單中…</p> : relatedError[type] && !related[type].items.length ? <p role="alert" className="py-4 text-xs text-rose-300">{relatedError[type]} <button type="button" onClick={() => setRelatedRetryKey(key => key + 1)} className={`ml-2 text-cyan-200 underline ${focusClass}`}>重試</button></p> : related[type].items.length ? <ol className="divide-y divide-white/[0.08]">{(type === 'aaa_service' ? aaaGroups : cccGroups).map((group, index) => <li key={group.id}><button type="button" onClick={() => setOpenConversation({ type, id: group.id })} className={`group flex w-full min-w-0 items-center gap-3 py-3 text-left transition-colors hover:bg-cyan-400/[0.06] sm:px-2 ${focusClass}`}><span className="w-7 shrink-0 text-center text-[11px] font-bold tabular-nums text-slate-500">{index + 1}.</span><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-xs font-bold text-cyan-200">{group.name.slice(0, 1)}</span><span className="min-w-0 flex-1"><strong className="block truncate text-xs text-white group-hover:text-cyan-100">{group.name}</strong><span className="mt-1 block truncate text-[11px] text-slate-400">與 {detail.account_real_name || detail.account_username || '此員工'} 的對話 · {group.events.length} 則訊息</span></span><time className="hidden shrink-0 text-[10px] tabular-nums text-slate-500 sm:block">{displayTime(group.events[0].occurred_at)}</time><ChevronRight className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-cyan-200" /></button></li>)}</ol> : <p className="py-6 text-center text-xs text-slate-400">沒有可查看的聊天紀錄。</p>}
                 </section>)}
               </>}
             </div>
