@@ -2699,6 +2699,10 @@ export interface Database {
         Args: { p_admin_session_token: string; p_is_verified: boolean; p_user_id: string };
         Returns: boolean;
       };
+      archive_employee_without_chats: {
+        Args: { p_admin_session_token: string; p_user_id: string };
+        Returns: { requires_audit_service: true; success?: never } | { success: boolean; changed_count: number; requires_audit_service?: never };
+      };
       admin_delete_employee_account: {
         Args: { p_admin_session_token: string; p_user_id: string };
         Returns: boolean;

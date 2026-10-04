@@ -1729,8 +1729,15 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      const result = await mutateAuditedContent('employee_delete', [employee.id]);
-      if (!result.success) throw new Error('無法刪除員工。');
+      const { data: fastResult, error: fastError } = await supabase.rpc('archive_employee_without_chats', {
+        p_admin_session_token: getAdminFinancialSessionToken(),
+        p_user_id: employee.id,
+      });
+      if (fastError) throw fastError;
+      const result = fastResult?.requires_audit_service
+        ? await mutateAuditedContent('employee_delete', [employee.id])
+        : fastResult;
+      if (!result?.success) throw new Error('無法刪除員工。');
       setEmployeeGroups(prev => prev.map(g => ({
         ...g,
         employees: g.employees.filter(emp => emp.id !== employee.id)
