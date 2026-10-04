@@ -1729,7 +1729,7 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      const { data: fastResult, error: fastError } = await supabase.rpc('archive_employee_without_chats', {
+      const { data: fastResult, error: fastError } = await supabase.rpc('archive_employee_without_media', {
         p_admin_session_token: getAdminFinancialSessionToken(),
         p_user_id: employee.id,
       });
