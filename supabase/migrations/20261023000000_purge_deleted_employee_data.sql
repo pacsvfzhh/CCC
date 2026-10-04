@@ -2,6 +2,19 @@ ALTER TABLE private.deleted_employee_delete_jobs
   ADD COLUMN finished_at timestamptz,
   ADD COLUMN paths_to_remove jsonb NOT NULL DEFAULT '[]'::jsonb;
 
+DO $update_expired_jobs$
+DECLARE definition text;
+BEGIN
+  definition := pg_get_functiondef('public.prepare_deleted_employee_archive_delete(uuid, uuid, text, uuid, uuid)'::regprocedure);
+  IF strpos(definition, 'DELETE FROM private.deleted_employee_delete_jobs WHERE expires_at <= clock_timestamp();') = 0 THEN
+    RAISE EXCEPTION 'Unexpected employee delete preparation definition.';
+  END IF;
+  EXECUTE replace(definition,
+    'DELETE FROM private.deleted_employee_delete_jobs WHERE expires_at <= clock_timestamp();',
+    'DELETE FROM private.deleted_employee_delete_jobs WHERE expires_at <= clock_timestamp() AND finished_at IS NULL;');
+END;
+$update_expired_jobs$;
+
 CREATE OR REPLACE FUNCTION private.archive_employee_before_delete()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
@@ -106,6 +119,23 @@ BEGIN
   DELETE FROM private.content_audit_events WHERE employee_id = ANY(v_employee_ids);
   GET DIAGNOSTICS v_event_count = ROW_COUNT;
   DELETE FROM private.content_audit_recipient_versions WHERE recipient_id = ANY(v_employee_ids);
+  UPDATE private.content_audit_events event
+  SET before_data = CASE WHEN jsonb_typeof(event.before_data -> 'recipients') = 'array'
+    THEN jsonb_set(event.before_data, '{recipients}', (
+      SELECT COALESCE(jsonb_agg(recipient.data ORDER BY recipient.position), '[]'::jsonb)
+      FROM jsonb_array_elements(event.before_data -> 'recipients') WITH ORDINALITY recipient(data, position)
+      WHERE recipient.data ->> 'recipient_id' IS NULL
+        OR recipient.data ->> 'recipient_id' <> ALL(v_employee_ids::text[])
+    )) ELSE event.before_data END,
+    after_data = CASE WHEN jsonb_typeof(event.after_data -> 'recipients') = 'array'
+    THEN jsonb_set(event.after_data, '{recipients}', (
+      SELECT COALESCE(jsonb_agg(recipient.data ORDER BY recipient.position), '[]'::jsonb)
+      FROM jsonb_array_elements(event.after_data -> 'recipients') WITH ORDINALITY recipient(data, position)
+      WHERE recipient.data ->> 'recipient_id' IS NULL
+        OR recipient.data ->> 'recipient_id' <> ALL(v_employee_ids::text[])
+    )) ELSE event.after_data END
+  WHERE cardinality(v_employee_ids) > 0 AND event.entity_type = 'notification'
+    AND (event.before_data -> 'recipients' IS NOT NULL OR event.after_data -> 'recipients' IS NOT NULL);
   DELETE FROM private.deleted_employee_notifications
   WHERE record_id = ANY(v_job.account_ids) OR id = ANY(v_job.notification_ids);
 
@@ -128,6 +158,13 @@ BEGIN
 
   IF cardinality(v_employee_ids) > 0 THEN
     PERFORM set_config('employee_purge.job_id', p_job_id::text, true);
+    DELETE FROM public.login_attempts attempts USING private.deleted_employee_accounts record
+    WHERE record.id = ANY(v_job.account_ids)
+      AND attempts.identifier = record.account_username
+      AND attempts.attempt_time <= record.deleted_at;
+    DELETE FROM public.financial_login_attempts attempts USING private.deleted_employee_accounts record
+    WHERE record.id = ANY(v_job.account_ids) AND attempts.account_type = 'employee'
+      AND attempts.username = record.account_username AND attempts.last_attempt_at <= record.deleted_at;
     DELETE FROM public.notification_automation_executions WHERE user_id = ANY(v_employee_ids);
     DELETE FROM public.financial_operations WHERE actor_type = 'employee' AND actor_id = ANY(v_employee_ids);
     DELETE FROM public.wallet_balance_baselines WHERE user_id = ANY(v_employee_ids);
