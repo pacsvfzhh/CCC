@@ -24,7 +24,8 @@ BEGIN
         WITH ORDINALITY recipient(id, position)
       WHERE recipient.id #>> '{}' <> ALL(v_employee_ids::text[])
     )) || jsonb_build_object('_original_request_sha256',
-      encode(sha256(convert_to(operation.request_data::text, 'UTF8')), 'hex'))
+      COALESCE(operation.request_data ->> '_original_request_sha256',
+        encode(sha256(convert_to(operation.request_data::text, 'UTF8')), 'hex')))
     WHERE operation.operation_type = 'admin_message_send'
       AND jsonb_typeof(operation.request_data -> 'recipient_ids') = 'array'
       AND EXISTS (
@@ -32,6 +33,10 @@ BEGIN
         WHERE recipient.id = ANY(v_employee_ids::text[])
       );
 
+    PERFORM 1 FROM public.wallets wallet
+    WHERE wallet.user_id = ANY(v_employee_ids) ORDER BY wallet.user_id FOR UPDATE;
+    PERFORM 1 FROM public.withdrawals withdrawal
+    WHERE withdrawal.user_id = ANY(v_employee_ids) ORDER BY withdrawal.id FOR UPDATE;
     SELECT COALESCE(array_agg(withdrawal.id), '{}'::uuid[]) INTO v_withdrawal_ids
     FROM public.withdrawals withdrawal WHERE withdrawal.user_id = ANY(v_employee_ids);
 
