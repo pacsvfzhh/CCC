@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, ArrowLeft, Search, Trash2, UserRoundX, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Search, Trash2, UserRound, UserRoundX, X } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { loadAuditedMedia } from '../../lib/contentAudit';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
@@ -467,25 +467,25 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     }
   };
 
-  const ownerGroupsView = <div aria-label="所屬管理員分組" className="space-y-1">
-    <p className="mb-2 text-xs font-bold text-slate-300">所屬管理員</p>
-    {[{ id: '', username: '全部管理員', event_count: allOwnerTotal }, ...adminGroups].map(owner => <button key={owner.id} type="button" aria-pressed={filters.owner === owner.id} onClick={() => selectOwner(owner.id)} className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold ${filters.owner === owner.id ? 'bg-gradient-to-r from-cyan-700 to-blue-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'} ${focusClass}`}><span className="min-w-0 truncate">{owner.username}</span><span className="rounded-md bg-white/15 px-2 py-0.5 tabular-nums">{ownersLoaded ? owner.event_count.toLocaleString() : '…'}</span></button>)}
+  const ownerGroupsView = <div aria-label="所屬管理員分組">
+    <div className="mb-2 flex items-center justify-between px-1.5"><p className="text-[11px] font-bold tracking-wide text-slate-200">所屬管理員</p><span className="text-[10px] text-slate-500">{adminGroups.length} 位</span></div>
+    <div className="space-y-1">{[{ id: '', username: '全部管理員', event_count: allOwnerTotal }, ...adminGroups].map(owner => <button key={owner.id} type="button" aria-pressed={filters.owner === owner.id} onClick={() => selectOwner(owner.id)} className={`flex w-full items-center justify-between gap-2 rounded-xl border px-2.5 py-2 text-left text-xs font-semibold transition-colors ${filters.owner === owner.id ? 'border-cyan-300/30 bg-gradient-to-r from-cyan-500/25 to-blue-500/15 text-white shadow-[inset_3px_0_0_#67e8f9]' : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-white'} ${focusClass}`}><span className="flex min-w-0 items-center gap-2"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${filters.owner === owner.id ? 'bg-cyan-300/15 text-cyan-100' : 'bg-slate-800 text-slate-400'}`}>{owner.id ? owner.username.trim().slice(0, 1).toUpperCase() : <UserRound className="h-3.5 w-3.5" />}</span><span className="min-w-0 truncate">{owner.username}</span></span><span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] tabular-nums ${filters.owner === owner.id ? 'bg-cyan-300/15 text-cyan-100' : 'bg-slate-800 text-slate-400'}`}>{ownersLoaded ? owner.event_count.toLocaleString() : '…'}</span></button>)}</div>
   </div>;
 
-  const searchView = (inputId: string) => <form onSubmit={applySearch} role="search" className="space-y-2">
-    <label htmlFor={inputId} className="block text-xs font-semibold text-slate-300">員工姓名／帳號／員工 ID</label>
-    <div className="flex items-end gap-2">
-      <span className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3 top-4 h-4 w-4 text-slate-500" aria-hidden="true" /><input id={inputId} type="search" className={`${inputClass} pl-9`} value={draft.search} maxLength={100} onChange={event => setDraft(previous => ({ ...previous, search: event.target.value }))} placeholder="搜尋姓名、帳號或員工 ID" /></span>
-      <button type="submit" className={`rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 px-3 py-2 text-xs font-bold text-white ${focusClass}`}>搜尋</button>
+  const searchView = (inputId: string) => <form onSubmit={applySearch} role="search" className="space-y-2.5">
+    <label htmlFor={inputId} className="block text-[11px] font-bold tracking-wide text-slate-200">員工姓名／帳號／員工 ID</label>
+    <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+      <span className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3 top-4 h-4 w-4 text-cyan-300/65" aria-hidden="true" /><input id={inputId} type="search" className={`${inputClass} border-white/10 bg-slate-950/70 pl-9 placeholder:text-slate-500`} value={draft.search} maxLength={100} onChange={event => setDraft(previous => ({ ...previous, search: event.target.value }))} placeholder="搜尋姓名、帳號或員工 ID" /></span>
+      <button type="submit" className={`rounded-lg bg-gradient-to-r from-cyan-600 to-blue-700 px-3 py-2.5 text-xs font-bold text-white shadow-[0_4px_12px_rgba(8,145,178,0.2)] hover:from-cyan-500 hover:to-blue-600 lg:w-full ${focusClass}`}>搜尋員工</button>
     </div>
-    {filters.search && <button type="button" onClick={clearSearch} className={`text-xs text-cyan-200 underline ${focusClass}`}>清除搜尋</button>}
+    {filters.search && <button type="button" onClick={clearSearch} className={`text-[11px] text-cyan-200 underline ${focusClass}`}>清除搜尋條件</button>}
   </form>;
 
   const message = notificationDetail?.message_data;
   return <>
-    <div className="shrink-0 space-y-3 border-b border-slate-700 bg-slate-900 px-3 py-3 lg:hidden"><div>{switcher}</div>{searchView('deleted-employee-search-mobile')}<details className="max-h-[55vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-3"><summary className="cursor-pointer text-xs font-bold text-cyan-200">所屬管理員分組</summary><div className="mt-3">{ownerGroupsView}</div></details></div>
+    <div className="shrink-0 space-y-2.5 border-b border-cyan-300/10 bg-[linear-gradient(125deg,#0c1b2c,#0f172a)] px-3 py-3 lg:hidden"><div>{switcher}</div><div className="rounded-xl border border-white/10 bg-slate-900/60 p-3">{searchView('deleted-employee-search-mobile')}</div><details className="max-h-[55vh] overflow-y-auto rounded-xl border border-white/10 bg-slate-900/60 p-3 scrollbar-dark"><summary className="cursor-pointer text-xs font-bold text-cyan-100">按管理員篩選</summary><div className="mt-3 border-t border-white/10 pt-3">{ownerGroupsView}</div></details></div>
     <div className="grid min-h-0 flex-1 lg:grid-cols-[250px_minmax(0,1fr)]">
-      <aside className="hidden min-h-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-950 p-3 lg:flex"><div className="mb-4">{switcher}</div><div className="mb-4 border-b border-slate-700 pb-4">{searchView('deleted-employee-search-desktop')}</div>{ownerGroupsView}</aside>
+      <aside className="hidden min-h-0 flex-col gap-3 overflow-y-auto border-r border-cyan-300/10 bg-[radial-gradient(circle_at_0%_0%,rgba(34,211,238,0.11),transparent_38%),linear-gradient(180deg,#0a1526,#090f1d_72%,#0d1627)] p-3.5 scrollbar-dark lg:flex"><div className="rounded-2xl border border-cyan-300/15 bg-[linear-gradient(135deg,rgba(30,58,89,0.7),rgba(15,23,42,0.8))] p-3 shadow-[0_12px_26px_rgba(2,6,23,0.2)]"><div className="mb-3 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-200"><UserRoundX className="h-4 w-4" /></span><div><p className="text-[10px] font-bold tracking-[0.16em] text-cyan-200/70">AUDIT WORKSPACE</p><p className="text-xs font-semibold text-white">監察工作台</p></div></div>{switcher}</div><section className="rounded-2xl border border-white/10 bg-slate-900/45 p-2.5">{ownerGroupsView}</section><section className="rounded-2xl border border-white/10 bg-slate-900/45 p-3"><div className="mb-3 flex items-center gap-2 border-b border-white/10 pb-2.5"><Search className="h-3.5 w-3.5 text-cyan-300" /><h3 className="text-[11px] font-bold tracking-wide text-slate-200">員工搜尋</h3></div>{searchView('deleted-employee-search-desktop')}</section></aside>
       <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section aria-label="已刪員工帳戶列表" className={`${selectedId ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-col overflow-y-auto border-r border-slate-700 bg-slate-900`}>
           <div className="sticky top-0 z-10 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#111b2e,#14243a)] px-3 py-2.5">

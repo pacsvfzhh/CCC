@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
   AlertTriangle, ArrowLeft, ChevronDown, ChevronRight, Database,
-  Gift, Image as ImageIcon, Megaphone, MessageCircle, RefreshCw, Search, ShieldCheck, Star, Trash2, User, X,
+  Gift, Image as ImageIcon, Megaphone, MessageCircle, RefreshCw, Search, ShieldCheck, Star, Trash2, User, UserRoundX, X,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { executeAuditedDeletion, listPendingAuditedDeletions, loadAuditedMedia, prepareAuditedConversationDeletion, prepareAuditedDeletion } from '../../lib/contentAudit';
@@ -450,7 +450,7 @@ function MetadataRow({ label, value }: { label: string; value: string | null }) 
   return <div className="min-w-0 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"><dt className="text-[10px] font-semibold tracking-wide text-slate-400">{label}</dt><dd className="mt-1 break-all text-xs font-medium leading-5 text-slate-100">{value || '—'}</dd></div>;
 }
 
-function OwnerPicker({ selected, owners, total, loading, error, onRetry, onSelect }: {
+function OwnerPicker({ selected, owners, total, loading, error, onRetry, onSelect, wide = false }: {
   selected: string;
   owners: Array<{ id: string; username: string; event_count: number | null }>;
   total: number | null;
@@ -458,6 +458,7 @@ function OwnerPicker({ selected, owners, total, loading, error, onRetry, onSelec
   error: string | null;
   onRetry: () => void;
   onSelect: (owner: string) => void;
+  wide?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -483,11 +484,11 @@ function OwnerPicker({ selected, owners, total, loading, error, onRetry, onSelec
     };
   }, [open]);
 
-  return <div ref={containerRef} className="relative shrink-0">
-    <button ref={triggerRef} type="button" aria-label={`所屬管理員：${selected ? selectedOwner?.username || '已選管理員' : '全部管理員'}`} aria-expanded={open} onClick={() => setOpen(value => !value)} className={`flex h-9 w-[148px] items-center gap-1.5 rounded-xl border border-cyan-300/25 bg-slate-800/80 px-2.5 text-left text-xs font-semibold text-white shadow-[0_3px_12px_rgba(2,6,23,0.28)] transition hover:border-cyan-300/55 hover:bg-slate-800 ${buttonFocus}`}>
+  return <div ref={containerRef} className={`relative shrink-0 ${wide ? 'w-full' : ''}`}>
+    <button ref={triggerRef} type="button" aria-label={`所屬管理員：${selected ? selectedOwner?.username || '已選管理員' : '全部管理員'}`} aria-expanded={open} onClick={() => setOpen(value => !value)} className={`flex h-9 ${wide ? 'w-full' : 'w-[148px]'} items-center gap-1.5 rounded-xl border border-cyan-300/25 bg-slate-800/80 px-2.5 text-left text-xs font-semibold text-white shadow-[0_3px_12px_rgba(2,6,23,0.28)] transition hover:border-cyan-300/55 hover:bg-slate-800 ${buttonFocus}`}>
       <User className="h-3.5 w-3.5 shrink-0 text-cyan-300" aria-hidden="true" /><span className="min-w-0 flex-1 truncate" title={selectedOwner?.username || '全部管理員'}>{selectedOwner?.username || (selected ? '已選管理員' : '全部管理員')}</span><ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
     </button>
-    {open && <div className="absolute right-0 top-[calc(100%+7px)] z-50 w-[246px] max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-900 shadow-[0_16px_40px_rgba(2,6,23,0.55)]">
+    {open && <div className={`absolute right-0 top-[calc(100%+7px)] z-50 ${wide ? 'w-full' : 'w-[246px]'} max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-900 shadow-[0_16px_40px_rgba(2,6,23,0.55)]`}>
       <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-cyan-950/65 to-slate-900 px-3 py-2"><span className="text-[11px] font-bold text-cyan-100">所屬管理員</span><span className="text-[10px] text-slate-400">{owners.length} 位</span></div>
       <div className="max-h-56 overflow-y-auto p-1.5 scrollbar-dark" aria-label="選擇所屬管理員">
         {[{ id: '', username: '全部管理員', event_count: total }, ...owners].map(owner => <button key={owner.id} type="button" aria-pressed={selected === owner.id} onClick={() => { onSelect(owner.id); setOpen(false); }} className={`flex h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 text-left text-xs transition-colors ${selected === owner.id ? 'bg-cyan-500/15 font-bold text-cyan-100' : 'text-slate-200 hover:bg-slate-800 hover:text-white'} ${buttonFocus}`}><span className="min-w-0 truncate">{owner.username}</span><span className={`inline-flex min-w-6 shrink-0 justify-center rounded-md px-1.5 py-0.5 text-xs font-extrabold tabular-nums ring-1 ring-inset ${selected === owner.id ? 'bg-cyan-400/25 text-cyan-50 ring-cyan-300/40' : 'bg-slate-700 text-white ring-slate-500/50'}`}>{owner.event_count === null ? '—' : owner.event_count.toLocaleString()}</span></button>)}
@@ -870,8 +871,8 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     }
   };
 
-  const viewSwitch = <div role="group" aria-label="稽核面板" className="inline-flex max-w-full rounded-xl border border-cyan-300/20 bg-slate-950/75 p-1 shadow-inner">
-    {([['content', '內容稽核'], ['employees', '刪除員工']] as const).map(([mode, label]) => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => switchView(mode)} className={`rounded-lg px-3 py-2 text-xs font-black transition disabled:opacity-50 ${view === mode ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} ${buttonFocus}`}>{label}</button>)}
+  const viewSwitch = <div role="group" aria-label="稽核面板" className="grid w-full grid-cols-2 gap-1 rounded-xl border border-white/10 bg-slate-950/80 p-1 shadow-inner">
+    {([['content', '內容稽核'], ['employees', '刪除員工']] as const).map(([mode, label]) => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => switchView(mode)} className={`flex min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-2.5 text-[11px] font-bold transition-colors sm:text-xs ${view === mode ? 'bg-gradient-to-br from-cyan-500 to-blue-700 text-white shadow-[0_4px_16px_rgba(8,145,178,0.35)]' : 'text-slate-400 hover:bg-white/[0.07] hover:text-white'} ${buttonFocus}`}>{mode === 'content' ? <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : <UserRoundX className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}{label}</button>)}
   </div>;
 
   const ownerOptions = filterCounts
@@ -965,12 +966,13 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[270px_minmax(0,1fr)]">
-        <aside className="hidden min-h-0 flex-col overflow-y-auto border-r border-slate-700/90 bg-[linear-gradient(180deg,#0b1220_0%,#0b1220_48%,#111827_100%)] p-3 lg:flex">
-          <div className="relative z-20 mb-3 space-y-2 border-b border-cyan-300/15 pb-3"><div>{viewSwitch}</div><div className="flex items-center justify-between gap-1.5"><span className="text-[11px] font-semibold text-slate-400">所屬管理員</span><OwnerPicker selected={filters.owner} owners={ownerOptions} total={filterCounts?.total ?? null} loading={filterCountsLoading} error={filterCountsError} onRetry={() => setFilterCountsRetryKey(key => key + 1)} onSelect={owner => selectQuickFilter({ owner })} /></div></div>
-          <div className="mb-4 space-y-1">{([['', '全部事件'], ...Object.entries(typeLabels)] as Array<[AuditFilters['type'], string]>).map(([type, label]) => (
-            <button key={type} type="button" onClick={() => selectQuickFilter({ type })} aria-pressed={filters.type === type} className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold ${filters.type === type ? 'bg-gradient-to-r from-cyan-700 to-blue-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} ${buttonFocus}`}><span className="truncate">{label}</span><span className={`shrink-0 rounded-md px-1.5 py-0.5 tabular-nums ${filters.type === type ? 'bg-white/15 text-white' : 'bg-slate-800 text-slate-300'}`}>{type ? scopedTypes?.[type]?.toLocaleString() ?? '…' : scopedTotal?.toLocaleString() ?? '…'}</span></button>
-          ))}</div>
-          {filterForm(false)}
+        <aside className="hidden min-h-0 flex-col gap-3 overflow-y-auto border-r border-cyan-300/10 bg-[radial-gradient(circle_at_0%_0%,rgba(34,211,238,0.11),transparent_38%),linear-gradient(180deg,#0a1526,#090f1d_72%,#0d1627)] p-3.5 scrollbar-dark lg:flex">
+          <div className="rounded-2xl border border-cyan-300/15 bg-[linear-gradient(135deg,rgba(30,58,89,0.7),rgba(15,23,42,0.8))] p-3 shadow-[0_12px_26px_rgba(2,6,23,0.2)]"><div className="mb-3 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-200"><ShieldCheck className="h-4 w-4" /></span><div><p className="text-[10px] font-bold tracking-[0.16em] text-cyan-200/70">AUDIT WORKSPACE</p><p className="text-xs font-semibold text-white">監察工作台</p></div></div>{viewSwitch}</div>
+          <section className="relative z-20 rounded-2xl border border-white/10 bg-slate-900/60 p-3 shadow-[0_10px_24px_rgba(2,6,23,0.14)]"><p className="mb-2 text-[11px] font-semibold tracking-wide text-slate-400">所屬管理員</p><OwnerPicker wide selected={filters.owner} owners={ownerOptions} total={filterCounts?.total ?? null} loading={filterCountsLoading} error={filterCountsError} onRetry={() => setFilterCountsRetryKey(key => key + 1)} onSelect={owner => selectQuickFilter({ owner })} /></section>
+          <section className="rounded-2xl border border-white/10 bg-slate-900/45 p-2.5"><div className="mb-2 flex items-center justify-between px-1.5"><h3 className="text-[11px] font-bold tracking-wide text-slate-200">資料分類</h3><span className="text-[10px] text-slate-500">3 個工作區</span></div><div className="space-y-1">{([['', '全部事件'], ...Object.entries(typeLabels)] as Array<[AuditFilters['type'], string]>).map(([type, label]) => (
+            <button key={type} type="button" onClick={() => selectQuickFilter({ type })} aria-pressed={filters.type === type} className={`flex w-full items-center justify-between gap-2 rounded-xl border px-2.5 py-2.5 text-left text-xs font-bold transition-colors ${filters.type === type ? 'border-cyan-300/30 bg-gradient-to-r from-cyan-500/25 to-blue-500/15 text-white shadow-[inset_3px_0_0_#67e8f9]' : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-white'} ${buttonFocus}`}><span className="flex min-w-0 items-center gap-2">{type === 'notification' ? <Megaphone className="h-3.5 w-3.5 shrink-0 text-violet-300" /> : type ? <MessageCircle className={`h-3.5 w-3.5 shrink-0 ${type === 'aaa_service' ? 'text-amber-300' : 'text-teal-300'}`} /> : <Database className="h-3.5 w-3.5 shrink-0 text-cyan-300" />}<span className="truncate">{label}</span></span><span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] tabular-nums ${filters.type === type ? 'bg-cyan-300/15 text-cyan-100' : 'bg-slate-800 text-slate-400'}`}>{type ? scopedTypes?.[type]?.toLocaleString() ?? '…' : scopedTotal?.toLocaleString() ?? '…'}</span></button>
+          ))}</div></section>
+          <section className="rounded-2xl border border-white/10 bg-slate-900/45 p-3"><div className="mb-3 flex items-center gap-2 border-b border-white/10 pb-2.5"><Search className="h-3.5 w-3.5 text-cyan-300" /><h3 className="text-[11px] font-bold tracking-wide text-slate-200">進階篩選</h3></div>{filterForm(false)}</section>
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-slate-900 xl:overflow-hidden">
