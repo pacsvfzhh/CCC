@@ -662,9 +662,16 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
       setDeletePreview(null);
       onDeleted();
     } catch (error) {
-      setDeleteError(`刪除結果需核對：${formatSupabaseError(error)}。若資料已移除，請重試私人附件清理。`);
       onDeleted();
-      void listPendingEmployeeArchiveDeletions().then(setPendingCleanup).catch(() => {});
+      try {
+        const jobs = await listPendingEmployeeArchiveDeletions();
+        setPendingCleanup(jobs);
+        setDeleteError(jobs.some(job => job.job_id === deletePreview.job_id)
+          ? `員工資料已從資料庫移除，但私人附件清理未完成：${formatSupabaseError(error)}。請點選上方的附件清理重試。`
+          : `刪除未能確認：${formatSupabaseError(error)}。請重新整理並核對員工是否仍在列表中。`);
+      } catch {
+        setDeleteError(`無法核對刪除結果：${formatSupabaseError(error)}。請重新整理後核對員工資料與待清理附件。`);
+      }
     } finally {
       setDeleting(false);
     }

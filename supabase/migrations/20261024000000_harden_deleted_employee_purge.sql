@@ -137,6 +137,25 @@ BEGIN
 END;
 $purge_patch$;
 
+CREATE FUNCTION private.guard_archived_withdrawal_operation()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+  IF NEW.operation_type IN ('review_withdrawal', 'correct_withdrawal_status')
+    AND NOT EXISTS (
+      SELECT 1 FROM public.withdrawals withdrawal
+      WHERE withdrawal.id::text = NEW.request_data ->> 'withdrawal_id'
+      FOR KEY SHARE
+    ) THEN
+    RAISE EXCEPTION 'The withdrawal no longer exists. The financial operation was not saved.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER guard_archived_withdrawal_operation BEFORE INSERT ON public.financial_operations
+FOR EACH ROW EXECUTE FUNCTION private.guard_archived_withdrawal_operation();
+REVOKE ALL ON FUNCTION private.guard_archived_withdrawal_operation() FROM PUBLIC, anon, authenticated;
+
 REVOKE ALL ON FUNCTION public.finish_deleted_employee_archive_delete(uuid, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.finish_deleted_employee_archive_delete(uuid, uuid) TO service_role;
 REVOKE ALL ON FUNCTION private.begin_financial_operation(uuid, text, text, uuid, jsonb) FROM PUBLIC, anon, authenticated;
