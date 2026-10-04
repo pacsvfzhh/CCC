@@ -192,20 +192,24 @@ Deno.serve(async (request) => {
     }
     if (body.action === 'execute_delete') {
       if (typeof body.jobId !== 'string' || !/^[\da-f-]{36}$/i.test(body.jobId)) return response({ error: 'Invalid confirmation.' }, 400);
-      const { data: started, error: beginError } = await db.rpc('begin_content_audit_delete', {
+      const { error: beginError } = await db.rpc('begin_content_audit_delete', {
         p_admin_session_token: token, p_job_id: body.jobId,
       });
       if (beginError) throw beginError;
-      const paths = started.paths_to_remove as string[];
-      for (let index = 0; index < paths.length; index += 100) {
-        const { error: removeError } = await db.storage.from(evidenceBucket).remove(paths.slice(index, index + 100));
-        if (removeError) throw new Error('Evidence media cleanup is incomplete. Retry the confirmed deletion.');
-      }
-      const { data, error } = await db.rpc('finish_content_audit_delete', {
+      const { data: deleted, error: deleteError } = await db.rpc('finish_content_audit_delete', {
         p_admin_session_token: token, p_job_id: body.jobId,
       });
-      if (error) throw error;
-      return response(data);
+      if (deleteError) throw deleteError;
+      const paths = deleted.paths_to_remove as string[];
+      for (let index = 0; index < paths.length; index += 100) {
+        const { error: removeError } = await db.storage.from(evidenceBucket).remove(paths.slice(index, index + 100));
+        if (removeError) throw new Error('Audit records were deleted, but private media cleanup is incomplete. Retry this confirmation.');
+      }
+      const { error: completeError } = await db.rpc('complete_content_audit_delete', {
+        p_admin_session_token: token, p_job_id: body.jobId,
+      });
+      if (completeError) throw completeError;
+      return response(deleted);
     }
     if (body.action === 'clear') {
       if (typeof body.eventId !== 'string' || typeof body.reason !== 'string') return response({ error: 'Invalid clear request.' }, 400);
