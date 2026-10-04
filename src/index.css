@@ -161,6 +161,63 @@
   background: linear-gradient(180deg, #67e8f9, #3b82f6) padding-box;
 }
 
+.audit-detail-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.65) rgba(15, 23, 42, 0.55);
+  overscroll-behavior: contain;
+}
+
+.audit-detail-scroll-light,
+.audit-detail-modal .scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.55) rgba(219, 234, 254, 0.6);
+  overscroll-behavior: contain;
+}
+
+.audit-detail-scroll::-webkit-scrollbar,
+.audit-detail-scroll-light::-webkit-scrollbar,
+.audit-detail-modal .scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.audit-detail-scroll::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.audit-detail-scroll-light::-webkit-scrollbar-track,
+.audit-detail-modal .scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(219, 234, 254, 0.6);
+}
+
+.audit-detail-scroll::-webkit-scrollbar-thumb,
+.audit-detail-scroll-light::-webkit-scrollbar-thumb,
+.audit-detail-modal .scrollbar-thin::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.audit-detail-scroll::-webkit-scrollbar-thumb {
+  background-color: #38bdf8;
+  border-color: #142137;
+}
+
+.audit-detail-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #67e8f9;
+}
+
+.audit-detail-scroll-light::-webkit-scrollbar-thumb,
+.audit-detail-modal .scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #60a5fa;
+  border-color: #e7f0ff;
+}
+
+.audit-detail-scroll-light::-webkit-scrollbar-thumb:hover,
+.audit-detail-modal .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: #2563eb;
+}
+
 /* Dark panel scrollbar: gray default, blue on hover */
 .dark-panel-scroll::-webkit-scrollbar {
   width: 6px;
