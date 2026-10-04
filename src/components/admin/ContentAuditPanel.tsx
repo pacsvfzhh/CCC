@@ -34,6 +34,7 @@ interface AuditEvent {
   employee_number_source: 'event_snapshot' | 'archived_account' | 'current_account' | null;
   recipient_count: number;
   message_count: number;
+  conversation_delete_number: number | null;
   cleared_count: number;
   occurred_at: string;
   summary: string;
@@ -972,7 +973,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
                       </span>
                       <span className="hidden min-w-0 truncate text-[11px] font-medium text-slate-300 min-[1440px]:block" title={item.owner_username || item.owner_admin_id}>{item.owner_username || item.owner_admin_id}</span>
                       <span className="hidden min-w-0 truncate text-[11px] text-sky-200 min-[1440px]:block" title={item.actor_username}>{item.actor_username}</span>
-                      <span className="col-span-2 col-start-2 row-start-3 min-w-0 truncate text-xs font-medium text-slate-100 min-[1440px]:col-auto min-[1440px]:row-auto" title={readableText(item.summary)}>{item.action === 'conversation_delete' ? `對話 ${item.message_count} 則` : readableText(item.summary) || '（無摘要）'}{item.cleared_count > 0 ? <span className="ml-2 text-slate-400">· 已清除</span> : item.clear_started_at ? <span className="ml-2 text-amber-300">· 清除未完成</span> : null}</span>
+                      <span className="col-span-2 col-start-2 row-start-3 min-w-0 truncate text-xs font-medium text-slate-100 min-[1440px]:col-auto min-[1440px]:row-auto" title={readableText(item.summary)}>{item.action === 'conversation_delete' ? `${item.conversation_delete_number ? `第 ${item.conversation_delete_number} 次刪除 · ` : ''}對話 ${item.message_count} 則` : readableText(item.summary) || '（無摘要）'}{item.cleared_count > 0 ? <span className="ml-2 text-slate-400">· 已清除</span> : item.clear_started_at ? <span className="ml-2 text-amber-300">· 清除未完成</span> : null}</span>
                       <time className="hidden whitespace-nowrap text-[11px] tabular-nums text-slate-400 min-[1440px]:block" dateTime={item.occurred_at}>{formatAuditTime(item.occurred_at, false)}</time>
                       <span className="col-span-2 col-start-2 row-start-4 flex min-w-0 gap-1.5 text-[11px] min-[1440px]:hidden"><span className="min-w-0 truncate text-slate-400" title={item.owner_username || item.owner_admin_id}>所屬 {item.owner_username || item.owner_admin_id}</span><span className="text-slate-600">/</span><span className="min-w-0 truncate text-sky-200" title={item.actor_username}>操作者 {item.actor_username}</span></span>
                       <time className="col-span-2 col-start-2 row-start-5 text-[11px] tabular-nums text-slate-400 min-[1440px]:hidden" dateTime={item.occurred_at}>{formatAuditTime(item.occurred_at)}</time>
