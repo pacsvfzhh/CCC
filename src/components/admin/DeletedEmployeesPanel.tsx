@@ -30,6 +30,7 @@ type DeletedEmployee = {
 };
 type RelatedEvidence = { id: string; operation_id: string; entity_type: 'aaa_service' | 'ccc_service'; action: 'edit' | 'delete' | 'conversation_delete' | 'customer_delete' | 'employee_delete' | 'admin_delete' | 'source_edit' | 'source_delete'; occurred_at: string; cleared_at: string | null; before_data: Record<string, unknown> | null; after_data: Record<string, unknown> | null; media_refs: Record<string, string> | null };
 type EmployeeDetail = DeletedEmployee & { account_summary: { is_verified: boolean; total_income: number; available_balance: number | null; frozen_balance: number | null; total_orders: number } | null; related_total: number; related_counts: { aaa_service: number; ccc_service: number }; related_items: RelatedEvidence[] };
+type WithdrawalRow = { id: string; amount: number; status: 'pending' | 'approved' | 'rejected' | 'cancelled'; created_at: string | null };
 type NotificationRow = { id: string; title: string | null; sender_username: string | null; sent_at: string | null; is_read: string | null; audit_origin: string | null; cleared_at: string | null };
 type NotificationDetail = { id: string; message_data: Record<string, unknown> | null; recipient_data: Record<string, unknown> | null; cleared_at: string | null };
 type Filters = { owner: string; search: string };
@@ -221,6 +222,13 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   const [relatedRetryKey, setRelatedRetryKey] = useState(0);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRow[]>([]);
+  const [withdrawalTotal, setWithdrawalTotal] = useState(0);
+  const [withdrawalPage, setWithdrawalPage] = useState(0);
+  const [withdrawalsLoaded, setWithdrawalsLoaded] = useState(false);
+  const [withdrawalLoading, setWithdrawalLoading] = useState(false);
+  const [withdrawalError, setWithdrawalError] = useState<string | null>(null);
+  const [withdrawalRetryKey, setWithdrawalRetryKey] = useState(0);
   const [relatedLoading, setRelatedLoading] = useState({ aaa_service: false, ccc_service: false });
   const [relatedError, setRelatedError] = useState<{ aaa_service: string | null; ccc_service: string | null }>({ aaa_service: null, ccc_service: null });
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
@@ -246,6 +254,8 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   notificationIdRef.current = notificationId;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const notificationLoadMoreRef = useRef<HTMLDivElement>(null);
+  const withdrawalListRef = useRef<HTMLDivElement>(null);
+  const withdrawalLoadMoreRef = useRef<HTMLDivElement>(null);
   const deleteDialogRef = useRef<HTMLElement>(null);
   const detailPaneRef = useRef<HTMLDivElement>(null);
 
@@ -325,6 +335,11 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     notificationCacheRef.current.clear();
     notificationRequestsRef.current.clear();
     setDetail(null);
+    setWithdrawals([]);
+    setWithdrawalTotal(0);
+    setWithdrawalPage(0);
+    setWithdrawalsLoaded(false);
+    setWithdrawalError(null);
     setRelated({ aaa_service: { items: [], total: 0 }, ccc_service: { items: [], total: 0 } });
     setRelatedLoaded({ aaa_service: false, ccc_service: false });
   }, [selectedId, refreshKey]);
@@ -359,6 +374,49 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     void load();
     return () => { cancelled = true; };
   }, [selectedId, refreshKey]);
+
+  useEffect(() => {
+    if (!selectedId || detail?.id !== selectedId || detail.cleared_at) return;
+    let cancelled = false;
+    setWithdrawalLoading(true);
+    setWithdrawalError(null);
+    const load = async () => {
+      try {
+        const { data, error } = await supabase.rpc('list_deleted_employee_withdrawals', {
+          p_admin_session_token: getAdminFinancialSessionToken(), p_record_id: selectedId,
+          p_page: withdrawalPage, p_page_size: RELATED_PAGE_SIZE,
+        });
+        if (error) throw error;
+        if (!data || !Array.isArray(data.items) || typeof data.total !== 'number') throw new Error('提現紀錄格式不正確。');
+        if (!cancelled) {
+          setWithdrawals(previous => withdrawalPage === 0 ? data.items : [
+            ...previous, ...data.items.filter(row => !previous.some(item => item.id === row.id)),
+          ]);
+          setWithdrawalTotal(data.total);
+          setWithdrawalsLoaded(true);
+        }
+      } catch (error) {
+        if (!cancelled) setWithdrawalError(formatSupabaseError(error));
+      } finally {
+        if (!cancelled) setWithdrawalLoading(false);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [selectedId, detail?.id, detail?.cleared_at, withdrawalPage, withdrawalRetryKey, refreshKey]);
+
+  useEffect(() => {
+    if (section !== 'profile' || !withdrawalsLoaded || withdrawalLoading || withdrawalError
+      || withdrawals.length >= withdrawalTotal || !withdrawalLoadMoreRef.current) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        observer.disconnect();
+        setWithdrawalPage(current => current + 1);
+      }
+    }, { root: withdrawalListRef.current, rootMargin: '80px' });
+    observer.observe(withdrawalLoadMoreRef.current);
+    return () => observer.disconnect();
+  }, [section, withdrawalsLoaded, withdrawalLoading, withdrawalError, withdrawals.length, withdrawalTotal]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -671,6 +729,14 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
                     ['歷史訂單', detail.account_summary.total_orders.toLocaleString()],
                   ].map(([label, value]) => <div key={label} className="min-w-0 bg-slate-900/95 px-3 py-2.5"><p className="text-[10px] text-slate-400">{label}</p><p className="mt-1 truncate text-xs font-bold text-white" title={value}>{value}</p></div>)}</div>}
                   <div><h4 className="text-xs font-bold text-cyan-100">帳戶與操作資訊</h4><dl className="mt-1 grid grid-cols-1 gap-x-5 sm:grid-cols-2 xl:grid-cols-3"><DetailField label="員工帳號" value={detail.account_username} /><DetailField label="員工姓名" value={detail.account_real_name} /><DetailField label="員工 ID" value={detail.employee_number} /><DetailField label="所屬管理員" value={detail.owner_username || detail.owner_admin_id} /><DetailField label="實際操作者" value={detail.actor_username} /><DetailField label="封存時間" value={displayTime(detail.deleted_at)} /><DetailField label="建立時間" value={displayTime(detail.account_created_at)} /><DetailField label="備註" value={detail.account_remarks} /></dl></div>
+                  {!detail.cleared_at && <section className="overflow-hidden rounded-xl border border-cyan-300/15 bg-slate-950/35" aria-label="提現紀錄">
+                    <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3"><h4 className="text-xs font-bold text-cyan-100">提現紀錄 <span className="ml-1 font-medium text-slate-400">{withdrawalsLoaded ? `${withdrawalTotal} 筆` : '載入中…'}</span></h4><span className="text-[10px] text-slate-500">按申請時間排序</span></div>
+                    <div ref={withdrawalListRef} className="max-h-60 overflow-y-auto scrollbar-dark">
+                      {withdrawals.length > 0 && <div className="grid grid-cols-[28px_minmax(0,1fr)_auto] gap-2 border-b border-white/10 px-4 py-2 text-[10px] font-semibold text-slate-400 sm:grid-cols-[28px_minmax(0,1fr)_minmax(90px,auto)_auto]"><span>序號</span><span>申請時間 (UTC+8)</span><span>提現金額</span><span className="hidden sm:block">狀態</span></div>}
+                      <ol className="divide-y divide-white/[0.07]">{withdrawals.map((withdrawal, index) => <li key={withdrawal.id} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 px-4 py-2.5 text-xs sm:grid-cols-[28px_minmax(0,1fr)_minmax(90px,auto)_auto]"><span className="tabular-nums text-slate-500">{index + 1}.</span><time dateTime={withdrawal.created_at || undefined} className="min-w-0 text-[11px] tabular-nums text-slate-300">{displayTime(withdrawal.created_at)}</time><span className="text-right font-bold tabular-nums text-cyan-100">${Number(withdrawal.amount).toLocaleString('zh-TW', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</span><span className="col-start-2 text-[10px] text-slate-400 sm:col-start-auto sm:text-right">{{ pending: '待審核', approved: '已批准', rejected: '已拒絕', cancelled: '已取消' }[withdrawal.status]}</span></li>)}</ol>
+                      <div ref={withdrawalLoadMoreRef} role="status" className="px-4 py-2 text-center text-[11px] text-slate-400">{withdrawalLoading || !withdrawalsLoaded && !withdrawalError ? '載入提現紀錄中…' : withdrawalError ? <span role="alert">載入失敗：{withdrawalError} <button type="button" onClick={() => setWithdrawalRetryKey(key => key + 1)} className={`text-cyan-200 underline ${focusClass}`}>重試</button></span> : withdrawalsLoaded && withdrawalTotal === 0 ? '沒有提現紀錄' : withdrawals.length < withdrawalTotal ? `已顯示 ${withdrawals.length} / ${withdrawalTotal} 筆 · 向下捲動載入更多` : null}</div>
+                    </div>
+                  </section>}
                   {detail.cleared_at && <div><h4 className="text-xs font-bold text-slate-200">清除紀錄</h4><dl className="grid gap-x-5 sm:grid-cols-2"><DetailField label="清除時間" value={displayTime(detail.cleared_at)} /><DetailField label="清除原因" value={detail.clear_reason || null} /></dl></div>}
                   <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3"><p className="max-w-lg text-[11px] leading-5 text-slate-400">永久刪除會清除此員工檔案及私人通知；內容稽核的聊天與通知事件仍獨立保留。</p><button type="button" disabled={deleting} onClick={() => void prepareDeletion(detail.id)} className={`shrink-0 rounded-lg border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-200 hover:bg-rose-500/20 disabled:opacity-40 ${focusClass}`}><Trash2 className="mr-1 inline h-3.5 w-3.5" />永久刪除檔案</button></div>{deleteError && <p role="alert" className="text-xs text-rose-300">{deleteError}</p>}</section>
                 <section data-archive-section="notifications" className={section === 'notifications' ? '' : 'hidden'}>

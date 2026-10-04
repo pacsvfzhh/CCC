@@ -2676,6 +2676,10 @@ export interface Database {
           count: number;
         }>;
       };
+      list_deleted_employee_withdrawals: {
+        Args: { p_admin_session_token: string; p_record_id: string; p_page?: number; p_page_size?: number };
+        Returns: { items: Array<{ id: string; amount: number; status: 'pending' | 'approved' | 'rejected' | 'cancelled'; created_at: string | null }>; total: number };
+      };
       get_employee_withdrawal_page_for_admin: {
         Args: {
           p_admin_session_token: string;
