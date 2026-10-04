@@ -19,13 +19,6 @@ export async function mutateAuditedContent(
   return data;
 }
 
-export async function clearAuditedContent(eventId: string, reason: string): Promise<void> {
-  const { data, error } = await supabase.functions.invoke('content-audit', {
-    body: { action: 'clear', eventId, reason, sessionToken: getAdminFinancialSessionToken() },
-  });
-  if (error || data?.error) throw new Error(data?.error || formatSupabaseError(error));
-}
-
 export interface AuditDeletionFilters {
   type: string | null;
   owner: string | null;
@@ -39,6 +32,14 @@ export interface AuditDeletionFilters {
 export async function prepareAuditedDeletion(filters: AuditDeletionFilters, eventId?: string): Promise<{ job_id: string; card_count: number; event_count: number }> {
   const { data, error } = await supabase.functions.invoke('content-audit', {
     body: { action: 'prepare_delete', filters, eventId, sessionToken: getAdminFinancialSessionToken() },
+  });
+  if (error || data?.error) throw new Error(data?.error || formatSupabaseError(error));
+  return data;
+}
+
+export async function listPendingAuditedDeletions(): Promise<Array<{ job_id: string; card_count: number; event_count: number; finished_at: string | null }>> {
+  const { data, error } = await supabase.functions.invoke('content-audit', {
+    body: { action: 'pending_deletes', sessionToken: getAdminFinancialSessionToken() },
   });
   if (error || data?.error) throw new Error(data?.error || formatSupabaseError(error));
   return data;

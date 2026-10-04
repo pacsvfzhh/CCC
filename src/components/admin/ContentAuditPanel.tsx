@@ -6,7 +6,7 @@ import {
   Gift, Image as ImageIcon, LockKeyhole, Megaphone, MessageCircle, RefreshCw, Search, ShieldCheck, Star, Trash2, User, X,
 } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
-import { executeAuditedDeletion, loadAuditedMedia, prepareAuditedDeletion } from '../../lib/contentAudit';
+import { executeAuditedDeletion, listPendingAuditedDeletions, loadAuditedMedia, prepareAuditedDeletion } from '../../lib/contentAudit';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
 import { formatSupabaseError, supabase } from '../../lib/supabase';
 import EmployeeNotificationDetailPanel from '../employee/EmployeeNotificationDetailPanel';
@@ -538,8 +538,9 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [now, setNow] = useState(Date.now());
   const [windowBusy, setWindowBusy] = useState(false);
   const [clearTarget, setClearTarget] = useState<{ id: string; kind: 'employee' | 'notification' } | null>(null);
-  const [deletePreview, setDeletePreview] = useState<{ job_id: string; card_count: number; event_count: number; scope: 'bulk' | 'single' } | null>(null);
+  const [deletePreview, setDeletePreview] = useState<{ job_id: string; card_count: number; event_count: number; scope: 'bulk' | 'single'; finished_at?: string | null } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingDeletes, setPendingDeletes] = useState<Array<{ job_id: string; card_count: number; event_count: number; finished_at: string | null }>>([]);
   const [reason, setReason] = useState('');
   const [clearing, setClearing] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
@@ -549,6 +550,16 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const disposedRef = useRef(false);
   const secondsLeft = expiry ? Math.max(0, Math.ceil((new Date(expiry).getTime() - now) / 1000)) : 0;
   const purgeUnlocked = secondsLeft > 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    void listPendingAuditedDeletions().then(jobs => {
+      if (!cancelled) setPendingDeletes(jobs);
+    }).catch(err => {
+      if (!cancelled) setError(`無法查詢未完成的附件清理：${formatSupabaseError(err)}`);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // The dashboard keeps tabs mounted while hidden. The parent unmounts this panel on tab exit.
   useEffect(() => {
@@ -945,6 +956,10 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
 
   const prepareDeletion = async (eventId?: string) => {
     if (deleting || (!eventId && (!total || loading || listLoadError))) return;
+    if (pendingDeletes.length) {
+      setDeletePreview({ ...pendingDeletes[0], scope: 'bulk' });
+      return;
+    }
     setDeleting(true);
     setError(null);
     try {
@@ -971,6 +986,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setError(null);
     try {
       await executeAuditedDeletion(deletePreview.job_id);
+      setPendingDeletes(previous => previous.filter(job => job.job_id !== deletePreview.job_id));
       setDeletePreview(null);
       setSelectedId(null);
       setSelectedCard(null);
@@ -1133,7 +1149,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         <main className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-slate-900 xl:overflow-hidden">
           <div className="flex min-h-0 flex-1 flex-col">
             <section aria-label="稽核事件清單" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-              <div className="sticky top-0 z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-400/20 bg-[radial-gradient(circle_at_78%_-70%,rgba(34,211,238,0.2),transparent_48%),linear-gradient(100deg,#111d34,#0b162a)] px-4 py-3 shadow-[0_8px_24px_rgba(2,6,23,0.2)] sm:px-5"><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-200"><Database className="h-5 w-5" /></span><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-base font-black tracking-wide text-white">異動紀錄</h2><span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-100">{total.toLocaleString()} 筆</span></div><p className="mt-0.5 text-[11px] text-slate-400">依目前篩選顯示 · 刪除涵蓋未載入的紀錄</p></div></div><button type="button" onClick={() => void prepareDeletion()} disabled={deleting || loading || listLoadError || total === 0} className={`inline-flex items-center justify-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-2.5 text-xs font-bold text-rose-100 transition hover:border-rose-300/70 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : '全部刪除'}</button></div>
+              <div className="sticky top-0 z-10 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-400/20 bg-[radial-gradient(circle_at_78%_-70%,rgba(34,211,238,0.2),transparent_48%),linear-gradient(100deg,#111d34,#0b162a)] px-4 py-3 shadow-[0_8px_24px_rgba(2,6,23,0.2)] sm:px-5"><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-200"><Database className="h-5 w-5" /></span><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-base font-black tracking-wide text-white">異動紀錄</h2><span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-cyan-100">{total.toLocaleString()} 筆</span></div><p className="mt-0.5 text-[11px] text-slate-400">依目前篩選顯示 · 刪除涵蓋未載入的紀錄</p></div></div><button type="button" onClick={() => pendingDeletes.length ? setDeletePreview({ ...pendingDeletes[0], scope: 'bulk' }) : void prepareDeletion()} disabled={deleting || (!pendingDeletes.length && (loading || listLoadError || total === 0))} className={`inline-flex items-center justify-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-2.5 text-xs font-bold text-rose-100 transition hover:border-rose-300/70 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : pendingDeletes.length ? `完成上次刪除（${pendingDeletes.length}）` : '全部刪除'}</button></div>
               <div className="hidden grid-cols-[36px_124px_134px_minmax(130px,1.1fr)_100px_100px_minmax(120px,1.4fr)_148px] items-center gap-2 border-b border-white/10 bg-[linear-gradient(90deg,#1e3050,#14243c)] px-4 py-3 text-[10px] font-black uppercase tracking-[0.08em] text-cyan-100/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] min-[1440px]:grid"><span>序號</span><span>資料類型</span><span>操作</span><span>員工帳號／ID</span><span>所屬管理員</span><span>實際操作者</span><span>內容摘要</span><span>異動時間（UTC+8）</span></div>
               <div className="flex items-center justify-between border-b border-white/10 bg-[linear-gradient(90deg,#1e3050,#14243c)] px-4 py-2.5 text-[10px] font-black tracking-wide text-cyan-100/80 min-[1440px]:hidden"><span>資料類型 · 操作 · 員工</span><span>異動紀錄 / 時間</span></div>
               <ol className="min-w-0 divide-y divide-slate-700/50">
@@ -1234,7 +1250,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
         </main>
       </div></>}
 
-      {deletePreview && <div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section role="dialog" aria-modal="true" aria-labelledby="audit-delete-title" className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><h2 id="audit-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.scope === 'bulk' ? '刪除目前篩選的全部紀錄？' : '刪除此筆異動紀錄？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.card_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">列 · {deletePreview.event_count.toLocaleString()} 筆證據</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.scope === 'bulk' ? '包含符合篩選但尚未載入的頁面；整段對話列會刪除該段所有封存訊息。' : '只刪除目前選取的這一筆事件；不會自動刪除同一對話中的其他訊息。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">將永久移除這些稽核紀錄、原文、私有附件和清除痕跡，無法還原。原頁仍在使用的內容及「已刪員工」獨立檔案不會因此刪除。</p>{error && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{error}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => { setDeletePreview(null); setError(null); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${buttonFocus}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${buttonFocus}`}><Trash2 className="h-4 w-4" />{deleting ? '刪除中…' : '確認永久刪除'}</button></div></div></section></div>}
+      {deletePreview && <div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-md sm:p-5"><section role="dialog" aria-modal="true" aria-labelledby="audit-delete-title" className="w-full max-w-lg overflow-hidden rounded-2xl border border-rose-300/30 bg-slate-900 shadow-[0_28px_90px_rgba(2,6,23,0.8)]"><div className="h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-rose-500" /><div className="p-5 sm:p-6"><div className="flex items-center gap-3 text-rose-200"><span className="rounded-xl bg-rose-400/10 p-2.5"><AlertTriangle className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-rose-300/70">永久刪除確認</p><h2 id="audit-delete-title" className="mt-1 text-lg font-black text-white">{deletePreview.finished_at ? '完成上次刪除的附件清理？' : deletePreview.scope === 'bulk' ? '刪除目前篩選的全部紀錄？' : '刪除此筆異動紀錄？'}</h2></div></div><div className="mt-5 rounded-xl border border-rose-400/25 bg-rose-500/10 p-4"><p className="text-2xl font-black tabular-nums text-white">{deletePreview.card_count.toLocaleString()} <span className="text-sm font-semibold text-rose-200">列 · {deletePreview.event_count.toLocaleString()} 筆證據</span></p><p className="mt-2 text-xs leading-5 text-slate-300">{deletePreview.finished_at ? '紀錄已刪除，但私有附件尚未確認清理完成。請完成清理，無法還原原紀錄。' : deletePreview.scope === 'bulk' ? '包含符合篩選但尚未載入的頁面；整段對話列會刪除該段所有封存訊息。' : '只刪除目前選取的這一筆事件；不會自動刪除同一對話中的其他訊息。'}</p></div><p className="mt-4 text-xs leading-6 text-rose-100">將永久移除這些稽核事件、原文與私有附件，不另保留清除記錄，無法還原。資料庫備份、外部複本及「已刪員工」獨立檔案不在本次刪除範圍。</p>{error && <p role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-950/50 px-3 py-2 text-xs text-rose-100">{error}</p>}<div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => { setDeletePreview(null); setError(null); }} disabled={deleting} className={`rounded-xl border border-slate-600 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${buttonFocus}`}>取消</button><button type="button" onClick={() => void confirmDeletion()} disabled={deleting} className={`inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-500 disabled:opacity-50 ${buttonFocus}`}><Trash2 className="h-4 w-4" />{deleting ? '處理中…' : deletePreview.finished_at ? '完成附件清理' : '確認永久刪除'}</button></div></div></section></div>}
       {clearTarget && purgeUnlocked && <div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm sm:p-5"><div role="dialog" aria-modal="true" aria-labelledby="audit-clear-title" className="w-full max-w-lg rounded-2xl border border-rose-400/40 bg-slate-900 p-5 shadow-2xl"><div className="flex items-center gap-2 text-rose-200"><AlertTriangle className="h-5 w-5" aria-hidden="true" /><h2 id="audit-clear-title" className="text-base font-black">確認清除此筆稽核證據</h2></div><p className="mt-3 break-all text-xs text-slate-300">事件 ID：{clearTarget.id}</p><p className="mt-2 text-xs leading-5 text-rose-200">{clearTarget.kind === 'employee' ? '這會永久清除此筆員工檔案的帳號及員工編號，但不會刪除使用中的財務歷史或其他內容證據。' : clearTarget.kind === 'notification' ? '這會清除此位員工私人檔案中的單筆通知快照；原發送給其他收件人的通知不受影響。' : '這會永久清除此筆事件的快照與專屬封存圖片；事件識別、操作者、時間及清除原因仍會保留。'} 無法復原，每次只確認一筆。</p><label className="mt-4 block text-xs font-bold text-slate-200">清除原因（10–500 字）<textarea autoFocus rows={3} maxLength={500} value={reason} onChange={event => setReason(event.target.value)} placeholder="請說明清除此筆證據的原因" className={`${inputClass} resize-y`} /></label>{error && <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p>}<p className="mt-1 text-[11px] text-slate-400">目前 {reason.trim().length} 字 · 模式剩餘 {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}</p><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setClearTarget(null)} disabled={clearing} className={`rounded-lg border border-slate-600 px-4 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${buttonFocus}`}>取消</button><button type="button" onClick={() => void handleClear()} disabled={clearing || reason.trim().length < 10 || reason.trim().length > 500 || !purgeUnlocked} className={`rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40 ${buttonFocus}`}>{clearing ? '清除中…' : '確認清除此筆'}</button></div></div></div>}
     </div>
   );

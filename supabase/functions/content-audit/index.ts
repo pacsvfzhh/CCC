@@ -171,6 +171,13 @@ Deno.serve(async (request) => {
         headers: { ...cors, 'Content-Type': 'application/octet-stream', 'X-Audit-Media-Type': blob.type, 'X-Content-Type-Options': 'nosniff' },
       });
     }
+    if (body.action === 'pending_deletes') {
+      const { data, error } = await db.rpc('list_content_audit_pending_deletes', {
+        p_admin_session_token: token,
+      });
+      if (error) throw error;
+      return response(data);
+    }
     if (body.action === 'prepare_delete') {
       const filters = body.filters;
       if (!filters || typeof filters !== 'object' || Array.isArray(filters)) return response({ error: 'Invalid audit filters.' }, 400);

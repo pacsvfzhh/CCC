@@ -102,8 +102,8 @@ BEGIN
   PERFORM pg_advisory_xact_lock(hashtext('content-audit-purge-media'));
   SELECT * INTO v_job FROM private.content_audit_delete_jobs WHERE id = p_job_id FOR UPDATE;
   IF v_job.id IS NULL OR v_job.admin_id IS DISTINCT FROM v_admin
-    OR v_job.token_hash IS DISTINCT FROM private.hash_financial_token(p_admin_session_token)
-    OR (v_job.started_at IS NULL AND v_job.expires_at <= clock_timestamp()) THEN
+    OR (v_job.started_at IS NULL AND (v_job.token_hash IS DISTINCT FROM private.hash_financial_token(p_admin_session_token)
+      OR v_job.expires_at <= clock_timestamp())) THEN
     RAISE EXCEPTION 'Deletion confirmation has expired. Preview the records again.';
   END IF;
   IF v_job.finished_at IS NULL THEN
@@ -127,7 +127,6 @@ BEGIN
   PERFORM pg_advisory_xact_lock(hashtext('content-audit-purge-media'));
   SELECT * INTO v_job FROM private.content_audit_delete_jobs WHERE id = p_job_id FOR UPDATE;
   IF v_job.id IS NULL OR v_job.admin_id IS DISTINCT FROM v_admin
-    OR v_job.token_hash IS DISTINCT FROM private.hash_financial_token(p_admin_session_token)
     OR v_job.started_at IS NULL THEN RAISE EXCEPTION 'Begin the confirmed deletion again.'; END IF;
   IF v_job.finished_at IS NOT NULL THEN
     RETURN jsonb_build_object('success', true, 'deleted_events', cardinality(v_job.target_ids), 'paths_to_remove', v_job.paths_to_remove);
@@ -165,7 +164,6 @@ BEGIN
   IF v_role IS DISTINCT FROM 'super_admin' THEN RAISE EXCEPTION 'Super administrator permission is required.'; END IF;
   SELECT * INTO v_job FROM private.content_audit_delete_jobs WHERE id = p_job_id FOR UPDATE;
   IF v_job.id IS NULL OR v_job.admin_id IS DISTINCT FROM v_admin
-    OR v_job.token_hash IS DISTINCT FROM private.hash_financial_token(p_admin_session_token)
     OR v_job.finished_at IS NULL THEN RAISE EXCEPTION 'Deletion has not finished.'; END IF;
   IF EXISTS (SELECT 1 FROM storage.objects object
     WHERE object.bucket_id = 'content-audit-evidence'
@@ -177,12 +175,29 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION public.list_content_audit_pending_deletes(p_admin_session_token uuid)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+DECLARE v_admin uuid; v_role text; v_jobs jsonb;
+BEGIN
+  SELECT admin_id, admin_role INTO v_admin, v_role FROM private.get_financial_admin_context(p_admin_session_token);
+  IF v_role IS DISTINCT FROM 'super_admin' THEN RAISE EXCEPTION 'Super administrator permission is required.'; END IF;
+  SELECT COALESCE(jsonb_agg(jsonb_build_object('job_id', id, 'card_count', card_count,
+    'event_count', cardinality(target_ids), 'finished_at', finished_at) ORDER BY started_at), '[]'::jsonb)
+    INTO v_jobs FROM private.content_audit_delete_jobs
+    WHERE admin_id = v_admin AND started_at IS NOT NULL;
+  RETURN v_jobs;
+END;
+$$;
+
 REVOKE ALL ON FUNCTION public.prepare_content_audit_delete FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.begin_content_audit_delete FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.finish_content_audit_delete FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.complete_content_audit_delete FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.list_content_audit_pending_deletes FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.prepare_content_audit_delete TO service_role;
 GRANT EXECUTE ON FUNCTION public.begin_content_audit_delete TO service_role;
 GRANT EXECUTE ON FUNCTION public.finish_content_audit_delete TO service_role;
 GRANT EXECUTE ON FUNCTION public.complete_content_audit_delete TO service_role;
+GRANT EXECUTE ON FUNCTION public.list_content_audit_pending_deletes TO service_role;
 NOTIFY pgrst, 'reload schema';
