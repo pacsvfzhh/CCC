@@ -5,6 +5,8 @@ CREATE TABLE private.deleted_employee_delete_jobs (
   account_ids uuid[] NOT NULL,
   notification_ids uuid[] NOT NULL,
   notification_count integer NOT NULL,
+  account_fingerprint text NOT NULL,
+  notification_fingerprint text NOT NULL,
   expires_at timestamptz NOT NULL DEFAULT clock_timestamp() + interval '5 minutes'
 );
 REVOKE ALL ON private.deleted_employee_delete_jobs FROM PUBLIC, anon, authenticated;
@@ -15,7 +17,7 @@ CREATE FUNCTION public.prepare_deleted_employee_archive_delete(
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, public, private, pg_temp AS $$
 DECLARE v_admin uuid; v_role text; v_search text; v_accounts uuid[]; v_notifications uuid[];
-  v_notification_count integer; v_job uuid;
+  v_notification_count integer; v_job uuid; v_account_fingerprint text; v_notification_fingerprint text;
 BEGIN
   SELECT admin_id, admin_role INTO v_admin, v_role
   FROM private.get_financial_admin_context(p_admin_session_token);
@@ -48,9 +50,17 @@ BEGIN
     RAISE EXCEPTION 'No matching employee archive records remain.';
   END IF;
   v_notification_count := cardinality(v_notifications);
+  SELECT md5(COALESCE(jsonb_agg(to_jsonb(record) ORDER BY record.id)::text, '[]')) INTO v_account_fingerprint
+  FROM private.deleted_employee_accounts record WHERE record.id = ANY(v_accounts);
+  SELECT md5(COALESCE(jsonb_agg(to_jsonb(n) ORDER BY n.id)::text, '[]')) INTO v_notification_fingerprint
+  FROM private.deleted_employee_notifications n WHERE n.id = ANY(v_notifications);
   DELETE FROM private.deleted_employee_delete_jobs WHERE expires_at <= clock_timestamp();
-  INSERT INTO private.deleted_employee_delete_jobs(admin_id, token_hash, account_ids, notification_ids, notification_count)
-  VALUES (v_admin, private.hash_financial_token(p_admin_session_token), v_accounts, v_notifications, v_notification_count)
+  INSERT INTO private.deleted_employee_delete_jobs(
+    admin_id, token_hash, account_ids, notification_ids, notification_count, account_fingerprint, notification_fingerprint
+  ) VALUES (
+    v_admin, private.hash_financial_token(p_admin_session_token), v_accounts, v_notifications,
+    v_notification_count, v_account_fingerprint, v_notification_fingerprint
+  )
   RETURNING id INTO v_job;
   RETURN jsonb_build_object('job_id', v_job, 'account_count', cardinality(v_accounts),
     'notification_count', v_notification_count);
@@ -72,18 +82,22 @@ BEGIN
     OR v_job.expires_at <= clock_timestamp() THEN
     RAISE EXCEPTION 'Deletion confirmation has expired. Preview the records again.';
   END IF;
-  PERFORM 1 FROM private.deleted_employee_accounts WHERE id = ANY(v_job.account_ids) FOR UPDATE;
-  IF (SELECT count(*) FROM private.deleted_employee_accounts WHERE id = ANY(v_job.account_ids)) <> cardinality(v_job.account_ids) THEN
+  PERFORM 1 FROM private.deleted_employee_accounts WHERE id = ANY(v_job.account_ids) ORDER BY id FOR UPDATE;
+  IF (SELECT count(*) FROM private.deleted_employee_accounts WHERE id = ANY(v_job.account_ids)) <> cardinality(v_job.account_ids)
+    OR (SELECT md5(COALESCE(jsonb_agg(to_jsonb(record) ORDER BY record.id)::text, '[]'))
+        FROM private.deleted_employee_accounts record WHERE record.id = ANY(v_job.account_ids)) <> v_job.account_fingerprint THEN
     RAISE EXCEPTION 'Employee archive records changed. Preview the records again.';
   END IF;
   PERFORM 1 FROM private.deleted_employee_notifications
-  WHERE record_id = ANY(v_job.account_ids) OR id = ANY(v_job.notification_ids) FOR UPDATE;
+  WHERE record_id = ANY(v_job.account_ids) OR id = ANY(v_job.notification_ids) ORDER BY id FOR UPDATE;
   SELECT count(*) INTO v_notification_count FROM private.deleted_employee_notifications
   WHERE record_id = ANY(v_job.account_ids) OR id = ANY(v_job.notification_ids);
   IF v_notification_count <> v_job.notification_count OR EXISTS (
     SELECT 1 FROM unnest(v_job.notification_ids) target(id)
     WHERE NOT EXISTS (SELECT 1 FROM private.deleted_employee_notifications n WHERE n.id = target.id)
-  ) THEN RAISE EXCEPTION 'Private notifications changed. Preview the records again.'; END IF;
+  ) OR (SELECT md5(COALESCE(jsonb_agg(to_jsonb(n) ORDER BY n.id)::text, '[]'))
+      FROM private.deleted_employee_notifications n WHERE n.id = ANY(v_job.notification_ids)) <> v_job.notification_fingerprint
+    THEN RAISE EXCEPTION 'Private notifications changed. Preview the records again.'; END IF;
 
   DELETE FROM private.deleted_employee_notifications
   WHERE record_id = ANY(v_job.account_ids) OR id = ANY(v_job.notification_ids);
@@ -94,6 +108,8 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.clear_deleted_employee_account(uuid, uuid, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.clear_deleted_employee_notification(uuid, uuid, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.prepare_deleted_employee_archive_delete(uuid, uuid, text, uuid, uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.finish_deleted_employee_archive_delete(uuid, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.prepare_deleted_employee_archive_delete(uuid, uuid, text, uuid, uuid) TO anon, authenticated;
