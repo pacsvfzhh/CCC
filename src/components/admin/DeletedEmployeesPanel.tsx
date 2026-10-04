@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, ArrowLeft, Search, Trash2, UserRound, UserRoundX, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Search, Trash2, UserRoundX, X } from 'lucide-react';
 import { getAdminFinancialSessionToken } from '../../lib/auth';
 import { loadAuditedMedia } from '../../lib/contentAudit';
 import { sanitizeHTML } from '../../lib/sanitizeHTML';
@@ -184,7 +184,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    if (page === 0) { setItems([]); setTotal(0); setLastPageLoaded(false); setOwnersLoaded(false); }
+    if (page === 0) { setItems([]); setTotal(0); setLastPageLoaded(false); }
     const load = async () => {
       try {
         const { data, error } = await supabase.rpc('list_deleted_employee_accounts', {
@@ -469,7 +469,7 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
 
   const ownerGroupsView = (compact = false) => <div aria-label="所屬管理員分組">
     <div className="mb-1.5 flex items-center justify-between px-1"><p className="text-[11px] font-bold tracking-wide text-slate-200">所屬管理員</p><span className="text-[10px] text-slate-500">{adminGroups.length} 位</span></div>
-    <div className={compact ? 'space-y-0.5' : 'space-y-1'}>{[{ id: '', username: '全部管理員', event_count: allOwnerTotal }, ...adminGroups].map(owner => <button key={owner.id} type="button" aria-pressed={filters.owner === owner.id} onClick={() => selectOwner(owner.id)} className={`flex w-full items-center justify-between gap-2 rounded-lg border px-2 text-left text-xs font-semibold transition-colors ${compact ? 'py-0.5' : 'py-2'} ${filters.owner === owner.id ? 'border-cyan-300/30 bg-gradient-to-r from-cyan-500/25 to-blue-500/15 text-white shadow-[inset_3px_0_0_#67e8f9]' : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-white'} ${focusClass}`}><span className="flex min-w-0 items-center gap-2"><span className={`flex shrink-0 items-center justify-center font-bold ${compact ? 'h-5 w-5 rounded-md text-[10px]' : 'h-7 w-7 rounded-lg text-[11px]'} ${filters.owner === owner.id ? 'bg-cyan-300/15 text-cyan-100' : 'bg-slate-800 text-slate-400'}`}>{owner.id ? owner.username.trim().slice(0, 1).toUpperCase() : <UserRound className="h-3.5 w-3.5" />}</span><span className="min-w-0 truncate">{owner.username}</span></span><span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] tabular-nums ${filters.owner === owner.id ? 'bg-cyan-300/15 text-cyan-100' : 'bg-slate-800 text-slate-400'}`}>{ownersLoaded ? owner.event_count.toLocaleString() : '…'}</span></button>)}</div>
+    <div className={compact ? 'space-y-0.5' : 'space-y-1'}>{[{ id: '', username: '全部管理員', event_count: allOwnerTotal }, ...adminGroups].map(owner => <button key={owner.id} type="button" aria-pressed={filters.owner === owner.id} onClick={() => selectOwner(owner.id)} className={`flex w-full items-center justify-between gap-2 rounded-lg border px-2 text-left text-xs font-semibold transition-colors ${compact ? 'py-0.5' : 'py-2'} ${filters.owner === owner.id ? 'border-cyan-300/30 bg-gradient-to-r from-cyan-500/25 to-blue-500/15 text-white shadow-[inset_3px_0_0_#67e8f9]' : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-white'} ${focusClass}`}><span className="min-w-0 truncate">{owner.username}</span><span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] tabular-nums ${filters.owner === owner.id ? 'bg-cyan-300/15 text-cyan-100' : 'bg-slate-800 text-slate-400'}`}>{ownersLoaded ? owner.event_count.toLocaleString() : '…'}</span></button>)}</div>
   </div>;
 
   const searchView = (inputId: string, compact = false) => <form onSubmit={applySearch} role="search" className={compact ? 'space-y-1.5' : 'space-y-2.5'}>
