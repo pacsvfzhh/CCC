@@ -101,7 +101,7 @@ function ArchivedChatMedia({ eventId, path }: { eventId: string; path: string })
   return <div ref={containerRef} className="mt-2">{media?.type === 'video/mp4' ? <video src={media.url} controls preload="none" className="max-h-64 max-w-full rounded-lg" /> : media ? <button type="button" onClick={() => setExpanded(true)} aria-label="放大封存圖片" className={focusClass}><img src={media.url} alt="封存的聊天圖片" className="max-h-52 max-w-full rounded-lg object-contain" /></button> : error ? <button type="button" onClick={() => { setError(null); setRetryKey(value => value + 1); }} className={`text-xs text-cyan-200 underline ${focusClass}`}>圖片載入失敗，點此重試：{error}</button> : <span className="text-xs text-slate-400">圖片載入中…</span>}{expanded && media && createPortal(<div data-archive-media-preview className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/90 p-4" onClick={() => setExpanded(false)}><div role="dialog" aria-modal="true" aria-label="封存圖片預覽" className="relative" onClick={event => event.stopPropagation()}><button type="button" autoFocus onClick={() => setExpanded(false)} aria-label="關閉圖片預覽" className="absolute -right-2 -top-11 rounded-full bg-white/15 p-2 text-white"><X className="h-5 w-5" /></button><img src={media.url} alt="封存圖片預覽" className="max-h-[85vh] max-w-[95vw] object-contain" /></div></div>, document.body)}</div>;
 }
 
-function ArchivedChatCard({ event, onOpen }: { event: RelatedEvidence; onOpen: () => void }) {
+function ArchivedChatCard({ event, workspace }: { event: RelatedEvidence; workspace: 'aaa_service' | 'ccc_service' }) {
   const snapshot = event.after_data?.message ? event.after_data : event.before_data;
   const message = snapshot?.message && typeof snapshot.message === 'object' ? snapshot.message as Record<string, unknown> : null;
   const text = readableSnapshot(snapshot?.rendered_html || message?.message_content);
@@ -116,12 +116,11 @@ function ArchivedChatCard({ event, onOpen }: { event: RelatedEvidence; onOpen: (
   const isCustomer = message?.sender_type === 'customer';
   return <article className={`flex min-w-0 ${isCustomer ? 'justify-end' : 'justify-start'}`}>
     <div className={`max-w-[88%] min-w-0 sm:max-w-[74%] ${isCustomer ? 'text-right' : ''}`}>
-      <div className="mb-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400"><strong className="text-slate-200">{sender}</strong><time>{displayTime(typeof message?.created_at === 'string' ? message.created_at : event.occurred_at)}</time></div>
-      <div className={`min-w-0 rounded-2xl border px-4 py-3 text-left text-sm leading-6 shadow-lg ${isCustomer ? 'rounded-tr-sm border-sky-300/25 bg-sky-500/15 text-slate-100' : 'rounded-tl-sm border-white/10 bg-slate-800 text-slate-100'}`}>
-        <span className="mb-1 block text-[10px] font-bold tracking-wide text-cyan-200">{event.action === 'edit' || event.action === 'source_edit' ? '修改版本' : '移除前紀錄'}</span>
-        {event.cleared_at ? <p className="text-rose-300">此則內容已正式清除。</p> : <>{title && <p className="font-bold text-white">{title}</p>}{subtitle && <p className="text-xs text-slate-300">{subtitle}</p>}{text && <p className="whitespace-pre-wrap break-words">{text}</p>}{message?.message_type === 'rating_request' && <p>評分請求</p>}{message?.message_type === 'rating_result' && <p>服務評分：{String(rating?.rating ?? '—')} · {readableSnapshot(rating?.comment)}</p>}{message?.message_type === 'tip' && <p>打賞：{String(rating?.tip_amount ?? '—')}</p>}{attachments.map(([, path]) => <ArchivedChatMedia key={`${event.id}:${path}`} eventId={event.id} path={path} />)}{imageUrl && !attachments.length && <p className="text-slate-400">原圖無法還原。</p>}{!title && !subtitle && !text && !imageUrl && !attachments.length && !['rating_request', 'rating_result', 'tip'].includes(String(message?.message_type)) && <p className="text-slate-400">沒有可顯示的文字內容。</p>}</>}
-        <button type="button" onClick={onOpen} className={`mt-2 block border-t border-white/10 pt-2 text-xs font-bold text-cyan-200 hover:text-white ${focusClass}`}>查看版本與操作詳情 <ChevronRight className="inline h-3.5 w-3.5" /></button>
+      <div className={`mb-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400 ${isCustomer ? 'justify-end' : ''}`}><strong className="text-slate-200">{sender}</strong></div>
+      <div className={`min-w-0 rounded-[20px] border-2 px-4 py-3 text-left text-sm leading-6 shadow-lg ${isCustomer ? workspace === 'aaa_service' ? 'rounded-tr-md border-orange-200/80 bg-white text-slate-800' : 'rounded-tr-md border-emerald-200/80 bg-white text-slate-800' : workspace === 'aaa_service' ? 'rounded-tl-md border-orange-300/35 bg-gradient-to-br from-slate-800 to-orange-950/70 text-slate-100' : 'rounded-tl-md border-emerald-300/35 bg-gradient-to-br from-slate-800 to-emerald-950/70 text-slate-100'}`}>
+        {event.cleared_at ? <p className="text-rose-600">此則內容已正式清除。</p> : <>{title && <p className="font-bold">{title}</p>}{subtitle && <p className={`text-xs ${isCustomer ? 'text-slate-500' : 'text-slate-300'}`}>{subtitle}</p>}{text && <p className="whitespace-pre-wrap break-words">{text}</p>}{message?.message_type === 'rating_request' && <p>評分請求</p>}{message?.message_type === 'rating_result' && <p>服務評分：{String(rating?.rating ?? '—')} · {readableSnapshot(rating?.comment)}</p>}{message?.message_type === 'tip' && <p>打賞：{String(rating?.tip_amount ?? '—')}</p>}{attachments.map(([, path]) => <ArchivedChatMedia key={`${event.id}:${path}`} eventId={event.id} path={path} />)}{imageUrl && !attachments.length && <p className="text-slate-400">原圖無法還原。</p>}{!title && !subtitle && !text && !imageUrl && !attachments.length && !['rating_request', 'rating_result', 'tip'].includes(String(message?.message_type)) && <p className="text-slate-400">沒有可顯示的文字內容。</p>}</>}
       </div>
+      <time className={`mt-1 block text-[10px] tabular-nums text-slate-400 ${isCustomer ? 'text-right' : ''}`}>{displayTime(typeof message?.created_at === 'string' ? message.created_at : event.occurred_at)}</time>
     </div>
   </article>;
 }
@@ -143,10 +142,25 @@ function groupRelatedEvents(items: RelatedEvidence[]) {
       groups.set(id, { id, name, events: [event] });
     }
   }
-  return Array.from(groups.values());
+  return Array.from(groups.values()).map(group => {
+    const ids = new Set<string>();
+    const events = group.events.filter(event => {
+      const snapshot = event.after_data?.message ? event.after_data : event.before_data;
+      const message = snapshot?.message && typeof snapshot.message === 'object' ? snapshot.message as Record<string, unknown> : null;
+      const id = typeof message?.id === 'string' ? message.id : `event:${event.id}`;
+      if (ids.has(id)) return false;
+      ids.add(id);
+      return true;
+    }).sort((a, b) => {
+      const aMessage = (a.after_data?.message || a.before_data?.message) as Record<string, unknown> | undefined;
+      const bMessage = (b.after_data?.message || b.before_data?.message) as Record<string, unknown> | undefined;
+      return String(aMessage?.created_at || a.occurred_at).localeCompare(String(bMessage?.created_at || b.occurred_at));
+    });
+    return { ...group, events };
+  });
 }
 
-export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, onDeleted, initialSelectedId, initialSection, availableAdmins, onSelectSection, onSelectEmployee, onOpenEvidence }: {
+export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, onDeleted, initialSelectedId, initialSection, availableAdmins, onSelectSection, onSelectEmployee }: {
   switcher: ReactNode;
   isActive: boolean;
   refreshKey: number;
@@ -156,7 +170,6 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
   availableAdmins: Array<{ id: string; username: string }>;
   onSelectSection: (section: Section) => void;
   onSelectEmployee: (id: string | null) => void;
-  onOpenEvidence: (event: RelatedEvidence, employee: DeletedEmployee) => void;
 }) {
   const [draft, setDraft] = useState<Filters>(emptyFilters);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
@@ -589,8 +602,8 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
                   {notificationTotal > RELATED_PAGE_SIZE && <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-300"><span>第 {notificationPage + 1} / {Math.ceil(notificationTotal / RELATED_PAGE_SIZE)} 頁</span><span className="flex gap-2"><button type="button" disabled={notificationPage === 0} onClick={() => setNotificationPage(value => value - 1)} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>上一頁</button><button type="button" disabled={(notificationPage + 1) * RELATED_PAGE_SIZE >= notificationTotal} onClick={() => setNotificationPage(value => value + 1)} className={`rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40 ${focusClass}`}>下一頁</button></span></div>}
                 </section>
                 {(['aaa_service', 'ccc_service'] as const).map(type => <section key={type} data-archive-section={type} className={section === type ? '' : 'hidden'}>
-                  <div className="border-b border-white/10 pb-3"><h3 className="text-sm font-bold text-white">{type === 'aaa_service' ? '模擬客戶' : '經理'}對話 <span className="ml-1 text-xs font-medium text-cyan-200">{relatedLoaded[type] ? `${(type === 'aaa_service' ? aaaGroups : cccGroups).length} 段 · ${related[type].total} 則紀錄` : `${detail.related_counts?.[type] ?? 0} 則紀錄`}</span></h3><p className="mt-1 text-[11px] text-slate-400">一人一列，點選查看聊天內容</p></div>
-                  {relatedLoading[type] || (!relatedLoaded[type] && !relatedError[type]) ? <p role="status" className="py-4 text-xs text-slate-400">整理對話清單中…</p> : relatedError[type] ? <p role="alert" className="py-4 text-xs text-rose-300">{relatedError[type]} <button type="button" onClick={() => setRelatedRetryKey(key => key + 1)} className={`ml-2 text-cyan-200 underline ${focusClass}`}>重試</button></p> : related[type].items.length ? <ol className="divide-y divide-white/[0.08]">{(type === 'aaa_service' ? aaaGroups : cccGroups).map(group => <li key={group.id}><button type="button" onClick={() => setOpenConversation({ type, id: group.id })} className={`group flex w-full min-w-0 items-center gap-3 py-3 text-left transition-colors hover:bg-cyan-400/[0.06] sm:px-2 ${focusClass}`}><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-xs font-bold text-cyan-200">{group.name.slice(0, 1)}</span><span className="min-w-0 flex-1"><strong className="block truncate text-xs text-white group-hover:text-cyan-100">{group.name}</strong><span className="mt-1 block truncate text-[11px] text-slate-400">與 {detail.account_real_name || detail.account_username || '此員工'} 的對話 · {group.events.length} 則紀錄</span></span><time className="hidden shrink-0 text-[10px] tabular-nums text-slate-500 sm:block">{displayTime(group.events[0].occurred_at)}</time><ChevronRight className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-cyan-200" /></button></li>)}</ol> : <p className="py-6 text-center text-xs text-slate-400">沒有可查看的聊天紀錄。</p>}
+                  <div className="border-b border-white/10 pb-3"><h3 className="text-sm font-bold text-white">{type === 'aaa_service' ? '模擬客戶' : '經理'}對話 <span className="ml-1 text-xs font-medium text-cyan-200">{relatedLoaded[type] ? `${(type === 'aaa_service' ? aaaGroups : cccGroups).length} 段 · ${(type === 'aaa_service' ? aaaGroups : cccGroups).reduce((count, group) => count + group.events.length, 0)} 則訊息` : `${detail.related_counts?.[type] ?? 0} 則留證`}</span></h3><p className="mt-1 text-[11px] text-slate-400">一人一列，點選查看聊天內容</p></div>
+                  {relatedLoading[type] || (!relatedLoaded[type] && !relatedError[type]) ? <p role="status" className="py-4 text-xs text-slate-400">整理對話清單中…</p> : relatedError[type] ? <p role="alert" className="py-4 text-xs text-rose-300">{relatedError[type]} <button type="button" onClick={() => setRelatedRetryKey(key => key + 1)} className={`ml-2 text-cyan-200 underline ${focusClass}`}>重試</button></p> : related[type].items.length ? <ol className="divide-y divide-white/[0.08]">{(type === 'aaa_service' ? aaaGroups : cccGroups).map(group => <li key={group.id}><button type="button" onClick={() => setOpenConversation({ type, id: group.id })} className={`group flex w-full min-w-0 items-center gap-3 py-3 text-left transition-colors hover:bg-cyan-400/[0.06] sm:px-2 ${focusClass}`}><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-xs font-bold text-cyan-200">{group.name.slice(0, 1)}</span><span className="min-w-0 flex-1"><strong className="block truncate text-xs text-white group-hover:text-cyan-100">{group.name}</strong><span className="mt-1 block truncate text-[11px] text-slate-400">與 {detail.account_real_name || detail.account_username || '此員工'} 的對話 · {group.events.length} 則訊息</span></span><time className="hidden shrink-0 text-[10px] tabular-nums text-slate-500 sm:block">{displayTime(group.events[0].occurred_at)}</time><ChevronRight className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-cyan-200" /></button></li>)}</ol> : <p className="py-6 text-center text-xs text-slate-400">沒有可查看的聊天紀錄。</p>}
                 </section>)}
               </>}
             </div>
@@ -604,13 +617,13 @@ export default function DeletedEmployeesPanel({ switcher, isActive, refreshKey, 
         <section role="dialog" aria-modal="true" aria-labelledby="archived-conversation-title" className="flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden bg-slate-900 shadow-[0_25px_80px_rgba(0,0,0,0.6)] ring-1 ring-cyan-300/20 sm:h-[85vh] sm:rounded-2xl">
           <header className="flex shrink-0 items-center gap-3 border-b border-cyan-300/15 bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 px-4 py-4 sm:px-6">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-400/15 text-cyan-200"><MessageCircle className="h-5 w-5" /></span>
-            <div className="min-w-0 flex-1"><p className="text-[10px] font-bold tracking-widest text-cyan-300">{openConversation.type === 'aaa_service' ? '模擬客戶' : '經理'} · 封存對話</p><h2 id="archived-conversation-title" className="truncate text-base font-bold text-white">{selectedConversation.name} <span className="font-normal text-slate-400">與 {detail.account_real_name || detail.account_username || '員工'}</span></h2><p className="text-[11px] text-slate-400">{selectedConversation.events.length} 則留證 · 時間為台北時間 (UTC+8)</p></div>
+            <div className="min-w-0 flex-1"><p className="text-[10px] font-bold tracking-widest text-cyan-300">{openConversation.type === 'aaa_service' ? '模擬客戶' : '經理'} · 封存對話</p><h2 id="archived-conversation-title" className="truncate text-base font-bold text-white">{selectedConversation.name} <span className="font-normal text-slate-400">與 {detail.account_real_name || detail.account_username || '員工'}</span></h2><p className="text-[11px] text-slate-400">{selectedConversation.events.length} 則訊息 · 時間為台北時間 (UTC+8)</p></div>
             <button type="button" autoFocus onClick={() => setOpenConversation(null)} aria-label="關閉對話" className={`rounded-lg border border-white/10 bg-white/5 p-2 text-slate-200 hover:bg-white/10 ${focusClass}`}><X className="h-4 w-4" /></button>
           </header>
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.07),transparent_55%)] px-4 py-5 scrollbar-dark sm:px-6">
-            {[...selectedConversation.events].reverse().map(event => <ArchivedChatCard key={event.id} event={event} onOpen={() => { setOpenConversation(null); onOpenEvidence(event, detail); }} />)}
+            {selectedConversation.events.map(event => <ArchivedChatCard key={event.id} event={event} workspace={openConversation.type} />)}
           </div>
-          <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-white/10 bg-slate-950/70 px-4 py-3 text-[11px] text-slate-400 sm:px-6"><span>此處僅供查閱封存紀錄</span><button type="button" onClick={() => setOpenConversation(null)} className={`rounded-lg border border-white/15 px-4 py-2 font-bold text-slate-100 hover:bg-white/10 ${focusClass}`}>關閉</button></footer>
+          <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-white/10 bg-slate-950/70 px-4 py-3 text-[11px] text-slate-400 sm:px-6"><span>完整封存對話 · 唯讀</span><button type="button" onClick={() => setOpenConversation(null)} className={`rounded-lg border border-white/15 px-4 py-2 font-bold text-slate-100 hover:bg-white/10 ${focusClass}`}>關閉</button></footer>
         </section>
       </div>, document.body,
     )}

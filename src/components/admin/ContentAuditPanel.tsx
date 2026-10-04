@@ -504,7 +504,6 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
   const [view, setView] = useState<'content' | 'employees'>('content');
   const [archiveEmployeeId, setArchiveEmployeeId] = useState<string | null>(null);
   const [archiveSection, setArchiveSection] = useState<'profile' | 'notifications' | 'aaa_service' | 'ccc_service'>('profile');
-  const [returnToArchive, setReturnToArchive] = useState(false);
   const [draft, setDraft] = useState<AuditFilters>(emptyFilters);
   const [filters, setFilters] = useState<AuditFilters>(emptyFilters);
   const [filterError, setFilterError] = useState<string | null>(null);
@@ -792,11 +791,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
     setSelectedCard(null);
     setDetail(null);
     setConversation(null);
-    if (returnToArchive) {
-      setView('employees');
-      setReturnToArchive(false);
-    }
-  }, [returnToArchive]);
+  }, []);
 
   const selectEvent = (id: string) => {
     const version = detail?.timeline.find(item => item.id === id);
@@ -936,27 +931,7 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
       {error && <div role="alert" className="flex shrink-0 items-start gap-2 border-b border-rose-500/30 bg-rose-950/50 px-4 py-2.5 text-xs text-rose-200"><AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /><span className="min-w-0 break-words">{error}</span><button type="button" onClick={() => setError(null)} className="ml-auto shrink-0 underline">關閉</button></div>}
 
       {view === 'content' && <div className="relative z-30 shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden">{viewSwitch}</div>}
-      {(view === 'employees' || returnToArchive) && <div className={`${view === 'employees' ? 'flex' : 'hidden'} min-h-0 flex-1 flex-col overflow-hidden`}><DeletedEmployeesPanel switcher={viewSwitch} isActive={view === 'employees'} refreshKey={refreshKey} onDeleted={() => setRefreshKey(key => key + 1)} initialSelectedId={archiveEmployeeId} initialSection={archiveSection} availableAdmins={availableAdmins} onSelectSection={setArchiveSection} onSelectEmployee={setArchiveEmployeeId} onOpenEvidence={(event, employee) => { void (async () => {
-        setReturnToArchive(true);
-        if (!switchView('content')) { setReturnToArchive(false); return; }
-        setArchiveEmployeeId(employee.id);
-        const message = event.before_data?.message;
-        const customerId = message && typeof message === 'object' && 'customer_id' in message && typeof message.customer_id === 'string' ? message.customer_id : null;
-        const cardId = event.action === 'conversation_delete' && customerId
-          ? `conversation:${event.operation_id}:${event.entity_type}:${customerId}:${employee.employee_id}`
-          : `event:${event.id}`;
-        setSelectedCard({ id: event.id, card_id: cardId, operation_id: event.operation_id,
-          entity_type: event.entity_type, entity_id: event.id, action: event.action,
-          owner_admin_id: employee.owner_admin_id, owner_username: employee.owner_username,
-          actor_admin_id: employee.actor_admin_id, actor_username: employee.actor_username,
-          actor_role: employee.actor_role, customer_id: customerId, employee_id: employee.employee_id,
-          employee_account: employee.account_username, employee_number: employee.employee_number,
-          employee_number_source: 'archived_account', recipient_count: 0,
-          message_count: 1, cleared_count: event.cleared_at ? 1 : 0,
-          occurred_at: event.occurred_at, summary: '', cleared_at: event.cleared_at, clear_started_at: null });
-        setSelectedId(cardId);
-        setConversationPage(0);
-      })(); }} /></div>}
+      {view === 'employees' && <div className="flex min-h-0 flex-1 flex-col overflow-hidden"><DeletedEmployeesPanel switcher={viewSwitch} isActive refreshKey={refreshKey} onDeleted={() => setRefreshKey(key => key + 1)} initialSelectedId={archiveEmployeeId} initialSection={archiveSection} availableAdmins={availableAdmins} onSelectSection={setArchiveSection} onSelectEmployee={setArchiveEmployeeId} /></div>}
       {view === 'content' && <>
       <div className="relative z-20 shrink-0 border-b border-slate-700 bg-slate-900 px-3 py-2 lg:hidden">
         <div className="mb-2 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Database className="h-4 w-4 text-cyan-300" aria-hidden="true" /><h2 className="text-xs font-black text-white">內容篩選</h2></div><OwnerPicker selected={filters.owner} owners={ownerOptions} total={filterCounts?.total ?? null} loading={filterCountsLoading} error={filterCountsError} onRetry={() => setFilterCountsRetryKey(key => key + 1)} onSelect={owner => selectQuickFilter({ owner })} /></div>
