@@ -1,6 +1,8 @@
 ALTER TABLE private.deleted_employee_delete_jobs
   ADD COLUMN finished_at timestamptz,
-  ADD COLUMN paths_to_remove jsonb NOT NULL DEFAULT '[]'::jsonb;
+  ADD COLUMN paths_to_remove jsonb NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN orphan_employee_ids uuid[] NOT NULL DEFAULT '{}'::uuid[],
+  ADD COLUMN orphan_fingerprint text;
 
 DO $update_expired_jobs$
 DECLARE definition text;
@@ -21,9 +23,10 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
 BEGIN
   IF OLD.archived_at IS NOT NULL AND EXISTS (
     SELECT 1 FROM private.deleted_employee_delete_jobs job
-    JOIN private.deleted_employee_accounts record ON record.id = ANY(job.account_ids)
+    LEFT JOIN private.deleted_employee_accounts record ON record.id = ANY(job.account_ids)
     WHERE job.id = NULLIF(current_setting('employee_purge.job_id', true), '')::uuid
-      AND record.employee_id = OLD.id AND job.finished_at IS NULL
+      AND (record.employee_id = OLD.id OR OLD.id = ANY(job.orphan_employee_ids))
+      AND job.finished_at IS NULL
   ) THEN
     RETURN OLD;
   END IF;
@@ -37,9 +40,10 @@ SET search_path = pg_catalog, public, private, pg_temp AS $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM private.deleted_employee_delete_jobs job
-    JOIN private.deleted_employee_accounts record ON record.id = ANY(job.account_ids)
+    LEFT JOIN private.deleted_employee_accounts record ON record.id = ANY(job.account_ids)
     WHERE job.id = NULLIF(current_setting('employee_purge.job_id', true), '')::uuid
-      AND record.employee_id = OLD.id AND job.finished_at IS NULL
+      AND (record.employee_id = OLD.id OR OLD.id = ANY(job.orphan_employee_ids))
+      AND job.finished_at IS NULL
   ) THEN
     RETURN OLD;
   END IF;
@@ -51,6 +55,48 @@ BEGIN
       OR object.name LIKE 'id-back/' || OLD.id::text || '-%'
       OR object.name LIKE 'selfie/' || OLD.id::text || '-%');
   RETURN OLD;
+END;
+$$;
+
+CREATE FUNCTION public.list_unpurged_archived_employees(p_admin_session_token uuid)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+DECLARE v_role text; v_result jsonb;
+BEGIN
+  SELECT admin_role INTO v_role FROM private.get_financial_admin_context(p_admin_session_token);
+  IF v_role IS DISTINCT FROM 'super_admin' THEN RAISE EXCEPTION 'Super administrator permission is required.'; END IF;
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+    'employee_id', employee.id, 'archived_at', employee.archived_at,
+    'order_count', (SELECT count(*) FROM public.orders order_row WHERE order_row.user_id = employee.id),
+    'audit_count', (SELECT count(*) FROM private.content_audit_events event WHERE event.employee_id = employee.id)
+  ) ORDER BY employee.archived_at DESC), '[]'::jsonb) INTO v_result
+  FROM public.users employee
+  WHERE employee.archived_at IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM private.deleted_employee_accounts record WHERE record.employee_id = employee.id);
+  RETURN v_result;
+END;
+$$;
+
+CREATE FUNCTION public.prepare_unpurged_archived_employee_delete(
+  p_admin_session_token uuid, p_employee_id uuid
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, private, pg_temp AS $$
+DECLARE v_admin uuid; v_role text; v_employee public.users%ROWTYPE; v_job uuid;
+BEGIN
+  SELECT admin_id, admin_role INTO v_admin, v_role
+  FROM private.get_financial_admin_context(p_admin_session_token);
+  IF v_role IS DISTINCT FROM 'super_admin' THEN RAISE EXCEPTION 'Super administrator permission is required.'; END IF;
+  SELECT * INTO v_employee FROM public.users WHERE id = p_employee_id AND archived_at IS NOT NULL FOR UPDATE;
+  IF v_employee.id IS NULL OR EXISTS (
+    SELECT 1 FROM private.deleted_employee_accounts WHERE employee_id = p_employee_id
+  ) THEN RAISE EXCEPTION 'Archived employee without a private record is not available.'; END IF;
+  INSERT INTO private.deleted_employee_delete_jobs(
+    admin_id, token_hash, account_ids, notification_ids, notification_count,
+    account_fingerprint, notification_fingerprint, orphan_employee_ids, orphan_fingerprint
+  ) VALUES (v_admin, private.hash_financial_token(p_admin_session_token), '{}'::uuid[], '{}'::uuid[], 0,
+    md5('[]'), md5('[]'), ARRAY[p_employee_id], md5(to_jsonb(v_employee)::text))
+  RETURNING id INTO v_job;
+  RETURN jsonb_build_object('job_id', v_job, 'account_count', 1, 'notification_count', 0);
 END;
 $$;
 
@@ -75,13 +121,14 @@ BEGIN
   END IF;
   PERFORM pg_advisory_xact_lock(hashtext('content-audit-purge-media'));
   SELECT * INTO v_job FROM private.deleted_employee_delete_jobs WHERE id = p_job_id FOR UPDATE;
-  IF v_job.id IS NULL OR v_job.admin_id IS DISTINCT FROM v_admin
+  IF v_job.id IS NULL OR (v_job.finished_at IS NULL AND (
+    v_job.admin_id IS DISTINCT FROM v_admin
     OR v_job.token_hash IS DISTINCT FROM private.hash_financial_token(p_admin_session_token)
-    OR (v_job.finished_at IS NULL AND v_job.expires_at <= clock_timestamp()) THEN
+    OR v_job.expires_at <= clock_timestamp())) THEN
     RAISE EXCEPTION 'Deletion confirmation has expired. Preview the records again.';
   END IF;
   IF v_job.finished_at IS NOT NULL THEN
-    RETURN jsonb_build_object('success', true, 'deleted_accounts', cardinality(v_job.account_ids),
+    RETURN jsonb_build_object('success', true, 'deleted_accounts', cardinality(v_job.account_ids) + cardinality(v_job.orphan_employee_ids),
       'deleted_notifications', v_job.notification_count, 'paths_to_remove', v_job.paths_to_remove);
   END IF;
 
@@ -105,7 +152,16 @@ BEGIN
 
   SELECT array_agg(employee_id ORDER BY employee_id) INTO v_employee_ids
   FROM private.deleted_employee_accounts WHERE id = ANY(v_job.account_ids);
-  IF cardinality(v_job.account_ids) > 0 AND (
+  v_employee_ids := COALESCE(v_employee_ids, '{}'::uuid[]) || v_job.orphan_employee_ids;
+  IF v_job.orphan_fingerprint IS NOT NULL AND (
+    cardinality(v_job.orphan_employee_ids) <> 1 OR
+    (SELECT md5(to_jsonb(employee)::text) FROM public.users employee
+      WHERE employee.id = v_job.orphan_employee_ids[1] AND employee.archived_at IS NOT NULL)
+      IS DISTINCT FROM v_job.orphan_fingerprint OR
+    EXISTS (SELECT 1 FROM private.deleted_employee_accounts
+      WHERE employee_id = v_job.orphan_employee_ids[1])
+  ) THEN RAISE EXCEPTION 'Archived employee changed. Preview the deletion again.'; END IF;
+  IF cardinality(v_employee_ids) > 0 AND (
     (SELECT count(*) FROM public.users WHERE id = ANY(v_employee_ids) AND archived_at IS NOT NULL)
       <> cardinality(v_employee_ids)
     OR EXISTS (SELECT 1 FROM public.customer_employee_conversations WHERE employee_id = ANY(v_employee_ids))
@@ -113,6 +169,41 @@ BEGIN
     RAISE EXCEPTION 'Employee data changed or still has active chat. Deletion stopped.';
   END IF;
   PERFORM 1 FROM public.users WHERE id = ANY(v_employee_ids) ORDER BY id FOR UPDATE;
+
+  WITH identities AS (
+    SELECT record.account_username AS username, record.deleted_at AS cutoff
+      FROM private.deleted_employee_accounts record WHERE record.id = ANY(v_job.account_ids)
+    UNION
+    SELECT history.username, employee.archived_at
+      FROM public.employee_login_history history
+      JOIN public.users employee ON employee.id = history.user_id
+      WHERE employee.id = ANY(v_employee_ids)
+    UNION
+    SELECT event.employee_account, employee.archived_at
+      FROM private.content_audit_events event
+      JOIN public.users employee ON employee.id = event.employee_id
+      WHERE employee.id = ANY(v_employee_ids)
+  )
+  DELETE FROM public.login_attempts attempts USING identities identity
+  WHERE identity.username IS NOT NULL AND attempts.identifier = identity.username
+    AND attempts.attempt_time <= identity.cutoff;
+  WITH identities AS (
+    SELECT record.account_username AS username, record.deleted_at AS cutoff
+      FROM private.deleted_employee_accounts record WHERE record.id = ANY(v_job.account_ids)
+    UNION
+    SELECT history.username, employee.archived_at
+      FROM public.employee_login_history history
+      JOIN public.users employee ON employee.id = history.user_id
+      WHERE employee.id = ANY(v_employee_ids)
+    UNION
+    SELECT event.employee_account, employee.archived_at
+      FROM private.content_audit_events event
+      JOIN public.users employee ON employee.id = event.employee_id
+      WHERE employee.id = ANY(v_employee_ids)
+  )
+  DELETE FROM public.financial_login_attempts attempts USING identities identity
+  WHERE identity.username IS NOT NULL AND attempts.account_type = 'employee'
+    AND attempts.username = identity.username AND attempts.last_attempt_at <= identity.cutoff;
 
   SELECT array_agg(DISTINCT operation_id::text) INTO v_operation_ids
   FROM private.content_audit_events WHERE employee_id = ANY(v_employee_ids);
@@ -158,15 +249,8 @@ BEGIN
 
   IF cardinality(v_employee_ids) > 0 THEN
     PERFORM set_config('employee_purge.job_id', p_job_id::text, true);
-    DELETE FROM public.login_attempts attempts USING private.deleted_employee_accounts record
-    WHERE record.id = ANY(v_job.account_ids)
-      AND attempts.identifier = record.account_username
-      AND attempts.attempt_time <= record.deleted_at;
-    DELETE FROM public.financial_login_attempts attempts USING private.deleted_employee_accounts record
-    WHERE record.id = ANY(v_job.account_ids) AND attempts.account_type = 'employee'
-      AND attempts.username = record.account_username AND attempts.last_attempt_at <= record.deleted_at;
     DELETE FROM public.notification_automation_executions WHERE user_id = ANY(v_employee_ids);
-    DELETE FROM public.financial_operations WHERE actor_type = 'employee' AND actor_id = ANY(v_employee_ids);
+    DELETE FROM public.financial_operations WHERE actor_id = ANY(v_employee_ids);
     DELETE FROM public.wallet_balance_baselines WHERE user_id = ANY(v_employee_ids);
     DELETE FROM public.wallet_reconciliation_audit WHERE user_id = ANY(v_employee_ids);
     DELETE FROM public.wallet_ledger_entries WHERE user_id = ANY(v_employee_ids);
@@ -186,7 +270,7 @@ BEGIN
   DELETE FROM private.deleted_employee_accounts WHERE id = ANY(v_job.account_ids);
   UPDATE private.deleted_employee_delete_jobs
   SET finished_at = clock_timestamp(), paths_to_remove = v_paths WHERE id = p_job_id;
-  RETURN jsonb_build_object('success', true, 'deleted_accounts', cardinality(v_job.account_ids),
+  RETURN jsonb_build_object('success', true, 'deleted_accounts', cardinality(v_job.account_ids) + cardinality(v_job.orphan_employee_ids),
     'deleted_notifications', v_notification_count, 'deleted_audit_events', v_event_count,
     'paths_to_remove', v_paths);
 END;
@@ -202,9 +286,9 @@ BEGIN
   FROM private.get_financial_admin_context(p_admin_session_token);
   IF v_role IS DISTINCT FROM 'super_admin' THEN RAISE EXCEPTION 'Super administrator permission is required.'; END IF;
   SELECT * INTO v_job FROM private.deleted_employee_delete_jobs WHERE id = p_job_id FOR UPDATE;
-  IF v_job.id IS NULL OR v_job.admin_id IS DISTINCT FROM v_admin
-    OR v_job.token_hash IS DISTINCT FROM private.hash_financial_token(p_admin_session_token)
-    OR v_job.finished_at IS NULL THEN RAISE EXCEPTION 'Employee deletion has not finished.'; END IF;
+  IF v_job.id IS NULL OR v_job.finished_at IS NULL THEN
+    RAISE EXCEPTION 'Employee deletion has not finished.';
+  END IF;
   IF EXISTS (SELECT 1 FROM storage.objects object
     WHERE (object.bucket_id, object.name) IN (
       SELECT item ->> 'bucket', item ->> 'path'
@@ -226,8 +310,7 @@ BEGIN
   SELECT COALESCE(jsonb_agg(jsonb_build_object('job_id', id, 'file_count', jsonb_array_length(paths_to_remove))
     ORDER BY finished_at), '[]'::jsonb) INTO v_jobs
   FROM private.deleted_employee_delete_jobs
-  WHERE admin_id = v_admin AND token_hash = private.hash_financial_token(p_admin_session_token)
-    AND finished_at IS NOT NULL;
+  WHERE finished_at IS NOT NULL;
   RETURN v_jobs;
 END;
 $$;
@@ -235,6 +318,10 @@ $$;
 REVOKE ALL ON FUNCTION public.finish_deleted_employee_archive_delete(uuid, uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.complete_deleted_employee_archive_delete(uuid, uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.list_pending_deleted_employee_archive_deletes(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.list_unpurged_archived_employees(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.prepare_unpurged_archived_employee_delete(uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.list_unpurged_archived_employees(uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.prepare_unpurged_archived_employee_delete(uuid, uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.finish_deleted_employee_archive_delete(uuid, uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.complete_deleted_employee_archive_delete(uuid, uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.list_pending_deleted_employee_archive_deletes(uuid) TO service_role;

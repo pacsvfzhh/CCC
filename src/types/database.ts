@@ -2352,7 +2352,29 @@ export interface Database {
       };
       finish_deleted_employee_archive_delete: {
         Args: { p_admin_session_token: string; p_job_id: string };
-        Returns: { success: boolean; deleted_accounts: number; deleted_notifications: number };
+        Returns: {
+          success: boolean;
+          deleted_accounts: number;
+          deleted_notifications: number;
+          deleted_audit_events?: number;
+          paths_to_remove: Array<{ bucket: string; path: string }>;
+        };
+      };
+      complete_deleted_employee_archive_delete: {
+        Args: { p_admin_session_token: string; p_job_id: string };
+        Returns: { success: boolean };
+      };
+      list_pending_deleted_employee_archive_deletes: {
+        Args: { p_admin_session_token: string };
+        Returns: Array<{ job_id: string; file_count: number }>;
+      };
+      list_unpurged_archived_employees: {
+        Args: { p_admin_session_token: string };
+        Returns: Array<{ employee_id: string; archived_at: string; order_count: number; audit_count: number }>;
+      };
+      prepare_unpurged_archived_employee_delete: {
+        Args: { p_admin_session_token: string; p_employee_id: string };
+        Returns: { job_id: string; account_count: number; notification_count: number };
       };
       list_deleted_employee_notifications: {
         Args: { p_admin_session_token: string; p_record_id: string; p_page?: number; p_page_size?: number };
