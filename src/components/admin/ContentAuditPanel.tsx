@@ -109,17 +109,33 @@ const actionLabels: Record<AuditAction, string> = {
   edit: '編輯', delete: '刪除', conversation_delete: '刪除對話', customer_delete: '刪除客戶',
   employee_delete: '刪除員工', admin_delete: '刪除管理員', source_edit: '編輯來源', source_delete: '刪除來源',
 };
+const typeStyles: Record<AuditType, { row: string; badge: string }> = {
+  notification: { row: 'border-violet-400/70 bg-violet-500/[0.05] hover:bg-violet-500/[0.11]', badge: 'border-violet-400/30 bg-violet-400/10 text-violet-200' },
+  aaa_service: { row: 'border-amber-400/70 bg-amber-500/[0.05] hover:bg-amber-500/[0.11]', badge: 'border-amber-400/30 bg-amber-400/10 text-amber-200' },
+  ccc_service: { row: 'border-teal-400/70 bg-teal-500/[0.05] hover:bg-teal-500/[0.11]', badge: 'border-teal-400/30 bg-teal-400/10 text-teal-200' },
+};
+const actionStyles: Record<AuditAction, string> = {
+  edit: 'border-sky-400/30 bg-sky-400/10 text-sky-200',
+  source_edit: 'border-sky-400/30 bg-sky-400/10 text-sky-200',
+  delete: 'border-rose-400/30 bg-rose-400/10 text-rose-200',
+  conversation_delete: 'border-rose-400/30 bg-rose-400/10 text-rose-200',
+  customer_delete: 'border-rose-400/30 bg-rose-400/10 text-rose-200',
+  employee_delete: 'border-rose-400/30 bg-rose-400/10 text-rose-200',
+  admin_delete: 'border-rose-400/30 bg-rose-400/10 text-rose-200',
+  source_delete: 'border-rose-400/30 bg-rose-400/10 text-rose-200',
+};
 const inputClass = 'mt-1.5 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus-visible:border-cyan-400 focus-visible:ring-2 focus-visible:ring-cyan-400/30';
 const buttonFocus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950';
 
-function formatAuditTime(value: string | null): string {
+function formatAuditTime(value: string | null, includeZone = true): string {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return `${new Intl.DateTimeFormat('zh-TW', {
+  const formatted = new Intl.DateTimeFormat('zh-TW', {
     timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-  }).format(date)} (UTC+8)`;
+  }).format(date);
+  return includeZone ? `${formatted} (UTC+8)` : formatted;
 }
 
 function formatChatTime(value: string): string {
@@ -1036,18 +1052,20 @@ export default function ContentAuditPanel({ onBack }: { onBack: () => void }) {
           <div className="flex min-h-0 flex-1 flex-col">
             <section aria-label="稽核事件清單" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
               <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 bg-slate-950 px-3 py-2.5"><h2 className="text-sm font-black text-white">異動紀錄</h2><span className="text-xs text-cyan-200">共 {total.toLocaleString()} 筆</span></div>
-              <div className="hidden grid-cols-[50px_155px_minmax(150px,1fr)_150px_120px_180px] gap-3 border-b border-slate-700 bg-slate-800/60 px-4 py-2 text-[11px] font-bold text-slate-300 xl:grid"><span>序號</span><span>資料／操作</span><span>內容摘要</span><span>所屬管理員</span><span>實際操作者</span><span>異動時間（UTC+8）</span></div>
-              <ol className="min-w-0 divide-y divide-slate-700/70">
+              <div className="hidden grid-cols-[36px_112px_92px_minmax(140px,1fr)_112px_104px_148px] items-center gap-2 border-b border-cyan-300/15 bg-[linear-gradient(90deg,#16243a,#111b2e)] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400 xl:grid"><span>序號</span><span>資料類型</span><span>操作</span><span>內容摘要</span><span>所屬管理員</span><span>實際操作者</span><span>異動時間（UTC+8）</span></div>
+              <ol className="min-w-0 divide-y divide-slate-700/50">
                 {events.length === 0 && !loading && !listLoadError && <li className="px-3 py-10 text-center text-xs text-slate-400">沒有符合條件的紀錄。</li>}
                 {events.map((item, index) => (
                   <li key={item.card_id}>
-                    <button type="button" onClick={() => selectEvent(item.card_id)} className={`grid w-full min-w-0 grid-cols-[34px_minmax(0,1fr)] items-center gap-2 border-l-[3px] px-3 py-3 text-left transition-colors xl:grid-cols-[50px_155px_minmax(150px,1fr)_150px_120px_180px] xl:gap-3 xl:px-4 ${selectedId === item.card_id ? 'border-cyan-300 bg-cyan-600/15' : 'border-transparent bg-slate-950/30 hover:bg-slate-800/80'} ${buttonFocus}`}>
-                      <span className="text-xs font-bold tabular-nums text-cyan-300">{index + 1}.</span>
-                      <span className="min-w-0 text-xs font-bold text-white">{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : '通知 · 待核實' : typeLabels[item.entity_type] ?? item.entity_type}<span className="mt-0.5 block text-[11px] font-medium text-cyan-200">{actionLabels[item.action] ?? item.action}</span></span>
-                      <span className="col-start-2 min-w-0 truncate text-xs text-slate-200 xl:col-auto" title={readableText(item.summary)}>{item.action === 'conversation_delete' ? `對話 ${item.message_count} 則 · ${item.employee_account || '員工帳號未留存'}` : readableText(item.summary) || '（無摘要）'}{item.cleared_count > 0 ? ' · 證據已清除' : item.clear_started_at ? ' · 清除未完成' : ''}</span>
-                      <span className="col-start-2 min-w-0 truncate text-[11px] text-slate-300 xl:col-auto xl:text-xs">{item.owner_username || item.owner_admin_id}</span>
-                      <span className="col-start-2 min-w-0 truncate text-[11px] text-slate-400 xl:col-auto xl:text-xs">{item.actor_username}</span>
-                      <time className="col-start-2 text-[11px] tabular-nums text-slate-400 xl:col-auto">{formatAuditTime(item.occurred_at)}</time>
+                    <button type="button" onClick={() => selectEvent(item.card_id)} aria-label={`第 ${index + 1} 筆，${item.entity_type === 'notification' ? '通知' : typeLabels[item.entity_type]}，${actionLabels[item.action]}，${item.owner_username || item.owner_admin_id}，${formatAuditTime(item.occurred_at)}`} className={`grid w-full min-w-0 grid-cols-[26px_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 border-l-[3px] px-3 py-2 text-left transition-colors xl:min-h-11 xl:grid-cols-[36px_112px_92px_minmax(140px,1fr)_112px_104px_148px] xl:gap-y-0 ${selectedId === item.card_id ? 'border-cyan-300 bg-cyan-400/15 shadow-[inset_0_0_0_1px_rgba(103,232,249,0.14)]' : item.cleared_count > 0 ? 'border-slate-500 bg-slate-800/35 hover:bg-slate-800/60' : typeStyles[item.entity_type].row} ${buttonFocus}`}>
+                      <span className="row-span-3 self-start pt-1 text-[11px] font-bold tabular-nums text-slate-400 xl:row-span-1 xl:self-center xl:pt-0">{index + 1}.</span>
+                      <span className={`min-w-0 truncate rounded-md border px-1.5 py-1 text-[11px] font-bold leading-none xl:py-1.5 ${typeStyles[item.entity_type].badge}`}>{item.entity_type === 'notification' ? item.notification_origin === 'manual_admin' ? '手動通知' : '通知 · 待核實' : typeLabels[item.entity_type]}</span>
+                      <span className={`justify-self-end whitespace-nowrap rounded-md border px-1.5 py-1 text-[11px] font-bold leading-none xl:justify-self-start xl:py-1.5 ${actionStyles[item.action]}`}>{actionLabels[item.action]}</span>
+                      <span className="col-span-2 col-start-2 min-w-0 truncate text-xs font-medium text-slate-100 xl:col-auto" title={readableText(item.summary)}>{item.action === 'conversation_delete' ? `對話 ${item.message_count} 則 · ${item.employee_account || '員工帳號未留存'}` : readableText(item.summary) || '（無摘要）'}{item.cleared_count > 0 ? <span className="ml-2 text-slate-400">· 已清除</span> : item.clear_started_at ? <span className="ml-2 text-amber-300">· 清除未完成</span> : null}</span>
+                      <span className="hidden min-w-0 truncate text-[11px] font-medium text-slate-300 xl:block" title={item.owner_username || item.owner_admin_id}>{item.owner_username || item.owner_admin_id}</span>
+                      <span className="hidden min-w-0 truncate text-[11px] text-sky-200 xl:block" title={item.actor_username}>{item.actor_username}</span>
+                      <time className="hidden whitespace-nowrap text-[11px] tabular-nums text-slate-400 xl:block" dateTime={item.occurred_at}>{formatAuditTime(item.occurred_at, false)}</time>
+                      <span className="col-span-2 col-start-2 min-w-0 truncate text-[11px] text-slate-400 xl:hidden">{item.owner_username || item.owner_admin_id} <span className="text-slate-600">/</span> <span className="text-sky-200">{item.actor_username}</span> <span className="text-slate-600">·</span> {formatAuditTime(item.occurred_at, false)}</span>
                     </button>
                   </li>
                 ))}
