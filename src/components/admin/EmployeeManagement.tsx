@@ -5514,7 +5514,6 @@ export default function EmployeeManagement({ admin, isActive = true, onQuickActi
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-white">確定要永久刪除這個員工帳戶嗎？</p>
-                    <p className="mt-1 text-xs leading-5 text-rose-200/80">帳戶無法復原；受影響的 AAA／CCC 聊天原文會保留在超管監察紀錄。其他資料依原有刪除規則處理：</p>
                   </div>
                 </div>
                 <ul className="mt-4 grid gap-2 border-t border-rose-300/15 pt-3 text-xs text-slate-300 sm:grid-cols-2">
